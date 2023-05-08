@@ -180,7 +180,6 @@ def fsm_log(func=None, allow_inline=False):
 
     @wraps(func)
     def wrapped(instance, *args, **kwargs):
-
         by = kwargs.get("by")
         if (
             not by
@@ -266,7 +265,6 @@ class PdfFileMixin:
             return
 
         elif self.file.name and not self.file.name.lower().endswith(".pdf"):
-
             cp = subprocess.run(
                 [
                     "loffice",
@@ -312,7 +310,6 @@ class PdfFileMixin:
 
 
 class StateField(StatusField, FSMField):
-
     pass
 
 
@@ -338,7 +335,6 @@ class RoundSiteManager(Manager):
 
 
 class Subscription(Model):
-
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
 
@@ -354,7 +350,6 @@ class Subscription(Model):
 
 
 class Ethnicity(Model):
-
     code = CharField(max_length=5, primary_key=True)
     description = CharField(max_length=40)
     level_three_code = CharField(max_length=3)
@@ -375,7 +370,6 @@ class Ethnicity(Model):
 
 
 class Language(Model):
-
     code = CharField(max_length=7, primary_key=True)
     description = CharField(max_length=100)
     definition = CharField(max_length=120, null=True, blank=True)
@@ -389,7 +383,6 @@ class Language(Model):
 
 
 class CareerStage(Model):
-
     code = CharField(max_length=2, primary_key=True)
     description = CharField(max_length=40)
     definition = TextField(max_length=1000)
@@ -640,7 +633,6 @@ def default_organisation_code(name):
 
 
 class Organisation(Model):
-
     name = CharField(max_length=200)
     identifier_type = ForeignKey(OrgIdentifierType, null=True, blank=True, on_delete=SET_NULL)
     identifier = CharField(max_length=24, null=True, blank=True)
@@ -681,7 +673,6 @@ class Organisation(Model):
 
 
 class Affiliation(Model):
-
     profile = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
     org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"))
     type = CharField(_("type"), max_length=10, choices=AFFILIATION_TYPES)
@@ -717,7 +708,6 @@ def validate_bod(value):
 
 
 class Profile(Model, PersonMixin):
-
     user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"))
     gender = PositiveSmallIntegerField(
         _("gender"), choices=GENDERS, null=True, blank=False, default=0
@@ -794,7 +784,6 @@ class Profile(Model, PersonMixin):
         return ProtectionPatternProfile.get_data(self)
 
     def __str__(self):
-
         u = self.user
         return (
             (
@@ -851,7 +840,6 @@ class Profile(Model, PersonMixin):
 
 
 class ProfileProtectionPattern(Model):
-
     profile = ForeignKey(Profile, on_delete=CASCADE, related_name="profile_protection_patterns")
     protection_pattern = ForeignKey(
         ProtectionPattern,
@@ -870,7 +858,6 @@ class ProfileProtectionPattern(Model):
 
 
 class ProtectionPatternProfile(Model):
-
     code = PositiveSmallIntegerField(_("code"), primary_key=True)
     description = CharField(_("description"), max_length=80)
     pattern = CharField(_("pattern"), max_length=80)
@@ -983,7 +970,6 @@ class Recognition(Model):
 
 
 class ConvertedFile(HelperMixin, Base):
-
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
 
@@ -1007,7 +993,6 @@ APPLICATION_STATUS = Choices(
 
 
 class LetterOfSupport(PdfFileMixin, Model):
-
     file = PrivateFileField(
         upload_subfolder=lambda instance: [
             "letters_of_support",
@@ -1057,8 +1042,25 @@ def default_application_number(application):
     return f"{code}-{org_code}-{year}-{application_number:03}"
 
 
-class ApplicationMixin:
+class ApplicationFor(Model):
+    application = ForeignKey("Application", on_delete=CASCADE)
+    code = ForeignKey(
+        FieldOfResearch, on_delete=CASCADE, db_column="code", verbose_name="FoR"
+    )
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
 
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        # auto_created = True
+        db_table = "application_for"
+        unique_together = (("application", "code"),)
+        verbose_name = "application FOR"
+        verbose_name_plural = "application FORs"
+
+
+class ApplicationMixin:
     STATUS = APPLICATION_STATUS
 
 
@@ -1211,6 +1213,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ],
     )
     letter_of_support = ForeignKey(LetterOfSupport, on_delete=SET_NULL, blank=True, null=True)
+
+    fors = ManyToManyField(
+        FieldOfResearch,
+        blank=True,
+        through=ApplicationFor,
+        related_name="applications",
+        verbose_name="FORs",
+    )
 
     def is_applicant(self, user):
         """Is user the mail applicant or a member."""
@@ -1693,7 +1703,6 @@ class ApplicationNumber(Model):
 
 
 class EthicsStatement(PdfFileMixin, Model):
-
     application = OneToOneField(Application, on_delete=CASCADE, related_name="ethics_statement")
     file = PrivateFileField(
         verbose_name=_("ethics statement"),
@@ -2007,7 +2016,6 @@ class Panellist(PanellistMixin, PersonMixin, Model):
             return ml.error
 
     def get_or_create_invitation(self, by=None):
-
         u = self.user or User.objects.filter(email=self.email).first()
         if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
             u = ea.user
@@ -2112,7 +2120,6 @@ simple_history.register(
 
 
 class ConflictOfInterest(Model):
-
     panellist = ForeignKey(
         Panellist, null=True, blank=True, on_delete=CASCADE, related_name="conflict_of_interests"
     )
@@ -2130,7 +2137,6 @@ class ConflictOfInterest(Model):
 
 
 def get_unique_invitation_token():
-
     while True:
         token = secrets.token_urlsafe(8)
         if not Invitation.objects.filter(token=token).exists():
@@ -2163,7 +2169,6 @@ class InvitationMixin:
 
 
 class Invitation(InvitationMixin, Model):
-
     STATUS = INVITATION_STATUS
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
@@ -2589,7 +2594,6 @@ TESTIMONIAL_STATUS = Choices(
 
 
 class TestimonialMixin:
-
     STATUS = TESTIMONIAL_STATUS
 
 
@@ -2821,7 +2825,6 @@ def round_template_path(instance, filename):
 
 
 class Round(Model):
-
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
 
@@ -2879,6 +2882,24 @@ class Round(Model):
         verbose_name=_("Score Sheet Template"),
         validators=[FileExtensionValidator(allowed_extensions=["xls", "xlsx"])],
     )
+    # Categories
+    has_for = BooleanField(
+        _("Has FoR"), default=False, help_text=_("Has Field of Research Categories")
+    )
+    has_seo = BooleanField(
+        _("Has SEO"), default=False, help_text=_("Has Socio-Economic Objective Categories")
+    )
+    has_toa = BooleanField(
+        _("Has ToA"), default=False, help_text=_("Has Type of Activity Categories")
+    )
+    has_vmt = BooleanField(
+        _("Has VMT"), default=False, help_text=_("Has Vision Mātauranga Theme Categories")
+    )
+
+    @property
+    def has_categories(self):
+        return self.has_for or self.has_seo or self.has_toa or self.has_vmt
+
     nomination_template = FileField(
         null=True,
         blank=True,
@@ -3173,7 +3194,6 @@ class Round(Model):
         return f"{reverse('applications')}?round={self.id}"
 
     def user_nominations(self, user):
-
         return Nomination.where(
             Q(user=user)
             | Q(email=user.email)
@@ -3212,7 +3232,6 @@ class Round(Model):
         return self.opens_on > today
 
     def all_coi_statements_given_by(self, user):
-
         return (
             not self.applications.all()
             .filter(
@@ -3227,7 +3246,6 @@ class Round(Model):
 
     @property
     def avg_scores(self):
-
         site_id = self.current_site_id
         return Application.objects.raw(
             """SELECT a.*, t.total
@@ -3363,7 +3381,6 @@ class Criterion(Model):
 
 
 class EvaluationMixin:
-
     STATUS = Choices(
         (None, None),
         ("new", _("new")),
@@ -3671,7 +3688,6 @@ class NominationMixin:
 
 
 class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
-
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
 
@@ -3851,7 +3867,6 @@ simple_history.register(
 
 
 class IdentityVerification(Model):
-
     file = PrivateFileField(
         null=True,
         blank=True,
@@ -3938,7 +3953,6 @@ class IdentityVerification(Model):
 
 
 def get_unique_mail_token(length=10):
-
     while True:
         token = secrets.token_urlsafe(length)
         if not MailLog.objects.filter(token=token).exists():
@@ -3969,7 +3983,6 @@ class MailLog(Model):
 
 
 class ScoreSheet(Model):
-
     objects = RoundSiteManager()
 
     panellist = ForeignKey(Panellist, null=True, on_delete=SET_NULL)

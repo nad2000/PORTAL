@@ -83,7 +83,6 @@ admin.site.register(FlatPage, FlatPageAdmin)
 
 
 class SocialTokenAdmin(SocialTokenAdmin):
-
     search_fields = [
         "account__user__username",
         "account__user__email",
@@ -452,7 +451,6 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 class ApplicationAdmin(
     PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, TranslationAdmin, SimpleHistoryAdmin
 ):
-
     save_on_top = True
     date_hierarchy = "created_at"
     list_display = [
@@ -524,7 +522,14 @@ class ApplicationAdmin(
         def view_on_site(self, obj):
             return reverse("application", kwargs={"pk": obj.application_id})
 
-    inlines = [MemberInline, RefereeInline, StateLogInline]
+    class ForInline(admin.TabularInline):
+        model = models.ApplicationFor
+        autocomplete_fields = ["code"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    inlines = [MemberInline, RefereeInline, StateLogInline, ForInline]
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
@@ -621,7 +626,6 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 @admin.register(models.Referee)
 class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
-
     save_on_top = True
     list_display = ["application", "has_testified", "email", "full_name", "status", "testified_at"]
     fsm_field = ["status"]
@@ -769,7 +773,6 @@ class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHisto
 
 @admin.register(models.ConflictOfInterest)
 class ConflictOfInterestAdmin(StaffPermsMixin, admin.ModelAdmin):
-
     save_on_top = True
     list_display = ["panellist", "application", "has_conflict"]
     readonly_fields = [
@@ -781,7 +784,12 @@ class ConflictOfInterestAdmin(StaffPermsMixin, admin.ModelAdmin):
         # "has_conflict",
     ]
     list_filter = ["has_conflict", "application__round", "created_at", "updated_at"]
-    search_fields = ["panellist__first_name", "panellist__last_name", "panellist__email", "application__number"]
+    search_fields = [
+        "panellist__first_name",
+        "panellist__last_name",
+        "panellist__email",
+        "application__number",
+    ]
     date_hierarchy = "created_at"
     autocomplete_fields = ["panellist", "application"]
 
@@ -791,7 +799,6 @@ class ConflictOfInterestAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 @admin.register(models.MailLog)
 class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
-
     save_on_top = True
     view_on_site = False
     list_display = [
@@ -873,7 +880,6 @@ class OrganisationResource(ModelResource):
 
 @admin.register(models.Organisation)
 class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAdmin):
-
     save_on_top = True
     view_on_site = False
     list_display = ["code", "name"]
@@ -991,7 +997,6 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
 
 @admin.register(models.Testimonial)
 class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
-
     # summernote_fields = ["summary"]
 
     autocomplete_fields = ["cv", "referee"]
@@ -1192,6 +1197,17 @@ class RoundAdmin(
                         "research_summary_required",
                     ),
                     "required_referees",
+                ]
+            },
+        ),
+        (
+            "Categories",
+            {
+                "fields": [
+                    "has_for",
+                    "has_seo",
+                    "has_toa",
+                    "has_vmt",
                 ]
             },
         ),
