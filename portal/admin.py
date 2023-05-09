@@ -192,6 +192,28 @@ class EthnicityAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     resource_class = EthnicityResource
 
 
+class SeoResource(ModelResource):
+    class Meta:
+        model = models.SocioEconomicObjective
+        exclude = ["created_at", "updated_at"]
+        import_id_fields = ["code"]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+
+
+@admin.register(models.SocioEconomicObjective)
+class SeoAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    save_on_top = True
+    view_on_site = False
+    search_fields = [
+        "code",
+        "description",
+        "source",
+    ]
+    resource_class = SeoResource
+
+
 class CodeResource(ModelResource):
     class Meta:
         exclude = ["created_at", "updated_at", "id"]
@@ -529,12 +551,55 @@ class ApplicationAdmin(
         view_on_site = False
         classes = ["collapse"]
 
-    inlines = [MemberInline, RefereeInline, StateLogInline, ForInline]
+    class SeoInline(admin.TabularInline):
+        model = models.ApplicationSeo
+        autocomplete_fields = ["code"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    inlines = [MemberInline, RefereeInline, ForInline, SeoInline, StateLogInline]
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
 
     actions = ["send_identity_verification_reminder", "request_resubmission"]
+
+    # def save_formset(self, request, form, formset, change):
+    #     super().save_formset(request, form, formset, change)
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        obj = form.instance
+
+        # Addjust shares of FoR:
+        total = models.ApplicationFor.where(application=obj).aggregate(total=models.Sum("share"))[
+            "total"
+        ]
+        if total is not None and total != 100:
+            records = list(models.ApplicationFor.where(application=obj, share__isnull=False).order_by("share"))
+            if records and len(records) > 1:
+                for af in records[:-1]:
+                    af.share = round((af.share or 0) * 100 / total)
+                records[-1].share = 100 - sum(fa.share for fa in records[:-1])
+            else:
+                records[0].share = 100
+            models.ApplicationFor.objects.bulk_update(records, ["share"])
+
+        # Addjust shares of SEO:
+        total = models.ApplicationSeo.where(application=obj).aggregate(total=models.Sum("share"))[
+            "total"
+        ]
+        if total is not None and total != 100:
+            records = list(models.ApplicationSeo.where(application=obj, share__isnull=False).order_by("share"))
+            if records and len(records) > 1:
+                for af in records[:-1]:
+                    af.share = round((af.share or 0) * 100 / total)
+                records[-1].share = 100 - sum(fa.share for fa in records[:-1])
+            else:
+                records[0].share = 100
+            models.ApplicationSeo.objects.bulk_update(records, ["share"])
+
 
     @admin.action(description="Remind to verify identities")
     def send_identity_verification_reminder(self, request, queryset):
