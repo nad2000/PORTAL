@@ -470,6 +470,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                             $("#roundDetailLabel").html(event.relatedTarget.dataset.roundTitle);
                             $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId);
                             // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
+                            $('#roundDetail').trigger('focus');
                           });
                   $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
                   $('#previous-applications').on('hide.bs.collapse', function () {
