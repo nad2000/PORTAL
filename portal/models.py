@@ -458,6 +458,49 @@ class ApplicationDecision(Model):
         ordering = ["description"]
 
 
+# class VisionMatauranga(Model):
+#     code = CharField(max_length=3, primary_key=True)
+#     framework = CharField(max_length=255, blank=True, null=True)
+#     description = TextField(blank=True, null=True)
+
+#     def __str__(self):
+#         return f"{self.code}: {self.framework}"
+
+#     class Meta:
+#         db_table = "vision_matauranga"
+#         verbose_name = "Vision Mātauranga"
+
+
+class SocioEconomicObjective(Model):
+    code = CharField(max_length=6, primary_key=True)
+    description = CharField(max_length=150, blank=True, null=True)
+    source = CharField(max_length=255, blank=True, null=True)
+
+    history = HistoricalRecords(table_name="seo_history")
+
+    def __str__(self):
+        return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = "socio_economic_objective"
+        verbose_name = "SEO"
+        verbose_name_plural = "SEOs"
+
+
+# class TypeOfActivity(Model):
+#     code = CharField(max_length=2, primary_key=True)
+#     description = CharField(max_length=255, blank=True, null=True)
+#     source = CharField(max_length=255, blank=True, null=True)
+
+#     def __str__(self):
+#         return f"{self.code}: {self.description}"
+
+#     class Meta:
+#         db_table = "type_of_activity"
+#         verbose_name = "ToA"
+#         verbose_name_plural = "ToAs"
+
+
 class FieldOfResearch(Model):
     code = CharField(max_length=6, primary_key=True)
     description = CharField(_("description"), max_length=120)
@@ -1043,10 +1086,8 @@ def default_application_number(application):
 
 
 class ApplicationFor(Model):
-    application = ForeignKey("Application", on_delete=CASCADE)
-    code = ForeignKey(
-        FieldOfResearch, on_delete=CASCADE, db_column="code", verbose_name="FoR"
-    )
+    application = ForeignKey("Application", on_delete=CASCADE, related_name="application_fors")
+    code = ForeignKey(FieldOfResearch, on_delete=CASCADE, db_column="code", verbose_name="FoR")
     share = PositiveSmallIntegerField(null=True, blank=True, default=None)
 
     def __str__(self):
@@ -1058,6 +1099,56 @@ class ApplicationFor(Model):
         unique_together = (("application", "code"),)
         verbose_name = "application FOR"
         verbose_name_plural = "application FORs"
+
+
+class ApplicationSeo(Model):
+    application = ForeignKey("Application", on_delete=CASCADE, related_name="application_seos")
+    code = ForeignKey(
+        SocioEconomicObjective, on_delete=CASCADE, db_column="code", verbose_name="SEO"
+    )
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        # auto_created = True
+        db_table = "application_seo"
+        unique_together = (("application", "code"),)
+        verbose_name = "application SEO"
+        verbose_name_plural = "application SEOs"
+
+
+# class ApplicationToa(Model):
+#     application = ForeignKey("Application", on_delete=CASCADE)
+#     code = ForeignKey(TypeOfActivity, on_delete=CASCADE, db_column="code", verbose_name="ToA")
+#     share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+#     def __str__(self):
+#         return self.code_id
+
+#     class Meta:
+#         # auto_created = True
+#         db_table = "application_toa"
+#         unique_together = (("application", "code"),)
+#         verbose_name = "application ToA"
+#         verbose_name_plural = "application ToAs"
+
+
+# class ApplicationVM(Model):
+#     application = ForeignKey("Application", on_delete=CASCADE)
+#     code = ForeignKey(VisionMatauranga, on_delete=CASCADE, db_column="code", verbose_name="VM")
+#     share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+#     def __str__(self):
+#         return self.code_id
+
+#     class Meta:
+#         # auto_created = True
+#         db_table = "application_vm"
+#         unique_together = (("application", "code"),)
+#         verbose_name = "application VM"
+#         verbose_name_plural = "application VMs"
 
 
 class ApplicationMixin:
@@ -1219,7 +1310,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         through=ApplicationFor,
         related_name="applications",
-        verbose_name="FORs",
+        verbose_name="FoRs",
+    )
+
+    seos = ManyToManyField(
+        SocioEconomicObjective,
+        blank=True,
+        through=ApplicationSeo,
+        related_name="applications",
+        verbose_name="SEOs",
     )
 
     def is_applicant(self, user):
