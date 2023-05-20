@@ -469,6 +469,13 @@ class ApplicationForm(forms.ModelForm):
             )
         if round.has_categories:
             category_fields = []
+            if round.has_fors:
+                category_fields.append(
+                    Fieldset(
+                        _("Field of Research"),
+                        TableInlineFormset("fors")
+                    )
+                ),
             if round.has_toas:
                 category_fields.append(
                     Fieldset(
@@ -497,9 +504,7 @@ class ApplicationForm(forms.ModelForm):
                 )
             if round.has_keywords:
                 category_fields.append(
-                    Row(
-                        Column("keywords", css_class="col-12"),
-                    ),
+                    Field("keywords"),
                 )
             tabs.append(
                 Tab(

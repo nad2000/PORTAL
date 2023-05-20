@@ -1852,6 +1852,35 @@ class ApplicationView(LoginRequiredMixin):
                 # else [],
             )
         context["referees"] = referee_form_set
+
+        if round.has_fors:
+            context["fors"] = forms.inlineformset_factory(
+                models.Application,
+                models.ApplicationFor,
+                # form=forms.RefereeForm,
+                extra=1, can_delete=True,
+                exclude=[],
+                labels={"code": _("Field of Research")},
+                help_texts={
+                    "code": _("Field of Research"),
+                    "share": _("Share in %"),
+                },
+                widgets={
+                    "code": autocomplete.ModelSelect2(
+                        "for-autocomplete",
+                        attrs={
+                            "data-placeholder": _("Choose a field of research..."),
+                            "placeholder": _("Choose a field of research..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Field of research is required"),
+                            "oninput": "this.setCustomValidity('')",
+                        },
+                    ),
+                }
+
+
+            )
         return context
 
     def get_form_kwargs(self):
@@ -2851,6 +2880,17 @@ class FosAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if self.q:
             q = q.filter(description__icontains=self.q).order_by("description")
         return q.order_by("description")
+
+class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return False  # request.user.is_authenticated
+
+    def get_queryset(self):
+        if self.q:
+            q = models.FieldOfResearch.where(description__icontains=self.q).order_by("description")
+            return q.order_by("description")
+        return models.FieldOfResearch.objects.none()
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):

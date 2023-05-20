@@ -513,7 +513,7 @@ class FieldOfResearch(Model):
     definition = CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
-        return self.description
+        return f"{self.code}: {self.description}"
 
     class Meta:
         db_table = "field_of_research"
