@@ -114,7 +114,6 @@ class TableInlineFormset(LayoutObject):
     template = "portal/table_inline_formset.html"
 
     def __init__(self, formset_name_in_context, template=None):
-
         self.formset_name_in_context = formset_name_in_context
         self.form_id = formset_name_in_context
         self.fields = []
@@ -261,7 +260,6 @@ def apnumber(value):
 
 
 class ApplicationForm(forms.ModelForm):
-
     letter_of_support_file = FileField(
         required=False,
         widget=forms.ClearableFileInput(
@@ -299,7 +297,6 @@ class ApplicationForm(forms.ModelForm):
         return super().save(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         initial = kwargs.get("initial", {})
         user = initial.get("user")
@@ -470,6 +467,48 @@ class ApplicationForm(forms.ModelForm):
                     css_id="summary",
                 ),
             )
+        if round.has_categories:
+            category_fields = []
+            if round.has_toas:
+                category_fields.append(
+                    Fieldset(
+                        _("Type of Activities"),
+                        # Row('password1', 'password2'),
+                        Row(
+                            Column("toa_basic", css_class="col-2"),
+                            Column("toa_strategic", css_class="col-2"),
+                            Column("toa_applied", css_class="col-2"),
+                            Column("toa_experimental", css_class="col-2"),
+                        ),
+                    ),
+                )
+            if round.has_vmts:
+                category_fields.append(
+                    Fieldset(
+                        _(" Vision Mātauranga Theme Categories"),
+                        # Row('password1', 'password2'),
+                        Row(
+                            Column("vm_ecs", css_class="col-3"),
+                            Column("vm_ens", css_class="col-3"),
+                            Column("vm_hsw", css_class="col-3"),
+                            Column("vm_ink", css_class="col-3"),
+                        ),
+                    ),
+                )
+            if round.has_keywords:
+                category_fields.append(
+                    Row(
+                        Column("keywords", css_class="col-12"),
+                    ),
+                )
+            tabs.append(
+                Tab(
+                    _("Categories"),
+                    HTML(f'<div class="alert alert-dark" role="alert">TODO:</div>'),
+                    # Div(TableInlineFormset("referees"), css_id="referees"),
+                    *category_fields,
+                ),
+            )
         if round.has_referees:
             if round.required_referees and round.required_referees > 1:
                 referee_information_lines = [
@@ -633,6 +672,10 @@ class ApplicationForm(forms.ModelForm):
             "cv",
         ]
         widgets = dict(
+            keywords=autocomplete.ModelSelect2Multiple(
+                url="keyword-autocomplete",
+                attrs={"data-placeholder": _("Choose a keyword or create a new one ...")},
+            ),
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
                 attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
@@ -653,10 +696,15 @@ class ApplicationForm(forms.ModelForm):
                 attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
         )
+        help_texts = {
+            "vm_ecs": None,
+            "vm_ens": None,
+            "vm_hsw": None,
+            "vm_ink": None,
+        }
 
 
 class InvitationStatusInput(Widget):
-
     # def __init__(self, attrs=None):
     #     super().__init__(attrs)
     #     breakpoint()
@@ -667,7 +715,6 @@ class InvitationStatusInput(Widget):
 
 
 class MemberForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm):
-
     readonly_fields = ["status"]
 
     def clean(self):
@@ -722,7 +769,6 @@ class MemberFormSet(
 
 
 class RefereeForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm):
-
     readonly_fields = ["status"]
 
     def save(self, commit=True):
@@ -884,7 +930,6 @@ class ProfilePersonIdentifierForm(forms.ModelForm):
 
 
 class MemberFormSetHelper(FormHelper):
-
     template = "portal/table_inline_formset.html"
 
     # def __init__(self, previous_step=None, next_step=None, *args, **kwargs):
@@ -915,7 +960,6 @@ class MemberFormSetHelper(FormHelper):
 
 
 class ProfileSectionFormSetHelper(FormHelper):
-
     template = "portal/table_inline_formset.html"
 
     def __init__(self, profile=None, previous_step=None, next_step=None, *args, **kwargs):
@@ -1225,7 +1269,6 @@ class IdentityVerificationForm(forms.ModelForm):
 
 
 class PanellistForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm):
-
     readonly_fields = ["status"]
     confirm_deletion = True
 
@@ -1313,7 +1356,6 @@ class PanellistFormSetHelper(FormHelper):
 
 
 class ConflictOfInterestForm(forms.ModelForm):
-
     has_conflict = OppositeBooleanField(label=_("Conflict of Interest"), required=False)
 
     def __init__(self, *args, **kwargs):
@@ -1386,7 +1428,6 @@ class ReadOnlyApplicationWidget(Widget):
 
 
 class ScoreForm(forms.ModelForm):
-
     value = forms.TypedChoiceField(choices=zip(range(1, 10), range(1, 10)))
 
     def __init__(self, *args, **kwargs):
@@ -1437,7 +1478,6 @@ class ScoreForm(forms.ModelForm):
 
 
 class RoundConflictOfInterestForm(forms.ModelForm):
-
     has_conflict = forms.NullBooleanField(
         label=_("Conflict of Interest"), required=False, widget=forms.HiddenInput()
     )
@@ -1477,7 +1517,6 @@ class RoundConflictOfInterestForm(forms.ModelForm):
 
 class ScoreSheetForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
-
         self.helper = FormHelper()
         super().__init__(*args, **kwargs)
 

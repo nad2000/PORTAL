@@ -204,6 +204,13 @@ urlpatterns = [
         include(
             [
                 path(
+                    "keyword/",
+                    views.KeywordAutocomplete.as_view(
+                        model=models.Keyword, create_field="name"
+                    ),
+                    name="keyword-autocomplete",
+                ),
+                path(
                     "iwi_group/",
                     views.IwiGroupAutocomplete.as_view(model=models.IwiGroup),
                     name="iwi-group-autocomplete",
@@ -418,7 +425,6 @@ urlpatterns = [
 ]
 
 if settings.SENTRY_DSN:
-
     from django.contrib.auth.decorators import login_required
 
     def trigger_error(request, message=None):

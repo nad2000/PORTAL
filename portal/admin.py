@@ -3,6 +3,8 @@ import os
 import modeltranslation
 from allauth.socialaccount.admin import SocialTokenAdmin
 from allauth.socialaccount.models import SocialToken
+from dal import autocomplete
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.flatpages.admin import FlatPageAdmin
@@ -26,6 +28,10 @@ from . import models
 admin.site.site_url = "/start"
 admin.site.site_header = _("Portal Administration")
 admin.site.site_title = _("Portal Administration")
+
+
+class StateLogInline(StateLogInline):
+    classes = ["collapse"]
 
 
 class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
@@ -166,6 +172,20 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
     list_filter = ["created_at", "updated_at", "is_confirmed"]
     search_fields = ["email"]
     date_hierarchy = "created_at"
+
+
+@admin.register(models.Keyword)
+class KeywordAdmin(ImportExportModelAdmin):
+    show_close_button = True
+
+    # class KeywordedItemInline(admin.StackedInline):
+    #     model = models.KeywordedItem
+
+    # inlines = [KeywordedItemInline]
+    list_display = ["name", "slug"]
+    ordering = ["name", "slug"]
+    search_fields = ["name"]
+    prepopulated_fields = {"slug": ["name"]}
 
 
 class EthnicityResource(ModelResource):
@@ -469,10 +489,23 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
         return queryset
 
 
+# class ApplicationForm(forms.ModelForm):
+#     class Meta:
+#         model = models.Application
+#         widgets = {
+#             # "keywords": autocomplete.TaggitSelect2(
+#             "keywords": autocomplete.ModelSelect2Multiple(
+#                 url="keyword-autocomplete",
+#             )
+#         }
+#         fields = "__all__"
+
+
 @admin.register(models.Application)
 class ApplicationAdmin(
     PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, TranslationAdmin, SimpleHistoryAdmin
 ):
+    # form = ApplicationForm
     save_on_top = True
     date_hierarchy = "created_at"
     list_display = [
@@ -558,7 +591,14 @@ class ApplicationAdmin(
         view_on_site = False
         classes = ["collapse"]
 
-    inlines = [MemberInline, RefereeInline, ForInline, SeoInline, StateLogInline]
+    class KeywordInline(admin.TabularInline):
+        model = models.ApplicationKeyword
+        autocomplete_fields = ["keyword"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    inlines = [MemberInline, RefereeInline, ForInline, SeoInline, KeywordInline, StateLogInline]
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
@@ -577,7 +617,9 @@ class ApplicationAdmin(
             "total"
         ]
         if total is not None and total != 100:
-            records = list(models.ApplicationFor.where(application=obj, share__isnull=False).order_by("share"))
+            records = list(
+                models.ApplicationFor.where(application=obj, share__isnull=False).order_by("share")
+            )
             if records and len(records) > 1:
                 for af in records[:-1]:
                     af.share = round((af.share or 0) * 100 / total)
@@ -591,7 +633,9 @@ class ApplicationAdmin(
             "total"
         ]
         if total is not None and total != 100:
-            records = list(models.ApplicationSeo.where(application=obj, share__isnull=False).order_by("share"))
+            records = list(
+                models.ApplicationSeo.where(application=obj, share__isnull=False).order_by("share")
+            )
             if records and len(records) > 1:
                 for af in records[:-1]:
                     af.share = round((af.share or 0) * 100 / total)
@@ -599,7 +643,6 @@ class ApplicationAdmin(
             else:
                 records[0].share = 100
             models.ApplicationSeo.objects.bulk_update(records, ["share"])
-
 
     @admin.action(description="Remind to verify identities")
     def send_identity_verification_reminder(self, request, queryset):
@@ -1269,10 +1312,11 @@ class RoundAdmin(
             "Categories",
             {
                 "fields": [
-                    "has_for",
-                    "has_seo",
-                    "has_toa",
-                    "has_vmt",
+                    "has_fors",
+                    "has_keywords",
+                    "has_seos",
+                    "has_toas",
+                    "has_vmts",
                 ]
             },
         ),

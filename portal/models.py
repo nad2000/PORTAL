@@ -68,6 +68,8 @@ from model_utils.fields import MonitorField, StatusField
 from private_storage.fields import PrivateFileField
 from PyPDF2 import PdfFileMerger
 from simple_history.models import HistoricalRecords
+from taggit.managers import TaggableManager
+from taggit.models import GenericTaggedItemBase, TagBase, TaggedItemBase
 from weasyprint import HTML
 
 from common.models import TITLES, Base, EmailField, HelperMixin, Model, PersonMixin
@@ -1163,6 +1165,35 @@ def photo_identity_help_text():
     return _("Please upload a scanned copy of your passport in PDF, JPG, or PNG format")
 
 
+class Keyword(TagBase):
+    class Meta:
+        verbose_name = _("Keyword")
+        verbose_name_plural = _("Keywords")
+        db_table = "keyword"
+
+
+# class KeywordItem(GenericTaggedItemBase, TaggedItemBase):
+
+#     tag = ForeignKey(
+#         Keyword,
+#         on_delete=CASCADE,
+#         related_name="%(app_label)s_%(class)s_items",
+#     )
+
+#     class Meta:
+#         verbose_name = _("keyworded item")
+#         verbose_name_plural = _("keyworded items")
+#         db_table = 'keyword_item'
+
+
+class ApplicationKeyword(Model):
+    application = ForeignKey("Application", on_delete=CASCADE)
+    keyword = ForeignKey(Keyword, on_delete=CASCADE)
+
+    class Meta:
+        db_table = "application_keyword"
+
+
 class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # objects = RoundSiteManager()
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
@@ -1312,7 +1343,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         related_name="applications",
         verbose_name="FoRs",
     )
-
     seos = ManyToManyField(
         SocioEconomicObjective,
         blank=True,
@@ -1320,6 +1350,91 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         related_name="applications",
         verbose_name="SEOs",
     )
+    keywords = ManyToManyField(
+        Keyword,
+        verbose_name=_("Keywords"),
+        through=ApplicationKeyword,
+        blank=True,
+        related_name="applications",
+    )
+    vm_ecs = PositiveSmallIntegerField(
+        "Indigenous Innovation",
+        help_text=_(
+            "Contributing to Economic Growth through Distinctive R&D. New Zealand needs "
+            "its businesses and for-profit enterprises to perform at an optimum level and "
+            "contribute to economic growth. This theme concerns the development of distinctive "
+            "products, processes, systems and services from Māori knowledge, resources and people. "
+            "Of particular interest are products that may be distinctive in the international marketplace."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_ens = PositiveSmallIntegerField(
+        "Taiao",
+        help_text=_(
+            "Achieving Environmental Sustainability through Iwi and Hapū relationships with land "
+            "and sea. Like all communities, Māori communities aspire to live in sustainable communities "
+            "dwelling in healthy environments. Much general environmental research is relevant to Māori. "
+            "Distinctive environmental research arising in Māori communities relates to the expression of "
+            "iwi and hapū knowledge, culture and experience – including Kaitiakitanga - in New Zealand land and seascapes."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_hsw = PositiveSmallIntegerField(
+        "Hauora/Oranga",
+        help_text=_(
+            "Improving Māori Health and Social Well-being. Distinctive challenges to Māori health "
+            "and social well-being continue to arise within Māori communities disadvantaging them "
+            "in relation to the general population. Research is needed to meet these ongoing needs."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_ink = PositiveSmallIntegerField(
+        "Mātauranga",
+        help_text=_(
+            "Exploring Indigenous Knowledge and RS&T. This exploratory theme aims to develop a body "
+            "of knowledge, as a contribution to RS&T, at the interface between indigenous knowledge "
+            "including mātauranga Māori – and research, science and technology."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+
+    toa_basic = PositiveSmallIntegerField(
+        _("Basic"),
+        help_text=_("Pure basic research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_experimental = PositiveSmallIntegerField(
+        _("Experimental"),
+        help_text=_("Experimental development"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_applied = PositiveSmallIntegerField(
+        _("Applied"),
+        help_text=_("Applied research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_strategic = PositiveSmallIntegerField(
+        _("Strategic"),
+        help_text=_("Strategic basic research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+
 
     def is_applicant(self, user):
         """Is user the mail applicant or a member."""
@@ -2982,22 +3097,25 @@ class Round(Model):
         validators=[FileExtensionValidator(allowed_extensions=["xls", "xlsx"])],
     )
     # Categories
-    has_for = BooleanField(
-        _("Has FoR"), default=False, help_text=_("Has Field of Research Categories")
+    has_fors = BooleanField(
+        _("Has FoRs"), default=False, help_text=_("Has Field of Research Categories")
     )
-    has_seo = BooleanField(
-        _("Has SEO"), default=False, help_text=_("Has Socio-Economic Objective Categories")
+    has_seos = BooleanField(
+        _("Has SEOs"), default=False, help_text=_("Has Socio-Economic Objective Categories")
     )
-    has_toa = BooleanField(
+    has_toas = BooleanField(
         _("Has ToA"), default=False, help_text=_("Has Type of Activity Categories")
     )
-    has_vmt = BooleanField(
-        _("Has VMT"), default=False, help_text=_("Has Vision Mātauranga Theme Categories")
+    has_vmts = BooleanField(
+        _("Has VMTs"), default=False, help_text=_("Has Vision Mātauranga Theme Categories")
     )
+    has_keywords = BooleanField(_("Has keywords"), default=False, help_text=_("Has Keywords"))
 
     @property
     def has_categories(self):
-        return self.has_for or self.has_seo or self.has_toa or self.has_vmt
+        return (
+            self.has_fors or self.has_seos or self.has_toas or self.has_vmts or self.has_keywords
+        )
 
     nomination_template = FileField(
         null=True,

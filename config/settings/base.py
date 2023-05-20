@@ -79,11 +79,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 
+# https://django-taggit.readthedocs.io/en/latest/getting_started.html
+TAGGIT_CASE_INSENSITIVE = True
+
 # DATABASES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"  # 31-bit
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"  # 32-bit
 DATABASES = {"default": env.db("DATABASE_URL", default="postgres:///portal")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
@@ -147,6 +150,7 @@ THIRD_PARTY_APPS = [
     "explorer",
     # "dynamic_breadcrumbs",
     "django_bootstrap_breadcrumbs",
+    "taggit",
 ]
 
 # workaround for https://github.com/shestera/django-multisite/issues/9
