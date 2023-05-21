@@ -738,6 +738,12 @@ class Affiliation(Model):
     history = HistoricalRecords(table_name="affiliation_history")
 
     def __str__(self):
+        if not (self.start_date or self.end_date):
+            return f"{self.org}"
+        if not self.end_date:
+            return f"{self.org}: {self.start_date}"
+        if not self.start_date:
+            return f"{self.org}: until {self.end_date}"
         return f"{self.org}: {self.start_date} to {self.end_date}"
 
     class Meta:
@@ -1434,7 +1440,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         default=0,
     )
-
 
     def is_applicant(self, user):
         """Is user the mail applicant or a member."""
