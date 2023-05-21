@@ -693,7 +693,7 @@ class Affiliation(Model):
     history = HistoricalRecords(table_name="affiliation_history")
 
     def __str__(self):
-        if not (self.start_date and self.end_date):
+        if not (self.start_date or self.end_date):
             return f"{self.org}"
         if not self.end_date:
             return f"{self.org}: {self.start_date}"
