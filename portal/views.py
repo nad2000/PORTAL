@@ -1878,8 +1878,32 @@ class ApplicationView(LoginRequiredMixin):
                         },
                     ),
                 }
-
-
+            )
+        if round.has_seos:
+            context["seos"] = forms.inlineformset_factory(
+                models.Application,
+                models.ApplicationSeo,
+                # form=forms.RefereeForm,
+                extra=1, can_delete=True,
+                exclude=[],
+                labels={"code": _("Socio-Economic Objective")},
+                help_texts={
+                    "code": _("Socio-Economic Objective"),
+                    "share": _("Share in %"),
+                },
+                widgets={
+                    "code": autocomplete.ModelSelect2(
+                        "seo-autocomplete",
+                        attrs={
+                            "data-placeholder": _("Choose a ..."),
+                            "placeholder": _("Choose a Socio-Economic Objective..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Socio-Economic Objective is required"),
+                            "oninput": "this.setCustomValidity('')",
+                        },
+                    ),
+                }
             )
         return context
 
@@ -2887,10 +2911,30 @@ class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return False  # request.user.is_authenticated
 
     def get_queryset(self):
+        q = models.FieldOfResearch.objects.all()
         if self.q:
-            q = models.FieldOfResearch.where(description__icontains=self.q).order_by("description")
+            if self.q.isdecimal():
+                q = q.filter(code__contains=self.q)
+            else:
+                q = q.fiter(description__icontains=self.q)
             return q.order_by("description")
-        return models.FieldOfResearch.objects.none()
+        return q
+
+
+class SeoAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return False  # request.user.is_authenticated
+
+    def get_queryset(self):
+        q = models.SocioEconomicObjective.objects.all()
+        if self.q:
+            if self.q.isdecimal():
+                q = q.filter(code__contains=self.q)
+            else:
+                q = q.fiter(description__icontains=self.q)
+            return q.order_by("description")
+        return q
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):

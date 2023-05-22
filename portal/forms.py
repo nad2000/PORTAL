@@ -475,7 +475,14 @@ class ApplicationForm(forms.ModelForm):
                         _("Field of Research"),
                         TableInlineFormset("fors")
                     )
-                ),
+                )
+            if round.has_seos:
+                category_fields.append(
+                    Fieldset(
+                        _("Socio-Economic Objective"),
+                        TableInlineFormset("seos")
+                    )
+                )
             if round.has_toas:
                 category_fields.append(
                     Fieldset(
