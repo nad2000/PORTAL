@@ -137,7 +137,11 @@
                 </td>
 
                 <td class="text-right">
-                  {{ evaluation.total }}
+                  {% if evaluation.total %}
+                    {{ evaluation.total }}
+                  {% else %}
+                    {% trans 'N/A' %}
+                  {% endif %}
                 </td>
 
                 {% for score in evaluation|all_scores:criteria %}
