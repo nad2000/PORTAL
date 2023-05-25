@@ -1326,6 +1326,7 @@ class ApplicationView(LoginRequiredMixin):
         user = self.request.user
         reset_cache(self.request)
         url = self.request.path_info
+        round = self.round
 
         try:
             with transaction.atomic():
@@ -1334,7 +1335,7 @@ class ApplicationView(LoginRequiredMixin):
                 if not instance.email:
                     instance.email = user.email
 
-                if self.round.letter_of_support_required and (
+                if round.letter_of_support_required and (
                     letter_of_support_file := self.request.FILES.get("letter_of_support_file")
                 ):
                     letter_of_support = models.LetterOfSupport.create(file=letter_of_support_file)
@@ -1455,6 +1456,22 @@ class ApplicationView(LoginRequiredMixin):
                     ethics_statement_form.instance.application = a
                     if ethics_statement_form.is_valid():
                         ethics_statement_form.save()
+
+                breakpoint()
+                if round.has_fors:
+                    fors = context["fors"]
+                    if fors.is_valid():
+                        fors.save()
+                    else:
+                        return self.form_invalid(form)
+
+                if round.has_seos:
+                    seos = context["seos"]
+                    if seos.is_valid():
+                        seos.save()
+                    else:
+                        return self.form_invalid(form)
+
 
                 if "file" in form.changed_data and instance.file:
                     try:
@@ -1854,7 +1871,7 @@ class ApplicationView(LoginRequiredMixin):
         context["referees"] = referee_form_set
 
         if round.has_fors:
-            context["fors"] = forms.inlineformset_factory(
+            fsc= forms.inlineformset_factory(
                 models.Application,
                 models.ApplicationFor,
                 # form=forms.RefereeForm,
@@ -1879,8 +1896,24 @@ class ApplicationView(LoginRequiredMixin):
                     ),
                 }
             )
+
+            initial_fors = (
+                [
+                    dict(
+                        code=r.code_id,
+                        share=r.share,
+                    )
+                    for r in models.ApplicationFor.where(application=latest_application)
+                ]
+                if latest_application and not (self.object and self.object.id)
+                else []
+            )
+            fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
+            fs.extra = len(initial_fors) or 1
+            context["fors"] = fs
+
         if round.has_seos:
-            context["seos"] = forms.inlineformset_factory(
+            fsc = forms.inlineformset_factory(
                 models.Application,
                 models.ApplicationSeo,
                 # form=forms.RefereeForm,
@@ -1905,6 +1938,20 @@ class ApplicationView(LoginRequiredMixin):
                     ),
                 }
             )
+            initial_seos = (
+                [
+                    dict(
+                        code=r.code_id,
+                        share=r.share,
+                    )
+                    for r in models.ApplicationSeo.where(application=latest_application)
+                ]
+                if latest_application and not (self.object and self.object.id)
+                else []
+            )
+            fs = fsc(self.request.POST or None, instance=self.object, initial=initial_seos)
+            fs.extra = len(initial_seos) or 1
+            context["seos"] = fs
         return context
 
     def get_form_kwargs(self):
@@ -2916,7 +2963,7 @@ class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             if self.q.isdecimal():
                 q = q.filter(code__contains=self.q)
             else:
-                q = q.fiter(description__icontains=self.q)
+                q = q.filter(description__icontains=self.q)
             return q.order_by("description")
         return q
 

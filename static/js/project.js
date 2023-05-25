@@ -8,7 +8,15 @@ function formset_add_a_row(btn, prefix="form") {
   var form_idx = total.value;
 
   // var el = $('<tr>' + $('form #empty_form').html().replace(/__prefix__/g, form_idx) + '</tr>') ;
-  var el = $('<tr>' + $(root).find('#'+prefix+'_empty_form').html().replace(/__prefix__/g, form_idx) + '</tr>') ;
+  // var el = $('<tr>' + $(root).find('#'+prefix+'_empty_form').html().replace(/__prefix__/g, form_idx) + '</tr>') ;
+  var el = $(root).find('#'+prefix+'_empty_form').clone(true);
+  el.attr("id",null);
+  el.attr("class",null);
+  el.find("[id*='__prefix__'],[name*='__prefix__']").each(function() {
+    $(this).attr("id", $(this).attr("id").replace('__prefix__', form_idx));
+    var name = $(this).attr("name");
+    if (name) $(this).attr("name", name.replace('__prefix__', form_idx));
+  });
   el.find("input[data-required]").each(function() {
     var $t = $(this);
     $t.attr({
@@ -17,8 +25,8 @@ function formset_add_a_row(btn, prefix="form") {
   });
   if (typeof setDatePickers == 'function') setDatePickers(el);
   // $('form #form_set').append(el);
-
   $(root).find('#'+prefix+'_form_set').append(el);
+  // $(root).find('#'+prefix+'_form_set').append(row);
   // root.querySelector("#form_set").append(el);
   //$('form #id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1);
   total.value = parseInt(form_idx) + 1;

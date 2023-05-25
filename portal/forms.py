@@ -473,14 +473,15 @@ class ApplicationForm(forms.ModelForm):
                 category_fields.append(
                     Fieldset(
                         _("Field of Research"),
-                        TableInlineFormset("fors")
+                        TableInlineFormset("fors", template="portal/fors_table_inline_formset.html"),
+                        Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
                     )
                 )
             if round.has_seos:
                 category_fields.append(
                     Fieldset(
                         _("Socio-Economic Objective"),
-                        TableInlineFormset("seos")
+                        TableInlineFormset("seos"),
                     )
                 )
             if round.has_toas:
@@ -507,6 +508,26 @@ class ApplicationForm(forms.ModelForm):
                             Column("vm_hsw", css_class="col-3"),
                             Column("vm_ink", css_class="col-3"),
                         ),
+                        Div(
+                            Row(Column("is_vm_na")),
+                            Row(Column("rationane_vm_na"), css_id="id_vm_na"),
+                            HTML("""
+                            <script>
+                            $(document).ready(function() {
+                                //set initial state.
+                                if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };
+
+                                $('#id_is_vm_na').change(function() {
+                                    if(this.checked) {
+                                        // var returnVal = confirm("Are you sure?");
+                                        // $(this).prop("checked", returnVal);
+                                        $('#id_vm_na').show();
+                                    } else $('#id_vm_na').hide();
+                                });
+                            });
+                            </script>
+                            """),
+                        )
                     ),
                 )
             if round.has_keywords:

@@ -1411,6 +1411,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         default=0,
     )
+    is_vm_na = BooleanField(_("Vision Mātauranga N/A"), default=False)
+    rationane_vm_na = TextField(_("Rationale"), null=True, blank=True)
 
     toa_basic = PositiveSmallIntegerField(
         _("Basic"),
