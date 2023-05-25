@@ -6,7 +6,6 @@ function formset_add_a_row(btn, prefix="form") {
   // var form_idx = $('form #id_form-TOTAL_FORMS').val();
   var total = root.querySelector("#id_" + prefix + "-TOTAL_FORMS");
   var form_idx = total.value;
-
   // var el = $('<tr>' + $('form #empty_form').html().replace(/__prefix__/g, form_idx) + '</tr>') ;
   // var el = $('<tr>' + $(root).find('#'+prefix+'_empty_form').html().replace(/__prefix__/g, form_idx) + '</tr>') ;
   var el = $(root).find('#'+prefix+'_empty_form').clone(true);
@@ -54,3 +53,20 @@ function formset_set_inputs(prefix="form") {
       }
   })
 };
+
+$.fn.extend({
+  prependEvent: function (event, handler) {
+    return this.each(function () {
+      var events = $(this).data("events"),
+          currentHandler;
+
+      if (events && events[event].length > 0) {
+        currentHandler = events[event][0].handler;
+        events[event][0].handler = function () {
+          handler.apply(this, arguments);
+          currentHandler.apply(this, arguments);
+        }
+      }
+    });
+  }
+});

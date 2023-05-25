@@ -99,16 +99,16 @@
                                           });
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {
-                                            if (!($(this).prop('checked'))) {
-                                                        $("#members").hide();
-                                                        $("#submitter legend").text("{% trans 'Individual applicant' %}");
-                                                        $("a[href='#applicant']").text("{% trans 'Applicant' %}");
-                                                      } else {
-                                                                  $("#members").show()
-                                                                  $("#submitter legend").text("{% trans 'Team representative' %}");
-                                                                  $("a[href='#applicant']").text("{% trans 'Team' %}");
-                                                                };
-                                          });
+                                if (!($(this).prop('checked'))) {
+                                  $("#members").hide();
+                                  $("#submitter legend").text("{% trans 'Individual applicant' %}");
+                                  $("a[href='#applicant']").text("{% trans 'Applicant' %}");
+                                } else {
+                                  $("#members").show()
+                                  $("#submitter legend").text("{% trans 'Team representative' %}");
+                                  $("a[href='#applicant']").text("{% trans 'Team' %}");
+                                };
+                                });
                                 $('#id_et-not_relevant').change(function() {
                                             if ($(this).is(':checked')) {
                                                         document.getElementById("id_et-comment").setAttribute("required", "true");
@@ -137,68 +137,89 @@
                                                                   $("#div_id_application_title_mi").show();
                                                                 };
                                           });
+                                $("#application-form").on("submit", function(e) {
+                                    if (this.form.checkValidity()) {
+                                                  $.blockUI({
+                                                    message: $('#wait-message'),
+                                                    css: {
+                                                                backgroundColor: '#0000',
+                                                                color: '#0fff',
+                                                                border: '0px',
+                                                              }
+                                                });
+                                              }
+                                });
+
                                 // Focus on the first tab with invalid input:
                                 $('#submit-id-save_draft,#submit-id-submit').click(function () {
-                                            $('input:invalid,textarea:invalid').each(function () {
-                                                        // Find the tab-pane that this element is inside, and get the id
-                                                        var $closest = $(this).closest('.tab-pane');
-                                                        var id = $closest.attr('id');
+                                    $('input:invalid,textarea:invalid').each(function () {
+                                      // Find the tab-pane that this element is inside, and get the id
+                                      var $closest = $(this).closest('.tab-pane');
+                                      var id = $closest.attr('id');
 
-                                                        // Find the link that corresponds to the pane and have it show
-                                                        $('.nav a[href="#' + id + '"]').tab('show');
+                                      // Find the link that corresponds to the pane and have it show
+                                      $('.nav a[href="#' + id + '"]').tab('show');
 
-                                                        // Only want to do it once
-                                                        return false;
-                                                      });
-                                            if (this.form.checkValidity()) {
-                                                        $.blockUI({
-                                                                    message: $('#wait-message'),
-                                                                    css: {
-                                                                                backgroundColor: '#0000',
-                                                                                color: '#0fff',
-                                                                                border: '0px',
-                                                                              }
-                                                                  });
-                                                      }
-                                          });
+                                      // Only want to do it once
+                                      return false;
+                                    });
+                                    /* if (this.form.checkValidity()) {
+                                                  $.blockUI({
+                                                    message: $('#wait-message'),
+                                                    css: {
+                                                                backgroundColor: '#0000',
+                                                                color: '#0fff',
+                                                                border: '0px',
+                                                              }
+                                                });
+                                              } */
+                                    });
                                 // Track the changes in the form fields
                                 $("form :input").change(function() {
-                                            $(this.form).data("changed", true);
-                                          });
+                                  $(this.form).data("changed", true);
+                                });
+                                var confirmationMessage = "{% trans 'Do you want to close the form without saving it?' %}";
                                 $(document).on("click", "#cancel", function(e) {
-                                            if (!$(e.toElement).closest("form").data("changed")) return;
-                                            e.preventDefault();  // need for a link
-                                            href = $(this).attr('href');
-                                            return bootbox.confirm("{% trans 'Do you want to close the form without saving it?' %}", function(result) {
-                                                        // console.log("Result: ", result);
-                                                        if (result) window.location = href;
-                                                      });
-                                          });
+                                  // if (!$(e.toElement).closest("form").data("changed")) return;
+                                  if (!$(e.target).closest("form").data("changed")) return;
+                                  e.preventDefault();  // need for a link
+                                  href = $(this).attr('href');
+                                  return bootbox.confirm(confirmationMessage, function(result) {
+                                    if (result) window.location = href;
+                                  });
+                                });
+                                window.addEventListener("beforeunload", function (e) {
+                                  if (!$("#application-form").data("changed")) {
+                                        return undefined;
+                                    }
+                                    (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+                                    return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
+                                });
                                 // Keep track of the active tab
                                 $(document.body).on("click", "a[data-toggle='tab']", function(event) {
-                                            location.hash = this.getAttribute("href");
-                                          });
-                              {% if form.errors.letter_of_support_file %}
-                                  $('.nav a[href="#summary"]').tab('show');
-                              {% elif "verification" in request.GET %}
-                                  $('.nav a[href="#id-verification"]').tab('show');
-                              {% elif "referees" in request.GET %}
-                                  $('.nav a[href="#referees"]').tab('show'); activateRefereeTab();
-                              {% elif "summary" in request.GET %}
-                                  $('.nav a[href="#summary"]').tab('show');
-                              {% else %}
+                                  location.hash = this.getAttribute("href");
+                                });
+                                {% if form.errors.letter_of_support_file %}
+                                    $('.nav a[href="#summary"]').tab('show');
+                                {% elif "verification" in request.GET %}
+                                    $('.nav a[href="#id-verification"]').tab('show');
+                                {% elif "referees" in request.GET %}
+                                    $('.nav a[href="#referees"]').tab('show'); activateRefereeTab();
+                                {% elif "summary" in request.GET %}
+                                    $('.nav a[href="#summary"]').tab('show');
+                                {% else %}
                                   // Jump to the last active tab:
-                                if (location.hash) {
-                                    if (location.hash != "#members") $('.nav a[href="' + location.hash + '"]').tab('show');
-                                    if (location.hash == "#referees") activateRefereeTab();
-                                };
-                                if (!location.hash || location.hash == "#applicant")
-                                  document.getElementById("button-id-previous").disabled = true;
-                                else if (location.hash.endsWith($(".tab-pane").last().attr('id')))
-                                  document.getElementById("button-id-next").disabled = true;
-                              {% endif %}
+                                  if (location.hash) {
+                                      if (location.hash != "#members") $('.nav a[href="' + location.hash + '"]').tab('show');
+                                      if (location.hash == "#referees") activateRefereeTab();
+                                  };
+                                  if (!location.hash || location.hash == "#applicant")
+                                    document.getElementById("button-id-previous").disabled = true;
+                                  else if (location.hash.endsWith($(".tab-pane").last().attr('id')))
+                                    document.getElementById("button-id-next").disabled = true;
+                                {% endif %}
                                 /* $("#div_id_title").parent().css("min-width", "4rem");
-         $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
+                                   $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
                                 $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
                                 $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
                                   document.getElementById("submit-id-save_draft").value = "{% trans 'Save' %}";
@@ -211,25 +232,25 @@
                                   document.getElementById("button-id-previous").disabled = (e.target.hash == "#applicant");
                                 })
                                 $('#button-id-next').on('click', function (e) {
-                                            var active = $(".nav-link.active");
-                                            if (active.length > 0) {
-                                                        var nextTab = active.parent().next().children();
-                                                        if (nextTab.length > 0) {
-                                                                    var nextTabHash = nextTab.attr("href");
-                                                                    $('a[href="'+nextTabHash+'"').tab("show");
-                                                                  }
-                                                      }
-                                          });
+                                  var active = $(".nav-link.active");
+                                  if (active.length > 0) {
+                                              var nextTab = active.parent().next().children();
+                                              if (nextTab.length > 0) {
+                                                          var nextTabHash = nextTab.attr("href");
+                                                          $('a[href="'+nextTabHash+'"').tab("show");
+                                                        }
+                                            }
+                                });
                                 $('#button-id-previous').on('click', function (e) {
-                                            var active = $(".nav-link.active");
-                                            if (active.length > 0) {
-                                                        var prevTab = active.parent().prev().children();
-                                                        if (prevTab.length > 0) {
-                                                                    var prevTabHash = prevTab.attr("href");
-                                                                    $('a[href="'+prevTabHash+'"').tab("show");
-                                                                  }
-                                                      }
-                                          });
-          });
+                                  var active = $(".nav-link.active");
+                                  if (active.length > 0) {
+                                              var prevTab = active.parent().prev().children();
+                                              if (prevTab.length > 0) {
+                                                          var prevTabHash = prevTab.attr("href");
+                                                          $('a[href="'+prevTabHash+'"').tab("show");
+                                                        }
+                                            }
+                                });
+            });
         </script>
       {% endblock %}

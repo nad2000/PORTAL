@@ -1,0 +1,50 @@
+{% extends "portal/table_inline_formset.html" %}
+{% load i18n %}
+
+{% block table_footer %}
+<tfoot>
+  <tr>
+    <td style="text-align: right;">{% trans 'Total (must be 100%)' %}</td>
+    <td style="text-align: right;" id="id_{{ formset.prefix }}_total_share">0</td>
+  </tr>
+</tfoot>
+<script>
+
+  //$( "#{{ formset.prefix }}_table input[name$='share']")
+
+  function totalShares_{{ formset.prefix }}() {
+    var sum = 0;
+    $("#{{ formset.prefix }}_table input[name$='share']").each(function() {
+      sum += Number($(this).val());
+    });
+    return sum;
+  };
+  function updateTotalShares_{{ formset.prefix }}(table_id) {
+    var total = totalShares_{{ formset.prefix }}();
+    $("#id_{{ formset.prefix }}_total_share").text(total);
+    if (total !=100) $("#id_{{ formset.prefix }}_total_share").css({"color": "red", 'font-weight': "bold"});
+    else $("#id_{{ formset.prefix }}_total_share").css({"color": "gray", 'font-weight': "normal"});
+  };
+
+  $(document).ready(function() {
+      //set initial state.
+      // if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };
+      // $("#id_{{ formset.prefix }}_total_share").text(totalShares_{{ formset.prefix }}());
+      updateTotalShares_{{ formset.prefix}}();
+      $("input[name^='application_fors-'][name$='share']").change(updateTotalShares_{{ formset.prefix}});
+      // $("#submit-id-submit").prependEvent("click", function(e) {
+      $("#submit-id-submit").on("click", function(e) {
+        var total = totalShares_{{ formset.prefix }}();
+        if (total==100) return;
+        e.preventDefault();  // need for a link
+        var tab_pane = $("#{{ formset.prefix }}_table").parents(".tab-pane");
+        if (tab_pane) {
+          var id=tab_pane.attr("id");
+          $('.nav a[href="#'+id+'"]').tab('show');
+        };
+        bootbox.alert("{% trans 'The share values do not add up to 100%! Please correct the values and resubmit.' %}");
+        return false;
+      });
+  });
+</script>
+{% endblock table_footer %}
