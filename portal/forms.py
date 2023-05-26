@@ -498,6 +498,7 @@ class ApplicationForm(forms.ModelForm):
                             Column("toa_strategic", css_class="col-2"),
                             Column("toa_applied", css_class="col-2"),
                             Column("toa_experimental", css_class="col-2"),
+                            css_id="id_toas_row",
                         ),
                     ),
                 )
@@ -511,6 +512,7 @@ class ApplicationForm(forms.ModelForm):
                             Column("vm_ens", css_class="col-3"),
                             Column("vm_hsw", css_class="col-3"),
                             Column("vm_ink", css_class="col-3"),
+                            css_id="id_toas_row",
                         ),
                         Div(
                             Row(Column("is_vm_na")),

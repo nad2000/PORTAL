@@ -1920,9 +1920,6 @@ class ApplicationView(LoginRequiredMixin):
                 fs = fsc(instance=self.object)
             if initial_fors:
                 fs.extra = len(initial_fors)
-            # fs.forms[0].is_valid()
-            # breakpoint()
-            # fs.forms[0].save()
             context["fors"] = fs
 
         if round.has_seos:
@@ -2859,8 +2856,10 @@ from taggit.models import Tag
 class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Don't forget to filter out results depending on the visitor !
-        if not self.q or not self.request.user.is_authenticated:
+        if not self.request.user.is_authenticated:
             return models.Keyword.objects.none()
+        if not self.q or not self.request.user.is_authenticated:
+            return models.Keyword.objects.all()
 
         return models.Keyword.objects.all().filter(name__istartswith=self.q)
 

@@ -14,7 +14,7 @@ import simple_history
 from allauth.account.models import EmailAddress
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.contrib.sites.managers import CurrentSiteManager
 from django.contrib.sites.models import Site

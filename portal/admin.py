@@ -503,13 +503,18 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 
 @admin.register(models.Application)
 class ApplicationAdmin(
-    PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, TranslationAdmin, SimpleHistoryAdmin
+    PdfFileAdminMixin,
+    StaffPermsMixin,
+    FSMTransitionMixin,
+    TranslationAdmin,
+    SimpleHistoryAdmin,
 ):
     # form = ApplicationForm
     save_on_top = True
     date_hierarchy = "created_at"
     list_display = [
         "number",
+        # "state_icon",
         "complete",
         "application_title",
         "full_name",
@@ -523,7 +528,14 @@ class ApplicationAdmin(
         "created_at",
         "updated_at",
     ]
-    readonly_fields = ["created_at", "updated_at", "converted_file", "letter_of_support"]
+    readonly_fields = [
+        "created_at",
+        "updated_at",
+        "converted_file",
+        "letter_of_support",
+        "number",
+        "state",
+    ]
     search_fields = [
         "number",
         "first_name",
@@ -599,6 +611,68 @@ class ApplicationAdmin(
         classes = ["collapse"]
 
     inlines = [MemberInline, RefereeInline, ForInline, SeoInline, KeywordInline, StateLogInline]
+
+    @admin.display(description="State")
+    def state_icon(self, obj):
+        return format_html(
+            '<i class="fa fa-check text-success text-center" title="{0}">&nbsp;{0}</i>', obj.state.upper()
+        )
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": [
+                    "state",
+                    ("number", "application_title_en", "application_title_mi"),
+                    "is_bilingual",
+                    "round",
+                    ("title", "first_name", "middle_names", "last_name", "position"),
+                    ("daytime_phone", "mobile_phone"),
+                    "email",
+                    "presentation_url",
+                    "is_tac_accepted",
+                ]
+            },
+        ),
+        (
+            "Organisation",
+            {
+                "fields": [
+                    "org",
+                    "postal_address",
+                    "city",
+                    "postcode",
+                ],
+            },
+        ),
+        (
+            "Vision Mātauranga",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    "is_vm_na",
+                    "rationane_vm_na",
+                ],
+            },
+        ),
+        (
+            "Type of Activity",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "toa_applied",
+                    "toa_basic",
+                    "toa_strategic",
+                    "toa_experimental",
+                ],
+            },
+        ),
+    )
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
