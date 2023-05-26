@@ -31,7 +31,7 @@
       // if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };
       // $("#id_{{ formset.prefix }}_total_share").text(totalShares_{{ formset.prefix }}());
       updateTotalShares_{{ formset.prefix}}();
-      $("input[name^='application_fors-'][name$='share']").change(updateTotalShares_{{ formset.prefix}});
+      $("input[name^='application_fors-'][name$='share']").keyup(updateTotalShares_{{ formset.prefix}});
       // $("#submit-id-submit").prependEvent("click", function(e) {
       $("#submit-id-submit").on("click", function(e) {
         var total = totalShares_{{ formset.prefix }}();
