@@ -47,6 +47,7 @@ from django.forms import (
     TextInput,
     ValidationError,
     modelformset_factory,
+    ModelForm,
 )
 from django.forms import models as model_forms
 from django.forms import widgets
@@ -1331,7 +1332,8 @@ class ApplicationView(LoginRequiredMixin):
         try:
             with transaction.atomic():
                 instance = form.instance
-                instance.organisation = instance.org.name
+                if not instance.organisation and instance.org:
+                    instance.organisation = instance.org.name
                 if not instance.email:
                     instance.email = user.email
 
@@ -1457,9 +1459,10 @@ class ApplicationView(LoginRequiredMixin):
                     if ethics_statement_form.is_valid():
                         ethics_statement_form.save()
 
-                breakpoint()
                 if round.has_fors:
                     fors = context["fors"]
+                    if not fors.instance:
+                        fors.instance = a
                     if fors.is_valid():
                         fors.save()
                     else:
@@ -1874,9 +1877,9 @@ class ApplicationView(LoginRequiredMixin):
             fsc= forms.inlineformset_factory(
                 models.Application,
                 models.ApplicationFor,
-                # form=forms.RefereeForm,
                 extra=1, can_delete=True,
                 exclude=[],
+                # fields = ["id", "code", "application", "share"],
                 labels={"code": _("Field of Research")},
                 help_texts={
                     "code": _("Field of Research"),
@@ -1908,8 +1911,18 @@ class ApplicationView(LoginRequiredMixin):
                 if latest_application and not (self.object and self.object.id)
                 else []
             )
-            fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            fs.extra = len(initial_fors) or 1
+            # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
+            if self.request.POST:
+                fs = fsc(self.request.POST, instance=self.object)
+            elif not (self.object and self.object.id):
+                fs = fsc(instance=self.object, initial=initial_fors)
+            else:
+                fs = fsc(instance=self.object)
+            if initial_fors:
+                fs.extra = len(initial_fors)
+            # fs.forms[0].is_valid()
+            # breakpoint()
+            # fs.forms[0].save()
             context["fors"] = fs
 
         if round.has_seos:
