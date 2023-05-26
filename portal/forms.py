@@ -113,10 +113,10 @@ class FormWithStatusFieldMixin:
 class TableInlineFormset(LayoutObject):
     template = "portal/table_inline_formset.html"
 
-    def __init__(self, formset_name_in_context, template=None):
+    def __init__(self, formset_name_in_context, template=None, *args, **kwargs):
         self.formset_name_in_context = formset_name_in_context
         self.form_id = formset_name_in_context
-        self.fields = []
+        # self.fields = []
         if template:
             self.template = template
 
@@ -473,15 +473,19 @@ class ApplicationForm(forms.ModelForm):
                 category_fields.append(
                     Fieldset(
                         _("Field of Research"),
-                        TableInlineFormset("fors", template="portal/fors_table_inline_formset.html"),
-                        Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
+                        TableInlineFormset(
+                            "fors", template="portal/category_table_inline_formset.html"
+                        ),
+                        # Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
                     )
                 )
             if round.has_seos:
                 category_fields.append(
                     Fieldset(
                         _("Socio-Economic Objective"),
-                        TableInlineFormset("seos"),
+                        TableInlineFormset(
+                            "seos", template="portal/category_table_inline_formset.html"
+                        ),
                     )
                 )
             if round.has_toas:
@@ -511,8 +515,8 @@ class ApplicationForm(forms.ModelForm):
                         Div(
                             Row(Column("is_vm_na")),
                             Row(Column("rationane_vm_na"), css_id="id_vm_na"),
-                            HTML("""
-                            <script>
+                            HTML(
+                                """<script>
                             $(document).ready(function() {
                                 //set initial state.
                                 if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };
@@ -525,9 +529,9 @@ class ApplicationForm(forms.ModelForm):
                                     } else $('#id_vm_na').hide();
                                 });
                             });
-                            </script>
-                            """),
-                        )
+                            </script>"""
+                            ),
+                        ),
                     ),
                 )
             if round.has_keywords:
@@ -695,14 +699,16 @@ class ApplicationForm(forms.ModelForm):
     class Meta:
         model = models.Application
         exclude = [
-            "site",
-            "organisation",
-            "state",
-            "round",
-            "submitted_by",
             "converted_file",
-            "letter_of_support",
             "cv",
+            "fors",
+            "letter_of_support",
+            "organisation",
+            "round",
+            "seos",
+            "site",
+            "state",
+            "submitted_by",
         ]
         widgets = dict(
             keywords=autocomplete.ModelSelect2Multiple(
