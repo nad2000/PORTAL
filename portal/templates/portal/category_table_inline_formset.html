@@ -31,7 +31,7 @@
       // if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };
       // $("#id_{{ formset.prefix }}_total_share").text(totalShares_{{ formset.prefix }}());
       updateTotalShares_{{ formset.prefix}}();
-      $("input[name^='application_fors-'][name$='share']").keyup(updateTotalShares_{{ formset.prefix}});
+      $("input[name^='{{ formset.prefix }}-'][name$='share']").keyup(updateTotalShares_{{ formset.prefix}});
       // $("#submit-id-submit").prependEvent("click", function(e) {
       $("#submit-id-submit").on("click", function(e) {
         var total = totalShares_{{ formset.prefix }}();
@@ -42,7 +42,15 @@
           var id=tab_pane.attr("id");
           $('.nav a[href="#'+id+'"]').tab('show');
         };
-        bootbox.alert("{% trans 'The share values do not add up to 100%! Please correct the values and resubmit.' %}");
+        var message=$("#{{ formset.prefix }}_table").closest("fieldset").children("legend").first().text()
+          + ": {% trans 'the share values do not add up to 100%! Please correct the values and resubmit.' %}";
+        // bootbox.alert("{% trans 'The share values do not add up to 100%! Please correct the values and resubmit.' %}");
+        $("#messages").append(
+          $('<div class="alert alert-danger">'
+            +message
+            +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+        )
+        var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
         return false;
       });
   });

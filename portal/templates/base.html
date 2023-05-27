@@ -413,11 +413,15 @@ table.table .asteriskField,.popover-header {color: gray;}
           {% endfor %}
         {% endif %}
 
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
-          {% endfor %}
-        {% endif %}
+          <div class="row">
+            <div class="col-12" id="messages">
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
 
         {% if form.errors %}
           {% include "form_errors.html" %}

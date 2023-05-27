@@ -472,7 +472,7 @@ class ApplicationForm(forms.ModelForm):
             if round.has_fors:
                 category_fields.append(
                     Fieldset(
-                        _("Field of Research"),
+                        _("Fields of Research"),
                         TableInlineFormset(
                             "fors", template="portal/category_table_inline_formset.html"
                         ),
@@ -482,7 +482,7 @@ class ApplicationForm(forms.ModelForm):
             if round.has_seos:
                 category_fields.append(
                     Fieldset(
-                        _("Socio-Economic Objective"),
+                        _("Socio-Economic Objectives"),
                         TableInlineFormset(
                             "seos", template="portal/category_table_inline_formset.html"
                         ),
