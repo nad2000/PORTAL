@@ -91,7 +91,7 @@
               });
               return sum;
             };
-            function updateTotalSoaShares(table_id) {
+            function updateTotalSoaShares() {
               var total = totalToaShares();
               $("#id_application_toa_total_share").text(total);
               if (total !=100) $("#id_application_toa_total_share").css({"color": "red", 'font-weight': "bold"});
@@ -118,6 +118,7 @@
                 } else bootbox.alert(message);
                 return false;
               });
+              updateTotalSoaShares();
             {% endif %}
                       $("#submit-id-save_draft,#submit-id-submit").click(function() {
                         formset_set_inputs(prefix="members");
