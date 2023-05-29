@@ -78,12 +78,47 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
         <script>
           function activateRefereeTab() {
-                      document.getElementById("submit-id-save_draft").value = "{% trans 'Save and send new invitation(s)' %}";
-                      document.getElementById("submit-id-save_draft").name = "send_invitations";
-                      document.getElementById("submit-id-submit").hidden = true;
-                      document.getElementById("cancel").hidden = true;
+            document.getElementById("submit-id-save_draft").value = "{% trans 'Save and send new invitation(s)' %}";
+            document.getElementById("submit-id-save_draft").name = "send_invitations";
+            document.getElementById("submit-id-submit").hidden = true;
+            document.getElementById("cancel").hidden = true;
           };
+          {% if round.has_toas %}
+            function totalToaShares() {
+              var sum = 0;
+              $("#id_toas_row input[name^='toa_']").each(function() {
+                sum += Number($(this).val());
+              });
+              return sum;
+            };
+            function updateTotalSoaShares(table_id) {
+              var total = totalToaShares();
+              $("#id_application_toa_total_share").text(total);
+              if (total !=100) $("#id_application_toa_total_share").css({"color": "red", 'font-weight': "bold"});
+              else $("#id_application_toa_total_share").css({"color": "gray", 'font-weight': "normal"});
+            };
+          {% endif %}
           $(document).ready(function() {
+            {% if round.has_toas %}
+              $("#id_toas_row input[name^='toa_']").keyup(updateTotalSoaShares);
+              $("#submit-id-submit").on("click", function(e) {
+                var total = totalToaShares();
+                if (total==100) return;
+                e.preventDefault();  // need for a link
+                $('.nav a[href="#categories"]').tab('show');
+                var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
+                var msg_el = $("#messages");
+                if (msg_el.length) {
+                  msg_el.append(
+                    $('<div class="alert alert-danger">'
+                      +message
+                      +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+                  )
+                  var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
+                } else bootbox.alert(message);
+                return false;
+              });
+            {% endif %}
                       $("#submit-id-save_draft,#submit-id-submit").click(function() {
                         formset_set_inputs(prefix="members");
                         formset_set_inputs(prefix="referees");

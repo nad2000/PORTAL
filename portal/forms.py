@@ -498,8 +498,17 @@ class ApplicationForm(forms.ModelForm):
                             Column("toa_strategic", css_class="col-2"),
                             Column("toa_applied", css_class="col-2"),
                             Column("toa_experimental", css_class="col-2"),
+                            HTML(f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
+                                 <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
+                                 <span style="text-align: right; color: red; font-weight: bold;" id="id_application_toa_total_share">110</span>
+                                 <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
+                                 </div></div></div>"""),
                             css_id="id_toas_row",
                         ),
+                        Row(
+                            Column(HTML(f"<span style='text-align: right;'>{_('Total (must be 100%)')}</span>")),
+                            Column(HTML(f"<span style='text-align: right;' id='id_toa_total_share'>0</span>")),
+                        )
                     ),
                 )
             if round.has_vmts:
