@@ -505,10 +505,6 @@ class ApplicationForm(forms.ModelForm):
                                  </div></div></div>"""),
                             css_id="id_toas_row",
                         ),
-                        Row(
-                            Column(HTML(f"<span style='text-align: right;'>{_('Total (must be 100%)')}</span>")),
-                            Column(HTML(f"<span style='text-align: right;' id='id_toa_total_share'>0</span>")),
-                        )
                     ),
                 )
             if round.has_vmts:
