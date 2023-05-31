@@ -9,7 +9,7 @@ import django_filters
 import django_tables2
 import tablib
 from allauth.account.models import EmailAddress
-from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout
 from dal import autocomplete
@@ -176,7 +176,6 @@ def shoud_be_onboarded(function):
 
     @wraps(function)
     def wrap(request, *args, **kwargs):
-
         user = request.user
         profile = Profile.where(user=user).first()
         if not profile or not profile.is_completed:
@@ -214,8 +213,16 @@ def shoud_be_onboarded(function):
 def logout(request):
     account_logout = reverse("account_logout")
     if request.user.has_rapidconnect_account:
+        # user__registered_on_id=settings.SITE_ID,
         return_url = request.build_absolute_uri(account_logout)
+        if (
+            sa := SocialApp.objects.filter(
+                sites__id=settings.SITE_ID, provider="rapidconnect"
+            ).first()
+        ) and (id_value := sa.client_id.split("/")[-1]):
+            return redirect(f"{settings.RAPIDCONNECT_LOGOUT}?id={id_value}&return={return_url}")
         return redirect(f"{settings.RAPIDCONNECT_LOGOUT}?return={return_url}")
+
     return redirect(account_logout)
 
 
@@ -299,7 +306,6 @@ class StateInPathMixin:
 
 
 class AccountView(LoginRequiredMixin, TemplateView):
-
     template_name = "account.html"
 
     def get_context_data(self, **kwargs):
@@ -334,7 +340,6 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class DetailView(LoginRequiredMixin, _DetailView):
-
     template_name = "detail.html"
 
     def get_context_data(self, *args, **kwargs):
@@ -372,13 +377,11 @@ class SubscriptionList(LoginRequiredMixin, SingleTableView):
 
 
 class SubscriptionDetail(DetailView):
-
     model = Subscription
 
 
 @require_http_methods(["POST"])
 def subscribe(request):
-
     email = request.POST["email"]
     instance = Subscription.where(email=email).order_by("-id").first()
 
@@ -405,7 +408,6 @@ def subscribe(request):
 
 @require_http_methods(["GET", "POST"])
 def confirm_subscription(request, token):
-
     log_entry = get_object_or_404(models.MailLog, token=token)
     subscription = get_object_or_404(models.Subscription, email=log_entry.recipient)
     if request.method == "POST":
@@ -424,7 +426,6 @@ def confirm_subscription(request, token):
 
 
 def unsubscribe(request, token):
-
     get_object_or_404(models.MailLog, token=token)
     messages.success(request, _("We will miss You"))
     return redirect("index")
@@ -514,7 +515,6 @@ def index(request):
 
 
 def check_profile(request, token=None):
-
     if not request.user.is_authenticated:
         invitation = models.Invitation.where(token=token).first()
         user_exists = invitation and (
@@ -606,7 +606,6 @@ def check_profile(request, token=None):
                     next_url = reverse("application", kwargs={"pk": a_id})
 
     if Profile.where(user=request.user).exists() and request.user.profile.is_completed:
-
         if token and (
             i := models.Invitation.where(token=token, type="P", panellist__isnull=False).first()
         ):
@@ -648,7 +647,6 @@ class ProfileView:
         return user_form
 
     def get_context_data(self, **kwargs):
-
         if "progress" not in kwargs:
             u = self.request.user
             if not Profile.where(user=u).exists() or not u.profile.is_completed:
@@ -752,7 +750,6 @@ def profile_protection_patterns(request):
 
 
 class ProfileDetail(ProfileView, LoginRequiredMixin, _DetailView):
-
     template_name = "profile.html"
     raise_exception = True
 
@@ -903,7 +900,6 @@ def invite_referee(request, application):
 
 
 def get_or_create_team_member_invitation(member):
-
     u = member.user or models.User.objects.filter(email=member.email).first()
     if not u and (ea := EmailAddress.objects.filter(email=member.email).first()):
         u = ea.user
@@ -940,7 +936,6 @@ def get_or_create_team_member_invitation(member):
 
 
 def get_or_create_referee_invitation(referee, by=None):
-
     u = referee.user or models.User.objects.filter(email=referee.email).first()
     if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
         u = ea.user
@@ -1002,7 +997,6 @@ def invite_panellist(request, round):
 
 
 class InvitationCreate(CreateView):
-
     model = models.Invitation
     template_name = "form.html"
     # form_class = ProfileForm
@@ -1012,7 +1006,6 @@ class InvitationCreate(CreateView):
     labels = {"org": _("organisation")}
 
     def form_valid(self, form):
-
         form.instance.user = self.request.user
         if form.instance.org:
             form.instance.organisation = form.instance.org.name
@@ -1068,7 +1061,6 @@ class MemberInline(InlineFormSetFactory):
 
 
 class AuthorizationForm(Form):
-
     # authorize_team_lead = BooleanField(label=_("I authorize the team leader."), required=False)
 
     def __init__(self, *args, **kwargs):
@@ -1092,7 +1084,6 @@ class AuthorizationForm(Form):
 
 
 class ApplicationDetail(DetailView):
-
     model = Application
     template_name = "application_detail.html"
 
@@ -1113,7 +1104,6 @@ class ApplicationDetail(DetailView):
         ).last()
 
     def post(self, request, *args, **kwargs):
-
         self.object = self.get_object()
         member = self.get_member()
         if not member.user:
@@ -1195,7 +1185,6 @@ class ApplicationDetail(DetailView):
 
 
 class ApplicationView(LoginRequiredMixin):
-
     model = Application
     template_name = "application.html"
     form_class = forms.ApplicationForm
@@ -1219,7 +1208,6 @@ class ApplicationView(LoginRequiredMixin):
         )
 
     def dispatch(self, request, *args, **kwargs):
-
         u = request.user
         if u.is_authenticated and not (u.is_staff or u.is_superuser):
             if (pk := self.kwargs.get("pk")) and (
@@ -1341,7 +1329,6 @@ class ApplicationView(LoginRequiredMixin):
             return models.Nomination.get(self.kwargs["nomination"])
 
     def form_valid(self, form):
-
         context = self.get_context_data()
         referees = context["referees"]
         user = self.request.user
@@ -1350,7 +1337,6 @@ class ApplicationView(LoginRequiredMixin):
 
         try:
             with transaction.atomic():
-
                 instance = form.instance
                 instance.organisation = instance.org.name
                 if not instance.email:
@@ -1557,7 +1543,6 @@ class ApplicationView(LoginRequiredMixin):
             url = None
             try:
                 if "submit" in self.request.POST:
-
                     if self.round.applicant_cv_required:
                         if (
                             not a.submitted_by
@@ -1909,7 +1894,6 @@ class ApplicationView(LoginRequiredMixin):
 
 
 class ApplicationUpdate(ApplicationView, UpdateView):
-
     pass
 
 
@@ -2154,7 +2138,6 @@ def application_filter_rounds(request, *args, **kwargs):
 
 
 class ApplicationFilter(django_filters.FilterSet):
-
     # @property
     # def qs(self):
     #     parent = super().qs
@@ -2218,7 +2201,6 @@ class ApplicationFilter(django_filters.FilterSet):
 
 
 class InvitationList(LoginRequiredMixin, SingleTableView):
-
     table_class = tables.InvitationTable
     model = models.Invitation
     template_name = "table.html"
@@ -2249,7 +2231,6 @@ class ApplicationListMixin:
 class ApplicationList(
     LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
 ):
-
     model = models.Application
     table_class = tables.ApplicationTable
     extra_context = {"category": "applications"}
@@ -2316,7 +2297,6 @@ class IdentityVerificationFileView(LoginRequiredMixin, PrivateStorageDetailView)
 
 
 class IdentityVerificationView(LoginRequiredMixin, UpdateView):
-
     model = models.IdentityVerification
     template_name = "form.html"
     form_class = forms.IdentityVerificationForm
@@ -2350,7 +2330,6 @@ class IdentityVerificationView(LoginRequiredMixin, UpdateView):
 
 
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
-
     template_name = "profile_section.html"
     exclude = ()
     section_views = [
@@ -2373,7 +2352,6 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         return dict(profile=self.request.user.profile)
 
     def get_formset(self):
-
         klass = super().get_formset()
         defaults = self.get_defaults()
 
@@ -2530,7 +2508,6 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                     _("%d records deleted") % len(formset.deleted_objects),
                 )
         elif not profile.is_completed:
-
             if not profile.is_employments_completed:
                 msg = _("You have not completed the affiliation section.")
             elif not profile.is_professional_bodies_completed:
@@ -2551,7 +2528,6 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
 
 
 class ProfileCareerStageFormSetView(ProfileSectionFormSetView):
-
     model = ProfileCareerStage
     formset_class = forms.ProfileCareerStageFormSet
     factory_kwargs = {
@@ -2574,7 +2550,6 @@ class ProfileCareerStageFormSetView(ProfileSectionFormSetView):
 
 
 class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
-
     model = models.ProfilePersonIdentifier
     # formset_class = forms.ProfilePersonIdentifierFormSet
     orcid_sections = ["externalid"]
@@ -2654,7 +2629,6 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
 
 
 class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
-
     model = models.Affiliation
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
 
@@ -2726,18 +2700,15 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
 
 
 class ProfileEmploymentsFormSetView(ProfileAffiliationsFormSetView):
-
     orcid_sections = ["employment"]
     affiliation_type = {"employment": "EMP"}
 
 
 class ProfileEducationsFormSetView(ProfileAffiliationsFormSetView):
-
     affiliation_type = {"education": "EDU"}
 
 
 class ProfileProfessionalFormSetView(ProfileAffiliationsFormSetView):
-
     orcid_sections = ["membership", "service"]
     affiliation_type = {"membership": "MEM", "service": "SER"}
 
@@ -2780,7 +2751,6 @@ class EthnicityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView
         return False  # request.user.is_authenticated
 
     def get_queryset(self):
-
         if self.q:
             if django.db.connection.vendor == "sqlite":
                 return models.Ethnicity.where(description__icontains=self.q).order_by(
@@ -2801,7 +2771,6 @@ class IwiGroupAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
         return False  # request.user.is_authenticated
 
     def get_queryset(self):
-
         if self.q:
             if django.db.connection.vendor == "sqlite":
                 return models.IwiGroup.where(description__icontains=self.q).order_by("description")
@@ -2820,7 +2789,6 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return True  # request.user.is_authenticated
 
     def get_queryset(self):
-
         if self.q:
             return models.Organisation.where(name__icontains=self.q).order_by("-id", "name")
         return models.Organisation.objects.order_by("-id", "name")
@@ -2832,7 +2800,6 @@ class AwardAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return True  # request.user.is_authenticated
 
     def get_queryset(self):
-
         if self.q:
             return models.Award.where(name__icontains=self.q).order_by("-id", "name")
         return models.Award.objects.order_by("-id", "name")
@@ -2844,7 +2811,6 @@ class QualificationAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySet
         return True  # request.user.is_authenticated
 
     def get_queryset(self):
-
         if self.q:
             return models.Qualification.where(description__icontains=self.q).order_by(
                 "description"
@@ -2861,7 +2827,6 @@ class PersonIdentifierAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         return True  # request.user.is_authenticated
 
     def get_queryset(self):
-
         if self.q:
             return models.PersonIdentifierType.where(description__icontains=self.q).order_by(
                 "description"
@@ -2875,7 +2840,6 @@ class FosAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return True  # request.user.is_authenticated
 
     def get_queryset(self):
-
         q = models.FieldOfStudy.objects
         if self.q:
             q = q.filter(description__icontains=self.q).order_by("description")
@@ -2883,7 +2847,6 @@ class FosAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
-
     model = models.CurriculumVitae
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
     factory_kwargs = {"exclude": ["converted_file"]}
@@ -2920,11 +2883,9 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
         return defaults
 
     def formset_valid(self, formset):
-
         resp = super().formset_valid(formset)
 
         if not formset.deleted_forms:
-
             cv = models.CurriculumVitae.where(owner=self.request.user).order_by("-id").first()
             try:
                 if cv and (cf := cv.update_converted_file()):
@@ -2966,7 +2927,6 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
 
 
 class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
-
     model = models.AcademicRecord
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
     orcid_sections = ["education", "qualification"]
@@ -3050,7 +3010,6 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
 
 
 class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
-
     model = models.Recognition
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
     orcid_sections = ["funding"]
@@ -3199,7 +3158,6 @@ def approve_user(request, user_id=None):
 
 
 class NominationView(CreateUpdateView):
-
     model = models.Nomination
     form_class = forms.NominationForm
     template_name = "nomination.html"
@@ -3236,7 +3194,6 @@ class NominationView(CreateUpdateView):
         return initial
 
     def form_valid(self, form):
-
         n = form.instance
 
         if not n.id:
@@ -3250,7 +3207,6 @@ class NominationView(CreateUpdateView):
         resp = super().form_valid(form)
 
         if self.request.method == "POST" and "file" in form.changed_data and n.file:
-
             try:
                 if cf := n.update_converted_file():
                     messages.success(
@@ -3274,7 +3230,6 @@ class NominationView(CreateUpdateView):
                 return redirect(self.request.get_full_path())
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-
             if not n.file:
                 messages.error(
                     self.request,
@@ -3372,7 +3327,6 @@ class NominationView(CreateUpdateView):
 
 
 class TestimonialView(CreateUpdateView):
-
     model = models.Testimonial
     form_class = forms.TestimonialForm
     template_name = "testimonial.html"
@@ -3426,7 +3380,6 @@ class TestimonialView(CreateUpdateView):
             )
 
     def form_valid(self, form):
-
         t = form.instance
         u = self.request.user
         reset_cache(self.request)
@@ -3458,9 +3411,7 @@ class TestimonialView(CreateUpdateView):
                 i.save(update_fields=["status"])
 
         if t.state != "submitted":
-
             if self.request.method == "POST" and "file" in form.changed_data and t.file:
-
                 try:
                     if cf := t.update_converted_file():
                         messages.success(
@@ -3484,7 +3435,6 @@ class TestimonialView(CreateUpdateView):
                     return resp
 
             if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-
                 if self.application.round.referee_cv_required:
                     if (
                         cv := models.CurriculumVitae.where(owner=self.request.user)
@@ -3614,7 +3564,6 @@ class TestimonialView(CreateUpdateView):
 
 
 class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
-
     model = models.Nomination
     table_class = tables.NominationTable
     template_name = "nominations.html"
@@ -3634,7 +3583,6 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
 
 class NominationDetail(DetailView):
-
     model = models.Nomination
     template_name = "nomination_detail.html"
 
@@ -3708,13 +3656,11 @@ class NominationDetail(DetailView):
 
 
 class TestimonialList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
-
     model = models.Testimonial
     table_class = tables.TestimonialTable
     template_name = "testimonials.html"
 
     def get_queryset(self, *args, **kwargs):
-
         state = self.state
         return self.model.user_testimonials(user=self.request.user, state=state).order_by(
             "referee__application__number"
@@ -3722,7 +3668,6 @@ class TestimonialList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
 
 class TestimonialDetail(DetailView):
-
     model = models.Testimonial
     template_name = "testimonial_detail.html"
 
@@ -3754,7 +3699,6 @@ class TestimonialDetail(DetailView):
 
 
 class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
-
     model = None
     template = "pdf_export_template.html"
 
@@ -3895,7 +3839,6 @@ class RoundExportView(ExportView):
         return (self.round.title or self.round.scheme.title).lower().replace(" ", "-")
 
     def get(self, request, pk):
-
         round = self.round
 
         merger = PdfFileMerger()
@@ -3904,7 +3847,6 @@ class RoundExportView(ExportView):
 
         numbers = []
         for a in self.round.applications.all().order_by("number"):
-
             numbers.append(a.number)
             content = io.BytesIO()
             a.to_pdf(request).write(content)
@@ -4016,7 +3958,6 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
         )
 
     def post(self, request, *args, **kwargs):
-
         if "cancel" in request.POST:
             return HttpResponseRedirect(reverse("home"))
 
@@ -4081,7 +4022,6 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
         return dict(round=self.round)
 
     def get_formset(self):
-
         klass = super().get_formset()
         defaults = self.get_defaults()
 
@@ -4098,7 +4038,6 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
 
 
 class RoundList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
-
     model = models.Round
     table_class = tables.RoundTable
     template_name = "rounds.html"
@@ -4130,7 +4069,6 @@ class RoundList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
 
 class ScoreSheetList(AdminRequiredMixin, StateInPathMixin, SingleTableView):
-
     model = models.ScoreSheet
     table_class = tables.ScoreSheetTable
     template_name = "score_sheets.html"
@@ -4148,7 +4086,6 @@ class ScoreSheetList(AdminRequiredMixin, StateInPathMixin, SingleTableView):
 
 
 class RoundApplicationList(LoginRequiredMixin, SingleTableView):
-
     model = models.Application
     table_class = tables.RoundApplicationTable
     template_name = "rounds.html"
@@ -4223,7 +4160,6 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
 
 
 class EvaluationListView(LoginRequiredMixin, StateInPathMixin, SingleTableView):
-
     model = models.Evaluation
     table_class = tables.EvaluationTable
     template_name = "rounds.html"
@@ -4246,7 +4182,6 @@ class EvaluationListView(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
 
 class ConflictOfInterestView(CreateUpdateView):
-
     model = models.ConflictOfInterest
     form_class = forms.ConflictOfInterestForm
     template_name = "conflict_of_interest.html"
@@ -4272,7 +4207,6 @@ class ConflictOfInterestView(CreateUpdateView):
         return initial
 
     def get(self, request, *args, **kwargs):
-
         if "pk" in kwargs and (coi := models.ConflictOfInterest.where(pk=kwargs["pk"]).first()):
             if (
                 coi.has_conflict is False
@@ -4345,7 +4279,6 @@ class ConflictOfInterestView(CreateUpdateView):
 
 
 class ScoreInline(InlineFormSetFactory):
-
     model = models.Score
     form_class = forms.ScoreForm
     factory_kwargs = {
@@ -4522,12 +4455,10 @@ class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesVie
 
 
 class EvaluationDetail(DetailView):
-
     model = models.Evaluation
     template_name = "evaluation.html"
 
     def dispatch(self, request, *args, **kwargs):
-
         if not (u := request.user) and u.is_authenticated and not (u.is_superuser or u.is_staff):
             if (e := self.get_object()) and e.panellist and e.panellist.user != u:
                 messages.error(request, _("You do not have permission to access this review."))
@@ -4568,7 +4499,6 @@ class EvaluationDetail(DetailView):
 
 
 class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
-
     model = models.ConflictOfInterest
     form_class = forms.RoundConflictOfInterestForm
     exclude = []
@@ -4643,7 +4573,6 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
             return None
 
     def get_initial_queryset(self):
-
         from django.db.models import Exists, OuterRef
 
         if (panellist := self.panellist) and self.request.method == "GET":
@@ -4708,7 +4637,6 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
 
 @login_required
 def export_score_sheet(request, round):
-
     file_type = request.GET.get("type", "xlsx")
     r = (
         models.Round.where(id=round)
@@ -4773,7 +4701,6 @@ def export_score_sheet(request, round):
 
 
 class RoundConflictOfInterstSatementList(LoginRequiredMixin, ExportMixin, SingleTableView):
-
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.ConflictOfInterest
     table_class = tables.RoundConflictOfInterstSatementTable
@@ -4872,7 +4799,6 @@ def score_sheet(request, round):
 
 
 class RoundScoreList(AdminRequiredMixin, ExportMixin, SingleTableView):
-
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.Application
     # table_class = tables.RoundConflictOfInterstSatementTable
@@ -4904,7 +4830,6 @@ class RoundScoreList(AdminRequiredMixin, ExportMixin, SingleTableView):
         )
 
     def get_queryset(self, *args, **kwargs):
-
         round_id = self.kwargs.get("round")
         # criteria = models.Criterion.where(round_id=round_id)
         # definitions = {c.id: c.definition for c in criteria}
@@ -4939,7 +4864,6 @@ class RoundScoreList(AdminRequiredMixin, ExportMixin, SingleTableView):
 
 @login_required
 def round_scores_export(request, round):
-
     file_type = request.GET.get("type", "xlsx")
     round = get_object_or_404(models.Round, pk=round)
     criteria = models.Criterion.where(round=round)
@@ -5018,7 +4942,6 @@ def round_scores_export(request, round):
 
 @login_required
 def round_scores(request, round):
-
     round = get_object_or_404(models.Round, pk=round)
     rounds = (
         models.Round.current_rounds()
@@ -5065,7 +4988,6 @@ def status(request):
 
 
 class RoundSummary(AdminRequiredMixin, ExportMixin, SingleTableView):
-
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.Application
     table_class = tables.RoundSummaryTable
@@ -5101,7 +5023,6 @@ class RoundSummary(AdminRequiredMixin, ExportMixin, SingleTableView):
         ) + "-summary"
 
     def get_queryset(self, *args, **kwargs):
-
         # round = get_object_or_404(models.Round, pk=self.kwargs.get("round"))
         return self.round.summary
 
@@ -5138,7 +5059,6 @@ def application_exported_view(request, number, lang=None):
 
 @login_required
 def user_files(request):
-
     if "error" in request.GET:
         raise Exception(request.GET["error"])
 
