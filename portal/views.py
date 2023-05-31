@@ -2240,6 +2240,15 @@ def application_filter_rounds(request, *args, **kwargs):
     return models.Round.objects.all()
 
 
+def application_filter_years(request, *args, **kwargs):
+    if request is None:
+        return []
+
+    # company = request.user.company
+    with connection.cursor() as cr:
+        cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+        return [(y, y) for y in cr.fetchall()]
+
 class ApplicationFilter(django_filters.FilterSet):
     # @property
     # def qs(self):
@@ -2257,14 +2266,19 @@ class ApplicationFilter(django_filters.FilterSet):
     active_filter = django_filters.BooleanFilter(
         method="filter_active", label=gettext_lazy("Active Applications")
     )
+    year_filter = django_filters.ModelChoiceFilter(
+        label=gettext_lazy("Year"),
+        widget=django_filters.widgets.LinkWidget,
+        method="set_filter",
+        queryset=application_filter_years,
+    )
 
-    round = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
+    round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
         #     "round",
         label=gettext_lazy("Round"),
         widget=django_filters.widgets.LinkWidget,
         field_name="round",
         queryset=application_filter_rounds,
-        # queryset: <MultilingualQuerySet [<Round: Future Scientist 2020>, <Round: Science Prize 2021>, <Round: Science Teacher Prize>, <Round: MacDiarmid Emerging Scientist Prize 2021>, <Round: Future Scientist Prize 2020>, <Round: Science Communication Prize 2021>, <Round: Emerging Scientist Prize>]>, 'to_field_name': 'id', 'null_label': None, 'empty_label': '---------'
     )
 
     class Meta:

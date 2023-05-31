@@ -31,6 +31,40 @@ thead th.orderable.desc > a {
   padding-right: 20px;
   background: url("{% static 'images/arrow-active-down.png' %}") right center no-repeat;
 }*/
+
+
+#table-filter {
+  flex: 0 0 240px;
+  order: 1;
+  border-left: none;
+  margin: 0 0 0 30px;
+  width: 100%;
+}
+
+#table-filter h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 5px 15px;
+  margin-bottom: 12px;
+  border-bottom: none;
+  background-color: var(--info);
+  color: white;
+  width: 100%;
+}
+
+#table-filter h3, #table-filter details summary {
+  font-weight: 400;
+  padding: 0 15px;
+  margin-bottom: 10px;
+}
+
+#table-filter #table-filter-clear a {
+  font-size: 0.8125rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
   </style>
 {% endblock localcss %}
 
@@ -106,44 +140,95 @@ thead th.orderable.desc > a {
     <h1>{{ view.title }}</h1>
   {% endif %}
 
-  {% if add_show_only_conflicts_filter %}
-    <form method="GET">
-      <div class="form-group form-check">
-        <input
-            {% if show_only_conflicts %}checked{% endif %}
-            type="checkbox"
-            class="form-check-input"
-            id="show-only-conflicts"
-            name="show_only_conflicts">
-        <label class="form-check-label" for="show-only-conflicts">{% trans 'Show Only Conflicts' %}</label>
-      </div>
-    </form>
-    <script>
-      $(document).ready(function() {
-              $('#show-only-conflicts').change(function()
-                      {
-                              $(location).attr("href",
-                                      $(location).attr("pathname") + "?show_only_conflicts=" + (this.checked ? '1':'0'));
-                            });
+  {% block filters %}
+    {% if add_show_only_conflicts_filter %}
+      <form method="GET">
+        <div class="form-group form-check">
+          <input
+              {% if show_only_conflicts %}checked{% endif %}
+              type="checkbox"
+              class="form-check-input"
+              id="show-only-conflicts"
+              name="show_only_conflicts">
+          <label class="form-check-label" for="show-only-conflicts">{% trans 'Show Only Conflicts' %}</label>
+        </div>
+      </form>
+      <script>
+        $(document).ready(function() {
+          $('#show-only-conflicts').change(function() {
+            $(location).attr("href",
+              $(location).attr("pathname") + "?show_only_conflicts=" + (this.checked ? '1':'0'));
             });
-    </script>
-  {% endif %}
+          });
+      </script>
+    {% endif %}
 
-  {% if filter and not filter_disabled %}
-    <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
-      {% bootstrap_field filter.form.application_filter show_label=False %}
-      {#% bootstrap_field filter.form.round show_label=False %#}
-      <!-- input type="checkbox"
-             data-toggle="toggle"
-             {% if filter.form.archived_filter.value == 'true' %}checked{% endif %}
-             name="{{ filter.form.archived_filter.name }}"
-             id="{{ filter.form.archived_filter.auto_id }}"
-      -->
-      <button class="btn btn-primary ml-1">{% trans 'Filter' %}</button>
-    </form>
-  {% endif %}
+    {% if filter and not filter_disabled %}
+      <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
+        {% bootstrap_field filter.form.application_filter show_label=False %}
+        {#% bootstrap_field filter.form.round show_label=False %#}
+        {#% if user.is_superuser or user.is_saff %#}
+          <!-- input type="checkbox"
+            data-toggle="toggle"
+            {% if filter.form.archived_filter.value == 'true' %}checked{% endif %}
+            name="{{ filter.form.archived_filter.name }}"
+            id="{{ filter.form.archived_filter.auto_id }}"
+          -->
+        {#% endif %#}
+        <button class="btn btn-primary ml-1">{% trans 'Filter' %}</button>
+      </form>
+    {% endif %}
+  {% endblock %}
 
-  {% render_table table %}
+
+  {% if user.is_saff and filter or user.is_superuser and filter %}
+    <div class="row">
+      <div class="col-md-10">
+        {% render_table table %}
+      </div>
+      <div class="col-md-2">
+
+        <div class="card text-dark bg-light mb-3" style="max-width: 18rem;">
+          <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
+          <div class="card-header">{% trans 'Filters' %}</div>
+          <div class="card-body">
+            <h5 id="table-filter-clear"><a href="?">✖ {% trans 'Clear all filters' %}</a></h5>
+            <!-- h5 class="card-title">Light card title</h5 -->
+            <p class="card-text">
+              <details data-filter-title="round" open="">
+                <summary>{% trans 'By round' %}</summary>
+                {{ filter.form.round_filter }}
+                {{ filter.form.year_filter }}
+                {#% bootstrap_field filter.form.round_filter show_label=False %#}
+                {#% bootstrap_field filter.form.archived_filter show_label=True %#}
+                <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
+              </details>
+            </p>
+          </div>
+          </form>
+        </div>
+
+        {% comment %}
+        <div id="table-filter">
+          <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
+            <h2>{% trans 'Filter' %}</h2>
+            <h3 id="table-filter-clear"><a href="?">✖ {% trans 'Clear all filters' %}</a></h3>
+            <details data-filter-title="round" open="">
+              <summary>{% trans 'By round' %}</summary>
+              {{ filter.form.round_filter }}
+              {#% bootstrap_field filter.form.round_filter show_label=False %#}
+              {#% bootstrap_field filter.form.archived_filter show_label=True %#}
+              <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
+            </details>
+          </form>
+        </div>
+        {% endcomment %}
+
+      </div>
+    </div>
+  {% else %}
+    {% render_table table %}
+  {% endif %}
 
   {% if view.export_formats %}
     <form method="GET">
@@ -174,3 +259,7 @@ thead th.orderable.desc > a {
   <!-- script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script -->
 {% endblock %}
 {# vim:set ft=htmldjango: #}
+
+
+
+
