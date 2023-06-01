@@ -12175,6 +12175,12 @@ footer a {
   text-decoration: none;
 }
 
+details ul li a.selected, details ul li a.selected:active {
+  text-decoration: bold;
+  color: #8E8C84;
+  background-color: #F8F5F0;
+}
+
 /* Sticky footer styles
 -------------------------------------------------- */
 /* Custom page CSS
@@ -12204,6 +12210,10 @@ input.form-control.yearpicker {
   width: 4em;
 }
 
+/* input[type=checkbox],input[type=checkbox]:checked,.form-check-input:checked,.form-check-input {
+    background-color: $primary !important;
+    color: color-yiq($primary) !important;
+} */
 #div_id_title div {
   padding-left: 6px;
   padding-right: 6px;
@@ -12247,7 +12257,6 @@ table.details tr:last-child > td {
 .modal-header-bg {
   background-color: #026d7d;
   color: #fff;
-  border-top: 2px dashed #026d7d;
 }
 
 /*# sourceMappingURL=portal.pmscienceprizes.org.nz.css.map */

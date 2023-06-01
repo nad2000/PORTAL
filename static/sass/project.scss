@@ -258,10 +258,18 @@ footer a:active, footer a:focus, footer a:hover {
     text-decoration: none;
 }
 footer a {
-    color: white;
-    border-bottom: 1px dashed white;
-    text-decoration: none;
+  color: white;
+  border-bottom: 1px dashed white;
+  text-decoration: none;
 }
+
+details ul li a.selected, details ul li a.selected:active {
+  text-decoration: none;
+  font-weight: bold;
+  color: $nav-pills-link-active-color;
+  background-color: $nav-pills-link-active-bg;
+}
+
 
 /* Sticky footer styles
 -------------------------------------------------- */

@@ -1485,7 +1485,6 @@ class ApplicationView(LoginRequiredMixin):
                     else:
                         return self.form_invalid(form)
 
-
                 if "file" in form.changed_data and instance.file:
                     try:
                         if cf := instance.update_converted_file():
@@ -1884,10 +1883,11 @@ class ApplicationView(LoginRequiredMixin):
         context["referees"] = referee_form_set
 
         if round.has_fors:
-            fsc= forms.inlineformset_factory(
+            fsc = forms.inlineformset_factory(
                 models.Application,
                 models.ApplicationFor,
-                extra=1, can_delete=True,
+                extra=1,
+                can_delete=True,
                 exclude=[],
                 # fields = ["id", "code", "application", "share"],
                 labels={"code": _("Field of Research")},
@@ -1907,7 +1907,7 @@ class ApplicationView(LoginRequiredMixin):
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
-                }
+                },
             )
 
             initial_fors = (
@@ -1937,7 +1937,8 @@ class ApplicationView(LoginRequiredMixin):
                 models.Application,
                 models.ApplicationSeo,
                 # form=forms.RefereeForm,
-                extra=1, can_delete=True,
+                extra=1,
+                can_delete=True,
                 exclude=[],
                 labels={"code": _("Socio-Economic Objective")},
                 help_texts={
@@ -1956,7 +1957,7 @@ class ApplicationView(LoginRequiredMixin):
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
-                }
+                },
             )
             initial_seos = (
                 [
@@ -2259,6 +2260,41 @@ def application_filter_years(request, *args, **kwargs):
         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
         return [(y, y) for y in cr.fetchall()]
 
+
+class YearChoiceFilter(django_filters.ChoiceFilter):
+    # field_class = ChoiceField
+
+    def __init__(self, *args, **kwargs):
+        # self.null_value = kwargs.get("null_value", settings.NULL_CHOICE_VALUE)
+        breakpoint()
+        super().__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        breakpoint()
+        if value != self.null_value:
+            return super().filter(qs, value)
+
+        qs = self.get_method(qs)(**{"%s__%s" % (self.field_name, self.lookup_expr): None})
+        return qs.distinct() if self.distinct else qs
+
+
+class LinkWidget(django_filters.widgets.LinkWidget):
+    def value_from_datadict(self, data, files, name):
+        breakpoint()
+        return super().value_from_datadict(data, files, name)
+
+    def render(self, name, value, attrs=None, choices=(), renderer=None):
+        return super().render(name, value, attrs=attrs, choices=choices, renderer=renderer)
+
+    def render_options(self, choices, selected_choices, name):
+        breakpoint()
+        return super().render_options(choices, selected_choices, name)
+
+    def render_option(self, name, selected_choices, option_value, option_label):
+        breakpoint()
+        return super().render_option(name, selected_choices, option_value, option_label)
+
+
 class ApplicationFilter(django_filters.FilterSet):
     # @property
     # def qs(self):
@@ -2276,17 +2312,18 @@ class ApplicationFilter(django_filters.FilterSet):
     active_filter = django_filters.BooleanFilter(
         method="filter_active", label=gettext_lazy("Active Applications")
     )
-    year_filter = django_filters.ModelChoiceFilter(
-        label=gettext_lazy("Year"),
-        widget=django_filters.widgets.LinkWidget,
-        method="set_filter",
-        queryset=application_filter_years,
-    )
+    # year_filter = YearChoiceFilter(
+    #     label=gettext_lazy("Year"),
+    #     # widget=django_filters.widgets.LinkWidget,
+    #     method="set_filter",
+    #     queryset=application_filter_years,
+    # )
 
     round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
         #     "round",
         label=gettext_lazy("Round"),
         widget=django_filters.widgets.LinkWidget,
+        #widget=LinkWidget,
         field_name="round",
         queryset=application_filter_rounds,
     )
@@ -2987,6 +3024,7 @@ class FosAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if self.q:
             q = q.filter(description__icontains=self.q).order_by("description")
         return q.order_by("description")
+
 
 class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
