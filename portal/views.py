@@ -2254,7 +2254,10 @@ def application_filter_years(request, *args, **kwargs):
 
     # company = request.user.company
     with connection.cursor() as cr:
-        cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+        if connection.vendor == "sqlite":
+            cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+        else:
+            cr.execute("SELECT DISTINCT extract('year' FROM opens_on) AS year FROM round ORDER BY 1;")
         return [(y, y) for y in cr.fetchall()]
 
 class ApplicationFilter(django_filters.FilterSet):
