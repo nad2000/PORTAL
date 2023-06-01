@@ -9,7 +9,7 @@ import django_filters
 import django_tables2
 import tablib
 from allauth.account.models import EmailAddress
-from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout
 from dal import autocomplete
@@ -214,8 +214,16 @@ def shoud_be_onboarded(function):
 def logout(request):
     account_logout = reverse("account_logout")
     if request.user.has_rapidconnect_account:
+        # user__registered_on_id=settings.SITE_ID,
         return_url = request.build_absolute_uri(account_logout)
+        if (
+            sa := SocialApp.objects.filter(
+                sites__id=settings.SITE_ID, provider="rapidconnect"
+            ).first()
+        ) and (id_value := sa.client_id.split("/")[-1]):
+            return redirect(f"{settings.RAPIDCONNECT_LOGOUT}?id={id_value}&return={return_url}")
         return redirect(f"{settings.RAPIDCONNECT_LOGOUT}?return={return_url}")
+
     return redirect(account_logout)
 
 
