@@ -2251,48 +2251,30 @@ def application_filter_rounds(request, *args, **kwargs):
     return models.Round.objects.all()
 
 
-def application_filter_years(request, *args, **kwargs):
-    if request is None:
-        return []
-
-    # company = request.user.company
-    with connection.cursor() as cr:
-        cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
-        return [(y, y) for y in cr.fetchall()]
-
-
 class YearChoiceFilter(django_filters.ChoiceFilter):
     # field_class = ChoiceField
+    field_class = django_filters.fields.ChoiceField
 
-    def __init__(self, *args, **kwargs):
-        # self.null_value = kwargs.get("null_value", settings.NULL_CHOICE_VALUE)
-        breakpoint()
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     # self.null_value = kwargs.get("null_value", settings.NULL_CHOICE_VALUE)
+    #     with connection.cursor() as cr:
+    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+    #         kwargs["choices"] = [(y, y) for y in cr.fetchall()]
+    #     # breakpoint()
+    #     super().__init__(*args, **kwargs)
+
+    # @property
+    # def field(self):
+    #     with connection.cursor() as cr:
+    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+    #         self.extra["choices"] = [(y, y) for (y,) in cr.fetchall()]
+    #     return super().field
+
 
     def filter(self, qs, value):
-        breakpoint()
         if value != self.null_value:
-            return super().filter(qs, value)
-
-        qs = self.get_method(qs)(**{"%s__%s" % (self.field_name, self.lookup_expr): None})
-        return qs.distinct() if self.distinct else qs
-
-
-class LinkWidget(django_filters.widgets.LinkWidget):
-    def value_from_datadict(self, data, files, name):
-        breakpoint()
-        return super().value_from_datadict(data, files, name)
-
-    def render(self, name, value, attrs=None, choices=(), renderer=None):
-        return super().render(name, value, attrs=attrs, choices=choices, renderer=renderer)
-
-    def render_options(self, choices, selected_choices, name):
-        breakpoint()
-        return super().render_options(choices, selected_choices, name)
-
-    def render_option(self, name, selected_choices, option_value, option_label):
-        breakpoint()
-        return super().render_option(name, selected_choices, option_value, option_label)
+            return qs.filter(created_at__year=value)
+        return qs
 
 
 class ApplicationFilter(django_filters.FilterSet):
@@ -2312,12 +2294,17 @@ class ApplicationFilter(django_filters.FilterSet):
     active_filter = django_filters.BooleanFilter(
         method="filter_active", label=gettext_lazy("Active Applications")
     )
-    # year_filter = YearChoiceFilter(
-    #     label=gettext_lazy("Year"),
-    #     # widget=django_filters.widgets.LinkWidget,
-    #     method="set_filter",
-    #     queryset=application_filter_years,
-    # )
+    # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
+    year_filter =  YearChoiceFilter(
+        label=gettext_lazy("Year"),
+        widget=django_filters.widgets.LinkWidget,
+        choices = [(v, v) for v in range(2019, timezone.now().year+1)]
+        # choices=[(1,1),(2,2)]  # application_filter_years(),
+        # choices= application_filter_years(),
+        # widget=django_filters.widgets.LinkWidget,
+                                                   # method="set_filter",
+        # queryset=application_filter_years,
+    )
 
     round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
         #     "round",
