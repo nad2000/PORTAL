@@ -166,7 +166,7 @@ thead th.orderable.desc > a {
     {% if filter and not filter_disabled %}
     <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
         {% for n, v in request.GET.items %}
-          {% if n != 'application_filter' %}
+          {% if n != 'application_filter' and n != 'page' %}
             <input type="hidden" name="{{ n }}" value="{{ v }}">
           {% endif %}
         {% endfor %}
