@@ -189,15 +189,21 @@ thead th.orderable.desc > a {
       <div class="col-md-2">
 
         <div class="card text-dark bg-light mb-3" style="max-width: 18rem;">
-          <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
+          <form action="./?" method="GET" class="form form-inline mb-3" autocomplete="on">
           <div class="card-header">{% trans 'Filters' %}</div>
           <div class="card-body">
-            <h5 id="table-filter-clear"><a href="?">✖ {% trans 'Clear all filters' %}</a></h5>
+            <h7 id="table-filter-clear"><a href="?">✖ {% trans 'Clear all filters' %}</a></h7>
             <!-- h5 class="card-title">Light card title</h5 -->
             <p class="card-text">
               <details data-filter-title="round" open="">
                 <summary>{% trans 'By round' %}</summary>
                 {{ filter.form.round_filter }}
+                {#% bootstrap_field filter.form.round_filter show_label=False %#}
+                {#% bootstrap_field filter.form.archived_filter show_label=True %#}
+                <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
+              </details>
+              <details data-filter-title="year" open="">
+                <summary>{% trans 'By year' %}</summary>
                 {{ filter.form.year_filter }}
                 {#% bootstrap_field filter.form.round_filter show_label=False %#}
                 {#% bootstrap_field filter.form.archived_filter show_label=True %#}

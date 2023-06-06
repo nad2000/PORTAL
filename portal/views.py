@@ -2272,7 +2272,7 @@ class YearChoiceFilter(django_filters.ChoiceFilter):
 
 
     def filter(self, qs, value):
-        if value != self.null_value:
+        if value != self.null_value and value:
             return qs.filter(created_at__year=value)
         return qs
 
