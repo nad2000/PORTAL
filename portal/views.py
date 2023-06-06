@@ -2270,7 +2270,6 @@ class YearChoiceFilter(django_filters.ChoiceFilter):
     #         self.extra["choices"] = [(y, y) for (y,) in cr.fetchall()]
     #     return super().field
 
-
     def filter(self, qs, value):
         if value != self.null_value and value:
             return qs.filter(created_at__year=value)
@@ -2295,14 +2294,14 @@ class ApplicationFilter(django_filters.FilterSet):
         method="filter_active", label=gettext_lazy("Active Applications")
     )
     # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
-    year_filter =  YearChoiceFilter(
+    year_filter = YearChoiceFilter(
         label=gettext_lazy("Year"),
         widget=django_filters.widgets.LinkWidget,
-        choices = [(v, v) for v in range(2019, timezone.now().year+1)]
+        choices=[(v, v) for v in range(2019, timezone.now().year + 1)]
         # choices=[(1,1),(2,2)]  # application_filter_years(),
         # choices= application_filter_years(),
         # widget=django_filters.widgets.LinkWidget,
-                                                   # method="set_filter",
+        # method="set_filter",
         # queryset=application_filter_years,
     )
 
@@ -2310,7 +2309,7 @@ class ApplicationFilter(django_filters.FilterSet):
         #     "round",
         label=gettext_lazy("Round"),
         widget=django_filters.widgets.LinkWidget,
-        #widget=LinkWidget,
+        # widget=LinkWidget,
         field_name="round",
         queryset=application_filter_rounds,
     )
@@ -2404,6 +2403,16 @@ class ApplicationList(
         ):
             context["filter_disabled"] = True
             # self.table_pagination = False
+        else:
+            if (filter := context.get("filter")) and filter.is_bound:
+                application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
+                application_submitted_count = filter.qs.filter(state="submitted").count()
+                context["application_count"] = (
+                    application_draft_count + application_submitted_count
+                )
+                context["application_draft_count"] = application_draft_count
+                context["application_submitted_count"] = application_submitted_count
+
         if (state := self.request.path.split("/")[-1]) and state in ["draft", "submitted"]:
             context["state"] = state
 
