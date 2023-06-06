@@ -2404,6 +2404,7 @@ class ApplicationList(
             context["filter_disabled"] = True
             # self.table_pagination = False
         else:
+            # update application counts:
             if (filter := context.get("filter")) and filter.is_bound:
                 application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
                 application_submitted_count = filter.qs.filter(state="submitted").count()
