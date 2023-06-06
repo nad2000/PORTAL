@@ -213,6 +213,8 @@ def shoud_be_onboarded(function):
 @login_required
 def logout(request):
     account_logout = reverse("account_logout")
+    return redirect(account_logout)
+
     if request.user.has_rapidconnect_account:
         # user__registered_on_id=settings.SITE_ID,
         return_url = request.build_absolute_uri(account_logout)
@@ -1483,7 +1485,6 @@ class ApplicationView(LoginRequiredMixin):
                     else:
                         return self.form_invalid(form)
 
-
                 if "file" in form.changed_data and instance.file:
                     try:
                         if cf := instance.update_converted_file():
@@ -1882,10 +1883,11 @@ class ApplicationView(LoginRequiredMixin):
         context["referees"] = referee_form_set
 
         if round.has_fors:
-            fsc= forms.inlineformset_factory(
+            fsc = forms.inlineformset_factory(
                 models.Application,
                 models.ApplicationFor,
-                extra=1, can_delete=True,
+                extra=1,
+                can_delete=True,
                 exclude=[],
                 # fields = ["id", "code", "application", "share"],
                 labels={"code": _("Field of Research")},
@@ -1905,7 +1907,7 @@ class ApplicationView(LoginRequiredMixin):
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
-                }
+                },
             )
 
             initial_fors = (
@@ -1935,7 +1937,8 @@ class ApplicationView(LoginRequiredMixin):
                 models.Application,
                 models.ApplicationSeo,
                 # form=forms.RefereeForm,
-                extra=1, can_delete=True,
+                extra=1,
+                can_delete=True,
                 exclude=[],
                 labels={"code": _("Socio-Economic Objective")},
                 help_texts={
@@ -1954,7 +1957,7 @@ class ApplicationView(LoginRequiredMixin):
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
-                }
+                },
             )
             initial_seos = (
                 [
@@ -2248,17 +2251,30 @@ def application_filter_rounds(request, *args, **kwargs):
     return models.Round.objects.all()
 
 
-def application_filter_years(request, *args, **kwargs):
-    if request is None:
-        return []
+class YearChoiceFilter(django_filters.ChoiceFilter):
+    # field_class = ChoiceField
+    field_class = django_filters.fields.ChoiceField
 
-    # company = request.user.company
-    with connection.cursor() as cr:
-        if connection.vendor == "sqlite":
-            cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
-        else:
-            cr.execute("SELECT DISTINCT extract('year' FROM opens_on) AS year FROM round ORDER BY 1;")
-        return [(y, y) for y in cr.fetchall()]
+    # def __init__(self, *args, **kwargs):
+    #     # self.null_value = kwargs.get("null_value", settings.NULL_CHOICE_VALUE)
+    #     with connection.cursor() as cr:
+    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+    #         kwargs["choices"] = [(y, y) for y in cr.fetchall()]
+    #     # breakpoint()
+    #     super().__init__(*args, **kwargs)
+
+    # @property
+    # def field(self):
+    #     with connection.cursor() as cr:
+    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
+    #         self.extra["choices"] = [(y, y) for (y,) in cr.fetchall()]
+    #     return super().field
+
+    def filter(self, qs, value):
+        if value != self.null_value and value:
+            return qs.filter(created_at__year=value)
+        return qs
+
 
 class ApplicationFilter(django_filters.FilterSet):
     # @property
@@ -2277,17 +2293,23 @@ class ApplicationFilter(django_filters.FilterSet):
     active_filter = django_filters.BooleanFilter(
         method="filter_active", label=gettext_lazy("Active Applications")
     )
-    year_filter = django_filters.ModelChoiceFilter(
+    # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
+    year_filter = YearChoiceFilter(
         label=gettext_lazy("Year"),
         widget=django_filters.widgets.LinkWidget,
-        method="set_filter",
-        queryset=application_filter_years,
+        choices=[(v, v) for v in range(2019, timezone.now().year + 1)]
+        # choices=[(1,1),(2,2)]  # application_filter_years(),
+        # choices= application_filter_years(),
+        # widget=django_filters.widgets.LinkWidget,
+        # method="set_filter",
+        # queryset=application_filter_years,
     )
 
     round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
         #     "round",
         label=gettext_lazy("Round"),
         widget=django_filters.widgets.LinkWidget,
+        # widget=LinkWidget,
         field_name="round",
         queryset=application_filter_rounds,
     )
@@ -2381,6 +2403,17 @@ class ApplicationList(
         ):
             context["filter_disabled"] = True
             # self.table_pagination = False
+        else:
+            # update application counts:
+            if (filter := context.get("filter")) and filter.is_bound:
+                application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
+                application_submitted_count = filter.qs.filter(state="submitted").count()
+                context["application_count"] = (
+                    application_draft_count + application_submitted_count
+                )
+                context["application_draft_count"] = application_draft_count
+                context["application_submitted_count"] = application_submitted_count
+
         if (state := self.request.path.split("/")[-1]) and state in ["draft", "submitted"]:
             context["state"] = state
 
@@ -2988,6 +3021,7 @@ class FosAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if self.q:
             q = q.filter(description__icontains=self.q).order_by("description")
         return q.order_by("description")
+
 
 class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):

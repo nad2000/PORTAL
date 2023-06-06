@@ -6,7 +6,7 @@
   <div class="card mb-2">
     <div class="card-header">
       {% if application_count %}
-      <a href="{% if request.user.is_staff or request.user.is_admin %}{% url 'applications' %}{% else %}{% url 'index' %}{% endif %}">
+      <a href="{% if request.user.is_staff or request.user.is_admin %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}">
         {% trans 'Applications' %} <span class="badge badge-primary">{{ application_count }}</span>
       </a>
     {% else %}
@@ -21,7 +21,7 @@
               <a
                   class="nav-link"
                   id="applications-draft"
-                  href="{% url 'applications-draft' %}{% if request.GET.round %}?round={{ request.GET.round }}{% endif %}"
+                  href="{% url 'applications-draft' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
                   title="{% trans 'Saved application drafts' %}"
                   data-toggle="tooltip"
                   >
@@ -43,7 +43,7 @@
               <a
                   class="nav-link"
                   id="applications-submitted"
-                  href="{% url 'applications-submitted' %}{% if request.GET.round %}?round={{ request.GET.round }}{% endif %}"
+                  href="{% url 'applications-submitted' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
                   title="{% trans 'Submitted and previous applications' %}"
                   data-toggle="tooltip"
               >

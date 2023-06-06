@@ -225,7 +225,7 @@ class ApplicationTable(tables.Table):
 
     class Meta:
         model = models.Application
-        template_name = "django_tables2/bootstrap4.html"
+        template_name = "django_tables2/bootstrap4-responsive.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
