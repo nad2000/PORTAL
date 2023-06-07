@@ -23,7 +23,7 @@
     var total = totalShares_{{ formset.prefix }}();
     $("#id_{{ formset.prefix }}_total_share").text(total);
     if (total !=100) $("#id_{{ formset.prefix }}_total_share").css({"color": "red", 'font-weight': "bold"});
-    else $("#id_{{ formset.prefix }}_total_share").css({"color": "bold", 'font-weight': "green"});
+    else $("#id_{{ formset.prefix }}_total_share").css({"color": "green", 'font-weight': "bold"});
   };
 
   $(document).ready(function() {
