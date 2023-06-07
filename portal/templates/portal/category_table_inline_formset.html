@@ -4,8 +4,8 @@
 {% block table_footer %}
 <tfoot>
   <tr>
-    <td style="text-align: right;">{% trans 'Total (must be 100%)' %}</td>
-    <td style="text-align: right;" id="id_{{ formset.prefix }}_total_share">0</td>
+    <td style="text-align: right; vertical-align: middle;">{% trans 'Total (must be 100%)' %}</td>
+    <td><span class="rcorners" style="text-align: right;" id="id_{{ formset.prefix }}_total_share">0</span></td>
   </tr>
 </tfoot>
 <script>
@@ -23,7 +23,7 @@
     var total = totalShares_{{ formset.prefix }}();
     $("#id_{{ formset.prefix }}_total_share").text(total);
     if (total !=100) $("#id_{{ formset.prefix }}_total_share").css({"color": "red", 'font-weight': "bold"});
-    else $("#id_{{ formset.prefix }}_total_share").css({"color": "gray", 'font-weight': "normal"});
+    else $("#id_{{ formset.prefix }}_total_share").css({"color": "bold", 'font-weight': "green"});
   };
 
   $(document).ready(function() {

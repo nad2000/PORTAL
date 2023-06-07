@@ -21,6 +21,17 @@
 
 {% block css %}
   {#{ form.media.css }#}
+  <style>
+  .rcorners {
+      border-radius: 0.25rem;
+      border-width: 2px;
+      border-style: solid;
+      padding: 0.375rem 0.75rem;
+      width: 100%;
+      height: calc(1.5em + 0.75rem + 2px);
+      display: block;
+  }
+  </style>
   {{ block.super }}
   <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 {% endblock %}
@@ -95,7 +106,7 @@
               var total = totalToaShares();
               $("#id_application_toa_total_share").text(total);
               if (total !=100) $("#id_application_toa_total_share").css({"color": "red", 'font-weight': "bold"});
-              else $("#id_application_toa_total_share").css({"color": "gray", 'font-weight': "normal"});
+              else $("#id_application_toa_total_share").css({"color": "green", "font-weight": "bold"});
             };
           {% endif %}
           $(document).ready(function() {
