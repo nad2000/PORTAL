@@ -2297,7 +2297,7 @@ class ApplicationFilter(django_filters.FilterSet):
     year_filter = YearChoiceFilter(
         label=gettext_lazy("Year"),
         widget=django_filters.widgets.LinkWidget,
-        choices=[(v, v) for v in range(2019, timezone.now().year + 1)]
+        choices=[(v, v) for v in range(timezone.now().year, 2019, -1)]
         # choices=[(1,1),(2,2)]  # application_filter_years(),
         # choices= application_filter_years(),
         # widget=django_filters.widgets.LinkWidget,
