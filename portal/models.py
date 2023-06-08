@@ -4297,4 +4297,62 @@ def clean_private_fils():
         print(f"*** Recovered {total}MiB")
 
 
+# class ResearchOffice(Model):
+#     org = ForeignKey(
+#         Organisation,
+#         on_delete=CASCADE,
+#         verbose_name=_("organisation"),
+#         related_name="research_offices",
+#     )
+#     user = ForeignKey(User, on_delete=CASCADE, related_name="research_offices")
+
+#     history = HistoricalRecords(table_name="research_office_history")
+
+#     class Meta:
+#         db_table = "research_office"
+
+
+# ORG_ROLE = Choices(
+#     # ("SSIG", _("Society signatory")),
+#     # ("PM", _("Programme Manager")),
+#     # ("ADM", _("Administrator")),
+#     # ("RA", _("Research Assessors")),
+#     # For external users.
+#     ("RO", _("Research Office")),
+#     ("OSID", _("Organisation signatory")),
+# )
+
+
+# class UserOrgRole(Model):
+#     user = ForeignKey(User, on_delete=CASCADE, related_name="org_roles")
+#     org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"))
+#     type = CharField(_("type"), max_length=10, choices=AFFILIATION_TYPES)
+#     role = CharField(
+#         _("role"),
+#         max_length=512,
+#         null=True,
+#         blank=True,
+#         help_text="position or role, e.g., student, postdoc, etc.",
+#     )
+#     qualification = CharField(
+#         _("qualification"), max_length=512, null=True, blank=True
+#     )  # , help_text="position or degree")
+#     start_date = DateField(_("start date"), null=True, blank=True)
+#     end_date = DateField(_("end date"), null=True, blank=True)
+#     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+
+#     history = HistoricalRecords(table_name="affiliation_history")
+
+#     def __str__(self):
+#         if not (self.start_date or self.end_date):
+#             return f"{self.org}"
+#         if not self.end_date:
+#             return f"{self.org}: {self.start_date}"
+#         if not self.start_date:
+#             return f"{self.org}: until {self.end_date}"
+#         return f"{self.org}: {self.start_date} to {self.end_date}"
+
+#     class Meta:
+#         db_table = "affiliation"
+
 # vim:set ft=python.django:
