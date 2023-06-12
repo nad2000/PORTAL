@@ -16,6 +16,7 @@ from portal.models import (
     Panellist,
     Profile,
     Referee,
+    ResearchOffice,
 )
 
 from .forms import UserChangeForm, UserCreationForm
@@ -81,7 +82,13 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         # def view_on_site(self, obj):
         #     return reverse("admin:account_emailaddress_change", kwargs={"object_id": obj.pk})
 
-    inlines = [EmailAddressInline]
+    class ResearchOfficeInline(admin.TabularInline):
+        extra = 0
+        model = ResearchOffice
+        view_on_site = False
+        autocomplete_fields = ["org"]
+
+    inlines = [EmailAddressInline, ResearchOfficeInline]
 
     actions = ["merge_users"]
 

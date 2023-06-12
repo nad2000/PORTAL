@@ -4297,19 +4297,19 @@ def clean_private_fils():
         print(f"*** Recovered {total}MiB")
 
 
-# class ResearchOffice(Model):
-#     org = ForeignKey(
-#         Organisation,
-#         on_delete=CASCADE,
-#         verbose_name=_("organisation"),
-#         related_name="research_offices",
-#     )
-#     user = ForeignKey(User, on_delete=CASCADE, related_name="research_offices")
+class ResearchOffice(Model):
+    org = ForeignKey(
+        Organisation,
+        on_delete=CASCADE,
+        verbose_name=_("organisation"),
+        related_name="research_offices",
+    )
+    user = ForeignKey(User, on_delete=CASCADE, related_name="research_offices")
 
-#     history = HistoricalRecords(table_name="research_office_history")
+    history = HistoricalRecords(table_name="research_office_history")
 
-#     class Meta:
-#         db_table = "research_office"
+    class Meta:
+        db_table = "research_office"
 
 
 # ORG_ROLE = Choices(

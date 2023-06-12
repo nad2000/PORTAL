@@ -419,6 +419,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
         extra = 1
         model = models.Affiliation
         view_on_site = False
+        autocomplete_fields = ["org"]
 
     class CurriculumVitaeInline(admin.StackedInline):
         extra = 1
@@ -1023,7 +1024,7 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
         "summary",
         "site",
     ]
-    autocomplete_fields = ["application", "user", "round", "nominator", "cv"]
+    autocomplete_fields = ["application", "user", "round", "nominator", "cv", "org"]
 
     actions = ["resend_invitations"]
 

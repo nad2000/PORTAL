@@ -1,6 +1,7 @@
 :
 # sets up tmux with running server at the top pane; nvim in the middle and a command pane at the bottom..
 [ -n "$1" ] && cd "$1"
+unset DATABASE_URL SENTRY_DSN FLASK_ENV
 export DEBUG=1
 export PYTHONPATH="$PWD"
 tmux send-keys 'source ./venv/bin/activate ; export DEBUG=1 PYTHONPATH="$PWD"; ./manage.py runserver_plus 0.0.0.0:8080 --cert-file cert.crt --key-file cert.key' C-m \
