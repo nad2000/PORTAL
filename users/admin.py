@@ -24,9 +24,17 @@ from .forms import UserChangeForm, UserCreationForm
 User = get_user_model()
 
 
+def titled_filter(filter_class, title):
+    class Wrapper(filter_class):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.title = title
+
+    return Wrapper
+
+
 @admin.register(User)
 class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
-
     form = UserChangeForm
     add_form = UserCreationForm
     fieldsets = (
@@ -74,6 +82,15 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "first_name",
         "last_name",
     ]
+    list_filter = (
+        "is_staff",
+        "is_superuser",
+        "is_active",
+        (
+            "research_offices__org",
+            titled_filter(admin.RelatedOnlyFieldListFilter, "Research Office"),
+        ),
+    )
 
     class EmailAddressInline(admin.TabularInline):
         extra = 0
