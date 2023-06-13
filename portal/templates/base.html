@@ -137,23 +137,46 @@ table.table .asteriskField,.popover-header {color: gray;}
                         <i class="fa fa-fw fa-home"></i> {% trans 'Home' %}<span class="sr-only">(current)</span>
                       </a>
                     </li>
-                    <li class="nav-item" id="about">
-                      <a class="nav-link"
-                         href="{% url 'about' %}"
-                         {% if SITE_ID == 2 %}
-                           data-toggle="tooltip" title="About Catalyst"
-                         {% elif SITE_ID == 3 %}
-                           data-toggle="tooltip" title="About Science Teaching Leadership Programme"
-                         {% endif %}
-                       >
-                         <i class="fas fa-trophy"></i>
-                         {% if SITE_ID == 1 %}
-                           {% trans 'About the Prizes' %}
-                         {% else %}
-                           {% trans 'About' %}
-                         {% endif %}
-                      </a>
-                    </li>
+                    {% if is_ro %}
+                      <li class="nav-item" id="contracts">
+                        <a class="nav-link" href="#">
+                          <i class="fa fa-fw fa-file-contract"></i> {% trans 'Contracting' %}<!-- span class="sr-only">(current)</span -->
+                        </a>
+                      </li>
+                      <li class="nav-item" id="variants">
+                        <a class="nav-link" href="#">
+                          <i class="fa fa-fw fa-clone"></i> {% trans 'Variations' %}<!-- span class="sr-only">(current)</span -->
+                        </a>
+                      </li>
+                      <li class="nav-item" id="reports">
+                        <a class="nav-link" href="#">
+                          <i class="fa fa-file"></i> {% trans 'Reporting' %}<!-- span class="sr-only">(current)</span -->
+                        </a>
+                      </li>
+                      <li class="nav-item" id="reports">
+                        <a class="nav-link" href="#" data-toggle="tooltip" title="Manage Contacts">
+                          <i class="fa fa-address-book"></i> {% trans 'Contacts' %}<!-- span class="sr-only">(current)</span -->
+                        </a>
+                      </li>
+                    {% else %}
+                      <li class="nav-item" id="about">
+                        <a class="nav-link"
+                          href="{% url 'about' %}"
+                          {% if SITE_ID == 2 %}
+                            data-toggle="tooltip" title="About Catalyst"
+                          {% elif SITE_ID == 3 %}
+                            data-toggle="tooltip" title="About Science Teaching Leadership Programme"
+                          {% endif %}
+                        >
+                          <i class="fas fa-trophy"></i>
+                          {% if SITE_ID == 1 %}
+                            {% trans 'About the Prizes' %}
+                          {% else %}
+                            {% trans 'About' %}
+                          {% endif %}
+                        </a>
+                      </li>
+                    {% endif %}
                     {% if request.user.is_superuser or request.user.is_site_staff %}
                       <li class="nav-item" id="admin:index">
                         <a id="admin-link" class="nav-link" href="{% url 'admin:index' %}">
