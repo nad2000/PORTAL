@@ -459,8 +459,11 @@ def index(request):
     if "error" in request.GET:
         raise Exception(request.GET["error"])
     user = request.user
+    is_ro = models.ResearchOffice.where(user=user).exists()
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if request.user.is_approved:
+        if is_ro:
+            return render(request, "research_office_index.html", locals())
         outstanding_authorization_requests = models.Member.outstanding_requests(user)
         outstanding_testimonial_requests = models.Referee.outstanding_requests(user)
         outstanding_review_requests = models.Panellist.outstanding_requests(user)
