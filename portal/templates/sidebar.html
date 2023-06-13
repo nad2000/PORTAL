@@ -66,6 +66,23 @@
   </div>
   {% endif %}
 
+  {% if is_ro %}
+  <div class="card mb-2">
+    <div class="card-header">
+      <span data-toggle="tooltip" title="{% trans 'No contracts saved or submitted' %}">
+        {% trans 'Contracts' %} <span class="badge badge-primary">0</span>
+      </span>
+    </div>
+  </div>
+  <div class="card mb-2">
+    <div class="card-header">
+      <span data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}">
+        {% trans 'Reports' %} <span class="badge badge-primary">0</span>
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
   {% if nomination_count > 0 or request.user.is_superuser or request.user.is_staff %}
   <div class="card mb-2">
     <div class="card-header">

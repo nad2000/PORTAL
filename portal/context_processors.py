@@ -51,6 +51,7 @@ def portal_context(request):
                 "review_draft_count": models.Evaluation.user_evaluation_count(u, "draft"),
                 "review_submitted_count": models.Evaluation.user_evaluation_count(u, "submitted"),
                 "score_sheet_count": score_sheet_count,
+                "is_ro": models.ResearchOffice.where(user=u).exists(),
             }
             if not (u.is_superuser or u.is_staff):
                 with connection.cursor() as cursor:
