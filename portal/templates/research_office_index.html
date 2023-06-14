@@ -53,16 +53,16 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 {% block content %}
 
 <!-- Modal -->
-<div class="modal fade" id="roundDetail" tabindex="-1" role="dialog">
+<div class="modal fade" id="details" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h4 class="modal-title" id="roundDetailLabel" style="color:inherit">{% trans 'Round' %}</h4>
+        <h4 class="modal-title" id="detailsLabel" style="color:inherit">...</h4>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body" id="roundDetailBody">
+      <div class="modal-body" id="detailsBody">
           <title>...</title>
           <table class="table table-bordered searchable table-striped">
             <tbody>
@@ -121,6 +121,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 <div class="container">
 
   <!-- h1>{% trans "Apply for The Prime Minister’s Science Prizes" %}</h1 -->
+
       <div class="row">
         <div class="col mb-3">
           <div class="card">
@@ -130,250 +131,104 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               </b>
             </h5>
             <div class="card-body">
-              Applications that have been submitted by researchers of your organisation. All Society-administered schemes from 2020 to date.
-              NB! For review only.
+              {% blocktrans %}
+                <p>Applications that have been submitted by researchers of your organisation.</p>
+                <p>All Society-administered schemes 2020 to date.</p>
+                <p>NB! For review only.</p>
+              {% endblocktrans %}
               <!-- a href="/admin/portal/round/22/change/" class="btn btn-" style="text-transform: uppercase;"> Edit <b>Round</b></a -->
-              <a href="{% url 'applications' %}" type="button" role="button" class="btn btn-secondary" id="view-applications"> View Applications </a>
+              <a style="text-transform: uppercase;" href="{% url 'applications' %}" type="button" role="button" class="btn btn-secondary" id="view-applications">{% blocktrans %}View <b>Applications </b>{% endblocktrans %}</a>
 
               <button type="button" class="btn btn-outline-primary"
                                     data-toggle="modal"
-                                    data-target="#roundDetail"
-                                    data-round-id="{{ round.id }}"
-                                    data-round-title="{{ round.title }}"
+                                    data-target="#details"
+                                    data-content-url="{% url 'applications' %}"
+                                    data-detial-panel-title="{% trans 'Applications' %}"
                                     style="text-transform: uppercase;">
                 {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
               </button>
-
             </div>
           </div>
         </div>
       </div>
-
-      {% for record in schemes %}
-      {% with round=record.scheme.current_round scheme=record.scheme count=record.count application=record.application is_panellist=record.is_panellist has_submitted=record.has_submitted %}
 
       <div class="row">
         <div class="col mb-3">
           <div class="card">
             <h5 class="card-header">
-              {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
-                {{ record.title }}
+                {% trans "Contrancts and awards from your institution" %}
               </b>
             </h5>
             <div class="card-body">
-              {% if record.description|collapsible %}
-              <div class="partialcollapse">
-                <div class="collapse mb-1" id="round-description-{{ round.id }}" aria-expanded="false">
-                  {{ record.description|safe }}
-                </div>
-                <a role="button"
-                   class="collapsed"
-                   data-toggle="collapse"
-                   href="#round-description-{{ round.id }}"
-                   ></a>
-              </div>
-              {% else %}
-              {{ record.description|safe }}
-              {% endif %}
-              {% if round %}
-              <p class="card-text mt-2">{% trans 'Application period' %}:
-              <strong
-                  {% if not round.is_open %}
-                  class="badge-danger"
-                  {% elif round.deadline_days > 0 and round.deadline_days < 5 %}
-                  class="badge-warning"
-                  {% endif %}
-                  {% if round.deadline_days > 0 and round.deadline_days < 5 %}
-                  data-toggle="tooltip"
-                  title="{% blocktrans with deadline_days=round.deadline_days closes_on=round.closes_on|date:"d-m-Y" closes_at=round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
-                  {% endif %}
-                  >
-                  {{ round.opens_on|date:"d-m-Y" }}
-                  {% if round.closes_on %}
-                  - {{ round.closes_on|date:"d-m-Y" }}
-                  {% if round.closes_on.hour or round.closes_on.minute %}
-                  {% blocktrans  with round.closes_on|time:"P" as closes_at %}
-                  at {{ closes_at }}
-                  {% endblocktrans %}
-                  {% endif %}
-                  {% endif %}
-              </strong>
-              </p>
-              {% endif %}
+              {% blocktrans %}
+                <p>
+                Research contracts and awards from your organisation.</p>
+                <p>All Society-administered schemes 2018 to date.</p>
+                <p>NB! Contract variations can be requested and negotiated from here.</p>
+              {% endblocktrans %}
+              <!-- a href="/admin/portal/round/22/change/" class="btn btn-" style="text-transform: uppercase;"> Edit <b>Round</b></a -->
+              <a style="text-transform: uppercase;" href="#" type="button" role="button" class="btn btn-secondary" id="view-contracts">{% blocktrans %}View <b>Contracts </b>{% endblocktrans %}</a>
 
-              {% if request.user.can_apply %}
-              {% if scheme.guidelines %}
-              <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
-                {% blocktrans %}Read <b>More</b>{% endblocktrans %}
-              </a>
-              {% endif %}
-              {% else %}
               <button type="button" class="btn btn-outline-primary"
                                     data-toggle="modal"
-                                    data-target="#roundDetail"
-                                    data-round-id="{{ round.id }}"
-                                    data-round-title="{{ round.title }}"
+                                    data-target="#details"
+                                    data-content-url="{% url 'applications' %}"
+                                    data-detial-panel-title="{% trans 'Contracts' %}"
                                     style="text-transform: uppercase;">
                 {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
               </button>
-              {% endif %}
-
-              {% if round %}
-              {% if request.user.can_apply %}
-
-              {% if application and not is_panellist %}
-              <div class="tooltip-wrapper{% if application.state == 'submitted' or round.has_closed %} disabled{% endif %}"
-                   {% if application.state == 'submitted'%}
-                   disabled
-                   data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
-                   {% elif round.has_closed %}
-                   disabled
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
-                   {% else %}
-                   data-title="{% trans 'Modify your application and continue application process' %}"
-                   {% endif %}
-                   >
-                   <a href="{% if application and application.id %}{% url 'application-update' pk=application.id %}{% else %}#{% endif %}"
-                      class="btn btn-primary{% if application.state == 'submitted' or round.has_closed %} disabled{% endif %}"
-                      style="text-transform: uppercase;"
-                      > {% trans "Continue" %} <b>{% trans "Application" %}</b>
-                   </a>
-              </div>
-              {% else %}
-              <div class="tooltip-wrapper{% if not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %} disabled{% endif %}"
-                   {% if is_panellist %}
-                   disabled
-                   data-title="{% trans 'You are a panellist of this round and cannot apply for it' %}"
-                   {% elif not round.is_open %}
-                   disabled
-                   {% if round.will_open %}
-                   data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                   {% else %}
-                   {% endif %}
-                   {% elif has_submitted %}
-                   disabled
-                   data-title="{% trans 'You have already submitted one application in this round' %}"
-                   {% elif not round.direct_application_allowed and not round|user_has_nomination:user %}
-                   disabled
-                   data-title="{% trans 'You need to be nominated in order to apply for the application' %}"
-                   {% else %}
-                   data-title="{% trans 'Start a new application' %}"
-                   {% endif %}
-                   >
-                   <a href="{% url 'application-create' round=round.id %}"
-                      class="btn btn-primary {% if not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}"
-
-                      style="text-transform: uppercase;"
-                      {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
-                      {% if record.previous_application %}
-                      data-toggle="modal"
-                      data-target="#previous-application"
-                      data-previous-id="{{ record.previous_application_id }}"
-                      data-previous-title="{{ record.previous_application_title }}"
-                      data-previous-number="{{ record.previous_application_number }}"
-                      data-previous-url="{% url 'application' pk=record.previous_application_id %}"
-                      data-round-id="{{ round.id }}"
-                      data-round-title="{{ round.title }}"
-                      data-new-url="{% url 'application-create' round=round.id %}"
-                      data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
-                      {% endif %}
-                      >
-                      {% trans "Apply" %} <b>{% trans "Now" %}</b>
-                   </a>
-              </div>
-              {% endif %}
-              {% if round.can_nominate %}
-              <div class="tooltip-wrapper{% if is_panellist or not round.is_open %} disabled{% endif %}"
-                   {% if is_panellist or not round.is_open %}
-                   disabled
-                     {% if is_panellist %}
-                     data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
-                     {% elif round.will_open %}
-                     data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                     {% else %}
-                     data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
-                     {% endif %}
-                   {% else %}
-                     data-title="{% trans 'Nominate other person to apply ...' %}"
-                   {% endif %}
-               >
-                   <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open %}disabled{% endif %}" style="text-transform: uppercase;"
-                                                                                                                                                                {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
-                                                                                                                                                                <!-- b>{% trans "Apply" %}</b -->
-                   </a>
-              </div>
-              {% endif %}
-
-              {% if is_panellist %}
-              {% if application %}
-              <a href="{% url 'application-evaluation' pk=application.id %}" class="btn btn-primary" style="text-transform: uppercase;">{% trans "Review" %} <b>{% trans "Application" %}</b></a>
-              {% elif round %}
-              <a href="{% url 'round-application-list' round_id=round.id %}" class="btn btn-primary" style="text-transform: uppercase;">{% trans "Review" %} <b>{% trans "Applications" %}</b></a>
-              {% endif %}
-              {% endif %}
-
-              {% if round and count > 1 %}
-              <a href="{% url 'applications' %}?round={{ round.id }}" class="btn btn-primary" style="text-transform: uppercase;">{% trans "Show" %} <b>{% trans "Applications" %}</b></a>
-              {% endif %}
-
-
-              {% else %}
-              {% if request.user.is_superuser %}
-              <a href="{% url 'admin:portal_round_change' object_id=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
-                                                                                                         > {% trans "Edit" %} <b>{% trans "Round" %}</b>
-              </a>
-              {% endif %}
-              {% endif %}
-
-              {% if request.user.is_staff %}
-              <a href="{% url 'panellist-invite' round=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
-                                                                                            > {% trans "Invite" %}
-                                                                                            <b>{% trans "Panellist" %}</b>
-              </a>
-              {% endif %}
-
-              {% if request.user.is_staff %}
-              <a href="{% url 'round-coi-list' round=round.id %}" class="btn btn-outline-primary" style="text-transform: uppercase;"
-
-                                                                                                  > {% trans "Conflicts of" %}
-                                                                                                  <b>{% trans "Interest" %}</b>
-              </a>
-              {% endif %}
-
-              {% else %}
-              <span>
-                <strong>
-                  {% trans 'Scheme has no round available to apply for' %}
-                </strong>
-              </span>
-              {% endif %}
             </div>
           </div>
         </div>
       </div>
 
-      {% endwith %}
-      {% endfor %}
+      <div class="row">
+        <div class="col mb-3">
+          <div class="card">
+            <h5 class="card-header">
+              <b style="text-transform: uppercase;">
+                {% trans "Contranct reports from your institution" %}
+              </b>
+            </h5>
+            <div class="card-body">
+              {% blocktrans %}
+                <p>Reports and reporting requirements of your contract(s).</p>
+                <p>All Society-administered schemes 2018 to date.</p>
+              {% endblocktrans %}
+              <!-- a href="/admin/portal/round/22/change/" class="btn btn-" style="text-transform: uppercase;"> Edit <b>Round</b></a -->
+              <a style="text-transform: uppercase;" href="#" type="button" role="button" class="btn btn-secondary" id="view-reports">{% blocktrans %}View <b>Reports </b>{% endblocktrans %}</a>
 
+              <button type="button" class="btn btn-outline-primary"
+                                    data-toggle="modal"
+                                    data-target="#details"
+                                    data-content-url="{% url 'applications' %}"
+                                    data-detial-panel-title="{% trans 'Reports' %}"
+                                    style="text-transform: uppercase;">
+                {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
+</div>
+{% endblock content %}
 
-      {% endblock content %}
-
-      {% block javascript %}
-      {{ block.super }}
-      <script>
-        $(document).ready(function(){
-          $("#roundDetail").on("show.bs.modal", function(event){
-            $("#roundDetailLabel").html(event.relatedTarget.dataset.roundTitle);
-            $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId);
-            // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
-            $('#roundDetail').trigger('focus');
-          });
-          $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
-        });
-      </script>
-      {% endblock javascript %}
+{% block javascript %}
+{{ block.super }}
+<script>
+  $(document).ready(function(){
+    $("#details").on("show.bs.modal", function(event){
+      $("#detailsLabel").html(event.relatedTarget.dataset.detialPanelTitle);
+      // $("#detailsBody").load("round/" + event.relatedTarget.dataset.roundId);
+      // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
+      $("#detailsBody title").html(event.relatedTarget.dataset.detialPanelTitle);
+      $('#details').trigger('focus');
+    });
+    $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
+  });
+</script>
+{% endblock javascript %}
 
 {# vim:set ft=htmldjango: #}
