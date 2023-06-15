@@ -1,5 +1,4 @@
 {% extends "explorer/base.html" %}
-{% load static %}
 
 {% block extrastyle %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
@@ -12,17 +11,19 @@
        class="nav-link"
        href="{% url 'admin:index' %}"
        data-toggle="tooltip"
-       title="PMSPP Administration"
-     >
-       <i class="fas fa-radiation"></i> PMSPP Admin</a>
-  </li>
-  <li class="nav-item" id="admin:index">
-    <a id="admin-link"
-       class="nav-link"
-       href="{% url 'home' %}"
-       data-toggle="tooltip"
-       title="Go back to the portal"
-     >
-       <i class="fa fa-fw fa-home"></i> Portal</a>
+       title="Portal Administration"
+       >
+       <i class="fas fa-radiation"></i> Portal Admin</a>
   </li>
 {% endblock %}
+
+
+{% comment %}
+{% block sql_explorer_scripts %}
+  <script>
+    $(document).ready(function() {
+      $('[data-toggle="tooltip"]').tooltip()
+    });
+  </script>
+{% endblock %}
+{% endcomment %}
