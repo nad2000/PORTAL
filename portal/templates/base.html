@@ -19,7 +19,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     {#% if domain == "international.royalsociety.org.nz" %#}
-    {% if SITE_ID == 3 %}
+    {% if SITE_ID == 3 or SITE_ID == 4 %}
       <link rel="icon" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
       <link rel="SHORTCUT ICON" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
 	<link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/stlp.royalsociety.org.nz/favicons/RS/logoBandTransparentSquareNoWriting__ScaleWidthWzMyXQ.png' %}">
@@ -72,7 +72,9 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
       {#% if domain == "international.royalsociety.org.nz" %#}
-      {% if SITE_ID == 3 %}
+      {% if SITE_ID == 4 %}
+        <link href="{% static 'css/mpp.royalsociety.org.nz.css' %}" rel="stylesheet">
+      {% elif SITE_ID == 3 %}
         <link href="{% static 'css/stlp.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 2 %}
         <link href="{% static 'css/international.royalsociety.org.nz.css' %}" rel="stylesheet">
@@ -166,6 +168,8 @@ table.table .asteriskField,.popover-header {color: gray;}
                             data-toggle="tooltip" title="About Catalyst"
                           {% elif SITE_ID == 3 %}
                             data-toggle="tooltip" title="About Science Teaching Leadership Programme"
+                          {% elif SITE_ID == 4 %}
+                            data-toggle="tooltip" title="About Science MPP"
                           {% endif %}
                         >
                           <i class="fas fa-trophy"></i>
