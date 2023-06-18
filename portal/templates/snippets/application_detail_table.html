@@ -244,43 +244,47 @@
     {% endif %}
 
     {% if a.round.has_toas %}
-      <tr>
-        <th class="table-dark" scope="row">{% trans 'Types(s) of Activity' %}</th>
-        <td colspan="3">
-          <table class="table table-striped table-bordered">
-            <tr>
-              <th>{% trans 'Type of Activity' %}</th>
-              <th>{% trans 'Share' %}</th>
-            </tr>
-            {% if a.toa_basic > 0 %}<tr><td>{% trans 'Basic' %}</td><td>{{ a.toa_basic }}</td></tr>{% endif %}
-            {% if a.toa_strategic > 0 %}<tr><td>{% trans 'Strategic' %}</td><td>{{ a.toa_strategic }}</td></tr>{% endif %}
-            {% if a.toa_applied > 0 %}<tr><td>{% trans 'Applied' %}</td><td>{{ a.toa_applied }}</td></tr>{% endif %}
-            {% if a.toa_experimental > 0 %}<tr><td>{% trans 'Experimental' %}</td><td>{{ a.toa_experimental }}</td></tr>{% endif %}
-          </table>
-        </td>
-      </tr>
+      {% if a.toa_applied or a.toa_basic or a.toa_strategic or a.toa_experimental %}
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Types(s) of Activity' %}</th>
+          <td colspan="3">
+            <table class="table table-striped table-bordered">
+              <tr>
+                <th>{% trans 'Type of Activity' %}</th>
+                <th>{% trans 'Share' %}</th>
+              </tr>
+              {% if a.toa_basic > 0 %}<tr><td>{% trans 'Basic' %}</td><td>{{ a.toa_basic }}</td></tr>{% endif %}
+              {% if a.toa_strategic > 0 %}<tr><td>{% trans 'Strategic' %}</td><td>{{ a.toa_strategic }}</td></tr>{% endif %}
+              {% if a.toa_applied > 0 %}<tr><td>{% trans 'Applied' %}</td><td>{{ a.toa_applied }}</td></tr>{% endif %}
+              {% if a.toa_experimental > 0 %}<tr><td>{% trans 'Experimental' %}</td><td>{{ a.toa_experimental }}</td></tr>{% endif %}
+            </table>
+          </td>
+        </tr>
+      {% endif %}
     {% endif %}
 
     {% if a.round.has_vmts %}
-      <tr>
-        <th class="table-dark" scope="row">{% trans 'Vision Mātauranga Theme Categories' %}</th>
-        <td colspan="3">
-          {% if a.is_vm_na %}
-            {% trans 'N/A' %}
-          {% else %}
-            <table class="table table-striped table-bordered">
-              <tr>
-                <th>{% trans 'Vision Mātauranga Theme' %}</th>
-                <th>{% trans 'Share' %}</th>
-              </tr>
-              {% if a.vm_ecs > 0 %}<tr><td>{% trans 'Indigenous Innovation' %}</td><td>{{ a.vm_ecs }}</td></tr>{% endif %}
-              {% if a.vm_ens > 0 %}<tr><td>{% trans 'Taiao' %}</td><td>{{ a.vm_ens }}</td></tr>{% endif %}
-              {% if a.vm_hsw > 0 %}<tr><td>{% trans 'Hauora/Oranga' %}</td><td>{{ a.vm_hsw }}</td></tr>{% endif %}
-              {% if a.vm_ink > 0 %}<tr><td>{% trans 'Mātauranga' %}</td><td>{{ a.vm_ink }}</td></tr>{% endif %}
-            </table>
-          {% endif %}
-        </td>
-      </tr>
+      {% if a.vm_ecs or a.vm_ens or a.vm_hsw or a.vm_ink or a.is_vm_na %}
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Vision Mātauranga Theme Categories' %}</th>
+          <td colspan="3">
+            {% if a.is_vm_na %}
+              {% trans 'N/A' %}
+            {% else %}
+              <table class="table table-striped table-bordered">
+                <tr>
+                  <th>{% trans 'Vision Mātauranga Theme' %}</th>
+                  <th>{% trans 'Share' %}</th>
+                </tr>
+                {% if a.vm_ecs > 0 %}<tr><td>{% trans 'Indigenous Innovation' %}</td><td>{{ a.vm_ecs }}</td></tr>{% endif %}
+                {% if a.vm_ens > 0 %}<tr><td>{% trans 'Taiao' %}</td><td>{{ a.vm_ens }}</td></tr>{% endif %}
+                {% if a.vm_hsw > 0 %}<tr><td>{% trans 'Hauora/Oranga' %}</td><td>{{ a.vm_hsw }}</td></tr>{% endif %}
+                {% if a.vm_ink > 0 %}<tr><td>{% trans 'Mātauranga' %}</td><td>{{ a.vm_ink }}</td></tr>{% endif %}
+              </table>
+            {% endif %}
+          </td>
+        </tr>
+      {% endif %}
     {% endif %}
 
     {% if a.round.has_keywords and a.keywords.count > 0 %}
