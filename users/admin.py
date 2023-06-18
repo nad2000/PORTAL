@@ -74,6 +74,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "email",
         "full_name",
         "is_superuser",
+        "date_joined",
     ]
     search_fields = [
         "email",

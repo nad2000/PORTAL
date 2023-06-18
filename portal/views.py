@@ -213,10 +213,8 @@ def shoud_be_onboarded(function):
 @login_required
 def logout(request):
     account_logout = reverse("account_logout")
-    return redirect(account_logout)
 
     if request.user.has_rapidconnect_account:
-        # user__registered_on_id=settings.SITE_ID,
         return_url = request.build_absolute_uri(account_logout)
         if (
             sa := SocialApp.objects.filter(
