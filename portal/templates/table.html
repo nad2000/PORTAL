@@ -201,14 +201,15 @@ thead th.orderable.desc > a {
             <h7 id="table-filter-clear"><a href="?">✖ {% trans 'Clear all filters' %}</a></h7>
             <!-- h5 class="card-title">Light card title</h5 -->
             <p class="card-text">
-              <details data-filter-title="round" open="">
+              <!-- details data-filter-title="round" open="" -->
+              <details data-filter-title="round" id="round-filter">
                 <summary>{% trans 'By round' %}</summary>
                 {{ filter.form.round_filter }}
                 {#% bootstrap_field filter.form.round_filter show_label=False %#}
                 {#% bootstrap_field filter.form.archived_filter show_label=True %#}
                 <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
               </details>
-              <details data-filter-title="year" open="">
+              <details data-filter-title="year" id="year-filter">
                 <summary>{% trans 'By year' %}</summary>
                 {{ filter.form.year_filter }}
                 {#% bootstrap_field filter.form.round_filter show_label=False %#}
@@ -266,12 +267,46 @@ thead th.orderable.desc > a {
 
 {% block javascript %}
   {{ block.super }}
+{% if user.is_saff and filter or user.is_superuser and filter %}
+<script>
+// Remember the state of a <details> element.
+//
+// If the element is opened and the page is reloaded, the element will
+// be reopened.
+//
+// Pass the ID of the <details> element after the page has loaded.
+//
+function rememberIfDetailsWasDisclosed(detailsId) {
+  var localStorageKey = "detailsWasDisclosed_" + detailsId;
+
+  var details = document.getElementById(detailsId);
+
+  // Listen to the toggle event, which fires whenever the <details>
+  // is opened or closed.  The event fires after the state has changed,
+  // so looking it up will tell us the current value.
+  // See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details#Events
+  details.addEventListener("toggle", event => {
+    if (details.open) {
+      localStorage.setItem(localStorageKey, true);
+    } else {
+      localStorage.removeItem(localStorageKey);
+    }
+  });
+
+  // If the stored value tells us the <details> was open the last time we
+  // opened the page, re-open it now.
+  if (localStorage.getItem(localStorageKey)) {
+    details.open = true;
+  }
+};
+$(document).ready(function(){
+  rememberIfDetailsWasDisclosed("round-filter");
+  rememberIfDetailsWasDisclosed("year-filter");
+});
+{% endif %}
+</script>
   {#{ form.media.js }#}
   <!-- JS -->
   <!-- script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script -->
 {% endblock %}
 {# vim:set ft=htmldjango: #}
-
-
-
-
