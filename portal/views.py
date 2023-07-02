@@ -44,10 +44,10 @@ from django.forms import (
     DateInput,
     Form,
     HiddenInput,
+    ModelForm,
     TextInput,
     ValidationError,
     modelformset_factory,
-    ModelForm,
 )
 from django.forms import models as model_forms
 from django.forms import widgets
@@ -2217,12 +2217,6 @@ class ApplicationCreate(ApplicationView, CreateView):
 #         return super().formset_valid(formset)
 
 
-class ApplicationFilterSet(django_filters.FilterSet):
-    class Meta:
-        model = models.Application
-        fields = ["round"]
-
-
 class RelatedOnlyModelChoiceFilter(django_filters.ModelChoiceFilter):
     # ("round", admin.RelatedOnlyFieldListFilter),
     __queryset = None
@@ -2277,7 +2271,8 @@ class YearChoiceFilter(django_filters.ChoiceFilter):
         return qs
 
 
-class ApplicationFilter(django_filters.FilterSet):
+class ApplicationFilterSet(django_filters.FilterSet):
+
     # @property
     # def qs(self):
     #     parent = super().qs
@@ -2285,11 +2280,19 @@ class ApplicationFilter(django_filters.FilterSet):
     #     author = getattr(self.request, 'user', None)
     #     return parent.filter(is_published=True) | parent.filter(author=author)
 
+    # @property
+    # def qs(self):
+    #     qs = super().qs
+    #     if self.form.data.get('archived_filter') != "true":
+    #         qs = qs.filter(round__scheme__current_round=F("round"))
+    #     return qs
+
     application_filter = django_filters.CharFilter(
         method="set_filter", label=gettext_lazy("Application Filter")
     )
     archived_filter = django_filters.BooleanFilter(
-        method="filter_archived", label=gettext_lazy("Archived Applications")
+        method="filter_archived",
+        label=gettext_lazy("Archived Applications"),
     )
     active_filter = django_filters.BooleanFilter(
         method="filter_active", label=gettext_lazy("Active Applications")
@@ -2299,9 +2302,6 @@ class ApplicationFilter(django_filters.FilterSet):
         label=gettext_lazy("Year"),
         widget=django_filters.widgets.LinkWidget,
         choices=[(v, v) for v in range(timezone.now().year, 2019, -1)]
-        # choices=[(1,1),(2,2)]  # application_filter_years(),
-        # choices= application_filter_years(),
-        # widget=django_filters.widgets.LinkWidget,
         # method="set_filter",
         # queryset=application_filter_years,
     )
@@ -2320,8 +2320,9 @@ class ApplicationFilter(django_filters.FilterSet):
         fields = ["application_filter", "archived_filter", "active_filter", "round"]
 
     def filter_archived(self, queryset, name, value):
-        qs = queryset.filter(round__scheme__current_round=F("round"))
-        return qs
+        if not value:
+            return queryset.filter(round__scheme__current_round=F("round"))
+        return queryset
 
     def set_filter(self, queryset, name, value):
         if value:
@@ -2386,7 +2387,7 @@ class ApplicationList(
     table_class = tables.ApplicationTable
     extra_context = {"category": "applications"}
     template_name = "table.html"
-    filterset_class = ApplicationFilter
+    filterset_class = ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_context_data(self, **kwargs):
@@ -2406,7 +2407,8 @@ class ApplicationList(
             # self.table_pagination = False
         else:
             # update application counts:
-            if (filter := context.get("filter")) and filter.is_bound:
+            # if (filter := context.get("filter")) and filter.is_bound:
+            if (filter := context.get("filter")):
                 application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
                 application_submitted_count = filter.qs.filter(state="submitted").count()
                 context["application_count"] = (
@@ -2908,7 +2910,6 @@ class Unaccent(Func):
 
 
 from dal import autocomplete
-
 from taggit.models import Tag
 
 
@@ -5330,7 +5331,7 @@ class SummaryReportList(LoginRequiredMixin, SingleTableMixin, FilterView):
     table_class = tables.SummaryReportTable
     template_name = "table.html"
     extra_context = {"category": "applications"}
-    filterset_class = ApplicationFilter
+    filterset_class = ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_queryset(self, *args, **kwargs):
