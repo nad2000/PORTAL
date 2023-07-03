@@ -7,7 +7,7 @@
   {{ block.super }}
   <!-- link href="{% static 'django_tables2/themes/paleblue/css/screen.css' %}" rel="stylesheet" -->
   <link href="{% static 'django_tables2/bootstrap.css' %}" rel="stylesheet">
-  <!-- link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet" -->
+  <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
   <style>
 .table-container th.asc:after {
   /*content: '\0000a0\0025b2';
@@ -166,7 +166,7 @@ thead th.orderable.desc > a {
     {% if filter and not filter_disabled %}
     <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
         {% for n, v in request.GET.items %}
-          {% if n != 'application_filter' and n != 'archived_filter' and n != 'page' %}
+          {% if n != 'application_filter' and n != 'archived_filter' and n != 'active_filter' and n != 'page' %}
             <input type="hidden" name="{{ n }}" value="{{ v }}">
           {% endif %}
         {% endfor %}
@@ -178,6 +178,14 @@ thead th.orderable.desc > a {
           {% if filter.form.archived_filter.value == True %}value="true"{% else %}value="unknown"{% endif %}
           data-toggle="toggle" data-on="All" data-off="Active"
         -->
+        <input type="checkbox"
+          data-toggle="toggle"
+          {% if filter.form.active_filter.value == True %}checked{% endif %}
+          name="{{ filter.form.active_filter.name }}"
+          id="{{ filter.form.active_filter.auto_id }}"
+          {% if filter.form.active_filter.value == True %}value="true"{% else %}value="false"{% endif %}
+          data-toggle="toggle" data-on="{% trans 'Active' %}" data-off="{% trans 'All' %}"
+        >
         <span>&nbsp;</span>
         {% bootstrap_field filter.form.application_filter show_label=False %}
         {#% bootstrap_field filter.form.round show_label=False %#}
@@ -312,12 +320,21 @@ $(document).ready(function(){
     } else {
       $(this).attr('value', 'unknown');
     }
+    this.form.submit();
+  });
+  $("#id_active_filter").on('change', function() {
+    if ($(this).is(':checked')) {
+      $(this).attr('value', 'true');
+    } else {
+      $(this).attr('value', 'unknown');
+    }
+    this.form.submit();
   });
 });
 {% endif %}
 </script>
   {#{ form.media.js }#}
   <!-- JS -->
-  <!-- script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script -->
+  <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
 {% endblock %}
 {# vim:set ft=htmldjango: #}

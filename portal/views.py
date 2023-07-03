@@ -2324,6 +2324,11 @@ class ApplicationFilterSet(django_filters.FilterSet):
             return queryset.filter(round__scheme__current_round=F("round"))
         return queryset
 
+    def filter_active(self, queryset, name, value):
+        if value:
+            return queryset.filter(round__scheme__current_round=F("round"))
+        return queryset
+
     def set_filter(self, queryset, name, value):
         if value:
             return queryset.filter(
