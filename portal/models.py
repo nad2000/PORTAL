@@ -1909,7 +1909,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     class Meta:
         db_table = "application"
 
-
 class ApplicationNumber(Model):
     """Historical or alternative application numbers."""
 
@@ -3041,7 +3040,8 @@ class Scheme(Model):
 
 
 def round_template_path(instance, filename):
-    title = (instance.title or instance.scheme.title).lower().replace(" ", "-")
+    r = instance if hasattr(instance, "title") else instance.round
+    title = (r.title or r.scheme.title).lower().replace(" ", "-")
     return f"rounds/{title}/{filename}"
 
 
@@ -3166,6 +3166,8 @@ class Round(Model):
                     "ott",
                     "oth",
                     "odm",
+                    "rtf",
+                    "tex",
                 ]
             )
         ],
@@ -3584,6 +3586,37 @@ class Round(Model):
 
     class Meta:
         db_table = "round"
+
+
+class ApplicationFormTemplate(Model):
+
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="application_form_templates")
+    template = FileField(
+        upload_to=round_template_path,
+        verbose_name=_("Template"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
+
+    class Meta:
+        db_table = "application_form_template"
 
 
 class Criterion(Model):

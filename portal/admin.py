@@ -611,12 +611,20 @@ class ApplicationAdmin(
         view_on_site = False
         classes = ["collapse"]
 
-    inlines = [MemberInline, RefereeInline, ForInline, SeoInline, KeywordInline, StateLogInline]
+    inlines = [
+        MemberInline,
+        RefereeInline,
+        ForInline,
+        SeoInline,
+        KeywordInline,
+        StateLogInline,
+    ]
 
     @admin.display(description="State")
     def state_icon(self, obj):
         return format_html(
-            '<i class="fa fa-check text-success text-center" title="{0}">&nbsp;{0}</i>', obj.state.upper()
+            '<i class="fa fa-check text-success text-center" title="{0}">&nbsp;{0}</i>',
+            obj.state.upper(),
         )
 
     fieldsets = (
@@ -1434,6 +1442,11 @@ class RoundAdmin(
     def view_on_site(self, obj):
         return f"{reverse('applications')}?round={obj.id}"
 
+    class ApplicationFormTemplateInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.ApplicationFormTemplate
+        view_on_site = False
+
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Panellist
@@ -1451,7 +1464,7 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
-    inlines = [CriterionInline, PanellistInline]
+    inlines = [ApplicationFormTemplateInline, CriterionInline, PanellistInline]
 
 
 @admin.register(models.Evaluation)

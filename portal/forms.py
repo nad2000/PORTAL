@@ -375,10 +375,30 @@ class ApplicationForm(forms.ModelForm):
                 ]
             )
 
-        if round.application_template:
-            help_text = _(
-                'You can download the application form template at <strong><a href="%s">%s</a></strong>'
-            ) % (round.application_template.url, os.path.basename(round.application_template.name))
+        application_form_templates = (
+            [round.application_template] if round.application_template else []
+        )
+        for t in round.application_form_templates.all():
+            application_form_templates.append(t.template)
+
+        if len(application_form_templates) > 1:
+            help_text = _("You can download the application form templates at ") + ", ".join(
+                '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
+                for t in application_form_templates[:-1]
+            )
+            if len(application_form_templates) > 2:
+                help_text += ","
+            help_text += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
+                application_form_templates[-1].url,
+                os.path.basename(application_form_templates[-1].name),
+            )
+            self.fields["file"].help_text = help_text
+            summary_fields.append(Field("file"))
+        elif len(application_form_templates) > 0:
+            '<strong><a href="%s">%s</a></strong>' % (
+                application_form_templates[0].url,
+                os.path.basename(application_form_templates[0].name),
+            )
             self.fields["file"].help_text = help_text
             summary_fields.append(Field("file"))
         else:
@@ -498,11 +518,13 @@ class ApplicationForm(forms.ModelForm):
                             Column("toa_strategic", css_class="col-2"),
                             Column("toa_applied", css_class="col-2"),
                             Column("toa_experimental", css_class="col-2"),
-                            HTML(f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
+                            HTML(
+                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
                                  <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
                                  <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_application_toa_total_share"></span>
                                  <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
-                                 </div></div></div>"""),
+                                 </div></div></div>"""
+                            ),
                             css_id="id_toas_row",
                         ),
                     ),
