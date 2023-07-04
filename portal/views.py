@@ -1269,14 +1269,24 @@ class ApplicationView(LoginRequiredMixin):
         user = self.request.user
         initial = super().get_initial()
         initial["round"] = self.round.id
+        round = self.round
 
         if (
-            self.round.letter_of_support_required
+            round.letter_of_support_required
             and self.object
             and self.object.letter_of_support
             and self.object.letter_of_support.file
         ):
             initial["letter_of_support_file"] = self.object.letter_of_support.file
+
+        if (
+            round.applicant_cv_required
+            and round.curriculum_vitae_templates.count() > 0
+            and self.object
+            and self.object.cv
+            and self.object.cv.file
+        ):
+            initial["cv_file"] = self.object.cv.file
 
         initial["round"] = self.round.id
         if not (self.object and self.object.id):
@@ -1311,6 +1321,13 @@ class ApplicationView(LoginRequiredMixin):
                 initial["summary"] = latest_application.summary
                 initial["file"] = latest_application.file
                 initial["letter_of_support_required"] = latest_application.letter_of_support
+                if (
+                    round.applicant_cv_required
+                    and latest_application.cv
+                    and latest_application.cv.file
+                    and round.curriculum_vitae_templates.count() > 0
+                ):
+                    initial["cv_file"] = latest_application.cv.file
                 if latest_application.is_team_application:
                     initial["is_team_application"] = latest_application.is_team_application
                     initial["team_name"] = latest_application.team_name
@@ -1353,6 +1370,13 @@ class ApplicationView(LoginRequiredMixin):
                 ):
                     letter_of_support = models.LetterOfSupport.create(file=letter_of_support_file)
                     instance.letter_of_support = letter_of_support
+                    # if letter_of_support_file.name.endswith(".pdf")
+
+                if round.applicant_cv_required and (cv_file := self.request.FILES.get("cv_file")):
+                    cv = models.CurriculumVitae.create(
+                        file=cv_file, owner=user, profile=user.profile
+                    )
+                    instance.cv = cv
                     # if letter_of_support_file.name.endswith(".pdf")
 
                 if (
@@ -2272,7 +2296,6 @@ class YearChoiceFilter(django_filters.ChoiceFilter):
 
 
 class ApplicationFilterSet(django_filters.FilterSet):
-
     # @property
     # def qs(self):
     #     parent = super().qs
@@ -2413,7 +2436,7 @@ class ApplicationList(
         else:
             # update application counts:
             # if (filter := context.get("filter")) and filter.is_bound:
-            if (filter := context.get("filter")):
+            if filter := context.get("filter"):
                 application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
                 application_submitted_count = filter.qs.filter(state="submitted").count()
                 context["application_count"] = (

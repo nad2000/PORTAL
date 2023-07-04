@@ -759,7 +759,7 @@ def validate_bod(value):
 
 
 class Profile(Model, PersonMixin):
-    user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"))
+    user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="profile")
     gender = PositiveSmallIntegerField(
         _("gender"), choices=GENDERS, null=True, blank=False, default=0
     )
