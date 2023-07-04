@@ -300,7 +300,7 @@ class ApplicationForm(forms.ModelForm):
         # super().clean()
 
         if "submit" in self.data and (round := self.round):
-            if round.applicant_cv_required and and round.curriculum_vitae_templates.count() > 0 and not (
+            if round.applicant_cv_required and round.curriculum_vitae_templates.count() > 0 and not (
                 self.cleaned_data.get("cv_file") or self.instance.cv
             ):
                 raise forms.ValidationError(
