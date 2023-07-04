@@ -1288,7 +1288,7 @@ class ApplicationView(LoginRequiredMixin):
         ):
             initial["cv_file"] = self.object.cv.file
 
-        initial["round"] = self.round.id
+        initial["round"] = self.round_id
         if not (self.object and self.object.id):
             initial["user"] = user
             initial["email"] = user.email
