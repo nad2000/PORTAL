@@ -1447,6 +1447,11 @@ class RoundAdmin(
         model = models.ApplicationFormTemplate
         view_on_site = False
 
+    class CurriculumVitaeTemplateInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.CurriculumVitaeTemplate
+        view_on_site = False
+
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Panellist
@@ -1464,7 +1469,7 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
-    inlines = [ApplicationFormTemplateInline, CriterionInline, PanellistInline]
+    inlines = [ApplicationFormTemplateInline, CurriculumVitaeTemplateInline, CriterionInline, PanellistInline]
 
 
 @admin.register(models.Evaluation)

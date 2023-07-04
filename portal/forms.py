@@ -260,23 +260,33 @@ def apnumber(value):
 
 
 class ApplicationForm(forms.ModelForm):
+
+    @property
+    def round(self):
+        return (
+            models.Round.get(self.initial["round"])
+            if "round" in self.initial
+            else self.instance.round
+        )
+
     letter_of_support_file = FileField(
         required=False,
         widget=forms.ClearableFileInput(
             attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
         ),
     )
+    cv_file = FileField(
+        required=False,
+        label=_("Curriculum Vitae"),
+        widget=forms.ClearableFileInput(
+            attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+        ),
+    )
 
     def clean_letter_of_support_file(self):
-        super().clean()
+        # super().clean()
 
-        if "submit" in self.data and (
-            round := (
-                models.Round.get(self.initial["round"])
-                if "round" in self.initial
-                else self.instance.round
-            )
-        ):
+        if "submit" in self.data and (round := self.round):
             if round.letter_of_support_required and not (
                 self.cleaned_data.get("letter_of_support_file") or self.instance.letter_of_support
             ):
@@ -286,6 +296,19 @@ class ApplicationForm(forms.ModelForm):
 
         return self.cleaned_data.get("letter_of_support_file")
 
+    def clean_cv_file(self):
+        # super().clean()
+
+        if "submit" in self.data and (round := self.round):
+            if round.applicant_cv_required and and round.curriculum_vitae_templates.count() > 0 and not (
+                self.cleaned_data.get("cv_file") or self.instance.cv
+            ):
+                raise forms.ValidationError(
+                    _("Need to attache a CV before submitting the application."),
+                )
+
+        return self.cleaned_data.get("cv_file")
+
     def save(self, *args, **kwargs):
         if (
             self.cleaned_data.get("letter_of_support_file") is False
@@ -294,6 +317,16 @@ class ApplicationForm(forms.ModelForm):
         ):
             self.instance.letter_of_support = None
             los.delete()
+
+        if (
+            self.cleaned_data.get("cv_file") is False
+            and self.instance
+            and self.instance.round
+            and self.instance.round.applicant_cv_required
+            and self.instance.round.curriculum_vitae_templates.count() > 0
+        ):
+            self.instance.cv = None
+
         return super().save(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
@@ -420,6 +453,27 @@ class ApplicationForm(forms.ModelForm):
         if round.letter_of_support_required:
             summary_fields.append(Field("letter_of_support_file", label=_("Letter of Support")))
             # self.fields["letter_of_support_file"].help_text = help_text
+
+        if round.applicant_cv_required and (
+            cv_templates := [r.template for r in round.curriculum_vitae_templates.all()]
+        ):
+            help_text = _("You can download the CV form template(s) at ") + ", ".join(
+                '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
+                for t in cv_templates[:-1]
+            )
+            if len(cv_templates) > 2:
+                help_text += ","
+            help_text += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
+                cv_templates[-1].url,
+                os.path.basename(cv_templates[-1].name),
+            )
+
+            self.fields["cv_file"].help_text = help_text
+            summary_fields.append(
+                Field(
+                    "cv_file", label=_("Curriculum Vitae"), data_toggle="tooltip", title=help_text
+                )
+            )
 
         if round.research_summary_required:
             summary_fields.extend(

@@ -3619,6 +3619,37 @@ class ApplicationFormTemplate(Model):
         db_table = "application_form_template"
 
 
+class CurriculumVitaeTemplate(Model):
+
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="curriculum_vitae_templates")
+    template = FileField(
+        upload_to=round_template_path,
+        verbose_name=_("Template"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
+
+    class Meta:
+        db_table = "curriculum_vitae_template"
+
+
 class Criterion(Model):
     """Scoring criterion"""
 
