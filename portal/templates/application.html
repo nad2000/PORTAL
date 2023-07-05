@@ -235,7 +235,9 @@
                                   });
                                 });
                                 window.addEventListener("beforeunload", function (e) {
-                                  if (!$("#application-form").data("changed")) {
+                                  if (!$("#application-form").data("changed")
+                                    || (e.target.activeElement.type == "submit")
+                                  ) {
                                         return undefined;
                                     }
                                     (e || window.event).returnValue = confirmationMessage; //Gecko + IE
