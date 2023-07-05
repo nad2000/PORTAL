@@ -1509,18 +1509,31 @@ class ApplicationView(LoginRequiredMixin):
 
                 if round.has_fors:
                     fors = context["fors"]
-                    if not fors.instance:
+                    if not fors.instance or not fors.instance.id:
                         fors.instance = a
                     if fors.is_valid():
                         fors.save()
                     else:
+                        for f in fors.forms:
+                            if not f.is_valid():
+                                # form.errors.update(f.errors)
+                                if "__all__" in f.errors:
+                                    messages.error(self.request, f.errors["__all__"])
+
                         return self.form_invalid(form)
 
                 if round.has_seos:
                     seos = context["seos"]
+                    if not seos.instance or not seos.instance.id:
+                        seos.instance = a
                     if seos.is_valid():
                         seos.save()
                     else:
+                        for f in seos.forms:
+                            if not f.is_valid():
+                                # form.errors.update(f.errors)
+                                if "__all__" in f.errors:
+                                    messages.error(self.request, f.errors["__all__"])
                         return self.form_invalid(form)
 
                 if "file" in form.changed_data and instance.file:
