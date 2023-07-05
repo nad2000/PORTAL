@@ -1283,6 +1283,7 @@ class ApplicationView(LoginRequiredMixin):
             round.applicant_cv_required
             and round.curriculum_vitae_templates.count() > 0
             and self.object
+            and self.object.id
             and self.object.cv
             and self.object.cv.file
         ):
@@ -1319,7 +1320,8 @@ class ApplicationView(LoginRequiredMixin):
                 initial["summary_en"] = latest_application.summary_en
                 initial["summary_mi"] = latest_application.summary_mi
                 initial["summary"] = latest_application.summary
-                initial["file"] = latest_application.file
+                if latest_application.file:
+                    initial["file"] = latest_application.file
                 initial["letter_of_support_required"] = latest_application.letter_of_support
                 if (
                     round.applicant_cv_required
@@ -1388,6 +1390,16 @@ class ApplicationView(LoginRequiredMixin):
                     instance.converted_file.delete()
                     instance.converted_file = None
 
+                if (
+                    "cv_file" in form.changed_data
+                    and instance.id
+                    and instance.cv
+                    and instance.cv.file
+                    and instance.cv.converted_file
+                ):
+                    instance.converted_file.delete()
+                    instance.converted_file = None
+
                 resp = super().form_valid(form)
 
                 has_deleted = False
@@ -1424,7 +1436,8 @@ class ApplicationView(LoginRequiredMixin):
                 #     if identity_verification_form.is_valid():
                 #         identity_verification_form.save()
 
-                referees.instance = a
+                if not referees.instance or not referees.instance.id:
+                    referees.instance = a
                 if referees.is_valid():
                     # referees.instance = a
                     has_deleted = bool(has_deleted or referees.deleted_forms)
@@ -1581,7 +1594,8 @@ class ApplicationView(LoginRequiredMixin):
                 else:
                     messages.error(self.request, ex)
             capture_exception(ex)
-            return redirect(url)
+            # return redirect(url)
+            return self.form_invalid(form)
 
         if has_deleted:  # keep editing
             return redirect(url)
