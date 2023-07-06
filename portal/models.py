@@ -506,12 +506,12 @@ class SocioEconomicObjective(Model):
 class FieldOfResearch(Model):
     version = CharField(max_length=10, default="1.0.0")
     code = CharField(max_length=6, primary_key=True)
-    description = CharField(_("description"), max_length=120)
-    definition = CharField(max_length=200, null=True, blank=True)
+    description = CharField(_("description"), max_length=200)
+    definition = CharField(max_length=280, null=True, blank=True)
     two_digit_code = CharField(max_length=2)
     two_digit_description = CharField(max_length=60)
     four_digit_code = CharField(max_length=4)
-    four_digit_description = CharField(max_length=60)
+    four_digit_description = CharField(max_length=100)
     rcc = CharField(max_length=10, null=True, blank=True)
     is_stem = BooleanField(
         _("is STEM"),
