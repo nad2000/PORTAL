@@ -504,13 +504,21 @@ class SocioEconomicObjective(Model):
 
 
 class FieldOfResearch(Model):
+    version = CharField(max_length=10, default="1.0.0")
     code = CharField(max_length=6, primary_key=True)
     description = CharField(_("description"), max_length=120)
-    four_digit_code = CharField(max_length=4)
-    four_digit_description = CharField(max_length=60)
+    definition = CharField(max_length=200, null=True, blank=True)
     two_digit_code = CharField(max_length=2)
     two_digit_description = CharField(max_length=60)
-    definition = CharField(max_length=200, null=True, blank=True)
+    four_digit_code = CharField(max_length=4)
+    four_digit_description = CharField(max_length=60)
+    rcc = CharField(max_length=10, null=True, blank=True)
+    is_stem = BooleanField(
+        _("is STEM"),
+        default=False,
+        help_text=_("Science, Technology, Engineering, and Mathematics.."),
+    )
+    # "7583748900000".rstrip('0')
 
     def __str__(self):
         return f"{self.code}: {self.description}"
@@ -1908,6 +1916,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     class Meta:
         db_table = "application"
+
 
 class ApplicationNumber(Model):
     """Historical or alternative application numbers."""
@@ -3589,7 +3598,6 @@ class Round(Model):
 
 
 class ApplicationFormTemplate(Model):
-
     round = ForeignKey(Round, on_delete=CASCADE, related_name="application_form_templates")
     template = FileField(
         upload_to=round_template_path,
@@ -3620,7 +3628,6 @@ class ApplicationFormTemplate(Model):
 
 
 class CurriculumVitaeTemplate(Model):
-
     round = ForeignKey(Round, on_delete=CASCADE, related_name="curriculum_vitae_templates")
     template = FileField(
         upload_to=round_template_path,

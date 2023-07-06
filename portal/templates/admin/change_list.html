@@ -1,0 +1,24 @@
+{% extends "admin/change_list.html" %}
+
+
+{% block extrahead %}
+  {{ block.super }}
+<script>
+django.jQuery(document).ready(function(){
+  django.jQuery("details[data-filter-title]").on("toggle", function() {
+    if (this.open) {
+      localStorage.setItem(this.dataset["filterTitle"], true);
+    } else {
+      localStorage.removeItem(this.dataset["filterTitle"]);
+    }
+  });
+
+  django.jQuery("details[data-filter-title]").each(function() {
+    if (localStorage.getItem(this.dataset["filterTitle"])) {
+      this.open = true;
+    }
+  });
+});
+</script>
+{% endblock %}
+{#% block nav-global %}{% endblock %#}

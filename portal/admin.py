@@ -275,12 +275,24 @@ class FieldOfResearchAdmin(ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if "is_stem" in form.changed_data:
+            count = self.model.where(
+                ~Q(code=obj.code), ~Q(is_stem=obj.is_stem), two_digit_code=obj.two_digit_code
+            ).update(is_stem=obj.is_stem)
+            if count:
+                messages.success(request, "%d FoRs records marked as STEM entries" % count)
+
     class FieldOfResearchResource(CodeResource):
         class Meta:
+            exclude = ["created_at", "updated_at", "id", "rcc", "is_stem"]
             model = models.FieldOfResearch
 
     search_fields = ["description", "definition"]
     resource_class = FieldOfResearchResource
+    list_display = ["code", "description", "definition", "version", "is_stem"]
+    list_filter = ["is_stem", "two_digit_code"]
 
 
 @admin.register(models.CareerStage)
@@ -1469,7 +1481,12 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
-    inlines = [ApplicationFormTemplateInline, CurriculumVitaeTemplateInline, CriterionInline, PanellistInline]
+    inlines = [
+        ApplicationFormTemplateInline,
+        CurriculumVitaeTemplateInline,
+        CriterionInline,
+        PanellistInline,
+    ]
 
 
 @admin.register(models.Evaluation)
