@@ -1439,6 +1439,19 @@ class RoundAdmin(
         ),
     )
 
+    def get_exclude(self, request, obj=None):
+        exclude = super().get_exclude(request, obj)
+        if (site_id := settings.SITE_ID) and site_id == 4:
+            pass  # TODO:
+        return exclude
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if (site_id := settings.SITE_ID) and site_id == 4:
+            # exclude template fieldset
+            return [(title, fields) for (title, fields) in fieldsets if title != "Templates"]
+        return fieldsets
+
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
         for r in queryset.filter():
@@ -1464,6 +1477,12 @@ class RoundAdmin(
         model = models.CurriculumVitaeTemplate
         view_on_site = False
 
+    class TemplateInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.RoundDocumentTemplate
+        autocomplete_fields = ["document_type"]
+        view_on_site = False
+
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Panellist
@@ -1481,12 +1500,29 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
-    inlines = [
-        ApplicationFormTemplateInline,
-        CurriculumVitaeTemplateInline,
-        CriterionInline,
-        PanellistInline,
-    ]
+    # inlines = [
+    #     TemplateInline,
+    #     ApplicationFormTemplateInline,
+    #     CurriculumVitaeTemplateInline,
+    #     CriterionInline,
+    #     PanellistInline,
+    # ]
+
+    def get_inlines(self, request, obj):
+        if (site_id := settings.SITE_ID) and site_id == 4:
+            return [
+                self.TemplateInline,
+                self.CurriculumVitaeTemplateInline,
+                self.CriterionInline,
+                self.PanellistInline,
+            ]
+
+        return [
+            self.ApplicationFormTemplateInline,
+            self.CurriculumVitaeTemplateInline,
+            self.CriterionInline,
+            self.PanellistInline,
+        ]
 
 
 @admin.register(models.Evaluation)

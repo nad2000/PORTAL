@@ -384,6 +384,15 @@ class Language(Model):
         ordering = ["code"]
 
 
+class DocumentType(Model):
+    # site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    # objects = CurrentSiteManager()
+    name = CharField(_("Name"), max_length=200)
+
+    class Meta:
+        db_table = "document_type"
+
+
 class CareerStage(Model):
     code = CharField(max_length=2, primary_key=True)
     description = CharField(max_length=40)
@@ -518,7 +527,6 @@ class FieldOfResearch(Model):
         default=False,
         help_text=_("Science, Technology, Engineering, and Mathematics.."),
     )
-    # "7583748900000".rstrip('0')
 
     def __str__(self):
         return f"{self.code}: {self.description}"
@@ -1929,6 +1937,57 @@ class ApplicationNumber(Model):
 
     class Meta:
         db_table = "application_number"
+
+
+class ApplicationDocument(Model):
+    application = ForeignKey(Application, on_delete=CASCADE, related_name="documents")
+    document_type = ForeignKey(
+        DocumentType, related_name="application_documents", on_delete=CASCADE
+    )
+    page_count = PositiveSmallIntegerField(null=True, blank=True)
+    file = PrivateFileField(
+        blank=True,
+        null=True,
+        upload_subfolder=lambda instance: [
+            "applications",
+            hash_int(instance.application.round_id),
+            hash_int(instance.application_id),
+        ],
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "csv",
+                    "ctv",
+                    "doc",
+                    "docb",
+                    "docm",
+                    "docx",
+                    "dot",
+                    "dotm",
+                    "dotx",
+                    "odm",
+                    "odt",
+                    "oth",
+                    "ott",
+                    "pdf",
+                    "rtf",
+                    "tex",
+                    "xls",
+                    "xlsb",
+                    "xlsm",
+                    "xlsx",
+                    "xlt",
+                    "xltm",
+                    "xltx",
+                    "xlw",
+                    "xml",
+                ]
+            )
+        ],
+    )
+
+    class Meta:
+        db_table = "application_document"
 
 
 class EthicsStatement(PdfFileMixin, Model):
@@ -3597,6 +3656,50 @@ class Round(Model):
         db_table = "round"
 
 
+class RoundDocumentTemplate(Model):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="templates")
+    document_type = ForeignKey(DocumentType, on_delete=CASCADE)
+    min_pages = PositiveSmallIntegerField(null=True, blank=True)
+    max_pages = PositiveSmallIntegerField(null=True, blank=True)
+    file = FileField(
+        upload_to=round_template_path,
+        verbose_name=_("Template"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "csv",
+                    "ctv",
+                    "doc",
+                    "docb",
+                    "docm",
+                    "docx",
+                    "dot",
+                    "dotm",
+                    "dotx",
+                    "odm",
+                    "odt",
+                    "oth",
+                    "ott",
+                    "rtf",
+                    "tex",
+                    "xls",
+                    "xlsb",
+                    "xlsm",
+                    "xlsx",
+                    "xlt",
+                    "xltm",
+                    "xltx",
+                    "xlw",
+                    "xml",
+                ]
+            )
+        ],
+    )
+
+    class Meta:
+        db_table = "round_document_template"
+
+
 class ApplicationFormTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="application_form_templates")
     template = FileField(
@@ -3629,7 +3732,7 @@ class ApplicationFormTemplate(Model):
 
 class CurriculumVitaeTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="curriculum_vitae_templates")
-    template = FileField(
+    file = FileField(
         upload_to=round_template_path,
         verbose_name=_("Template"),
         validators=[
@@ -4339,6 +4442,7 @@ def clean_private_fils():
                 or (
                     rel_dir.startswith("applications/")
                     and not Application.where(file=filename).exists()
+                    and not ApplicationDocument.where(file=filename).exists()
                 )
                 or (
                     rel_dir.startswith("letters_of_support/")

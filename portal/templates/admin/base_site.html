@@ -8,9 +8,63 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
 {% endblock %}
 
-{% block title %}{{ title }} | {{ site_title|default:_('Portal Admin') }}{% endblock %}
+{#% block title %}{{ title }} | {{ site_title|default:_('Portal Admin') }}{% endblock %#}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Portal Admin') }}{% endblock %}
+{% block welcome-msg %}{% endblock %}
 
 {% block branding %}
-<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Portal Administration') }}</a></h1>
+  <h1 id="site-name"><a href="{% url 'admin:index' %}">
+      {{ site_header|default:_('Portal Administration') }}
+      ({{ request.site.name }})
+  </a></h1>
 {% endblock %}
 {#% block nav-global %}{% endblock %#}
+
+{% block userlinks %}
+
+  {% if all_sites %}
+    <select id="site_selector">
+      {% for s in all_sites %}
+        <option value="{{ s.url }}"{% if s.is_current %} style="background-color:yellow" selected{% endif %}>{{ s.domain }}</option>
+      {% endfor %}
+    </select>
+    <script>
+      django.jQuery(document).ready(function(){
+        django.jQuery("#site_selector").on("change", function(){
+          if (!this.selected) window.location = this.value;
+        });
+      });
+    </script>
+  {% endif %}
+
+  <a href="{#% url 'api-root' %#}#">
+    <i class="fas fa-share-alt-square"></i>
+    API
+  </a> /
+
+  <a href="{% url 'explorer_index' %}">
+    <i class="fas fa-database"></i>
+    DB Explorer
+  </a> /
+
+  {% if site_url %}
+      <i class="fa fa-fw fa-home"></i>
+      <a href="{{ site_url }}">{% translate 'View site' %}</a> /
+  {% endif %}
+  {% if user.is_active and user.is_staff %}
+      {% url 'django-admindocs-docroot' as docsroot %}
+      {% if docsroot %}
+          <a href="{{ docsroot }}">{% translate 'Documentation' %}</a> /
+      {% endif %}
+  {% endif %}
+  {% if user.has_usable_password %}
+  <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /
+  {% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+      {% csrf_token %}
+      <button type="submit">{% translate 'Log out' %}</button>
+  </form>
+  {% include "admin/color_theme_toggle.html" %}
+
+{% endblock %}

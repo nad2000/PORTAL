@@ -4,6 +4,13 @@ from modeltranslation.translator import TranslationOptions, register
 from . import models
 
 
+@register(models.DocumentType)
+class DocumentTypeTranslationOptions(TranslationOptions):
+    fields = (
+        "name",
+    )
+
+
 @register(models.Scheme)
 class SchemeTranslationOptions(TranslationOptions):
     fields = (

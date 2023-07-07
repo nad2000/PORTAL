@@ -5,6 +5,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
 from django.db import connection
 from django.utils import timezone
+from multisite.models import Alias
 
 from . import models
 
@@ -13,10 +14,11 @@ def portal_context(request):
     view_name = (rm := request.resolver_match) and rm.view_name
     request.site = get_current_site(request)
     site_id = settings.SITE_ID
+    domain = request.site.domain
     context = {
         "settings": settings,
         "view_name": view_name,
-        "domain": request.site.domain,
+        "domain": domain,
         "SITE_ID": site_id,
         "disable_breadcrumbs": not view_name
         or view_name in ["index", "home"],  # , "account_login", "account_signup"],
@@ -24,7 +26,7 @@ def portal_context(request):
 
     if (u := request.user) and u.is_authenticated:
         cache_key = f"{u.username}:{site_id}"
-        if not (has_refreshed := request.META.get("HTTP_CACHE_CONTROL") == 'max-age=0'):
+        if not (has_refreshed := request.META.get("HTTP_CACHE_CONTROL") == "max-age=0"):
             stats = cache.get(cache_key)
         if has_refreshed or not stats:
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
@@ -68,6 +70,23 @@ def portal_context(request):
                 stats["has_testimonials"] = row[0]
                 stats["has_reviews"] = row[1]
                 stats["has_nominations"] = row[2]
+            is_canonical = domain == request.get_host()
+            schema = "https" if request.is_secure() else "http"
+            port = request.get_port()
+            port = "" if port in [80, 433] else f":{port}"
+            stats["all_sites"] = [
+                dict(
+                    site_id=a.site_id,
+                    domain=a.site.domain,
+                    url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}{request.get_full_path()}",
+                    is_current=a.site_id == site_id,
+                )
+                for a in Alias.objects.filter(
+                    models.Q(is_canonical=True)
+                    if is_canonical
+                    else (~models.Q(is_canonical=True) | models.Q(is_canonical__isnull=True))
+                )
+            ]
             cache.set(cache_key, stats)
         context.update(stats)
     return context
