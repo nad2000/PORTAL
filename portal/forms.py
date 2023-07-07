@@ -260,7 +260,6 @@ def apnumber(value):
 
 
 class ApplicationForm(forms.ModelForm):
-
     @property
     def round(self):
         return (
@@ -300,8 +299,10 @@ class ApplicationForm(forms.ModelForm):
         # super().clean()
 
         if "submit" in self.data and (round := self.round):
-            if round.applicant_cv_required and round.curriculum_vitae_templates.count() > 0 and not (
-                self.cleaned_data.get("cv_file") or self.instance.cv
+            if (
+                round.applicant_cv_required
+                and round.curriculum_vitae_templates.count() > 0
+                and not (self.cleaned_data.get("cv_file") or self.instance.cv)
             ):
                 raise forms.ValidationError(
                     _("Need to attache a CV before submitting the application."),
@@ -428,7 +429,9 @@ class ApplicationForm(forms.ModelForm):
             self.fields["file"].help_text = help_text
             summary_fields.append(Field("file"))
         elif len(application_form_templates) > 0:
-            '<strong><a href="%s">%s</a></strong>' % (
+            help_text = _(
+                'You can download the application form template at <strong><a href="%s">%s</a></strong>'
+            ) % (
                 application_form_templates[0].url,
                 os.path.basename(application_form_templates[0].name),
             )
