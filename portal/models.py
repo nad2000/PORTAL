@@ -11,6 +11,7 @@ from functools import partial, wraps
 from urllib.parse import urljoin, urlparse
 
 import simple_history
+from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
@@ -72,7 +73,7 @@ from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase, TaggedItemBase
 from weasyprint import HTML
 
-from common.models import TITLES, Base, EmailField, HelperMixin, Model, PersonMixin
+from common.models import TITLES, Base, EmailField, HelperMixin, Model, PersonMixin, TimeStampMixin
 
 from .utils import send_mail, vignere
 
@@ -388,6 +389,9 @@ class DocumentType(Model):
     # site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     # objects = CurrentSiteManager()
     name = CharField(_("Name"), max_length=200)
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         db_table = "document_type"
@@ -3656,11 +3660,20 @@ class Round(Model):
         db_table = "round"
 
 
+class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
+    document_type = ForeignKey(DocumentType, on_delete=CASCADE)
+    title = CharField(_("Title"), max_length=200, null=True, blank=True)
+    min_pages = PositiveSmallIntegerField(null=True, blank=True)
+    max_pages = PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta(OrderableModel.Meta):
+        db_table = "required_document"
+
+
 class RoundDocumentTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="templates")
     document_type = ForeignKey(DocumentType, on_delete=CASCADE)
-    min_pages = PositiveSmallIntegerField(null=True, blank=True)
-    max_pages = PositiveSmallIntegerField(null=True, blank=True)
     file = FileField(
         upload_to=round_template_path,
         verbose_name=_("Template"),

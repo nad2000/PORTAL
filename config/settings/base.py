@@ -151,6 +151,7 @@ THIRD_PARTY_APPS = [
     # "dynamic_breadcrumbs",
     "django_bootstrap_breadcrumbs",
     "taggit",
+    "admin_ordering",
 ]
 
 # workaround for https://github.com/shestera/django-multisite/issues/9

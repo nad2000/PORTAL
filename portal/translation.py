@@ -11,6 +11,13 @@ class DocumentTypeTranslationOptions(TranslationOptions):
     )
 
 
+@register(models.RequiredDocument)
+class DocumentTypeTranslationOptions(TranslationOptions):
+    fields = (
+        "title",
+    )
+
+
 @register(models.Scheme)
 class SchemeTranslationOptions(TranslationOptions):
     fields = (

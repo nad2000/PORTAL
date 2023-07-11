@@ -1,6 +1,7 @@
 import os
 
 import modeltranslation
+from admin_ordering.admin import OrderableAdmin
 from allauth.socialaccount.admin import SocialTokenAdmin
 from allauth.socialaccount.models import SocialToken
 from dal import autocomplete
@@ -275,6 +276,13 @@ class FieldOfResearchAdmin(ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
+    @admin.action(description="Toggle STEM")
+    def toggle_stem(self, request, queryset, *args, **kwargs):
+        c = self.model.where(code__in=[r.code for r in queryset]).update(
+            is_stem=models.Q(is_stem=False)
+        )
+        messages.success(request, "%d FoRs records updated" % c)
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         if "is_stem" in form.changed_data:
@@ -289,10 +297,18 @@ class FieldOfResearchAdmin(ImportExportModelAdmin):
             exclude = ["created_at", "updated_at", "id", "rcc", "is_stem"]
             model = models.FieldOfResearch
 
-    search_fields = ["description", "definition"]
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (
+            (q[0] in ["^", "=", "@", "$"] and q[1:].isdigit()) or q.isdigit()
+        ):
+            return ["^code"]
+        return super().get_search_fields(request)
+
+    search_fields = ["description", "definition", "^code"]
     resource_class = FieldOfResearchResource
     list_display = ["code", "description", "definition", "version", "is_stem"]
     list_filter = ["is_stem", "two_digit_code"]
+    actions = ["toggle_stem"]
 
 
 @admin.register(models.CareerStage)
@@ -1345,6 +1361,19 @@ class IsActiveRoundListFilter(admin.SimpleListFilter):
             return queryset.filter(~Q(scheme__current_round__id=F("id")))
 
 
+@admin.register(models.DocumentType)
+class DocumentTypeAdmin(StaffPermsMixin, ImportExportModelAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["name", "name_en", "name_mi"]
+    # exclude = ["site"]
+    # list_display = ["email", "name"]
+    # list_filter = ["created_at", "updated_at", "is_confirmed"]
+    search_fields = ["name_en", "name_mi"]
+    list_editable = ["name_en", "name_mi"]
+    # date_hierarchy = "created_at"
+
+
 @admin.register(models.Round)
 class RoundAdmin(
     SummernoteModelAdminMixin, TranslationAdmin, StaffPermsMixin, ImportExportModelAdmin
@@ -1477,6 +1506,15 @@ class RoundAdmin(
         model = models.CurriculumVitaeTemplate
         view_on_site = False
 
+    class RequiredDocumentInline(
+        StaffPermsMixin, OrderableAdmin, modeltranslation.admin.TranslationTabularInline
+    ):
+        extra = 0
+        model = models.RequiredDocument
+        autocomplete_fields = ["document_type"]
+        view_on_site = False
+        ordering_field_hide_input = True
+
     class TemplateInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.RoundDocumentTemplate
@@ -1511,6 +1549,7 @@ class RoundAdmin(
     def get_inlines(self, request, obj):
         if (site_id := settings.SITE_ID) and site_id == 4:
             return [
+                self.RequiredDocumentInline,
                 self.TemplateInline,
                 self.CurriculumVitaeTemplateInline,
                 self.CriterionInline,
