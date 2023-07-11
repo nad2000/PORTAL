@@ -1,8 +1,8 @@
 import os
 
 import modeltranslation
-from allauth.socialaccount.admin import SocialTokenAdmin
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.admin import SocialAccountAdmin, SocialTokenAdmin
+from allauth.socialaccount.models import SocialAccount, SocialToken
 from dal import autocomplete
 from django import forms
 from django.conf import settings
@@ -98,6 +98,14 @@ class SocialTokenAdmin(SocialTokenAdmin):
 
 admin.site.unregister(SocialToken)
 admin.site.register(SocialToken, SocialTokenAdmin)
+
+
+class SocialAccountAdmin(SocialAccountAdmin):
+    date_hierarchy = "date_joined"
+
+
+admin.site.unregister(SocialAccount)
+admin.site.register(SocialAccount, SocialAccountAdmin)
 
 
 class PdfFileAdminMixin:
