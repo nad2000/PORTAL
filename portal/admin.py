@@ -2,8 +2,8 @@ import os
 
 import modeltranslation
 from admin_ordering.admin import OrderableAdmin
-from allauth.socialaccount.admin import SocialTokenAdmin
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.admin import SocialAccountAdmin, SocialTokenAdmin
+from allauth.socialaccount.models import SocialAccount, SocialToken
 from dal import autocomplete
 from django import forms
 from django.conf import settings
@@ -99,6 +99,14 @@ class SocialTokenAdmin(SocialTokenAdmin):
 
 admin.site.unregister(SocialToken)
 admin.site.register(SocialToken, SocialTokenAdmin)
+
+
+class SocialAccountAdmin(SocialAccountAdmin):
+    date_hierarchy = "date_joined"
+
+
+admin.site.unregister(SocialAccount)
+admin.site.register(SocialAccount, SocialAccountAdmin)
 
 
 class PdfFileAdminMixin:
@@ -1362,7 +1370,7 @@ class IsActiveRoundListFilter(admin.SimpleListFilter):
 
 
 @admin.register(models.DocumentType)
-class DocumentTypeAdmin(StaffPermsMixin, ImportExportModelAdmin):
+class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
     list_display = ["name", "name_en", "name_mi"]
@@ -1375,9 +1383,7 @@ class DocumentTypeAdmin(StaffPermsMixin, ImportExportModelAdmin):
 
 
 @admin.register(models.Round)
-class RoundAdmin(
-    SummernoteModelAdminMixin, TranslationAdmin, StaffPermsMixin, ImportExportModelAdmin
-):
+class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     summernote_fields = (
         "description_en",
         "description_mi",

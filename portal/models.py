@@ -1943,57 +1943,6 @@ class ApplicationNumber(Model):
         db_table = "application_number"
 
 
-class ApplicationDocument(Model):
-    application = ForeignKey(Application, on_delete=CASCADE, related_name="documents")
-    document_type = ForeignKey(
-        DocumentType, related_name="application_documents", on_delete=CASCADE
-    )
-    page_count = PositiveSmallIntegerField(null=True, blank=True)
-    file = PrivateFileField(
-        blank=True,
-        null=True,
-        upload_subfolder=lambda instance: [
-            "applications",
-            hash_int(instance.application.round_id),
-            hash_int(instance.application_id),
-        ],
-        validators=[
-            FileExtensionValidator(
-                allowed_extensions=[
-                    "csv",
-                    "ctv",
-                    "doc",
-                    "docb",
-                    "docm",
-                    "docx",
-                    "dot",
-                    "dotm",
-                    "dotx",
-                    "odm",
-                    "odt",
-                    "oth",
-                    "ott",
-                    "pdf",
-                    "rtf",
-                    "tex",
-                    "xls",
-                    "xlsb",
-                    "xlsm",
-                    "xlsx",
-                    "xlt",
-                    "xltm",
-                    "xltx",
-                    "xlw",
-                    "xml",
-                ]
-            )
-        ],
-    )
-
-    class Meta:
-        db_table = "application_document"
-
-
 class EthicsStatement(PdfFileMixin, Model):
     application = OneToOneField(Application, on_delete=CASCADE, related_name="ethics_statement")
     file = PrivateFileField(
@@ -3152,6 +3101,7 @@ class Round(Model):
         choices=Choices(0, 1, 2, 3, 4),
         help_text="Minimum of referees the application needs to nominate",
     )
+    is_flexible_number_of_referees = BooleanField(_("Flexible number of referees"), default=False)
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
 
     letter_of_support_required = BooleanField(default=False)
@@ -3771,6 +3721,58 @@ class CurriculumVitaeTemplate(Model):
 
     class Meta:
         db_table = "curriculum_vitae_template"
+
+
+class ApplicationDocument(Model):
+    application = ForeignKey(Application, on_delete=CASCADE, related_name="documents")
+    document_type = ForeignKey(
+        DocumentType, related_name="application_documents", on_delete=CASCADE
+    )
+    required_document = ForeignKey(RequiredDocument, on_delete=DO_NOTHING, related_name="+")
+    page_count = PositiveSmallIntegerField(null=True, blank=True)
+    file = PrivateFileField(
+        blank=True,
+        null=True,
+        upload_subfolder=lambda instance: [
+            "applications",
+            hash_int(instance.application.round_id),
+            hash_int(instance.application_id),
+        ],
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "csv",
+                    "ctv",
+                    "doc",
+                    "docb",
+                    "docm",
+                    "docx",
+                    "dot",
+                    "dotm",
+                    "dotx",
+                    "odm",
+                    "odt",
+                    "oth",
+                    "ott",
+                    "pdf",
+                    "rtf",
+                    "tex",
+                    "xls",
+                    "xlsb",
+                    "xlsm",
+                    "xlsx",
+                    "xlt",
+                    "xltm",
+                    "xltx",
+                    "xlw",
+                    "xml",
+                ]
+            )
+        ],
+    )
+
+    class Meta:
+        db_table = "application_document"
 
 
 class Criterion(Model):
