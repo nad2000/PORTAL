@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
 from django.db import connection
+from django.db.models import Max, Q, Subquery
 from django.utils import timezone
 from multisite.models import Alias
 
@@ -74,19 +75,27 @@ def portal_context(request):
             schema = "https" if request.is_secure() else "http"
             port = request.get_port()
             port = "" if port in [80, 433] else f":{port}"
-            stats["all_sites"] = [
-                dict(
-                    site_id=a.site_id,
-                    domain=a.site.domain,
-                    url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}{request.get_full_path()}",
-                    is_current=a.site_id == site_id,
-                )
-                for a in Alias.objects.filter(
-                    models.Q(is_canonical=True)
-                    if is_canonical
-                    else (~models.Q(is_canonical=True) | models.Q(is_canonical__isnull=True))
-                )
-            ]
+            if request.user.is_superuser:
+                stats["all_sites"] = [
+                    dict(
+                        site_id=a.site_id,
+                        domain=a.site.domain,
+                        url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}",
+                        is_current=a.site_id == site_id,
+                    )
+                    for a in Alias.objects.filter(
+                        Q(is_canonical=True)
+                        if is_canonical
+                        else (~Q(is_canonical=True) | Q(is_canonical__isnull=True)),
+                        Q(
+                            id__in=Subquery(
+                                Alias.objects.values("site_id")
+                                .annotate(max_id=Max("id"))
+                                .values("max_id")
+                            )
+                        ),
+                    )
+                ]
             cache.set(cache_key, stats)
         context.update(stats)
     return context
