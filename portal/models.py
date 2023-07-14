@@ -3665,7 +3665,7 @@ class RoundDocumentTemplate(Model):
 
 class ApplicationFormTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="application_form_templates")
-    template = FileField(
+    file = FileField(
         upload_to=round_template_path,
         verbose_name=_("Template"),
         validators=[
