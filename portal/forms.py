@@ -413,7 +413,7 @@ class ApplicationForm(forms.ModelForm):
             [round.application_template] if round.application_template else []
         )
         for t in round.application_form_templates.all():
-            application_form_templates.append(t.template)
+            application_form_templates.append(t.file)
 
         if len(application_form_templates) > 1:
             help_text = _("You can download the application form templates at ") + ", ".join(
@@ -458,7 +458,7 @@ class ApplicationForm(forms.ModelForm):
             # self.fields["letter_of_support_file"].help_text = help_text
 
         if round.applicant_cv_required and (
-            cv_templates := [r.template for r in round.curriculum_vitae_templates.all()]
+            cv_templates := [r.file for r in round.curriculum_vitae_templates.all()]
         ):
             help_text = _("You can download the CV form template(s) at ") + ", ".join(
                 '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
