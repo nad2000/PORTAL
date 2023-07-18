@@ -1953,10 +1953,14 @@ class ApplicationView(LoginRequiredMixin):
                 models.ApplicationDocument,
                 extra=len(initial_documents),
                 can_delete=False,
-                exclude=["document_type"],
+                exclude=[
+                    "document_type",
+                ],
                 widgets={
-                    "required_document": widgets.Select(attrs={"disabled": True}),
-                    "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                    "required_document": HiddenInput(),
+                    "page_count": HiddenInput(),
+                    # "required_document": widgets.Select(attrs={"disabled": True}),
+                    # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
                     "file": widgets.ClearableFileInput(
                         attrs={
                             "placeholder": _("Please upload a file ..."),
