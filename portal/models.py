@@ -3617,6 +3617,13 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
 
+    def __str__(self):
+        dt = self.document_type.name
+        title = self.title or dt
+        if title == dt:
+            return title
+        return f"{dt}: {title}"
+
     class Meta(OrderableModel.Meta):
         db_table = "required_document"
 
@@ -3770,6 +3777,11 @@ class ApplicationDocument(Model):
             )
         ],
     )
+
+    def save(self, *args, **kwargs):
+        if not self.document_type_id:
+            self.document_type = self.required_document.document_type
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = "application_document"

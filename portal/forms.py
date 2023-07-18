@@ -125,6 +125,83 @@ class TableInlineFormset(LayoutObject):
         return render_to_string(self.template, {"formset": formset, "form_id": self.form_id})
 
 
+def make_help_text(document_type=None, templates=[], required_document=None):
+    if required_document and not templates:
+        if isinstance(required_document, int):
+            required_document = models.RequiredDocument.get(required_document)
+        templates = [
+            r.file
+            for r in required_document.round.templates.filter(
+                document_type=required_document.document_type
+            )
+        ]
+
+    if not document_type and required_document:
+        document_type = f"{required_document.document_type}"
+
+    if not templates:
+        if document_type:
+            help_text = _(f"Please upload {document_type}")
+        else:
+            help_text = _("Please upload completed application form")
+    if len(templates) > 0:
+        if document_type:
+            help_text = _(f"You can download the {document_type} template(s) at ")
+        else:
+            help_text = _("You can download the application form template(s) at ")
+
+    if len(templates) > 1:
+        help_text += ", ".join(
+            '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
+            for t in templates[:-1]
+        )
+        if len(templates) > 2:
+            help_text += ","
+        help_text += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
+            templates[-1].url,
+            os.path.basename(templates[-1].name),
+        )
+    elif len(templates) > 0:
+        help_text += '<strong><a href="%s">%s</a></strong>' % (
+            templates[0].url,
+            os.path.basename(templates[0].name),
+        )
+    return help_text
+
+
+class DocumentInlineFormset(TableInlineFormset):
+    template = "portal/application_document_formset.html"
+
+    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+        formset = context[self.formset_name_in_context]
+        required_documents = context["required_documents"]
+        round = context["round"]
+        orderting = dict(
+            round.required_documents.values_list("id", "ordering").order_by("ordering")
+        )
+        formset.forms.sort(key=lambda f: orderting.get(f.initial.get("required_document"), 0))
+        help_texts = {
+            rd_id: make_help_text(
+                required_document=round.required_documents.filter(id=rd_id).first()
+            )
+            for rd_id in orderting.keys()
+        }
+        for f in formset.forms:
+            rd_id = f.initial.get("required_document", 0)
+            if rd_id:
+                # f.file.help_text = help_texts.get(rd_id)
+                f.fields["file"].help_text = help_texts.get(rd_id)
+
+        return render_to_string(
+            self.template,
+            {
+                "formset": formset,
+                "form_id": self.form_id,
+                "required_documents": required_documents,
+            },
+        )
+
+
 class InlineSubform(LayoutObject):
     # template = "mycollections/formset.html"
     template = "portal/sub_form.html"
@@ -224,14 +301,14 @@ class AdminFileWidget(forms.FileInput):
     def __init__(self, attrs={}):
         super(AdminFileWidget, self).__init__(attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         output = []
         if value and hasattr(value, "url"):
             output.append(
                 '%s <a target="_blank" href="%s">%s</a> <br />%s '
-                % (_("Currently:"), value.url, value, _("Change:"))
+                % (_("Currently:"), value.url, os.path.basename(value.name), _("Change:"))
             )
-        output.append(super(AdminFileWidget, self).render(name, value, attrs))
+        output.append(super().render(name, value, attrs, renderer))
         return mark_safe("".join(output))
 
 
@@ -386,6 +463,7 @@ class ApplicationForm(forms.ModelForm):
         round = (
             models.Round.get(self.initial["round"]) if "round" in self.initial else instance.round
         )
+        self.has_required_documents = has_required_documents = round.required_documents.count() > 0
         if round.scheme.team_can_apply:
             fields.extend(
                 [
@@ -409,74 +487,70 @@ class ApplicationForm(forms.ModelForm):
                 ]
             )
 
-        application_form_templates = (
-            [round.application_template] if round.application_template else []
-        )
-        for t in round.application_form_templates.all():
-            application_form_templates.append(t.file)
-
-        if len(application_form_templates) > 1:
-            help_text = _("You can download the application form templates at ") + ", ".join(
-                '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
-                for t in application_form_templates[:-1]
+        if has_required_documents:
+            summary_fields.append(
+                Div(
+                    "documents",
+                    DocumentInlineFormset("documents"),
+                    css_id="documents",
+                ),
             )
-            if len(application_form_templates) > 2:
-                help_text += ","
-            help_text += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
-                application_form_templates[-1].url,
-                os.path.basename(application_form_templates[-1].name),
-            )
-            self.fields["file"].help_text = help_text
-            summary_fields.append(Field("file"))
-        elif len(application_form_templates) > 0:
-            help_text = _(
-                'You can download the application form template at <strong><a href="%s">%s</a></strong>'
-            ) % (
-                application_form_templates[0].url,
-                os.path.basename(application_form_templates[0].name),
-            )
-            self.fields["file"].help_text = help_text
-            summary_fields.append(Field("file"))
         else:
-            summary_fields.append(
-                Field("file", data_toggle="tooltip", title=self.fields["file"].help_text)
+            application_form_templates = (
+                [round.application_template] if round.application_template else []
             )
+            for t in round.application_form_templates.all():
+                application_form_templates.append(t.file)
 
-        if round.budget_template and (
-            not (instance and instance.submitted_by and instance.submitted_by != user)
-            or (instance and (user.is_superuser or user.is_staff))
-        ):
-            help_text = _(
-                'You can download the budget template at <strong><a href="%s">%s</a></strong>'
-            ) % (round.budget_template.url, os.path.basename(round.budget_template.name))
-            # fields.append(HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
-            summary_fields.append(Field("budget"))
-            self.fields["budget"].help_text = help_text
-
-        if round.letter_of_support_required:
-            summary_fields.append(Field("letter_of_support_file", label=_("Letter of Support")))
-            # self.fields["letter_of_support_file"].help_text = help_text
-
-        if round.applicant_cv_required and (
-            cv_templates := [r.file for r in round.curriculum_vitae_templates.all()]
-        ):
-            help_text = _("You can download the CV form template(s) at ") + ", ".join(
-                '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
-                for t in cv_templates[:-1]
-            )
-            if len(cv_templates) > 2:
-                help_text += ","
-            help_text += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
-                cv_templates[-1].url,
-                os.path.basename(cv_templates[-1].name),
-            )
-
-            self.fields["cv_file"].help_text = help_text
-            summary_fields.append(
-                Field(
-                    "cv_file", label=_("Curriculum Vitae"), data_toggle="tooltip", title=help_text
+            if application_form_templates:
+                help_text = make_help_text(templates=application_form_templates)
+                self.fields["file"].help_text = help_text
+                summary_fields.append(Field("file"), title=help_text)
+            else:
+                summary_fields.append(
+                    Field("file", data_toggle="tooltip", title=self.fields["file"].help_text)
                 )
-            )
+
+            if round.budget_template and (
+                not (instance and instance.submitted_by and instance.submitted_by != user)
+                or (instance and (user.is_superuser or user.is_staff))
+            ):
+                help_text = _(
+                    'You can download the budget template at <strong><a href="%s">%s</a></strong>'
+                ) % (round.budget_template.url, os.path.basename(round.budget_template.name))
+                # fields.append(HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
+                summary_fields.append(Field("budget"))
+                self.fields["budget"].help_text = help_text
+
+            if round.letter_of_support_required:
+                summary_fields.append(
+                    Field("letter_of_support_file", label=_("Letter of Support"))
+                )
+                # self.fields["letter_of_support_file"].help_text = help_text
+
+            if round.applicant_cv_required and (
+                cv_templates := [r.file for r in round.curriculum_vitae_templates.all()]
+            ):
+                help_text = _("You can download the CV form template(s) at ") + ", ".join(
+                    '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
+                    for t in cv_templates[:-1]
+                )
+                if len(cv_templates) > 2:
+                    help_text += ","
+                help_text += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
+                    cv_templates[-1].url,
+                    os.path.basename(cv_templates[-1].name),
+                )
+
+                self.fields["cv_file"].help_text = help_text
+                summary_fields.append(
+                    Field(
+                        "cv_file",
+                        label=_("Curriculum Vitae"),
+                        data_toggle="tooltip",
+                        title=help_text,
+                    )
+                )
 
         if round.research_summary_required:
             summary_fields.extend(

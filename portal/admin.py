@@ -626,6 +626,15 @@ class ApplicationAdmin(
         def view_on_site(self, obj):
             return reverse("application", kwargs={"pk": obj.application_id})
 
+    class DocumentInline(admin.TabularInline):
+        model = models.ApplicationDocument
+        # autocomplete_fields = ["document_type"]
+        fields = ["required_document", "page_count", "file"]
+
+        extra = 0
+        view_on_site = False
+        # classes = ["collapse"]
+
     class ForInline(admin.TabularInline):
         model = models.ApplicationFor
         autocomplete_fields = ["code"]
@@ -650,6 +659,7 @@ class ApplicationAdmin(
     inlines = [
         MemberInline,
         RefereeInline,
+        DocumentInline,
         ForInline,
         SeoInline,
         KeywordInline,

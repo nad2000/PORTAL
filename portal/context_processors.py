@@ -89,7 +89,12 @@ def portal_context(request):
                         else (~Q(is_canonical=True) | Q(is_canonical__isnull=True)),
                         Q(
                             id__in=Subquery(
-                                Alias.objects.values("site_id")
+                                Alias.objects.filter(
+                                    Q(is_canonical=True)
+                                    if is_canonical
+                                    else (~Q(is_canonical=True) | Q(is_canonical__isnull=True)),
+                                )
+                                .values("site_id")
                                 .annotate(max_id=Max("id"))
                                 .values("max_id")
                             )

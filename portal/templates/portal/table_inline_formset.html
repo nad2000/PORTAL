@@ -59,6 +59,12 @@
               <td id="div_{{ field.auto_id }}" class="form-group align-middle text-center">
                 {% crispy_field field %}
               </td>
+            {% comment %}
+            {% elif field.name == "file" %}
+              <td id="div_{{ field.auto_id }}" class="form-group">
+                {% crispy_field field %}
+              </td>
+            {% endcomment %}
             {% else %}
               {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False field_class=field.field_class %}
             {% endif %}

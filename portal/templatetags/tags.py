@@ -9,12 +9,22 @@ from django.utils.translation import gettext as _
 register = template.Library()
 
 
+@register.filter
+def index(indexable, i):
+    return indexable[i]
+
+
+@register.filter
+def get_item(hashable, key):
+    return hashable.get(key)
+
+
 @register.filter()
 def collapsible(value):
     """collapsible if the text length exceeds ML and remainder is more then 20% of the text."""
     ml = 400  # max length
     if value and (s := value.strip()) and (l := len(s)) > ml:
-        return (l - ml) / l > 0.2
+        return (l - ml) / l > 1.0
 
 
 @register.filter()
@@ -116,7 +126,6 @@ def is_file_field(value):
 
 @register.filter()
 def person_name(value, with_email=False):
-
     if hasattr(value, "user"):
         u = value.user
     elif hasattr(value, "submitted_by"):
@@ -148,7 +157,6 @@ def person_name(value, with_email=False):
 
 @register.filter()
 def person_with_email(value):
-
     return person_name(value, with_email=True)
 
 

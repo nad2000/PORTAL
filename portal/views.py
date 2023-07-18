@@ -1786,6 +1786,7 @@ class ApplicationView(LoginRequiredMixin):
         round = self.round
         context["round"] = round
         latest_application = self.latest_application
+        has_required_documents = round.required_documents.count() > 0
 
         if round.ethics_statement_required:
             EthicsStatementForm = model_forms.modelform_factory(
@@ -1933,6 +1934,51 @@ class ApplicationView(LoginRequiredMixin):
                 # else [],
             )
         context["referees"] = referee_form_set
+
+        if round.required_documents.count() > 0:
+            initial_documents = [
+                dict(
+                    required_document=rd_id,
+                )
+                for rd_id, in (
+                    round.required_documents.values_list("id")
+                    .filter(~Q(id__in=self.object.documents.values("required_document_id")))
+                    .order_by("ordering")
+                    if (self.object and self.object.id)
+                    else round.required_documents.order_by("ordering")
+                )
+            ]
+            fsc = forms.inlineformset_factory(
+                models.Application,
+                models.ApplicationDocument,
+                extra=len(initial_documents),
+                can_delete=False,
+                exclude=["document_type"],
+                widgets={
+                    "required_document": widgets.Select(attrs={"disabled": True}),
+                    "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                    "file": widgets.ClearableFileInput(
+                        attrs={
+                            "placeholder": _("Please upload a file ..."),
+                            "data-placeholder": _("Please upload a file ..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The file is required. Please upload a file ..."),
+                            "oninput": "this.setCustomValidity('')",
+                        }
+                    ),
+                },
+            )
+            if self.request.POST:
+                fs = fsc(self.request.POST, instance=self.object)
+            else:
+                fs = fsc(instance=self.object, initial=initial_documents)
+            if initial_documents:
+                fs.extra = len(initial_documents)
+            context["documents"] = fs
+            context["required_documents"] = {
+                rd.id: rd for rd in round.required_documents.all().order_by("ordering")
+            }
 
         if round.has_fors:
             fsc = forms.inlineformset_factory(
