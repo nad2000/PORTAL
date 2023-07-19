@@ -1383,12 +1383,12 @@ class IsActiveRoundListFilter(admin.SimpleListFilter):
 class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["name", "name_en", "name_mi"]
+    list_display = ["name", "role", "name_en", "name_mi"]
     # exclude = ["site"]
     # list_display = ["email", "name"]
     # list_filter = ["created_at", "updated_at", "is_confirmed"]
     search_fields = ["name_en", "name_mi"]
-    list_editable = ["name_en", "name_mi"]
+    list_editable = ["role", "name_en", "name_mi"]
     # date_hierarchy = "created_at"
 
 
@@ -1444,7 +1444,7 @@ class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, 
                         "referee_cv_required",
                         "research_summary_required",
                     ),
-                    "required_referees",
+                    ("required_referees", "is_flexible_number_of_referees"),
                 ]
             },
         ),

@@ -115,7 +115,10 @@ def send_mail(
         ]
 
     if not from_email:
-        from_email = f"{site.name} <noreply@{domain}>"
+        if ":" in domain or "." not in domain:
+            from_email = f"{site.name} <noreply@{site.domain}>"
+        else:
+            from_email = f"{site.name} <noreply@{domain}>"
 
     if not message and html_message:
         message = html2text.html2text(html_message)
@@ -139,11 +142,18 @@ def send_mail(
         url = request.build_absolute_uri(url)
     else:
         url = f"{urljoin(root, url)}"
-    headers = {
-        "Message-ID": f"<{token}@{domain}>",
-        "List-Unsubscribe": f"<{url}>",
-        "Return-Path": f"{getpass.getuser()}@{domain}",
-    }
+    if ":" in domain or "." not in domain:
+        headers = {
+            "Message-ID": f"<{token}@{site.domain}>",
+            "List-Unsubscribe": f"<{url}>",
+            "Return-Path": f"{getpass.getuser()}@{site.domain}",
+        }
+    else:
+        headers = {
+            "Message-ID": f"<{token}@{domain}>",
+            "List-Unsubscribe": f"<{url}>",
+            "Return-Path": f"{getpass.getuser()}@{domain}",
+        }
     subject_prefix = f"[{site.name}]" if site else settings.EMAIL_SUBJECT_PREFIX
     if not subject.startswith(subject_prefix):
         subject = f"{subject_prefix} {subject}"

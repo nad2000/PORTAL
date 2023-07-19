@@ -385,9 +385,18 @@ class Language(Model):
         ordering = ["code"]
 
 
+DOCUMENT_ROLES = Choices(
+    ("AF", _("Application Form")),
+    ("B", _("Budget")),
+    ("CV", _("Curriculum Vitae")),
+    ("F", _("Form")),
+)
+
+
 class DocumentType(Model):
     # site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     # objects = CurrentSiteManager()
+    role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     name = CharField(_("Name"), max_length=200)
 
     def __str__(self):
@@ -3614,6 +3623,7 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
     document_type = ForeignKey(DocumentType, on_delete=CASCADE)
     title = CharField(_("Title"), max_length=200, null=True, blank=True)
+    is_optional = BooleanField(default=False)
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
 

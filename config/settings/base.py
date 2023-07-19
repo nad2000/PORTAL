@@ -151,7 +151,7 @@ THIRD_PARTY_APPS = [
     "explorer",
     # "dynamic_breadcrumbs",
     "django_bootstrap_breadcrumbs",
-    "taggit",
+    # "taggit",
     "admin_ordering",
 ]
 

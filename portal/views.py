@@ -1358,6 +1358,7 @@ class ApplicationView(LoginRequiredMixin):
         reset_cache(self.request)
         url = self.request.path_info
         round = self.round
+        has_required_documents = round.required_documents.count() > 0
 
         try:
             with transaction.atomic():
@@ -1501,6 +1502,14 @@ class ApplicationView(LoginRequiredMixin):
                         _("An identity verification request sent to the administration."),
                     )
                     iv.save()
+
+                if has_required_documents and (documents := context.get("documents")):
+                    if not documents.instance or not documents.instance.id:
+                        documents.instance = a
+                    if documents.is_valid():
+                        documents.save()
+                    else:
+                        return self.form_invalid(form)
 
                 if ethics_statement_form := context.get("ethics_statement"):
                     ethics_statement_form.instance.application = a
@@ -1896,7 +1905,7 @@ class ApplicationView(LoginRequiredMixin):
                 "max_num": round.required_referees,
                 # "can_delete": False,
                 "can_delete": True,
-                "can_delete_extra": False,
+                "can_delete_extra": bool(round.is_flexible_number_of_referees),
                 "extra": round.required_referees
                 - (self.object and self.object.referees.count() or 0),
                 "validate_max": False,
@@ -1935,7 +1944,7 @@ class ApplicationView(LoginRequiredMixin):
             )
         context["referees"] = referee_form_set
 
-        if round.required_documents.count() > 0:
+        if has_required_documents:
             initial_documents = [
                 dict(
                     required_document=rd_id,
@@ -1974,7 +1983,9 @@ class ApplicationView(LoginRequiredMixin):
                 },
             )
             if self.request.POST:
-                fs = fsc(self.request.POST, instance=self.object)
+                fs = fsc(
+                    self.request.POST or None, self.request.FILES or None, instance=self.object
+                )
             else:
                 fs = fsc(instance=self.object, initial=initial_documents)
             if initial_documents:

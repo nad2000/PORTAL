@@ -18,4 +18,4 @@ django-coverage-plugin>=1.8.0  # https://github.com/nedbat/django_coverage_plugi
 
 # Profiling
 django-silk
-# pyOpenSSL
+pyOpenSSL
