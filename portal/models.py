@@ -3789,11 +3789,14 @@ class ApplicationDocument(Model):
     )
 
     def save(self, *args, **kwargs):
-        if self.file == "":
+        if not self.file.name:
             return
         if not self.document_type_id:
             self.document_type = self.required_document.document_type
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.document_type}: {os.path.basename(self.file.name)}"
 
     class Meta:
         db_table = "application_document"
