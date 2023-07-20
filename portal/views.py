@@ -1435,7 +1435,14 @@ class ApplicationView(LoginRequiredMixin):
                 # if identity_verification_form := context.get("identity_verification"):
                 #     identity_verification_form.instance.application = a
                 #     if identity_verification_form.is_valid():
-                #         identity_verification_form.save()
+
+                if has_required_documents and (documents := context.get("documents")):
+                    if not documents.instance or not documents.instance.id:
+                        documents.instance = a
+                    if documents.is_valid():
+                        documents.save()
+                    else:
+                        return self.form_invalid(form)
 
                 if not referees.instance or not referees.instance.id:
                     referees.instance = a
@@ -1454,7 +1461,7 @@ class ApplicationView(LoginRequiredMixin):
                     referees.save()
                     if a.file or (
                         has_required_documents
-                        and a.documents.filter(document_type__role="AF").exists()
+                        and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
                     ):
                         count = invite_referee(self.request, a)
                         if count > 0:
@@ -1505,14 +1512,6 @@ class ApplicationView(LoginRequiredMixin):
                         _("An identity verification request sent to the administration."),
                     )
                     iv.save()
-
-                if has_required_documents and (documents := context.get("documents")):
-                    if not documents.instance or not documents.instance.id:
-                        documents.instance = a
-                    if documents.is_valid():
-                        documents.save()
-                    else:
-                        return self.form_invalid(form)
 
                 if ethics_statement_form := context.get("ethics_statement"):
                     ethics_statement_form.instance.application = a
@@ -1957,7 +1956,7 @@ class ApplicationView(LoginRequiredMixin):
                     .filter(~Q(id__in=self.object.documents.values("required_document_id")))
                     .order_by("ordering")
                     if (self.object and self.object.id)
-                    else round.required_documents.order_by("ordering")
+                    else round.required_documents.order_by("ordering").values_list("id")
                 )
             ]
             fsc = forms.inlineformset_factory(

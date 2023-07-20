@@ -3789,6 +3789,8 @@ class ApplicationDocument(Model):
     )
 
     def save(self, *args, **kwargs):
+        if self.file == "":
+            return
         if not self.document_type_id:
             self.document_type = self.required_document.document_type
         super().save(*args, **kwargs)
