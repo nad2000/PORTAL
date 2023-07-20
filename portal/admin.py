@@ -702,6 +702,15 @@ class ApplicationAdmin(
             },
         ),
         (
+            "Summary and Files",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "file",
+                ],
+            },
+        ),
+        (
             "Vision Mātauranga",
             {
                 "classes": ("collapse",),

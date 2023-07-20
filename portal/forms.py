@@ -495,6 +495,7 @@ class ApplicationForm(forms.ModelForm):
                     css_id="documents",
                 ),
             )
+
         else:
             application_form_templates = (
                 [round.application_template] if round.application_template else []
@@ -505,12 +506,11 @@ class ApplicationForm(forms.ModelForm):
             if application_form_templates:
                 help_text = make_help_text(templates=application_form_templates)
                 self.fields["file"].help_text = help_text
-                summary_fields.append(Field("file"), title=help_text)
+                summary_fields.append(Field("file", title=help_text))
             else:
                 summary_fields.append(
                     Field("file", data_toggle="tooltip", title=self.fields["file"].help_text)
                 )
-
             if round.budget_template and (
                 not (instance and instance.submitted_by and instance.submitted_by != user)
                 or (instance and (user.is_superuser or user.is_staff))

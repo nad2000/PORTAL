@@ -1452,7 +1452,10 @@ class ApplicationView(LoginRequiredMixin):
                     #             i.save()
 
                     referees.save()
-                    if a.file:
+                    if a.file or (
+                        has_required_documents
+                        and a.documents.filter(document_type__role="AF").exists()
+                    ):
                         count = invite_referee(self.request, a)
                         if count > 0:
                             messages.success(
