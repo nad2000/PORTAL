@@ -3041,6 +3041,10 @@ class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
         return models.Keyword.objects.all().filter(name__istartswith=self.q)
 
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return True  # request.user.is_authenticated
+
 
 class EthnicityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
