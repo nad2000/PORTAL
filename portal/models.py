@@ -1372,6 +1372,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
     letter_of_support = ForeignKey(LetterOfSupport, on_delete=SET_NULL, blank=True, null=True)
 
+    category = ForeignKey(
+        Category, on_delete=SET_NULL, blank=True, null=True, db_column="category"
+    )
     fors = ManyToManyField(
         FieldOfResearch,
         blank=True,
