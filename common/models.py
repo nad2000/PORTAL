@@ -117,6 +117,14 @@ class PersonMixin:
             full_name = f"{self.title} {full_name}"
         return full_name or user and user.username or self.email
 
+    def get_first_name(self):
+        user = self.get_user()
+        return getattr(self, "first_name", None) or user and user.first_name
+
+    def get_last_name(self):
+        user = self.get_user()
+        return getattr(self, "last_name", None) or user and user.last_name
+
     @property
     def full_name_with_email(self):
         user = self.get_user()

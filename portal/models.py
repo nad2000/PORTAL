@@ -72,6 +72,7 @@ from simple_history.models import HistoricalRecords
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase, TaggedItemBase
 from weasyprint import HTML
+from limesurveyrc2api.limesurvey import LimeSurvey
 
 from common.models import TITLES, Base, EmailField, HelperMixin, Model, PersonMixin, TimeStampMixin
 
@@ -2151,6 +2152,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
     testified_at = MonitorField(
         monitor="status", when=[REFEREE_STATUS.testified], null=True, blank=True, default=None
     )
+    survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
+    survey_token = CharField(max_length=20, null=True, blank=True, default=None)
+    survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
 
     @property
     def mail_log_error(self):
@@ -2178,6 +2182,21 @@ class Referee(RefereeMixin, PersonMixin, Model):
     @fsm_log
     @transition(field=status, source=["*"], target="accepted")
     def accept(self, *args, **kwargs):
+        # Inviation to participate in the survey:
+        if survey_id := self.application.round.survey_id:
+            api_url = settings.__dir__.get("LIMESURVEY_API_URL")
+            if not api_url:
+                site = self.application.site or Site.objects.get_current()
+                api_url = f"https://{site.domain}/limesurvey/admin/remotecontrol"
+            api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
+            api.open(password=settings.LIMESURVEY_API_PASSWORD)
+            particimant = {"email": self.email.lower()}
+            if self.first_name:
+                particimant["firstname"] = self.first_name
+            if self.last_name:
+                particimant["lastname"] = self.last_name
+            resp = api.token.add_participants(survey_id, [recipient])
+            breakpoint()
         pass
 
     @fsm_log
@@ -3069,6 +3088,17 @@ class Scheme(Model):
         db_table = "scheme"
 
 
+class Category(Model):
+    code = CharField(max_length=5, primary_key=True, db_column="code")
+    # site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    # objects = CurrentSiteManager()
+    description = TextField(_("short description"), max_length=10000, null=True, blank=True)
+
+    class Meta:
+        db_table = "category"
+        # unique_together = ("code", "site")
+
+
 def round_template_path(instance, filename):
     r = instance if hasattr(instance, "title") else instance.round
     title = (r.title or r.scheme.title).lower().replace(" ", "-")
@@ -3112,6 +3142,9 @@ class Round(Model):
     )
     is_flexible_number_of_referees = BooleanField(_("Flexible number of referees"), default=False)
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
+    survey_id = PositiveSmallIntegerField(
+        help_text=_("LimeSurvey Survey ID"), null=True, blank=True
+    )
 
     letter_of_support_required = BooleanField(default=False)
 

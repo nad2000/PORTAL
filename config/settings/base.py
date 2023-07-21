@@ -459,5 +459,9 @@ ACCOUNT_FORMS = {
     "signup": "users.forms.UserSignupForm",
 }
 
-
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 4000
+
+# LimeSurvey API
+LIMESURVEY_API_URL = "<URL>"
+LIMESURVEY_API_USERNAME = "<API username>"
+LIMESURVEY_API_PASSWORD = "<API username password>"

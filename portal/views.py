@@ -891,7 +891,7 @@ def invite_referee(request, application):
             ~Q(status__in=["accepted", "expired", "bounced", "revoked"]),
             application=application,
             type="R",
-        )
+        ).prefetch_related("referee", "referee__user")
     )
     for i in invitations:
         i.send(request)
@@ -900,6 +900,7 @@ def invite_referee(request, application):
             i.referee.send()
             i.referee.save()
         count += 1
+
     return count
 
 

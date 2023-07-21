@@ -6,16 +6,12 @@ from . import models
 
 @register(models.DocumentType)
 class DocumentTypeTranslationOptions(TranslationOptions):
-    fields = (
-        "name",
-    )
+    fields = ("name",)
 
 
 @register(models.RequiredDocument)
 class DocumentTypeTranslationOptions(TranslationOptions):
-    fields = (
-        "title",
-    )
+    fields = ("title",)
 
 
 @register(models.Scheme)
@@ -24,6 +20,11 @@ class SchemeTranslationOptions(TranslationOptions):
         "title",
         # "description",
     )
+
+
+@register(models.Category)
+class CategoryTranslationOptions(TranslationOptions):
+    fields = ("description",)
 
 
 @register(models.Round)
