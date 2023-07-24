@@ -6,6 +6,7 @@ import secrets
 import ssl
 import subprocess
 import tempfile
+from collections import OrderedDict
 from datetime import date, datetime
 from functools import partial, wraps
 from urllib.parse import urljoin, urlparse
@@ -64,6 +65,7 @@ from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, transition
 from django_fsm_log.helpers import FSMLogDescriptor
+from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from private_storage.fields import PrivateFileField
@@ -72,9 +74,17 @@ from simple_history.models import HistoricalRecords
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase, TaggedItemBase
 from weasyprint import HTML
-from limesurveyrc2api.limesurvey import LimeSurvey
 
-from common.models import TITLES, Base, EmailField, HelperMixin, Model, PersonMixin, TimeStampMixin
+from common.models import (
+    TITLES,
+    Base,
+    EmailField,
+    FixedCharField,
+    HelperMixin,
+    Model,
+    PersonMixin,
+    TimeStampMixin,
+)
 
 from .utils import send_mail, vignere
 
@@ -336,6 +346,22 @@ class RoundSiteManager(Manager):
 
     def get_queryset(self):
         return super().get_queryset().filter(round__site=Site.objects.get_current())
+
+
+class Title(Model):
+    code = CharField(max_length=10, primary_key=True)
+    name = CharField(max_length=40)
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.name[:10].upper()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "title"
+        ordering = ["code"]
 
 
 class Subscription(Model):
@@ -1073,6 +1099,32 @@ APPLICATION_STATUS = Choices(
 )
 
 
+class Fund(Model):
+    code = FixedCharField(max_length=2, primary_key=True, db_column="code")
+    code3 = FixedCharField(max_length=3, null=True, blank=True)
+    description = TextField(_("description"), max_length=10000, null=True, blank=True)
+    cost_centre = PositiveSmallIntegerField(_("Cost Center"), null=True, blank=True)
+    catalyst_cost_centre = PositiveSmallIntegerField(
+        _("Catalyst Cost Center"), null=True, blank=True
+    )
+    site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+
+    class Meta:
+        db_table = "fund"
+        # unique_together = ("code", "site")
+
+
+class Category(Model):
+    code = CharField(max_length=5, primary_key=True, db_column="code")
+    # site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    # objects = CurrentSiteManager()
+    description = TextField(_("short description"), max_length=10000, null=True, blank=True)
+
+    class Meta:
+        db_table = "category"
+        # unique_together = ("code", "site")
+
+
 class LetterOfSupport(PdfFileMixin, Model):
     file = PrivateFileField(
         upload_subfolder=lambda instance: [
@@ -1261,8 +1313,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     team_name = CharField(max_length=200, null=True, blank=True, verbose_name=_("team name"))
 
     # Applicant or nominator:
-    title = CharField(
-        max_length=40, null=True, blank=True, choices=TITLES, verbose_name=_("title")
+    # title = CharField(
+    #     max_length=40, null=True, blank=True, choices=TITLES, verbose_name=_("title")
+    # )
+    title = ForeignKey(
+        Title,
+        null=True,
+        blank=True,
+        verbose_name=_("title"),
+        db_column="title",
+        on_delete=DO_NOTHING,
     )
     first_name = CharField(_("first name"), max_length=30)
     middle_names = CharField(
@@ -1273,6 +1333,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, verbose_name=_("last name"))
+    research_experience_in_years = PositiveSmallIntegerField(
+        _("research experience in years "), null=True, blank=True
+    )
     org = ForeignKey(
         Organisation,
         blank=False,
@@ -1372,9 +1435,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
     letter_of_support = ForeignKey(LetterOfSupport, on_delete=SET_NULL, blank=True, null=True)
 
-    category = ForeignKey(
-        Category, on_delete=SET_NULL, blank=True, null=True, db_column="category"
-    )
     fors = ManyToManyField(
         FieldOfResearch,
         blank=True,
@@ -2187,8 +2247,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
     def accept(self, *args, **kwargs):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
-            api_url = settings.__dir__.get("LIMESURVEY_API_URL")
-            if not api_url:
+            if "LIMESURVEY_API_URL" in dir(settings):
+                api_url = settings.LIMESURVEY_API_URL
+            else:
                 site = self.application.site or Site.objects.get_current()
                 api_url = f"https://{site.domain}/limesurvey/admin/remotecontrol"
             api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
@@ -2198,9 +2259,47 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 particimant["firstname"] = self.first_name
             if self.last_name:
                 particimant["lastname"] = self.last_name
-            resp = api.token.add_participants(survey_id, [recipient])
-            breakpoint()
-        pass
+            resp = api.token.add_participants(survey_id, [particimant])
+            for r in resp:
+                if r.get("email") == self.email.lower():
+                    self.survey_token_id = r.get("tid")
+                    self.survey_token = r.get("token")
+
+            if self.survey_token_id:
+                # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
+                resp = api.query(
+                    method="invite_participants",
+                    params=OrderedDict(
+                        [
+                            ("sSessionKey", api.session_key),
+                            ("iSurveyID", survey_id),
+                            ("aTokenIds", [self.survey_token_id]),
+                            ("bEmail", True),
+                            ("continueOnError", True),
+                        ]
+                    ),
+                )
+                resp_type = type(resp)
+
+                if resp_type is dict and "status" in resp:
+                    status = resp["status"].lower()
+                    error_messages = [
+                        "invalid session key",
+                        "error: invalid survey id",
+                        "error: no token table",
+                        "error: no candidate tokens",
+                        "no permission",
+                    ]
+                    for message in error_messages:
+                        if status == message:
+                            # raise LimeSurveyError(method, status)
+                            capture_message(
+                                f"Failed to invite surevey participant - referee {self}: {status}",
+                                level="error",
+                            )
+                            break
+                    else:
+                        self.survey_invitation_sent_at = datetime.now()
 
     @fsm_log
     @transition(field=status, source=["*"], target="testified")
@@ -3021,6 +3120,7 @@ def default_scheme_code(title):
 
 class Scheme(Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    fund = ForeignKey(Fund, on_delete=SET_NULL, blank=True, null=True, db_column="fund")
     objects = CurrentSiteManager()
 
     title = CharField(_("title"), max_length=100)
@@ -3028,11 +3128,16 @@ class Scheme(Model):
     #     Group, blank=True, verbose_name=_("who starts the application"), db_table="scheme_group"
     # )
     code = CharField(_("code"), max_length=10, blank=True, default="")
+    category = ForeignKey(
+        Category, on_delete=SET_NULL, blank=True, null=True, db_column="category"
+    )
     current_round = OneToOneField(
         "Round", blank=True, null=True, on_delete=SET_NULL, related_name="+"
     )
 
     def save(self, *args, **kwargs):
+        if self.fund and self.fund.site and self.site != self.fund.site:
+            self.site = self.fund.site
         if not self.code:
             self.code = default_scheme_code(self.title)
         super().save(*args, **kwargs)
@@ -3091,17 +3196,6 @@ class Scheme(Model):
         db_table = "scheme"
 
 
-class Category(Model):
-    code = CharField(max_length=5, primary_key=True, db_column="code")
-    # site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
-    # objects = CurrentSiteManager()
-    description = TextField(_("short description"), max_length=10000, null=True, blank=True)
-
-    class Meta:
-        db_table = "category"
-        # unique_together = ("code", "site")
-
-
 def round_template_path(instance, filename):
     r = instance if hasattr(instance, "title") else instance.round
     title = (r.title or r.scheme.title).lower().replace(" ", "-")
@@ -3150,6 +3244,7 @@ class Round(Model):
     )
 
     letter_of_support_required = BooleanField(default=False)
+    research_experience_in_years_required = BooleanField(default=False)
 
     direct_application_allowed = BooleanField(default=True)
     can_nominate = BooleanField(default=True)
@@ -3416,6 +3511,7 @@ class Round(Model):
                 "team_can_apply",
                 "required_referees",
                 # "budget_required",
+                "research_experience_in_years_required",
             ]:
                 if f not in kwargs:
                     v = getattr(last_round, f)
@@ -4563,6 +4659,24 @@ class ResearchOffice(Model):
 
     class Meta:
         db_table = "research_office"
+
+
+def add_title_data(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    Title = apps.get_model("portal", "Title")
+    db_alias = schema_editor.connection.alias
+    Title.objects.using(db_alias).bulk_create(
+        [
+            Title(code="MR", name="Mr", name_en="Mr"),
+            Title(code="MRS", name="Mrs", name_en="Mrs"),
+            Title(code="MS", name="Ms", name_en="Ms"),
+            Title(code="DR", name="Dr", name_en="Dr"),
+            Title(code="PROF", name="Prof", name_en="Prof"),
+        ]
+    )
 
 
 # ORG_ROLE = Choices(

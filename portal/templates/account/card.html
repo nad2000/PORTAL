@@ -189,22 +189,24 @@
             </div>
           </div>
 
-          {% if signup_form %}
-            {{ signup_form.captcha | as_crispy_field }}
-          {% else %}
-            {{ form.captcha | as_crispy_field }}
+          {% if not settings.DEBUG %}
+            {% if signup_form %}
+              {{ signup_form.captcha | as_crispy_field }}
+            {% else %}
+              {{ form.captcha | as_crispy_field }}
+            {% endif %}
           {% endif %}
 
           <div id="div_id_password1" class="form-group"> <label for="id_password1" class=" requiredField">
               Password<span class="asteriskField">*</span> </label> <div>
-              <input 
-	      	type="password" 
-		name="password1" 
-		placeholder="Password" 
-		class="textinput textInput form-control" 
+              <input
+	      	type="password"
+		name="password1"
+		placeholder="Password"
+		class="textinput textInput form-control"
 	        autocomplete="new-password"
-		required 
-		id="id_password1" 
+		required
+		id="id_password1"
 		value="{{ form.password1.value|default_if_none:'' }}"
 	  > </div>
           </div> <div id="div_id_password2" class="form-group">

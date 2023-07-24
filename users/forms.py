@@ -1,5 +1,6 @@
 from allauth.account import forms as allauth_forms
 from captcha.fields import ReCaptchaField
+from django.conf import settings
 from django.contrib.auth import forms, get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -33,11 +34,15 @@ class UserCreationForm(forms.UserCreationForm):
 
 class UserSignupForm(allauth_forms.SignupForm):
 
-    captcha = ReCaptchaField()
     initial = {
         "password1": "",
         "password2": "",
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.DEBUG:
+            self.fields["captcha"] =  ReCaptchaField()
 
     # class Meta(allauth_forms.SignupForm.Meta):
     class Meta:

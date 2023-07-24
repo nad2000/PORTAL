@@ -14,6 +14,16 @@ class DocumentTypeTranslationOptions(TranslationOptions):
     fields = ("title",)
 
 
+@register(models.Fund)
+class FundTranslationOptions(TranslationOptions):
+    fields = ("description",)
+
+
+@register(models.Title)
+class TitleTranslationOptions(TranslationOptions):
+    fields = ("name",)
+
+
 @register(models.Scheme)
 class SchemeTranslationOptions(TranslationOptions):
     fields = (

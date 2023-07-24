@@ -3032,6 +3032,22 @@ from dal import autocomplete
 from taggit.models import Tag
 
 
+class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+
+        if not self.request.user.is_authenticated:
+            return models.Title.objects.none()
+        if not self.q or not self.request.user.is_authenticated:
+            q = models.Title.objects.all().order_by(
+
+        q = models.Title.objects.all().filter(Q(name_en__istartswith=self.q)|Q(name_mi__istartswith=self.q))
+        lang = request.LANGUAGE_CODE
+        return q.order_by(f"title_{lang or 'en'}")
+
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return True  # request.user.is_authenticated
+
 class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Don't forget to filter out results depending on the visitor !
@@ -3154,7 +3170,7 @@ class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return False  # request.user.is_authenticated
 
     def get_queryset(self):
-        q = models.FieldOfResearch.objects.all()
+        q = models.FieldOfResearch.objects.filter(version='2.0.0')
         if self.q:
             if self.q.isdecimal():
                 q = q.filter(code__contains=self.q)

@@ -315,7 +315,7 @@ class FieldOfResearchAdmin(ImportExportModelAdmin):
     search_fields = ["description", "definition", "^code"]
     resource_class = FieldOfResearchResource
     list_display = ["code", "description", "definition", "version", "is_stem"]
-    list_filter = ["is_stem", "two_digit_code"]
+    list_filter = ["is_stem", "version", "two_digit_code"]
     actions = ["toggle_stem"]
 
 
@@ -1296,6 +1296,25 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
         return reverse("application", kwargs={"pk": obj.referee.application_id})
 
 
+class FundResource(ModelResource):
+    class Meta:
+        exclude = ["created_at", "updated_at", "id"]
+        import_id_fields = ["code"]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+        model = models.Fund
+
+
+@admin.register(models.Fund)
+class FundAdmin(StaffPermsMixin, TranslationAdmin, ImportExportModelAdmin):
+    save_on_top = True
+    list_display = ["code", "code3", "description", "site"]
+    list_filter = ["site"]
+    search_fields = ["code", "code", "description_en", "description_mi"]
+    resource_class = FundResource
+
+
 class SchemeResource(ModelResource):
     class Meta:
         exclude = ["created_at", "updated_at", "groups", "id", "current_round"]
@@ -1401,6 +1420,18 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     # date_hierarchy = "created_at"
 
 
+@admin.register(models.Title)
+class TitleAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["code", "name_en", "name_mi"]
+    # exclude = ["site"]
+    # list_display = ["email", "name"]
+    # list_filter = ["created_at", "updated_at", "is_confirmed"]
+    search_fields = ["name_en", "name_mi"]
+    list_editable = ["name_en", "name_mi"]
+
+
 @admin.register(models.Round)
 class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     summernote_fields = (
@@ -1429,6 +1460,7 @@ class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, 
                     "description_en",
                     "description_mi",
                     "guidelines",
+                    "survey_id",
                 ]
             },
         ),
@@ -1452,6 +1484,7 @@ class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, 
                         "presentation_required",
                         "referee_cv_required",
                         "research_summary_required",
+                        "research_experience_in_years_required",
                     ),
                     ("required_referees", "is_flexible_number_of_referees"),
                 ]
@@ -1576,7 +1609,7 @@ class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, 
             return [
                 self.RequiredDocumentInline,
                 self.TemplateInline,
-                self.CurriculumVitaeTemplateInline,
+                # self.CurriculumVitaeTemplateInline,
                 self.CriterionInline,
                 self.PanellistInline,
             ]

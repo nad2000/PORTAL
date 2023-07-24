@@ -259,6 +259,13 @@ urlpatterns = [
                     ),
                     name="person-identifier-autocomplete",
                 ),
+                path(
+                    "title/",
+                    views.TitleAutocomplete.as_view(
+                        model=models.Title, create_field="name"
+                    ),
+                    name="title-autocomplete",
+                ),
             ]
         ),
     ),

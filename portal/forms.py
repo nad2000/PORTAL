@@ -31,6 +31,7 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django_summernote.widgets import SummernoteInplaceWidget
+from django.conf import settings
 
 from . import models
 
@@ -412,6 +413,8 @@ class ApplicationForm(forms.ModelForm):
         initial = kwargs.get("initial", {})
         user = initial.get("user")
         language = get_language()
+        if settings.SITE_ID == 4:
+            self.fields["application_title"].label = _("Title of proposed research")
 
         self.helper = FormHelper(self)
         instance = self.instance
@@ -487,15 +490,6 @@ class ApplicationForm(forms.ModelForm):
                 ]
             )
 
-        if has_required_documents:
-            summary_fields.append(
-                Div(
-                    "documents",
-                    DocumentInlineFormset("documents"),
-                    css_id="documents",
-                ),
-            )
-
         else:
             application_form_templates = (
                 [round.application_template] if round.application_template else []
@@ -568,6 +562,15 @@ class ApplicationForm(forms.ModelForm):
                     title=self.fields["presentation_url"].help_text,
                 ),
             )
+        if has_required_documents:
+            summary_fields.append(
+                Div(
+                    "documents",
+                    DocumentInlineFormset("documents"),
+                    css_id="documents",
+                ),
+            )
+
         tabs = [
             Tab(
                 _("Team") if self.instance.is_team_application else _("Applicant"),
@@ -575,49 +578,7 @@ class ApplicationForm(forms.ModelForm):
                 *fields,
             ),
         ]
-        if Site.objects.get_current().domain == "international.royalsociety.org.nz":
-            tabs.append(
-                Tab(
-                    _("Summary and Forms"),
-                    HTML(
-                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
-                        % (
-                            _(
-                                "An application form must be uploaded to enable submission; "
-                                "however, the application can be updated at any point before the "
-                                '"Submit" button is clicked.'
-                            ),
-                            _(
-                                'To revise the application, click "Browse" and you will be prompted for the new file '
-                                'location; and then "Save" to replace the existing file.'
-                            ),
-                        )
-                    ),
-                    *summary_fields,
-                    css_id="summary",
-                ),
-            )
-        else:
-            tabs.append(
-                Tab(
-                    _("Summary and Forms"),
-                    HTML(
-                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
-                        % (
-                            _(
-                                "An application form must be uploaded before referees can be invited; "
-                                "however, the form can be updated at any point up until submission."
-                            ),
-                            _(
-                                'To revise the application, click "Browse" and you will be prompted for the new file '
-                                'location; and then "Save" to replace the existing file.'
-                            ),
-                        )
-                    ),
-                    *summary_fields,
-                    css_id="summary",
-                ),
-            )
+        # Category:
         if round.has_categories:
             category_fields = []
             if round.has_fors:
@@ -706,6 +667,49 @@ class ApplicationForm(forms.ModelForm):
                     *category_fields,
                 ),
             )
+        if settings.SITE_ID == 2:
+            tabs.append(
+                Tab(
+                    _("Summary and Forms"),
+                    HTML(
+                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
+                        % (
+                            _(
+                                "An application form must be uploaded to enable submission; "
+                                "however, the application can be updated at any point before the "
+                                '"Submit" button is clicked.'
+                            ),
+                            _(
+                                'To revise the application, click "Browse" and you will be prompted for the new file '
+                                'location; and then "Save" to replace the existing file.'
+                            ),
+                        )
+                    ),
+                    *summary_fields,
+                    css_id="summary",
+                ),
+            )
+        else:
+            tabs.append(
+                Tab(
+                    _("Summary and Forms"),
+                    HTML(
+                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
+                        % (
+                            _(
+                                "An application form must be uploaded before referees can be invited; "
+                                "however, the form can be updated at any point up until submission."
+                            ),
+                            _(
+                                'To revise the application, click "Browse" and you will be prompted for the new file '
+                                'location; and then "Save" to replace the existing file.'
+                            ),
+                        )
+                    ),
+                    *summary_fields,
+                    css_id="summary",
+                ),
+            )
         if round.has_referees:
             if round.required_referees and round.required_referees > 1:
                 referee_information_lines = [
@@ -779,7 +783,7 @@ class ApplicationForm(forms.ModelForm):
 
         if not instance.submitted_by or instance.submitted_by == user:
             if not (tac_text := round.tac):
-                if Site.objects.get_current().domain == "international.royalsociety.org.nz":
+                if settings.SITE_ID == 2:
                     tac_text = _(
                         "I affirm that I fulfil the eligibility reqirements for this scheme "
                         "and that my application abides by any rules as laid out in the scheme's guidelines. <br><br> "
@@ -879,6 +883,10 @@ class ApplicationForm(forms.ModelForm):
                 "org-autocomplete",
                 attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
             ),
+            title=autocomplete.ModelSelect2(
+                "title-autocomplete",
+                attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+            ),
             # summary=SummernoteWidget(),
             daytime_phone=TelInput(),
             mobile_phone=TelInput(),
@@ -895,6 +903,7 @@ class ApplicationForm(forms.ModelForm):
                 attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
         )
+        labels = {"application_title": "xxxx"}
         help_texts = {
             "vm_ecs": None,
             "vm_ens": None,
