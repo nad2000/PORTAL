@@ -3043,7 +3043,7 @@ class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 Q(name_en__istartswith=self.q) | Q(name_mi__istartswith=self.q)
             )
         lang = self.request.LANGUAGE_CODE
-        return q.order_by(f"title_{lang or 'en'}")
+        return q.order_by(f"name_{lang or 'en'}")
 
     def has_add_permission(self, request):
         # Authenticated users can add new records
