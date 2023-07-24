@@ -415,6 +415,8 @@ class ApplicationForm(forms.ModelForm):
         language = get_language()
         if settings.SITE_ID == 4:
             self.fields["application_title"].label = _("Title of proposed research")
+            self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
+            self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
 
         self.helper = FormHelper(self)
         instance = self.instance
