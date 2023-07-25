@@ -10,9 +10,9 @@
         </button>
       </div>
       <div class="modal-body">
-        {% blocktrans %}
-          <p>Welcome to the sign-up and login page for Prime Ministers Science Prizes.</p>
-          <p>You can sign up/in using a number of options: TUAKIRI; ORCID; Google, or create an username/password account. If you have participated in any of the Society’s portals before (currently only the Prime Minister’s Science Prize Portal), you can Sign In with the account used there; your authorisation and profile settings will be transferred. For first time portal users, please Sign Up.</p>
+        {% blocktrans with name=site.name %}
+          <p>Welcome to the sign-up and login page for {{ name }}.</p>
+          <p>You can sign up/in using a number of options: ORCID; TUAKIRI; Google, or create an username/password account. If you have participated in any of the Society’s portals before (e.g. the Prime Minister’s Science Prize Portal), you can Sign In with the account used there; your authorisation and profile settings will be transferred. For first time portal users, please Sign Up.</p>
         {% endblocktrans %}
       </div>
       <div class="modal-footer">

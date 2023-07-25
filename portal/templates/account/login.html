@@ -15,3 +15,16 @@
 {% block page %}
   {% include "account/card.html" with active="login" %}
 {% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script>
+    $(document).ready(function(){
+      $('#signup-tab').on('shown.bs.tab', function (e) {
+        // e.target // newly activated tab
+        // e.relatedTarget // previous active tab
+        $('#welcome').modal('show');
+      })
+    });
+  </script>
+{% endblock javascript %}

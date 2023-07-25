@@ -14,13 +14,11 @@
   {% include "account/card.html" with active="signup" %}
 {% endblock %}
 
-{% if site.name == "portal.pmscienceprizes.org.nz" %}
-  {% block javascript %}
-    {{ block.super }}
-    <script>
-      $(document).ready(function(){
-          $('#welcome').modal('show');
-        });
-    </script>
-  {% endblock javascript %}
-{% endif %}
+{% block javascript %}
+  {{ block.super }}
+  <script>
+    $(document).ready(function(){
+        $('#welcome').modal('show');
+      });
+  </script>
+{% endblock javascript %}
