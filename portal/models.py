@@ -3224,9 +3224,7 @@ class Round(Model):
     )
     is_flexible_number_of_referees = BooleanField(_("Flexible number of referees"), default=False)
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
-    survey_id = PositiveSmallIntegerField(
-        help_text=_("LimeSurvey Survey ID"), null=True, blank=True
-    )
+    survey_id = PositiveIntegerField(help_text=_("LimeSurvey Survey ID"), null=True, blank=True)
 
     letter_of_support_required = BooleanField(default=False)
     research_experience_in_years_required = BooleanField(default=False)
