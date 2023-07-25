@@ -589,25 +589,8 @@ class ApplicationForm(forms.ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if round.has_fors:
-                category_fields.append(
-                    Fieldset(
-                        _("Fields of Research"),
-                        TableInlineFormset(
-                            "fors", template="portal/category_table_inline_formset.html"
-                        ),
-                        # Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
-                    )
-                )
-            if round.has_seos:
-                category_fields.append(
-                    Fieldset(
-                        _("Socio-Economic Objectives"),
-                        TableInlineFormset(
-                            "seos", template="portal/category_table_inline_formset.html"
-                        ),
-                    )
-                )
+            if round.research_experience_in_years_required:
+                category_fields = [Field("research_experience_in_years")]
             if round.has_toas:
                 category_fields.append(
                     Fieldset(
@@ -629,6 +612,25 @@ class ApplicationForm(forms.ModelForm):
                         ),
                     ),
                 )
+            if round.has_seos:
+                category_fields.append(
+                    Fieldset(
+                        _("Socio-Economic Objectives"),
+                        TableInlineFormset(
+                            "seos", template="portal/category_table_inline_formset.html"
+                        ),
+                    )
+                )
+            if round.has_fors:
+                category_fields.append(
+                    Fieldset(
+                        _("Fields of Research"),
+                        TableInlineFormset(
+                            "fors", template="portal/category_table_inline_formset.html"
+                        ),
+                        # Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
+                    )
+                )
             if round.has_vmts:
                 category_fields.append(
                     Fieldset(
@@ -643,29 +645,34 @@ class ApplicationForm(forms.ModelForm):
                         ),
                         Div(
                             Row(Column("is_vm_na")),
-                            Row(Column("rationane_vm_na"), css_id="id_vm_na"),
-                            HTML(
-                                """<script>
-                            $(document).ready(function() {
-                                //set initial state.
-                                if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };
-
-                                $('#id_is_vm_na').change(function() {
-                                    if(this.checked) {
-                                        // var returnVal = confirm("Are you sure?");
-                                        // $(this).prop("checked", returnVal);
-                                        $('#id_vm_na').show();
-                                    } else $('#id_vm_na').hide();
-                                });
-                            });
-                            </script>"""
-                            ),
+                            Row(Column("vm_rationane")),
+                            # Row(Column("rationane_vm_na"), css_id="id_vm_na"),
+                            # HTML(
+                            #     """<script>
+                            # $(document).ready(function() {
+                            #     //set initial state.
+                            #     if ($('#id_is_vm_na').is(':checked')) {
+                            #         $('#id_vm_na').show()
+                            #     } else { $('#id_vm_na').hide() };
+                            #     $('#id_is_vm_na').change(function() {
+                            #         if(this.checked) {
+                            #             // var returnVal = confirm("Are you sure?");
+                            #             // $(this).prop("checked", returnVal);
+                            #             $('#id_vm_na').show();
+                            #         } else $('#id_vm_na').hide();
+                            #     });
+                            # });
+                            # </script>"""
+                            # ),
                         ),
                     ),
                 )
             if round.has_keywords:
                 category_fields.append(
-                    Field("keywords"),
+                    Fieldset(
+                        _("Keywords"),
+                        Field("keywords"),
+                    )
                 )
             tabs.append(
                 Tab(
@@ -873,6 +880,7 @@ class ApplicationForm(forms.ModelForm):
         exclude = [
             "converted_file",
             "cv",
+            "documents",
             "fors",
             "letter_of_support",
             "organisation",
@@ -885,7 +893,9 @@ class ApplicationForm(forms.ModelForm):
         widgets = dict(
             keywords=autocomplete.ModelSelect2Multiple(
                 url="keyword-autocomplete",
-                attrs={"data-placeholder": _("Choose a keyword or create a new one ...")},
+                attrs={
+                    "data-placeholder": _("Choose a keyword or create a new one ..."),
+                },
             ),
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
@@ -911,7 +921,7 @@ class ApplicationForm(forms.ModelForm):
                 attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
         )
-        labels = {"application_title": "xxxx"}
+        labels = {"keywords": ""}
         help_texts = {
             "vm_ecs": None,
             "vm_ens": None,

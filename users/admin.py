@@ -134,6 +134,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                             Referee.where(user=u).update(user=target)
                             Panellist.where(user=u).update(user=target)
                             CurriculumVitae.where(owner=u).update(owner=target)
+                            ResearchOffice.where(user=u).update(user=target)
 
                             if p := Profile.where(user=u).first():
                                 if profile:

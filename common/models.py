@@ -254,3 +254,17 @@ class Title(Model):
         db_table = "title"
         ordering = ["code"]
         app_label = "portal"
+
+
+def add_title_data(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(common.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    Title = apps.get_model("portal", "Title")
+    db_alias = schema_editor.connection.alias
+
+    Title.objects.using(db_alias).bulk_create(
+        [Title(code=code, name=name, name_en=name) for (code, name) in TITLES],
+        ignore_conflicts=True,
+    )

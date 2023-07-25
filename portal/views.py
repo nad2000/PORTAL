@@ -37,6 +37,7 @@ from django.db.models import (
     OuterRef,
     ProtectedError,
     Q,
+    Subquery,
     Value,
 )
 from django.db.models.functions import Coalesce
@@ -1301,6 +1302,48 @@ class ApplicationView(LoginRequiredMixin):
                 .first()
             )
             latest_application = self.latest_application
+            if round.research_experience_in_years_required:
+                research_experience_in_years = (
+                    latest_application
+                    and latest_application.research_experience_in_years
+                    and latest_application.research_experience_in_years + 1
+                )
+                if not research_experience_in_years and (
+                    pa_with_experience_in_years := Application.where(
+                        submitted_by=user, research_experience_in_years__isnull=False
+                    )
+                    .order_by("-id")
+                    .first()
+                ):
+                    research_experience_in_years = (
+                        pa_with_experience_in_years.research_experience_in_years + 1
+                    )
+                if not research_experience_in_years and (
+                    ar := models.AcademicRecord.where(
+                        profile__user=user,
+                        start_year__isnull=False,
+                        qualification__in=Subquery(
+                            models.Qualification.where(description__icontains="phd").values("id")
+                        ),
+                    )
+                    .order_by("start_year")
+                    .first()
+                ):
+                    research_experience_in_years = timezone.now().year - ar.start_year
+                if not research_experience_in_years and (
+                    pcs := ProfileCareerStage.where(
+                        ~Q(career_stage__code="R9"),
+                        profile__user=user,
+                        year_achieved__isnull=False,
+                    )
+                    .order_by("year_achieved")
+                    .first()
+                ):
+                    research_experience_in_years = timezone.now().year - pcs.year_achieved
+
+                if research_experience_in_years:
+                    initial["research_experience_in_years"] = research_experience_in_years
+
             if current_affiliation:
                 initial["org"] = current_affiliation.org
                 initial["position"] = (

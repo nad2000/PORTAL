@@ -1490,7 +1490,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         default=0,
     )
     is_vm_na = BooleanField(_("Vision Mātauranga N/A"), default=False)
-    rationane_vm_na = TextField(_("Rationale"), null=True, blank=True)
+    vm_rationane = TextField(_("Rationale"), null=True, blank=True)
 
     toa_basic = PositiveSmallIntegerField(
         _("Basic"),
@@ -4644,18 +4644,6 @@ class ResearchOffice(Model):
 
     class Meta:
         db_table = "research_office"
-
-
-def add_title_data(apps, schema_editor):
-    """
-    Add to the migrations:
-    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
-    """
-    Title = apps.get_model("portal", "Title")
-    db_alias = schema_editor.connection.alias
-    Title.objects.using(db_alias).bulk_create(
-        [Title(code=code, name=name, name_en=name) for (code, name) in TITLES]
-    )
 
 
 # ORG_ROLE = Choices(

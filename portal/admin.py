@@ -720,7 +720,7 @@ class ApplicationAdmin(
                     "vm_hsw",
                     "vm_ink",
                     "is_vm_na",
-                    "rationane_vm_na",
+                    "vm_rationane",
                 ],
             },
         ),
@@ -1136,6 +1136,17 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
 
     actions = ["merge_orgs"]
 
+    class ResearchOfficeInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.ResearchOffice
+        ordering = ["user__name"]
+        autocomplete_fields = ["user"]
+
+        view_on_site = False
+        can_delete = True
+
+    inlines = [ResearchOfficeInline]
+
     @admin.action(description="Merge Organisations")
     def merge_orgs(self, request, queryset):
         if "do_action" in request.POST:
@@ -1167,6 +1178,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
 
                             models.Invitation.where(org=o).update(org=target)
                             models.Nomination.where(org=o).update(org=target)
+                            models.ResearchOffice.where(org=o).update(org=target)
 
                             o.delete()
                             deleted.append(f"{o.code}: {o.name}")
