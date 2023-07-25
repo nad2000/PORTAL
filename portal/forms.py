@@ -230,6 +230,12 @@ class UserForm(forms.ModelForm):
     class Meta:
         model = models.User
         fields = ["title", "first_name", "middle_names", "last_name"]
+        widgets = {
+            "title": autocomplete.ModelSelect2(
+                "title-autocomplete",
+                attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+            ),
+        }
 
 
 class ProfileForm(forms.ModelForm):

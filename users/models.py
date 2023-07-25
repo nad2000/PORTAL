@@ -7,6 +7,7 @@ from django.contrib.sites.models import Site
 from django.core import mail
 from django.db.models import (
     SET_NULL,
+    DO_NOTHING,
     BooleanField,
     CharField,
     DateTimeField,
@@ -18,12 +19,19 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
-from common.models import TITLES, HelperMixin, PersonMixin
+from common.models import HelperMixin, PersonMixin, Title
 
 
 class User(HelperMixin, AbstractUser, PersonMixin):
-
-    title = CharField(max_length=40, null=True, blank=True, choices=TITLES)
+    # title = CharField(max_length=40, null=True, blank=True, choices=TITLES)
+    title = ForeignKey(
+        Title,
+        null=True,
+        blank=True,
+        verbose_name=_("title"),
+        db_column="title",
+        on_delete=DO_NOTHING,
+    )
     middle_names = CharField(
         _("middle names"),
         blank=True,

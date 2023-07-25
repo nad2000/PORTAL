@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core import checks, exceptions, validators
 from django.db import connection, connections, models, router
-from django.db.models import DateTimeField
+from django.db.models import CharField, DateTimeField
 from django.db.models import Model as Base
 from django.urls import reverse
 from model_utils import Choices
@@ -120,7 +120,6 @@ class PersonMixin:
     def get_first_name(self):
         user = self.get_user()
         return getattr(self, "first_name", None) or user and user.first_name
-        return full_name or user and user.username or self.email
 
     def get_last_name(self):
         user = self.get_user()
@@ -238,3 +237,20 @@ class FixedCharField(models.Field):
         if self.db_collation:
             kwargs["db_collation"] = self.db_collation
         return name, path, args, kwargs
+
+
+class Title(Model):
+    code = CharField(max_length=10, primary_key=True)
+    name = CharField(max_length=40)
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.name[:10].upper()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "title"
+        ordering = ["code"]
+        app_label = "portal"

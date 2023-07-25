@@ -84,6 +84,7 @@ from common.models import (
     Model,
     PersonMixin,
     TimeStampMixin,
+    Title,
 )
 
 from .utils import send_mail, vignere
@@ -346,22 +347,6 @@ class RoundSiteManager(Manager):
 
     def get_queryset(self):
         return super().get_queryset().filter(round__site=Site.objects.get_current())
-
-
-class Title(Model):
-    code = CharField(max_length=10, primary_key=True)
-    name = CharField(max_length=40)
-
-    def save(self, *args, **kwargs):
-        if self.code:
-            self.code = self.name[:10].upper()
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = "title"
-        ordering = ["code"]
 
 
 class Subscription(Model):
@@ -4669,13 +4654,7 @@ def add_title_data(apps, schema_editor):
     Title = apps.get_model("portal", "Title")
     db_alias = schema_editor.connection.alias
     Title.objects.using(db_alias).bulk_create(
-        [
-            Title(code="MR", name="Mr", name_en="Mr"),
-            Title(code="MRS", name="Mrs", name_en="Mrs"),
-            Title(code="MS", name="Ms", name_en="Ms"),
-            Title(code="DR", name="Dr", name_en="Dr"),
-            Title(code="PROF", name="Prof", name_en="Prof"),
-        ]
+        [Title(code=code, name=name, name_en=name) for (code, name) in TITLES]
     )
 
 
