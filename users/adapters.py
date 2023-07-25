@@ -1,4 +1,5 @@
 from urllib.parse import urljoin
+import re
 
 import html2text
 from allauth.account.adapter import DefaultAccountAdapter
@@ -47,7 +48,11 @@ class AccountAdapter(DefaultAccountAdapter):
         super().pre_authenticate(request, **credentials)
 
     def confirm_email(self, request, email_address):
-        if email_address and email_address.email and email_address.email != email_address.email.lower():
+        if (
+            email_address
+            and email_address.email
+            and email_address.email != email_address.email.lower()
+        ):
             email_address.email = email_address.email.lower()
         return super().confirm_email(request, email_address)
 
@@ -61,10 +66,9 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def get_from_email(self):
         site = Site.objects.get_current()
-        # domain = site.domain
+        domain = site.domain
         host = self.request.get_host()
-        # return f"{site.name} <noreply@{domain}>"
-        return f"{site.name} <noreply@{host}>"
+        return f"{site.name} <noreply@{':' in host and domain or host}>"
 
     def render_mail(self, template_prefix, email, context):
         site = Site.objects.get_current()
@@ -96,8 +100,10 @@ class AccountAdapter(DefaultAccountAdapter):
         if "txt" not in bodies and "html" in bodies:
             bodies["txt"] = html2text.html2text(bodies["html"])
         if "txt" in bodies and "html" not in bodies:
-            html_message = bodies["txt"].replace("\n\n", "<br/>\n")
-            html_message = f"<html><body><pre>{html_message}</pre></body></html>"
+            body = bodies["txt"]
+            body = re.sub(r"(https?://[^\ \n]*)", r'<a href="\1">\1</a>', body)
+            body = "\n".join(f"<p>{p}</p>" for p in body.split("\n\n"))
+            html_message = f"<html><body>{body}</body></html>"
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
                 "logo_url": f"{urljoin(root, 'static/images/alt_logo.jpg')}"
                 if site.domain == "portal.pmscienceprizes.org.nz"
@@ -182,7 +188,6 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 
     def populate_user(self, request, sociallogin, data):
-
         user = super().populate_user(request, sociallogin, data)
 
         email = data.get("email") or self.invitation and self.invitation.email
