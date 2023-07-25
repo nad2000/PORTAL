@@ -434,11 +434,12 @@ class ApplicationForm(forms.ModelForm):
                 _("Team representative")
                 if instance and instance.is_team_application
                 else _("Individual applicant"),
+                Field("title"),
                 Row(
-                    Column("title", css_class="form-group col-2 mb-0"),
-                    Column("first_name", css_class="form-group col-3 mb-0"),
+                    # Column("title", css_class="form-group col-2 mb-0"),
+                    Column("first_name", css_class="form-group col-4 mb-0"),
                     Column("middle_names", css_class="form-group col-4 mb-0"),
-                    Column("last_name", css_class="form-group col-3 mb-0"),
+                    Column("last_name", css_class="form-group col-4 mb-0"),
                 ),
                 "email",
                 css_id="submitter",
