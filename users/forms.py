@@ -1,5 +1,6 @@
 from allauth.account import forms as allauth_forms
 from captcha.fields import ReCaptchaField
+from dal import autocomplete
 from django.conf import settings
 from django.contrib.auth import forms, get_user_model
 from django.core.exceptions import ValidationError
@@ -11,6 +12,12 @@ User = get_user_model()
 class UserChangeForm(forms.UserChangeForm):
     class Meta(forms.UserChangeForm.Meta):
         model = User
+        widgets = {
+            "title": autocomplete.ModelSelect2(
+                "title-autocomplete",
+                attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+            ),
+        }
 
 
 class UserCreationForm(forms.UserCreationForm):

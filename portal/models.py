@@ -4251,7 +4251,15 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     # Nominee personal data
-    title = CharField(_("title"), max_length=40, null=True, blank=True, choices=TITLES)
+    # title = CharField(_("title"), max_length=40, null=True, blank=True, choices=TITLES)
+    title = ForeignKey(
+        Title,
+        null=True,
+        blank=True,
+        verbose_name=_("title"),
+        db_column="title",
+        on_delete=DO_NOTHING,
+    )
     email = EmailField(_("email address"), help_text=_("Email address of the nominee"))
     first_name = CharField(_("first name"), max_length=30)
     middle_names = CharField(

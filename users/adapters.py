@@ -209,5 +209,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             user.email = self.invitation.email
         else:
             user.email = email
+        if not user.title and self.invitation.nomination and self.invitation.nomination.title:
+            user.title = self.invitation.nomination.title
 
         return user

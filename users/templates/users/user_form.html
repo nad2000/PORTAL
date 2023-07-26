@@ -1,5 +1,9 @@
 {% extends "account.html" %}
 {% load i18n crispy_forms_tags socialaccount static django_bootstrap_breadcrumbs %}
+{% block css %}
+  {{ block.super }}
+  {{ form.media.css }}
+{% endblock %}
 
 {% block title %}{{ user.username }}{% endblock %}
 {% block sidebar %}{% include 'sidebar.html' with category="account" %}{% endblock sidebar %}
@@ -40,8 +44,11 @@
           Link another <strong>ORCID</strong> account
           </a -->
 
-
       </div>
     </div>
   </div>
 {% endblock %}
+{% block javascript %}
+  {{ block.super }}
+  {{ form.media.js }}
+{% endblock javascript %}

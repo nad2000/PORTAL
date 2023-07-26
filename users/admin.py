@@ -83,6 +83,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "first_name",
         "last_name",
     ]
+    search_help_text = "username, name, first name, last name, or email"
     list_filter = (
         "is_staff",
         "is_superuser",
@@ -91,7 +92,9 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
             "research_offices__org",
             titled_filter(admin.RelatedOnlyFieldListFilter, "Research Office"),
         ),
+        "date_joined",
     )
+    date_hierarchy = "date_joined"
 
     class EmailAddressInline(admin.TabularInline):
         extra = 0

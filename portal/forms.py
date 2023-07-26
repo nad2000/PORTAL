@@ -434,7 +434,7 @@ class ApplicationForm(forms.ModelForm):
                 _("Team representative")
                 if instance and instance.is_team_application
                 else _("Individual applicant"),
-                Field("title"),
+                Field("title", css_class="form-group col-12 mb-0"),
                 Row(
                     # Column("title", css_class="form-group col-2 mb-0"),
                     Column("first_name", css_class="form-group col-4 mb-0"),
@@ -1241,11 +1241,12 @@ class NominationForm(forms.ModelForm):
             "nominator",
             Fieldset(
                 _("Nominee - details of the person you are nominating to receive this award"),
+                Field("title", css_class="form-group col-12 mb-0"),
                 Row(
-                    Column("title", css_class="form-group col-2 mb-0"),
+                    # Column("title", css_class="form-group col-2 mb-0"),
                     Column("first_name", css_class="form-group col-3 mb-0"),
                     Column("middle_names", css_class="form-group col-4 mb-0"),
-                    Column("last_name", css_class="form-group col-3 mb-0"),
+                    Column("last_name", css_class="form-group col-5 mb-0"),
                 ),
                 "email",
                 css_id="nominee",
@@ -1342,7 +1343,12 @@ class NominationForm(forms.ModelForm):
         widgets = dict(
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
-                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
+                forward=["nominator"],
+                attrs={"data-placeholder": _("Choose the organisation you can nominate a researcher for...")},
+            ),
+            title=autocomplete.ModelSelect2(
+                "title-autocomplete",
+                attrs={"data-placeholder": _("Choose your title or create a new one ...")},
             ),
             nominator=HiddenInput(),
             # round=HiddenInput(),

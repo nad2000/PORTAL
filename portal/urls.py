@@ -225,6 +225,11 @@ urlpatterns = [
                     views.OrgAutocomplete.as_view(model=models.Organisation, create_field="name"),
                     name="org-autocomplete",
                 ),
+                # path(
+                #     "ro-org/",
+                #     views.OrgAutocomplete.as_view(model=models.Organisation),
+                #     name="ro-org-autocomplete",
+                # ),
                 path(
                     "fos/",
                     views.FosAutocomplete.as_view(model=models.FieldOfStudy),

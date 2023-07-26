@@ -1,6 +1,8 @@
 from allauth.account import views as allauth_views
 from allauth.account.models import EmailAddress
 from allauth.account.signals import user_signed_up
+from dal import autocomplete
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -20,7 +22,6 @@ User = get_user_model()
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
-
     model = User
     slug_field = "username"
     slug_url_kwarg = "username"
@@ -30,9 +31,9 @@ user_detail_view = UserDetailView.as_view()
 
 
 class UserUpdateView(LoginRequiredMixin, UpdateView):
-
     model = User
-    fields = ["first_name", "middle_names", "last_name"]
+    fields = ["title", "first_name", "middle_names", "last_name"]
+    widgets = {"title": autocomplete.ModelSelect2("title-autocomplete")}
 
     def get_success_url(self):
         return reverse("users:detail", kwargs={"username": self.request.user.username})
@@ -49,7 +50,6 @@ user_update_view = UserUpdateView.as_view()
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
-
     permanent = False
 
     def get_redirect_url(self):
@@ -91,7 +91,6 @@ class SignupView(allauth_views.SignupView):
 
 @receiver(user_signed_up, dispatch_uid="user_signed_up_handler")
 def handle_user_signed_up(request, user, *args, **kwargs):
-
     token = request.POST.get("next").split("/")[-1] if request.POST.get("next") else None
     is_invited = (
         Invitation.where(
@@ -117,13 +116,19 @@ def handle_user_signed_up(request, user, *args, **kwargs):
             "account/email_approve_user.html",
             {"approval_url": url, "email": user.email, "username": user.username, "user": user},
         )
+        bcc = [
+            (u.email or u.emailaddress_set.filter(primary=True).get().email)
+            for u in User.where(is_staff=True, staff_of_sites__id=settings.SITE_ID)
+        ]
+        # not staff user linked to the site:
+        if not bcc:
+            bcc = [
+                (u.email or u.emailaddress_set.filter(primary=True).get().email)
+                for u in User.where(is_superuser=True)
+            ]
         send_mail(
             _("New User Signed up to join the portal"),
-            bcc=[
-                (u.email or u.emailaddress_set.filter(primary=True).get().email)
-                for u in User.where(is_staff=True)
-                if u.is_site_staff
-            ],
+            bcc=bcc,
             fail_silently=False,
             html_message=html_body,
         )

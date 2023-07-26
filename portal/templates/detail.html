@@ -87,6 +87,15 @@
   {% endif %}
 
   <div class="buttonHolder mb-5 mt-3 float-right">
+    {% if start_applying %}
+      <a class="btn btn-primary" href="{{ start_applying }}">
+        {% if SITE_ID == 4 %}
+          {% trans 'Start Application' %}
+        {% else %}
+          {% trans 'Start Prize Application' %}
+        {% endif %}
+      </a>
+    {% endif %}
     {% if update_view_name %}
       <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.status == "submitted" or object.status == "accepted" %} disabled{% endif %}"
           {% if object.state == "submitted" or object.status == "submitted" %}

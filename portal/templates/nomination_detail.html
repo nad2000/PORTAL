@@ -20,10 +20,16 @@
 {% block content %}
 
   {% if start_applying %}
-    <a class="btn btn-primary" href="{{ start_applying }}">
-      {% trans 'Start Prize Application' %}
+    <a class="btn btn-primary btn-lg" href="{{ start_applying }}">
+      {% if SITE_ID == 4 %}
+        {% trans 'Start Application' %}
+      {% else %}
+        {% trans 'Start Prize Application' %}
+      {% endif %}
     </a>
   {% endif %}
+
+  <hr />
 
   {% if form %}
     {% block css %}

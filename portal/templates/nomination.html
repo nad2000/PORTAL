@@ -15,7 +15,7 @@
   {% elif not object or object.status == "draft" or object.status == "new" %}
     {% breadcrumb "Draft" "nominations-draft" %}
   {% endif %}
-  {% if object %}
+  {% if object and object.pk %}
     {% breadcrumb object "nomination-update" pk=object.pk %}
   {% elif round %}
     {% breadcrumb round "nomination-create" round=round.pk %}

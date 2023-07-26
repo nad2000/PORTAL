@@ -453,6 +453,7 @@ def round_detail(request, round):
 @login_required
 @shoud_be_onboarded
 def index(request):
+    site_id = settings.SITE_ID
     if request.resolver_match.view_name == "start":
         reset_cache(request)
     if "error" in request.GET:
@@ -461,7 +462,7 @@ def index(request):
     is_ro = models.ResearchOffice.where(user=user).exists()
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if request.user.is_approved:
-        if is_ro:
+        if is_ro and site_id != 4:
             return render(request, "research_office_index.html", locals())
         outstanding_authorization_requests = models.Member.outstanding_requests(user)
         outstanding_testimonial_requests = models.Referee.outstanding_requests(user)
@@ -485,12 +486,12 @@ def index(request):
                 user__is_active=True,
                 file__isnull=False,
                 state__in=["new", "sent"],
-                user__registered_on_id=settings.SITE_ID,
+                user__registered_on_id=site_id,
             )
             user_verifications = User.where(
                 Q(Q(is_approved=False) | Q(is_approved__isnull=True)),
                 is_active=True,
-                registered_on_id=settings.SITE_ID,
+                registered_on_id=site_id,
             ).order_by("-last_login")
         schemes = models.SchemeApplication.get_data(user)
         previous_applications = [
@@ -648,8 +649,11 @@ class ProfileView:
         if self.request.method == "POST":
             user_form = forms.UserForm(self.request.POST, instance=u)
         else:
-            user_form = forms.UserForm(instance=u)
+            user_form = forms.UserForm(instance=u, initial=self.get_initial())
         return user_form
+
+    def get_initial(self):
+        return {}
 
     def get_context_data(self, **kwargs):
         if "progress" not in kwargs:
@@ -815,16 +819,17 @@ class ProfileCreate(ProfileView, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
+        u = self.request.user
         n = (
             models.Nomination.where(user=self.request.user, status="submitted")
             .order_by("-id")
             .first()
         )
         if n:
-            initial["first_name"] = n.first_name
-            initial["middle_names"] = n.middle_names
-            initial["last_name"] = n.last_name
-            initial["title"] = n.title
+            initial["first_name"] = n.first_name or u.first_name
+            initial["middle_names"] = n.middle_names or u.middle_names
+            initial["last_name"] = n.last_name or u.last_name
+            initial["title"] = n.title or u.title
         return initial
 
 
@@ -3149,10 +3154,13 @@ class IwiGroupAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
-        return True  # request.user.is_authenticated
+        return not ("nominator" in self.forwarded and settings.SITE_ID == 4)
+        # return True  # request.user.is_authenticated
 
     def get_queryset(self):
-        if self.q:
+        if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
+            return models.Organisation.where(Q(research_offices__user_id=nominator))
+        elif self.q:
             return models.Organisation.where(name__icontains=self.q).order_by("-id", "name")
         return models.Organisation.objects.order_by("-id", "name")
 
@@ -3558,7 +3566,7 @@ class NominationView(CreateUpdateView):
     template_name = "nomination.html"
 
     def dispatch(self, request, *args, **kwargs):
-        u = self.request.user
+        self.user = u = self.request.user
         if u.is_authenticated and not (u.is_superuser or u.is_staff):
             n = self.get_object()
             if n and n.nominator and n.nominator != u:
@@ -3707,6 +3715,9 @@ class NominationView(CreateUpdateView):
             )
             if a:
                 kwargs["initial"]["org"] = a.org
+            elif ro := models.ResearchOffice.where(user=self.user).order_by("-id").first():
+                kwargs["initial"]["org"] = ro.org
+
         kwargs["initial"]["round"] = self.round
         kwargs["initial"]["round_id"] = self.round.id
         kwargs["initial"]["nominator"] = self.request.user
@@ -4002,13 +4013,20 @@ class NominationDetail(DetailView):
         self.object = self.get_object()
         if self.can_start_applying:
             nominator = self.object.nominator
+            button_label = (
+                _("Start Application") if settings.SITE_ID == 4 else _("Start Prize Application")
+            )
             messages.info(
                 request,
                 _(
-                    "You have been nominated for the %(round)s by %(inviter)s. "
-                    'To accept this nomination, please "Start Prize Application"'
+                    "You have been nominated for %(round)s by %(inviter)s. "
+                    'To accept this nomination, please <b>"%(button_label)s"</b>'
                 )
-                % dict(inviter=nominator.full_name_with_email, round=self.object.round),
+                % dict(
+                    inviter=nominator.full_name_with_email,
+                    round=self.object.round,
+                    button_label=button_label,
+                ),
             )
         return super().get(request, *args, **kwargs)
 
