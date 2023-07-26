@@ -421,7 +421,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    </a>
               </div>
               {% endif %}
-              {% if round.can_nominate or is_ro and SITE_ID == 4 %}
+              {% if round.can_nominate or SITE_ID == 4 %}
               <div class="tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %} disabled{% endif %}"
                    {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
                    disabled
