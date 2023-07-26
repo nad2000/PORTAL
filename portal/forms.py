@@ -1319,7 +1319,7 @@ class NominationForm(forms.ModelForm):
                     else _("Submit or re-submit the nomination"),
                 ),
                 HTML(
-                    """<a href="{{ view.get_success_url }}" class="btn btn-secondary">%s</a>"""
+                    """<a href="{{ view.get_close_url }}" class="btn btn-secondary">%s</a>"""
                     % _("Close")
                 ),
                 css_class="mb-4 float-right",
