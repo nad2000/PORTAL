@@ -11,11 +11,22 @@
   <p>
   {% trans "We track these errors automatically, but if the problem persists feel free to contact us. In the meantime, try refreshing." %}
   </p>
+  <span class="float-right">
+    <a href="{% url 'home' %}" type="button" role="button" class="btn btn-secondary" id="return">
+      {% trans 'Go Back' %}
+    </a>
+  </span>
 {% endblock content %}
 
 {% block javascript %}
+  <script> var tracking_disabled; </script>
   {{ block.super }}
-  <script src="https://browser.sentry-cdn.com/5.20.1/bundle.min.js" integrity="sha384-O8HdAJg1h8RARFowXd2J/r5fIWuinSBtjhwQoPesfVILeXzGpJxvyY/77OaPPXUo" crossorigin="anonymous"></script>
+  <!-- script src="https://browser.sentry-cdn.com/5.20.1/bundle.min.js" integrity="sha384-O8HdAJg1h8RARFowXd2J/r5fIWuinSBtjhwQoPesfVILeXzGpJxvyY/77OaPPXUo" crossorigin="anonymous"></script -->
+  <script
+      src="https://browser.sentry-cdn.com/7.59.2/bundle.min.js"
+      integrity="sha384-0stBLnfzZ/7bU3RoXb6ze7WyUpxAnJMUCxfwyUbHLKfiRjVFrfuY0krfrNRuIPQL"
+      crossorigin="anonymous"
+      ></script>
   {% if sentry_event_id %}
     <script>
       Sentry.init({dsn: '{{ SENTRY_DSN }}'});
@@ -27,7 +38,16 @@
           name: '{{ request.user.full_name }}',
           email: '{{ request.user.email }}'
         },
-        eventId: '{{ sentry_event_id }}' })
+        eventId: '{{ sentry_event_id }}',
+        labelName: "{% trans 'Name' %}",
+        labelEmail: "{% trans 'Email' %}",
+        labelComments: "{% trans 'What happened?' %}",
+        labelClose: "{% trans 'Close' %}",
+        labelSubmit: "{% trans 'Submit' %}",
+        errorGeneric: "{% trans 'An unknown error occurred while submitting your report. Please try again.' %}",
+        errorFormEntry: "{% trans 'Some fields were invalid. Please correct the errors and try again.' %}",
+        successMessage: "{% trans 'Your feedback has been sent. Thank you!' %}"
+      });
     </script>
   {% endif %}
 

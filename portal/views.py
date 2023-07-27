@@ -99,7 +99,7 @@ def reset_cache(request):
     cache.delete(f"{request.user.username}:{settings.SITE_ID}")
 
 
-def handler500(request, *args, **argv):
+def handler500(request, *args, **kwargs):
     return render(
         request,
         "500.html",
@@ -164,7 +164,13 @@ def about(request):
 def pyinfo(request, message=None):
     """Show Python and runtime environment and settings or test exception handling."""
     if message:
-        raise Exception(message)
+        try:
+            raise Exception(message)
+        except Exception as e:
+            if settings.DEBUG:
+                capture_exception(e)
+                return handler500(**locals())
+            raise
     return render(request, "pyinfo.html", info)
 
 
