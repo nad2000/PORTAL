@@ -3740,7 +3740,7 @@ class NominationView(CreateUpdateView):
     def get_close_url(self):
         referer = self.request.META.get("HTTP_REFERER")
         return self.request.GET.get("next") or (
-            referer if not referer.endswith(self.request.path) else reverse("nominations-draft")
+            referer if not referer.endswith(self.request.path) else reverse("nominations")
         )
 
 
