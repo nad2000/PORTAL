@@ -13,13 +13,14 @@ from . import models
 
 def portal_context(request):
     view_name = (rm := request.resolver_match) and rm.view_name
-    request.site = get_current_site(request)
+    request.site = site = get_current_site(request)
     site_id = settings.SITE_ID
-    domain = request.site.domain
+    domain = site.domain
     context = {
         "settings": settings,
         "view_name": view_name,
         "domain": domain,
+        "site_name": site.name,
         "SITE_ID": site_id,
         "disable_breadcrumbs": not view_name
         or view_name in ["index", "home"],  # , "account_login", "account_signup"],
@@ -27,7 +28,8 @@ def portal_context(request):
 
     if (u := request.user) and u.is_authenticated:
         cache_key = f"{u.username}:{site_id}"
-        if not (has_refreshed := request.META.get("HTTP_CACHE_CONTROL") == "max-age=0"):
+        cache_control = request.META.get("HTTP_CACHE_CONTROL")
+        if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             stats = cache.get(cache_key)
         if has_refreshed or not stats:
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)

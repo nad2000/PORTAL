@@ -6,6 +6,8 @@ from django.db import models
 from django.forms.widgets import NullBooleanSelect
 from django.utils.translation import gettext as _
 
+from .. import models as m
+
 register = template.Library()
 
 
@@ -59,12 +61,17 @@ def can_see_referees(value, user):
 
 
 @register.filter()
-def field_value(value, name):
+def field_value(value, name, *args, **kwargs):
     """Returns the value of the field of an object."""
     try:
         v = getattr(value, name)
     except AttributeError:
         return ""
+    if v:
+        if isinstance(v, m.User):
+            return v.full_name_with_email
+        if name in ["state", "status"]:
+            return f"<{v.upper()}>"
     f = value._meta.get_field(name)
     if isinstance(f, models.BooleanField):
         return _("yes") if v else _("no")

@@ -336,7 +336,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                 <span class="badge badge-primary">{% trans 'New' %}</span>
               {% endif %}
               {% trans "You have a nomination to apply that hasn't been acted on." %}
-              <a href="{% url 'nomination-application-create' nomination=n.pk %}" class="alert-link">
+              <a href="{% url 'nomination-detail' pk=n.pk %}" class="alert-link">
                 {% trans 'Please click here to review it' %}!
               </a>
               <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -368,7 +368,9 @@ table.table .asteriskField,.popover-header {color: gray;}
                 {% if o.created_at >= three_days_ago %}
                   <span class="badge badge-primary">{% trans 'New' %}</span>
                 {% endif %}
-                {% trans "You have a request to join a Prize team that you still have to act on." %}
+                {% blocktrans with site_name=site_name %}
+You have a request to join a {{ site_name }} team that you still have to act on.
+                {% endblocktrans %}
                 <a href="{% url 'application' pk=o.application.id %}" class="alert-link">
                   {% trans 'Please click here to review the request' %}!
                 </a>
@@ -387,10 +389,18 @@ table.table .asteriskField,.popover-header {color: gray;}
                 {% if o.created_at >= three_days_ago %}
                   <span class="badge badge-primary">{% trans 'New' %}</span>
                 {% endif %}
-                {% trans "You have a request to review a Prize application to act on." %}
-                <a href="{% url 'testimonial-detail' pk=o.testimonial_id %}" class="alert-link">
-                  {% trans 'Please click here to view the review request' %}!
-                </a>
+                {% blocktrans with site_name=site_name %}
+You have a request to review a {{ site_name }} application to act on.
+                {% endblocktrans %}
+                    {% if o.survey_id and o.survey_token %}
+                      <a href="{% url 'survey-referee' referee_id=o.id %}" class="alert-link">
+                        {% trans 'Please click here to complete the survey' %}!
+                      </a>
+                    {% else %}
+                      <a href="{% url 'testimonial-detail' pk=o.testimonial_id %}" class="alert-link">
+                        {% trans 'Please click here to view the review request' %}!
+                      </a>
+                    {% endif %}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>

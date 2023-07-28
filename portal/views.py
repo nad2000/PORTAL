@@ -56,6 +56,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseRedirect, JsonRe
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
 from django.utils import timezone
+from dateutil.parser import parse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -75,6 +76,7 @@ from extra_views import (
     ModelFormSetView,
     UpdateWithInlinesView,
 )
+from limesurveyrc2api.limesurvey import LimeSurvey
 from private_storage.views import PrivateStorageDetailView
 from PyPDF2 import PdfFileMerger
 from sentry_sdk import capture_exception, capture_message, last_event_id
@@ -456,6 +458,50 @@ def round_detail(request, round):
     return render(request, "round_detail.html", locals())
 
 
+def get_survey_api_url():
+    if "LIMESURVEY_API_URL" in dir(settings):
+        return settings.LIMESURVEY_API_URL
+    elif server_url := settings.LIMESURVEY_SERVER_URL:
+        return f"{server_url}/admin/remotecontrol"
+    else:
+        site = Site.objects.get_current()
+        return f"https://{site.domain}/limesurvey/admin/remotecontrol"
+
+
+@login_required
+@shoud_be_onboarded
+def do_survey(request, survey_id=None, token=None, referee_id=None):
+    if referee_id:
+        r = models.Referee.objects.prefetch_related("application", "application__round").get(
+            id=referee_id
+        )
+        survey_id = r.application.round.survey_id
+        token = r.survey_token
+    if not r.survey_completed_at:
+        api_url = get_survey_api_url()
+        api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
+        api.open(password=settings.LIMESURVEY_API_PASSWORD)
+        properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
+        if completed_at := properties.get("completed"):
+            with transaction.atomic():
+                description = f"Referee suervey was completed at {completed_at}"
+                r.survey_completed_at = timezone.make_aware(parse(completed_at))
+                # r.testify(by=r.user, description=description)
+                # r._change_reason = description
+                for t in models.Testimonial.where(referee=r):
+                    t.submit(by=r.user, description=description)
+                    t._change_reason = description
+                    t.save()
+
+    if r.survey_completed_at:
+        messages.warning(
+            request, _(f"The survey has been already completed at <b>{r.survey_completed_at}</b>.")
+        )
+        return redirect(request.META.get("HTTP_REFERER", "index"))
+
+    return redirect(r.survey_url)
+
+
 @login_required
 @shoud_be_onboarded
 def index(request):
@@ -609,7 +655,12 @@ def check_profile(request, token=None):
         if i.status != "accepted":
             next_url = i.handler_url
         else:
-            if i.type == "T" and (m := i.member) and (a_id := m.application_id):
+            if i.type == "A" and (n := i.nomination) and (a := n.application):
+                if a.submitted_by == u:
+                    next_url = reverse("application-update", kwargs={"pk": a.id})
+                else:
+                    next_url = reverse("application", kwargs={"pk": a.id})
+            elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
                 next_url = reverse("application", kwargs={"pk": a_id})
             elif i.type == "R" and (r := i.referee):
                 if t := models.Testimonial.where(referee=r).last():
@@ -1514,9 +1565,13 @@ class ApplicationView(LoginRequiredMixin):
                     #             i.save()
 
                     referees.save()
-                    if a.file or (
-                        has_required_documents
-                        and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
+                    if (
+                        a.file
+                        or settings.SITE_ID == 4
+                        or (
+                            has_required_documents
+                            and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
+                        )
                     ):
                         count = invite_referee(self.request, a)
                         if count > 0:
@@ -2424,7 +2479,6 @@ class YearChoiceFilter(django_filters.ChoiceFilter):
     #     with connection.cursor() as cr:
     #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
     #         kwargs["choices"] = [(y, y) for y in cr.fetchall()]
-    #     # breakpoint()
     #     super().__init__(*args, **kwargs)
 
     # @property
@@ -2444,7 +2498,6 @@ class ApplicationFilterSet(django_filters.FilterSet):
     # @property
     # def qs(self):
     #     parent = super().qs
-    #     breakpoint()
     #     author = getattr(self.request, 'user', None)
     #     return parent.filter(is_published=True) | parent.filter(author=author)
 
@@ -3398,7 +3451,6 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
 #     #         initial["letter_of_support_file"] = self.object.letter_of_support.file
 
 #     def __init__(self, *, data=None, initial=None, **kwargs):
-#         breakpoint()
 #         if instance and instance.award:
 #             if not initial:
 #                 initial = {"award_name": instance.award.name}
@@ -3470,12 +3522,10 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
         return context
 
     # def formset_valid(self, *args, **kwargs):
-    #     breakpoint()
     #     return super().formset_valid(*args, **kwargs)
 
     # def get_form_class(self):
     #     fc = super().get_form_class()
-    #     breakpoint()
     #     return fc
 
 
@@ -3614,6 +3664,8 @@ class NominationView(CreateUpdateView):
                 n.site = Site.objects.get_current()
 
         resp = super().form_valid(form)
+        if self.request.method == "POST":
+            reset_cache(self.request)
 
         if self.request.method == "POST" and "file" in form.changed_data and n.file:
             try:
@@ -3698,11 +3750,13 @@ class NominationView(CreateUpdateView):
                         "Please contact administration: pmscienceprizes@royalsociety.org.nz."
                     ),
                 )
-        elif self.request.method == "POST" or "save_draft" in self.request.POST:
+        elif (
+            self.request.method == "POST"
+            and "save_draft" in self.request.POST
+            and n.status != "draft"
+        ):
             n.save_draft()
-
         n.save()
-        reset_cache(self.request)
 
         return resp
 
@@ -3989,10 +4043,17 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         u = self.request.user
-        if not (u.is_superuser or u.is_staff):
-            queryset = queryset.filter(nominator=u)
-        queryset = queryset.filter(round__scheme__current_round=F("round"))
         status = self.request.path.split("/")[-1]
+        if not (u.is_superuser or u.is_staff):
+            if not status or (status == "submitted" or "submitted" in status):
+                queryset = queryset.filter(
+                    Q(nominator=u)
+                    | Q(
+                        Q(Q(user=u) | Q(email=u.email)),
+                        status="submitted",
+                    )
+                )
+        queryset = queryset.filter(round__scheme__current_round=F("round"))
         if status == "draft":
             queryset = queryset.filter(status__in=[status, "new"])
         elif status == "submitted":
@@ -4065,6 +4126,7 @@ class NominationDetail(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["category"] = "nominations"
         if self.can_start_applying:
             context["start_applying"] = reverse(
                 "nomination-application-create", kwargs=dict(nomination=self.object.id)
@@ -4108,8 +4170,10 @@ class TestimonialDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         referee = self.get_object().referee
-        if referee.application_id:
+        if referee.application_id and (a := referee.application):
             context["extra_object"] = referee.application
+        if (r := a.round) and r.survey_id and referee.survey_token:
+            context["survey_url"] = reverse("survey-referee", kwargs={"referee_id": referee.id})
         if self.get_object().state == "new":
             context["update_view_name"] = f"{self.model.__name__.lower()}-create"
             context["update_button_name"] = _("Add Testimonial")

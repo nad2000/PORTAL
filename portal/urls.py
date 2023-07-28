@@ -117,6 +117,15 @@ urlpatterns = [
     ),
     path("profiles/<int:pk>", views.ProfileDetail.as_view(), name="profile-instance"),
     path(
+        "survey/",
+        include(
+            [
+                path("<int:survey_id>/<token>", views.do_survey, name="survey-do"),
+                path("<int:referee_id>", views.do_survey, name="survey-referee"),
+            ]
+        )
+    ),
+    path(
         "profile/",
         include(
             [

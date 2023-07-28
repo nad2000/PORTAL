@@ -394,9 +394,10 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-title="{% trans 'You have already submitted one application in this round' %}"
                    {% elif not round.direct_application_allowed and not round|user_has_nomination:user %}
                    disabled
-                   data-title="{% trans 'You need to be nominated in order to apply for this round' %}"
+                   data-html="true"
+                   data-title="{% trans 'You need to be nominated in order to apply for this round' %}{% if SITE_ID == 4 %}. {% trans 'Please contact your Research Office' %}{% endif %}."
                    {% else %}
-                   data-title="{% trans 'Start a new application' %}"
+                   data-title="{% trans 'Start a new application' %}{% if SITE_ID == 4 %}. {% trans 'You have been nominated for this round' %}.{% endif %}"
                    {% endif %}
                    >
                    <a href="{% url 'application-create' round=round.id %}"
@@ -426,7 +427,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
                    disabled
                      {% if SITE_ID == 4 and not is_ro %}
-                     data-title="{% trans 'Only R.O. can nominate for this round TODO: Please, contact your R.O.' %}"
+                   data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
                      {% elif is_panellist %}
                      data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
                      {% elif round.will_open %}

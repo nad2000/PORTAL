@@ -19,7 +19,6 @@ class SubscriptionTable(tables.Table):
 
 
 class StatusColumn(tables.Column):
-
     attrs = {"td": {"class": "align-middle text-center"}}
 
     def render(self, value, record):
@@ -84,9 +83,12 @@ class StatusColumn(tables.Column):
 
 
 class NominationTable(tables.Table):
-
     round = tables.Column(
-        linkify=lambda record: record.get_absolute_url() if record.status != "submitted" else None
+        linkify=lambda table, record: record.get_absolute_url()
+        if record.status != "submitted"
+        else reverse("nomination-detail", args=[record.pk])
+        if record.user == table.request.user or record.email == table.request.user.email
+        else None
     )
     status = StatusColumn()
     application = tables.Column(
@@ -108,7 +110,6 @@ class NominationTable(tables.Table):
             return value.full_name_with_email
 
     def before_render(self, request):
-
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("nominator")
 
@@ -128,7 +129,6 @@ class NominationTable(tables.Table):
 
 
 class TestimonialTable(tables.Table):
-
     state = StatusColumn(verbose_name=_("Submitted"))
     number = tables.Column(
         accessor="referee.application.number",
@@ -165,7 +165,6 @@ def application_round_link(table, record, value):
 
 
 class ApplicationTable(tables.Table):
-
     state = StatusColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
     round = tables.Column(linkify=application_round_link)
@@ -257,7 +256,6 @@ def round_link(record, table, *args, **kwargs):
 
 
 class RoundTable(tables.Table):
-
     title = tables.Column(linkify=round_link, verbose_name=_("Round"))
     scheme = tables.Column(verbose_name=_("Scheme"))
     opens_on = tables.Column(verbose_name=_("Opens On"))
@@ -285,7 +283,6 @@ class RoundTable(tables.Table):
 
 
 class ScoreSheetTable(tables.Table):
-
     round = tables.Column(
         linkify=lambda record: reverse("score-sheet", kwargs=dict(round=record.round_id))
     )
@@ -301,7 +298,6 @@ class ScoreSheetTable(tables.Table):
 
 
 def application_review_link(table, record, value):
-
     user = table.request.user
     if user.is_staff or user.is_superuser:
         url = reverse(
@@ -333,7 +329,6 @@ def application_review_link(table, record, value):
 
 
 class RoundApplicationTable(tables.Table):
-
     number = tables.Column(linkify=application_review_link, verbose_name=_("Number"))
     first_name = tables.Column(verbose_name=_("First Name"))
     last_name = tables.Column(verbose_name=_("Last Name"))
@@ -432,7 +427,6 @@ class RoundApplicationTable(tables.Table):
 
 
 class EvaluationTable(tables.Table):
-
     # round = tables.Column(verbose_name=_("Round"))
     total_score = tables.Column(
         verbose_name=_("Total Score"), attrs={"td": {"style": "text-align: right;"}}
@@ -458,7 +452,6 @@ class EvaluationTable(tables.Table):
 
 
 class RoundConflictOfInterstSatementTable(tables.Table):
-
     number = tables.Column(linkify=lambda record: record.application.get_absolute_url())
     has_conflict = tables.Column()
     first_name = tables.Column()
@@ -483,7 +476,6 @@ class RoundConflictOfInterstSatementTable(tables.Table):
 
 
 class RoundSummaryTable(tables.Table):
-
     number = tables.Column(linkify=lambda record: record.get_absolute_url())
     lead = tables.Column()
     state = tables.Column(verbose_name=_("Status"))
@@ -517,7 +509,6 @@ class RoundSummaryTable(tables.Table):
 
 
 class InvitationTable(tables.Table):
-
     url = tables.Column(linkify=lambda value: value)
     token = tables.Column(linkify=lambda value, record: record.url)
     # number = tables.Column(linkify=application_link)

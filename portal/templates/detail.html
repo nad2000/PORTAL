@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% load i18n tags %}
 
 {% block content %}
@@ -7,6 +6,13 @@
   <h1>
     {{ object }}
   </h1>
+
+  <div class="row">
+    <div class="col-12">
+      <hr />
+        {% include 'snippets/datail_buttons.html' %}
+    </div>
+  </div>
 
   <div class="table-responsive">
   <table class="table table-bordered searchable">
@@ -42,6 +48,7 @@
     </tbody>
   </table>
   </div>
+
   {% if extra_object %}
 
   <h1>
@@ -86,35 +93,9 @@
   </div>
   {% endif %}
 
-  <div class="buttonHolder mb-5 mt-3 float-right">
-    {% if start_applying %}
-      <a class="btn btn-primary" href="{{ start_applying }}">
-        {% if SITE_ID == 4 %}
-          {% trans 'Start Application' %}
-        {% else %}
-          {% trans 'Start Prize Application' %}
-        {% endif %}
-      </a>
-    {% endif %}
-    {% if update_view_name %}
-      <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.status == "submitted" or object.status == "accepted" %} disabled{% endif %}"
-          {% if object.state == "submitted" or object.status == "submitted" %}
-            disabled
-            data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
-          {% elif object.status == "accepted" %}
-            disabled
-            title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
-          {% endif %}
-        >
-        <a class="btn btn-primary{% if object.state == "submitted" or object.status == "submitted" or object.status == "accepted" %} disabled{% endif %}"
-          href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
-        </div>
-    {% endif %}
+  <hr />
+  {% include 'snippets/datail_buttons.html' %}
 
-    {% if export_button_view_name %}
-      <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}">{% trans 'Export' %}</a>
-    {% endif %}
-  </div>
 {% endblock %}
 
 {% block javascript %}

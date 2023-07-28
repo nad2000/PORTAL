@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import io
 import os
@@ -8,7 +9,7 @@ import subprocess
 import tempfile
 from collections import OrderedDict
 from datetime import date, datetime
-from functools import partial, wraps
+from functools import lru_cache, partial, wraps
 from urllib.parse import urljoin, urlparse
 
 import simple_history
@@ -70,6 +71,7 @@ from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from private_storage.fields import PrivateFileField
 from PyPDF2 import PdfFileMerger
+from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase, TaggedItemBase
@@ -328,7 +330,9 @@ class StateField(StatusField, FSMField):
     pass
 
 
-def hash_int(value):
+def hash_int(
+    value,
+):
     return hashlib.shake_256(bytes(value)).hexdigest(5)
 
 
@@ -2203,6 +2207,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=20, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
+    survey_completed_at = DateTimeField(null=True, blank=True, default=None)
 
     @property
     def mail_log_error(self):
@@ -2232,23 +2237,23 @@ class Referee(RefereeMixin, PersonMixin, Model):
     def accept(self, *args, **kwargs):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
-            if "LIMESURVEY_API_URL" in dir(settings):
-                api_url = settings.LIMESURVEY_API_URL
-            else:
-                site = self.application.site or Site.objects.get_current()
-                api_url = f"https://{site.domain}/limesurvey/admin/remotecontrol"
+            api_url = self.application.round.survey_api_url
             api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
             api.open(password=settings.LIMESURVEY_API_PASSWORD)
-            particimant = {"email": self.email.lower()}
-            if self.first_name:
-                particimant["firstname"] = self.first_name
-            if self.last_name:
-                particimant["lastname"] = self.last_name
-            resp = api.token.add_participants(survey_id, [particimant])
-            for r in resp:
-                if r.get("email") == self.email.lower():
-                    self.survey_token_id = r.get("tid")
-                    self.survey_token = r.get("token")
+            if not self.survey_token:
+                participant = {"email": self.email.lower()}
+                if self.first_name:
+                    participant["firstname"] = self.first_name
+                if self.last_name:
+                    participant["lastname"] = self.last_name
+                participant["token"] = base64.urlsafe_b64encode(
+                    hashlib.shake_256(bytes(self.id)).digest(21)
+                ).decode()
+                resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
+                for r in resp:
+                    if r.get("email") == self.email.lower():
+                        self.survey_token_id = r.get("tid")
+                        self.survey_token = r.get("token")
 
             if self.survey_token_id:
                 # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
@@ -2286,6 +2291,19 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     else:
                         self.survey_invitation_sent_at = datetime.now()
 
+    @property
+    def survey_url(self):
+        if (
+            self.application
+            and (r := self.application.round)
+            and (survey_id := r.survey_id)
+            and (token := self.survey_token)
+            and (server_url := r.survey_server_url)
+        ):
+            if server_url.endswith("/"):
+                return f"{server_url}{survey_id}?token={token}"
+            return f"{server_url}/{survey_id}?token={token}"
+
     @fsm_log
     @transition(field=status, source=["*"], target="testified")
     def testify(self, *args, **kwargs):
@@ -2312,7 +2330,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @classmethod
     def outstanding_requests(cls, user):
-        return Invitation.objects.raw(
+        return cls.objects.raw(
             "SELECT DISTINCT r.*, tm.id AS testimonial_id "
             "FROM referee AS r JOIN account_emailaddress AS ae ON "
             "ae.email = r.email LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
@@ -2450,7 +2468,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
 
     @classmethod
     def outstanding_requests(cls, user):
-        q = Invitation.objects.raw(
+        q = cls.objects.raw(
             "SELECT DISTINCT p.* FROM panellist AS p JOIN account_emailaddress AS ae ON ae.email = p.email "
             "JOIN application AS a ON a.round_id = p.round_id AND a.state NOT IN ('new', 'draft', 'archived') "
             "JOIN scheme AS s ON s.current_round_id=p.round_id "
@@ -2998,8 +3016,11 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         # self.referee.has_testifed = True
         # self.referee.status = "testified"
         # self.referee.testified_at = datetime.now()
-        self.referee.testify(request=request, by=by, *args, **kwargs)
-        self.referee.save()
+        if self.referee.status != "testified":
+            self.referee.testify(request=request, by=by, *args, **kwargs)
+            if description := kwargs.get("description"):
+                self.referee._change_reason = description
+            self.referee.save()
 
     @classmethod
     def user_testimonials(cls, user, state=None, round=None):
@@ -3730,6 +3751,26 @@ class Round(Model):
     def current_rounds(cls):
         return cls.where(id=F("scheme__current_round__id"))
 
+    @property
+    @lru_cache(1)
+    def survey_server_url(self):
+        if "LIMESURVEY_SERVER_URL" in dir(settings):
+            return settings.LIMESURVEY_SERVER_URL
+        else:
+            site = self.site or Site.objects.get_current()
+            return f"https://{site.domain}/limesurvey"
+
+    @property
+    @lru_cache(1)
+    def survey_api_url(self):
+        if "LIMESURVEY_API_URL" in dir(settings):
+            return settings.LIMESURVEY_API_URL
+        elif server_url := self.survey_server_url:
+            return f"{server_url}/admin/remotecontrol"
+        else:
+            site = self.site or Site.objects.get_current()
+            return f"https://{site.domain}/limesurvey/admin/remotecontrol"
+
     class Meta:
         db_table = "round"
 
@@ -4250,6 +4291,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         Round, on_delete=CASCADE, related_name="nominations", verbose_name=_("round")
     )
 
+    email = EmailField(_("email address"), help_text=_("Email address of the nominee"))
     # Nominee personal data
     # title = CharField(_("title"), max_length=40, null=True, blank=True, choices=TITLES)
     title = ForeignKey(
@@ -4260,7 +4302,6 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         db_column="title",
         on_delete=DO_NOTHING,
     )
-    email = EmailField(_("email address"), help_text=_("Email address of the nominee"))
     first_name = CharField(_("first name"), max_length=30)
     middle_names = CharField(
         _("middle names"),
@@ -4296,7 +4337,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         on_delete=SET_NULL,
         related_name="nominations_to_apply",
-        verbose_name=_("user"),
+        verbose_name=_("Nominee"),
     )
     application = OneToOneField(
         Application,
@@ -4391,7 +4432,8 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             SELECT count(*) AS "count"
             FROM nomination AS n JOIN scheme AS s
               ON s.current_round_id=n.round_id
-            WHERE n.site_id=%s AND
+            WHERE (
+                n.site_id=%s AND (
         """
         params = [
             cls.get_current_site_id(),
@@ -4405,16 +4447,24 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 status_list = ",".join(f"'{s}'" for s in status)
                 sql += f" n.status IN ({status_list})"
             else:
-                sql += " n.status=%s"
-                params.append(status)
+                if status in ["draft", "new"]:
+                    sql += " n.status IN ('new', 'draft') OR n.status IS NULL"
+                else:
+                    sql += " n.status=%s"
+                    params.append(status)
         else:
-            sql += " n.status IN ('draft', 'submitted')"
+            sql += " n.status IN ('new', 'draft', 'submitted') OR n.status IS NULL"
+        sql += ")"
+        if not status or (status == "submitted" or "submitted" in status):
+            sql += " OR (n.status='submitted' AND (n.user_id=%s OR n.email=%s))"
+            params.extend([user.id, user.email])
+        sql += ")"
 
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             return cursor.fetchone()[0]
 
-    def get_absolute_url(self):
+    def get_absolute_url(self, *args, **kwargs):
         return reverse("nomination-update", kwargs={"pk": self.pk})
 
     def __str__(self):
