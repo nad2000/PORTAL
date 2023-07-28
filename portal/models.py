@@ -2205,7 +2205,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         monitor="status", when=[REFEREE_STATUS.testified], null=True, blank=True, default=None
     )
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
-    survey_token = CharField(max_length=20, null=True, blank=True, default=None)
+    survey_token = CharField(max_length=100, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
 

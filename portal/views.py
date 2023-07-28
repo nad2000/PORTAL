@@ -573,117 +573,121 @@ def index(request):
 
 
 def check_profile(request, token=None):
-    if not request.user.is_authenticated:
-        invitation = models.Invitation.where(token=token).first()
-        user_exists = invitation and (
-            User.objects.filter(email=invitation.email).exists()
-            or EmailAddress.objects.filter(email=invitation.email).exists()
-        )
+    try:
+        if not request.user.is_authenticated:
+            invitation = models.Invitation.where(token=token).first()
+            user_exists = invitation and (
+                User.objects.filter(email=invitation.email).exists()
+                or EmailAddress.objects.filter(email=invitation.email).exists()
+            )
 
+            if token:
+                request.session["invitation_token"] = token
+                if (i := models.Invitation.where(token=token).first()) and i.status == "revoked":
+                    messages.warning(
+                        request,
+                        _("The invitation has been revoked and is not any more valid."),
+                    )
+            return redirect(
+                reverse("account_login" if user_exists else "account_signup")
+                + f"?next={quote(request.get_full_path())}"
+            )
+
+        next_url = request.GET.get("next")
+        # TODO: refactor and move to the model the invitation handling:
         if token:
-            request.session["invitation_token"] = token
-            if (i := models.Invitation.where(token=token).first()) and i.status == "revoked":
+            u = request.user
+            if i := models.Invitation.where(token=token).first():
+                if not (
+                    i.email == u.email
+                    or u.emailaddress_set.filter(email=i.email, verified=True).exists()
+                ):
+                    messages.warning(
+                        request,
+                        _(
+                            "The invitation was not sent to any of this profile's email addresses."
+                            "Please use and log in with the account that is linked with the email "
+                            "address that received the invitation."
+                        ),
+                    )
+                    return redirect(next_url or "home")
+
+            else:
+                messages.warning(request, _("There is no invitation with the given token."))
+                return redirect(next_url or "home")
+
+            if i.status in ["draft", "submitted", "sent", "bounced"]:
+                u = User.get(request.user.id)
+                if i.first_name and not u.first_name:
+                    u.first_name = i.first_name
+                if i.middle_names and not u.middle_names:
+                    u.middle_names = i.middle_names
+                if i.last_name and not u.last_name:
+                    u.last_name = i.last_name
+                if not u.name:
+                    u.name = u.full_name
+                u.is_approved = True
+                u.save()
+
+                if i.email and u.email != i.email:
+                    ea, created = EmailAddress.objects.get_or_create(
+                        email=i.email, defaults=dict(user=u, verified=True)
+                    )
+                    if not created and ea.user != u:
+                        messages.warning(
+                            request, _("there is already user with this email address: ") + i.email
+                        )
+
+                i.accept(by=u, request=request)
+                i.save()
+                reset_cache(request)
+
+            elif i.status == "revoked":
                 messages.warning(
                     request,
                     _("The invitation has been revoked and is not any more valid."),
                 )
-        return redirect(
-            reverse("account_login" if user_exists else "account_signup")
-            + f"?next={quote(request.get_full_path())}"
-        )
-
-    next_url = request.GET.get("next")
-    # TODO: refactor and move to the model the invitation handling:
-    if token:
-        u = request.user
-        if i := models.Invitation.where(token=token).first():
-            if not (
-                i.email == u.email
-                or u.emailaddress_set.filter(email=i.email, verified=True).exists()
-            ):
+            elif i.status == "accepted":
                 messages.warning(
                     request,
-                    _(
-                        "The invitation was not sent to any of this profile's email addresses."
-                        "Please use and log in with the account that is linked with the email "
-                        "address that received the invitation."
-                    ),
+                    _("The invitation has been already accepted."),
                 )
-                return redirect(next_url or "home")
 
-        else:
-            messages.warning(request, _("There is no invitation with the given token."))
-            return redirect(next_url or "home")
-
-        if i.status in ["draft", "submitted", "sent", "bounced"]:
-            u = User.get(request.user.id)
-            if i.first_name and not u.first_name:
-                u.first_name = i.first_name
-            if i.middle_names and not u.middle_names:
-                u.middle_names = i.middle_names
-            if i.last_name and not u.last_name:
-                u.last_name = i.last_name
-            if not u.name:
-                u.name = u.full_name
-            u.is_approved = True
-            u.save()
-
-            if i.email and u.email != i.email:
-                ea, created = EmailAddress.objects.get_or_create(
-                    email=i.email, defaults=dict(user=u, verified=True)
-                )
-                if not created and ea.user != u:
-                    messages.warning(
-                        request, _("there is already user with this email address: ") + i.email
-                    )
-
-            i.accept(by=u, request=request)
-            i.save()
-            reset_cache(request)
-
-        elif i.status == "revoked":
-            messages.warning(
-                request,
-                _("The invitation has been revoked and is not any more valid."),
-            )
-        elif i.status == "accepted":
-            messages.warning(
-                request,
-                _("The invitation has been already accepted."),
-            )
-
-        if i.status != "accepted":
-            next_url = i.handler_url
-        else:
-            if i.type == "A" and (n := i.nomination) and (a := n.application):
-                if a.submitted_by == u:
-                    next_url = reverse("application-update", kwargs={"pk": a.id})
-                else:
-                    next_url = reverse("application", kwargs={"pk": a.id})
-            elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
-                next_url = reverse("application", kwargs={"pk": a_id})
-            elif i.type == "R" and (r := i.referee):
-                if t := models.Testimonial.where(referee=r).last():
-                    next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
-                elif a_id := r.application_id:
+            if i.status != "accepted":
+                next_url = i.handler_url
+            else:
+                if i.type == "A" and (n := i.nomination) and (a := n.application):
+                    if a.submitted_by == u:
+                        next_url = reverse("application-update", kwargs={"pk": a.id})
+                    else:
+                        next_url = reverse("application", kwargs={"pk": a.id})
+                elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
                     next_url = reverse("application", kwargs={"pk": a_id})
+                elif i.type == "R" and (r := i.referee):
+                    if t := models.Testimonial.where(referee=r).last():
+                        next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
+                    elif a_id := r.application_id:
+                        next_url = reverse("application", kwargs={"pk": a_id})
 
-    if Profile.where(user=request.user).exists() and request.user.profile.is_completed:
-        if token and (
-            i := models.Invitation.where(token=token, type="P", panellist__isnull=False).first()
-        ):
-            next_url = reverse("round-coi", kwargs=dict(round=i.panellist.round_id))
+        if Profile.where(user=request.user).exists() and request.user.profile.is_completed:
+            if token and (
+                i := models.Invitation.where(token=token, type="P", panellist__isnull=False).first()
+            ):
+                next_url = reverse("round-coi", kwargs=dict(round=i.panellist.round_id))
 
-        return redirect(next_url or "home")
-    else:
-        messages.info(request, _("Please complete your profile or skip it."))
-        return redirect(
-            reverse("profile-update")
-            if Profile.where(user=request.user).exists()
-            else reverse("profile-create")
-            + "?next="
-            + (quote(next_url) if next_url else reverse("home"))
-        )
+            return redirect(next_url or "home")
+        else:
+            messages.info(request, _("Please complete your profile or skip it."))
+            return redirect(
+                reverse("profile-update")
+                if Profile.where(user=request.user).exists()
+                else reverse("profile-create")
+                + "?next="
+                + (quote(next_url) if next_url else reverse("home"))
+            )
+    except Exception as e:
+        capture_exception(e)
+        raise
 
 
 @login_required
