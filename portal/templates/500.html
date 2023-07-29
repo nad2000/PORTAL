@@ -15,7 +15,12 @@
 
 {% block javascript %}
   {{ block.super }}
-  <script src="https://browser.sentry-cdn.com/5.20.1/bundle.min.js" integrity="sha384-O8HdAJg1h8RARFowXd2J/r5fIWuinSBtjhwQoPesfVILeXzGpJxvyY/77OaPPXUo" crossorigin="anonymous"></script>
+  <!-- script src="https://browser.sentry-cdn.com/5.20.1/bundle.min.js" integrity="sha384-O8HdAJg1h8RARFowXd2J/r5fIWuinSBtjhwQoPesfVILeXzGpJxvyY/77OaPPXUo" crossorigin="anonymous"></script -->
+  <script
+         src="https://browser.sentry-cdn.com/6.3.5/bundle.min.js"
+         integrity="sha384-qBgjc56ljouxNiUODXpsqJSZ7mGL+PcExG0in9vErnovL9TPZwHxfnved8g6bzfM"
+         crossorigin="anonymous">
+  </script>
   {% if sentry_event_id %}
     <script>
       Sentry.init({dsn: '{{ SENTRY_DSN }}'});
