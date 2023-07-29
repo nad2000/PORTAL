@@ -102,7 +102,7 @@ def reset_cache(request):
 
 
 def handler500(request, *args, **kwargs):
-    return render(
+    response = render(
         request,
         "500.html",
         {
@@ -111,6 +111,9 @@ def handler500(request, *args, **kwargs):
         },
         status=500,
     )
+    # response["Cross-Origin-Opener-Policy"] = "unsafe-none"
+    # response["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 def handler413(request, *args, **argv):
