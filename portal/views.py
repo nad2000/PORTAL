@@ -393,10 +393,25 @@ class SubscriptionList(LoginRequiredMixin, SingleTableView):
 class SubscriptionDetail(DetailView):
     model = Subscription
 
+
 @csrf_exempt
 @require_http_methods(["POST", "PUT", "GET"])
 def survey_webhook(request):
-    capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{json.loads(request.body)}")
+    data = json.loads(request.body)
+    # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
+    if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
+        if not r.survey_completed_at and (response := data.get("response")):
+            if completed_at := response.get("submitdate"):
+                with transaction.atomic():
+                    description = f"Referee survey was completed at {completed_at}"
+                    r.survey_completed_at = timezone.make_aware(parse(completed_at))
+                    # r.testify(by=r.user, description=description)
+                    # r._change_reason = description
+                    for t in models.Testimonial.where(referee=r):
+                        t.submit(by=r.user, description=description)
+                        t._change_reason = description
+                        t.save()
+
     return JsonResponse(
         {
             "status": "OK",
@@ -404,11 +419,24 @@ def survey_webhook(request):
         status=200,
     )
 
+
 @login_required
 def complete_survey(request):
     """Handle complition of the surervy"""
-    capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
-    pass
+    # capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
+    q = (
+        models.Referee.where(
+            user=request.user,
+            survey_completed_at__isnull=False,
+            application__round__scheme__current_round=F("application__round"),
+        )
+    ).order_by("-id")
+    r = q.first()
+    if r:
+        messages.info(request, _("Thank you! Your survey responses have been recorded."))
+        return redirect("application", pk=r.application_id)
+    return redirect("index")
+
 
 @require_http_methods(["POST"])
 def subscribe(request):
@@ -504,7 +532,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
         if completed_at := properties.get("completed"):
             with transaction.atomic():
-                description = f"Referee suervey was completed at {completed_at}"
+                description = f"Referee survey was completed at {completed_at}"
                 r.survey_completed_at = timezone.make_aware(parse(completed_at))
                 # r.testify(by=r.user, description=description)
                 # r._change_reason = description
@@ -691,7 +719,9 @@ def check_profile(request, token=None):
 
         if Profile.where(user=request.user).exists() and request.user.profile.is_completed:
             if token and (
-                i := models.Invitation.where(token=token, type="P", panellist__isnull=False).first()
+                i := models.Invitation.where(
+                    token=token, type="P", panellist__isnull=False
+                ).first()
             ):
                 next_url = reverse("round-coi", kwargs=dict(round=i.panellist.round_id))
 
