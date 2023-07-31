@@ -1,5 +1,6 @@
 import io
 import os
+import json
 import shutil
 from functools import wraps
 from urllib.parse import quote
@@ -392,6 +393,22 @@ class SubscriptionList(LoginRequiredMixin, SingleTableView):
 class SubscriptionDetail(DetailView):
     model = Subscription
 
+@csrf_exempt
+@require_http_methods(["POST", "PUT", "GET"])
+def survey_webhook(request):
+    capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{json.loads(request.body)}")
+    return JsonResponse(
+        {
+            "status": "OK",
+        },
+        status=200,
+    )
+
+@login_required
+def complete_survey(request):
+    """Handle complition of the surervy"""
+    capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
+    pass
 
 @require_http_methods(["POST"])
 def subscribe(request):
