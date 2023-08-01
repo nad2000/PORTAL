@@ -398,19 +398,20 @@ class SubscriptionDetail(DetailView):
 @require_http_methods(["POST", "PUT", "GET"])
 def survey_webhook(request):
     data = json.loads(request.body)
-    # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
+    capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
     if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
         if not r.survey_completed_at and (response := data.get("response")):
-            if completed_at := response.get("submitdate"):
+            if completed_at := response.get("submitdate") and not(r.survey_completed_at and r.staus == "testified"):
                 with transaction.atomic():
                     description = f"Referee survey was completed at {completed_at}"
                     r.survey_completed_at = timezone.make_aware(parse(completed_at))
                     # r.testify(by=r.user, description=description)
                     # r._change_reason = description
                     for t in models.Testimonial.where(referee=r):
-                        t.submit(by=r.user, description=description)
-                        t._change_reason = description
-                        t.save()
+                        if t.state != "submitted":
+                            t.submit(by=r.user, description=description)
+                            t._change_reason = description
+                            t.save()
 
     return JsonResponse(
         {
