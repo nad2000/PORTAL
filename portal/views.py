@@ -406,7 +406,7 @@ def survey_webhook(request):
     # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
     if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
         if not r.survey_completed_at and (response := data.get("response")):
-            if completed_at := response.get("submitdate") and not (
+            if (completed_at := response.get("submitdate")) and not (
                 r.survey_completed_at and r.staus == "testified"
             ):
                 with transaction.atomic():
@@ -1259,12 +1259,12 @@ class ApplicationDetail(DetailView):
                 survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
                 site = models.Site.objects.get_current()
                 messages.info(
-                    self.request,
+                    self.request, (
                     f'<span class="badge badge-primary">{_("New")}</span> '
-                    f"{_('You have a request to review a {site.name} application to act on')}."
+                    f"{_('You have a request to review a %s application to act on')}."
                     f"""<a href="{survey_url}" class="alert-link">
                         {_('Please click here to complete the survey')}!
-                    </a>""",
+                    </a>""") % site.name,
                 )
         return resp
 
@@ -1429,12 +1429,12 @@ class ApplicationView(LoginRequiredMixin):
                         survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
                         site = models.Site.objects.get_current()
                         messages.info(
-                            self.request,
+                            self.request, (
                             f'<span class="badge badge-primary">{_("New")}</span>'
-                            f"{_('You have a request to review a {site.name} application to act on')}."
+                            f"{_('You have a request to review a %s application to act on')}."
                             f"""<a href="{survey_url}" class="alert-link">
                                 {_('Please click here to complete the survey')}!
-                            </a>""",
+                            </a>""") % site.name,
                         )
         return super().dispatch(request, *args, **kwargs)
 
@@ -4307,12 +4307,12 @@ class TestimonialDetail(DetailView):
             if r and r.survey_id:
                 site = models.Site.objects.get_current()
                 messages.info(
-                    self.request,
+                    self.request, (
                     f'<span class="badge badge-primary">{_("New")}</span> '
-                    f"{_('You have a request to review a {site.name} application to act on')}."
+                    f"{_('You have a request to review a %s application to act on')}."
                     f"""<a href="{survey_url}" class="alert-link">
                         {_('Please click here to complete the survey')}!
-                      </a>""",
+                      </a>""") % site.name,
                 )
             else:
                 messages.info(
