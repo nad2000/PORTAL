@@ -37,6 +37,7 @@ def portal_context(request):
                 u, ["draft", "new"]
             )
             application_submitted_count = models.Application.user_application_count(u, "submitted")
+            # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
             stats = {
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_count": application_draft_count + application_submitted_count,
@@ -58,6 +59,8 @@ def portal_context(request):
                 "score_sheet_count": score_sheet_count,
                 "is_ro": models.ResearchOffice.where(user=u).exists(),
             }
+            # if outstanding_testimonial_requests:
+            #     stats["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or u.is_staff):
                 with connection.cursor() as cursor:
                     cursor.execute(

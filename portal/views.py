@@ -527,6 +527,7 @@ def get_survey_api_url():
 @login_required
 @shoud_be_onboarded
 def do_survey(request, survey_id=None, token=None, referee_id=None):
+    reset_cache(request)
     if referee_id:
         r = models.Referee.objects.prefetch_related("application", "application__round").get(
             id=referee_id
@@ -1241,6 +1242,32 @@ class ApplicationDetail(DetailView):
             Q(user=user) | Q(email=user.email) | Q(email__in=user.emailaddress_set.values("email"))
         ).last()
 
+    def get(self, request, *args, **kwargs):
+        resp = super().get(request, *args, **kwargs)
+
+        if (a := self.object) and (r := a.round) and r.survey_id:
+            u = self.request.user
+            referee = (
+                a.referees.filter(
+                    Q(user=u) | Q(email=u.email) | Q(email__in=u.email_addresses),
+                    survey_completed_at__isnull=True,
+                )
+                .order_by("-id")
+                .first()
+            )
+            if referee:
+                survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
+                site = models.Site.objects.get_current()
+                messages.info(
+                    self.request,
+                    f'<span class="badge badge-primary">{_("New")}</span> '
+                    f"{_('You have a request to review a {site.name} application to act on')}."
+                    f"""<a href="{survey_url}" class="alert-link">
+                        {_('Please click here to complete the survey')}!
+                    </a>""",
+                )
+        return resp
+
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         member = self.get_member()
@@ -1351,6 +1378,7 @@ class ApplicationView(LoginRequiredMixin):
             if (pk := self.kwargs.get("pk")) and (
                 a := get_object_or_404(models.Application, pk=pk)
             ):
+                r = a.round
                 if not a.is_applicant(u):
                     messages.error(
                         request, _("You do not have permissions to edit this application.")
@@ -1379,7 +1407,7 @@ class ApplicationView(LoginRequiredMixin):
                         ),
                     )
                     return redirect("application", pk=pk)
-                if not a.round.is_open:
+                if not r.is_open:
                     messages.error(
                         request,
                         _(
@@ -1388,6 +1416,26 @@ class ApplicationView(LoginRequiredMixin):
                         ),
                     )
                     return redirect("application", pk=pk)
+                if r.survey_id:
+                    referee = (
+                        a.referees.filter(
+                            Q(user=u) | Q(email=u.email) | Q(email__in=u.email_addresses),
+                            survey_completed_at__isnull=True,
+                        )
+                        .order_by("-id")
+                        .first()
+                    )
+                    if referee:
+                        survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
+                        site = models.Site.objects.get_current()
+                        messages.info(
+                            self.request,
+                            f'<span class="badge badge-primary">{_("New")}</span>'
+                            f"{_('You have a request to review a {site.name} application to act on')}."
+                            f"""<a href="{survey_url}" class="alert-link">
+                                {_('Please click here to complete the survey')}!
+                            </a>""",
+                        )
         return super().dispatch(request, *args, **kwargs)
 
     def continue_url(self, fragment=None):
@@ -4257,8 +4305,11 @@ class TestimonialDetail(DetailView):
             context["update_button_name"] = _("Edit Testimonial")
         if not referee.has_testified:
             if r and r.survey_id:
+                site = models.Site.objects.get_current()
                 messages.info(
                     self.request,
+                    f'<span class="badge badge-primary">{_("New")}</span> '
+                    f"{_('You have a request to review a {site.name} application to act on')}."
                     f"""<a href="{survey_url}" class="alert-link">
                         {_('Please click here to complete the survey')}!
                       </a>""",

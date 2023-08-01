@@ -1010,9 +1010,23 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm
             )
         if commit:
             if self.instance.id:
-                self.instance.save(
-                    update_fields=["email", "first_name", "middle_names", "last_name"]
-                )
+                if "email" in self.changed_data:
+                    r = self.instance
+                    for i in models.Invitation.where(referee=self.instance):
+                        i._change_reason = f"Email changed from {self.instance.email} to ..."
+                        i.revoke(description=i._change_reason)
+                        i.referee = None
+                        i.save()
+                    self.instance = models.Referee.create(
+                        application=r.application,
+                        email=r.email,
+                        first_name=r.first_name,
+                        middle_names=r.middle_names,
+                        last_name=r.last_name,
+                    )
+                    r.delete()
+                else:
+                    self.instance.save(update_fields=["first_name", "middle_names", "last_name"])
             else:
                 self.instance.save()
             self._save_m2m()
@@ -1344,7 +1358,11 @@ class NominationForm(forms.ModelForm):
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
                 forward=["nominator"],
-                attrs={"data-placeholder": _("Choose the organisation you can nominate a researcher for...")},
+                attrs={
+                    "data-placeholder": _(
+                        "Choose the organisation you can nominate a researcher for..."
+                    )
+                },
             ),
             title=autocomplete.ModelSelect2(
                 "title-autocomplete",

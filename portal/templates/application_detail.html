@@ -89,7 +89,7 @@
                {% endif %}
                  >
                  <a class="btn btn-outline-primary{% if testimonial.state == "submitted" %} disabled{% endif %}"
-                  href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
+                  href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
                      {% trans 'Complete' %}
                  <strong>{% trans 'Survey' %}</strong></a>
           </div>
