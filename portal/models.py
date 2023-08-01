@@ -2646,10 +2646,11 @@ class Invitation(InvitationMixin, Model):
         elif self.type == INVITATION_TYPES.T and self.member:
             return reverse("application", kwargs=dict(pk=self.member.application_id))
         elif self.type == INVITATION_TYPES.R and (r := self.referee):
+            if r.survey_token_id and not r.survey_completed_at:
+                return reverse("application", kwargs=dict(pk=r.application_id))
             if t := Testimonial.where(referee=r).first():
                 return reverse("review-update", kwargs=dict(pk=t.id))
-            a = r.application
-            return reverse("application", kwargs=dict(pk=a.id))
+            return reverse("application", kwargs=dict(pk=r.application_id))
         elif self.type == INVITATION_TYPES.P and (p := self.panellist):
             if p.round_id:
                 if p.has_all_coi_statements_submitted or p.round.has_online_scoring:

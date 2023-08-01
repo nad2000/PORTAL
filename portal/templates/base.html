@@ -392,7 +392,7 @@ You have a request to join a {{ site_name }} team that you still have to act on.
                 {% blocktrans with site_name=site_name %}
 You have a request to review a {{ site_name }} application to act on.
                 {% endblocktrans %}
-                    {% if o.survey_id and o.survey_token %}
+                    {% if o.application.round.survey_id %}
                       <a href="{% url 'survey-referee' referee_id=o.id %}" class="alert-link">
                         {% trans 'Please click here to complete the survey' %}!
                       </a>

@@ -406,7 +406,9 @@ def survey_webhook(request):
     # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
     if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
         if not r.survey_completed_at and (response := data.get("response")):
-            if completed_at := response.get("submitdate") and not(r.survey_completed_at and r.staus == "testified"):
+            if completed_at := response.get("submitdate") and not (
+                r.survey_completed_at and r.staus == "testified"
+            ):
                 with transaction.atomic():
                     description = f"Referee survey was completed at {completed_at}"
                     r.survey_completed_at = timezone.make_aware(parse(completed_at))
@@ -530,13 +532,14 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             id=referee_id
         )
         survey_id = r.application.round.survey_id
-        token = r.survey_token
     if not r.survey_completed_at:
-        api_url = get_survey_api_url()
-        api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
-        api.open(password=settings.LIMESURVEY_API_PASSWORD)
+        api = r.survey_api
+        if not r.survey_token_id:
+            r.add_to_survey(api)
+            r.save()
+
         properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
-        if completed_at := properties.get("completed"):
+        if (completed_at := properties.get("completed")) and completed_at != "N":
             with transaction.atomic():
                 description = f"Referee survey was completed at {completed_at}"
                 r.survey_completed_at = timezone.make_aware(parse(completed_at))
@@ -1072,7 +1075,11 @@ def get_or_create_referee_invitation(referee, by=None):
     middle_names = referee.middle_names or u and u.middle_names or ""
     site = (referee.application and referee.application.site) or Site.objects.get_current()
 
-    if settings.SITE_ID == 4 and not (referee.survey_id or referee.survey_token):
+    if (
+        settings.SITE_ID == 4
+        and referee.application.round.survey_id
+        and not (referee.survey_token_id or referee.survey_token)
+    ):
         referee.add_to_survey()
 
     if hasattr(referee, "invitation"):
@@ -2680,7 +2687,6 @@ class ApplicationList(
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_context_data(self, **kwargs):
-
         context = super().get_context_data(**kwargs)
         u = self.request.user
         if not (
@@ -4234,20 +4240,34 @@ class TestimonialDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         referee = self.get_object().referee
-        if referee.application_id and (a := referee.application):
-            context["extra_object"] = referee.application
-        if (r := a.round) and r.survey_id and referee.survey_token:
-            context["survey_url"] = reverse("survey-referee", kwargs={"referee_id": referee.id})
+        a = referee.application
+        r = a and referee.application.round
+
+        if a:
+            context["extra_object"] = a
+        survey_url = (
+            r and r.survey_id and reverse("survey-referee", kwargs={"referee_id": referee.id})
+        )
+        if survey_url:
+            context["survey_url"] = survey_url
         if self.get_object().state == "new":
             context["update_view_name"] = f"{self.model.__name__.lower()}-create"
             context["update_button_name"] = _("Add Testimonial")
         else:
             context["update_button_name"] = _("Edit Testimonial")
-        if not self.object.referee.has_testified:
-            messages.info(
-                self.request,
-                _("Please review the application details and submit testimonial."),
-            )
+        if not referee.has_testified:
+            if r and r.survey_id:
+                messages.info(
+                    self.request,
+                    f"""<a href="{survey_url}" class="alert-link">
+                        {_('Please click here to complete the survey')}!
+                      </a>""",
+                )
+            else:
+                messages.info(
+                    self.request,
+                    _("Please review the application details and submit testimonial."),
+                )
         return context
 
 
