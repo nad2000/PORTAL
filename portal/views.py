@@ -403,7 +403,7 @@ class SubscriptionDetail(DetailView):
 @require_http_methods(["POST", "PUT", "GET"])
 def survey_webhook(request):
     data = json.loads(request.body)
-    capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
+    # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
     if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
         if not r.survey_completed_at and (response := data.get("response")):
             if completed_at := response.get("submitdate") and not(r.survey_completed_at and r.staus == "testified"):
@@ -1071,6 +1071,9 @@ def get_or_create_referee_invitation(referee, by=None):
     last_name = referee.last_name or u and u.last_name or ""
     middle_names = referee.middle_names or u and u.middle_names or ""
     site = (referee.application and referee.application.site) or Site.objects.get_current()
+
+    if settings.SITE_ID == 4 and not (referee.survey_id or referee.survey_token):
+        referee.add_to_survey()
 
     if hasattr(referee, "invitation"):
         i = referee.invitation

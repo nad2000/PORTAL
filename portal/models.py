@@ -2235,16 +2235,33 @@ class Referee(RefereeMixin, PersonMixin, Model):
     @fsm_log
     @transition(field=status, source=["*"], target="accepted")
     def accept(self, *args, **kwargs):
+        pass
+
+    @property
+    @lru_cache(1)
+    def survey_api(self):
+        api_url = self.application.round.survey_api_url
+        api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
+        api.open(password=settings.LIMESURVEY_API_PASSWORD)
+        return api
+
+    def add_to_survey(self, api=None):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
-            api_url = self.application.round.survey_api_url
-            api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
-            api.open(password=settings.LIMESURVEY_API_PASSWORD)
+
+            u = self.user
+            if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
+                u = ea.user
+            first_name = self.first_name or u and u.first_name or ""
+            last_name = self.last_name or u and u.last_name or ""
+
+            if not api:
+                api = self.survey_api
             if not self.survey_token:
                 participant = {"email": self.email.lower()}
-                if self.first_name:
+                if first_name:
                     participant["firstname"] = self.first_name
-                if self.last_name:
+                if last_name:
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
                     hashlib.shake_256(bytes(self.id)).digest(21)
@@ -2255,7 +2272,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         self.survey_token_id = r.get("tid")
                         self.survey_token = r.get("token")
 
+    def invite_to_survey(self, api=None):
+        if survey_id := self.application.round.survey_id:
+            if not api:
+                api = self.survey_api
+            if not self.survey_token_id:
+                self.add_to_survey(api)
+
             if self.survey_token_id:
+
+                api = self.survey_api
                 # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
                 resp = api.query(
                     method="invite_participants",
