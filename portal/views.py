@@ -1,7 +1,8 @@
 import io
-import os
 import json
+import os
 import shutil
+import traceback
 from functools import wraps
 from urllib.parse import quote
 
@@ -14,6 +15,7 @@ from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout
 from dal import autocomplete
+from dateutil.parser import parse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -57,7 +59,6 @@ from django.http import FileResponse, HttpResponse, HttpResponseRedirect, JsonRe
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
 from django.utils import timezone
-from dateutil.parser import parse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -103,12 +104,16 @@ def reset_cache(request):
 
 
 def handler500(request, *args, **kwargs):
+    trace = traceback.format_exc()
+    e = kwargs.get("e")
     response = render(
         request,
         "500.html",
         {
             "sentry_event_id": last_event_id(),
             "SENTRY_DSN": settings.SENTRY_DSN,
+            "error": str(e),
+            "trace": trace,
         },
         status=500,
     )
@@ -2672,6 +2677,7 @@ class ApplicationList(
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_context_data(self, **kwargs):
+
         context = super().get_context_data(**kwargs)
         u = self.request.user
         if not (

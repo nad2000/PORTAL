@@ -12,6 +12,8 @@ ROOT_DIR = Path(__file__).parents[2]
 APPS_DIR = ROOT_DIR / "portal"
 env = environ.Env()
 
+ENV = env("ENV", default="local")
+
 # Sentry:
 SENTRY_DSN = env("SENTRY_DSN", default=None)
 if SENTRY_DSN:
@@ -20,7 +22,11 @@ if SENTRY_DSN:
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
+        integrations=[
+            DjangoIntegration(
+                cache_spans=True,
+            )
+        ],
         send_default_pii=True,
         traces_sample_rate=1.0,
     )
