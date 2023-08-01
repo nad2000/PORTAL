@@ -1,25 +1,40 @@
 {% extends "base.html" %}
 {% load static i18n compress %}
 
-{% block title %}Server Error{% endblock %}
+{% block title %}{% trans 'Server Error - 500' %}{% endblock %}
 
 {% block content %}
-  <h1>{% trans "Ooops!!! 500" %}</h1>
 
-  <h3>{% trans "Looks like something went wrong!" %}</h3>
+  <div class="jumbotron">
 
-  <p>
+  <h1>{% trans "Webservice currently unavailable" %} <small>Error: <br />{{ error }}</small></h1>
+  <hr class-"my-4">
+  <p class="lead">{% trans 'An unexpected condition was encountered' %}.<br />
+
+  {% trans 'Our service team has been dispatched to bring it back online' %}.</p>
+  {% if config.ENV != "prod" and trace %}
+      <div class="container">
+        <div class="row">
+          <div class="col-12">
+            <h2>Details</h2>
+            <pre>{{trace}}</pre>
+          </div>
+        </div>
+      </div>
+  {% endif %}
+
+  <p class="lead">
   {% trans "We track these errors automatically, but if the problem persists feel free to contact us. In the meantime, try refreshing." %}
   </p>
-  <span class="float-right">
-    <a href="{% url 'home' %}" type="button" role="button" class="btn btn-secondary" id="return">
-      {% trans 'Go Back' %}
+  <a href="{% if reqest.META.HTTP_REFERER %}{{ reqest.META.HTTP_REFERER }}{% else %}{% url 'home' %}{% endif %}" type="button" role="button" class="btn btn-secondary" id="return">
+      {% trans 'Return' %}
     </a>
-  </span>
+  <!-- span class="float-right"> </span -->
+  </div>
 {% endblock content %}
 
 {% block javascript %}
-  <script> var tracking_disabled; </script>
+  <script> var tracking_disabled;</script>
   {{ block.super }}
   <!-- script src="https://browser.sentry-cdn.com/5.20.1/bundle.min.js" integrity="sha384-O8HdAJg1h8RARFowXd2J/r5fIWuinSBtjhwQoPesfVILeXzGpJxvyY/77OaPPXUo" crossorigin="anonymous"></script -->
   <!-- script
