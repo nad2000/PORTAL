@@ -18,7 +18,7 @@ from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
 
-from portal.models import Invitation
+from portal.models import Invitation, Q
 from portal.utils.mail import DEFAULT_HTML_FOOTER, DEFAULT_SITE_HTML_FOOTER
 
 User = get_user_model()
@@ -191,6 +191,14 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         user = super().populate_user(request, sociallogin, data)
 
         email = data.get("email") or self.invitation and self.invitation.email
+
+        if email and not self.invitation:
+            self.invitation = Invitation.where(
+                Q(status__isnull=True)
+                | Q(status__in=["draft", "submitted", "sent", "bounced"])
+                | Q(email=email)
+            )
+
         if not user.username and email:
             user.username = email.split("@")[0]
         elif "name" in data:

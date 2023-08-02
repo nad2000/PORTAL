@@ -1,4 +1,5 @@
 import base64
+import time
 import hashlib
 import io
 import os
@@ -2075,10 +2076,6 @@ class Member(PersonMixin, MemberMixin, Model):
         elif self.status == "opted_out":
             return False
 
-    # @has_authorized.setter
-    # def has_authorized(self, value):
-    #     breakpoint()
-
     def clean(self):
         super().clean()
         if not (application := getattr(self, "application", None)):
@@ -2248,7 +2245,6 @@ class Referee(RefereeMixin, PersonMixin, Model):
     def add_to_survey(self, api=None):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
-
             u = self.user
             if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
                 u = ea.user
@@ -2271,6 +2267,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
                         self.survey_token = r.get("token")
+                        properties = api.token.get_participant_properties(
+                            survey_id, self.survey_token_id
+                        )
+                        if (
+                            int(properties.get("tid")) != int(self.survey_token_id)
+                            or properties.get("token") != self.survey_token
+                        ):
+                            raise Exception(
+                                f"Failed to sync with LimeSurveyt of {self}", resp, properties
+                            )
 
     def invite_to_survey(self, api=None):
         if survey_id := self.application.round.survey_id:
@@ -2280,7 +2286,6 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 self.add_to_survey(api)
 
             if self.survey_token_id:
-
                 api = self.survey_api
                 # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
                 resp = api.query(
@@ -2332,8 +2337,17 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(field=status, source=["*"], target="testified")
-    def testify(self, *args, **kwargs):
-        pass
+    def testify(self, *args, request=None, by=None, commit=True, **kwargs):
+        if not by and request:
+            by = request.user
+        for i in Invitation.where(~Q(state="accepted"), referee=self):
+            if not by and i.user:
+                by = i.user
+            if by and not self.user:
+                self.user = by
+            i.accept(*args, **kwargs, commit=False)
+            if commit:
+                i.save()
 
     @fsm_log
     @transition(field=status, source=["*"], target="bounced")
@@ -2873,7 +2887,7 @@ class Invitation(InvitationMixin, Model):
         source=[STATUS.draft, STATUS.sent, STATUS.accepted, STATUS.bounced],
         target=STATUS.accepted,
     )
-    def accept(self, request=None, by=None, *args, **kwargs):
+    def accept(self, request=None, by=None, commit=True, *args, **kwargs):
         if not by:
             if not request or not request.user:
                 raise Exception("User unknown!")
@@ -2885,12 +2899,14 @@ class Invitation(InvitationMixin, Model):
         ):
             m.user = by
             m.accept(request)
-            m.save()
+            if commit:
+                m.save()
         elif self.type == INVITATION_TYPES.A:
             if self.nomination:
                 n = self.nomination
                 n.user = by
-                n.save()
+                if commit:
+                    n.save()
         elif (
             self.type == INVITATION_TYPES.R
             and (r := self.referee)
@@ -2898,14 +2914,16 @@ class Invitation(InvitationMixin, Model):
         ):
             r.user = by
             r.accept(request)
-            r.save()
+            if commit:
+                r.save()
             if self.status != self.STATUS.accepted:
                 t, _ = Testimonial.get_or_create(referee=r)
         elif self.type == INVITATION_TYPES.P:
             p = self.panellist
             p.user = by
             p.accept(request)
-            p.save()
+            if commit:
+                p.save()
 
     @fsm_log
     @transition(field=status, source=["*"], target=STATUS.bounced)
@@ -3043,10 +3061,14 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         # self.referee.has_testifed = True
         # self.referee.status = "testified"
         # self.referee.testified_at = datetime.now()
+        if not by and request:
+            by = request.user
         if self.referee.status != "testified":
             self.referee.testify(request=request, by=by, *args, **kwargs)
             if description := kwargs.get("description"):
                 self.referee._change_reason = description
+            if not self.user and by:
+                self.uesr = by
             self.referee.save()
 
     @classmethod

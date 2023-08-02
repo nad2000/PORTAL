@@ -120,10 +120,12 @@ urlpatterns = [
         "survey/",
         include(
             [
+                path("webhook/", views.survey_webhook, name="survey-webhook"),
+                path("complete/", views.complete_survey, name="survey-complete"),
                 path("<int:survey_id>/<token>", views.do_survey, name="survey-do"),
                 path("<int:referee_id>", views.do_survey, name="survey-referee"),
             ]
-        )
+        ),
     ),
     path(
         "profile/",
@@ -214,9 +216,7 @@ urlpatterns = [
             [
                 path(
                     "keyword/",
-                    views.KeywordAutocomplete.as_view(
-                        model=models.Keyword, create_field="name"
-                    ),
+                    views.KeywordAutocomplete.as_view(model=models.Keyword, create_field="name"),
                     name="keyword-autocomplete",
                 ),
                 path(
@@ -275,9 +275,7 @@ urlpatterns = [
                 ),
                 path(
                     "title/",
-                    views.TitleAutocomplete.as_view(
-                        model=models.Title, create_field="name"
-                    ),
+                    views.TitleAutocomplete.as_view(model=models.Title, create_field="name"),
                     name="title-autocomplete",
                 ),
             ]
@@ -454,8 +452,6 @@ urlpatterns = [
     path("413/", views.handler413),
     path("favicon.ico", views.favicon),
     path("webhooks/survey/", views.survey_webhook),
-    path("survey/webhook/", views.survey_webhook),
-    path("survey/complete/", views.complete_survey),
 ]
 
 if settings.SENTRY_DSN:

@@ -411,7 +411,10 @@ def survey_webhook(request):
             ):
                 with transaction.atomic():
                     description = f"Referee survey was completed at {completed_at}"
-                    r.survey_completed_at = timezone.make_aware(parse(completed_at))
+                    if completed_at.startswith("1980-01-01"):
+                        r.survey_completed_at = timezone.now()
+                    else:
+                        r.survey_completed_at = timezone.make_aware(parse(completed_at))
                     # r.testify(by=r.user, description=description)
                     # r._change_reason = description
                     for t in models.Testimonial.where(referee=r):
@@ -653,8 +656,19 @@ def check_profile(request, token=None):
 
         next_url = request.GET.get("next")
         # TODO: refactor and move to the model the invitation handling:
+        u = request.user
+        if not token:
+            if (
+                i := models.Invitation.where(
+                    Q(status__isnull=True)
+                    | Q(status__in=["draft", "submitted", "sent", "bounced"])
+                    | Q(email=u.email)
+                    | Q(email__in=u.email_addresses).order_by("-id").first()
+                )
+            ) and i.token:
+                token = i.token
+
         if token:
-            u = request.user
             if i := models.Invitation.where(token=token).first():
                 if not (
                     i.email == u.email
@@ -774,7 +788,35 @@ class ProfileView:
         return user_form
 
     def get_initial(self):
-        return {}
+        u = self.request.user
+        if u.first_name and u.last_name and u.title and u.middle_names:
+            return {}
+
+        initial = super().get_initial()
+        if (
+            i := models.Invitation.where(
+                ~Q(
+                    first_name__isnull=True,
+                    last_name__isnull=True,
+                    middle_names__isnull=True,
+                ),
+                Q(status__isnull=True)
+                # | Q(status__in=["draft", "submitted", "sent", "bounced"])
+                | Q(email=u.email) | Q(email__in=u.email_addresses),
+            )
+            .order_by("-id")
+            .first()
+        ):
+            initial.update(
+                {
+                    "first_name": u.first_name or i.first_name,
+                    "last_name": u.last_name or i.last_name,
+                    # "title": u.title or i.title,
+                    "middle_names": u.middle_names or i.middle_names,
+                }
+            )
+
+        return initial
 
     def get_context_data(self, **kwargs):
         if "progress" not in kwargs:
@@ -1259,12 +1301,15 @@ class ApplicationDetail(DetailView):
                 survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
                 site = models.Site.objects.get_current()
                 messages.info(
-                    self.request, (
-                    f'<span class="badge badge-primary">{_("New")}</span> '
-                    f"{_('You have a request to review a %s application to act on')}."
-                    f"""<a href="{survey_url}" class="alert-link">
+                    self.request,
+                    (
+                        f'<span class="badge badge-primary">{_("New")}</span> '
+                        f"{_('You have a request to review a %s application to act on')}."
+                        f"""<a href="{survey_url}" class="alert-link">
                         {_('Please click here to complete the survey')}!
-                    </a>""") % site.name,
+                    </a>"""
+                    )
+                    % site.name,
                 )
         return resp
 
@@ -1429,12 +1474,15 @@ class ApplicationView(LoginRequiredMixin):
                         survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
                         site = models.Site.objects.get_current()
                         messages.info(
-                            self.request, (
-                            f'<span class="badge badge-primary">{_("New")}</span>'
-                            f"{_('You have a request to review a %s application to act on')}."
-                            f"""<a href="{survey_url}" class="alert-link">
+                            self.request,
+                            (
+                                f'<span class="badge badge-primary">{_("New")}</span>'
+                                f"{_('You have a request to review a %s application to act on')}."
+                                f"""<a href="{survey_url}" class="alert-link">
                                 {_('Please click here to complete the survey')}!
-                            </a>""") % site.name,
+                            </a>"""
+                            )
+                            % site.name,
                         )
         return super().dispatch(request, *args, **kwargs)
 
@@ -4307,12 +4355,15 @@ class TestimonialDetail(DetailView):
             if r and r.survey_id:
                 site = models.Site.objects.get_current()
                 messages.info(
-                    self.request, (
-                    f'<span class="badge badge-primary">{_("New")}</span> '
-                    f"{_('You have a request to review a %s application to act on')}."
-                    f"""<a href="{survey_url}" class="alert-link">
+                    self.request,
+                    (
+                        f'<span class="badge badge-primary">{_("New")}</span> '
+                        f"{_('You have a request to review a %s application to act on')}."
+                        f"""<a href="{survey_url}" class="alert-link">
                         {_('Please click here to complete the survey')}!
-                      </a>""") % site.name,
+                      </a>"""
+                    )
+                    % site.name,
                 )
             else:
                 messages.info(
