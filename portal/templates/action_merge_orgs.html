@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+  <form action="" method="post">
+
+    {% csrf_token %}
+    <input type="hidden" name="action" value="merge_orgs">
+    <input type="hidden" name="select_across" value="0">
+    <input type="hidden" name="index" value="0">
+    {% for o in objects %}
+      <input type="hidden" name="_selected_action" value="{{ o.id }}">
+    {% endfor %}
+
+    <input type="hidden" name="do_action" value="yes">
+
+    <label for="target">Organisation</label>
+    <select id="target" name="target">
+
+      {% for o in objects %}
+        <option value="{{ o.id }}"{% if forloop.first %} selected{% endif %}>{{ o }}</option>
+      {% endfor %}
+    </select>
+
+    <div>
+      <input type="submit" class="default" style="float: none" value="Merge">
+    </div>
+
+  </form>
+{% endblock %}
