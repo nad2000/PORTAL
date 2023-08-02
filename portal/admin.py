@@ -810,12 +810,21 @@ class ApplicationAdmin(
 
     @admin.action(description="Request resubmission")
     def request_resubmission(self, request, queryset):
-        for a in queryset.filter(
-            Q(submitted_by__is_identity_verified=False)
-            | Q(submitted_by__is_identity_verified__isnull=True)
-        ):
-            a.request_resubmission(request)
-            a.save()
+        if "do_action" in request.POST:
+            resolution = request.POST.get("resolution")
+            for o in queryset.filter(state="submitted"):
+                o.request_resubmission(request, resolution=resolution)
+                o.save()
+            return
+
+        return render(
+            request,
+            "action_request_resubmission.html",
+            {
+                "title": "Specify Reason for Resubmission",
+                "objects": queryset,
+            },
+        )
 
 
 admin.site.register(models.Award)
@@ -1081,7 +1090,13 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
     date_hierarchy = "created_at"
     list_filter = ["created_at", "updated_at", "round", "status"]
     fsm_field = ["status"]
-    search_fields = ["title", "email", "first_name", "last_name", "round__title"]
+    search_fields = [
+        "email",
+        "first_name",
+        "last_name",
+        "round__title",
+        "application__number",
+    ]
     # summernote_fields = ["summary"]
     exclude = [
         "summary",

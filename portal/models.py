@@ -1652,7 +1652,36 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if round.notify_nominator and self.nomination and (nominator := self.nomination.nominator):
+        if settings.SITE_ID == 4:
+            url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
+            nominator = self.nomination and self.nomination.nominator
+            send_mail(
+                __("Application '%s' Submitted") % self,
+                html_message=__(
+                    "<p>Kia ora %(nominator)s</p>"
+                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
+                    '"%(title)s</a></p>'
+                    "<p>Please reveiw and approve the submitted application.</p>"
+                )
+                % {
+                    "nominator": nominator,
+                    "url": url,
+                    "number": self.number,
+                    "title": self.application_title or round.title,
+                },
+                recipient_list=[nominator.full_email_address],
+                cc=[
+                    ro.user.full_email_address
+                    for ro in ResearchOffice.where(org=self.org)
+                    if ro.user != nominator
+                ],
+                fail_silently=False,
+                request=request,
+                reply_to=settings.DEFAULT_FROM_EMAIL,
+            )
+        elif (
+            round.notify_nominator and self.nomination and (nominator := self.nomination.nominator)
+        ):
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
             send_mail(
                 __("Application '%s' Submitted") % self,
@@ -1676,6 +1705,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(field=state, source=["submitted"], target="draft")
     def request_resubmission(self, request=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution")
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
         params = {
@@ -1683,17 +1713,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "number": self.number,
             "title": self.title or self.round.title,
             "url": url,
+            "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
             __("Application '%s' Review ") % self,
             __(
                 "Kia ora %(user_display)s\n\n"
                 "Please review your application %(number)s: %(title)s here %(url)s.\n\n"
+                "Resolution:\n"
+                "===========\n\n%(resolution)s\n\n"
             )
             % params,
             html_message=__(
                 "<p>Kia ora %(user_display)s</p>"
                 '<p>Please review your application <a href="%(url)s">%(number)s: "%(title)s</a></p>'
+                "<h3>Resolution</h3>\n"
+                "<pre>%(resolution)s</pre>\n\n"
             )
             % params,
             recipient_list=[r.full_email_address for r in recipients],
@@ -2338,14 +2373,15 @@ class Referee(RefereeMixin, PersonMixin, Model):
     @fsm_log
     @transition(field=status, source=["*"], target="testified")
     def testify(self, *args, request=None, by=None, commit=True, **kwargs):
-        if not by and request:
-            by = request.user
-        for i in Invitation.where(~Q(state="accepted"), referee=self):
-            if not by and i.user:
-                by = i.user
+        for i in Invitation.where(~Q(status="accepted"), referee=self):
+            if not by:
+                if i.user:
+                    by = i.user
+                elif request:
+                    by = request.user
             if by and not self.user:
                 self.user = by
-            i.accept(*args, **kwargs, commit=False)
+            i.accept(*args, **kwargs, request=request, by=by, commit=False)
             if commit:
                 i.save()
 
@@ -2888,6 +2924,8 @@ class Invitation(InvitationMixin, Model):
         target=STATUS.accepted,
     )
     def accept(self, request=None, by=None, commit=True, *args, **kwargs):
+        if not by and request:
+            by = request.user
         if not by:
             if not request or not request.user:
                 raise Exception("User unknown!")

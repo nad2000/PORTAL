@@ -85,6 +85,54 @@ for the addressee and may be confidential. If you are not the intended recipient
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
 </tr></tbody></table></body></html>
 """,
+    "puanga.royalsociety.org.nz": """
+<br>To learn more about the Catalyst Fund administered by the Royal Society Te Apārangi
+<a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/catalyst-fund/'>click here</a>.<br>
+<br>Ngā mihi nui,</p><br>
+<p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
+font-family:"Helvetica",sans-serif;color:black'>
+<table border="0"><tr>
+<td style="text-align: left;">
+<img border='0'
+  style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
+  alt='Catalyst Fund Logo Alternative'>
+</td>
+<td style="text-align: right;">
+<img border='0'
+  style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/RS_logo.png"
+  alt='Royal Society Te Apārangi'>
+</td>
+</tr></table>
+</span><br>
+<br>
+<br>
+International Applications</p>
+<table border='0' cellspacing='0' cellpadding='0' style=
+'border-collapse:collapse'>
+<tbody><tr><td style='padding:0cm 0cm 0cm 0cm'>
+<p style='line-height:115%%'><b><span style='font-size:8.5pt;
+line-height:115%%;color:black'>Waea telephone &nbsp;</span></b><span
+style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5756<br>
+<b><style='font-size:8.5pt;line-height:115%%;color:black'>Īmēra email</span></b><span
+style='font-size:8.5pt;line-height:115%%'>&nbsp;</span><span
+style='font-size:8.5pt;line-height:115%%;color:black;background:white'>
+<a href='mailto:International.Applications@royalsociety.org.nz'>
+<span style='color:black'>International.Applications@royalsociety.org.nz</span></a></span></p>
+<p><b><span style='font-size:8.5pt;color:black'>Royal Society Te Apārangi</span>
+</b><span style='font-size:8.5pt;color:black'><br>
+11 Turnbull Street, Thorndon, Wellington 6011<br>
+PO Box 598, Wellington 6140, New Zealand<br>
+<a href='http://royalsociety.org.nz/' ><b><span style='color:black'>ROYALSOCIETY.ORG.NZ</span>
+</b></a></span></p><br>
+<p><i><span style='font-size:8.0pt;color:black'>Please consider the environment before
+printing this email. The information contained in this email message is intended only
+for the addressee and may be confidential. If you are not the intended recipient, please
+ notify us immediately.</span></i></p>
+</td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
+</tr></tbody></table></body></html>
+""",
 }
 
 
@@ -93,6 +141,7 @@ def send_mail(
     message=None,
     from_email=None,
     recipient_list=None,
+    cc=None,
     bcc=None,
     fail_silently=False,
     auth_user=None,
@@ -129,9 +178,10 @@ def send_mail(
     if html_message:
         if not html_footer:
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
+                "domain": domain,
                 "logo_url": f"{urljoin(root, 'static/images/alt_logo.jpg')}"
                 if site.domain == "portal.pmscienceprizes.org.nz"
-                else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}",
             }
         html_message = f"<html><body>{html_message}\n{html_footer}"
 
@@ -162,7 +212,8 @@ def send_mail(
         message,
         from_email,
         recipient_list,
-        bcc=bcc,
+        cc=cc or None,
+        bcc=bcc or None,
         headers=headers,
     )
     if not reply_to and invitation and (inviter := invitation.inviter):

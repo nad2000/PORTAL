@@ -1979,7 +1979,16 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("summary")
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
-                    if not a.file:
+                    if not (
+                        a.file
+                        or (
+                            has_required_documents
+                            and models.ApplicationDocument.where(
+                                Q(document_type__role="AF")
+                                | Q(required_document__document_type__role="AF")
+                            ).exists()
+                        )
+                    ):
                         messages.error(
                             self.request,
                             _(
@@ -2044,6 +2053,11 @@ class ApplicationView(LoginRequiredMixin):
                     messages.info(
                         self.request,
                         _(
+                            "Your application has been successfully submitted. "
+                            "The Research Office will be in touch if there is anything more needed. Good luck."
+                        )
+                        if settings.SITE_ID == 4
+                        else _(
                             "Your application has been successfully submitted. "
                             "The Prize secretariat will be in touch if there is anything more needed. Good luck."
                         ),
