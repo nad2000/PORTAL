@@ -1219,7 +1219,6 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
             {
                 "title": "Choose target organisation",
                 "objects": queryset,
-                "orgs": queryset,
             },
         )
 
