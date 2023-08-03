@@ -379,7 +379,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               <div class="tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %} disabled{% endif %}"
                    {% if is_ro %}
                    disabled
-                   data-title="{% trans 'You are a R.O. of this round and cannot apply for it' %}"
+                   data-title="{% trans 'You are a research officer of this round and cannot apply for it' %}"
                    {% elif is_panellist %}
                    disabled
                    data-title="{% trans 'You are a panellist of this round and cannot apply for it' %}"

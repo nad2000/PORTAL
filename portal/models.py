@@ -3105,8 +3105,6 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
             self.referee.testify(request=request, by=by, *args, **kwargs)
             if description := kwargs.get("description"):
                 self.referee._change_reason = description
-            if not self.user and by:
-                self.uesr = by
             self.referee.save()
 
     @classmethod

@@ -12,6 +12,7 @@ from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
 from django.db.models import F, Q
+from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -23,6 +24,8 @@ from import_export.admin import ImportExportMixin, ImportExportModelAdmin
 from import_export.resources import ModelResource
 from modeltranslation.admin import TranslationAdmin
 from simple_history.admin import SimpleHistoryAdmin
+from simple_history.models import HistoricalChanges
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from . import models
 
@@ -1165,40 +1168,81 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
     @admin.action(description="Merge Organisations")
     def merge_orgs(self, request, queryset):
         if "do_action" in request.POST:
+            u = request.user
             deleted = []
             errors = []
             if target_id := request.POST.get("target"):
                 target = models.Organisation.get(target_id)
-
                 orgs = list(queryset.filter(~Q(id=target_id)))
-                for o in orgs:
-                    try:
-                        with transaction.atomic():
-                            models.Affiliation.where(org=o).update(org=target)
-                            models.AcademicRecord.where(awarded_by=o).update(awarded_by=target)
-                            models.Recognition.where(awarded_by=o).update(awarded_by=target)
+                org_ids = [o.id for o in orgs]
 
-                            if org_applications := list(
-                                models.Application.where(
-                                    ~Q(number__icontains=f"-{target.code}-"), org=o
-                                ).order_by("number")
-                            ):
-                                for a in org_applications:
-                                    models.ApplicationNumber.get_or_create(
-                                        application=a, number=a.number
+                try:
+                    with transaction.atomic():
+                        org_applications = list(
+                            models.Application.where(
+                                ~Q(number__icontains=f"-{target.code}-"), org_id__in=org_ids
+                            ).order_by("number")
+                        )
+
+                        if org_applications:
+                            previous_application_numbers = [
+                                models.ApplicationNumber(application=a, number=a.number)
+                                for a in org_applications
+                            ]
+                            for r in previous_application_numbers:
+                                r._change_reason = (
+                                    f"Organisation {a.org} merged into {target} by {u}"
+                                )
+                            for a in org_applications:
+                                a.org = target
+                                a.number = models.default_application_number(a)
+                                a._change_reason = (
+                                    f"Organisation {a.org} merged into {target} by {u}"
+                                )
+                                # a.save(update_fields=["org", "number"])
+                            bulk_update_with_history(
+                                org_applications, models.Application, ["org", "number"], default_user=u
+                            )
+                            bulk_create_with_history(
+                                previous_application_numbers,
+                                models.ApplicationNumber,
+                                default_user=u,
+                                ignore_conflicts=True,
+                            )
+
+                        for model, field, objects in (
+                            (
+                                model,
+                                field,
+                                [
+                                    setattr(
+                                        o,
+                                        "_change_reason",
+                                        f"Organisation {getattr(o, field)} merged into {target} by {u}",
                                     )
-                                    a.org = target
-                                    a.number = models.default_application_number(a)
-                                    a.save(update_fields=["org", "number"])
+                                    or setattr(o, field, target)
+                                    or o
+                                    for o in model.where(**{f"{field}__in": org_ids})
+                                ],
+                            )
+                            for (model, field) in (
+                                (rel.related_model, rel.remote_field.name)
+                                for rel in get_candidate_relations_to_delete(
+                                    models.Organisation._meta
+                                )
+                                if not issubclass(rel.related_model, HistoricalChanges)
+                            )
+                        ):
+                            bulk_update_with_history(objects, model, [field], default_user=u)
 
-                            models.Invitation.where(org=o).update(org=target)
-                            models.Nomination.where(org=o).update(org=target)
-                            models.ResearchOffice.where(org=o).update(org=target)
-
+                        for o in orgs:
+                            o._change_reason = (
+                                f"Organisation {o.org} merged into {target} by {u}"
+                            )
                             o.delete()
-                            deleted.append(f"{o.code}: {o.name}")
-                    except Exception as ex:
-                        errors.append(ex)
+                        deleted = [f"{o.code}: {o.name}" for o in orgs]
+                except Exception as ex:
+                    errors.append(ex)
 
             if deleted:
                 messages.success(
