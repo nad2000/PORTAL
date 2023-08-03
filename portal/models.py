@@ -3303,7 +3303,7 @@ class Round(Model):
     closes_on = DateTimeField(_("closes on"), null=True, blank=True)
 
     guidelines = CharField(_("guideline link URL"), max_length=120, null=True, blank=True)
-    description = TextField(_("short description"), max_length=10000, null=True, blank=True)
+    description = TextField(_("short description"), null=True, blank=True)
 
     has_title = BooleanField(_("can have a title"), default=False)
 
