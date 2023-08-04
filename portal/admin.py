@@ -23,6 +23,7 @@ from fsm_admin.mixins import FSMTransitionMixin
 from import_export.admin import ImportExportMixin, ImportExportModelAdmin
 from import_export.resources import ModelResource
 from modeltranslation.admin import TranslationAdmin
+from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
@@ -1179,8 +1180,9 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
                 try:
                     with transaction.atomic():
                         org_applications = list(
-                            models.Application.where(
-                                ~Q(number__icontains=f"-{target.code}-"), org_id__in=org_ids
+                            models.Application.all_objects.filter(
+                                ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
+                                org_id__in=org_ids,
                             ).order_by("number")
                         )
 
@@ -1191,7 +1193,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
                             ]
                             for r in previous_application_numbers:
                                 r._change_reason = (
-                                    f"Organisation {a.org} merged into {target} by {u}"
+                                    f"Organisation {r.application.org} merged into {target} by {u}"
                                 )
                             for a in org_applications:
                                 a.org = target
@@ -1201,13 +1203,18 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
                                 )
                                 # a.save(update_fields=["org", "number"])
                             bulk_update_with_history(
-                                org_applications, models.Application, ["org", "number"], default_user=u
+                                org_applications,
+                                models.Application,
+                                ["org", "number"],
+                                default_user=u,
+                                manager=models.Application.all_objects,
                             )
                             bulk_create_with_history(
                                 previous_application_numbers,
                                 models.ApplicationNumber,
                                 default_user=u,
                                 ignore_conflicts=True,
+                                manager=models.Application.all_objects,
                             )
 
                         for model, field, objects in (
@@ -1222,7 +1229,11 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
                                     )
                                     or setattr(o, field, target)
                                     or o
-                                    for o in model.where(**{f"{field}__in": org_ids})
+                                    for o in (
+                                        model.all_objects.filter(**{f"{field}__in": org_ids})
+                                        if hasattr(model, "all_objects")
+                                        else model.where(**{f"{field}__in": org_ids})
+                                    )
                                 ],
                             )
                             for (model, field) in (
@@ -1233,27 +1244,30 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
                                 if not issubclass(rel.related_model, HistoricalChanges)
                             )
                         ):
-                            bulk_update_with_history(objects, model, [field], default_user=u)
+                            bulk_update_with_history(
+                                objects,
+                                model,
+                                [field],
+                                default_user=u,
+                                manager=getattr(model, "all_objects", model._default_manager),
+                            )
 
                         for o in orgs:
-                            o._change_reason = (
-                                f"Organisation {o.org} merged into {target} by {u}"
-                            )
+                            o._change_reason = f"Organisation {o} merged into {target} by {u}"
                             o.delete()
                         deleted = [f"{o.code}: {o.name}" for o in orgs]
                 except Exception as ex:
+                    capture_exception(ex)
                     errors.append(ex)
 
             if deleted:
                 messages.success(
-                    request, f'{len(deleted)} users merged and deleted: {", ".join(deleted)}'
+                    request,
+                    f'{len(deleted)} organisation(s) merged and deleted: {", ".join(deleted)}',
                 )
             if errors:
-                messages.error(
-                    request,
-                    "Failed to merge all organisations:<ul>%s</ul>"
-                    % "".join(f"<li>{e}</li>" for e in errors),
-                )
+                for e in errors:
+                    messages.error(request, e)
 
             return
 

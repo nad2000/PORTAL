@@ -1,5 +1,4 @@
 import base64
-import time
 import hashlib
 import io
 import os
@@ -357,6 +356,7 @@ class RoundSiteManager(Manager):
 class Subscription(Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     email = EmailField(max_length=120)
     name = CharField(max_length=120, null=True, blank=True)
@@ -1014,6 +1014,8 @@ class AcademicRecord(Model):
     research_topic = CharField(_("research topic"), max_length=80, null=True, blank=True)
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
 
+    history = HistoricalRecords(table_name="academic_record_history")
+
     class Meta:
         db_table = "academic_record"
 
@@ -1038,6 +1040,8 @@ class Recognition(Model):
     )
     currency = CharField(_("Currency code"), null=True, blank=True, max_length=3)
     put_code = PositiveIntegerField(null=True, blank=True, editable=False)
+
+    history = HistoricalRecords(table_name="recognition_history")
 
     def __str__(self):
         return self.award.name
@@ -1069,6 +1073,7 @@ class Recognition(Model):
 class ConvertedFile(HelperMixin, Base):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     file = PrivateFileField(upload_to="converted/%Y/%m/%d")
 
@@ -1276,6 +1281,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # objects = RoundSiteManager()
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     number = CharField(
         _("number"), max_length=24, null=True, blank=True, editable=False, unique=True
@@ -2036,6 +2042,7 @@ class ApplicationNumber(Model):
         _("number"), max_length=24, null=True, blank=True, editable=False, unique=True
     )
     is_active = BooleanField(default=False)
+    history = HistoricalRecords(table_name="application_number_history")
 
     class Meta:
         db_table = "application_number"
@@ -2078,6 +2085,7 @@ class Member(PersonMixin, MemberMixin, Model):
     """Application team member."""
 
     objects = ApplicationSiteManager()
+    all_objects = Manager()
 
     application = ForeignKey(Application, on_delete=CASCADE, related_name="members")
     email = EmailField(max_length=120)
@@ -2217,6 +2225,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     """Application referee."""
 
     objects = ApplicationSiteManager()
+    all_objects = Manager()
 
     application = ForeignKey(Application, on_delete=CASCADE, related_name="referees")
     email = EmailField(max_length=120)
@@ -2444,6 +2453,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     status = StateField(null=True, blank=True, default=PANELLIST_STATUS.new)
     round = ForeignKey("Round", editable=True, on_delete=DO_NOTHING, related_name="panellists")
@@ -2623,6 +2633,7 @@ class Invitation(InvitationMixin, Model):
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
     url = CharField(max_length=200, null=True, blank=True)
@@ -3059,6 +3070,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     referee = OneToOneField(
         Referee, related_name="testimonial", on_delete=CASCADE, verbose_name=_("referee")
@@ -3213,6 +3225,7 @@ class Scheme(Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     fund = ForeignKey(Fund, on_delete=SET_NULL, blank=True, null=True, db_column="fund")
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     title = CharField(_("title"), max_length=100)
     # groups = ManyToManyField(
@@ -3296,6 +3309,7 @@ def round_template_path(instance, filename):
 class Round(Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
@@ -4371,6 +4385,7 @@ class NominationMixin:
 class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     round = ForeignKey(
         Round, on_delete=CASCADE, related_name="nominations", verbose_name=_("round")
@@ -4662,6 +4677,7 @@ class MailLog(Model):
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
+    all_objects = Manager()
 
     sent_at = DateTimeField(auto_now_add=True)
     user = ForeignKey(User, null=True, on_delete=SET_NULL)
@@ -4682,6 +4698,7 @@ class MailLog(Model):
 
 class ScoreSheet(Model):
     objects = RoundSiteManager()
+    all_objects = Manager()
 
     panellist = ForeignKey(Panellist, null=True, on_delete=SET_NULL)
     round = ForeignKey(Round, editable=False, on_delete=CASCADE, related_name="score_sheets")
