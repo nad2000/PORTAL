@@ -198,22 +198,31 @@ def fsm_log(func=None, allow_inline=False):
     @wraps(func)
     def wrapped(instance, *args, **kwargs):
         by = kwargs.get("by")
-        if (
-            not by
-            and (c := simple_history.models.HistoricalRecords.context)
-            and (r := getattr(c, "request", None))
-            and (u := r.user)
-        ):
+        request = kwargs.get("request")
+        context = simple_history.models.HistoricalRecords.context
+        if not request:
+            request = getattr(context, "request", None)
+        if not by and request and (u := request.user):
             by = u
         with FSMLogDescriptor(instance, "by", by):
             with FSMLogDescriptor(instance, "description") as descriptor:
-                try:
-                    description = kwargs["description"]
-                except KeyError:
+                description = (
+                    kwargs.get("description")
+                    or (request and request.POST.get("description"))
+                    or descriptor
+                )
+                if description:
+                    description = description.strip()
+                    descriptor.set(description)
+                    if "description" not in kwargs:
+                        kwargs["description"] = description
+                else:
+                    description = descriptor
                     if allow_inline:
                         kwargs["description"] = descriptor
-                    return func(instance, *args, **kwargs)
-                descriptor.set(description)
+
+                if description and not getattr(instance, "_change_reason", None):
+                    instance._change_reason = description
                 return func(instance, *args, **kwargs)
 
     return wrapped
@@ -1091,6 +1100,9 @@ APPLICATION_STATUS = Choices(
     ("draft", _("draft")),
     ("tac_accepted", _("TAC accepted")),
     ("submitted", _("submitted")),
+    ("cancelled", _("cancelled")),
+    ("withdrawn", _("withdrawn")),
+    ("approved", _("approved")),
 )
 
 
@@ -1709,9 +1721,67 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
     @fsm_log
+    @transition(field=state, source=["submitted"], target="approved")
+    def approve(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = (
+            kwargs.get("reason")
+            or kwargs.get("resolution")
+            or (description and description.strip())
+        )
+        if not by and request:
+            by = request.user
+        # approved by the R.O.
+        recipients = [self.submitted_by, *self.members.all()]
+        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        if ResearchOffice.where(user=by, org=self.org).exists():
+            if not resolution:
+                resolution = f'The Research Office approved has apprved the application "{self}"'
+            subject = f'The Research Office approved has apprved your application "{self}"'
+        else:
+            if not resolution:
+                resolution = f'The application "{self}" was approved by {by.full_email_address}.'
+            subject = f'The application "{self}" was APPROVED'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        params = {
+            "user_display": ", ".join(r.full_name for r in recipients),
+            "number": self.number,
+            "title": self.title or self.round.title,
+            "url": url,
+            "resolution": resolution,
+        }
+        send_mail(
+            subject,
+            (
+                "Kia ora %(user_display)s\n\n"
+                'Your application "%(number)s: %(title)s" was approved: %(url)s.\n\n'
+                "Resolution:\n"
+                "===========\n\n%(resolution)s\n\n"
+            )
+            % params,
+            html_message=(
+                "<p>Kia ora %(user_display)s</p>"
+                '<p>Your application <a href="%(url)s">%(number)s: %(title)s</a> was approved.</p>'
+                "<h3>Resolution</h3>\n"
+                "<pre>%(resolution)s</pre>\n\n"
+            )
+            % params,
+            recipient_list=[r.full_email_address for r in recipients],
+            fail_silently=False,
+            request=request,
+            reply_to=settings.DEFAULT_FROM_EMAIL,
+        )
+        messages.success(
+            request,
+            "Successfully sent notificatio to %s"
+            % ", ".join(u.full_name_with_email for u in recipients),
+        )
+
+    @fsm_log
     @transition(field=state, source=["submitted"], target="draft")
     def request_resubmission(self, request=None, *args, **kwargs):
-        resolution = kwargs.get("reason") or kwargs.get("resolution")
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or kwargs.get("description")
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
         params = {
@@ -1732,7 +1802,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             % params,
             html_message=__(
                 "<p>Kia ora %(user_display)s</p>"
-                '<p>Please review your application <a href="%(url)s">%(number)s: "%(title)s</a></p>'
+                '<p>Please review your application <a href="%(url)s">%(number)s: %(title)s</a></p>'
                 "<h3>Resolution</h3>\n"
                 "<pre>%(resolution)s</pre>\n\n"
             )

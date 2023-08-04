@@ -1,11 +1,10 @@
 import os
 
 import modeltranslation
+from django.utils.html import html_safe
 from admin_ordering.admin import OrderableAdmin
 from allauth.socialaccount.admin import SocialAccountAdmin, SocialTokenAdmin
 from allauth.socialaccount.models import SocialAccount, SocialToken
-from dal import autocomplete
-from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.flatpages.admin import FlatPageAdmin
@@ -33,6 +32,23 @@ from . import models
 admin.site.site_url = "/start"
 admin.site.site_header = _("Portal Administration")
 admin.site.site_title = _("Portal Administration")
+
+
+@html_safe
+class JSPath:
+    def __str__(self):
+        return (
+            '<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" '
+            'integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" '
+            'crossorigin="anonymous"></script>'
+        )
+
+
+class FSMTransitionMixin(FSMTransitionMixin):
+    class Media:
+        css = {"all": ("//code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css",)}
+        # js = ("//code.jquery.com/ui/1.10.4/jquery-ui.js",)
+        js = (JSPath(),)
 
 
 class StateLogInline(StateLogInline):

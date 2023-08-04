@@ -1,31 +1,42 @@
-{% extends "fsm_admin/change_form.html" %}
-{% block submit_buttons_top %}
-    {{ block.super }}
-    {% if original and original.can_export_to_pdf %}
-      {# Only show if changing #}
-        <div class="submit-row">
-          <a
-             href="{% url 'application-export' original.pk %}"
-             target="_blank"
-             title="Export the application into a consolidated PDF file"
-          >
-            Export
-          </a>
-        </div>
-    {% endif %}
+{% extends 'fsm_admin/change_form.html' %}
+{% load fsm_admin %}
+{% block form_top %}
+<input type="hidden" id="id_button_name">
 {% endblock %}
-{% block submit_buttons_bottom %}
-    {% if original and original.can_export_to_pdf %}
-      {# Only show if changing #}
-        <div class="submit-row">
-          <a
-             href="{% url 'application-export' original.pk %}"
-             target="_blank"
-             title="Export the application into a consolidated PDF file"
-          >
-            Export
-          </a>
-        </div>
-    {% endif %}
+{% block after_field_sets %}
     {{ block.super }}
+<script>
+  django.jQuery(document).ready(function(){
+      // if (!$) {$ = django.jQuery;}
+      django.jQuery('<div id="dialg" style="display: none"><textarea cols="26" rows="10" name="description" id="id_description"></textarea></div>').dialog({
+          autoOpen: false,
+        appendTo: "#{{ opts.model_name }}_form",
+        buttons: [
+          {
+            text: "Cancel",
+            icon: "ui-icon-cancel",
+            click: function() {django.jQuery(this).dialog("close");}
+          },
+          {
+            text: "Commit",
+            icon: "ui-icon-check",
+            click: function() {
+              django.jQuery(this).dialog("close");
+              // django.jQuery( "#id_description" ).val(django.jQuery("#id_resolution").val());
+              // django.jQuery("#id_description").closest("form").submit();
+              django.jQuery(this).closest("form").submit();
+            }
+          },
+          ],
+          title: "Resolution",
+          position: {
+            my: "left center",
+            at: "left center"
+          }
+      });
+      django.jQuery( "#opener" ).click(function() {
+          django.jQuery( "#dialg" ).dialog( "open" );
+      });
+    });
+</script>
 {% endblock %}
