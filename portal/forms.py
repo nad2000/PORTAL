@@ -851,14 +851,15 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm)
         email = cleaned_data.get("email")
         if not email:
             raise forms.ValidationError(_("Team member email address is mandatory"))
-        q = application.members.filter(email=email)
-        if member:
-            q = q.filter(~models.Q(id=member.id))
-        if q.exists():
-            raise forms.ValidationError(
-                _("Team member with the email address %(email)s was alrady added"),
-                params={"email": email},
-            )
+        if application and application.pk:
+            q = application.members.filter(email=email)
+            if member:
+                q = q.filter(~models.Q(id=member.id))
+            if q.exists():
+                raise forms.ValidationError(
+                    _("Team member with the email address %(email)s was alrady added"),
+                    params={"email": email},
+                )
         return cleaned_data
 
     class Meta:
@@ -936,14 +937,15 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm
         email = cleaned_data.get("email")
         if not email:
             raise forms.ValidationError(_("Referee email address is mandatory"))
-        q = application.referees.filter(email=email)
-        if referee:
-            q = q.filter(~models.Q(id=referee.id))
-        if q.exists():
-            raise forms.ValidationError(
-                _("Referee with the email address %(email)s was alrady added"),
-                params={"email": email},
-            )
+        if application and application.pk:
+            q = application.referees.filter(email=email)
+            if referee:
+                q = q.filter(~models.Q(id=referee.id))
+            if q.exists():
+                raise forms.ValidationError(
+                    _("Referee with the email address %(email)s was alrady added"),
+                    params={"email": email},
+                )
         return cleaned_data
 
     class Meta:
