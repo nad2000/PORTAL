@@ -4,192 +4,269 @@
 {% block sidebar %}{% include 'sidebar.html' with category="applications" %}{% endblock sidebar %}
 
 {% block breadcrumbs %}
-  {{ block.super }}
-  {% breadcrumb "Applications" "applications" %}
-  {% if object.state == "draft" or object.state == "new" %}
-    {% breadcrumb "Draft" "applications-draft" %}
-  {% elif object.state == "submitted" %}
-    {% breadcrumb "Submitted" "applications-submitted" %}
-  {% endif %}
-  {% breadcrumb object.number "application" object.pk %}
+{{ block.super }}
+{% breadcrumb "Applications" "applications" %}
+{% if object.state == "draft" or object.state == "new" %}
+{% breadcrumb "Draft" "applications-draft" %}
+{% elif object.state == "submitted" %}
+{% breadcrumb "Submitted" "applications-submitted" %}
+{% endif %}
+{% breadcrumb object.number "application" object.pk %}
 {% endblock %}
 
 {% if form %}
-  {% block css %}
-    {{ form.media.css }}
-    {{ block.super }}
-  {% endblock %}
+{% block css %}
+{{ form.media.css }}
+{{ block.super }}
+{% endblock %}
 {% endif %}
 
 {% block content %}
 
-  {% if form %}{% crispy form %}{% endif %}
 
-  {% with a=object u=request.user r=object.round %}
 
-    <div class="table-responsive">
-      {% include 'snippets/application_detail_table.html' %}
-    </div>
+{% if form %}{% crispy form %}{% endif %}
 
-    <div class="buttonHolder mb-5 mt-3 float-right">
+{% with a=object u=request.user r=object.round %}
 
-        {% if can_reenter %}
-          <a href="{% url 'application-create' round=current_round.id %}?previous={{a.id}}"
-            class="btn btn-primary"
-            data-toggle="tooltip"
-            data-title="{% trans 'You can re-enter the current round with the application as a new application.' %}"
-            >{% trans 'Re-enter' %}
-          </a>
-        {% else %}
-          <div class="tooltip-wrapper{% if a.state == 'submitted'%} disabled{% endif %}"
-              {% if was_submitted %}
-                disabled
-              data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
-            {% elif not is_owner %}
-                disabled
-              data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
-            {% elif not a.round.is_open %}
-                disabled
-              data-title="{% trans 'The application period has closed. You can no longer modify this application.' %}"
-            {% else %}
-                data-title="{% trans 'Modify your application and continue application process' %}"
-              {% endif %}
-                >
-                <a href="{% url update_view_name pk=a.pk %}"
-                    class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
-                    >{% trans update_button_name %}
-                </a>
-          </div>
+<div class="table-responsive">
+  {% include 'snippets/application_detail_table.html' %}
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="buttonHolder mb-5 mt-3 float-right">
+
+    {% if can_reenter %}
+    <a href="{% url 'application-create' round=current_round.id %}?previous={{a.id}}"
+       class="btn btn-primary"
+       data-toggle="tooltip"
+       data-title="{% trans 'You can re-enter the current round with the application as a new application.' %}"
+       >{% trans 'Re-enter' %}
+    </a>
+      {% else %}
+      <div class="tooltip-wrapper{% if a.state == 'submitted'%} disabled{% endif %}"
+           {% if was_submitted %}
+           disabled
+           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
+           {% elif not is_owner %}
+           disabled
+           data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
+           {% elif not a.round.is_open %}
+           disabled
+           data-title="{% trans 'The application period has closed. You can no longer modify this application.' %}"
+           {% else %}
+           data-title="{% trans 'Modify your application and continue application process' %}"
+           {% endif %}
+           >
+           <a href="{% url update_view_name pk=a.pk %}"
+              class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
+              >{% trans update_button_name %}
+           </a>
+      </div>
         {% endif %}
 
 
         {% if export_button_view_name %}
-          <div class="tooltip-wrapper{% if show_basic_details %} disabled{% endif %}"
-               {% if show_basic_details %}
-                 disabled
-               data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
+        <div class="tooltip-wrapper{% if show_basic_details %} disabled{% endif %}"
+             {% if show_basic_details %}
+             disabled
+             data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
              {% else %}
-                 data-title="{% trans 'Export the application into a consolidated PDF file' %}"
-               {% endif %}
-                 >
-                 <a class="btn btn-primary{% if show_basic_details %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}">{% trans 'Export' %}</a>
-          </div>
+             data-title="{% trans 'Export the application into a consolidated PDF file' %}"
+             {% endif %}
+             >
+             <a class="btn btn-primary{% if show_basic_details %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}">{% trans 'Export' %}</a>
+        </div>
         {% endif %}
 
         {% if testimonial or referee   %}
 
 
-          {% if testimonial.referee.survey_token_id or referee.survey_token_id %}
-          <div class="tooltip-wrapper{% if testimonial.state == "submitted" %} disabled{% endif %}"
-               {% if testimonial.state == "submitted" %}
-                 disabled
-               data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
+        {% if testimonial.referee.survey_token_id or referee.survey_token_id %}
+        <div class="tooltip-wrapper{% if testimonial.state == "submitted" %} disabled{% endif %}"
+             {% if testimonial.state == "submitted" %}
+             disabled
+             data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
              {% else %}
-                 data-title="{% trans 'Update and submit the testimonial' %}"
-               {% endif %}
-                 >
-                 <a class="btn btn-outline-primary{% if testimonial.state == "submitted" %} disabled{% endif %}"
-                  href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
-                     {% trans 'Complete' %}
-                 <strong>{% trans 'Survey' %}</strong></a>
-          </div>
+             data-title="{% trans 'Update and submit the testimonial' %}"
+             {% endif %}
+             >
+             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" %} disabled{% endif %}"
+                href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
+               {% trans 'Complete' %}
+               <strong>{% trans 'Survey' %}</strong></a>
+        </div>
 
         {% else %}
 
-          <div class="tooltip-wrapper{% if testimonial.state == "submitted" %} disabled{% endif %}"
-               {% if testimonial.state == "submitted" %}
-                 disabled
-               data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
+        <div class="tooltip-wrapper{% if testimonial.state == "submitted" %} disabled{% endif %}"
+             {% if testimonial.state == "submitted" %}
+             disabled
+             data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
              {% else %}
-                 data-title="{% trans 'Update and submit the testimonial' %}"
+             data-title="{% trans 'Update and submit the testimonial' %}"
+             {% endif %}
+             >
+             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" %} disabled{% endif %}"
+                href="{% if testimonial %}{% url 'testimonial-update' pk=testimonial.pk %}{% else %}{% url 'application-review-create' application=referee.application_id %}{% endif %}">
+               {% if testimonial and testimonial.file %}
+               {% trans 'Update' %}
+               {% else %}
+               {% trans 'Submit' %}
                {% endif %}
-                 >
-                 <a class="btn btn-outline-primary{% if testimonial.state == "submitted" %} disabled{% endif %}"
-                  href="{% if testimonial %}{% url 'testimonial-update' pk=testimonial.pk %}{% else %}{% url 'application-review-create' application=referee.application_id %}{% endif %}">
-                   {% if testimonial and testimonial.file %}
-                     {% trans 'Update' %}
-                  {% else %}
-                     {% trans 'Submit' %}
-                  {% endif %}
-                 <strong>{% trans 'Testimonial' %}</strong></a>
-          </div>
+               <strong>{% trans 'Testimonial' %}</strong></a>
+        </div>
 
         {% endif %}
         {% endif %}
 
         {% if is_panellist %}
 
-          <div class="tooltip-wrapper{% if has_coi or evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
-               {% if has_coi %}
-                 disabled
-               data-title="{% trans 'You have not submitted the statement of conflict of interest.' %}"
+        <div class="tooltip-wrapper{% if has_coi or evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
+             {% if has_coi %}
+             disabled
+             data-title="{% trans 'You have not submitted the statement of conflict of interest.' %}"
              {% elif evaluation.state == 'submitted' %}
-                 disabled
-               data-title="{% trans 'The evaluation has been already submitted and cannot be updated' %}"
+             disabled
+             data-title="{% trans 'The evaluation has been already submitted and cannot be updated' %}"
              {% elif not was_submitted %}
-                 disabled
-               data-title="{% trans 'The application has not been submitted yet' %}"
+             disabled
+             data-title="{% trans 'The application has not been submitted yet' %}"
              {% else %}
-                 data-title="{% trans 'Modify your evaluation of the application' %}"
-               {% endif %}
-                 >
-                 <a
-                     {% if r.has_online_scoring %}
-                       {% if evaluation %}
-                       href="{% url 'application-evaluation' pk=a.pk %}"
-                     {% elif not evaluation and not has_coi %}
-                         href="{% url 'application-evaluation-create' application=a.pk %}"
-                       {% else %}
-                           {#href="{% url 'coi-create' application_id=a.pk %}"#}
-                           href="{% url 'round-coi' round=a.round_id %}"
-                         {% endif %}
-                         {% else %}
-                             {% if evaluation or not coi %}
-                             href="{% url 'score-sheet' round=a.round_id %}"
-                           {% else %}
-                               href="{% url 'round-coi' round=a.round_id %}"
-                             {% endif %}
-                             {% endif %}
-                               class="btn btn-primary{% if has_coi or evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
-                               > {% trans "Evaluate Application" %} </a>
-          </div>
-
-            <div class="tooltip-wrapper{% if evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
-                 {% if evaluation.state == 'submitted' %}
-                   disabled
-                 data-title="{% trans 'The evaluation has been already submitted and the statement of the conflict of interst cannot be changed' %}"
-               {% elif not was_submitted %}
-                   disabled
-                 data-title="{% trans 'The application has not been submitted yet' %}"
-               {% else %}
-                   data-title="{% trans 'Submit the statement of the conflict of interest' %}"
+             data-title="{% trans 'Modify your evaluation of the application' %}"
+             {% endif %}
+             >
+             <a
+                 {% if r.has_online_scoring %}
+                 {% if evaluation %}
+                 href="{% url 'application-evaluation' pk=a.pk %}"
+                 {% elif not evaluation and not has_coi %}
+                 href="{% url 'application-evaluation-create' application=a.pk %}"
+                 {% else %}
+                 {#href="{% url 'coi-create' application_id=a.pk %}"#}
+                 href="{% url 'round-coi' round=a.round_id %}"
                  {% endif %}
-                   >
-                   <a
-                       {% if r.has_online_scoring %}
-                         href="{% url 'round-application-review' round_id=a.round_id application_id=a.pk %}"
-                       {% else %}
-                           href="{% url 'round-coi' round=a.round_id %}"
-                         {% endif %}
-                           class="btn btn-primary{% if evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
-                           > {% trans "Conflict of Interest" %} </a>
-            </div>
+                 {% else %}
+                 {% if evaluation or not coi %}
+                 href="{% url 'score-sheet' round=a.round_id %}"
+                 {% else %}
+                 href="{% url 'round-coi' round=a.round_id %}"
+                 {% endif %}
+                 {% endif %}
+                 class="btn btn-primary{% if has_coi or evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
+                 > {% trans "Evaluate Application" %} </a>
+        </div>
+
+          <div class="tooltip-wrapper{% if evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
+               {% if evaluation.state == 'submitted' %}
+               disabled
+               data-title="{% trans 'The evaluation has been already submitted and the statement of the conflict of interst cannot be changed' %}"
+               {% elif not was_submitted %}
+               disabled
+               data-title="{% trans 'The application has not been submitted yet' %}"
+               {% else %}
+               data-title="{% trans 'Submit the statement of the conflict of interest' %}"
+               {% endif %}
+               >
+               <a
+                   {% if r.has_online_scoring %}
+                   href="{% url 'round-application-review' round_id=a.round_id application_id=a.pk %}"
+                   {% else %}
+                   href="{% url 'round-coi' round=a.round_id %}"
+                   {% endif %}
+                   class="btn btn-primary{% if evaluation.state == 'submitted' or not was_submitted %} disabled{% endif %}"
+                   > {% trans "Conflict of Interest" %} </a>
+          </div>
 
             {% endif %}
 
-    </div>
 
-  {% endwith %}
+            {% if is_ro %}
+
+            <div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
+              <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">{% trans 'Resolution' %}</h5>
+                    <!-- button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                      </button -->
+                  </div>
+                  <div class="modal-body">
+
+                    <div id="div_id_postal_address" class="form-group">
+                      <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
+                      <div class="">
+                        <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
+                        <textarea name="resolution" id="id_resolution" cols="49" rows="10"></textarea>
+                      </div>
+                    </div>
+
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-primary">{% trans 'Commit' %}</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <span class="d-inline-block"
+                  tabindex="0"
+                  data-toggle="tooltip"
+                  {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                  {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                  {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                  {% endif %}
+                  >
+                  <button type="button" class="btn btn-outline-danger"
+                                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
+                                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                                                                                                                 {% endif %}>{% trans 'Cancel' %}</button>
+            </span>
+            <span class="d-inline-block"
+                  tabindex="0"
+                  data-toggle="tooltip"
+                  {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                  {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                  {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                  {% endif %}
+                  >
+                  <button type="button" class="btn btn-outline-warning"
+                                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
+                                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                                                                                                                 {% endif %}>{% trans 'Request Resubmission' %}</button>
+            </span>
+            <span class="d-inline-block"
+                  tabindex="0"
+                  data-toggle="tooltip"
+                  {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                  {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                  {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                  {% endif %}
+                  >
+                  <button type="button" class="btn btn-primary"
+                                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
+                                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                                                                                                                 {% endif %}>{% trans 'Approve' %}</button>
+            </span>
+            {% endif %}
+  </div>
+</form>
+
+{% endwith %}
 {% endblock %}
 
 {% block javascript %}
-  {{ block.super }}
-  {% if form %}
-    {{ form.media.js }}
-  {% endif %}
-  <script>
-    $(document).ready(function(){
-          $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
-        });
-  </script>
+{{ block.super }}
+{% if form %}
+{{ form.media.js }}
+{% endif %}
+<script>
+  $(document).ready(function(){
+    $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
+  });
+</script>
 {% endblock javascript %}
+{# vim:set ft=htmldjango: #}

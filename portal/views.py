@@ -63,7 +63,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView as _DetailView
 from django.views.generic import TemplateView
@@ -1313,6 +1313,7 @@ class ApplicationDetail(DetailView):
                 )
         return resp
 
+    @csrf_protect
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         member = self.get_member()
@@ -1330,6 +1331,35 @@ class ApplicationDetail(DetailView):
         elif "turn_down" in request.POST:
             member.opt_out(request)
             member.save()
+
+        elif "cancel" in request.POST:
+            # self.object.cancell(request)
+            # self.object.save()
+            messages.info(
+                self.request,
+                _("The application was cancelled. The applcant(s) were notified."),
+            )
+
+        elif "request_resubmission" in request.POST:
+            # self.object.request_resubmission(request)
+            # self.object.save()
+            messages.info(
+                self.request,
+                _(
+                    "The request to review and resubmit the application was sent to the applcant(s)."
+                ),
+            )
+
+        elif "approve" in request.POST:
+            # self.object.approve(request)
+            # self.object.save()
+            messages.info(
+                self.request,
+                _(
+                    "The application was approved. The applcant(s) and adminstrator(s) were notified."
+                ),
+            )
+
         return redirect(request.path)
 
     def get_context_data(self, **kwargs):
@@ -1624,6 +1654,10 @@ class ApplicationView(LoginRequiredMixin):
             return models.Nomination.get(self.kwargs["nomination"])
 
     def form_valid(self, form):
+        instance = form.instance
+        # if not instance.pk:
+        #     resp = super().form_valid(form)
+
         context = self.get_context_data()
         referees = context["referees"]
         user = self.request.user
@@ -1631,6 +1665,7 @@ class ApplicationView(LoginRequiredMixin):
         url = self.request.path_info
         round = self.round
         has_required_documents = round.required_documents.count() > 0
+        site_id = settings.SITE_ID
 
         try:
             with transaction.atomic():
@@ -1733,7 +1768,7 @@ class ApplicationView(LoginRequiredMixin):
                     referees.save()
                     if (
                         a.file
-                        or settings.SITE_ID == 4
+                        or site_id == 4
                         or (
                             has_required_documents
                             and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
@@ -2032,13 +2067,21 @@ class ApplicationView(LoginRequiredMixin):
 
                     if (
                         a.round.required_referees
-                        and a.referees.filter(status="testified").count()
+                        and a.referees.filter(
+                            ~Q(status__in=["bounced", "opted_out"])
+                            if site_id == 4
+                            else Q(status == "testified")
+                        ).count()
                         < a.round.required_referees
                     ):
                         messages.error(
                             self.request,
-                            _(
-                                "You need to procure reviews of your application from at least %d referees."
+                            (
+                                _("You need to nominate at least %d referee(s).")
+                                if site_id == 4
+                                else _(
+                                    "You need to procure reviews of your application from at least %d referees."
+                                )
                             )
                             % a.round.required_referees,
                         )
@@ -2056,7 +2099,7 @@ class ApplicationView(LoginRequiredMixin):
                             "Your application has been successfully submitted. "
                             "The Research Office will be in touch if there is anything more needed. Good luck."
                         )
-                        if settings.SITE_ID == 4
+                        if site_id == 4
                         else _(
                             "Your application has been successfully submitted. "
                             "The Prize secretariat will be in touch if there is anything more needed. Good luck."

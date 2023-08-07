@@ -212,7 +212,8 @@ def fsm_log(func=None, allow_inline=False):
                     or descriptor
                 )
                 if description:
-                    description = description.strip()
+                    if isinstance(description, str):
+                        description = description.strip()
                     descriptor.set(description)
                     if "description" not in kwargs:
                         kwargs["description"] = description
@@ -1562,6 +1563,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
             or (self.referees.filter(Q(user=user) | Q(email=user.email)).exists())
             or (self.round.panellists.filter(Q(user=user) | Q(email=user.email)).exists())
+            or (self.org.research_offices.filter(user=user).exists())
         )
 
     def get_score_entries(self, user=None, panellist=None):
@@ -1596,6 +1598,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
         round = self.round
+        site_id = settings.SITE_ID
         if round.budget_template and not self.budget:
             raise Exception(
                 _("You must upload a budget spreadsheet to complete your Prize application")
@@ -1639,27 +1642,39 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "Please upload a scan of a document proving your identity."
                 )
             )
-        if self.referees.filter(
-            Q(testified_at__isnull=True)
-            | Q(user__isnull=True)
-            | ~Q(testimonial__state="submitted"),
-            ~Q(status__in=["submitted", "opted_out", "testified"]),
-        ).exists():
-            raise Exception(
-                _(
-                    "Not all nominated referees have responded which prevents your submission. "
-                    "Please either contact your referees, or replace them with one that will respond."
-                )
-            )
 
-        if (
-            round.required_referees
-            and self.referees.filter(status="testified").count() < round.required_referees
-        ):
-            raise Exception(
-                _("You need to procure reviews of your application from at least %d referees.")
-                % round.required_referees
-            )
+        if site_id == 4:
+            if (
+                self.round.required_referees
+                and self.referees.filter(~Q(status__in=["bounced", "opted_out"])).count()
+                < self.round.required_referees
+            ):
+                raise Exception(
+                    (_("You need to nominate at least %d referee(s)."))
+                    % self.round.required_referees,
+                )
+        else:
+            if self.referees.filter(
+                Q(testified_at__isnull=True)
+                | Q(user__isnull=True)
+                | ~Q(testimonial__state="submitted"),
+                ~Q(status__in=["submitted", "opted_out", "testified"]),
+            ).exists():
+                raise Exception(
+                    _(
+                        "Not all nominated referees have responded which prevents your submission. "
+                        "Please either contact your referees, or replace them with one that will respond."
+                    )
+                )
+
+            if (
+                round.required_referees
+                and self.referees.filter(status="testified").count() < round.required_referees
+            ):
+                raise Exception(
+                    _("You need to procure reviews of your application from at least %d referees.")
+                    % round.required_referees
+                )
 
         if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
             raise Exception(
@@ -1670,7 +1685,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if settings.SITE_ID == 4:
+        if site_id == 4:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
             nominator = self.nomination and self.nomination.nominator
             send_mail(
@@ -1721,13 +1736,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
     @fsm_log
-    @transition(field=state, source=["submitted"], target="approved")
+    @transition(field=state, source=["submitted", "approved"], target="approved")
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
-        resolution = (
-            kwargs.get("reason")
-            or kwargs.get("resolution")
-            or (description and description.strip())
-        )
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution:
+            resolution = resolution.strip()
         if not by and request:
             by = request.user
         # approved by the R.O.
@@ -1747,6 +1760,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
+            "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
             "resolution": resolution,
@@ -1755,7 +1769,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             subject,
             (
                 "Kia ora %(user_display)s\n\n"
-                'Your application "%(number)s: %(title)s" was approved: %(url)s.\n\n'
+                'Your application "%(number)s: %(title)s" was approved: %(url)s by %(user)s.\n\n'
                 "Resolution:\n"
                 "===========\n\n%(resolution)s\n\n"
             )
@@ -1779,20 +1793,34 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @fsm_log
-    @transition(field=state, source=["submitted"], target="draft")
-    def request_resubmission(self, request=None, *args, **kwargs):
-        resolution = kwargs.get("reason") or kwargs.get("resolution") or kwargs.get("description")
+    @transition(field=state, source=["submitted", "draft"], target="draft")
+    def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution:
+            resolution = resolution.strip()
+        if ResearchOffice.where(user=by, org=self.org).exists():
+            if not resolution:
+                resolution = f'The Research Office approved has requested reviewing and resubmission of the application "{self}"'
+            subject = f'The Research Office approved has requested reviewing and resubmission of your application "{self}"'
+        else:
+            if not resolution:
+                resolution = f'{by.full_email_address} requested reviewing and resubmission of your application "{self}".'
+            subject = f'The application "{self}" requires your attention'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
+            "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
-            __("Application '%s' Review ") % self,
+            subject,
             __(
                 "Kia ora %(user_display)s\n\n"
                 "Please review your application %(number)s: %(title)s here %(url)s.\n\n"
@@ -1803,6 +1831,60 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             html_message=__(
                 "<p>Kia ora %(user_display)s</p>"
                 '<p>Please review your application <a href="%(url)s">%(number)s: %(title)s</a></p>'
+                "<h3>Resolution</h3>\n"
+                "<pre>%(resolution)s</pre>\n\n"
+            )
+            % params,
+            recipient_list=[r.full_email_address for r in recipients],
+            fail_silently=False,
+            request=request,
+            reply_to=settings.DEFAULT_FROM_EMAIL,
+        )
+        messages.success(
+            request,
+            "Successfully sent notificatio to review applicant to %s"
+            % ", ".join(u.full_name_with_email for u in recipients),
+        )
+
+    @fsm_log
+    @transition(field=state, source=["submitted", "draft"], target="canceled")
+    def cancel(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution:
+            resolution = resolution.strip()
+        if ResearchOffice.where(user=by, org=self.org).exists():
+            if not resolution:
+                resolution = f'The Research Office approved has cancelled the application "{self}"'
+            subject = f'The Research Office approved has cancelled your application "{self}"'
+        else:
+            if not resolution:
+                resolution = f'{by.full_email_address} cancelled your application "{self}".'
+            subject = f'The application "{self}" has been CANCELLED'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        recipients = [self.submitted_by, *self.members.all()]
+        url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        params = {
+            "user_display": ", ".join(r.full_name for r in recipients),
+            "number": self.number,
+            "user": by and by.full_name_with_email,
+            "title": self.title or self.round.title,
+            "url": url,
+            "resolution": resolution or "Requested for reviewing and re-drafting.",
+        }
+        send_mail(
+            subject,
+            __(
+                "Kia ora %(user_display)s\n\n"
+                'Your application "%(number)s: %(title)s" was cancelled: %(url)s by %(user)s.\n\n'
+                "Resolution:\n"
+                "===========\n\n%(resolution)s\n\n"
+            )
+            % params,
+            html_message=__(
+                "<p>Kia ora %(user_display)s</p>"
+                '<p>Your application <a href="%(url)s">%(number)s: %(title)s</a> was cancelled by %(user)s.</p>'
                 "<h3>Resolution</h3>\n"
                 "<pre>%(resolution)s</pre>\n\n"
             )
@@ -1876,6 +1958,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             | Q(referees__user=user)
             | Q(nomination__user=user)
             | Q(submitted_by=user)
+            | Q(org__research_offices__user=user)
         )
         if Panellist.where(user=user).exists():
             f = f | Q(
@@ -2334,14 +2417,15 @@ class Referee(RefereeMixin, PersonMixin, Model):
         if not (application := getattr(self, "application", None)):
             raise ValidationError(_("Missing application"))
         referee_id = getattr(self, "id", None)
-        q = application.referees.filter(email=self.email)
-        if referee_id:
-            q = q.filter(~Q(id=referee_id))
-        if q.exists():
-            raise ValidationError(
-                _("Referee with the email address %(email)s was alrady added"),
-                params={"email": self.email},
-            )
+        if application and application.pk:
+            q = application.referees.filter(email=self.email)
+            if referee_id:
+                q = q.filter(~Q(id=referee_id))
+            if q.exists():
+                raise ValidationError(
+                    _("Referee with the email address %(email)s was alrady added"),
+                    params={"email": self.email},
+                )
 
     @fsm_log
     @transition(field=status, source=["*"], target="accepted")
