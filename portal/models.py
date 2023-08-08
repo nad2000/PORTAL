@@ -203,12 +203,15 @@ def fsm_log(func=None, allow_inline=False):
         if not request:
             request = getattr(context, "request", None)
         if not by and request and (u := request.user):
-            by = u
+            kwargs["by"] = by = u
         with FSMLogDescriptor(instance, "by", by):
             with FSMLogDescriptor(instance, "description") as descriptor:
                 description = (
                     kwargs.get("description")
-                    or (request and request.POST.get("description"))
+                    or (
+                        request
+                        and (request.POST.get("description") or request.POST.get("resolution"))
+                    )
                     or descriptor
                 )
                 if description:
@@ -1739,7 +1742,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @transition(field=state, source=["submitted", "approved"], target="approved")
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
-        if resolution:
+        if resolution and isinstance(description, str):
             resolution = resolution.strip()
         if not by and request:
             by = request.user
@@ -1796,12 +1799,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @transition(field=state, source=["submitted", "draft"], target="draft")
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
-        if resolution:
+        if resolution and isinstance(description, str):
             resolution = resolution.strip()
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:
-                resolution = f'The Research Office approved has requested reviewing and resubmission of the application "{self}"'
-            subject = f'The Research Office approved has requested reviewing and resubmission of your application "{self}"'
+                resolution = (
+                    "The Research Office approved has requested reviewing and "
+                    f'resubmission of the application "{self}"'
+                )
+            subject = (
+                "The Research Office approved has requested reviewing and "
+                f'resubmission of your application "{self}"'
+            )
         else:
             if not resolution:
                 resolution = f'{by.full_email_address} requested reviewing and resubmission of your application "{self}".'
@@ -1847,10 +1856,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @fsm_log
-    @transition(field=state, source=["submitted", "draft"], target="canceled")
+    @transition(field=state, source=["submitted", "draft"], target="cancelled")
     def cancel(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
-        if resolution:
+        if resolution and isinstance(description, str):
             resolution = resolution.strip()
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:

@@ -35,6 +35,7 @@
 
 <form method="post">
   {% csrf_token %}
+  <input type="hidden" name="action" id="id_action">
   <div class="buttonHolder mb-5 mt-3 float-right">
 
     {% if can_reenter %}
@@ -197,15 +198,13 @@
 
                     <div id="div_id_postal_address" class="form-group">
                       <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
-                      <div class="">
-                        <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
-                        <textarea name="resolution" id="id_resolution" cols="49" rows="10"></textarea>
-                      </div>
+                      <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
+                      <textarea autofocus name="resolution" id="id_resolution" rows="10" style="width: 100%;"></textarea>
                     </div>
 
                   </div>
                   <div class="modal-footer">
-                    <button type="button" class="btn btn-primary">{% trans 'Commit' %}</button>
+                    <button type="button" class="btn btn-primary" onclick='$(this).closest("form").submit();'>{% trans 'Commit' %}</button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
                   </div>
                 </div>
@@ -220,38 +219,47 @@
                   {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
                   {% endif %}
                   >
-                  <button type="button" class="btn btn-outline-danger"
-                                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
-                                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                                                                                                                 {% endif %}>{% trans 'Cancel' %}</button>
+                  <input type="submit"
+                         class="btn btn-outline-danger"
+                         {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
+                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                                                                                                 {% endif %} name="cancel" value="{% trans 'Withdraw' %}">
             </span>
-            <span class="d-inline-block"
-                  tabindex="0"
-                  data-toggle="tooltip"
-                  {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
-                  {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
-                  {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
-                  {% endif %}
-                  >
-                  <button type="button" class="btn btn-outline-warning"
-                                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
-                                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                                                                                                                 {% endif %}>{% trans 'Request Resubmission' %}</button>
-            </span>
-            <span class="d-inline-block"
-                  tabindex="0"
-                  data-toggle="tooltip"
-                  {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
-                  {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
-                  {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
-                  {% endif %}
-                  >
-                  <button type="button" class="btn btn-primary"
-                                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
-                                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                                                                                                                 {% endif %}>{% trans 'Approve' %}</button>
-            </span>
-            {% endif %}
+              <span class="d-inline-block"
+                    tabindex="0"
+                    data-toggle="tooltip"
+                    {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                    {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                    {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                    {% endif %}
+                    >
+                    <input type="submit"
+                           class="btn btn-outline-warning"
+                           {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
+                                                                     {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                                                                                                   {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
+              </span>
+                <span class="d-inline-block"
+                      tabindex="0"
+                      data-toggle="tooltip"
+                      {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                      {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                      {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                      {% else %}title="{% trans 'Approve the application' %}"
+                      {% endif %}
+                      >
+                      <input type="submit"
+                             class="btn btn-primary"
+                             {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
+                                                                       {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                                                                                                     {% endif %} name="approve" value="{% trans 'Approve' %}">
+                      <!-- button type="button" class="btn btn-primary"
+                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
+                        {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                        {% endif %}>{% trans 'Approve' %}
+                        </button -->
+                </span>
+                {% endif %}
   </div>
 </form>
 
@@ -266,6 +274,15 @@
 <script>
   $(document).ready(function(){
     $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
+    $('#id_resolution_modal').on('shown.bs.modal', function (e) {
+      $("#id_resolution").focus();
+    });
+    $("input[type='submit']").on("click", function(e) {
+      e.preventDefault();
+      $('#id_action').val($(this).attr("name"));
+      $('#id_resolution_modal').modal({keyboard: true});
+      return false;
+    });
   });
 </script>
 {% endblock javascript %}

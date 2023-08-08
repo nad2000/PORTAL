@@ -59,6 +59,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseRedirect, JsonRe
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -1313,52 +1314,51 @@ class ApplicationDetail(DetailView):
                 )
         return resp
 
-    @csrf_protect
+    @method_decorator(csrf_protect)
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        member = self.get_member()
-        if not member.user:
-            member.user = self.request.user
+        if member := self.get_member():
+            if not member.user:
+                member.user = self.request.user
 
-        if "submit" in request.POST:
-            member.authorize(request)
-            member.save()
-            messages.info(
-                self.request,
-                _("Thank you for accepting the invitation."),
-            )
+            if "submit" in request.POST:
+                member.authorize(request)
+                member.save()
+                messages.info(
+                    self.request,
+                    _("Thank you for accepting the invitation."),
+                )
 
-        elif "turn_down" in request.POST:
-            member.opt_out(request)
-            member.save()
+            elif "turn_down" in request.POST:
+                member.opt_out(request)
+                member.save()
 
-        elif "cancel" in request.POST:
-            # self.object.cancell(request)
-            # self.object.save()
-            messages.info(
-                self.request,
-                _("The application was cancelled. The applcant(s) were notified."),
-            )
-
-        elif "request_resubmission" in request.POST:
-            # self.object.request_resubmission(request)
-            # self.object.save()
-            messages.info(
-                self.request,
-                _(
-                    "The request to review and resubmit the application was sent to the applcant(s)."
-                ),
-            )
-
-        elif "approve" in request.POST:
-            # self.object.approve(request)
-            # self.object.save()
-            messages.info(
-                self.request,
-                _(
-                    "The application was approved. The applcant(s) and adminstrator(s) were notified."
-                ),
-            )
+        elif action := request.POST.get("action"):
+            if action == "cancel":
+                self.object.cancel(request)
+                self.object.save()
+                messages.info(
+                    self.request,
+                    _("The application was cancelled. The applcant(s) were notified."),
+                )
+            elif action == "request_resubmission":
+                self.object.request_resubmission(request)
+                self.object.save()
+                messages.info(
+                    self.request,
+                    _(
+                        "The request to review and resubmit the application was sent to the applcant(s)."
+                    ),
+                )
+            elif action == "approve":
+                self.object.approve(request)
+                self.object.save()
+                messages.info(
+                    self.request,
+                    _(
+                        "The application was approved. The applcant(s) and adminstrator(s) were notified."
+                    ),
+                )
 
         return redirect(request.path)
 
