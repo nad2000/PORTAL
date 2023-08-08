@@ -69,6 +69,12 @@ class StatusColumn(tables.Column):
                 title = _("The application was completed and submitted")
             else:
                 title = _("The invitation was submitted")
+        elif value == "cancelled":
+            css_classes = "fa fa-ban text-danger text-center"
+            title = _("The application was cancelled")
+        elif value == "approved":
+            css_classes = "fa fa-thumbs-up text-success text-center"
+            title = _("The application was approved")
         else:
             if isinstance(record, (models.Testimonial, models.Application)):
                 return mark_safe(

@@ -36,7 +36,9 @@ def portal_context(request):
             application_draft_count = models.Application.user_application_count(
                 u, ["draft", "new"]
             )
-            application_submitted_count = models.Application.user_application_count(u, "submitted")
+            application_submitted_count = models.Application.user_application_count(
+                u, ["submitted", "approved", "cancelled"]
+            )
             # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
             stats = {
                 "three_days_ago": timezone.now() - timedelta(days=3),

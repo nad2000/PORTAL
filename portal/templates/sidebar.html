@@ -44,7 +44,7 @@
                   class="nav-link"
                   id="applications-submitted"
                   href="{% url 'applications-submitted' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
-                  title="{% trans 'Submitted and previous applications' %}"
+                  title="{% if settings.SITE_ID == 4 %}{% trans 'Submitted, approved, and withdrawn applications' %}{% else %}{% trans 'Submitted applications' %}{% endif %}"
                   data-toggle="tooltip"
               >
                   {% trans 'Submitted' %}

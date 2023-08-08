@@ -284,7 +284,7 @@ class StateInPathMixin:
     def state(self):
         if (
             state := self.request.GET.get("state") or self.request.path.split("/")[-1]
-        ) and state in ["new", "draft", "submitted", "archived"]:
+        ) and state in ["new", "draft", "submitted", "archived", "approved", "cancelled"]:
             return state
 
     def get_context_data(self, **kwargs):
@@ -321,7 +321,8 @@ class StateInPathMixin:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
                 else:
-                    queryset = queryset.filter(state=state)
+                    # queryset = queryset.filter(state=state)
+                    queryset = queryset.filter(state__in=["submitted", "approved", "cancelled"])
         return queryset
 
 
