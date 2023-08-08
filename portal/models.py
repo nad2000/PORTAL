@@ -1945,6 +1945,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         q = cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
 
+        if select_related:
+            prefetch_related_objects(q, "round")
+
         if state:
             if isinstance(state, (list, tuple)):
                 q = q.filter(state__in=state)
@@ -1980,8 +1983,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         q = q.filter(f)
         q = q.distinct()
 
-        if select_related:
-            prefetch_related_objects(q, "round")
         return q
 
     @classmethod

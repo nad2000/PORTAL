@@ -2860,7 +2860,9 @@ class ApplicationList(
             # if (filter := context.get("filter")) and filter.is_bound:
             if filter := context.get("filter"):
                 application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
-                application_submitted_count = filter.qs.filter(state="submitted").count()
+                application_submitted_count = filter.qs.filter(
+                    state__in=["submitted", "approved", "cancelled"]
+                ).count()
                 context["application_count"] = (
                     application_draft_count + application_submitted_count
                 )
