@@ -575,6 +575,13 @@ def index(request):
         raise Exception(request.GET["error"])
     user = request.user
     is_ro = models.ResearchOffice.where(user=user).exists()
+    has_ro = models.ResearchOffice.where(
+        Q(
+            org__in=Subquery(
+                models.Affiliation.where(profile__user=user, end_date__isnull=True).values("org_id")
+            )
+        )
+    ).exists()
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if request.user.is_approved:
         if is_ro and site_id != 4:

@@ -423,27 +423,49 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               </div>
               {% endif %}
               {% if round.can_nominate or SITE_ID == 4 %}
-              <div class="tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %} disabled{% endif %}"
-                   {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
-                   disabled
-                     {% if SITE_ID == 4 and not is_ro %}
-                   data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
-                     {% elif is_panellist %}
-                     data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
-                     {% elif round.will_open %}
-                     data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                     {% else %}
-                     data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
-                     {% endif %}
-                   {% else %}
-                     data-title="{% trans 'Nominate other person to apply ...' %}"
-                   {% endif %}
-               >
-                   <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
-                                                                                                                                                                {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
-                                                                                                                                                                <!-- b>{% trans "Apply" %}</b -->
-                   </a>
-              </div>
+                <div class="tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %} disabled{% endif %}"
+                    {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
+                    disabled
+                      {% if SITE_ID == 4 and not is_ro %}
+                    data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
+                      {% elif is_panellist %}
+                      data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
+                      {% elif round.will_open %}
+                      data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                      {% else %}
+                      data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
+                      {% endif %}
+                    {% else %}
+                      data-title="{% trans 'Nominate other person to apply ...' %}"
+                    {% endif %}
+                >
+                    <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
+                                                                                                                                                                  {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
+                                                                                                                                                                  <!-- b>{% trans "Apply" %}</b -->
+                    </a>
+                </div>
+                {% if has_ro and not is_ro %}
+                <div class="tooltip-wrapper"
+                    {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
+                    disabled
+                      {% if SITE_ID == 4 and not is_ro %}
+                     data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}."
+                      {% elif is_panellist %}
+                      data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
+                      {% elif round.will_open %}
+                      data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                      {% else %}
+                      data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
+                      {% endif %}
+                    {% else %}
+                      data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}"
+                    {% endif %}
+                >
+                    <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
+                                                                                                                                                                                               {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
+                    </a>
+                </div>
+                {% endif %}
               {% endif %}
 
               {% if is_panellist %}
