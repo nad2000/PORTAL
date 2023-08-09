@@ -412,11 +412,9 @@ def survey_webhook(request):
                 r.survey_completed_at and r.staus == "testified"
             ):
                 with transaction.atomic():
+                    completed_at = timezone.now() if (not completed_at or completed_at.startswith("1980-01-01")) else timezone.make_aware(parse(completed_at))
                     description = f"Referee survey was completed at {completed_at}"
-                    if completed_at.startswith("1980-01-01"):
-                        r.survey_completed_at = timezone.now()
-                    else:
-                        r.survey_completed_at = timezone.make_aware(parse(completed_at))
+                    r.survey_completed_at = completed_at
                     # r.testify(by=r.user, description=description)
                     # r._change_reason = description
                     for t in models.Testimonial.where(referee=r):

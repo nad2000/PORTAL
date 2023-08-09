@@ -2470,7 +2470,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
                     hashlib.shake_256(
-                        bytes(int(time.time()) if settings.DEBUG else site.id)
+                        bytes(int(time.time()) if settings.DEBUG else self.id)
                     ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
