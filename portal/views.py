@@ -548,13 +548,17 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         if (completed_at := properties.get("completed")) and completed_at != "N":
             with transaction.atomic():
                 description = f"Referee survey was completed at {completed_at}"
-                r.survey_completed_at = timezone.make_aware(parse(completed_at))
+                r.survey_completed_at = timezone.make_aware(parse(completed_at)) or timezone.now()
                 # r.testify(by=r.user, description=description)
                 # r._change_reason = description
-                for t in models.Testimonial.where(referee=r):
+                for t in models.Testimonial.where(~Q(state="submitted"), referee=r):
                     t.submit(by=r.user, description=description)
                     t._change_reason = description
                     t.save()
+                else:
+                    if r.status != "testified":
+                        r.testify(request=request)
+                    r.save()
 
     if r.survey_completed_at:
         messages.warning(
