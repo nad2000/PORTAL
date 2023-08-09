@@ -18,81 +18,97 @@
 {% block content %}
 
   {% if progress %}
-  <div class="progress mb-3">
-    <div
-      class="progress-bar"
-      role="progressbar"
-      style="width: {{ progress }}%"
-    >
+    <div class="progress mb-3">
+      <div
+          class="progress-bar"
+          role="progressbar"
+          style="width: {{ progress }}%"
+          >
+      </div>
     </div>
-  </div>
   {% endif %}
 
   {% block section %}
 
-    <table class="table table-bordered searchable">
-      <tbody>
-        <tr>
-          <th style="width: 21%; min-width: 160px; max-width: 180px;">{% trans "Gender" %}</th>
-          <td>{{ object.get_gender_display|default_if_none:"" }}</td>
-        </tr>
-        <tr>
-          <th>{% trans 'Date of Birth' %}</th>
-          <td>{{ object.date_of_birth|date:"Y-m-d"|default_if_none:"" }}</td>
-        </tr>
-        <tr>
-          <th>{% trans 'Ethnicity' %}</th>
-          <td>
-            <ul>
-              {% for o in object.ethnicities.all %}
-                <li>
-                  {{ o |default_if_none:"" }}
-                </li>
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
-        <tr>
-          <th>{% trans 'Education Level' %}</th>
-          <td>{{ object.get_education_level_display|default_if_none:"" }}</td>
-        </tr>
-        <tr>
-          <th>{% trans 'Employment Status' %}</th>
-          <td>{{ object.get_employment_status_display|default_if_none:"" }}</td>
-        </tr>
-        <tr>
-          <th>{% trans 'Primary Language Spoken' %}</th>
-          <td>{{ object.get_primary_language_spoken_display|default_if_none:"" }}</td>
-        </tr>
+    {% with u=request.user %}
+      <div class="table-responsive card mb-3">
+        <table class="table table-bordered table-striped" style="margin-bottom: 0px;">
+          <tbody>
+            <tr><th scope="row">{% trans 'Title' %}</th><td>{{ u.title }}</td></tr>
+            <tr><th scope="row">{% trans 'First name' %}</th><td>{{ u.first_name }}</td></tr>
+            <tr><th scope="row">{% trans 'Middle names' %}</th><td>{{ u.middle_names }}</td></tr>
+            <tr><th scope="row">{% trans 'Last name' %}</th><td>{{ u.last_name }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    {% endwith %}
 
-        <tr>
-          <th>{% trans 'Languages Spoken' %}</th>
-          <td>
-            <ul>
-              {% for o in object.languages_spoken.all %}
-                <li>
-                  {{ o | default_if_none:"" }}
-                </li>
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
+    <div class="table-responsive card">
+      <table class="table table-bordered searchable table-striped" style="margin-bottom: 0px;">
+        <tbody>
+          <tr>
+            <th style="width: 21%; min-width: 160px; max-width: 180px;">{% trans "Gender" %}</th>
+            <td>{{ object.get_gender_display|default_if_none:"" }}</td>
+          </tr>
+          <tr>
+            <th>{% trans 'Date of Birth' %}</th>
+            <td>{{ object.date_of_birth|date:"Y-m-d"|default_if_none:"" }}</td>
+          </tr>
+          <tr>
+            <th>{% trans 'Ethnicity' %}</th>
+            <td>
+              <ul>
+                {% for o in object.ethnicities.all %}
+                  <li>
+                    {{ o |default_if_none:"" }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <th>{% trans 'Education Level' %}</th>
+            <td>{{ object.get_education_level_display|default_if_none:"" }}</td>
+          </tr>
+          <tr>
+            <th>{% trans 'Employment Status' %}</th>
+            <td>{{ object.get_employment_status_display|default_if_none:"" }}</td>
+          </tr>
+          <tr>
+            <th>{% trans 'Primary Language Spoken' %}</th>
+            <td>{{ object.get_primary_language_spoken_display|default_if_none:"" }}</td>
+          </tr>
 
-        <tr>
-          <th>{% trans 'Iwi Groups' %}</th>
-          <td>
-            <ul>
-              {% for o in object.iwi_groups.all %}
-                <li>
-                  {{ o | default_if_none:"" }}
-                </li>
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
+          <tr>
+            <th>{% trans 'Languages Spoken' %}</th>
+            <td>
+              <ul>
+                {% for o in object.languages_spoken.all %}
+                  <li>
+                    {{ o | default_if_none:"" }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
 
-      </tbody>
-    </table>
+          <tr>
+            <th>{% trans 'Iwi Groups' %}</th>
+            <td>
+              <ul>
+                {% for o in object.iwi_groups.all %}
+                  <li>
+                    {{ o | default_if_none:"" }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
     <form method="post">
       <div class="mt-1 float-right">
         <a class="btn btn-primary" href="{% url 'profile-update' %}">{% trans 'Edit' %}</a>
@@ -102,10 +118,10 @@
           <a class="btn btn-primary" href="{% url 'socialaccount_connections' %}" role="button">{% trans 'Linked Accounts' %}</a>
           <form method="POST">
             <input type="Submit" class="btn btn-orcid"
-                name="load_from_orcid" value="{% trans 'Import From ORCID' %}"
-                title="{% trans 'Fetch all profile data from ORCID' %}"
-                data-toggle="tooltip"
-            />{% csrf_token %}
+                                 name="load_from_orcid" value="{% trans 'Import From ORCID' %}"
+                                                        title="{% trans 'Fetch all profile data from ORCID' %}"
+                                                        data-toggle="tooltip"
+                                                        />{% csrf_token %}
           </form>
         {% endif %}
       </div>

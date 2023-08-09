@@ -86,8 +86,8 @@ for the addressee and may be confidential. If you are not the intended recipient
 </tr></tbody></table></body></html>
 """,
     "puanga.royalsociety.org.nz": """
-<br>To learn more about the Catalyst Fund administered by the Royal Society Te Apārangi
-<a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/catalyst-fund/'>click here</a>.<br>
+<br>To learn more about %(site_name)s administered by the Royal Society Te Apārangi
+<a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/puanga'>click here</a>.<br>
 <br>Ngā mihi nui,</p><br>
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'>
@@ -108,7 +108,7 @@ font-family:"Helvetica",sans-serif;color:black'>
 </span><br>
 <br>
 <br>
-International Applications</p>
+%(site_name)s</p>
 <table border='0' cellspacing='0' cellpadding='0' style=
 'border-collapse:collapse'>
 <tbody><tr><td style='padding:0cm 0cm 0cm 0cm'>
@@ -119,7 +119,7 @@ style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5756<br>
 style='font-size:8.5pt;line-height:115%%'>&nbsp;</span><span
 style='font-size:8.5pt;line-height:115%%;color:black;background:white'>
 <a href='mailto:International.Applications@royalsociety.org.nz'>
-<span style='color:black'>International.Applications@royalsociety.org.nz</span></a></span></p>
+<span style='color:black'>puanga@royalsociety.org.nz</span></a></span></p>
 <p><b><span style='font-size:8.5pt;color:black'>Royal Society Te Apārangi</span>
 </b><span style='font-size:8.5pt;color:black'><br>
 11 Turnbull Street, Thorndon, Wellington 6011<br>
@@ -179,6 +179,7 @@ def send_mail(
         if not html_footer:
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
                 "domain": domain,
+                "site_name": site.name,
                 "logo_url": f"{urljoin(root, 'static/images/alt_logo.jpg')}"
                 if site.domain == "portal.pmscienceprizes.org.nz"
                 else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}",

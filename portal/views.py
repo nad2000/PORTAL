@@ -794,7 +794,7 @@ class ProfileView:
         if u.first_name and u.last_name and u.title and u.middle_names:
             return {}
 
-        initial = super().get_initial()
+        initial = {}  # super().get_initial()
         if (
             i := models.Invitation.where(
                 ~Q(

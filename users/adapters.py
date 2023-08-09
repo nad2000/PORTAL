@@ -105,6 +105,8 @@ class AccountAdapter(DefaultAccountAdapter):
             body = "\n".join(f"<p>{p}</p>" for p in body.split("\n\n"))
             html_message = f"<html><body>{body}</body></html>"
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
+                "site_name": site.name,
+                "domain": site.domain,
                 "logo_url": f"{urljoin(root, 'static/images/alt_logo.jpg')}"
                 if site.domain == "portal.pmscienceprizes.org.nz"
                 else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
