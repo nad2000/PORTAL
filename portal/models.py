@@ -1917,6 +1917,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return title
 
     @property
+    def was_submitted(self):
+        return self.state in ["submitted", "approved", "cancelled"]
+
+    @property
     def deadline_days(self):
         return self.round.deadline_days
 

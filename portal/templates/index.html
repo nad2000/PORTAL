@@ -359,7 +359,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
               {% if application and not is_panellist %}
               <div class="tooltip-wrapper{% if application.state == 'submitted' or round.has_closed %} disabled{% endif %}"
-                   {% if application.state == 'submitted'%}
+                   {% if application.was_submitted %}
                    disabled
                    data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
                    {% elif round.has_closed %}
@@ -370,7 +370,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% endif %}
                    >
                    <a href="{% if application and application.id %}{% url 'application-update' pk=application.id %}{% else %}#{% endif %}"
-                      class="btn btn-primary{% if application.state == 'submitted' or round.has_closed %} disabled{% endif %}"
+                      class="btn btn-primary{% if application.was_submitted or round.has_closed %} disabled{% endif %}"
                       style="text-transform: uppercase;"
                       > {% trans "Continue" %} <b>{% trans "Application" %}</b>
                    </a>
@@ -444,7 +444,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                                                                                                                                                   <!-- b>{% trans "Apply" %}</b -->
                     </a>
                 </div>
-                {% if has_ro and not is_ro %}
+                {% if has_ro and not is_ro and not application.was_submitted %}
                 <div class="tooltip-wrapper"
                     {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
                     disabled
