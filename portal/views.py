@@ -580,7 +580,9 @@ def index(request):
     has_ro = models.ResearchOffice.where(
         Q(
             org__in=Subquery(
-                models.Affiliation.where(profile__user=user, end_date__isnull=True).values("org_id")
+                models.Affiliation.where(profile__user=user, end_date__isnull=True).values(
+                    "org_id"
+                )
             )
         )
     ).exists()
@@ -1405,7 +1407,7 @@ class ApplicationDetail(DetailView):
             context["can_reenter"] = True
             context["current_round"] = current_round
 
-        context["was_submitted"] = a.state == "submitted"
+        context["was_submitted"] = a.state in ["submitted", "approved", "cancelled"]
         if not is_owner:
             context["show_basic_details"] = not (
                 u.is_staff
