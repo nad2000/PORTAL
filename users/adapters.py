@@ -199,7 +199,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 Q(status__isnull=True)
                 | Q(status__in=["draft", "submitted", "sent", "bounced"])
                 | Q(email=email)
-            )
+            ).last()
 
         if not user.username and email:
             user.username = email.split("@")[0]
