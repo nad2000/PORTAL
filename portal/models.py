@@ -7,6 +7,7 @@ import secrets
 import ssl
 import subprocess
 import tempfile
+import time
 from collections import OrderedDict
 from datetime import date, datetime
 from functools import lru_cache, partial, wraps
@@ -2468,7 +2469,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 if last_name:
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
-                    hashlib.shake_256(bytes(self.id)).digest(21)
+                    hashlib.shake_256(
+                        bytes(int(time.time()) if settings.DEBUG else site.id)
+                    ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
                 for r in resp:
