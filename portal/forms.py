@@ -117,7 +117,7 @@ class TableInlineFormset(LayoutObject):
     def __init__(self, formset_name_in_context, template=None, *args, **kwargs):
         self.formset_name_in_context = formset_name_in_context
         self.form_id = formset_name_in_context
-        # self.fields = []
+        self.fields = []
         if template:
             self.template = template
 
@@ -499,7 +499,7 @@ class ApplicationForm(forms.ModelForm):
                 ]
             )
 
-        else:
+        if not has_required_documents:
             application_form_templates = (
                 [round.application_template] if round.application_template else []
             )
@@ -571,6 +571,7 @@ class ApplicationForm(forms.ModelForm):
                     title=self.fields["presentation_url"].help_text,
                 ),
             )
+
         if has_required_documents:
             summary_fields.append(
                 Div(
