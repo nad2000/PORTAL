@@ -3978,7 +3978,7 @@ class NominationView(CreateUpdateView):
                 return redirect(self.request.get_full_path())
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-            if not n.file:
+            if settings.SITE_ID != 4 and not n.file:
                 messages.error(
                     self.request,
                     _(
@@ -4028,6 +4028,8 @@ class NominationView(CreateUpdateView):
                     )
                     % invitation.email,
                 )
+                reset_cache(self.request)
+                return redirect("index")
             except Exception as ex:
                 capture_exception(ex)
                 messages.error(
