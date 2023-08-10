@@ -116,7 +116,7 @@ ETHNICITIES = Choices(
     "European",
     "Filipino",
     "Indian",
-    "Maori",
+    "Māori",
     "New Zealander",
     "Other",
     "Samoan",
@@ -2552,7 +2552,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(field=status, source=["*"], target="testified")
-    def testify(self, *args, request=None, by=None, commit=True, **kwargs):
+    def testify(self, *args, request=None, by=None, description=True, commit=True, **kwargs):
         for i in Invitation.where(~Q(status="accepted"), referee=self):
             if not by:
                 if i.user:
@@ -2561,7 +2561,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     by = request.user
             if by and not self.user:
                 self.user = by
-            i.accept(*args, **kwargs, request=request, by=by, commit=False)
+            i.accept(
+                *args, request=request, by=by, description=description, commit=False, **kwargs
+            )
             if commit:
                 i.save()
 
@@ -2955,9 +2957,10 @@ class Invitation(InvitationMixin, Model):
         if not by:
             by = request.user if request else self.inviter
         url = reverse("onboard-with-token", kwargs=dict(token=self.token))
-        site = Site.objects.get_current()
-        site_name = site.name
+        site = request and getattr(request, "site", None) or Site.objects.get_current()
+        site_id, site_name = site.id, site.name
         if request:
+            # url = request.build_absolute_uri(url)
             url = request.build_absolute_uri(url)
         else:
             url = f"https://{urljoin(site.domain, url)}"
@@ -2980,41 +2983,93 @@ class Invitation(InvitationMixin, Model):
                 "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
             ) % dict(inviter=by, url=url, site_name=site_name)
         elif self.type == INVITATION_TYPES.R:
+            referee = self.referee
+            contact_email = (
+                "puanga@royalsociety.org.nz"
+                if site_id == 4
+                else "pmscienceprizes@royalsociety.org.nz"
+            )
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
-            body = __(
-                "Tēnā koe,\n\n"
-                "You have been invited to be a referee for %(inviter)s's application to "
-                "the %(application)s. \n\n"
-                "We strongly advise clicking on the Application Process before clicking  "
-                "on the portal link below: %(guidelines)s\n\n"
-                "To review this invitation, please follow the link: %(url)s\n\n"
-                "If you have any further questions, please contact: pmscienceprizes@royalsociety.org.nz\n\n"
-                "Ngā mihi nui"
+            if survey_url := (
+                referee.user
+                and referee.application.round.survey_id
+                and referee.survey_token_id
+                and reverse("survey-referee", kwargs=dict(referee_id=self.referee_id))
+            ):
+                if request:
+                    survey_url = request.build_absolute_uri(survey_url)
+                else:
+                    survey_url = f"https://{urljoin(site.domain, survey_url)}"
+                survey_url = f"{survey_url}?token={self.token}"
+
+            body = (
+                (
+                    "Tēnā koe,\n\n"
+                    "You have been invited to be a referee for %(inviter)s's application to "
+                    "the %(application)s. \n\n"
+                    "We strongly advise clicking on the Application Process before clicking  "
+                    "on the portal link below: %(guidelines)s\n\n"
+                    "Please fill out the referee survey at %(survey_url)s.\n\n"
+                    "To review this invitation, please follow the link: %(url)s\n\n"
+                    "If you have any further questions, please contact: %(contact_email)s\n\n"
+                    "Ngā mihi nui"
+                )
+                if survey_url
+                else (
+                    "Tēnā koe,\n\n"
+                    "You have been invited to be a referee for %(inviter)s's application to "
+                    "the %(application)s. \n\n"
+                    "We strongly advise clicking on the Application Process before clicking  "
+                    "on the portal link below: %(guidelines)s\n\n"
+                    "To review this invitation, please follow the link: %(url)s\n\n"
+                    "If you have any further questions, please contact: %(contact_email)s\n\n"
+                    "Ngā mihi nui"
+                )
             ) % dict(
                 inviter=by,
                 url=url,
+                survey_url=survey_url,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.application.round.get_guidelines(),
+                contact_email=contact_email,
             )
-            html_body = __(
-                "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
-                "%(application)s application.</p>"
-                "<p>We strongly advise clicking on the Application Process <strong>before</strong> clicking  "
-                "on the portal link below.</p>"
-                "<p><a href='%(guidelines)s'>Application Process through the portal</a></p>"
-                "<p><strong>To review this invitation, you are required to follow the portal link</strong>: "
-                "<a href='%(url)s'>%(url)s</a> after you have read about the process.</p>"
-                "<p>If you have any further questions, please contact "
-                "<a href='mailto:pmscienceprizes@royalsociety.org.nz'>pmscienceprizes@royalsociety.org.nz</a></p>"
+            html_body = (
+                (
+                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+                    "%(application)s application.</p>"
+                    "<p>We strongly advise clicking on the Application Process <strong>before</strong> clicking  "
+                    "on the portal link below.</p>"
+                    "<p><a href='%(guidelines)s'>Application Process through the portal</a></p>"
+                    "<p>Please fill out the <strong>referee survey</strong> at \n"
+                    "<a href='%(survey_url)s'>%(survey_url)s</a>.</p>\n"
+                    "<p>To review this invitation, you are required to follow the portal link: "
+                    "<a href='%(url)s'>%(url)s</a> after you have read about the process.</p>"
+                    "<p>If you have any further questions, please contact "
+                    "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
+                )
+                if survey_url
+                else (
+                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+                    "%(application)s application.</p>"
+                    "<p>We strongly advise clicking on the Application Process <strong>before</strong> clicking  "
+                    "on the portal link below.</p>"
+                    "<p><a href='%(guidelines)s'>Application Process through the portal</a></p>"
+                    "<p><strong>To review this invitation, you are required to follow the portal link</strong>: "
+                    "<a href='%(url)s'>%(url)s</a> after you have read about the process.</p>"
+                    "<p>If you have any further questions, please contact "
+                    "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
+                )
             ) % dict(
                 inviter=by,
                 url=url,
+                survey_url=survey_url,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.application.round.get_guidelines(),
+                contact_email=contact_email,
             )
         elif self.type == INVITATION_TYPES.A:
             subject = __("You have been nominated for %s") % self.nomination.round
@@ -3105,7 +3160,7 @@ class Invitation(InvitationMixin, Model):
         source=[STATUS.draft, STATUS.sent, STATUS.accepted, STATUS.bounced],
         target=STATUS.accepted,
     )
-    def accept(self, request=None, by=None, commit=True, *args, **kwargs):
+    def accept(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
         if not by and request:
             by = request.user
         if not by:
@@ -3133,7 +3188,7 @@ class Invitation(InvitationMixin, Model):
             and r.status not in ["accepted", "opted_out", "testified"]
         ):
             r.user = by
-            r.accept(request)
+            r.accept(request, by=by, description=description, commit=False, *args, **kwargs)
             if commit:
                 r.save()
             if self.status != self.STATUS.accepted:

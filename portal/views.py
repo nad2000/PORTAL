@@ -412,7 +412,11 @@ def survey_webhook(request):
                 r.survey_completed_at and r.staus == "testified"
             ):
                 with transaction.atomic():
-                    completed_at = timezone.now() if (not completed_at or completed_at.startswith("1980-01-01")) else timezone.make_aware(parse(completed_at))
+                    completed_at = (
+                        timezone.now()
+                        if (not completed_at or completed_at.startswith("1980-01-01"))
+                        else timezone.make_aware(parse(completed_at))
+                    )
                     description = f"Referee survey was completed at {completed_at}"
                     r.survey_completed_at = completed_at
                     # r.testify(by=r.user, description=description)
@@ -422,6 +426,12 @@ def survey_webhook(request):
                             t.submit(by=r.user, description=description)
                             t._change_reason = description
                             t.save()
+                            break
+                    else:
+                        if models.Referee.get(r.pk).status != "testified":
+                            r.testify(by=r.user, description=description)
+                            r._change_reason = description
+                            r.save()
 
     return JsonResponse(
         {
@@ -527,15 +537,46 @@ def get_survey_api_url():
         return f"https://{site.domain}/limesurvey/admin/remotecontrol"
 
 
-@login_required
-@shoud_be_onboarded
 def do_survey(request, survey_id=None, token=None, referee_id=None):
+    if not request.user.is_authenticated:
+        if token := request.GET.get("token"):
+            if i := models.Invitation.where(token=token).first():
+                if i.status == "revoked":
+                    messages.warning(
+                        request,
+                        _("The invitation has been revoked and is not any more valid."),
+                    )
+                else:
+                    request.session["invitation_token"] = token
+
+        user_exists = (
+            i and User.objects.filter(Q(email=i.email) | Q(emailaddress__email=i.email)).exists()
+        )
+        if request.user and not request.user.is_authenticated:
+            return redirect(
+                reverse("account_login" if user_exists else "account_signup")
+                + f"?next={quote(request.get_full_path())}"
+            )
+
+    profile = Profile.where(user=request.user).last()
+    if not profile or not profile.is_completed:
+        return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
+
     reset_cache(request)
     if referee_id:
-        r = models.Referee.objects.prefetch_related("application", "application__round").get(
-            id=referee_id
-        )
-        survey_id = r.application.round.survey_id
+        if (
+            r := models.Referee.objects.prefetch_related("application", "application__round")
+            .filter(id=referee_id)
+            .first()
+        ):
+            survey_id = r.application.round.survey_id
+        else:
+            messages.warning(
+                request,
+                _("You have been removed from the list of the application referees."),
+            )
+            return redirect("index")
+
     if not r.survey_completed_at:
         api = r.survey_api
         if not r.survey_token_id:
@@ -1126,6 +1167,15 @@ def get_or_create_referee_invitation(referee, by=None):
     u = referee.user or models.User.objects.filter(email=referee.email).first()
     if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
         u = ea.user
+    if not referee.user and u:
+        referee.user = u
+        if not referee.first_name:
+            referee.first_name = u and u.first_name or ""
+        if not referee.last_name:
+            referee.last_name = u and u.last_name or ""
+        if not referee.middle_names:
+            referee.middle_names = u and u.middle_names or ""
+        referee.save(update_fields=["user", "first_name", "middle_names", "last_name"])
     first_name = referee.first_name or u and u.first_name or ""
     last_name = referee.last_name or u and u.last_name or ""
     middle_names = referee.middle_names or u and u.middle_names or ""

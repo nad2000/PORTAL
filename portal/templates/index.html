@@ -444,7 +444,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                                                                                                                                                   <!-- b>{% trans "Apply" %}</b -->
                     </a>
                 </div>
-                {% if has_ro and not is_ro and not application.was_submitted %}
+                {% if has_ro and not is_ro and not application %}
                 <div class="tooltip-wrapper"
                     {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
                     disabled
