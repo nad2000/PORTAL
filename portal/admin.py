@@ -635,11 +635,29 @@ class ApplicationAdmin(
     class RefereeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Referee
-        readonly_fields = ["status", "status_changed_at", "has_testified", "testified_at"]
+        readonly_fields = [
+            "status",
+            "status_changed_at",
+            "has_testified",
+            "testified_at",
+            "survey_completed_at",
+            "survey_url",
+        ]
+        exclude = ["survey_token", "survey_token_id", "survey_invitation_sent_at"]
         autocomplete_fields = ["user"]
+
+        def get_exclude(self, request, obj=None):
+            exclude = super().get_exclude(request, obj)
+            if settings.SITE_ID == 4:
+                exclude.extend(["survey_completed_at", "survey_url"])
+            return exclude
 
         def has_testified(self, obj):
             return obj.status == "testified"
+
+        def survey_url(self, obj):
+            if obj.application.round_id:
+                return obj.survey_url
 
         has_testified.boolean = True
 
