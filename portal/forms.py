@@ -499,7 +499,7 @@ class ApplicationForm(forms.ModelForm):
                 ]
             )
 
-        else:
+        if not has_required_documents:
             application_form_templates = (
                 [round.application_template] if round.application_template else []
             )
@@ -571,6 +571,7 @@ class ApplicationForm(forms.ModelForm):
                     title=self.fields["presentation_url"].help_text,
                 ),
             )
+
         if has_required_documents:
             summary_fields.append(
                 Div(

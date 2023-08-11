@@ -85,15 +85,18 @@
 
 
         {% if testimonial.referee.survey_token_id or referee.survey_token_id %}
-        <div class="tooltip-wrapper{% if testimonial.state == "submitted" %} disabled{% endif %}"
-             {% if testimonial.state == "submitted" %}
+        <div class="tooltip-wrapper{% if testimonial.state == "submitted" or referee.survey_completed_at %} disabled{% endif %}"
+             {% if referee.survey_completed_at %}
+             disabled
+             data-title="{% trans 'The survey was already submitted' %}"
+             {% elif testimonial.state == "submitted" %}
              disabled
              data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
              {% else %}
              data-title="{% trans 'Update and submit the testimonial' %}"
              {% endif %}
              >
-             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" %} disabled{% endif %}"
+             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or referee.survey_completed_at %} disabled{% endif %}"
                 href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
                {% trans 'Complete' %}
                <strong>{% trans 'Survey' %}</strong></a>
