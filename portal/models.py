@@ -527,8 +527,15 @@ class ApplicationDecision(Model):
 
 
 class SocioEconomicObjective(Model):
+    # Version	Code	Description	Definition	Two_Digit_Code	Two_Digit_Description	Four_Digit_Code	Four_Digit_Description
+    version = CharField(max_length=10, default="1.0.0")
     code = CharField(max_length=6, primary_key=True)
     description = CharField(max_length=150, blank=True, null=True)
+    definition = CharField(max_length=200, null=True, blank=True)
+    # two_digit_code = CharField(max_length=2)
+    # two_digit_description = CharField(max_length=60)
+    # four_digit_code = CharField(max_length=4)
+    # four_digit_description = CharField(max_length=100)
     source = CharField(max_length=255, blank=True, null=True)
 
     history = HistoricalRecords(table_name="seo_history")
@@ -581,12 +588,13 @@ class FieldOfResearch(Model):
 
 
 class FieldOfStudy(Model):
+    version = CharField(max_length=20, default="ISCED-F 2013")
     code = CharField(max_length=6, primary_key=True, verbose_name=_("code"))
     description = CharField(_("description"), max_length=100)
-    four_digit_code = CharField(max_length=4)
-    four_digit_description = CharField(max_length=100)
     two_digit_code = CharField(max_length=2)
     two_digit_description = CharField(max_length=60)
+    four_digit_code = CharField(max_length=4)
+    four_digit_description = CharField(max_length=100)
     definition = CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):

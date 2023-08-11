@@ -241,26 +241,26 @@ class EthnicityAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     resource_class = EthnicityResource
 
 
-class SeoResource(ModelResource):
-    class Meta:
-        model = models.SocioEconomicObjective
-        exclude = ["created_at", "updated_at"]
-        import_id_fields = ["code"]
-        skip_unchanged = True
-        report_skipped = True
-        raise_errors = False
+# class SeoResource(ModelResource):
+#     class Meta:
+#         model = models.SocioEconomicObjective
+#         exclude = ["created_at", "updated_at"]
+#         import_id_fields = ["code"]
+#         skip_unchanged = True
+#         report_skipped = True
+#         raise_errors = False
 
 
-@admin.register(models.SocioEconomicObjective)
-class SeoAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
-    save_on_top = True
-    view_on_site = False
-    search_fields = [
-        "code",
-        "description",
-        "source",
-    ]
-    resource_class = SeoResource
+# @admin.register(models.SocioEconomicObjective)
+# class SeoAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+#     save_on_top = True
+#     view_on_site = False
+#     search_fields = [
+#         "code",
+#         "description",
+#         "source",
+#     ]
+#     resource_class = SeoResource
 
 
 class CodeResource(ModelResource):
@@ -293,10 +293,47 @@ class FieldOfStudyAdmin(ImportExportModelAdmin):
 
     class FieldOfStudyResource(CodeResource):
         class Meta:
+            exclude = ["created_at", "updated_at", "id"]
             model = models.FieldOfStudy
 
-    search_fields = ["description", "definition"]
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (
+            (q[0] in ["^", "=", "@", "$"] and q[1:].isdigit()) or q.isdigit()
+        ):
+            return ["^code"]
+        return super().get_search_fields(request)
+
+    search_fields = ["description", "definition", "^code"]
     resource_class = FieldOfStudyResource
+    # list_display = ["code", "description", "definition", "version"]
+    # list_filter = ["version", "two_digit_code"]
+
+
+@admin.register(models.SocioEconomicObjective)
+class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
+    save_on_top = True
+    view_on_site = False
+
+    class SocioEconomicObjectiveResource(CodeResource):
+        class Meta:
+            exclude = ["created_at", "updated_at", "id", "source"]
+            model = models.SocioEconomicObjective
+            import_id_fields = ["code"]
+            skip_unchanged = True
+            report_skipped = True
+            raise_errors = False
+
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (
+            (q[0] in ["^", "=", "@", "$"] and q[1:].isdigit()) or q.isdigit()
+        ):
+            return ["^code"]
+        return super().get_search_fields(request)
+
+    search_fields = ["description", "definition", "^code"]
+    resource_class = SocioEconomicObjectiveResource
+    # list_display = ["code", "description", "definition", "version"]
+    # list_filter = ["version", "two_digit_code"]
 
 
 @admin.register(models.FieldOfResearch)
