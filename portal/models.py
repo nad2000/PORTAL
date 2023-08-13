@@ -1611,9 +1611,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         request = kwargs.get("request")
         round = self.round
         site_id = settings.SITE_ID
-        if round.budget_template and not self.budget:
+        if round.budget_template and not (
+            self.budget or 
+            self.documents.filter(~Q(file=""), document_type__role="B").exists()
+        ):
             raise Exception(
-                _("You must upload a budget spreadsheet to complete your Prize application")
+                _("You must upload a budget spreadsheet to complete your application")
             )
         if not self.is_tac_accepted:
             if request and request.user:

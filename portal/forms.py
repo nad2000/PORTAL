@@ -387,6 +387,7 @@ class ApplicationForm(forms.ModelForm):
                 round.applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0
                 and not (self.cleaned_data.get("cv_file") or self.instance.cv)
+                and settings.SITE_ID != 4
             ):
                 raise forms.ValidationError(
                     _("Need to attache a CV before submitting the application."),

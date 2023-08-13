@@ -2003,13 +2003,17 @@ class ApplicationView(LoginRequiredMixin):
                     if self.round.applicant_cv_required:
                         if (
                             not a.submitted_by
-                            or not models.CurriculumVitae.where(owner=a.submitted_by).exists()
+                            or not (
+                                models.CurriculumVitae.where(owner=a.submitted_by).exists()
+                                or 
+                                a.documents.filter(~Q(file=""), document_type__role="CV").exists()
+                            )
                         ):
                             if not a.submitted_by or a.submitted_by != user:
                                 messages.error(
                                     self.request,
                                     _(
-                                        "Your team lead/representative must submit a CV"
+                                        "Your team lead/representative must submit a CV "
                                         "before submitting the application"
                                     ),
                                 )
@@ -2030,7 +2034,10 @@ class ApplicationView(LoginRequiredMixin):
                             url = reverse("profile-cvs") + "?next=" + next_url
                             return redirect(url)
 
-                        elif not a.cv and (
+                        elif not (
+                                a.cv or 
+                                a.documents.filter(~Q(file=""), document_type__role="CV").exists()
+                        ) and (
                             cv := models.CurriculumVitae.where(owner=a.submitted_by)
                             .order_by("-id")
                             .first()
@@ -2054,7 +2061,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#ethics-statement")
 
                     if not a.is_tac_accepted:
-                        if a.submitted_by == user:
+                        if a.sbmitted_by == user:
                             messages.error(
                                 self.request,
                                 _(
@@ -2065,7 +2072,10 @@ class ApplicationView(LoginRequiredMixin):
                                 url = self.continue_url("tac")
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
-                    if a.round.budget_template and not a.budget:
+                    if a.round.budget_template and not (
+                            a.budget or 
+                            a.documents.filter(~Q(file=""), document_type__role="B").exists()
+                    ):
                         messages.error(
                             self.request,
                             _(
