@@ -116,7 +116,7 @@ class TableInlineFormset(LayoutObject):
     def __init__(self, formset_name_in_context, template=None, *args, **kwargs):
         self.formset_name_in_context = formset_name_in_context
         self.form_id = formset_name_in_context
-        # self.fields = []
+        self.fields = []
         if template:
             self.template = template
 
@@ -810,7 +810,7 @@ class ApplicationForm(forms.ModelForm):
             mobile_phone=TelInput(),
             # file=FileInput(),
             position=TextInput(
-                attrs={"placeholder": _("studen, postdoc, etc.")},
+                attrs={"placeholder": _("student, postdoc, etc.")},
             ),
             summary=SummernoteInplaceWidget(),
             summary_en=SummernoteInplaceWidget(),
