@@ -42,12 +42,12 @@
       integrity="sha384-0stBLnfzZ/7bU3RoXb6ze7WyUpxAnJMUCxfwyUbHLKfiRjVFrfuY0krfrNRuIPQL"
       crossorigin="anonymous"
       ></script -->
-  <script
-              src="https://browser.sentry-cdn.com/6.3.5/bundle.min.js"
+  {% if sentry_event_id %}
+    <script
+        src="https://browser.sentry-cdn.com/6.3.5/bundle.min.js"
         integrity="sha384-qBgjc56ljouxNiUODXpsqJSZ7mGL+PcExG0in9vErnovL9TPZwHxfnved8g6bzfM"
         crossorigin="anonymous"
-      ></script>
-  {% if sentry_event_id %}
+    ></script>
     <script>
       Sentry.init({dsn: '{{ SENTRY_DSN }}'});
       Sentry.showReportDialog({

@@ -3326,7 +3326,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                         },
                     ),
                     "role": TextInput(
-                        attrs={"placeholder": _("studen, postdoc, etc.")},
+                        attrs={"placeholder": _("student, postdoc, etc.")},
                     ),
                     "type": HiddenInput(),
                     "profile": HiddenInput(),
