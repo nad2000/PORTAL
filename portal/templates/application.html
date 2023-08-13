@@ -264,10 +264,13 @@
                                       if (location.hash != "#members") $('.nav a[href="' + location.hash + '"]').tab('show');
                                       if (location.hash == "#referees") activateRefereeTab();
                                   };
-                                  if (!location.hash || location.hash == "#applicant")
-                                    document.getElementById("button-id-previous").disabled = true;
-                                  else if (location.hash.endsWith($(".tab-pane").last().attr('id')))
-                                    document.getElementById("button-id-next").disabled = true;
+                                  if (!location.hash || location.hash == "#applicant") {
+                                    // document.getElementById("button-id-previous").disabled = true;
+                                    $("#button-id-previous").hide();
+                                  } else if (location.hash.endsWith($(".tab-pane").last().attr('id'))) {
+                                    // document.getElementById("button-id-next").disabled = true;
+                                    $("#button-id-next").hide();
+                                  }
                                 {% endif %}
                                 /* $("#div_id_title").parent().css("min-width", "4rem");
                                    $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
@@ -279,8 +282,16 @@
                                   document.getElementById("cancel").hidden = false;
                                 });
                                 $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-                                  document.getElementById("button-id-next").disabled = (e.target.hash.endsWith($(".tab-pane").last().attr('id')));
-                                  document.getElementById("button-id-previous").disabled = (e.target.hash == "#applicant");
+                                  if (e.target.hash.endsWith($(".tab-pane").last().attr('id'))) {
+                                    /* document.getElementById("button-id-next").disabled = true; */
+                                    $("#button-id-next").hide();
+                                  } else {
+                                    $("#button-id-next").show();
+                                  }
+                                  if (e.target.hash == "#applicant") {
+                                    /* document.getElementById("button-id-previous").disabled = true; */
+                                    $("#button-id-previous").hide();
+                                  } else $("#button-id-previous").show();
                                 })
                                 $('#button-id-next').on('click', function (e) {
                                   var active = $(".nav-link.active");
