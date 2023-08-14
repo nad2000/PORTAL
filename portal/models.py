@@ -395,7 +395,12 @@ class Ethnicity(Model):
     definition = CharField(max_length=120, null=True, blank=True)
 
     def __str__(self):
-        return self.description
+        description = self.description
+        if description.endswith(" nfd"):
+            return description[:-4]
+        elif description.endswith(" nec"):
+            return f"{_('Other')} {description[:-4]}"
+        return description
 
     class Meta:
         db_table = "ethnicity"

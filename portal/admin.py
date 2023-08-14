@@ -239,6 +239,15 @@ class EthnicityAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
         "definition",
     ]
     resource_class = EthnicityResource
+    list_display = ["code", "description"]
+    ordering = ["description"]
+
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (
+            (q[0] in ["^", "=", "@", "$"] and q[1:].isdigit()) or q.isdigit()
+        ):
+            return ["^code"]
+        return super().get_search_fields(request)
 
 
 # class SeoResource(ModelResource):
@@ -535,8 +544,8 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
             return False
 
     filter_horizontal = ["ethnicities", "languages_spoken", "iwi_groups"]
-    search_fields = ["user__username", "user__email"]
-    list_display = ["full_name_with_email", "created_at"]
+    search_fields = ["user__username", "user__email", "user__first_name", "user__last_name"]
+    list_display = ["user", "full_name_with_email", "created_at"]
     list_filter = ["created_at", "updated_at"]
 
     inlines = [
