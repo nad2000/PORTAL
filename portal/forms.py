@@ -40,7 +40,9 @@ DateInput = partial(
     attrs={
         "class": "form-control datepicker",
         "type": "text",
-        "data-date-end-date": datetime.date.today().isoformat(),
+        # "data-date-end-date": datetime.date.today().isoformat(),
+        "data-date-start-date": "-100y",
+        "data-date-end-date": "-6y",
     },
     format="%Y-%m-%d",
 )
