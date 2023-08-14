@@ -1612,12 +1612,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         round = self.round
         site_id = settings.SITE_ID
         if round.budget_template and not (
-            self.budget or 
-            self.documents.filter(~Q(file=""), document_type__role="B").exists()
+            self.budget or self.documents.filter(~Q(file=""), document_type__role="B").exists()
         ):
-            raise Exception(
-                _("You must upload a budget spreadsheet to complete your application")
-            )
+            raise Exception(_("You must upload a budget spreadsheet to complete your application"))
         if not self.is_tac_accepted:
             if request and request.user:
                 if self.submitted_by == request.user:
@@ -3419,10 +3416,36 @@ FILE_TYPE = Choices("CV")
 class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
     profile = ForeignKey(Profile, on_delete=CASCADE, verbose_name=_("profile"))
     owner = ForeignKey(User, on_delete=CASCADE, verbose_name=_("owner"))
-    title = CharField(_("title"), max_length=200, null=True, blank=True)
+    title = CharField(
+        _("title"),
+        max_length=200,
+        null=True,
+        blank=True,
+        help_text=_("A title or name you can assign to the upload CV file"),
+    )
     file = PrivateFileField(
         upload_subfolder=lambda instance: ["cv", hash_int(instance.profile_id)],
         verbose_name=_("file"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docb",
+                    "docm",
+                    "docx",
+                    "dot",
+                    "dotm",
+                    "dotx",
+                    "odm",
+                    "odt",
+                    "oth",
+                    "ott",
+                    "pdf",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
     )
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")

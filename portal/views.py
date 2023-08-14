@@ -2005,7 +2005,7 @@ class ApplicationView(LoginRequiredMixin):
                             not a.submitted_by
                             or not (
                                 models.CurriculumVitae.where(owner=a.submitted_by).exists()
-                                or 
+                                or
                                 a.documents.filter(~Q(file=""), document_type__role="CV").exists()
                             )
                         ):
@@ -2035,7 +2035,7 @@ class ApplicationView(LoginRequiredMixin):
                             return redirect(url)
 
                         elif not (
-                                a.cv or 
+                                a.cv or
                                 a.documents.filter(~Q(file=""), document_type__role="CV").exists()
                         ) and (
                             cv := models.CurriculumVitae.where(owner=a.submitted_by)
@@ -2073,7 +2073,7 @@ class ApplicationView(LoginRequiredMixin):
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
                     if a.round.budget_template and not (
-                            a.budget or 
+                            a.budget or
                             a.documents.filter(~Q(file=""), document_type__role="B").exists()
                     ):
                         messages.error(
@@ -3608,7 +3608,10 @@ class SeoAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
     model = models.CurriculumVitae
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
-    factory_kwargs = {"exclude": ["converted_file"]}
+    factory_kwargs = {
+        "exclude": ["converted_file"],
+        "labels": {"title": _("Title or name")},
+    }
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
