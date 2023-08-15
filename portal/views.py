@@ -601,7 +601,8 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
     if r.survey_completed_at:
         messages.warning(
-            request, _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>.")
+            request,
+            _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>."),
         )
         return redirect(request.META.get("HTTP_REFERER", "index"))
 
@@ -706,6 +707,7 @@ def index(request):
                         ),
                         reply_to=user.full_email_address,
                         recipient_list=recipient_list,
+                        cc=[user.full_email_address],
                         request=request,
                     )
                 except Exception as e:
