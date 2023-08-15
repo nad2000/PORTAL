@@ -417,7 +417,7 @@ def survey_webhook(request):
                         if (not completed_at or completed_at.startswith("1980-01-01"))
                         else timezone.make_aware(parse(completed_at))
                     )
-                    description = f"Referee survey was completed at {completed_at}"
+                    description = f"Referee report was completed at {completed_at}"
                     r.survey_completed_at = completed_at
                     # r.testify(by=r.user, description=description)
                     # r._change_reason = description
@@ -586,7 +586,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
         if (completed_at := properties.get("completed")) and completed_at != "N":
             with transaction.atomic():
-                description = f"Referee survey was completed at {completed_at}"
+                description = f"Referee report was completed at {completed_at}"
                 r.survey_completed_at = timezone.make_aware(parse(completed_at)) or timezone.now()
                 # r.testify(by=r.user, description=description)
                 # r._change_reason = description
@@ -703,6 +703,7 @@ def index(request):
                             f"a nomination to apply for the round {request_round}.</p>"
                             f'<p>You can submit the nomination at <a href="{url}">Nominate for {request_round}</a>.</p>'
                         ),
+                        reply_to=user.full_email_address,
                         recipient_list=recipient_list,
                         request=request,
                     )
