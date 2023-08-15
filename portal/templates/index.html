@@ -63,51 +63,51 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
         </button>
       </div>
       <div class="modal-body" id="roundDetailBody">
-          <title>...</title>
-          <table class="table table-bordered searchable table-striped">
-            <tbody>
-                <tr>
-                  <th style="width: 32%; min-width: 180px; max-width: 200px;">...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-                <tr>
-                  <th>...</th>
-                  <td>...</td>
-                </tr>
-              <tr>
-                <th>...</th>
-                <td>...</td>
-              </tr>
-            </tbody>
-          </table>
+        <title>...</title>
+        <table class="table table-bordered searchable table-striped">
+          <tbody>
+            <tr>
+              <th style="width: 32%; min-width: 180px; max-width: 200px;">...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+            <tr>
+              <th>...</th>
+              <td>...</td>
+            </tr>
+          </tbody>
+        </table>
 
-          <a class="btn btn-primary" href="#" role="button">{% trans 'Show Detailed Report' %}</a>
-          <a class="btn btn-outline-primary" href="#" role="button">{% trans 'Show Scores' %}</a>
-          <a class="btn btn-outline-primary" href="#" role="button">{% trans 'Export PDF' %}</a>
+        <a class="btn btn-primary" href="#" role="button">{% trans 'Show Detailed Report' %}</a>
+        <a class="btn btn-outline-primary" href="#" role="button">{% trans 'Show Scores' %}</a>
+        <a class="btn btn-outline-primary" href="#" role="button">{% trans 'Export PDF' %}</a>
 
       </div>
       <div class="modal-footer">
@@ -158,6 +158,38 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
     </div>
   </div>
 </div>
+
+<!-- Request to RO -->
+{% if SITE_ID == 4 and has_ro and not is_ro %}
+<div class="modal fade" tabindex="-1" role="dialog" id="id_request_modal">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{% trans 'Message' %}</h5>
+        <!-- button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          </button -->
+      </div>
+      <form method="post" id="id_request_form">
+        {% csrf_token %}
+        <input type="hidden" name="round">
+        <div class="modal-body">
+          <div id="div_id_message" class="form-group">
+            <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
+            <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
+            <textarea autofocus name="message" id="id_message" rows="10" style="width: 100%;"></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick='$(this).closest("form").submit();'>{% trans 'Send' %}</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 
 <div class="container">
@@ -262,17 +294,17 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
     <ul class="list-group list-group-flush">
       <li class="list-group-item"><a href="{% url 'application' pk=a.id %}">{{ a }}</a>
 
-      {% if user.is_staff or user.is_superuser %}
-      <a
-        href="{% url 'application-export' pk=a.pk %}"
-        style="padding-top: 1px; padding-bottom: 0px;"
-        target="_blank"
-        class="btn btn-info float-right align-top"
-        data-toggle="tooltip"
-        title="{% trans 'Export the application into a consolidated PDF file' %}"
-      >{% trans 'Export' %}
-      </a>
-      {% endif %}
+        {% if user.is_staff or user.is_superuser %}
+        <a
+            href="{% url 'application-export' pk=a.pk %}"
+            style="padding-top: 1px; padding-bottom: 0px;"
+            target="_blank"
+            class="btn btn-info float-right align-top"
+            data-toggle="tooltip"
+            title="{% trans 'Export the application into a consolidated PDF file' %}"
+            >{% trans 'Export' %}
+        </a>
+          {% endif %}
 
       </li>
     </ul>
@@ -423,49 +455,48 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               </div>
               {% endif %}
               {% if round.can_nominate or SITE_ID == 4 %}
-                <div class="tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %} disabled{% endif %}"
-                    {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
-                    disabled
-                      {% if SITE_ID == 4 and not is_ro %}
-                    data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
-                      {% elif is_panellist %}
-                      data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
-                      {% elif round.will_open %}
-                      data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                      {% else %}
-                      data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
-                      {% endif %}
-                    {% else %}
-                      data-title="{% trans 'Nominate other person to apply ...' %}"
-                    {% endif %}
-                >
-                    <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
-                                                                                                                                                                  {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
-                                                                                                                                                                  <!-- b>{% trans "Apply" %}</b -->
-                    </a>
-                </div>
-                {% if has_ro and not is_ro and not application or not application|can_edit:user  %}
-                <div class="tooltip-wrapper"
-                    {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
-                    disabled
-                      {% if SITE_ID == 4 and not is_ro %}
-                     data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}."
-                      {% elif is_panellist %}
-                      data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
-                      {% elif round.will_open %}
-                      data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                      {% else %}
-                      data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
-                      {% endif %}
-                    {% else %}
-                      data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}"
-                    {% endif %}
-                >
-                    <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
-                                                                                                                                                                                               {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
-                    </a>
-                </div>
-                {% endif %}
+              <div class="tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %} disabled{% endif %}"
+                   {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}
+                   disabled
+                   {% if SITE_ID == 4 and not is_ro %}
+                   data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
+                   {% elif is_panellist %}
+                   data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
+                   {% elif round.will_open %}
+                   data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                   {% else %}
+                   data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
+                   {% endif %}
+                   {% else %}
+                   data-title="{% trans 'Nominate other person to apply ...' %}"
+                   {% endif %}
+                   >
+                   <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
+                                                                                                                                                                                              {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
+                                                                                                                                                                                              <!-- b>{% trans "Apply" %}</b -->
+                   </a>
+              </div>
+              {% if has_ro and not is_ro and not application or not application|can_edit:user  %}
+              <div class="tooltip-wrapper"
+                   {% if is_panellist or not round.is_open or SITE_ID == 4 and is_ro %}
+                   disabled
+                   {% if SITE_ID == 4 and not is_ro %}
+                   data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}."
+                   {% elif is_panellist %}
+                   data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
+                   {% elif round.will_open %}
+                   data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                   {% else %}
+                   data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
+                   {% endif %}
+                   {% else %}
+                   data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}"
+                   {% endif %}
+                   >
+                   <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and is_ro %}disabled{% endif %}" style="text-transform: uppercase;" onclick="contact_ro({{round.id}}); return false;" {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
+                   </a>
+              </div>
+              {% endif %}
               {% endif %}
 
               {% if is_panellist %}
@@ -528,32 +559,52 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       {% block javascript %}
       {{ block.super }}
       <script>
+        function contact_ro(round_id) {
+          $("#id_request_form input[name='round']").val(round_id);
+          $("#id_request_modal").modal('show');
+        }
         $(document).ready(function(){
-                  $("#previous-application").on("show.bs.modal", function(event){
-                            $("#previous-application-title").html(event.relatedTarget.dataset.roundTitle);
-                            $("#previous-application-link-number").html(event.relatedTarget.dataset.previousNumber);
-                            $("#previous-application-link-title").html(event.relatedTarget.dataset.previousTitle);
-                            $("#previous-application-link").attr("href", event.relatedTarget.dataset.previousUrl);
-                            $("#new-application-button").attr("href", event.relatedTarget.dataset.newUrl);
-                            $("#copy-application-button").attr("href", event.relatedTarget.dataset.copyUrl);
-                            // $("#previous-application-body").load("round/" + event.relatedTarget.dataset.roundId);
-                            // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
-                          });
-                  $("#roundDetail").on("show.bs.modal", function(event){
-                            $("#roundDetailLabel").html(event.relatedTarget.dataset.roundTitle);
-                            $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId);
-                            // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
-                            $('#roundDetail').trigger('focus');
-                          });
-                  $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
-                  $('#previous-applications').on('hide.bs.collapse', function () {
-                            $("#previous-applications-button").text("{% trans 'Show' %}")
-                          });
-                  $('#previous-applications').on('show.bs.collapse', function () {
-                            $("#previous-applications-button").text("{% trans 'Hide' %}")
-                          });
-                });
+          $("#id_request_form").on("submit", function(event){
+            event.preventDefault();
+            var formValues= $(this).serialize();
+            $.post("{{ request.path }}", formValues, function(data){
+              // Display the returned data in browser
+              $("#messages").append(
+                  $('<div class="alert alert-'+data.status+'">'
+                    +data.message
+                    +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+                );
+              $("#id_request_modal").modal('hide');
+              var scrollPos=$("#messages").offset().top;
+              $(window).scrollTop(scrollPos);
+              return false;
+            });
+          });
+          $("#previous-application").on("show.bs.modal", function(event){
+            $("#previous-application-title").html(event.relatedTarget.dataset.roundTitle);
+            $("#previous-application-link-number").html(event.relatedTarget.dataset.previousNumber);
+            $("#previous-application-link-title").html(event.relatedTarget.dataset.previousTitle);
+            $("#previous-application-link").attr("href", event.relatedTarget.dataset.previousUrl);
+            $("#new-application-button").attr("href", event.relatedTarget.dataset.newUrl);
+            $("#copy-application-button").attr("href", event.relatedTarget.dataset.copyUrl);
+            // $("#previous-application-body").load("round/" + event.relatedTarget.dataset.roundId);
+            // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
+          });
+          $("#roundDetail").on("show.bs.modal", function(event){
+            $("#roundDetailLabel").html(event.relatedTarget.dataset.roundTitle);
+            $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId);
+            // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
+            $('#roundDetail').trigger('focus');
+          });
+          $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
+          $('#previous-applications').on('hide.bs.collapse', function () {
+            $("#previous-applications-button").text("{% trans 'Show' %}")
+          });
+          $('#previous-applications').on('show.bs.collapse', function () {
+            $("#previous-applications-button").text("{% trans 'Hide' %}")
+          });
+        });
       </script>
       {% endblock javascript %}
 
-{# vim:set ft=htmldjango: #}
+      {# vim:set ft=htmldjango: #}

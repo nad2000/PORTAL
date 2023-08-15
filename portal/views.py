@@ -610,6 +610,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
 @login_required
 @shoud_be_onboarded
+@csrf_protect
 def index(request):
     site_id = settings.SITE_ID
     if request.resolver_match.view_name == "start":
@@ -671,6 +672,50 @@ def index(request):
             for pa in schemes
             if pa.previous_application_id
         ]
+        if (
+            site_id == 4
+            and request.method == "POST"
+            and (message := request.POST.get("message", "").strip())
+            and (round_id := request.POST.get("round"))
+            and (request_round := models.Round.where(id=round_id).first())
+        ):
+            is_ajax = not request.META.get("HTTP_ACCEPT", "").startswith("text/html")
+            research_officers = User.where(
+                research_offices__org__in=Subquery(
+                    models.Affiliation.where(profile__user=user, end_date__isnull=True).values(
+                        "org_id"
+                    )
+                )
+            )
+            if research_officers.count() > 0:
+                try:
+                    recipient_list = [
+                        (ro.full_name or _("Research Office"), ro.email)
+                        for ro in research_officers
+                    ]
+                    url = request.build_absolute_uri(
+                        reverse("nomination-create", kwargs={"round": request_round.id})
+                    )
+                    send_mail(
+                        "Request to nominate an applicant",
+                        html_message=(
+                            f"<p>User {request.user.full_name_with_email} has requested for "
+                            f"a nomination to apply for the round {request_round}.</p>"
+                            f'<p>You can submit the nomination at <a href="{url}">Nominate for {request_round}</a>.</p>'
+                        ),
+                        recipient_list=recipient_list,
+                        request=request,
+                    )
+                except Exception as e:
+                    capture_exception(e)
+                    if is_ajax:
+                        return JsonResponse({"message": str(e), "status": "error"}, status=200)
+                    messages.error(request, str(e))
+                else:
+                    message = _("Your request was sent to the Research Office.")
+                    if is_ajax:
+                        return JsonResponse({"message": message, "status": "info"}, status=200)
+                    messages.info(request, message)
 
     else:
         messages.info(
@@ -2001,13 +2046,9 @@ class ApplicationView(LoginRequiredMixin):
             try:
                 if "submit" in self.request.POST:
                     if self.round.applicant_cv_required:
-                        if (
-                            not a.submitted_by
-                            or not (
-                                models.CurriculumVitae.where(owner=a.submitted_by).exists()
-                                or
-                                a.documents.filter(~Q(file=""), document_type__role="CV").exists()
-                            )
+                        if not a.submitted_by or not (
+                            models.CurriculumVitae.where(owner=a.submitted_by).exists()
+                            or a.documents.filter(~Q(file=""), document_type__role="CV").exists()
                         ):
                             if not a.submitted_by or a.submitted_by != user:
                                 messages.error(
@@ -2035,8 +2076,8 @@ class ApplicationView(LoginRequiredMixin):
                             return redirect(url)
 
                         elif not (
-                                a.cv or
-                                a.documents.filter(~Q(file=""), document_type__role="CV").exists()
+                            a.cv
+                            or a.documents.filter(~Q(file=""), document_type__role="CV").exists()
                         ) and (
                             cv := models.CurriculumVitae.where(owner=a.submitted_by)
                             .order_by("-id")
@@ -2073,8 +2114,8 @@ class ApplicationView(LoginRequiredMixin):
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
                     if a.round.budget_template and not (
-                            a.budget or
-                            a.documents.filter(~Q(file=""), document_type__role="B").exists()
+                        a.budget
+                        or a.documents.filter(~Q(file=""), document_type__role="B").exists()
                     ):
                         messages.error(
                             self.request,
