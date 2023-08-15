@@ -685,6 +685,7 @@ class ApplicationForm(forms.ModelForm):
                     HTML(f'<div class="alert alert-dark" role="alert">TODO:</div>'),
                     # Div(TableInlineFormset("referees"), css_id="referees"),
                     *category_fields,
+                    css_id="categories"
                 ),
             )
         if settings.SITE_ID == 2:
@@ -759,7 +760,8 @@ class ApplicationForm(forms.ModelForm):
                     HTML(
                         f'<div class="alert alert-dark" role="alert">{referee_information_text}</div>'
                     ),
-                    Div(TableInlineFormset("referees"), css_id="referees"),
+                    Div(TableInlineFormset("referees")),
+                    css_id="referees",
                 ),
             )
         # if user and not user.is_identity_verified:
