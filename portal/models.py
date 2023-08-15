@@ -1033,7 +1033,7 @@ class AcademicRecord(Model):
     qualification = ForeignKey(
         Qualification, null=True, blank=True, on_delete=DO_NOTHING, verbose_name=_("qualification")
     )
-    converted_on = DateField(_("converted on"), null=True, blank=True)
+    conferred_on = DateField(_("conferred on"), null=True, blank=True)
     discipline = ForeignKey(
         FieldOfStudy, on_delete=CASCADE, null=True, blank=True, verbose_name=_("discipline")
     )

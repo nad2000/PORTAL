@@ -3761,7 +3761,7 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
                     # "discipline": ModelSelect2Widget(
                     #     model=models.FieldOfResearch, search_fields=["description__icontains"],
                     # ),
-                    "converted_on": forms.DateInput(),
+                    "conferred_on": forms.DateInput(),
                 },
             }
         )
