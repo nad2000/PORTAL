@@ -601,7 +601,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
     if r.survey_completed_at:
         messages.warning(
-            request, _(f"The survey has been already completed at <b>{r.survey_completed_at}</b>.")
+            request, _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>.")
         )
         return redirect(request.META.get("HTTP_REFERER", "index"))
 
@@ -700,7 +700,8 @@ def index(request):
                         "Request to nominate an applicant",
                         html_message=(
                             f"<p>User {request.user.full_name_with_email} has requested for "
-                            f"a nomination to apply for the round {request_round}.</p>"
+                            f"a nomination to apply for the round {request_round}:</p>"
+                            f"<pre>{message}</pre>"
                             f'<p>You can submit the nomination at <a href="{url}">Nominate for {request_round}</a>.</p>'
                         ),
                         reply_to=user.full_email_address,
@@ -1415,7 +1416,7 @@ class ApplicationDetail(DetailView):
                         f'<span class="badge badge-primary">{_("New")}</span> '
                         f"{_('You have a request to review a %s application to act on')}."
                         f"""<a href="{survey_url}" class="alert-link">
-                        {_('Please click here to complete the survey')}!
+                        {_('Please click here to complete the referee report')}!
                     </a>"""
                     )
                     % site.name,
@@ -1617,7 +1618,7 @@ class ApplicationView(LoginRequiredMixin):
                                 f'<span class="badge badge-primary">{_("New")}</span>'
                                 f"{_('You have a request to review a %s application to act on')}."
                                 f"""<a href="{survey_url}" class="alert-link">
-                                {_('Please click here to complete the survey')}!
+                                {_('Please click here to complete the referee report')}!
                             </a>"""
                             )
                             % site.name,
@@ -4538,7 +4539,7 @@ class TestimonialDetail(DetailView):
                         f'<span class="badge badge-primary">{_("New")}</span> '
                         f"{_('You have a request to review a %s application to act on')}."
                         f"""<a href="{survey_url}" class="alert-link">
-                        {_('Please click here to complete the survey')}!
+                        {_('Please click here to complete the referee report')}!
                       </a>"""
                     )
                     % site.name,

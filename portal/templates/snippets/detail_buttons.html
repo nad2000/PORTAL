@@ -25,7 +25,7 @@
        {% endif %}
          >
          <a class="btn btn-primary{% if object.state == "submitted" or object.status == "submitted" or object.status == "accepted" or object.referee.survey_completed_at  %} disabled{% endif %}"
-            href="{{ survey_url }}">{% trans 'Complete' %} <strong>{% trans 'Survey' %}</strong></a>
+            href="{{ survey_url }}">{% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong></a>
     </div>
 
   {% endif %}

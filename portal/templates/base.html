@@ -394,7 +394,7 @@ You have a request to review a {{ site_name }} application to act on.
                 {% endblocktrans %}
                     {% if o.application.round.survey_id %}
                       <a href="{% url 'survey-referee' referee_id=o.id %}" class="alert-link">
-                        {% trans 'Please click here to complete the survey' %}!
+                        {% trans 'Please click here to complete the referee report' %}!
                       </a>
                     {% else %}
                       <a href="{% url 'testimonial-detail' pk=o.testimonial_id %}" class="alert-link">
