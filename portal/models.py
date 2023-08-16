@@ -2044,7 +2044,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         if (
             r.applicant_cv_required
-            and not self.documents.where(document_type="CV").exists()
+            and not self.documents.filter(document_type__role="CV").exists()
             and (cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by))
         ):
             cvs.append(cv)
