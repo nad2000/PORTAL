@@ -272,6 +272,10 @@ class PdfFileMixin:
         """Title page for composite export into PDF"""
         tp = {
             "TITLES": [
+                f"{self.required_document}" f"{self.filename}",
+            ]
+            if hasattr(self, "required_document")
+            else [
                 f"{_('Attachment')} - {self.__class__.__name__}",
                 self,
                 f"({self.filename})",
@@ -2038,8 +2042,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
             )
 
-        if r.applicant_cv_required and (
-            cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by)
+        if (
+            r.applicant_cv_required
+            and not self.documents.where(document_type="CV").exists()
+            and (cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by))
         ):
             cvs.append(cv)
             attachments.append(
@@ -2057,8 +2063,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 panellist__user=request.user, has_conflict=False, has_conflict__isnull=False
             )
         ):
-            for n in Nomination.where(application=self):
-                if n.file and n.nominator:
+            for n in Nomination.where(application=self, nominator__isnull=False):
+                if n.file:
                     attachments.append(
                         (
                             _("Nomination Submitted By %s") % n.nominator.full_name,
@@ -2117,6 +2123,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+        for d in self.documents.order_by("required_document__ordering"):
+            attachments.append(
+                (
+                    f"{d.required_document}",
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(d.pdf_file),
+                    d.title_page,
+                )
+            )
+
         ssl._create_default_https_context = ssl._create_unverified_context
 
         merger = PdfFileMerger(strict=False)
@@ -2137,12 +2152,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     objects.extend(self.get_testimonials())
         site = Site.objects.get_current()
         domain = site.domain
-
-        logo_url = None
-        if domain == "international.royalsociety.org.nz":
-            logo_path = os.path.join(settings.STATIC_ROOT, f"images/{domain}/alt_logo_small.png")
-            if os.path.exists(logo_path):
-                logo_url = f"file://{logo_path}"
+        logo_url = logo_1_url = logo_2_url = None
 
         if (
             self.round.research_summary_required
@@ -2162,6 +2172,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 summary_url = f"https://{urljoin(domain, url)}"
             html = HTML(summary_url)
         else:
+            if domain == "international.royalsociety.org.nz":
+                logo_path = os.path.join(
+                    settings.STATIC_ROOT, f"images/{domain}/alt_logo_small.png"
+                )
+                if os.path.exists(logo_path):
+                    logo_url = f"file://{logo_path}"
+
+            elif self.site_id == 4:
+                logo_path = os.path.join(settings.STATIC_ROOT, f"images/{domain}/MBIE_logo.jpg")
+                if os.path.exists(logo_path):
+                    logo_1_url = f"file://{logo_path}"
+
+                logo_path = os.path.join(settings.STATIC_ROOT, f"images/{domain}/RS_logo.png")
+                if os.path.exists(logo_path):
+                    logo_2_url = f"file://{logo_path}"
+
             template = get_template("application-export.html")
             context = {
                 "application": self,
@@ -2170,6 +2196,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "site": site,
                 "domain": domain,
                 "logo": logo_url,
+                "logo_1": logo_1_url,
+                "logo_2": logo_2_url,
             }
             html = HTML(string=template.render(context))
 
@@ -2196,6 +2224,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             "site": site,
                             "domain": domain,
                             "logo": logo_url,
+                            "logo_1": logo_1_url,
+                            "logo_2": logo_2_url,
                         }
                     )
                 )
@@ -2986,12 +3016,12 @@ class Invitation(InvitationMixin, Model):
             }
             body = __(
                 "Tēnā koe,\n\n"
-                "You have been invited to join %(inviter)s's team for their %(site_name)s application. "
+                "You have been invited to join %(inviter.full_name)s's team for their %(site_name)s application. "
                 "\n\nTo review this invitation, please follow the link: %(url)s\n\n"
                 "Ngā mihi"
             ) % dict(inviter=by, url=url, site_name=site_name)
             html_body = __(
-                "Tēnā koe,<br><br>You have been invited to join %(inviter)s's team for their "
+                "Tēnā koe,<br><br>You have been invited to join %(inviter.full_name)s's team for their "
                 "%(site_name)s application.<br><br>"
                 "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
             ) % dict(inviter=by, url=url, site_name=site_name)
@@ -3020,7 +3050,7 @@ class Invitation(InvitationMixin, Model):
             body = (
                 (
                     "Tēnā koe,\n\n"
-                    "You have been invited to be a referee for %(inviter)s's application to "
+                    "You have been invited to be a referee for %(inviter.full_name)s's application to "
                     "the %(application)s. \n\n"
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
@@ -3031,7 +3061,7 @@ class Invitation(InvitationMixin, Model):
                 if survey_url
                 else (
                     "Tēnā koe,\n\n"
-                    "You have been invited to be a referee for %(inviter)s's application to "
+                    "You have been invited to be a referee for %(inviter.full_name)s's application to "
                     "the %(application)s. \n\n"
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
@@ -3050,7 +3080,7 @@ class Invitation(InvitationMixin, Model):
             )
             html_body = (
                 (
-                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter.full_name)s's application to the "
                     "%(application)s application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
@@ -3062,7 +3092,7 @@ class Invitation(InvitationMixin, Model):
                 )
                 if survey_url
                 else (
-                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter.full_name)s's application to the "
                     "%(application)s application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
@@ -3085,7 +3115,7 @@ class Invitation(InvitationMixin, Model):
             subject = __("You have been nominated for %s") % self.nomination.round
             body = __(
                 "Tēnā koe,\n\n"
-                "Congratulations on being nominated for the %(round)s by %(inviter)s.\n\n"
+                "Congratulations on being nominated for the %(round)s by %(inviter.full_name)s.\n\n"
                 "Before you click on the portal link we strongly advise you "
                 "to read about the application process: %(guidelines)s.\n\n"
                 "To accept the nomination, please follow the portal link %(url)s\n\n\n"
@@ -3099,7 +3129,7 @@ class Invitation(InvitationMixin, Model):
             html_body = (
                 __(
                     "<p>Tēnā koe,</p>"
-                    "<p>Congratulations on being nominated for the %(round)s by %(inviter)s.</p>"
+                    "<p>Congratulations on being nominated for the %(round)s by %(inviter.full_name)s.</p>"
                     "<p>Before you click on the portal link we strongly advise you "
                     'to read about the <a href="%(guidelines)s">application process</a>.</p>'
                     "<p>To accept the nomination, please follow the portal link: "
@@ -4138,7 +4168,7 @@ class Round(Model):
 
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
-    document_type = ForeignKey(DocumentType, on_delete=CASCADE)
+    document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
     title = CharField(_("Title"), max_length=200, null=True, blank=True)
     is_optional = BooleanField(default=False)
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
@@ -4257,7 +4287,7 @@ class CurriculumVitaeTemplate(Model):
         db_table = "curriculum_vitae_template"
 
 
-class ApplicationDocument(Model):
+class ApplicationDocument(PdfFileMixin, Model):
     application = ForeignKey(Application, on_delete=CASCADE, related_name="documents")
     document_type = ForeignKey(
         DocumentType, related_name="application_documents", on_delete=CASCADE
@@ -4303,6 +4333,9 @@ class ApplicationDocument(Model):
                 ]
             )
         ],
+    )
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
 
     def save(self, *args, **kwargs):

@@ -11,7 +11,13 @@ th, td {
 }
 
 tr:nth-child(even) {background-color: #f2f2f2;}
+@page {
+    size: 21cm 29.7cm;
+    margin: 1cm 1cm 1cm 2cm;
+}
 </style>
+
+{% with a=application u=user %}
 
 {% include 'snippets/application-export-header.html' %}
 
@@ -52,12 +58,10 @@ tr:nth-child(even) {background-color: #f2f2f2;}
   </center>
 {% else %}
 
-{% with a=application u=user %}
   <h2>
     {{ a.number }}: {{ a.application_title|default:a.round.title|title }}
   </h2>
   {% include 'snippets/application_detail_table.html' with export=True %}
-{% endwith %}
 
 {% for object in objects %}
 <h2>
@@ -93,6 +97,7 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 {% endfor %}
 
 {% endif %}
+{% endwith %}
 
 </body>
 </html>

@@ -147,7 +147,7 @@ def handler413(request, *args, **argv):
 
 def favicon(request):
     site_id = settings.SITE_ID
-    if site_id == 3:
+    if site_id == 3 or site_id == 4:
         return redirect(
             staticfiles_storage.url("images/stlp.royalsociety.org.nz/favicon.ico"),
             permanent=True,
