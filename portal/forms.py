@@ -1,4 +1,3 @@
-import datetime
 import os
 from functools import partial
 
@@ -40,7 +39,6 @@ DateInput = partial(
     attrs={
         "class": "form-control datepicker",
         "type": "text",
-        # "data-date-end-date": datetime.date.today().isoformat(),
         "data-date-start-date": "-100y",
         "data-date-end-date": "-6y",
     },
@@ -685,7 +683,7 @@ class ApplicationForm(forms.ModelForm):
                     HTML(f'<div class="alert alert-dark" role="alert">TODO:</div>'),
                     # Div(TableInlineFormset("referees"), css_id="referees"),
                     *category_fields,
-                    css_id="categories"
+                    css_id="categories",
                 ),
             )
         if settings.SITE_ID == 2:
@@ -735,6 +733,11 @@ class ApplicationForm(forms.ModelForm):
             if round.required_referees and round.required_referees > 1:
                 referee_information_lines = [
                     (
+                        _("At least %s referees are required to support this application.")
+                        % apnumber(round.required_referees)
+                    )
+                    if round.is_flexible_number_of_referees
+                    else (
                         _("%s referees are required to support this application.")
                         % apnumber(round.required_referees)
                     ).capitalize(),
