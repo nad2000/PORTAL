@@ -198,13 +198,18 @@ def send_mail(
             "Message-ID": f"<{token}@{site.domain}>",
             "List-Unsubscribe": f"<{url}>",
             "Return-Path": f"{getpass.getuser()}@{site.domain}",
+            "Return-Receipt-To": f"{getpass.getuser()}@{site.domain}",
+            "Disposition-Notification-To": f"{getpass.getuser()}@{site.domain}",
         }
     else:
         headers = {
             "Message-ID": f"<{token}@{domain}>",
             "List-Unsubscribe": f"<{url}>",
             "Return-Path": f"{getpass.getuser()}@{domain}",
+            "Return-Receipt-To": f"{getpass.getuser()}@{domain}",
+            "Disposition-Notification-To": f"{getpass.getuser()}@{domain}",
         }
+
     subject_prefix = f"[{site.name}]" if site else settings.EMAIL_SUBJECT_PREFIX
     if not subject.startswith(subject_prefix):
         subject = f"{subject_prefix} {subject}"
