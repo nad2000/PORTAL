@@ -82,6 +82,13 @@ from extra_views import (
 from limesurveyrc2api.limesurvey import LimeSurvey
 from private_storage.views import PrivateStorageDetailView
 from PyPDF2 import PdfFileMerger
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
 from weasyprint import HTML
 
@@ -401,10 +408,13 @@ class SubscriptionDetail(DetailView):
     model = Subscription
 
 
-@csrf_exempt
-@require_http_methods(["POST", "PUT", "GET"])
+@api_view(["GET", "PUT", "POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def survey_webhook(request):
     data = json.loads(request.body)
+    # https://puanga.prodata.nz/limesurvey/printanswers/view?surveyid=655512
+    # https://puanga.prodata.nz/limesurvey/statistics_user/655512?language=en
     # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
     if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
         if not r.survey_completed_at and (response := data.get("response")):
@@ -419,17 +429,19 @@ def survey_webhook(request):
                     )
                     description = f"Referee report was completed at {completed_at}"
                     r.survey_completed_at = completed_at
-                    # r.testify(by=r.user, description=description)
-                    # r._change_reason = description
+                    by = (
+                        r.user
+                        or User.where(Q(email=r.email) | Q(emailaddress__email=r.email)).first()
+                    )
                     for t in models.Testimonial.where(referee=r):
                         if t.state != "submitted":
-                            t.submit(by=r.user, description=description)
+                            t.submit(by=by, description=description)
                             t._change_reason = description
                             t.save()
                             break
                     else:
                         if models.Referee.get(r.pk).status != "testified":
-                            r.testify(by=r.user, description=description)
+                            r.testify(by=by, description=description)
                             r._change_reason = description
                             r.save()
 
@@ -447,7 +459,7 @@ def complete_survey(request):
     # capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
     q = (
         models.Referee.where(
-            user=request.user,
+            Q(user=request.user) | Q(email=request.user.email),
             survey_completed_at__isnull=False,
             application__round__scheme__current_round=F("application__round"),
         )
