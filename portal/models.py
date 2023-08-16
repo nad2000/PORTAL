@@ -3016,15 +3016,15 @@ class Invitation(InvitationMixin, Model):
             }
             body = __(
                 "Tēnā koe,\n\n"
-                "You have been invited to join %(inviter.full_name)s's team for their %(site_name)s application. "
+                "You have been invited to join %(inviter)s's team for their %(site_name)s application. "
                 "\n\nTo review this invitation, please follow the link: %(url)s\n\n"
                 "Ngā mihi"
-            ) % dict(inviter=by, url=url, site_name=site_name)
+            ) % dict(inviter=by.full_name, url=url, site_name=site_name)
             html_body = __(
-                "Tēnā koe,<br><br>You have been invited to join %(inviter.full_name)s's team for their "
+                "Tēnā koe,<br><br>You have been invited to join %(inviter)s's team for their "
                 "%(site_name)s application.<br><br>"
                 "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % dict(inviter=by, url=url, site_name=site_name)
+            ) % dict(inviter=by.full_name, url=url, site_name=site_name)
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
             contact_email = (
@@ -3050,7 +3050,7 @@ class Invitation(InvitationMixin, Model):
             body = (
                 (
                     "Tēnā koe,\n\n"
-                    "You have been invited to be a referee for %(inviter.full_name)s's application to "
+                    "You have been invited to be a referee for %(inviter)s's application to "
                     "the %(application)s. \n\n"
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
@@ -3061,7 +3061,7 @@ class Invitation(InvitationMixin, Model):
                 if survey_url
                 else (
                     "Tēnā koe,\n\n"
-                    "You have been invited to be a referee for %(inviter.full_name)s's application to "
+                    "You have been invited to be a referee for %(inviter)s's application to "
                     "the %(application)s. \n\n"
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
@@ -3070,7 +3070,7 @@ class Invitation(InvitationMixin, Model):
                     "Ngā mihi nui"
                 )
             ) % dict(
-                inviter=by,
+                inviter=by.full_name,
                 url=url,
                 survey_url=survey_url,
                 site_name=site_name,
@@ -3080,7 +3080,7 @@ class Invitation(InvitationMixin, Model):
             )
             html_body = (
                 (
-                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter.full_name)s's application to the "
+                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
                     "%(application)s application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
@@ -3092,7 +3092,7 @@ class Invitation(InvitationMixin, Model):
                 )
                 if survey_url
                 else (
-                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter.full_name)s's application to the "
+                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
                     "%(application)s application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
@@ -3103,7 +3103,7 @@ class Invitation(InvitationMixin, Model):
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
             ) % dict(
-                inviter=by,
+                inviter=by.full_name,
                 url=url,
                 survey_url=survey_url,
                 site_name=site_name,
@@ -3115,21 +3115,21 @@ class Invitation(InvitationMixin, Model):
             subject = __("You have been nominated for %s") % self.nomination.round
             body = __(
                 "Tēnā koe,\n\n"
-                "Congratulations on being nominated for the %(round)s by %(inviter.full_name)s.\n\n"
+                "Congratulations on being nominated for the %(round)s by %(inviter)s.\n\n"
                 "Before you click on the portal link we strongly advise you "
                 "to read about the application process: %(guidelines)s.\n\n"
                 "To accept the nomination, please follow the portal link %(url)s\n\n\n"
                 "Ngā mihi nui"
             ) % dict(
                 round=self.nomination.round,
-                inviter=self.inviter,
+                inviter=by.full_name,
                 guidelines=self.nomination.round.get_guidelines(),
                 url=url,
             )
             html_body = (
                 __(
                     "<p>Tēnā koe,</p>"
-                    "<p>Congratulations on being nominated for the %(round)s by %(inviter.full_name)s.</p>"
+                    "<p>Congratulations on being nominated for the %(round)s by %(inviter)s.</p>"
                     "<p>Before you click on the portal link we strongly advise you "
                     'to read about the <a href="%(guidelines)s">application process</a>.</p>'
                     "<p>To accept the nomination, please follow the portal link: "
@@ -3137,7 +3137,7 @@ class Invitation(InvitationMixin, Model):
                 )
             ) % dict(
                 round=self.nomination.round,
-                inviter=self.inviter,
+                inviter=by.full_name,
                 guidelines=self.nomination.round.get_guidelines(),
                 url=url,
             )
