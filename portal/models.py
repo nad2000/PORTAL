@@ -1566,6 +1566,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         default=0,
     )
 
+    @property
+    def thread_index(self):
+        if (n := Nomination.where(application=self)):
+            idx = n.id
+        else:
+            idx = self.application_id
+        return base64.b64encode(f"{self.site_id}:{idx}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.number
+
     def is_applicant(self, user):
         """Is user the mail applicant or a member."""
         return (
@@ -1732,6 +1744,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 fail_silently=False,
                 request=request,
                 reply_to=settings.DEFAULT_FROM_EMAIL,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
             )
         elif (
             round.notify_nominator and self.nomination and (nominator := self.nomination.nominator)
@@ -1754,6 +1768,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 fail_silently=False,
                 request=request,
                 reply_to=settings.DEFAULT_FROM_EMAIL,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
             )
 
     @fsm_log
@@ -1806,6 +1822,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
         messages.success(
             request,
@@ -1866,6 +1884,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
         messages.success(
             request,
@@ -1920,6 +1940,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
         messages.success(
             request,
@@ -2319,6 +2341,19 @@ class Member(PersonMixin, MemberMixin, Model):
     )
 
     @property
+    def thread_index(self):
+        if self.application_id and (n := Nomination.where(application=self.application_id)):
+            idx = n.id
+        else:
+            idx = self.application_id
+        site_id = self.application and self.application.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{idx}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.application and self.application.number
+
+    @property
     def mail_log_error(self):
         if ml := MailLog.where(invitation__member=self, error__isnull=False).last():
             return ml.error
@@ -2366,6 +2401,8 @@ class Member(PersonMixin, MemberMixin, Model):
                 fail_silently=False,
                 request=request,
                 reply_to=self.full_email_address,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
             )
 
     @fsm_log
@@ -2386,6 +2423,8 @@ class Member(PersonMixin, MemberMixin, Model):
                 fail_silently=False,
                 request=request,
                 reply_to=self.full_email_address,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
             )
 
     @fsm_log
@@ -2832,6 +2871,7 @@ INVITATION_STATUS = Choices(
     ("bounced", _("bounced")),
     ("draft", _("draft")),
     ("expired", _("expired")),
+    ("read", _("read")),
     ("revoked", _("revoked")),
     ("sent", _("sent")),
     ("submitted", _("submitted")),
@@ -2899,6 +2939,9 @@ class Invitation(InvitationMixin, Model):
     accepted_at = MonitorField(
         monitor="status", when=[STATUS.accepted], null=True, blank=True, default=None
     )
+    read_at = MonitorField(
+        monitor="status", when=[STATUS.read], null=True, blank=True, default=None
+    )
     expired_at = MonitorField(
         monitor="status", when=[STATUS.expired], null=True, blank=True, default=None
     )
@@ -2908,6 +2951,47 @@ class Invitation(InvitationMixin, Model):
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
     # history = HistoricalRecords(table_name="invitation_history")
+
+    @property
+    def thread_index(self):
+        if self.nomination_id:
+            idx = self.nomination_id
+        elif self.application_id:
+            if n := Nomination.where(application=self.application_id).first():
+                idx = n.id
+            else:
+                idx = self.application_id
+        elif self.member_id:
+            if n := Nomination.where(application__members=self.member_id).first():
+                idx = n.id
+            else:
+                idx = self.member.application_id
+        elif self.referee_id:
+            if n := Nomination.where(application__referees=self.referee_id).first():
+                idx = n.id
+            else:
+                idx = self.referee.application_id
+        elif self.panellist_id:
+            idx = self.panellist.round_id
+        else:
+            idx = self.id
+        return base64.b64encode(f"{self.site_id}:{idx}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        if self.application_id and (a := self.application):
+            return a.number
+        elif self.nomination_id:
+            if not (a := Application.wehre(nominator=self.nomination_id)):
+                return f"{self.nomination.round}"
+            else:
+                return a.number
+        elif self.member_id and (a := Application.wehre(nominator=self.nomination_id)):
+            return a.number
+        elif self.referee_id and (a := Application.wehre(referee=self.referee_id)):
+            return a.number
+        elif self.panellist_id:
+            return f"{self.panellist.round}"
 
     @property
     def handler_url(self):
@@ -2984,6 +3068,8 @@ class Invitation(InvitationMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
 
         self.referee = None
@@ -3178,6 +3264,8 @@ class Invitation(InvitationMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
 
         if self.type == INVITATION_TYPES.T:
@@ -3198,6 +3286,15 @@ class Invitation(InvitationMixin, Model):
     @transition(
         field=status,
         source=[STATUS.draft, STATUS.sent, STATUS.accepted, STATUS.bounced],
+        target=STATUS.read,
+    )
+    def mark_read(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=status,
+        source=[STATUS.draft, STATUS.sent, STATUS.accepted, STATUS.bounced, STATUS.read],
         target=STATUS.accepted,
     )
     def accept(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
@@ -3294,6 +3391,9 @@ class Invitation(InvitationMixin, Model):
                 fail_silently=False,
                 request=request,
                 reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
+                invitation=self,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
             )
 
     @classmethod
@@ -4892,6 +4992,19 @@ class IdentityVerification(Model):
     resolution = TextField(blank=True, null=True)
     state = FSMField(default="new", db_index=True)
 
+    @property
+    def thread_index(self):
+        if self.application_id and (n := Nomination.where(application=self.application_id)):
+            idx = n.id
+        else:
+            idx = self.application_id
+        site_id = self.application and self.application.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{idx}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.application and self.application.number
+
     @fsm_log
     @transition(field=state, source="new", target="draft")
     def save_draft(self, *args, **kwargs):
@@ -4901,6 +5014,7 @@ class IdentityVerification(Model):
     @transition(field=state, source=["new", "draft", "needs-resubmission", "sent"], target="sent")
     def send(self, request, *args, **kwargs):
         url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
+
         send_mail(
             _("User Identity Verification"),
             _(
@@ -4920,6 +5034,8 @@ class IdentityVerification(Model):
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
 
     @fsm_log
@@ -4947,6 +5063,8 @@ class IdentityVerification(Model):
             reply_to=request.user.email
             if request and request.user
             else settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
         self.user.is_identity_verified = False
         self.user.identity_verified_by = request and request.user
@@ -4983,6 +5101,8 @@ class MailLog(Model):
     error = TextField(null=True, blank=True)
     token = CharField(max_length=100, default=get_unique_mail_token, unique=True)
     invitation = ForeignKey(Invitation, null=True, on_delete=SET_NULL)
+    thread_index = CharField(max_length=100, null=True, blank=True)
+    thread_topic = CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return f"{self.recipient}: {self.token}/{self.sent_at}"

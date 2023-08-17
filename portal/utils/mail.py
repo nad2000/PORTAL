@@ -154,6 +154,8 @@ def send_mail(
     invitation=None,
     token=None,
     convert_to_html=False,
+    thread_topic=None,
+    thread_index=None
 ):
     site = (invitation and invitation.site) or Site.objects.get_current()
     domain = request and request.get_host() or site.domain
@@ -188,6 +190,8 @@ def send_mail(
 
     if not token:
         token = models.get_unique_mail_token()
+    if not thread_index:
+        thread_index = token
     url = reverse("unsubscribe", kwargs=dict(token=token))
     if request:
         url = request.build_absolute_uri(url)
@@ -213,6 +217,10 @@ def send_mail(
     subject_prefix = f"[{site.name}]" if site else settings.EMAIL_SUBJECT_PREFIX
     if not subject.startswith(subject_prefix):
         subject = f"{subject_prefix} {subject}"
+    if not thread_topic:
+        thread_topic = subject
+    headers["Thread-Index"] = thread_index
+    headers["Thread-Topic"] = thread_topic
     msg = mail.EmailMultiAlternatives(
         subject,
         message,
@@ -247,6 +255,8 @@ def send_mail(
             token=f"{token}#{no}" if no else token,
             invitation=invitation,
             site=site,
+            thread_index=thread_index,
+            thread_topic=thread_topic,
         )
     if not resp:
         raise Exception(
