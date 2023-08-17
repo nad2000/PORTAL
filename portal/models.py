@@ -2233,7 +2233,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         for title, a, *rest in attachments:
             # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
-            if rest and (title_page := rest[0]):
+            if self.site_id != 4 and rest and (title_page := rest[0]):
                 template = get_template("application-export-attachment-title-page.html")
                 html = HTML(
                     string=template.render(

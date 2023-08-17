@@ -10,6 +10,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
+from email.header import decode_header, make_header
 
 import django
 from django.db import transaction
@@ -28,13 +29,15 @@ if __name__ == "__main__":
 
     django.setup()
 
-    from portal.models import MailLog
+    from portal import models
 
     full_msg = open(sys.argv[1]).read() if len(sys.argv) > 1 else sys.stdin.read()
     msg = email.message_from_string(full_msg)
 
     to = msg["to"]
     subject = msg["subject"]
+    if subject:
+        subject = str(make_header(decode_header(subject)))
     body = msg["body"]
     if not msg.is_multipart():
         body = msg.get_payload(decode=True)
@@ -43,6 +46,13 @@ if __name__ == "__main__":
 
     for part in msg.walk():
         content_type = part.get_content_type()
+        if content_type == "message/disposition-notification":
+            for p in part.walk():
+                message_id = p["original-message-id"]
+                if not body:
+                    body = p.get_payload(decode=True)
+                if message_id:
+                    break
         if not message_id:
             message_id = part["in-reply-to"] or part["original-message-id"] or part["message-id"]
         if not message_id:
@@ -50,24 +60,41 @@ if __name__ == "__main__":
         message_id = message_id.split("@")[0][1:]
         if not message_id:
             continue
-        ml = MailLog.where(token=message_id).first()
+        ml = models.MailLog.all_objects.filter(token=message_id).first()
         if ml:
             with transaction.atomic():
-                if ml.error:
-                    ml.error += "\n\n****************************************\n"
-                else:
-                    ml.error = ''
-                ml.error += f"{subject}\n{datetime.datetime.now()}"
                 if payload := (body or part.get_payload()):
                     if isinstance(payload, list):
                         payload = payload[0].get_payload()
-                    ml.error += f"\n========================================\n{payload}"
-                if content_type != 'message/disposition-notification':
+                    if payload:
+                        if ml.error:
+                            ml.error += "\n\n****************************************\n"
+                        else:
+                            ml.error = ""
+                        ml.error += (
+                            f"{subject}\n{datetime.datetime.now()}\n"
+                            f"========================================\n{payload}"
+                        )
+                if content_type == "message/disposition-notification":
+                    ml.was_sent_successfully = True
+                else:
                     ml.was_sent_successfully = False
                 ml.save()
                 if ml.invitation:
-                    if content_type != 'message/disposition-notification':
-                        ml.invitation.bounce()
+                    by = (
+                        models.User.where(
+                            models.Q(email=ml.recipient)
+                            | models.Q(emailaddress__email=ml.recipient)
+                        ).first()
+                        or ml.user
+                    )
+                    if content_type == "message/disposition-notification":
+                        ml.invitation.mark_read(
+                            by=by,
+                            description=subject,
+                        )
+                    else:
+                        ml.invitation.bounce(by=by, description=subject)
                         ml.invitation.save()
             break
         else:
