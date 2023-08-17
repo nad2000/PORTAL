@@ -42,8 +42,9 @@ if __name__ == "__main__":
     message_id = msg["references"] or msg["in-reply-to"]
 
     for part in msg.walk():
+        content_type = part.get_content_type()
         if not message_id:
-            message_id = part["message-id"]
+            message_id = part["in-reply-to"] or part["original-message-id"] or part["message-id"]
         if not message_id:
             continue
         message_id = message_id.split("@")[0][1:]
@@ -61,11 +62,13 @@ if __name__ == "__main__":
                     if isinstance(payload, list):
                         payload = payload[0].get_payload()
                     ml.error += f"\n========================================\n{payload}"
-                ml.was_sent_successfully = False
+                if content_type != 'message/disposition-notification':
+                    ml.was_sent_successfully = False
                 ml.save()
                 if ml.invitation:
-                    ml.invitation.bounce()
-                    ml.invitation.save()
+                    if content_type != 'message/disposition-notification':
+                        ml.invitation.bounce()
+                        ml.invitation.save()
             break
         else:
             message_id = None
