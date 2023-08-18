@@ -2982,13 +2982,13 @@ class Invitation(InvitationMixin, Model):
         if self.application_id and (a := self.application):
             return a.number
         elif self.nomination_id:
-            if not (a := Application.all_objects.filter(nominator=self.nomination_id)):
-                return f"{self.nomination.round}"
-            else:
+            if (a := Application.all_objects.filter(nomination=self.nomination_id).last()):
                 return a.number
-        elif self.member_id and (a := Application.all_objects.filter(nominator=self.nomination_id)):
+            else:
+                return f"{self.nomination.round}"
+        elif self.member_id and (a := Application.all_objects.filter(member=self.member_id).last()):
             return a.number
-        elif self.referee_id and (a := Application.all_objects.filter(referee=self.referee_id)):
+        elif self.referee_id and (a := Application.all_objects.filter(referee=self.referee_id).last()):
             return a.number
         elif self.panellist_id:
             return f"{self.panellist.round}"

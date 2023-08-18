@@ -835,6 +835,7 @@ def check_profile(request, token=None):
                     _("The invitation has been revoked and is not any more valid."),
                 )
             elif i.status == "accepted":
+
                 messages.warning(
                     request,
                     _("The invitation has been already accepted."),
@@ -843,11 +844,17 @@ def check_profile(request, token=None):
             if i.status != "accepted":
                 next_url = i.handler_url
             else:
-                if i.type == "A" and (n := i.nomination) and (a := n.application):
-                    if a.submitted_by == u:
-                        next_url = reverse("application-update", kwargs={"pk": a.id})
+                if i.type == "A" and (n := i.nomination):
+                    if not n.user:
+                        n.user = u
+                        n.save(updated_fields=["user"])
+                    if (a := n.application):
+                        if a.submitted_by == u:
+                            next_url = reverse("application-update", kwargs={"pk": a.id})
+                        else:
+                            next_url = reverse("application", kwargs={"pk": a.id})
                     else:
-                        next_url = reverse("application", kwargs={"pk": a.id})
+                        next_url = reverse("application-create", kwargs={"round": n.round_id})
                 elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
                     next_url = reverse("application", kwargs={"pk": a_id})
                 elif i.type == "R" and (r := i.referee):
@@ -2436,6 +2443,7 @@ class ApplicationView(LoginRequiredMixin):
                 can_delete=False,
                 exclude=[
                     "document_type",
+                    "converted_file",
                 ],
                 widgets={
                     "required_document": HiddenInput(),
