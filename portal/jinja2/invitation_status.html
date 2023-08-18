@@ -14,22 +14,22 @@
     <i class="far fa-envelope-open text-success text-center"
        aria-hidden="true"
        data-toggle="tooltip"
-       title="{% trans %}The user has accepted your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+       title="{% trans %}The user accepted your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
   {% elif status == 'testified' or status == 'authorized' %}
     <i class="fa fa-check-circle text-success text-center"
        aria-hidden="true"
        data-toggle="tooltip"
-       title="{% trans %}This invite has been acted on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+       title="{% trans %}This invite was acted on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
  {% elif status == 'opted-out' or status == 'opted_out' %}
    <i class="fa fa-ban text-danger text-center"
       aria-hidden="true"
       data-toggle="tooltip"
-      title="{% trans %}The user has opted out of your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+      title="{% trans %}The user opted out of your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
  {% elif status == 'read' %}
    <i class="fa fa-envelope-open-text text-info text-center"
       aria-hidden="true"
       data-toggle="tooltip"
-      title="{% trans %}The user has read your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+      title="{% trans %}The user read your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
  {% elif status == 'bounced' %}
    <i class="fa fa-exclamation-triangle text-danger text-center"
       data-placement="right"
