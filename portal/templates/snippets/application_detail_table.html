@@ -149,35 +149,37 @@
         {% endif %}
       {% endif %}
 
-      <tr>
-        <th class="table-dark" scope="row">
-          {% trans 'Completed Application Form' %}
-          {% if is_panellist %}
-            ({% trans 'with attachments' %})
-          {% endif %}
-        </th>
-        <td colspan="3">
-          {% if a.file %}
-            {% if a|can_edit:user %}
-              <a href="{{ a.file.url }}" target="_blank"> {{ a.filename }} </a>
-            {% elif is_panellist %}
-              <a href="{% url 'application-export' pk=a.pk %}" target="_blank"> {{ a.number }}.pdf </a>
-            {% else %}
-              <a href="{{ a.pdf_file.url }}" target="_blank"> {{ a.pdf_filename }} </a>
-            {% endif %}
-          {% else %}
-            {% trans 'N/A' %}
-          {% endif %}
-        </td>
-      </tr>
-
-      {% if a.converted_file and a|can_edit:user %}
+      {% if a.site_id != 4 %}
         <tr>
-          <th class="table-dark" scope="row">{% trans 'Completed Application Form (PDF version)' %}</th>
+          <th class="table-dark" scope="row">
+            {% trans 'Completed Application Form' %}
+            {% if is_panellist %}
+              ({% trans 'with attachments' %})
+            {% endif %}
+          </th>
           <td colspan="3">
-            <a href="{{ a.converted_file.file.url }}" target="_blank"> {{ a.converted_file.file.name|basename }} </a>
+            {% if a.file %}
+              {% if a|can_edit:user %}
+                <a href="{{ a.file.url }}" target="_blank"> {{ a.filename }} </a>
+              {% elif is_panellist %}
+                <a href="{% url 'application-export' pk=a.pk %}" target="_blank"> {{ a.number }}.pdf </a>
+              {% else %}
+                <a href="{{ a.pdf_file.url }}" target="_blank"> {{ a.pdf_filename }} </a>
+              {% endif %}
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
           </td>
         </tr>
+
+        {% if a.converted_file and a|can_edit:user %}
+          <tr>
+            <th class="table-dark" scope="row">{% trans 'Completed Application Form (PDF version)' %}</th>
+            <td colspan="3">
+              <a href="{{ a.converted_file.file.url }}" target="_blank"> {{ a.converted_file.file.name|basename }} </a>
+            </td>
+          </tr>
+        {% endif %}
       {% endif %}
 
     {% endif %}
@@ -189,6 +191,15 @@
           {% if a.photo_identity %}<a href="{{ a.photo_identity.url }}" target="_blank">
               {{ a.photo_identity.name|basename }}
         </a>{% else %}{% trans 'N/A' %}{% endif %}
+        </td>
+      </tr>
+    {% endif %}
+
+    {% if a.site_id == 4 and a.round.research_experience_in_years_required %}
+      <tr>
+        <th class="table-dark" scope="row">{% trans 'Research Experience in Years' %}</th>
+        <td colspan="3">
+          {% if a.research_experience_in_years %}{{ a.research_experience_in_years }}{% else %}{% trans 'N/A' %}{% endif %}
         </td>
       </tr>
     {% endif %}
