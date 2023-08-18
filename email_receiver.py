@@ -8,6 +8,7 @@ import datetime
 import email
 import importlib
 import os
+import re
 import sys
 from pathlib import Path
 from email.header import decode_header, make_header
@@ -54,7 +55,12 @@ if __name__ == "__main__":
                 if message_id:
                     break
         if not message_id:
-            message_id = part["in-reply-to"] or part["original-message-id"] or part["message-id"]
+            message_id = (
+                part["in-reply-to"]
+                or part["original-message-id"]
+                or part["x-ms-exchange-parent-message-id"]
+                or part["message-id"]
+            )
         if not message_id:
             continue
         message_id = message_id.split("@")[0][1:]
@@ -93,9 +99,14 @@ if __name__ == "__main__":
                             by=by,
                             description=subject,
                         )
+                    elif re.search("automatic.*reply", subject, re.I):
+                        ml.invitation.mark_autoreplied(
+                            by=by,
+                            description=subject,
+                        )
                     else:
                         ml.invitation.bounce(by=by, description=subject)
-                        ml.invitation.save()
+                    ml.invitation.save()
             break
         else:
             message_id = None

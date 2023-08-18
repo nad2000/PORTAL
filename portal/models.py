@@ -1568,7 +1568,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @property
     def thread_index(self):
-        if (n := Nomination.where(application=self)):
+        if n := Nomination.where(application=self):
             idx = n.id
         else:
             idx = self.application_id
@@ -2868,6 +2868,7 @@ INVITATION_TYPES = Choices(
 
 INVITATION_STATUS = Choices(
     ("accepted", _("accepted")),
+    ("autoreplied", _("autoreplied")),
     ("bounced", _("bounced")),
     ("draft", _("draft")),
     ("expired", _("expired")),
@@ -2930,6 +2931,7 @@ class Invitation(InvitationMixin, Model):
         "Round", null=True, blank=True, on_delete=SET_NULL, related_name="invitations"
     )
     status = StateField(default="draft")
+    status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
     submitted_at = MonitorField(
         monitor="status", when=[STATUS.submitted], null=True, blank=True, default=None
     )
@@ -2986,7 +2988,9 @@ class Invitation(InvitationMixin, Model):
                 return f"{self.nomination.round}"
             else:
                 return a.number
-        elif self.member_id and (a := Application.all_objects.filter(nominator=self.nomination_id)):
+        elif self.member_id and (
+            a := Application.all_objects.filter(nominator=self.nomination_id)
+        ):
             return a.number
         elif self.referee_id and (a := Application.all_objects.filter(referee=self.referee_id)):
             return a.number
@@ -3079,7 +3083,7 @@ class Invitation(InvitationMixin, Model):
     @fsm_log
     @transition(
         field=status,
-        source=[STATUS.draft, STATUS.sent, STATUS.submitted, STATUS.bounced],
+        source=[STATUS.draft, STATUS.sent, STATUS.submitted, STATUS.bounced, STATUS.autoreplied],
         target=STATUS.sent,
     )
     def send(self, request=None, by=None, *args, **kwargs):
@@ -3283,18 +3287,26 @@ class Invitation(InvitationMixin, Model):
         return resp
 
     @fsm_log
-    @transition(
-        field=status,
-        source=[STATUS.draft, STATUS.sent, STATUS.accepted, STATUS.bounced],
-        target=STATUS.read,
-    )
+    @transition(field=status, source=["*"], target=STATUS.read)
     def mark_read(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(field=status, source=["*"], target=STATUS.autoreplied)
+    def mark_autoreplied(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
         pass
 
     @fsm_log
     @transition(
         field=status,
-        source=[STATUS.draft, STATUS.sent, STATUS.accepted, STATUS.bounced, STATUS.read],
+        source=[
+            STATUS.draft,
+            STATUS.sent,
+            STATUS.accepted,
+            STATUS.bounced,
+            STATUS.read,
+            STATUS.autoreplied,
+        ],
         target=STATUS.accepted,
     )
     def accept(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
