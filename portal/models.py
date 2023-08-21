@@ -111,7 +111,7 @@ AFFILIATION_TYPES = Choices(
 
 ETHNICITIES = Choices(
     "Chinese",
-    "Cook Islands Maori",
+    "Cook Islands Māori",
     "English",
     "European",
     "Filipino",
