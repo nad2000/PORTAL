@@ -1568,7 +1568,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @property
     def thread_index(self):
-        if n := Nomination.where(application=self):
+        if n := Nomination.where(application=self).last():
             idx = n.id
         else:
             idx = self.application_id
@@ -2984,13 +2984,17 @@ class Invitation(InvitationMixin, Model):
         if self.application_id and (a := self.application):
             return a.number
         elif self.nomination_id:
-            if (a := Application.all_objects.filter(nomination=self.nomination_id).last()):
+            if a := Application.all_objects.filter(nomination=self.nomination_id).last():
                 return a.number
             else:
                 return f"{self.nomination.round}"
-        elif self.member_id and (a := Application.all_objects.filter(member=self.member_id).last()):
+        elif self.member_id and (
+            a := Application.all_objects.filter(member=self.member_id).last()
+        ):
             return a.number
-        elif self.referee_id and (a := Application.all_objects.filter(referee=self.referee_id).last()):
+        elif self.referee_id and (
+            a := Application.all_objects.filter(referee=self.referee_id).last()
+        ):
             return a.number
         elif self.panellist_id:
             return f"{self.panellist.round}"
@@ -3291,7 +3295,9 @@ class Invitation(InvitationMixin, Model):
 
     @fsm_log
     @transition(field=status, source=["*"], target=STATUS.autoreplied)
-    def mark_autoreplied(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
+    def mark_autoreplied(
+        self, request=None, by=None, description=None, commit=True, *args, **kwargs
+    ):
         pass
 
     @fsm_log
