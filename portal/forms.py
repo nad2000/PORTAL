@@ -34,19 +34,38 @@ from django.conf import settings
 
 from . import models
 
-DateInput = partial(
-    forms.DateInput,
-    attrs={
-        "class": "form-control datepicker",
-        "type": "text",
-        "data-date-start-date": "-100y",
-        "data-date-end-date": "-6y",
-    },
-    format="%Y-%m-%d",
-)
+# DateInput = partial(
+#     forms.DateInput,
+#     attrs={
+#         "class": "form-control datepicker",
+#         "type": "text",
+#         "data-date-start-date": "-100y",
+#         "data-date-end-date": "-6y",
+#     },
+# )
 
 
-YearInput = partial(forms.DateInput, attrs={"class": "form-control yearpicker", "type": "text"})
+class DateInput(forms.DateInput):
+    def __init__(self, attrs=None, format=None, start_date=None, end_date=None):
+        if not format:
+            format = "%Y-%m-%d"
+
+        if not attrs:
+            attrs = {}
+
+        if "class" not in attrs:
+            attrs["class"] = "form-control datepicker"
+        if "type" not in attrs:
+            attrs["type"] = "text"
+        if "data-date-start-date" not in attrs:
+            attrs["data-date-start-date"] = start_date or "-80y"
+        if "data-date-end-date" not in attrs:
+            attrs["data-date-end-date"] = end_date or "+5y"
+
+        super().__init__(attrs=attrs, format=format)
+
+
+YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type": "text"})
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input", "type": "file"})
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input"})
 
@@ -116,9 +135,7 @@ class FormWithStatusFieldMixin:
             attrs["invitation"] = invitation
             status = invitation and invitation.status or instance.status
             attrs["status"] = status
-            if status in ["bounced", "autoreplied"] and (
-                error_message := instance.mail_log_error
-            ):
+            if status in ["bounced", "autoreplied"] and (error_message := instance.mail_log_error):
                 attrs["error_message"] = error_message
 
 
@@ -270,7 +287,7 @@ class ProfileForm(forms.ModelForm):
         ]
         widgets = dict(
             gender=forms.RadioSelect(attrs={"style": "display: inline-block"}),
-            date_of_birth=DateInput(),
+            date_of_birth=DateInput(start_date="-100y", end_date="-6y"),
             ethnicities=autocomplete.ModelSelect2Multiple(
                 url="ethnicity-autocomplete",
                 attrs={
@@ -503,6 +520,7 @@ class ApplicationForm(forms.ModelForm):
             summary_fields.append(
                 Field("is_bilingual", data_toggle="toggle", template="portal/toggle.html")
             )
+        guidelines = round and round.get_guidelines()
         if round.has_title:
             summary_fields.extend(
                 [
@@ -691,8 +709,19 @@ class ApplicationForm(forms.ModelForm):
             tabs.append(
                 Tab(
                     _("Categories"),
-                    HTML(f'<div class="alert alert-dark" role="alert">TODO:</div>'),
-                    # Div(TableInlineFormset("referees"), css_id="referees"),
+                    HTML(
+                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
+                        % (
+                            _(
+                                "The collection of this data is for the purpose of our reporting "
+                                "obligations to NZRIS or to allow categorisation of your application "
+                                "during the selection process (i.e. to early- or mid-career "
+                                "fellowship pool)."
+                            ),
+                            _('For more information see: <a href="%s#Categories" target="_blank">Categories</a>')
+                            % guidelines,
+                        )
+                    ),
                     *category_fields,
                     css_id="categories",
                 ),
@@ -1133,7 +1162,7 @@ ProfileCareerStageFormSet = modelformset_factory(
     can_delete=True,
     widgets=dict(
         profile=HiddenInput(),
-        year_achieved=YearInput(attrs={"min": 1950}),
+        year_achieved=YearInput(attrs={"min": "-60y", "max": "+3y"}),
         career_stage=Select(
             attrs={
                 # "required": True,

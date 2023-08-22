@@ -39,10 +39,19 @@
           <li>Referees for all prizes with the exception of the Future Scientist and Science Teacher Prizes</li>
         </ul>
         If in doubt skip this step, and when required a CV will be requested.<br><br>
-        For NZ-based researchers, a current CV in the
-        <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
-        All others, please provide a CV in whatever is your preferred format.
       {% endblocktrans %}
+      {% if SITE_ID == 4 %}
+        {% blocktrans %}
+          For NZ-based researchers, a current CV in the
+          <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is required.
+        {% endblocktrans %}
+      {% else %}
+        {% blocktrans %}
+          For NZ-based researchers, a current CV in the
+          <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+        {% endblocktrans %}
+      {% endif %}
+      {% trans 'All others, please provide a CV in whatever is your preferred format.' %}
     {% elif view_name == "profile-academic-records" %}
       {% blocktrans %}
         Academic record is requested to enable analysis of the effect of qualifications on research performance,
