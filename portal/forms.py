@@ -448,7 +448,8 @@ class ApplicationForm(forms.ModelForm):
         initial = kwargs.get("initial", {})
         user = initial.get("user")
         language = get_language()
-        if settings.SITE_ID == 4:
+        site_id = settings.SITE_ID
+        if site_id == 4:
             self.fields["application_title"].label = _("Title of proposed research")
             self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
@@ -718,7 +719,9 @@ class ApplicationForm(forms.ModelForm):
                                 "during the selection process (i.e. to early- or mid-career "
                                 "fellowship pool)."
                             ),
-                            _('For more information see: <a href="%s#Categories" target="_blank">Categories</a>')
+                            _(
+                                'For more information see: <a href="%s#Categories" target="_blank">Categories</a>'
+                            )
                             % guidelines,
                         )
                     ),
@@ -726,7 +729,7 @@ class ApplicationForm(forms.ModelForm):
                     css_id="categories",
                 ),
             )
-        if settings.SITE_ID == 2:
+        if site_id == 2:
             tabs.append(
                 Tab(
                     _("Summary and Forms"),
@@ -753,16 +756,40 @@ class ApplicationForm(forms.ModelForm):
                 Tab(
                     _("Summary and Forms"),
                     HTML(
-                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
-                        % (
-                            _(
-                                "An application form must be uploaded before referees can be invited; "
-                                "however, the form can be updated at any point up until submission."
-                            ),
-                            _(
-                                'To revise the application, click "Browse" and you will be prompted for the new file '
-                                'location; and then "Save" to replace the existing file.'
-                            ),
+                        (
+                            '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p><p>%s</p></div>'
+                            % (
+                                _(
+                                    "An upload is required for each of the Documents below. These should be prepared "
+                                    "on one of the provided templates where available. The limit on space in all "
+                                    "sections of the templates should be adhered to and the typeface should be 11 point, "
+                                    "Times or similar type font, single spacing (11 point), with margins of 2 cm on the "
+                                    "left and 2 cm on the right sides of the page. Instructions in italic may be "
+                                    "removed, but not the margins."
+                                ),
+                                _(
+                                    'To revise an uploaded document, click "Browse" and you will be prompted for the '
+                                    'new file location; and then "Save" to replace the existing file.'
+                                ),
+                                _(
+                                    'For more information see: <a href="%s#SummaryAndForms" target="_blank">Summary and Forms</a>'
+                                )
+                                % guidelines,
+                            )
+                        )
+                        if site_id == 4
+                        else (
+                            '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
+                            % (
+                                _(
+                                    "An application form must be uploaded before referees can be invited; "
+                                    "however, the form can be updated at any point up until submission."
+                                ),
+                                _(
+                                    'To revise the application, click "Browse" and you will be prompted for the new file '
+                                    'location; and then "Save" to replace the existing file.'
+                                ),
+                            )
                         )
                     ),
                     *summary_fields,
@@ -770,7 +797,27 @@ class ApplicationForm(forms.ModelForm):
                 ),
             )
         if round.has_referees:
-            if round.required_referees and round.required_referees > 1:
+            if site_id == 4:
+                referee_information_text = "\n".join(
+                    f"<p>{line}</p>"
+                    for line in [
+                        (
+                            _(
+                                "%(number_of_referees)s referees are required to support this application. "
+                                "You are able to invite additional referees by clicking the + button. "
+                                "Please note that the society will only accept the first "
+                                "%(number_of_referees)s reports received."
+                            )
+                            % {"number_of_referees": apnumber(round.required_referees)}
+                        ).capitalize(),
+                        _(
+                            'For more information see: <a href="%s#Referees" target="_blank">Referees</a>'
+                        )
+                        % guidelines,
+                    ]
+                )
+
+            elif round.required_referees and round.required_referees > 1:
                 referee_information_lines = [
                     (
                         _("At least %s referees are required to support this application.")
@@ -848,7 +895,53 @@ class ApplicationForm(forms.ModelForm):
 
         if not instance.submitted_by or instance.submitted_by == user:
             if not (tac_text := round.tac):
-                if settings.SITE_ID == 2:
+                if site_id == 4:
+                    tac_text = "\n".join(
+                        f"<p>{l}</p>"
+                        for l in [
+                            _(
+                                "The information you provide in your application is used by the Royal Society Te Apārangi "
+                                "to evaluate your application. Your contact details may also be used to communicate with "
+                                "you about other Royal Society Te Apārangi activities."
+                            ),
+                            _(
+                                "Your information is stored in a secure environment with access limited to authorised "
+                                "staff, external panel members and reviewers in order for your application to be evaluated."
+                            ),
+                            _(
+                                "We may notify other funding agencies of your funding application to ensure that "
+                                "there is no duplication of funding."
+                            ),
+                            _(
+                                "Application information may be subject to release under the Official Information Act "
+                                "1982, as it is deemed to be held by MBIE who engage the Royal Society Te Apārangi to "
+                                "administer Ngā Puanga Pūtaiao Fellowships."
+                            ),
+                            _(
+                                "If your application is successful, Royal Society Te Apārangi will publish your name, "
+                                "a description of the project, and the amount of funding, and may, with your permission, "
+                                "summarise your application for use in publicity such as press releases or published articles."
+                            ),
+                            _(
+                                "Unless required by law, your information will not be disclosed to any other party."
+                            ),
+                            _(
+                                "You have the right to access your information and ask for it to be updated or corrected."
+                            ),
+                            _(
+                                "We will keep information we hold about you indefinitely unless you request otherwise."
+                            ),
+                            _(
+                                "As the applicant, you take full responsibility for the content of the application, "
+                                "including the suitability and validity of cited sources and originality of content."
+                            ),
+                            _(
+                                "Any questions or concerns please email the "
+                                '<a href="mailto:%22Privacy%20Officer%22%3cprivacy.officer@royalsociety.org.nz%3e">Privacy Officer</a>.'
+                            ),
+                        ]
+                    )
+                elif site_id == 2:
                     tac_text = _(
                         "I affirm that I fulfil the eligibility reqirements for this scheme "
                         "and that my application abides by any rules as laid out in the scheme's guidelines. <br><br> "

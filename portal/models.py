@@ -2736,7 +2736,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
             u = ea.user
         first_name = self.first_name or u and u.first_name or ""
         last_name = self.last_name or u and u.last_name or ""
-        middle_names = self.middle_names or u and u.middle_names or ""
+        middle_names = self.middle_names or ""  ## or u and u.middle_names or ""
 
         if hasattr(self, "invitation"):
             i = self.invitation
