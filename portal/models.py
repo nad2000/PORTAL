@@ -2560,6 +2560,15 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
+                if not isinstance(resp, list):
+                    limesurvey_status = resp.get("status")
+                    raise Exception(
+                        _(
+                            "Failed to add the referee: %s. Please constact a portal administration."
+                        )
+                        % limesurvey_status
+                    )
+
                 for r in resp:
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
