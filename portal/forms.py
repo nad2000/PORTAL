@@ -937,7 +937,8 @@ class ApplicationForm(forms.ModelForm):
                             ),
                             _(
                                 "Any questions or concerns please email the "
-                                '<a href="mailto:%22Privacy%20Officer%22%3cprivacy.officer@royalsociety.org.nz%3e">Privacy Officer</a>.'
+                                '<a href="mailto:%22Privacy%20Officer%22%3cprivacy.officer@'
+                                'royalsociety.org.nz%3e" target="_blank">Privacy Officer</a>.'
                             ),
                         ]
                     )
