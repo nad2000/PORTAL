@@ -57,6 +57,8 @@ def can_see_referees(value, user):
     """User can access list of the referees - applicants or panellists."""
     return user.is_authenticated and (
         value.submitted_by == user
+        or user.is_superuser
+        or user.staff_of_sites.filter(pk=value.site_id).exists()
         or value.round.panellists.all().filter(user=user).exists()
         or (value.org and value.org.where(research_offices__user=user).exists())
     )
