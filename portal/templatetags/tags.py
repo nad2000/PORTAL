@@ -56,7 +56,9 @@ def can_edit(value, user):
 def can_see_referees(value, user):
     """User can access list of the referees - applicants or panellists."""
     return user.is_authenticated and (
-        value.submitted_by == user or value.round.panellists.all().filter(user=user).exists()
+        value.submitted_by == user
+        or value.round.panellists.all().filter(user=user).exists()
+        or (value.org and value.org.where(research_offices__user=user).exists())
     )
 
 

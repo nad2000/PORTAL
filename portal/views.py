@@ -835,7 +835,6 @@ def check_profile(request, token=None):
                     _("The invitation has been revoked and is not any more valid."),
                 )
             elif i.status == "accepted":
-
                 messages.warning(
                     request,
                     _("The invitation has been already accepted."),
@@ -848,7 +847,7 @@ def check_profile(request, token=None):
                     if not n.user:
                         n.user = u
                         n.save(updated_fields=["user"])
-                    if (a := n.application):
+                    if a := n.application:
                         if a.submitted_by == u:
                             next_url = reverse("application-update", kwargs={"pk": a.id})
                         else:
@@ -1496,6 +1495,9 @@ class ApplicationDetail(DetailView):
         context = super().get_context_data(**kwargs)
         a = self.object
         u = self.request.user
+        if n := models.Nomination.where(application=a).last():
+            context["nomination"] = n
+            context["nominator"] = n.nominator
         if a.members.filter(
             Q(user=u) | Q(email=u.email) | Q(email__in=u.emailaddress_set.values("email")),
             # has_authorized__isnull=True,
@@ -1530,12 +1532,13 @@ class ApplicationDetail(DetailView):
             context["show_basic_details"] = not (
                 u.is_staff
                 or u.is_superuser
-                or a.referees.filter(user=u).exists()
+                or (settings.SITE_ID != 4 and a.referees.filter(user=u).exists())
                 or models.ConflictOfInterest.where(
                     Q(has_conflict=False) | Q(has_conflict__isnull=False),
                     application=a,
                     panellist__user=u,
                 ).exists()
+                or a.org.where(research_offices__user=u).exists()
             )
             if (
                 t := models.Testimonial.where(referee__user=u, referee__application=a)
@@ -1547,9 +1550,6 @@ class ApplicationDetail(DetailView):
                 Q(user=u) | Q(email__in=u.emailaddress_set.values("email"))
             ).last():
                 context["referee"] = referee
-            if n := models.Nomination.where(application=a).last():
-                context["nomination"] = n
-                context["nominator"] = n.nominator
 
         return context
 
@@ -4648,8 +4648,9 @@ class ApplicationExportView(ExportView):
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
-                    or a.referees.all().filter(user=u).exists()
+                    or (settings.SITE_ID != 4 and a.referees.all().filter(user=u).exists())
                     or a.round.panellists.all().filter(user=u).exists()
+                    or a.org.where(research_offices__user=u).exists()
                 )
             )
         )
@@ -6012,6 +6013,19 @@ class SummaryReportList(LoginRequiredMixin, SingleTableMixin, FilterView):
         queryset = queryset.filter(round=F("round__scheme__current_round"))
         queryset = queryset.prefetch_related("round")
         return queryset
+
+
+def headers(request, application_id, page_count=1, output_type="pdf"):
+    page_count = int(page_count)
+    application = models.Application.get(application_id)
+    if output_type != "pdf":
+        return render(request, "headers.html", locals())
+    template = get_template("headers.html")
+    html = HTML(string=template.render(locals()))
+    pdf_object = html.write_pdf()
+    response = HttpResponse(pdf_object, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="{}.pdf"'.format("headers.pdf")
+    return response
 
 
 # vim:set ft=python.django:

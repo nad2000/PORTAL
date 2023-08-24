@@ -71,7 +71,7 @@ from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from private_storage.fields import PrivateFileField
-from PyPDF2 import PdfFileMerger
+from PyPDF2 import PdfFileMerger, PdfFileReader
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from taggit.managers import TaggableManager
@@ -2052,10 +2052,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
-    def to_pdf(self, request=None):
+    def to_pdf(self, request=None, user=None, add_headers=None):
         """Create PDF file for export and return PdfFileMerger"""
 
         r = self.round
+        if not user and request:
+            user = request.user
 
         attachments = []
         cvs = []
@@ -2079,10 +2081,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if (
-            request.user.is_superuser
-            or request.user.is_staff
+            user.is_superuser
+            or user.is_staff
             or self.conflict_of_interests.filter(
-                panellist__user=request.user, has_conflict=False, has_conflict__isnull=False
+                panellist__user=user, has_conflict=False, has_conflict__isnull=False
             )
         ):
             for n in Nomination.where(application=self, nominator__isnull=False):
@@ -2214,7 +2216,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             context = {
                 "application": self,
                 "objects": objects,
-                "user": request and request.user,
+                "user": user,
                 "site": site,
                 "domain": domain,
                 "logo": logo_url,
@@ -2242,7 +2244,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             "title_page": title_page,
                             "title": title,
                             # "objects": objects,
-                            "user": request and request.user,
+                            "user": user,
                             "site": site,
                             "domain": domain,
                             "logo": logo_url,
@@ -2261,6 +2263,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
 
             merger.append(a, bookmark=title, import_bookmarks=True)
+
+        if add_headers or self.site_id == 4:
+            template = get_template("headers.html")
+            html = HTML(
+                string=template.render({"page_count": len(merger.pages), "application": self})
+            )
+            header_file = PdfFileReader(io.BytesIO(html.write_pdf(presentational_hints=True)))
+            for dp, hp in zip(merger.pages, header_file.pages):
+                dp.pagedata.mergePage(hp)
+
         return merger
 
     class Meta:
