@@ -269,10 +269,17 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
            {% if a.deadline_days < 5 %}
            data-toggle="tooltip"
            title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_on|date:"d-m-Y" closes_at=a.round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+          {% elif SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
+          data-toggle="tooltip"
            {% endif %}
            >{{ a }}</a></li>
       {% else %}
-      <li class="list-group-item"><a href="{% url 'application' pk=a.id %}">{{ a }}</a></li>
+      <li class="list-group-item"><a
+          href="{% url 'application' pk=a.id %}"
+          {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
+          data-toggle="tooltip"{% endif %}>
+          {{ a }}
+        </a></li>
       {% endif %}
     </ul>
     {% endif %}
@@ -292,7 +299,10 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
     {% for a in current_applications %}
     {% if a and a.id %}
     <ul class="list-group list-group-flush">
-      <li class="list-group-item"><a href="{% url 'application' pk=a.id %}">{{ a }}</a>
+      <li class="list-group-item"><a
+          href="{% url 'application' pk=a.id %}"
+          {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
+          data-toggle="tooltip"{% endif %}>{{ a }}</a>
 
         {% if user.is_staff or user.is_superuser %}
         <a
@@ -429,9 +439,8 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-html="true"
                    data-title="{% trans 'You need to be nominated in order to apply for this round' %}{% if SITE_ID == 4 %}. {% trans 'Please contact your Research Office' %}{% endif %}."
                    {% else %}
-                   data-title="{% trans 'Start a new application' %}{% if SITE_ID == 4 %}. {% trans 'You have been nominated for this round' %}.{% endif %}"
-                   {% endif %}
-                   >
+                   data-title="{% trans 'Start a new application' %}{% if SITE_ID == 4 %}.{% if not round.direct_application_allowed %} {% trans 'You have been nominated for this round' %}.{% endif %}{% endif %}"
+                   {% endif %}>
                    <a href="{% url 'application-create' round=round.id %}"
                       class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}"
 

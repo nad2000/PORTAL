@@ -1950,6 +1950,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     def __str__(self):
+        if self.site_id == 4:
+            return f"{self.number}: {self.submitted_by.full_name}"
         title = self.application_title or self.round.title
         if self.number:
             title = f"{title} ({self.number})"
@@ -5254,6 +5256,24 @@ class ResearchOffice(Model):
 
     class Meta:
         db_table = "research_office"
+
+
+def add_title_data(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    Title = apps.get_model("portal", "Title")
+    db_alias = schema_editor.connection.alias
+    Title.objects.using(db_alias).bulk_create(
+        [
+            Title(code="MR", name="Mr", name_en="Mr"),
+            Title(code="MRS", name="Mrs", name_en="Mrs"),
+            Title(code="MS", name="Ms", name_en="Ms"),
+            Title(code="DR", name="Dr", name_en="Dr"),
+            Title(code="PROF", name="Prof", name_en="Prof"),
+        ]
+    )
 
 
 # ORG_ROLE = Choices(

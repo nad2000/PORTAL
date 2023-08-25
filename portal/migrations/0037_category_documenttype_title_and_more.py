@@ -103,6 +103,7 @@ class Migration(migrations.Migration):
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
+        migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
         migrations.RenameField(
             model_name="application",
             old_name="rationane_vm_na",
