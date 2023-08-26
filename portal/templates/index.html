@@ -265,12 +265,12 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
            title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_on|date:"d-m-Y" closes_at=a.round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
            ></i>
         {% endif %}
-        <a href="{% url 'application-update' pk=a.id %}"
+        <a href="{% if SITE_ID == 4 %}{% url 'application' pk=a.id %}{% else %}{% url 'application-update' pk=a.id %}{% endif %}"
            {% if a.deadline_days < 5 %}
            data-toggle="tooltip"
            title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_on|date:"d-m-Y" closes_at=a.round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
-          {% elif SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
-          data-toggle="tooltip"
+           {% elif SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
+           data-toggle="tooltip"
            {% endif %}
            >{{ a }}</a></li>
       {% else %}
@@ -280,7 +280,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
           data-toggle="tooltip"{% endif %}>
           {{ a }}
         </a></li>
-      {% endif %}
+        {% endif %}
     </ul>
     {% endif %}
     {% endfor %}
@@ -441,26 +441,26 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% else %}
                    data-title="{% trans 'Start a new application' %}{% if SITE_ID == 4 %}.{% if not round.direct_application_allowed %} {% trans 'You have been nominated for this round' %}.{% endif %}{% endif %}"
                    {% endif %}>
-                   <a href="{% url 'application-create' round=round.id %}"
-                      class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}"
+                <a href="{% url 'application-create' round=round.id %}"
+                   class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}"
 
-                      style="text-transform: uppercase;"
-                      {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
-                      {% if record.previous_application %}
-                      data-toggle="modal"
-                      data-target="#previous-application"
-                      data-previous-id="{{ record.previous_application_id }}"
-                      data-previous-title="{{ record.previous_application_title }}"
-                      data-previous-number="{{ record.previous_application_number }}"
-                      data-previous-url="{% url 'application' pk=record.previous_application_id %}"
-                      data-round-id="{{ round.id }}"
-                      data-round-title="{{ round.title }}"
-                      data-new-url="{% url 'application-create' round=round.id %}"
-                      data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
-                      {% endif %}
-                      >
-                      {% trans "Apply" %} <b>{% trans "Now" %}</b>
-                   </a>
+                   style="text-transform: uppercase;"
+                   {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
+                   {% if record.previous_application %}
+                   data-toggle="modal"
+                   data-target="#previous-application"
+                   data-previous-id="{{ record.previous_application_id }}"
+                   data-previous-title="{{ record.previous_application_title }}"
+                   data-previous-number="{{ record.previous_application_number }}"
+                   data-previous-url="{% url 'application' pk=record.previous_application_id %}"
+                   data-round-id="{{ round.id }}"
+                   data-round-title="{{ round.title }}"
+                   data-new-url="{% url 'application-create' round=round.id %}"
+                   data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
+                   {% endif %}
+                   >
+                   {% trans "Apply" %} <b>{% trans "Now" %}</b>
+                </a>
               </div>
               {% endif %}
               {% if round.can_nominate or SITE_ID == 4 %}
@@ -579,10 +579,10 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
             $.post("{{ request.path }}", formValues, function(data){
               // Display the returned data in browser
               $("#messages").append(
-                  $('<div class="alert alert-'+data.status+'">'
-                    +data.message
-                    +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
-                );
+                $('<div class="alert alert-'+data.status+'">'
+                  +data.message
+                  +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+              );
               $("#id_request_modal").modal('hide');
               var scrollPos=$("#messages").offset().top;
               $(window).scrollTop(scrollPos);
