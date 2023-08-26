@@ -44,7 +44,7 @@
                   class="nav-link"
                   id="applications-submitted"
                   href="{% url 'applications-submitted' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
-                  title="{% if SITE_ID == 4 and not is_ro %}{% trans 'Submitted, approved, and withdrawn applications' %}{% else %}{% trans 'Submitted applications' %}{% endif %}"
+                  title="{% if SITE_ID == 4 and not is_staff %}{% trans 'Submitted, approved, and withdrawn applications' %}{% else %}{% trans 'Submitted applications' %}{% endif %}"
                   data-toggle="tooltip"
               >
                   {% trans 'Submitted' %}
@@ -60,12 +60,12 @@
               </span>
             {% endif %}
           </li>
-          {% if SITE_ID == 4 and is_ro %}
+          {% if SITE_ID == 4 and is_staff %}
             <li class="nav-item">
               {% if application_approved_count > 0 %}
                 <a
                     class="nav-link"
-                    id="applications-submitted"
+                    id="applications-approved"
                     href="{% url 'applications-approved' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
                     title="{% trans 'Approved applications' %}"
                     data-toggle="tooltip"
