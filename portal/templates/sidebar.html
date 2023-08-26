@@ -60,7 +60,7 @@
               </span>
             {% endif %}
           </li>
-          {% if SITE_ID == 4 %}{% if is_staff or u.is_superuser %}
+          {% if application_approved_count %}
             <li class="nav-item">
               {% if application_approved_count > 0 %}
                 <a
@@ -81,7 +81,7 @@
                   {% trans 'Approved' %}
                   <span class="badge badge-primary">0</span>
                 </span>
-              {% endif %}{% endif %}
+              {% endif %}
             </li>
           {% endif %}
         </ul>
