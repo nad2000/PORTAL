@@ -1508,7 +1508,11 @@ class ApplicationDetail(DetailView):
                 _("Please review the application and authorize your team representative."),
             )
             context["form"] = AuthorizationForm()
-        is_owner = a.submitted_by == u or a.members.filter(user=u, status="authorized").exists()
+        is_owner = (
+            a.submitted_by == u
+            or a.members.filter(user=u, status="authorized").exists()
+            or (a.site_id == 4 and a.org.where(research_offices__user=u).exists())
+        )
         if p := a.round.panellists.filter(user=u).first():
             context["is_panellist"] = True
             coi = p.conflict_of_interests.filter(Q(application=a)).last()
@@ -1584,7 +1588,10 @@ class ApplicationView(LoginRequiredMixin):
                 a := get_object_or_404(models.Application, pk=pk)
             ):
                 r = a.round
-                if not a.is_applicant(u):
+                if not (
+                    a.is_applicant(u)
+                    or (a.site_id == 4 and a.org.where(research_offices__user=u).exists())
+                ):
                     messages.error(
                         request, _("You do not have permissions to edit this application.")
                     )

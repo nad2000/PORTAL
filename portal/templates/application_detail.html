@@ -56,7 +56,7 @@
            {% elif not a.round.is_open %}
            disabled
            data-title="{% trans 'The application period has closed. You can no longer modify this application.' %}"
-           {% else %}
+           {% elif not a.org|is_ro:u %}
            data-title="{% trans 'Modify your application and continue application process' %}"
            {% endif %}
            >

@@ -48,8 +48,16 @@ def has_tooltip(value):
 def can_edit(value, user):
     """User can edit the application."""
     return user.is_authenticated and (
-        value.submitted_by == user or value.members.all().filter(user=user).exists()
+        value.submitted_by == user
+        or value.members.all().filter(user=user).exists()
+        # or (value.site_id == 4 and value.org.where(research_offices__user=user).exists())
     )
+
+
+@register.filter()
+def is_ro(value, user):
+    """User is a research officer of the organisation."""
+    return user.is_authenticated and (value.org.where(research_offices__user=user).exists())
 
 
 @register.filter()
