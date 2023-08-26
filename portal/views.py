@@ -329,7 +329,14 @@ class StateInPathMixin:
                     queryset = queryset.filter(state__in=["draft", "new"])
                 else:
                     # queryset = queryset.filter(state=state)
-                    queryset = queryset.filter(state__in=["submitted", "approved", "cancelled"])
+                    u = self.request.user
+                    if (site_id := settings.SITE_ID == 4) and (u.is_superuser or u.staff_of_sites.filter(id=site_id)):
+                        if state == "submitted":
+                            queryset = queryset.filter(state__in=["submitted", "cancelled"])
+                        else:  # approved
+                            queryset = queryset.filter(state="approved")
+                    else:
+                        queryset = queryset.filter(state__in=["submitted", "approved", "cancelled"])
         return queryset
 
 
