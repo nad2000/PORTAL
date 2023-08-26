@@ -70,6 +70,7 @@ urlpatterns = [
                 ),
                 path("draft", views.ApplicationList.as_view(), name="applications-draft"),
                 path("submitted", views.ApplicationList.as_view(), name="applications-submitted"),
+                path("approved", views.ApplicationList.as_view(), name="applications-approved"),
                 path("", views.ApplicationList.as_view(), name="applications"),
                 path(
                     "<int:pk>/~export",

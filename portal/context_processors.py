@@ -32,17 +32,23 @@ def portal_context(request):
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             stats = cache.get(cache_key)
         if has_refreshed or not stats:
+            is_ro = models.ResearchOffice.where(user=u).exists()
+            is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
             application_draft_count = models.Application.user_application_count(
                 u, ["draft", "new"]
             )
             application_submitted_count = models.Application.user_application_count(
-                u, ["submitted", "approved", "cancelled"]
+                u,
+                ["submitted", "cancelled"]
+                if site_id == 4 and (is_staff or u.is_superuser)
+                else ["submitted", "approved", "cancelled"],
             )
             # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
+            application_count = application_draft_count + application_submitted_count
             stats = {
+                "is_staff": is_staff,
                 "three_days_ago": timezone.now() - timedelta(days=3),
-                "application_count": application_draft_count + application_submitted_count,
                 "application_draft_count": application_draft_count,
                 "application_submitted_count": application_submitted_count,
                 "nomination_count": models.Nomination.user_nomination_count(u),
@@ -59,8 +65,15 @@ def portal_context(request):
                 "review_draft_count": models.Evaluation.user_evaluation_count(u, "draft"),
                 "review_submitted_count": models.Evaluation.user_evaluation_count(u, "submitted"),
                 "score_sheet_count": score_sheet_count,
-                "is_ro": models.ResearchOffice.where(user=u).exists(),
+                "is_ro": is_ro,
             }
+            if site_id == 4 and (is_staff or u.is_superuser):
+                application_approved_count = models.Application.user_application_count(
+                    u, "approved"
+                )
+                stats["application_approved_count"] = application_approved_count
+                application_count += application_approved_count
+            stats["application_count"] = application_count
             # if outstanding_testimonial_requests:
             #     stats["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or u.is_staff):
