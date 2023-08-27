@@ -34,10 +34,10 @@
       <div class="table-responsive card mb-3">
         <table class="table table-bordered table-striped" style="margin-bottom: 0px;">
           <tbody>
-            <tr><th scope="row">{% trans 'Title' %}</th><td>{{ u.title }}</td></tr>
-            <tr><th scope="row">{% trans 'First name' %}</th><td>{{ u.first_name }}</td></tr>
-            <tr><th scope="row">{% trans 'Middle names' %}</th><td>{{ u.middle_names }}</td></tr>
-            <tr><th scope="row">{% trans 'Last name' %}</th><td>{{ u.last_name }}</td></tr>
+            <tr><th scope="row">{% trans 'Title' %}</th><td>{{ u.title|default:'' }}</td></tr>
+            <tr><th scope="row">{% trans 'First name' %}</th><td>{{ u.first_name|default:'' }}</td></tr>
+            <tr><th scope="row">{% trans 'Middle names' %}</th><td>{{ u.middle_names|default:'' }}</td></tr>
+            <tr><th scope="row">{% trans 'Last name' %}</th><td>{{ u.last_name|default:'' }}</td></tr>
           </tbody>
         </table>
       </div>

@@ -673,7 +673,7 @@ class ProfilePersonIdentifier(Model):
         verbose_name=_("type"),
         help_text=_("Choose a type or enter a new identifier or reference type"),
     )
-    value = CharField(_("Identifier or reference"), max_length=100)
+    value = CharField(_("Identifier or reference (e.g. reference/ID number)"), max_length=100)
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
 
     class Meta:
@@ -4308,7 +4308,7 @@ class Round(Model):
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
     document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
-    title = CharField(_("Title"), max_length=200, null=True, blank=True)
+    title = CharField(_("Title (e.g. Dr, Professor)"), max_length=200, null=True, blank=True)
     is_optional = BooleanField(default=False)
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
@@ -5318,5 +5318,13 @@ def add_title_data(apps, schema_editor):
 
 #     class Meta:
 #         db_table = "affiliation"
+
+
+dummy_for_translations = (
+    _("previous"),
+    _("next"),
+    _("Browse"),
+    _("State"),
+)
 
 # vim:set ft=python.django:
