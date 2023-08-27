@@ -19,8 +19,10 @@ from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
 from fsm_admin.mixins import FSMTransitionMixin
-from import_export.admin import ImportExportMixin, ImportExportModelAdmin
+from import_export.admin import ImportExportMixin, ImportExportModelAdmin, ExportActionMixin
 from import_export.resources import ModelResource
+from import_export import fields, resources
+from import_export.widgets import ForeignKeyWidget
 from modeltranslation.admin import TranslationAdmin
 from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
@@ -191,7 +193,7 @@ class StaffPermsMixin:
 
 
 @admin.register(models.Subscription)
-class SubscriptionAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAdmin):
+class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
     view_on_site = False
     save_on_top = True
     exclude = [
@@ -204,7 +206,7 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
 
 
 @admin.register(models.Keyword)
-class KeywordAdmin(ImportExportModelAdmin):
+class KeywordAdmin(ExportActionMixin, ImportExportModelAdmin):
     show_close_button = True
 
     # class KeywordedItemInline(admin.StackedInline):
@@ -228,7 +230,7 @@ class EthnicityResource(ModelResource):
 
 
 @admin.register(models.Ethnicity)
-class EthnicityAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+class EthnicityAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
     save_on_top = True
     view_on_site = False
     search_fields = [
@@ -282,7 +284,7 @@ class CodeResource(ModelResource):
 
 
 @admin.register(models.Language)
-class LanguageAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+class LanguageAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -296,7 +298,7 @@ class LanguageAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
 
 
 @admin.register(models.FieldOfStudy)
-class FieldOfStudyAdmin(ImportExportModelAdmin):
+class FieldOfStudyAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -319,7 +321,7 @@ class FieldOfStudyAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.SocioEconomicObjective)
-class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
+class SocioEconomicObjectiveAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -346,7 +348,7 @@ class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.FieldOfResearch)
-class FieldOfResearchAdmin(ImportExportModelAdmin):
+class FieldOfResearchAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -386,7 +388,7 @@ class FieldOfResearchAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.CareerStage)
-class CareerStageAdmin(ImportExportModelAdmin):
+class CareerStageAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -399,7 +401,7 @@ class CareerStageAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.PersonIdentifierType)
-class PersonIdentifierTypeAdmin(ImportExportModelAdmin):
+class PersonIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -413,7 +415,7 @@ class PersonIdentifierTypeAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.IwiGroup)
-class IwiGroupAdmin(ImportExportModelAdmin):
+class IwiGroupAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -426,7 +428,7 @@ class IwiGroupAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.ProtectionPattern)
-class ProtectionPatternAdmin(TranslationAdmin, ImportExportModelAdmin):
+class ProtectionPatternAdmin(ImportExportMixin, ExportActionMixin, TranslationAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -462,7 +464,7 @@ class ProtectionPatternAdmin(TranslationAdmin, ImportExportModelAdmin):
 
 
 @admin.register(models.OrgIdentifierType)
-class OrgIdentifierTypeAdmin(ImportExportModelAdmin):
+class OrgIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -475,7 +477,7 @@ class OrgIdentifierTypeAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.ApplicationDecision)
-class ApplicationDecisionAdmin(ImportExportModelAdmin):
+class ApplicationDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -488,7 +490,7 @@ class ApplicationDecisionAdmin(ImportExportModelAdmin):
 
 
 @admin.register(models.Qualification)
-class QualificationDecisionAdmin(ImportExportModelAdmin):
+class QualificationDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -1213,6 +1215,12 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
 
 
 class OrganisationResource(ModelResource):
+    identifier_type = fields.Field(
+        column_name="identifier_type",
+        attribute="identifier_type",
+        widget=ForeignKeyWidget(models.OrgIdentifierType, field="description"),
+    )
+
     class Meta:
         model = models.Organisation
         fields = ["code", "name", "identifier_type", "identifier"]
@@ -1221,17 +1229,36 @@ class OrganisationResource(ModelResource):
         skip_unchanged = True
         report_skipped = True
         raise_errors = False
+        name = "Export/Import with identifiers"
+
+
+class OrganisationWOIdentifierResource(ModelResource):
+    class Meta:
+        model = models.Organisation
+        fields = [
+            "code",
+            "name",
+        ]
+        import_id_fields = ["code"]
+        export_order = [
+            "code",
+            "name",
+        ]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+        name = "Export/Import without identifiers (only codes and names)"
 
 
 @admin.register(models.Organisation)
-class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAdmin):
+class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
     save_on_top = True
     view_on_site = False
     list_display = ["code", "name"]
     list_filter = ["created_at", "updated_at", "applications__round"]
     search_fields = ["name", "code"]
     date_hierarchy = "created_at"
-    resource_class = OrganisationResource
+    resource_classes = [OrganisationResource, OrganisationWOIdentifierResource]
 
     actions = ["merge_orgs"]
 
@@ -1471,7 +1498,7 @@ class FundResource(ModelResource):
 
 
 @admin.register(models.Fund)
-class FundAdmin(StaffPermsMixin, TranslationAdmin, ImportExportModelAdmin):
+class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, TranslationAdmin):
     save_on_top = True
     list_display = ["code", "code3", "description", "site"]
     list_filter = ["site"]
@@ -1490,7 +1517,12 @@ class SchemeResource(ModelResource):
 
 
 @admin.register(models.Scheme)
-class SchemeAdmin(StaffPermsMixin, TranslationAdmin, ImportExportModelAdmin):
+class SchemeAdmin(
+    StaffPermsMixin,
+    ExportActionMixin,
+    ImportExportMixin,
+    TranslationAdmin,
+):
     save_on_top = True
     list_display = ["title", "current_round"]
     resource_class = SchemeResource
@@ -1585,7 +1617,7 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
 
 
 @admin.register(models.Title)
-class TitleAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
+class TitleAdmin(ExportActionMixin, ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
     list_display = ["code", "name_en", "name_mi"]
@@ -1597,7 +1629,13 @@ class TitleAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
 
 
 @admin.register(models.Round)
-class RoundAdmin(SummernoteModelAdminMixin, ImportExportMixin, StaffPermsMixin, TranslationAdmin):
+class RoundAdmin(
+    SummernoteModelAdminMixin,
+    ExportActionMixin,
+    ImportExportMixin,
+    StaffPermsMixin,
+    TranslationAdmin,
+):
     summernote_fields = (
         "description_en",
         "description_mi",

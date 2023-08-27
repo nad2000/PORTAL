@@ -758,7 +758,7 @@ class Organisation(Model):
     name = CharField(max_length=200)
     identifier_type = ForeignKey(OrgIdentifierType, null=True, blank=True, on_delete=SET_NULL)
     identifier = CharField(max_length=24, null=True, blank=True)
-    code = CharField(max_length=10, blank=True, default="")
+    code = CharField(max_length=10, blank=True, default="", unique=True)
 
     history = HistoricalRecords(table_name="organisation_history")
 
