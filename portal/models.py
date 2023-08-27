@@ -5324,7 +5324,9 @@ dummy_for_translations = (
     _("previous"),
     _("next"),
     _("Browse"),
+    _("browse"),
     _("State"),
+    _("state"),
 )
 
 # vim:set ft=python.django:

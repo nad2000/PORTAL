@@ -719,10 +719,11 @@ class ApplicationForm(forms.ModelForm):
                                 "during the selection process (i.e. to early- or mid-career "
                                 "fellowship pool)."
                             ),
-                            _(
-                                'For more information see: <a href="%s#Categories" target="_blank">Categories</a>'
-                            )
-                            % guidelines,
+                            _("For more information see")
+                            + (
+                                (': <a href="%s#Categories" target="_blank">%s</a>')
+                                % (guidelines, _("Categories"))
+                            ),
                         )
                     ),
                     *category_fields,

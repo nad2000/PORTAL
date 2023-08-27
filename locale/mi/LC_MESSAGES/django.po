@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-15 19:28+1200\n"
+"POT-Creation-Date: 2023-08-27 21:44+1200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,16 +30,16 @@ msgstr "Reo Pākehā"
 msgid "Maori"
 msgstr "Reo Māori"
 
-#: portal/admin.py:33 portal/admin.py:34
-#: portal/templates/admin/base_site.html:18
+#: portal/admin.py:35 portal/admin.py:36
+#: portal/templates/admin/base_site.html:23
 msgid "Portal Administration"
 msgstr "Whakahaerenga Tomokanga"
 
-#: portal/admin.py:90
+#: portal/admin.py:92
 msgid "Advanced options"
 msgstr ""
 
-#: portal/admin.py:452 portal/models.py:2242 portal/models.py:2774
+#: portal/admin.py:454 portal/models.py:2308 portal/models.py:2866
 #: portal/templates/evaluation.html:98
 #: portal/templates/portal/conflictofinterest_list.html:150
 #: portal/templates/portal/evaluation_form.html:95
@@ -47,47 +47,47 @@ msgstr ""
 msgid "Comment"
 msgstr "Tākupu"
 
-#: portal/admin.py:534 portal/templates/sidebar.html:347
+#: portal/admin.py:536 portal/templates/sidebar.html:371
 msgid "Protection Pattern"
 msgstr "Tauira Parahau"
 
-#: portal/admin.py:535 portal/templates/profile_protection_patterns.html:4
+#: portal/admin.py:537 portal/templates/profile_protection_patterns.html:4
 msgid "Protection Patterns"
 msgstr "Tauira Parahau"
 
-#: portal/admin.py:583 portal/admin.py:1558 portal/admin.py:1564
-#: portal/forms.py:855 portal/forms.py:1219
+#: portal/admin.py:585 portal/admin.py:1590 portal/admin.py:1596
+#: portal/forms.py:994 portal/forms.py:1358
 #: portal/templates/portal/conflictofinterest_list.html:47
 msgid "Previous"
 msgstr "Ki mua"
 
-#: portal/admin.py:584 portal/templates/table.html:191
+#: portal/admin.py:586 portal/templates/table.html:191
 msgid "All"
 msgstr ""
 
-#: portal/admin.py:1102 portal/templates/account/email.html:31
+#: portal/admin.py:1104 portal/templates/account/email.html:31
 msgid "Verified"
 msgstr "I whakatūturutia"
 
-#: portal/admin.py:1553 portal/admin.py:1563
+#: portal/admin.py:1585 portal/admin.py:1595
 msgid "ACTIVE"
 msgstr ""
 
-#: portal/forms.py:147
+#: portal/forms.py:173
 #, python-brace-format
 msgid "Please upload {document_type}"
 msgstr "Please upload {document_type}"
 
-#: portal/forms.py:149 portal/models.py:1391
+#: portal/forms.py:175 portal/models.py:1395
 msgid "Please upload completed application form"
 msgstr "Tēnā tukuatu te puka tono kua whakaotihia"
 
-#: portal/forms.py:152
+#: portal/forms.py:178
 #, python-brace-format
 msgid "You can download the {document_type} template(s) at "
 msgstr "Ka taea e koe te tikiake te ngā/te tauira {document_type} i "
 
-#: portal/forms.py:154
+#: portal/forms.py:180
 #, fuzzy
 #| msgid ""
 #| "You can download the application form template at <strong><a "
@@ -97,31 +97,31 @@ msgstr ""
 "Ka taea e koe te tikiake te tātauira puka tono ki <strong><a href=\"%s\">%s</"
 "a></strong>"
 
-#: portal/forms.py:163 portal/forms.py:546
+#: portal/forms.py:189 portal/forms.py:574
 msgid " or "
 msgstr ""
 
-#: portal/forms.py:238 portal/forms.py:911 portal/forms.py:1375
+#: portal/forms.py:264 portal/forms.py:1050 portal/forms.py:1514
 #: users/forms.py:18
 #, fuzzy
 #| msgid "Choose an organisation or create a new one ..."
 msgid "Choose your title or create a new one ..."
 msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
 
-#: portal/forms.py:247
+#: portal/forms.py:273
 msgid "Please read and consent to the Privacy Policy"
 msgstr "Tēnā pānuitia ka whakaae ki te Kaupapahere Tūmataitinga"
 
-#: portal/forms.py:269
+#: portal/forms.py:295
 msgid ""
 "Please start typing your ethnicity. You can select multiple ethnicities..."
 msgstr ""
 
-#: portal/forms.py:290
+#: portal/forms.py:316
 msgid "Please start typing your iwi group. You can select multiple groups..."
 msgstr ""
 
-#: portal/forms.py:299
+#: portal/forms.py:325
 msgid ""
 "I have read and agreed to the <a href='#' data-toggle='modal' data-"
 "target='#privacy-statement'>Privacy Statement</a>"
@@ -129,83 +129,83 @@ msgstr ""
 "Kua pānui ahau me te whakaae ki te <a href='#' data-toggle='modal' data-"
 "target='#privacy-statement'>Tauākī Tūmataiti</a>"
 
-#: portal/forms.py:318
+#: portal/forms.py:344
 msgid "Currently:"
 msgstr "O-nāianei:"
 
-#: portal/forms.py:318
+#: portal/forms.py:344
 msgid "Change:"
 msgstr "Huri:"
 
-#: portal/forms.py:336
+#: portal/forms.py:362
 #, fuzzy
 #| msgid "new"
 msgid "one"
 msgstr "hou"
 
-#: portal/forms.py:337
+#: portal/forms.py:363
 msgid "two"
 msgstr ""
 
-#: portal/forms.py:338
+#: portal/forms.py:364
 msgid "three"
 msgstr ""
 
-#: portal/forms.py:339
+#: portal/forms.py:365
 msgid "four"
 msgstr ""
 
-#: portal/forms.py:340
+#: portal/forms.py:366
 msgid "five"
 msgstr ""
 
-#: portal/forms.py:341
+#: portal/forms.py:367
 msgid "six"
 msgstr ""
 
-#: portal/forms.py:342
+#: portal/forms.py:368
 msgid "seven"
 msgstr ""
 
-#: portal/forms.py:343
+#: portal/forms.py:369
 msgid "eight"
 msgstr ""
 
-#: portal/forms.py:344
+#: portal/forms.py:370
 msgid "nine"
 msgstr ""
 
-#: portal/forms.py:365 portal/forms.py:555 portal/models.py:427
-#: portal/models.py:3466 portal/models.py:4718
-#: portal/templates/sidebar.html:328 portal/views.py:3149
+#: portal/forms.py:391 portal/forms.py:583 portal/models.py:431
+#: portal/models.py:3635 portal/models.py:4890
+#: portal/templates/sidebar.html:352 portal/views.py:3194
 msgid "Curriculum Vitae"
 msgstr "Tātai Pūmanawa"
 
-#: portal/forms.py:379
+#: portal/forms.py:405
 #, fuzzy
 #| msgid "You must add a budget spreadsheet before submitting the application"
 msgid "Need to attache a letter of support before submitting the application."
 msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
 
-#: portal/forms.py:395
+#: portal/forms.py:421
 #, fuzzy
 #| msgid "You must add a budget spreadsheet before submitting the application"
 msgid "Need to attache a CV before submitting the application."
 msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
 
-#: portal/forms.py:426
+#: portal/forms.py:453
 msgid "Title of proposed research"
 msgstr "Taitara o te rangahau e marohitia ana"
 
-#: portal/forms.py:437 portal/templates/application.html:158
+#: portal/forms.py:464 portal/templates/application.html:158
 msgid "Team representative"
 msgstr "Māngai ā-Rōpū"
 
-#: portal/forms.py:439 portal/templates/application.html:154
+#: portal/forms.py:466 portal/templates/application.html:154
 msgid "Individual applicant"
 msgstr "Kaitono Takitahi"
 
-#: portal/forms.py:525
+#: portal/forms.py:553
 #, python-format
 msgid ""
 "You can download the budget template at <strong><a href=\"%s\">%s</a></"
@@ -214,11 +214,11 @@ msgstr ""
 "Ka taea e koe te tikiake te tātauira mahere pūtea ki <strong><a "
 "href=\"%s\">%s</a></strong>"
 
-#: portal/forms.py:533 portal/models.py:2114
+#: portal/forms.py:561 portal/models.py:2146
 msgid "Letter of Support"
 msgstr ""
 
-#: portal/forms.py:540
+#: portal/forms.py:568
 #, fuzzy
 #| msgid ""
 #| "You can download the nomination form template at <strong><a "
@@ -228,109 +228,236 @@ msgstr ""
 "Ka taea e koe te tikiake te tātauira puka tautapanga ki <strong><a "
 "href=\"%s\">%s</a></strong>"
 
-#: portal/forms.py:589 portal/templates/application.html:159
+#: portal/forms.py:617 portal/templates/application.html:159
 msgid "Team"
 msgstr "Rōpū"
 
-#: portal/forms.py:589 portal/templates/application-export.html:28
+#: portal/forms.py:617 portal/templates/application-export.html:37
 #: portal/templates/application.html:155
 #: portal/templates/snippets/application_detail_table.html:63
 msgid "Applicant"
 msgstr "Kaitono"
 
-#: portal/forms.py:602
+#: portal/forms.py:630
 msgid "Type of Activities"
 msgstr "Ngā Momo Mahi"
 
-#: portal/forms.py:623
+#: portal/forms.py:651
 msgid "Socio-Economic Objectives"
 msgstr "Ngā Whāinga Oha-Pori"
 
-#: portal/forms.py:632
+#: portal/forms.py:660
 msgid "Fields of Research"
 msgstr "Ngā Mātai Rangahau"
 
-#: portal/forms.py:642
+#: portal/forms.py:670
 msgid " Vision Mātauranga Theme Categories"
 msgstr ""
 
-#: portal/forms.py:678 portal/models.py:1284 portal/models.py:1480
+#: portal/forms.py:706 portal/models.py:1288 portal/models.py:1484
 msgid "Keywords"
 msgstr "Ngā Kupumatua"
 
-#: portal/forms.py:684
+#: portal/forms.py:712
 msgid "Categories"
 msgstr "Ngā wāhanga"
 
-#: portal/forms.py:693 portal/forms.py:715
+#: portal/forms.py:717
+msgid ""
+"The collection of this data is for the purpose of our reporting obligations "
+"to NZRIS or to allow categorisation of your application during the selection "
+"process (i.e. to early- or mid-career fellowship pool)."
+msgstr "Ko te kaupapa o te kohikohi i ēnei raraunga ko ā mātau herenga ki te pūrongo ki a NZRIS, kia taea rānei te whakarōpū tō tono i roto i te hātepe tīpako (arā, te puna pūkenga aramahi tōmua, weherua rānei)."
+" Mō ētahi mōhiohio anō tirohia: Ngā wāhanga"
+
+#: portal/forms.py:723
+#, python-format
+msgid ""
+"For more information see: <a href=\"%s#Categories\" "
+"target=\"_blank\">Categories</a>"
+msgstr ""
+
+#: portal/forms.py:735 portal/forms.py:757
 msgid "Summary and Forms"
 msgstr "Whakarāpopototanga me Ngā Puka"
 
-#: portal/forms.py:698
+#: portal/forms.py:740
 msgid ""
 "An application form must be uploaded to enable submission; however, the "
 "application can be updated at any point before the \"Submit\" button is "
 "clicked."
 msgstr ""
 
-#: portal/forms.py:703 portal/forms.py:724
+#: portal/forms.py:745 portal/forms.py:789
 msgid ""
 "To revise the application, click \"Browse\" and you will be prompted for the "
 "new file location; and then \"Save\" to replace the existing file."
 msgstr ""
 
-#: portal/forms.py:720
+#: portal/forms.py:763
+msgid ""
+"An upload is required for each of the Documents below. These should be "
+"prepared on one of the provided templates where available. The limit on "
+"space in all sections of the templates should be adhered to and the typeface "
+"should be 11 point, Times or similar type font, single spacing (11 point), "
+"with margins of 2 cm on the left and 2 cm on the right sides of the page. "
+"Instructions in italic may be removed, but not the margins."
+msgstr "Me tukuatu ia Tuhinga i raro.  Me whakarite ēnei ki tētahi o ngā tauira kua whakaratoa ina wātea ana. Me ū ki te tepenga mokowā o ngā wāhanga katoa o ngā tauira, ā, me 11 rahinga te atahanga, me Times, he mea ōrite rānei te momo tuhi, kia kotahi te mokowā (11 rahinga), me ngā paenga o te 2 cm i te taha mauī me te 2 cm i te taha matau o te whārangi. Ka taea te tango ngā tohutohu he kuputuhi tītaha te āhua, engari kaua ngā paenga."
+" Hei whakatika i tētahi tuhinga kua tukuna atu, me pāwhiri \"Browse\", ka tonoa koe mō te tauwāhi kōnae hōu; ka pāwhiri \"Tiaki\" hei whakakapi i te kōnae onāianei."
+" Mō ētahi mōhiohio anō tirohia: Whakarāpopototanga me Ngā Puka"
+
+#: portal/forms.py:771
+msgid ""
+"To revise an uploaded document, click \"Browse\" and you will be prompted "
+"for the new file location; and then \"Save\" to replace the existing file."
+msgstr ""
+
+#: portal/forms.py:775
+#, python-format
+msgid ""
+"For more information see: <a href=\"%s#SummaryAndForms\" "
+"target=\"_blank\">Summary and Forms</a>"
+msgstr ""
+
+#: portal/forms.py:785
 msgid ""
 "An application form must be uploaded before referees can be invited; "
 "however, the form can be updated at any point up until submission."
 msgstr ""
 
-#: portal/forms.py:737
+#: portal/forms.py:806
+#, python-format
+msgid ""
+"%(number_of_referees)s referees are required to support this application. "
+"You are able to invite additional referees by clicking the + button. Please "
+"note that the society will only accept the first %(number_of_referees)s "
+"reports received."
+msgstr ""
+
+#: portal/forms.py:814
+#, python-format
+msgid ""
+"For more information see: <a href=\"%s#Referees\" "
+"target=\"_blank\">Referees</a>"
+msgstr ""
+
+#: portal/forms.py:823
+#, fuzzy, python-format
+#| msgid "%s referees are required to support this application."
+msgid "At least %s referees are required to support this application."
+msgstr "E %s ngā kaitautoko e hiahiatia ana hei tautoko i tēnei tono."
+
+#: portal/forms.py:828
 #, python-format
 msgid "%s referees are required to support this application."
 msgstr "E %s ngā kaitautoko e hiahiatia ana hei tautoko i tēnei tono."
 
-msgid "For more information see"
-msgstr "Mō ētahi mōhiohio anō tirohia"
-
-#: portal/forms.py:741
+#: portal/forms.py:832
 msgid ""
 "The Selection Panel at its sole discretion, may request further referees or "
 "make contact with outside parties."
 msgstr ""
 
-#: portal/forms.py:745
+#: portal/forms.py:836
 msgid ""
 "The panel also reserves the right to hold interviews to help inform their "
 "decision."
 msgstr ""
 
-#: portal/forms.py:753
+#: portal/forms.py:844
 msgid ""
 "This Prize requires one referee who has a solid understanding of your "
 "interest in communication and is able to give expert, current opinion."
 msgstr ""
 
-#: portal/forms.py:758 portal/tables.py:489
-#: portal/templates/snippets/application_detail_table.html:207
+#: portal/forms.py:849 portal/tables.py:488
+#: portal/templates/snippets/application_detail_table.html:218
 msgid "Referees"
 msgstr "Ngā Kaitautoko"
 
-#: portal/forms.py:776
+#: portal/forms.py:868
 msgid "Identity Verification"
 msgstr "Whakatūturutanga Tuakiri"
 
-#: portal/forms.py:789
+#: portal/forms.py:881
 msgid "Ethics"
 msgstr "Matatika"
 
-#: portal/forms.py:794
+#: portal/forms.py:886
 msgid ""
 "Please provide an ethics form.  If this is not applicable to your "
 "application, click \"Not Applicable\" and state why in the comment."
 msgstr ""
 
-#: portal/forms.py:808
+#: portal/forms.py:903
+msgid ""
+"The information you provide in your application is used by the Royal Society "
+"Te Apārangi to evaluate your application. Your contact details may also be "
+"used to communicate with you about other Royal Society Te Apārangi "
+"activities."
+msgstr ""
+
+#: portal/forms.py:908
+msgid ""
+"Your information is stored in a secure environment with access limited to "
+"authorised staff, external panel members and reviewers in order for your "
+"application to be evaluated."
+msgstr ""
+
+#: portal/forms.py:912
+msgid ""
+"We may notify other funding agencies of your funding application to ensure "
+"that there is no duplication of funding."
+msgstr ""
+
+#: portal/forms.py:916
+msgid ""
+"Application information may be subject to release under the Official "
+"Information Act 1982, as it is deemed to be held by MBIE who engage the "
+"Royal Society Te Apārangi to administer Ngā Puanga Pūtaiao Fellowships."
+msgstr ""
+
+#: portal/forms.py:921
+msgid ""
+"If your application is successful, Royal Society Te Apārangi will publish "
+"your name, a description of the project, and the amount of funding, and may, "
+"with your permission, summarise your application for use in publicity such "
+"as press releases or published articles."
+msgstr ""
+
+#: portal/forms.py:926
+msgid ""
+"Unless required by law, your information will not be disclosed to any other "
+"party."
+msgstr ""
+
+#: portal/forms.py:929
+msgid ""
+"You have the right to access your information and ask for it to be updated "
+"or corrected."
+msgstr ""
+
+#: portal/forms.py:932
+msgid ""
+"We will keep information we hold about you indefinitely unless you request "
+"otherwise."
+msgstr ""
+
+#: portal/forms.py:935
+msgid ""
+"As the applicant, you take full responsibility for the content of the "
+"application, including the suitability and validity of cited sources and "
+"originality of content."
+msgstr ""
+
+#: portal/forms.py:939
+msgid ""
+"Any questions or concerns please email the <a href=\"mailto:"
+"%22Privacy%20Officer%22%3cprivacy.officer@royalsociety.org.nz%3e\" "
+"target=\"_blank\">Privacy Officer</a>."
+msgstr ""
+
+#: portal/forms.py:947
 msgid ""
 "I affirm that I fulfil the eligibility reqirements for this scheme and that "
 "my application abides by any rules as laid out in the scheme's guidelines. "
@@ -338,7 +465,7 @@ msgid ""
 "the best of my knowledge true and correct."
 msgstr ""
 
-#: portal/forms.py:815
+#: portal/forms.py:954
 #, fuzzy
 #| msgid ""
 #| "As authorized lead applicant, I affirm that all information provided in "
@@ -364,12 +491,12 @@ msgstr ""
 "whai wāhi ahau (me taku rōpū) ki ngā whakatairanga, <br>ā, ka taea ngā "
 "kōrero o tēnei tono te whakatairanga i ngā Paraihe."
 
-#: portal/forms.py:827 portal/models.py:3622
+#: portal/forms.py:966 portal/models.py:3791
 msgid "Terms and Conditions"
 msgstr "Ngā Ture me ngā Here"
 
-#: portal/forms.py:841 portal/forms.py:1331 portal/forms.py:1426
-#: portal/forms.py:1640 portal/templates/500.html:66
+#: portal/forms.py:980 portal/forms.py:1470 portal/forms.py:1565
+#: portal/forms.py:1779 portal/templates/500.html:66
 #: portal/templates/application_detail.html:120
 #: portal/templates/nomination.html:52
 #: portal/templates/portal/conflictofinterest_list.html:202
@@ -378,7 +505,7 @@ msgstr "Ngā Ture me ngā Here"
 msgid "Submit"
 msgstr "Tukuna"
 
-#: portal/forms.py:845
+#: portal/forms.py:984
 #, fuzzy
 #| msgid ""
 #| "You have to accept the Terms and Conditions before submitting the "
@@ -388,12 +515,12 @@ msgid ""
 "can happen"
 msgstr "Me whakaae koe ki ngā Ture me ngā Here i mua i te tuku i te tono"
 
-#: portal/forms.py:848
+#: portal/forms.py:987
 msgid "Submit the application"
 msgstr "Tukuna te puka tono"
 
-#: portal/forms.py:859 portal/forms.py:1241 portal/forms.py:1247
-#: portal/forms.py:1319 portal/forms.py:1419
+#: portal/forms.py:998 portal/forms.py:1380 portal/forms.py:1386
+#: portal/forms.py:1458 portal/forms.py:1558
 #: portal/templates/application.html:279
 #: portal/templates/fsm_admin/fsm_submit_line.html:3
 #: portal/templates/portal/conflictofinterest_list.html:200
@@ -402,12 +529,12 @@ msgstr "Tukuna te puka tono"
 msgid "Save"
 msgstr "Tiakina"
 
-#: portal/forms.py:862
+#: portal/forms.py:1001
 msgid "Save draft application"
 msgstr "Tiakina te puka tono hukihuki"
 
-#: portal/forms.py:873 portal/forms.py:1248 portal/forms.py:1512
-#: portal/forms.py:1612 portal/templates/account/email.html:44
+#: portal/forms.py:1012 portal/forms.py:1387 portal/forms.py:1651
+#: portal/forms.py:1751 portal/templates/account/email.html:44
 #: portal/templates/account/email.html:62
 #: portal/templates/account/password_change.html:20
 #: portal/templates/application_detail.html:211 portal/templates/form.html:60
@@ -421,79 +548,79 @@ msgstr "Tiakina te puka tono hukihuki"
 msgid "Cancel"
 msgstr "Whakakorea"
 
-#: portal/forms.py:875 portal/forms.py:1234
+#: portal/forms.py:1014 portal/forms.py:1373
 #: portal/templates/portal/conflictofinterest_list.html:64
 #: portal/templates/profile_form.html:76
 msgid "Next"
 msgstr "Ki muri"
 
-#: portal/forms.py:902
+#: portal/forms.py:1041
 #, fuzzy
 #| msgid "Choose an organisation or create a new one ..."
 msgid "Choose a keyword or create a new one ..."
 msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
 
-#: portal/forms.py:907
+#: portal/forms.py:1046
 msgid "Choose an organisation or create a new one ..."
 msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
 
-#: portal/forms.py:918 portal/views.py:3381
+#: portal/forms.py:1057 portal/views.py:3426
 msgid "student, postdoc, etc."
 msgstr ""
 
-#: portal/forms.py:959
+#: portal/forms.py:1098
 msgid "Team member email address is mandatory"
 msgstr ""
 
-#: portal/forms.py:966 portal/models.py:2313
+#: portal/forms.py:1105 portal/models.py:2392
 #, python-format
 msgid "Team member with the email address %(email)s was alrady added"
 msgstr ""
 
-#: portal/forms.py:979 portal/forms.py:1077 portal/tables.py:341
+#: portal/forms.py:1118 portal/forms.py:1216 portal/tables.py:340
 #: portal/templates/500.html:63
 #: portal/templates/account/email_approve_user.html:52
 #: portal/templates/base.html:214 portal/templates/profile_summary.html:41
 msgid "Email"
 msgstr "Īmēra"
 
-#: portal/forms.py:981 portal/forms.py:1079
+#: portal/forms.py:1120 portal/forms.py:1218
 #, fuzzy
 #| msgid "Nominator CV required"
 msgid "Email is required"
 msgstr "E hiahiatia ana  te Tātai Pūmanawa a te Kaitautapa"
 
-#: portal/forms.py:1059
+#: portal/forms.py:1198
 msgid "Referee email address is mandatory"
 msgstr ""
 
-#: portal/forms.py:1066 portal/models.py:2454
+#: portal/forms.py:1205 portal/models.py:2537
 #, python-format
 msgid "Referee with the email address %(email)s was alrady added"
 msgstr ""
 
-#: portal/forms.py:1124 portal/forms.py:1125 portal/views.py:3267
-#: portal/views.py:3268
+#: portal/forms.py:1263 portal/forms.py:1264 portal/views.py:3312
+#: portal/views.py:3313
 #, fuzzy
 #| msgid "organisation identifier type"
 msgid "Choose a career stage ..."
 msgstr "momo tautohu whakahaere"
 
-#: portal/forms.py:1127 portal/views.py:3270
+#: portal/forms.py:1266 portal/views.py:3315
 #, fuzzy
 #| msgid "research summary required"
 msgid "Career stage is required"
 msgstr "e hiahiatia ana he whakarāpopototanga rangahau"
 
-#: portal/forms.py:1150
+#: portal/forms.py:1289
 msgid "Invalid identifier type. Please select a valid type."
 msgstr ""
 
-#: portal/forms.py:1153
+#: portal/forms.py:1292
 msgid "Invalid identifier value. Please enter a valid value."
 msgstr ""
 
-#: portal/forms.py:1164
+#: portal/forms.py:1303
 #, python-format
 msgid ""
 "Invalid ORCID iD value: %(value)s. The ID should be authenticated either by "
@@ -501,33 +628,33 @@ msgid ""
 "link your account with ORCID or TUAKIRI</a>."
 msgstr ""
 
-#: portal/forms.py:1225
+#: portal/forms.py:1364
 #, fuzzy
 #| msgid "Complete"
 msgid "Skip and Complete"
 msgstr "Whakaotia"
 
-#: portal/forms.py:1227
+#: portal/forms.py:1366
 msgid "Skip the rest of the profile sections and complete the profile now"
 msgstr "Waiho te toenga o ngā wāhanga kāhua ka whakaoti i te kāhua ināianei"
 
-#: portal/forms.py:1241
+#: portal/forms.py:1380
 msgid "Finish and Save"
 msgstr "Whakamutua ka Tiakina"
 
-#: portal/forms.py:1263
+#: portal/forms.py:1402
 msgid ""
 "Nominee - details of the person you are nominating to receive this award"
 msgstr ""
 
-#: portal/forms.py:1286
-#: portal/templates/snippets/application_detail_table.html:198
+#: portal/forms.py:1425
+#: portal/templates/snippets/application_detail_table.html:209
 #, fuzzy
 #| msgid "Nominate to"
 msgid "Nominator"
 msgstr "Tautapatia ki"
 
-#: portal/forms.py:1291
+#: portal/forms.py:1430
 #, python-format
 msgid ""
 "You can download the nomination form template at <strong><a href=\"%s\">%s</"
@@ -536,7 +663,7 @@ msgstr ""
 "Ka taea e koe te tikiake te tātauira puka tautapanga ki <strong><a "
 "href=\"%s\">%s</a></strong>"
 
-#: portal/forms.py:1298
+#: portal/forms.py:1437
 #, fuzzy, python-format
 #| msgid ""
 #| "You can download the budget template at <strong><a href=\"%s\">%s</a></"
@@ -548,31 +675,31 @@ msgstr ""
 "Ka taea e koe te tikiake te tātauira mahere pūtea ki <strong><a "
 "href=\"%s\">%s</a></strong>"
 
-#: portal/forms.py:1323
+#: portal/forms.py:1462
 msgid "Nomination was already submitted"
 msgstr ""
 
-#: portal/forms.py:1325 portal/forms.py:1337
+#: portal/forms.py:1464 portal/forms.py:1476
 #, fuzzy
 #| msgid "The invitation was accepted"
 msgid "Nomination was already accepted"
 msgstr "Kua whakaaetia te tono"
 
-#: portal/forms.py:1327
+#: portal/forms.py:1466
 msgid "Save draft nomination"
 msgstr "Tiakina te tautapanga hukihuki"
 
-#: portal/forms.py:1331
+#: portal/forms.py:1470
 msgid "Re-submit"
 msgstr ""
 
-#: portal/forms.py:1339
+#: portal/forms.py:1478
 #, fuzzy
 #| msgid "Submitted and previous nominations"
 msgid "Submit or re-submit the nomination"
 msgstr "Ngā tautapanga i tukuna, o mua hoki"
 
-#: portal/forms.py:1343 portal/forms.py:1436 portal/forms.py:1645
+#: portal/forms.py:1482 portal/forms.py:1575 portal/forms.py:1784
 #: portal/templates/500.html:65 portal/templates/account/card.html:19
 #: portal/templates/index.html:114
 #: portal/templates/portal/evaluation_form.html:69
@@ -581,13 +708,13 @@ msgstr "Ngā tautapanga i tukuna, o mua hoki"
 msgid "Close"
 msgstr "Katia"
 
-#: portal/forms.py:1369
+#: portal/forms.py:1508
 #, fuzzy
 #| msgid "Choose an organisation or create a new one ..."
 msgid "Choose the organisation you can nominate a researcher for..."
 msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
 
-#: portal/forms.py:1404
+#: portal/forms.py:1543
 #, python-format
 msgid ""
 "You can download the application review form template at <strong><a "
@@ -596,31 +723,31 @@ msgstr ""
 "Ka taea te tikiake te tātauira puka arotake tono ki <strong><a "
 "href=\"%s\">%s</a></strong>"
 
-#: portal/forms.py:1410 portal/templates/application_detail.html:122
+#: portal/forms.py:1549 portal/templates/application_detail.html:122
 msgid "Testimonial"
 msgstr "Tuhinga Tautoko"
 
-#: portal/forms.py:1422
+#: portal/forms.py:1561
 msgid "Save draft testimonial"
 msgstr "Tiakina te tuhinga tautoko hukihuki"
 
-#: portal/forms.py:1431
+#: portal/forms.py:1570
 msgid "I do not wish to provide a testimonial"
 msgstr "Kāore au i te hiahia ki te tuku tuhinga tautoko"
 
-#: portal/forms.py:1495
+#: portal/forms.py:1634
 msgid "Accept"
 msgstr "Whakaae"
 
-#: portal/forms.py:1500
+#: portal/forms.py:1639
 msgid "Request resubmission"
 msgstr "Tonoa kia tuku anō"
 
-#: portal/forms.py:1519
+#: portal/forms.py:1658
 msgid "Please add a comment if you request a resubmission"
 msgstr "Tēnā tāpirihia he tākupu ina tono koe kia tuku anō"
 
-#: portal/forms.py:1538
+#: portal/forms.py:1677
 #, python-brace-format
 msgid ""
 "<p>Are you sure you want to delete the panellist <b>{p.full_name_with_email}"
@@ -628,43 +755,43 @@ msgid ""
 "p><h2>Summary</h2><ul>"
 msgstr ""
 
-#: portal/forms.py:1568
+#: portal/forms.py:1707
 msgid ""
 "Do you wish to delete the selected panellist and all linked data entries to "
 "this panellist?"
 msgstr ""
 
-#: portal/forms.py:1608 portal/templates/index.html:525
+#: portal/forms.py:1747 portal/templates/index.html:534
 msgid "Invite"
 msgstr "Tono"
 
-#: portal/forms.py:1616 portal/forms.py:1739
+#: portal/forms.py:1755 portal/forms.py:1878
 #: portal/templates/application_detail.html:183
 #: portal/templates/portal/evaluation_form.html:64
 msgid "Conflict of Interest"
 msgstr "He Raru Whaipānga"
 
-#: portal/forms.py:1628 portal/tables.py:477 portal/tables.py:505
-#: portal/tables.py:508 portal/templates/index.html:154
+#: portal/forms.py:1767 portal/tables.py:476 portal/tables.py:504
+#: portal/tables.py:507 portal/templates/index.html:154
 #: portal/templates/portal/conflictofinterest_list.html:76
 #: portal/templates/portal/conflictofinterest_list.html:184
-#: portal/views.py:5384
+#: portal/views.py:5430
 msgid "No"
 msgstr "Kāo"
 
-#: portal/forms.py:1629 portal/tables.py:476 portal/tables.py:505
-#: portal/tables.py:508 portal/templates/index.html:147
+#: portal/forms.py:1768 portal/tables.py:475 portal/tables.py:504
+#: portal/tables.py:507 portal/templates/index.html:147
 #: portal/templates/portal/conflictofinterest_list.html:78
 #: portal/templates/portal/conflictofinterest_list.html:186
-#: portal/views.py:5383
+#: portal/views.py:5429
 msgid "Yes"
 msgstr "Āe"
 
-#: portal/forms.py:1786
+#: portal/forms.py:1925
 msgid "Upload the Score Sheet"
 msgstr "Tukuatu te Raupepa Tatau"
 
-#: portal/forms.py:1791
+#: portal/forms.py:1930
 #, python-format
 msgid ""
 "You can download the round score sheet template at <strong><a "
@@ -673,16 +800,17 @@ msgstr ""
 "Ka taea e koe te tikiake te tātauira tatauranga ki <strong><a "
 "href=\"%s\">%s</a></strong>"
 
-#: portal/jinja2/invitation_status.html:4
-#: portal/jinja2/invitation_status.html:5 portal/models.py:3392
-#: portal/tables.py:474 portal/templates/detail.html:30
+#: portal/jinja2/invitation_status.html:3
+#: portal/jinja2/invitation_status.html:4 portal/models.py:3561
+#: portal/tables.py:473 portal/templates/detail.html:30
 #: portal/templates/detail.html:72 portal/templates/evaluation.html:37
 #: portal/templates/round_scores.html:143
-#: portal/templates/snippets/application_detail_table.html:169
-#: portal/templates/snippets/application_detail_table.html:191
-#: portal/templates/snippets/application_detail_table.html:272
-#: portal/templatetags/tags.py:78 portal/templatetags/tags.py:89
-#: portal/templatetags/tags.py:97
+#: portal/templates/snippets/application_detail_table.html:170
+#: portal/templates/snippets/application_detail_table.html:193
+#: portal/templates/snippets/application_detail_table.html:202
+#: portal/templates/snippets/application_detail_table.html:283
+#: portal/templatetags/tags.py:90 portal/templatetags/tags.py:101
+#: portal/templatetags/tags.py:109
 msgid "N/A"
 msgstr "Pānga kore"
 
@@ -797,23 +925,23 @@ msgstr "Tohu Mātauranga Kura Tuarua nō Tāwāhi"
 msgid "Don't Know"
 msgstr "Kāore i te Mōhio"
 
-#: portal/models.py:279
+#: portal/models.py:283
 #, fuzzy
 #| msgid "Name"
 msgid "File Name"
 msgstr "Ingoa"
 
-#: portal/models.py:280 portal/models.py:3467
+#: portal/models.py:284 portal/models.py:3636
 #, fuzzy
 #| msgid "Submitted"
 msgid "Submitted At"
 msgstr "Kua Tukuna"
 
-#: portal/models.py:283
+#: portal/models.py:287
 msgid "Submitted By"
 msgstr "I Tukuna e"
 
-#: portal/models.py:317 portal/views.py:1986
+#: portal/models.py:321 portal/views.py:2022
 msgid ""
 "Failed to convert your application form into PDF. Please save your "
 "application form into PDF format and try to upload it again."
@@ -821,7 +949,7 @@ msgstr ""
 "Kāore i huri i tō tono ki te hōputu PDF. Tēnā tiakina tō puka tono mā te "
 "hōputu PDF kātahi ka tukuna atu anō."
 
-#: portal/models.py:324
+#: portal/models.py:328
 #, python-format
 msgid ""
 "Failed to convert your application form into PDF: %s. Please save your "
@@ -830,75 +958,75 @@ msgstr ""
 "Kāore i huri i tō tono ki te hōputu PDF: %s. Tēnā tiakina tō puka tono mā te "
 "hōputu PDF kātahi ka tukuna atu anō."
 
-#: portal/models.py:408 portal/models.py:841
+#: portal/models.py:412 portal/models.py:845
 msgid "ethnicities"
 msgstr "mātāwaka"
 
-#: portal/models.py:425 portal/models.py:2038
+#: portal/models.py:429 portal/models.py:2068
 msgid "Application Form"
 msgstr "Puka Tono"
 
-#: portal/models.py:426
+#: portal/models.py:430
 msgid "Budget"
 msgstr "Tirotiro"
 
-#: portal/models.py:428
+#: portal/models.py:432
 msgid "Form"
 msgstr "Te Puka"
 
-#: portal/models.py:436 portal/templates/500.html:62
+#: portal/models.py:440 portal/templates/500.html:62
 #: portal/templates/account/email_approve_user.html:47
 #: portal/templates/base.html:215 portal/templates/profile_summary.html:36
 msgid "Name"
 msgstr "Ingoa"
 
-#: portal/models.py:495 portal/models.py:597 portal/models.py:985
-#: portal/models.py:3496
+#: portal/models.py:499 portal/models.py:601 portal/models.py:989
+#: portal/models.py:3665
 msgid "code"
 msgstr "waehere"
 
-#: portal/models.py:496 portal/models.py:574 portal/models.py:598
-#: portal/models.py:986 portal/models.py:1130
+#: portal/models.py:500 portal/models.py:578 portal/models.py:602
+#: portal/models.py:990 portal/models.py:1134
 msgid "description"
 msgstr "whakaahuatanga"
 
-#: portal/models.py:497 portal/models.py:987
+#: portal/models.py:501 portal/models.py:991
 msgid "pattern"
 msgstr ""
 
-#: portal/models.py:498 portal/models.py:988
+#: portal/models.py:502 portal/models.py:992
 msgid "comment"
 msgstr "tākupu"
 
-#: portal/models.py:582
+#: portal/models.py:586
 msgid "is STEM"
 msgstr ""
 
-#: portal/models.py:584
+#: portal/models.py:588
 msgid "Science, Technology, Engineering, and Mathematics.."
 msgstr ""
 
-#: portal/models.py:592
+#: portal/models.py:596
 msgid "fields of research"
 msgstr ""
 
-#: portal/models.py:611
+#: portal/models.py:615
 msgid "fields of study"
 msgstr ""
 
-#: portal/models.py:616
+#: portal/models.py:620
 msgid "career stage"
 msgstr "taumata umanga"
 
-#: portal/models.py:618
+#: portal/models.py:622
 msgid "year achieved"
 msgstr ""
 
-#: portal/models.py:622
+#: portal/models.py:626
 msgid "Year that you first attained the career stage"
 msgstr "Te tau tuatahi i eke koe ki te taumata umanga"
 
-#: portal/models.py:643
+#: portal/models.py:647
 #, python-format
 msgid ""
 "Invalid ORCID iD %(value)s. It should be in the form of 'xxxx-xxxx-xxxx-"
@@ -907,7 +1035,7 @@ msgstr ""
 "He ORCID iD koremana %(value)s. Tōna tikanga me tōna momoxxxx-xxxx-xxxx-"
 "xxxx’ arā he mati te x."
 
-#: portal/models.py:654
+#: portal/models.py:658
 #, python-format
 msgid ""
 "Invalid ORCID iD %(value)s checksum. Make sure you have entered correct "
@@ -915,28 +1043,28 @@ msgid ""
 msgstr ""
 "He ORCID iD %(value)s koremana Me whakarite he tika tō whakauru i teORCID iD"
 
-#: portal/models.py:669 portal/models.py:796
+#: portal/models.py:673 portal/models.py:800
 msgid "type"
 msgstr "momo"
 
-#: portal/models.py:670
+#: portal/models.py:674
 msgid "Choose a type or enter a new identifier or reference type"
 msgstr ""
 
-#: portal/models.py:672
+#: portal/models.py:676
 msgid "Identifier or reference (e.g. reference/ID number)"
 msgstr "Tohutoro (e.g. reference/ID number)"
 
-#: portal/models.py:673 portal/models.py:809 portal/models.py:1042
+#: portal/models.py:677 portal/models.py:813 portal/models.py:1046
 msgid "put-code"
 msgstr ""
 
-#: portal/models.py:687
+#: portal/models.py:691
 #, python-format
 msgid "ISNI value %(value)s should be at least 16 characters long."
 msgstr "Me 16 neke atu rānei ngā pūtohu mō te wāriu ISNI %(value)s"
 
-#: portal/models.py:694
+#: portal/models.py:698
 #, python-format
 msgid ""
 "ISNI value %(value)s pattern in not valid. It should contain digits or 'X' "
@@ -945,200 +1073,200 @@ msgstr ""
 "He tauira wāriu ISNI %(value)s koremana. Me whai mati, 'X' rāneihei pūtohu "
 "whakamutunga."
 
-#: portal/models.py:701
+#: portal/models.py:705
 #, python-format
 msgid "ISNI value %(value)s checksum does not match the given control value."
 msgstr ""
 "Kāore te wāriu ISNI %(value)s i te tūhono ki te wāriu whakatina i hoatu."
 
-#: portal/models.py:719
+#: portal/models.py:723
 msgid "organisation identifier type"
 msgstr "momo tautohu whakahaere"
 
-#: portal/models.py:728
+#: portal/models.py:732
 msgid "the New Zealand Qualifications Framework Qualification level"
 msgstr ""
 "te taumata Tohu Mātauranga e ai ki te Taura Here Tohu Mātauranga o Aotearoa"
 
-#: portal/models.py:795 portal/models.py:1370 portal/models.py:1373
-#: portal/models.py:2839 portal/models.py:2842 portal/models.py:4681
-#: portal/models.py:5058 portal/views.py:1296
+#: portal/models.py:799 portal/models.py:1374 portal/models.py:1377
+#: portal/models.py:2933 portal/models.py:2936 portal/models.py:4853
+#: portal/models.py:5250 portal/views.py:1324
 msgid "organisation"
 msgstr "whakahaere"
 
-#: portal/models.py:798
+#: portal/models.py:802
 msgid "role"
 msgstr ""
 
-#: portal/models.py:805 portal/models.py:1034
+#: portal/models.py:809 portal/models.py:1038
 msgid "qualification"
 msgstr "tohu mātauranga"
 
-#: portal/models.py:807
+#: portal/models.py:811
 msgid "start date"
 msgstr "rā tīmata"
 
-#: portal/models.py:808
+#: portal/models.py:812
 msgid "end date"
 msgstr "rā mutunga"
 
-#: portal/models.py:829
+#: portal/models.py:833
 #, python-format
 msgid "Date of birth cannot be in the future: %(value)s"
 msgstr "Kāore e taea he rā whānau i te wāheke: %(value)s"
 
-#: portal/models.py:835
+#: portal/models.py:839
 msgid "user"
 msgstr ""
 
-#: portal/models.py:837
+#: portal/models.py:841
 msgid "gender"
 msgstr "ira"
 
-#: portal/models.py:839
+#: portal/models.py:843
 msgid "date of birth"
 msgstr "rā whānau"
 
-#: portal/models.py:846
+#: portal/models.py:850
 msgid "education level"
 msgstr "taumata mātauranga"
 
-#: portal/models.py:849
+#: portal/models.py:853
 msgid "employment status"
 msgstr "tūnga mahi"
 
-#: portal/models.py:853
+#: portal/models.py:857
 msgid "primary language spoken"
 msgstr "reo kōrero matua"
 
-#: portal/models.py:856
+#: portal/models.py:860
 msgid "languages spoken"
 msgstr "ngā reo kōrero"
 
-#: portal/models.py:859
+#: portal/models.py:863
 msgid "iwi groups"
 msgstr "iwi"
 
-#: portal/models.py:870
+#: portal/models.py:874
 msgid "privacy policy accepted"
 msgstr ""
 
-#: portal/models.py:872
+#: portal/models.py:876
 msgid "career stages"
 msgstr "Ngā Taumata Umanga"
 
-#: portal/models.py:879
+#: portal/models.py:883
 msgid "external IDs"
 msgstr "Tuakiri o Waho"
 
-#: portal/models.py:972
+#: portal/models.py:976
 msgid "protection pattern"
 msgstr "tauira parahau"
 
-#: portal/models.py:974 portal/models.py:990
+#: portal/models.py:978 portal/models.py:994
 msgid "expires on"
 msgstr ""
 
-#: portal/models.py:989 portal/models.py:3419
+#: portal/models.py:993 portal/models.py:3588
 msgid "profile"
 msgstr "kāhua"
 
-#: portal/models.py:1028
+#: portal/models.py:1032
 msgid "start year"
 msgstr "tau tīmata"
 
-#: portal/models.py:1036
+#: portal/models.py:1040
 #, fuzzy
-#| msgid "conferred on"
-msgid "converted on"
-msgstr "i whakawhiwhia i te"
+#| msgid "Conferred On"
+msgid "conferred on"
+msgstr "I Whakawhiwhia i te"
 
-#: portal/models.py:1038
+#: portal/models.py:1042
 msgid "discipline"
 msgstr "akoranga"
 
-#: portal/models.py:1040 portal/models.py:1064
+#: portal/models.py:1044 portal/models.py:1068
 msgid "awarded by"
 msgstr "I whakawhiwhia e"
 
-#: portal/models.py:1041
+#: portal/models.py:1045
 msgid "research topic"
 msgstr "kaupapa rangahau"
 
-#: portal/models.py:1051
+#: portal/models.py:1055
 msgid "prestigious prize or medal"
 msgstr "paraihe whakahī, mētara whakahī rānei"
 
-#: portal/models.py:1062
+#: portal/models.py:1066
 msgid "year of recognition"
 msgstr "te tau i tūtohia"
 
-#: portal/models.py:1063
+#: portal/models.py:1067
 msgid "award"
 msgstr "whakawhiwhinga"
 
-#: portal/models.py:1066
+#: portal/models.py:1070
 msgid "amount"
 msgstr "te rahinga"
 
-#: portal/models.py:1068 portal/templates/profile_summary.html:151
+#: portal/models.py:1072 portal/templates/profile_summary.html:151
 msgid "Currency code"
 msgstr "Waehere moni"
 
-#: portal/models.py:1117 portal/models.py:2252 portal/models.py:2391
-#: portal/models.py:2624 portal/models.py:3294 portal/models.py:4343
-#: portal/models.py:4634
+#: portal/models.py:1121 portal/models.py:2318 portal/models.py:2474
+#: portal/models.py:2716 portal/models.py:3463 portal/models.py:4515
+#: portal/models.py:4806
 msgid "new"
 msgstr "hou"
 
-#: portal/models.py:1118 portal/models.py:2803 portal/models.py:3295
-#: portal/models.py:4344 portal/models.py:4633
+#: portal/models.py:1122 portal/models.py:2896 portal/models.py:3464
+#: portal/models.py:4516 portal/models.py:4805
 msgid "draft"
 msgstr "hukihuki"
 
-#: portal/models.py:1119
+#: portal/models.py:1123
 msgid "TAC accepted"
 msgstr "Kua whakaaehia e TAC"
 
-#: portal/models.py:1120 portal/models.py:2807 portal/models.py:3296
-#: portal/models.py:4345 portal/models.py:4636
+#: portal/models.py:1124 portal/models.py:2901 portal/models.py:3465
+#: portal/models.py:4517 portal/models.py:4808
 msgid "submitted"
 msgstr "kua tukuna"
 
-#: portal/models.py:1121
+#: portal/models.py:1125
 #, fuzzy
 #| msgid "Login Cancelled"
 msgid "cancelled"
 msgstr "I whakakorengia te Takiurunga"
 
-#: portal/models.py:1122
+#: portal/models.py:1126
 msgid "withdrawn"
 msgstr ""
 
-#: portal/models.py:1123
+#: portal/models.py:1127
 #, fuzzy
 #| msgid "Approve"
 msgid "approved"
 msgstr "Whakaae"
 
-#: portal/models.py:1131
+#: portal/models.py:1135
 msgid "Cost Center"
 msgstr ""
 
-#: portal/models.py:1133
+#: portal/models.py:1137
 msgid "Catalyst Cost Center"
 msgstr ""
 
-#: portal/models.py:1146 portal/models.py:3582
+#: portal/models.py:1150 portal/models.py:3751
 msgid "short description"
 msgstr "whakaahuatanga poto"
 
-#: portal/models.py:1175 portal/models.py:1410 portal/models.py:3323
-#: portal/models.py:3453
+#: portal/models.py:1179 portal/models.py:1414 portal/models.py:3492
+#: portal/models.py:3622 portal/models.py:4477
 msgid "converted file"
 msgstr ""
 
-#: portal/models.py:1276
+#: portal/models.py:1280
 msgid ""
 "Please upload a scanned copy of your passport or drivers license in PDF, "
 "JPG, or PNG format"
@@ -1146,7 +1274,7 @@ msgstr ""
 "Tēnā tukuatu tētahi tārua matawai o tō uruwhenua, raihana taraiwa rānei mā "
 "te hōputu PDF, JPG, PNG rānei"
 
-#: portal/models.py:1278
+#: portal/models.py:1282
 #, fuzzy
 #| msgid ""
 #| "Please upload a scanned copy of your passport or drivers license in PDF, "
@@ -1157,141 +1285,141 @@ msgstr ""
 "Tēnā tukuatu tētahi tārua matawai o tō uruwhenua, raihana taraiwa rānei mā "
 "te hōputu PDF, JPG, PNG rānei"
 
-#: portal/models.py:1283
+#: portal/models.py:1287
 msgid "Keyword"
 msgstr ""
 
-#: portal/models.py:1317 portal/models.py:2223
+#: portal/models.py:1321 portal/models.py:2289
 msgid "number"
 msgstr "tau"
 
-#: portal/models.py:1320
+#: portal/models.py:1324
 msgid "submitted by"
 msgstr "i tukuna e"
 
-#: portal/models.py:1328 portal/models.py:3331
+#: portal/models.py:1332 portal/models.py:3500
 msgid "curriculum vitae"
 msgstr "tātai pūmanawa"
 
-#: portal/models.py:1331
+#: portal/models.py:1335
 msgid "application name"
 msgstr "puka tono"
 
-#: portal/models.py:1335 portal/models.py:4653
+#: portal/models.py:1339 portal/models.py:4825
 msgid "round"
 msgstr "whiringa"
 
-#: portal/models.py:1338
+#: portal/models.py:1342
 msgid "team application"
 msgstr "tono"
 
-#: portal/models.py:1339
+#: portal/models.py:1343
 msgid "team name"
 msgstr "ingoa whānau"
 
-#: portal/models.py:1349 portal/models.py:3422 portal/models.py:3492
-#: portal/models.py:3576 portal/models.py:4663 users/models.py:31
+#: portal/models.py:1353 portal/models.py:3591 portal/models.py:3661
+#: portal/models.py:3745 portal/models.py:4835 users/models.py:31
 msgid "title"
 msgstr ""
 
-#: portal/models.py:1353 portal/models.py:2829 portal/models.py:4667
+#: portal/models.py:1357 portal/models.py:2923 portal/models.py:4839
 msgid "first name"
 msgstr "ingoa tuatahi"
 
-#: portal/models.py:1355 portal/models.py:2275 portal/models.py:2415
-#: portal/models.py:2649 portal/models.py:2831 portal/models.py:4669
+#: portal/models.py:1359 portal/models.py:2341 portal/models.py:2498
+#: portal/models.py:2741 portal/models.py:2925 portal/models.py:4841
 #: users/models.py:36
 msgid "middle names"
 msgstr "ngā ingoa waenga"
 
-#: portal/models.py:1359 portal/models.py:2279 portal/models.py:2419
-#: portal/models.py:2653 portal/models.py:2835 portal/models.py:4673
+#: portal/models.py:1363 portal/models.py:2345 portal/models.py:2502
+#: portal/models.py:2745 portal/models.py:2929 portal/models.py:4845
 #: users/models.py:40
 msgid "Comma separated list of middle names"
 msgstr "Rārangi ingoa waenga e whakawehea ana e ngā irapiko"
 
-#: portal/models.py:1361 portal/models.py:2837 portal/models.py:4675
+#: portal/models.py:1365 portal/models.py:2931 portal/models.py:4847
 msgid "last name"
 msgstr "ingoa whānau"
 
-#: portal/models.py:1363
+#: portal/models.py:1367
 msgid "research experience in years "
 msgstr "Ngā tau e rangahau ana"
 
-#: portal/models.py:1376
+#: portal/models.py:1380
 msgid "position"
 msgstr "tūranga"
 
-#: portal/models.py:1379
+#: portal/models.py:1383
 msgid "postal address"
 msgstr "wāhitau pōhi"
 
-#: portal/models.py:1380
+#: portal/models.py:1384
 msgid "city"
 msgstr "mātāwaka"
 
-#: portal/models.py:1381
+#: portal/models.py:1385
 msgid "postcode"
 msgstr "waehere"
 
-#: portal/models.py:1382
+#: portal/models.py:1386
 msgid "daytime phone number"
 msgstr "tau waea awatea"
 
-#: portal/models.py:1383
+#: portal/models.py:1387
 msgid "mobile phone number"
 msgstr "tau waea pūkoro"
 
-#: portal/models.py:1384 portal/models.py:2828 portal/models.py:4656
+#: portal/models.py:1388 portal/models.py:2922 portal/models.py:4828
 msgid "email address"
 msgstr "wāhitau īmēra"
 
-#: portal/models.py:1385
+#: portal/models.py:1389
 msgid "is bilingual"
 msgstr "He reorua"
 
-#: portal/models.py:1386 portal/models.py:3314
+#: portal/models.py:1390 portal/models.py:3483
 msgid "summary"
 msgstr "Whakarāpopototanga"
 
-#: portal/models.py:1390
+#: portal/models.py:1394
 msgid "completed application form"
 msgstr "puka tono kua whakaotihia"
 
-#: portal/models.py:1416 portal/models.py:4849
-#: portal/templates/snippets/application_detail_table.html:187
+#: portal/models.py:1420 portal/models.py:5021
+#: portal/templates/snippets/application_detail_table.html:189
 msgid "Photo Identity"
 msgstr "Whakaahua Tuakiri"
 
-#: portal/models.py:1423
+#: portal/models.py:1427
 msgid "Presentation URL"
 msgstr "URL Whakaaturanga"
 
-#: portal/models.py:1424
+#: portal/models.py:1428
 msgid "Please enter the URL where your presentation video can be viewed"
 msgstr "Tēnā tāurua te URL ki reira mātaki ai i tō ataata whakaaturanga"
 
-#: portal/models.py:1426 portal/models.py:3333
+#: portal/models.py:1430 portal/models.py:3502
 msgid "state"
 msgstr "tūnga"
 
-#: portal/models.py:1428
+#: portal/models.py:1432
 msgid "I have read and accept the Terms and Conditions"
 msgstr "Kua pānui ahau me te whakaae ki Ngā Ture me ngā Here"
 
-#: portal/models.py:1436
+#: portal/models.py:1440
 msgid "Terms and Conditions accepted at"
 msgstr ""
 
-#: portal/models.py:1441
+#: portal/models.py:1445
 msgid "completed application budget spreadsheet"
 msgstr "ripanga mahere pūtea tono kua whakaotihia"
 
-#: portal/models.py:1442
+#: portal/models.py:1446
 msgid "Please upload completed application budget spreadsheet"
 msgstr "Tēnā tukuatu te ripanga mahere pūtea tono kua whakaotihia"
 
-#: portal/models.py:1488
+#: portal/models.py:1492
 msgid ""
 "Contributing to Economic Growth through Distinctive R&D. New Zealand needs "
 "its businesses and for-profit enterprises to perform at an optimum level and "
@@ -1301,7 +1429,7 @@ msgid ""
 "distinctive in the international marketplace."
 msgstr ""
 
-#: portal/models.py:1501
+#: portal/models.py:1505
 msgid ""
 "Achieving Environmental Sustainability through Iwi and Hapū relationships "
 "with land and sea. Like all communities, Māori communities aspire to live in "
@@ -1312,7 +1440,7 @@ msgid ""
 "Zealand land and seascapes."
 msgstr ""
 
-#: portal/models.py:1514
+#: portal/models.py:1518
 msgid ""
 "Improving Māori Health and Social Well-being. Distinctive challenges to "
 "Māori health and social well-being continue to arise within Māori "
@@ -1320,7 +1448,7 @@ msgid ""
 "Research is needed to meet these ongoing needs."
 msgstr ""
 
-#: portal/models.py:1525
+#: portal/models.py:1529
 msgid ""
 "Exploring Indigenous Knowledge and RS&T. This exploratory theme aims to "
 "develop a body of knowledge, as a contribution to RS&T, at the interface "
@@ -1328,71 +1456,71 @@ msgid ""
 "science and technology."
 msgstr ""
 
-#: portal/models.py:1533
+#: portal/models.py:1537
 msgid "Vision Mātauranga N/A"
 msgstr ""
 
-#: portal/models.py:1534
+#: portal/models.py:1538
 msgid "Rationale"
 msgstr "Te pūtake"
 
-#: portal/models.py:1537
-#: portal/templates/snippets/application_detail_table.html:256
+#: portal/models.py:1541
+#: portal/templates/snippets/application_detail_table.html:267
 msgid "Basic"
 msgstr "Taketake"
 
-#: portal/models.py:1538
+#: portal/models.py:1542
 msgid "Pure basic research"
 msgstr ""
 
-#: portal/models.py:1544
-#: portal/templates/snippets/application_detail_table.html:259
+#: portal/models.py:1548
+#: portal/templates/snippets/application_detail_table.html:270
 msgid "Experimental"
 msgstr "Whakamātauranga"
 
-#: portal/models.py:1545
+#: portal/models.py:1549
 msgid "Experimental development"
 msgstr ""
 
-#: portal/models.py:1551
-#: portal/templates/snippets/application_detail_table.html:258
+#: portal/models.py:1555
+#: portal/templates/snippets/application_detail_table.html:269
 msgid "Applied"
 msgstr "Kua Whakamahia"
 
-#: portal/models.py:1552
+#: portal/models.py:1556
 #, fuzzy
 #| msgid "Established Researcher"
 msgid "Applied research"
 msgstr "Kairangahau Pūmau"
 
-#: portal/models.py:1558
-#: portal/templates/snippets/application_detail_table.html:257
+#: portal/models.py:1562
+#: portal/templates/snippets/application_detail_table.html:268
 msgid "Strategic"
 msgstr "Rautaki"
 
-#: portal/models.py:1559
+#: portal/models.py:1563
 msgid "Strategic basic research"
 msgstr ""
 
-#: portal/models.py:1622
+#: portal/models.py:1638
 #, fuzzy
 #| msgid ""
 #| "You must upload a budget spreadsheet to complete your Prize application"
 msgid "You must upload a budget spreadsheet to complete your application"
 msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
 
-#: portal/models.py:1628
+#: portal/models.py:1644
 msgid ""
 "You must accept the Prize's Terms and Conditions to submit an application"
 msgstr "Me whakaae koe ki ngā Ture me ngā Here i mua i te tuku i te tono"
 
-#: portal/models.py:1633
+#: portal/models.py:1649
 msgid "Your team lead has not yet accepted the Prize's Terms and Conditions"
 msgstr ""
 "Me whakaae to kaiārahi rōpū ki ngā Ture me ngā Here i mua i te tuku mai i "
 "tetono"
 
-#: portal/models.py:1639
+#: portal/models.py:1655
 msgid ""
 "The application is not completed. Missing summary and/or uploaded "
 "application form"
@@ -1400,13 +1528,13 @@ msgstr ""
 "Kāore i oti te tono. Kei te ngaro te whakarāpopototanga, te puka tonoi "
 "tukuatu hoki/rānei"
 
-#: portal/models.py:1652 portal/views.py:2167
+#: portal/models.py:1668 portal/views.py:2203
 msgid ""
 "Your identity has not been verified yet by the administration. We will "
 "notify you when it is verified and you can complete your application."
 msgstr ""
 
-#: portal/models.py:1658 portal/views.py:2175
+#: portal/models.py:1674 portal/views.py:2211
 msgid ""
 "Your identity has not been verified. Please upload a scan of a document "
 "proving your identity."
@@ -1414,12 +1542,12 @@ msgstr ""
 "Kāore anō kia whakatūturutia tō tuakiri. Tēnā tukuatu i tētahi tārua o tō "
 "whakaahuatuakiri."
 
-#: portal/models.py:1670 portal/views.py:2194
+#: portal/models.py:1686 portal/views.py:2230
 #, python-format
 msgid "You need to nominate at least %d referee(s)."
 msgstr ""
 
-#: portal/models.py:1682
+#: portal/models.py:1698
 msgid ""
 "Not all nominated referees have responded which prevents your submission. "
 "Please either contact your referees, or replace them with one that will "
@@ -1428,13 +1556,13 @@ msgstr ""
 "Kāore ngā kaitautoko katoa i whakahoki kōrero mai. Tēnā whakapā atu ki ō "
 "kaitautoko, whakarerekētia tō rārangi kaitautoko rānei"
 
-#: portal/models.py:1692 portal/views.py:2197
+#: portal/models.py:1708 portal/views.py:2233
 #, python-format
 msgid ""
 "You need to procure reviews of your application from at least %d referees."
 msgstr ""
 
-#: portal/models.py:1699
+#: portal/models.py:1715
 msgid ""
 "Not all team members have given their consent to be part of the team  which "
 "prevents your submission. Please either contact your team's members, or "
@@ -1444,305 +1572,312 @@ msgstr ""
 "whakaaetanga.Tēnā whakapā atu ki ō mema rōpū, whakarerekētia tō rārangi mema "
 "rōpū rānei"
 
-#: portal/models.py:2064
+#: portal/models.py:2096
 #, fuzzy, python-format
 #| msgid "Testimonial Form Submitted By %s"
 msgid "Nomination Submitted By %s"
 msgstr "I tukuna te Puka Tautoko e %s"
 
-#: portal/models.py:2088
+#: portal/models.py:2120
 #, python-format
 msgid "Testimonial Form Submitted By %s"
 msgstr "I tukuna te Puka Tautoko e %s"
 
-#: portal/models.py:2235
+#: portal/models.py:2301
 msgid "ethics statement"
 msgstr "tauākī matatika"
 
-#: portal/models.py:2236
+#: portal/models.py:2302
 msgid "Please upload human or animal ethics statement."
 msgstr "Tēnā tukuatu te tauākī matatika tangata, kararehe rānei"
 
-#: portal/models.py:2241
+#: portal/models.py:2307
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:90
-#: portal/templates/profile_section.html:100
+#: portal/templates/profile_section.html:109
 msgid "Not Applicable"
 msgstr "Kāore he take"
 
-#: portal/models.py:2249 portal/models.py:2389 portal/models.py:2626
-#: portal/models.py:2801 portal/models.py:4346 portal/models.py:4631
+#: portal/models.py:2315 portal/models.py:2472 portal/models.py:2718
+#: portal/models.py:2893 portal/models.py:4518 portal/models.py:4803
 msgid "accepted"
 msgstr "kua whakaaetia"
 
-#: portal/models.py:2250
+#: portal/models.py:2316
 msgid "authorized"
 msgstr "kua whakamanahia"
 
-#: portal/models.py:2251 portal/models.py:2390 portal/models.py:2627
-#: portal/models.py:2802 portal/models.py:4632
+#: portal/models.py:2317 portal/models.py:2473 portal/models.py:2719
+#: portal/models.py:2895 portal/models.py:4804
 msgid "bounced"
 msgstr "i tupanatia"
 
-#: portal/models.py:2253 portal/models.py:2392
+#: portal/models.py:2319 portal/models.py:2475
 msgid "opted out"
 msgstr "kōwhiringa whakaputa"
 
-#: portal/models.py:2254 portal/models.py:2393 portal/models.py:2625
-#: portal/models.py:2806 portal/models.py:4635
+#: portal/models.py:2320 portal/models.py:2476 portal/models.py:2717
+#: portal/models.py:2900 portal/models.py:4807
 msgid "sent"
 msgstr "kua tukuna"
 
-#: portal/models.py:2306 portal/models.py:2446
+#: portal/models.py:2385 portal/models.py:2529
 #, fuzzy
 #| msgid "application"
 msgid "Missing application"
 msgstr "tono"
 
-#: portal/models.py:2394
+#: portal/models.py:2477
 msgid "testified"
 msgstr "i taunakihia"
 
-#: portal/models.py:2778
+#: portal/models.py:2581
+#, python-format
+msgid "Failed to add the referee: %s. Please constact a portal administration."
+msgstr ""
+
+#: portal/models.py:2870
 #, python-format
 msgid "Statement of Conflict of Interest of %s"
 msgstr "Tauākī mo te Raru Whaipānga o %s"
 
-#: portal/models.py:2782
+#: portal/models.py:2874
 msgid "conflicts of interest"
 msgstr ""
 
-#: portal/models.py:2793
+#: portal/models.py:2885
 msgid "apply"
 msgstr "tono"
 
-#: portal/models.py:2794
+#: portal/models.py:2886
 msgid "join"
 msgstr "hono"
 
-#: portal/models.py:2795
+#: portal/models.py:2887
 msgid "testify"
 msgstr "taunaki"
 
-#: portal/models.py:2796
+#: portal/models.py:2888
 msgid "authorize"
 msgstr "whakamana"
 
-#: portal/models.py:2797
+#: portal/models.py:2889
 msgid "panellist"
 msgstr "kaiwhiriwhiri"
 
-#: portal/models.py:2804
+#: portal/models.py:2894
+msgid "autoreplied"
+msgstr ""
+
+#: portal/models.py:2897
 msgid "expired"
 msgstr ""
 
-#: portal/models.py:2805
+#: portal/models.py:2898
+msgid "read"
+msgstr ""
+
+#: portal/models.py:2899
 msgid "revoked"
 msgstr ""
 
-#: portal/models.py:3312
+#: portal/models.py:3481
 msgid "referee"
 msgstr "kaitautoko"
 
-#: portal/models.py:3316
+#: portal/models.py:3485
 msgid "endorsement, testimonial, or feedback"
 msgstr "kōrero whakamana, tuhinga tautoko, whakahokinga kōrero rānei"
 
-#: portal/models.py:3317
+#: portal/models.py:3486
 msgid "Please upload your endorsement, testimonial, or feedback"
 msgstr ""
 "Tēnā tukuatu i tō kōrero whakamana, tuhinga tautoko, whakahokinga kōrero "
 "rānei"
 
-#: portal/models.py:3389
+#: portal/models.py:3558
 #, python-brace-format
 msgid "Testimonial By Referee {0} For Application {1}"
 msgstr "Tuhinga Tautoko Nā te Kaitautoko {0} Mō te Tono {1}"
 
-#: portal/models.py:3420
+#: portal/models.py:3589
 msgid "owner"
 msgstr ""
 
-#: portal/models.py:3426
+#: portal/models.py:3595
 msgid "A title or name you can assign to the upload CV file"
 msgstr ""
 
-#: portal/models.py:3430
+#: portal/models.py:3599
 msgid "file"
 msgstr "kōnae"
 
-#: portal/models.py:3577
+#: portal/models.py:3746
 msgid "scheme"
 msgstr "kāore"
 
-#: portal/models.py:3578
+#: portal/models.py:3747
 msgid "opens on"
 msgstr ""
 
-#: portal/models.py:3579
+#: portal/models.py:3748
 msgid "closes on"
 msgstr ""
 
-#: portal/models.py:3581
+#: portal/models.py:3750
 msgid "guideline link URL"
 msgstr "URL hononga aratohu"
 
-#: portal/models.py:3584
+#: portal/models.py:3753
 msgid "can have a title"
 msgstr ""
 
-#: portal/models.py:3586
+#: portal/models.py:3755
 msgid "research summary required"
 msgstr "e hiahiatia ana he whakarāpopototanga rangahau"
 
-#: portal/models.py:3587
+#: portal/models.py:3756
 msgid "can be submitted by a team"
 msgstr "ka taea e tētahi rōpū te tuku mai"
 
-#: portal/models.py:3590
+#: portal/models.py:3759
 msgid "photo ID required"
 msgstr "e hiahiatia ana tētahi whakaahua tuakiri"
 
-#: portal/models.py:3594
+#: portal/models.py:3763
 msgid "Applicant/Team representative CV required"
 msgstr "E hiahiatia ana te Tātai Pūmanawa a te Kaitono/Māngai rōpū"
 
-#: portal/models.py:3596
+#: portal/models.py:3765
 msgid "Nominator CV required"
 msgstr "E hiahiatia ana  te Tātai Pūmanawa a te Kaitautapa"
 
-#: portal/models.py:3598
+#: portal/models.py:3767
 msgid "can invite referees"
 msgstr ""
 
-#: portal/models.py:3600
+#: portal/models.py:3769
 msgid "Required number of referees"
 msgstr ""
 
-#: portal/models.py:3607
+#: portal/models.py:3776
 msgid "Flexible number of referees"
 msgstr ""
 
-#: portal/models.py:3608
+#: portal/models.py:3777
 msgid "Referee CV required"
 msgstr "E hiahiatia ana te Tātai Pūmanawa a te Kaitautoko"
 
-#: portal/models.py:3609
+#: portal/models.py:3778
 msgid "LimeSurvey Survey ID"
 msgstr ""
 
-#: portal/models.py:3618
+#: portal/models.py:3787
 msgid "Notify nominator/principal/mentor"
 msgstr ""
 
-#: portal/models.py:3622 portal/tables.py:488
+#: portal/models.py:3791 portal/tables.py:487
 msgid "T&C"
 msgstr "T&C"
 
-#: portal/models.py:3630
+#: portal/models.py:3799
 msgid "Score Sheet Template"
 msgstr "Tātauira Raupepa Tatau"
 
-#: portal/models.py:3635
+#: portal/models.py:3804
 msgid "Has FoRs"
 msgstr ""
 
-#: portal/models.py:3635
+#: portal/models.py:3804
 msgid "Has Field of Research Categories"
 msgstr ""
 
-#: portal/models.py:3638
+#: portal/models.py:3807
 msgid "Has SEOs"
 msgstr ""
 
-#: portal/models.py:3638
+#: portal/models.py:3807
 msgid "Has Socio-Economic Objective Categories"
 msgstr ""
 
-#: portal/models.py:3641
+#: portal/models.py:3810
 msgid "Has ToA"
 msgstr ""
 
-#: portal/models.py:3641
+#: portal/models.py:3810
 msgid "Has Type of Activity Categories"
 msgstr ""
 
-#: portal/models.py:3644
+#: portal/models.py:3813
 msgid "Has VMTs"
 msgstr ""
 
-#: portal/models.py:3644
+#: portal/models.py:3813
 msgid "Has Vision Mātauranga Theme Categories"
 msgstr ""
 
-#: portal/models.py:3646
+#: portal/models.py:3815
 #, fuzzy
 #| msgid "Password"
 msgid "Has keywords"
 msgstr "Kupuhuna"
 
-#: portal/models.py:3646
+#: portal/models.py:3815
 #, fuzzy
 #| msgid "Password"
 msgid "Has Keywords"
 msgstr "Kupuhuna"
 
-#: portal/models.py:3658
+#: portal/models.py:3827
 msgid "Nomination Template"
 msgstr "Tātauira Tautapanga"
 
-#: portal/models.py:3681
+#: portal/models.py:3850
 msgid "Application Template"
 msgstr "Tātauira Puka Tono"
 
-#: portal/models.py:3706
+#: portal/models.py:3875
 msgid "Referee Template"
 msgstr "Tātauira Kaitautoko"
 
-#: portal/models.py:3729
+#: portal/models.py:3898
 msgid "Budget Template"
 msgstr "Tātauira Mahere Pūtea"
 
-#: portal/models.py:3769
+#: portal/models.py:3938
 msgid "the round cannot close before it opens."
 msgstr "kāore e taea te whiringa te kati i mua i tōna whakatūwheratanga"
 
-#: portal/templates/application-export.html:27
-#: portal/templates/profile.html:37
-msgid "Title"
-msgstr "Taitara"
-
-#: portal/models.py:4142
+#: portal/models.py:4311
 msgid "Title (e.g. Dr, Professor)"
 msgstr "Taitara (e.g. Dr, Professor)"
 
-
-#: portal/models.py:4163 portal/models.py:4204 portal/models.py:4234
+#: portal/models.py:4332 portal/models.py:4373 portal/models.py:4403
 #, fuzzy
 #| msgid "Budget Template"
 msgid "Template"
 msgstr "Tātauira Mahere Pūtea"
 
-#: portal/models.py:4327
+#: portal/models.py:4499
 #, fuzzy
 #| msgid "The panelist should comment their score"
 msgid "The panellist should comment their score"
 msgstr "Me kōrero te kaiwhiriwhiri mō tana tatau"
 
-#: portal/models.py:4334
+#: portal/models.py:4506
 msgid "criteria"
 msgstr "paearu"
 
-#: portal/models.py:4362 portal/templates/round_scores.html:112
-#: portal/views.py:5513 portal/views.py:5765
+#: portal/models.py:4534 portal/templates/round_scores.html:112
+#: portal/views.py:5559 portal/views.py:5811
 msgid "Overall Comment"
 msgstr "Kōrero Matua"
 
-#: portal/models.py:4364 portal/tables.py:438
+#: portal/models.py:4536 portal/tables.py:437
 #: portal/templates/round_scores.html:175
 msgid "Total Score"
 msgstr "Tapeke"
 
-#: portal/models.py:4383
+#: portal/models.py:4555
 #, fuzzy
 #| msgid ""
 #| "The application is not completed. Missing summary and/or uploaded "
@@ -1752,58 +1887,58 @@ msgstr ""
 "Kāore i oti te tono. Kei te ngaro te whakarāpopototanga, te puka tonoi "
 "tukuatu hoki/rānei"
 
-#: portal/models.py:4412
+#: portal/models.py:4584
 #, python-format
 msgid "Evaluation of %s by %s"
 msgstr "Aromātai o %s nā %s"
 
-#: portal/models.py:4426 portal/templates/evaluation.html:94
+#: portal/models.py:4598 portal/templates/evaluation.html:94
 #: portal/templates/portal/evaluation_form.html:94
 msgid "Score"
 msgstr "atau"
 
-#: portal/models.py:4656
+#: portal/models.py:4828
 msgid "Email address of the nominee"
 msgstr "Wāhitau īmēra o te tangata tautapa"
 
-#: portal/models.py:4682
+#: portal/models.py:4854
 msgid "Organisation of the nominee"
 msgstr "Te whakahaere o te tangata tautapa"
 
-#: portal/models.py:4691
+#: portal/models.py:4863
 msgid "Nominator form"
 msgstr "Puka kaitautapa"
 
-#: portal/models.py:4692
+#: portal/models.py:4864
 msgid "Upload filled-in nominator form"
 msgstr "Tukuatu te puka kaitautapa kua whakakīhia"
 
-#: portal/models.py:4702
+#: portal/models.py:4874
 msgid "Nominee"
 msgstr "Tangata Tautapa"
 
-#: portal/models.py:4710
+#: portal/models.py:4882
 msgid "application"
 msgstr "tono"
 
-#: portal/models.py:4721
+#: portal/models.py:4893
 msgid "status"
 msgstr "tūnga"
 
-#: portal/models.py:4734
+#: portal/models.py:4906
 msgid "You cannot nominate yourself for this round."
 msgstr ""
 
-#: portal/models.py:4833
+#: portal/models.py:5005
 #, python-format
 msgid "Nomination for \"%s\""
 msgstr "Tautapanga mō \"%s\""
 
-#: portal/models.py:4872
+#: portal/models.py:5058
 msgid "User Identity Verification"
 msgstr "Whakatūturutanga Tuakiri Kaiwhakamahi"
 
-#: portal/models.py:4874
+#: portal/models.py:5060
 #, python-format
 msgid ""
 "User %(user)s submitted a photo identity for verification. Please review the "
@@ -1812,7 +1947,7 @@ msgstr ""
 "I tukuna e te kaiwhakamahi %(user)s tētahi whakaahua tuakiri mō te "
 "whakatūturutanga.Tēnā tirohia te tuakiri ki konei: %(url)s"
 
-#: portal/models.py:4878
+#: portal/models.py:5064
 #, fuzzy, python-format
 #| msgid ""
 #| "User %(user)s submitted a photo identity for verification. Please review "
@@ -1824,18 +1959,37 @@ msgstr ""
 "I tukuna e te kaiwhakamahi %(user)s tētahi whakaahua tuakiri mō te "
 "whakatūturutanga.Tēnā tirohia te tuakiri ki konei: %(url)s"
 
-#: portal/models.py:4924
+#: portal/models.py:5114
 #, python-format
 msgid "Identity Verification of \"%s\""
 msgstr "Whakatūturutanga Tuakiri o \"%s\""
 
-#: portal/models.py:4974
+#: portal/models.py:5166
 msgid "Score Sheet"
 msgstr "Raupepa Tatau"
 
-#: portal/models.py:4975
+#: portal/models.py:5167
 msgid "Upload filled-in for all the applications in bulk"
 msgstr "Kua whakakīhia katoatia te tukuatu mō ngā tono katoa"
+
+#: portal/models.py:5324
+msgid "previous"
+msgstr "ki mua"
+
+#: portal/models.py:5325
+msgid "next"
+msgstr "ki muri"
+
+#: portal/models.py:5326
+msgid "Browse"
+msgstr "Tirotiro"
+
+msgid "browse"
+msgstr "Tirotiro"
+
+#: portal/models.py:5327
+msgid "State"
+msgstr "Tūnga"
 
 #: portal/tables.py:33
 #, fuzzy
@@ -1933,16 +2087,16 @@ msgstr "Ingoa Whānau"
 msgid "Nominee Email Address"
 msgstr "Tāurua te Wāhitau Īmēra"
 
-#: portal/tables.py:138 portal/tables.py:174 portal/templates/sidebar.html:50
-#: portal/templates/sidebar.html:58 portal/templates/sidebar.html:131
-#: portal/templates/sidebar.html:139 portal/templates/sidebar.html:196
-#: portal/templates/sidebar.html:204 portal/templates/sidebar.html:262
-#: portal/templates/sidebar.html:270
+#: portal/tables.py:138 portal/tables.py:173 portal/templates/sidebar.html:50
+#: portal/templates/sidebar.html:58 portal/templates/sidebar.html:155
+#: portal/templates/sidebar.html:163 portal/templates/sidebar.html:220
+#: portal/templates/sidebar.html:228 portal/templates/sidebar.html:286
+#: portal/templates/sidebar.html:294
 msgid "Submitted"
 msgstr "Kua Tukuna"
 
-#: portal/tables.py:188 portal/templates/application_detail.html:80
-#: portal/templates/index.html:305 portal/templates/round_scores.html:198
+#: portal/tables.py:187 portal/templates/application_detail.html:80
+#: portal/templates/index.html:315 portal/templates/round_scores.html:198
 #: portal/templates/round_scores.html:204
 #: portal/templates/round_scores.html:210
 #: portal/templates/snippets/detail_buttons.html:49
@@ -1950,68 +2104,68 @@ msgstr "Kua Tukuna"
 msgid "Export"
 msgstr "Kaweatu"
 
-#: portal/tables.py:194 portal/templates/application_detail.html:77
-#: portal/templates/index.html:304
+#: portal/tables.py:193 portal/templates/application_detail.html:77
+#: portal/templates/index.html:314
 msgid "Export the application into a consolidated PDF file"
 msgstr "Kaweatu te tono mā tētahi kōnae PDF kua whakakotahitia"
 
-#: portal/tables.py:220
+#: portal/tables.py:219
 #, python-format
 msgid "The round is closing in %s day(s) on %s by %s"
 msgstr ""
 
-#: portal/tables.py:265 portal/templates/index.html:60
-#: portal/templates/index.html:518
+#: portal/tables.py:264 portal/templates/index.html:60
+#: portal/templates/index.html:527
 #: portal/templates/snippets/application_detail_table.html:54
-#: portal/views.py:2869
+#: portal/views.py:2914
 msgid "Round"
 msgstr "Whiringa"
 
-#: portal/tables.py:266
+#: portal/tables.py:265
 msgid "Scheme"
 msgstr "Kāore"
 
-#: portal/tables.py:267
+#: portal/tables.py:266
 msgid "Opens On"
 msgstr ""
 
-#: portal/tables.py:268
+#: portal/tables.py:267
 #, fuzzy
 #| msgid "Close"
 msgid "Closes On"
 msgstr "Katia"
 
-#: portal/tables.py:270 portal/tables.py:343
+#: portal/tables.py:269 portal/tables.py:342
 #, fuzzy
 #| msgid "Review"
 msgid "Review Count"
 msgstr "Tirotirohia"
 
-#: portal/tables.py:338 portal/templates/application-export.html:26
+#: portal/tables.py:337 portal/templates/application-export.html:35
 msgid "Number"
 msgstr "Tau"
 
-#: portal/tables.py:339
+#: portal/tables.py:338
 msgid "First Name"
 msgstr "Ingoa Tuatahi"
 
-#: portal/tables.py:340
+#: portal/tables.py:339
 msgid "Last Name"
 msgstr "Ingoa Whānau"
 
-#: portal/tables.py:359
+#: portal/tables.py:358
 #, fuzzy
 #| msgid "Conflict of Interests"
 msgid "Conflict of Interest statement to complete."
 msgstr "Ngā Raru Whaipānga"
 
-#: portal/tables.py:366
+#: portal/tables.py:365
 #, fuzzy
 #| msgid "You have already submited one application in this round"
 msgid "You have already submitted an evaluation of this application."
 msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
 
-#: portal/tables.py:375
+#: portal/tables.py:374
 #, fuzzy
 #| msgid ""
 #| "Your can amend and resubmit the statements of the conflict of interest "
@@ -2023,27 +2177,27 @@ msgstr ""
 "Ka taea e koe te whakatika me te tuku anō i ngā tauākī raru whiapānga mō te "
 "whiringa \"%(round)s\""
 
-#: portal/tables.py:397 portal/templates/application_detail.html:139
+#: portal/tables.py:396 portal/templates/application_detail.html:139
 #: portal/templates/application_detail.html:171
 #, fuzzy
 #| msgid "The application was submitted"
 msgid "The application has not been submitted yet"
 msgstr "Kua tukuna te tono"
 
-#: portal/tables.py:411
+#: portal/tables.py:410
 #, python-format
 msgid "The round is closing in %(days)s day(s) on %(date)s by %(time)s"
 msgstr ""
 
-#: portal/tables.py:487
+#: portal/tables.py:486
 msgid "Status"
 msgstr "Tūnga"
 
-#: portal/tables.py:491
+#: portal/tables.py:490
 msgid "Members (authorized/total)"
 msgstr ""
 
-#: portal/tables.py:493
+#: portal/tables.py:492
 msgid "Identity Verified"
 msgstr "Kua whakatūturutia te tuakiri"
 
@@ -2165,7 +2319,7 @@ msgid "E-Mail Addresses"
 msgstr "Ngā Wāhitau Īmēra"
 
 #: portal/templates/account.html:85 portal/templates/profile.html:118
-#: portal/templates/profile_detail.html:96 portal/templates/sidebar.html:379
+#: portal/templates/profile_detail.html:96 portal/templates/sidebar.html:403
 msgid "Linked Accounts"
 msgstr "Ngā Pūkete Hono"
 
@@ -2196,7 +2350,7 @@ msgid ""
 "        "
 msgstr ""
 
-#: portal/templates/account/card.html:20 portal/templates/index.html:407
+#: portal/templates/account/card.html:20 portal/templates/index.html:417
 msgid "Continue"
 msgstr "Haere tonu"
 
@@ -2220,7 +2374,7 @@ msgstr "Takiuru mā te"
 msgid "Email address or username"
 msgstr "Wāhitau īmēra, ingoa kaiwhakamahi rānei"
 
-#: portal/templates/account/card.html:123 portal/templates/sidebar.html:388
+#: portal/templates/account/card.html:123 portal/templates/sidebar.html:412
 msgid "Password"
 msgstr "Kupuhuna"
 
@@ -2255,7 +2409,7 @@ msgstr "Wāhitau īmēra"
 msgid "Username"
 msgstr "Ingoa kaiwhakamahi"
 
-#: portal/templates/account/email.html:4 portal/templates/sidebar.html:366
+#: portal/templates/account/email.html:4 portal/templates/sidebar.html:390
 msgid "Account"
 msgstr "Pūkete"
 
@@ -2311,65 +2465,6 @@ msgstr "Tāpirihia Īmēra"
 #: portal/templates/account/email.html:72
 msgid "Do you really want to remove the selected e-mail address?"
 msgstr "Kei te hiahia koe ki te tango i te wāhitau īmēra i kōwhiria?"
-
-#: portal/templates/account/email_/base_message.html:118
-#, python-format
-msgid " Hello from %(site_name)s! "
-msgstr ""
-
-#: portal/templates/account/email_/base_message.html:122
-#, python-format
-msgid "Thank you for using %(site_name)s! %(site_domain)s"
-msgstr ""
-
-#: portal/templates/account/email_/base_message.txt:1
-#, python-format
-msgid "Hello from %(site_name)s!"
-msgstr ""
-
-#: portal/templates/account/email_/base_message.txt:5
-#: portal/templates/international.royalsociety.org.nz/account/email/base_message.txt:7
-#, python-format
-msgid ""
-"Thank you for using %(site_name)s!\n"
-"%(site_domain)s"
-msgstr ""
-
-#: portal/templates/account/email_/email_confirmation_message.txt:5
-#, python-format
-msgid ""
-"You're receiving this e-mail because user %(user_display)s has given your e-"
-"mail address to register an account on %(site_domain)s.\n"
-"\n"
-"To confirm this is correct, go to %(activate_url)s"
-msgstr ""
-
-#: portal/templates/account/email_/email_confirmation_subject.txt:3
-#, fuzzy
-#| msgid "Confirm E-mail Address"
-msgid "Please Confirm Your E-mail Address"
-msgstr "Tūtohua te Wāhitau Īmērā"
-
-#: portal/templates/account/email_/password_reset_key_message.html:4
-#: portal/templates/account/email_/password_reset_key_message.txt:4
-msgid ""
-"You're receiving this e-mail because you or someone else has requested a "
-"password for your user account.\n"
-"It can be safely ignored if you did not request a password reset. Click the "
-"link below to reset your password."
-msgstr ""
-
-#: portal/templates/account/email_/password_reset_key_message.html:9
-#: portal/templates/account/email_/password_reset_key_message.txt:9
-#, python-format
-msgid "In case you forgot, your username is %(username)s."
-msgstr ""
-
-#: portal/templates/account/email_/password_reset_key_subject.txt:3
-#, fuzzy
-#| msgid "Password Reset"
-msgid "Password Reset E-mail"
-msgstr "Tautuhi Anō i te Kupuhuna"
 
 #: portal/templates/account/email_approve_user.html:30
 msgid "Hello from Prime Minister's Science Prizes!"
@@ -2571,27 +2666,27 @@ msgid ""
 msgstr ""
 "Ki te kore ka taea tonu te <a href=\"%(email_url)s\">tō wāhitau īmēra</a>. "
 
-#: portal/templates/admin/base_site.html:13
+#: portal/templates/admin/base_site.html:18
 msgid "Portal Admin"
 msgstr "Kaiwhakahaere Tomokanga"
 
-#: portal/templates/admin/base_site.html:57
+#: portal/templates/admin/base_site.html:62
 msgid "View site"
 msgstr ""
 
-#: portal/templates/admin/base_site.html:63
+#: portal/templates/admin/base_site.html:68
 #, fuzzy
 #| msgid "Nominations"
 msgid "Documentation"
 msgstr "Ngā Tautapanga"
 
-#: portal/templates/admin/base_site.html:67
+#: portal/templates/admin/base_site.html:72
 #, fuzzy
 #| msgid "change password"
 msgid "Change password"
 msgstr "hurihia te kupuhuna"
 
-#: portal/templates/admin/base_site.html:71
+#: portal/templates/admin/base_site.html:76
 #, fuzzy
 #| msgid "opted out"
 msgid "Log out"
@@ -2600,6 +2695,10 @@ msgstr "kōwhiringa whakaputa"
 #: portal/templates/admin/edit_inline/tabular.html:30
 msgid "Delete?"
 msgstr ""
+
+#: portal/templates/application-export.html:36 portal/templates/profile.html:37
+msgid "Title"
+msgstr "Taitara"
 
 #: portal/templates/application.html:81
 msgid "We are processing your request.  Please be patient."
@@ -2629,7 +2728,7 @@ msgstr ""
 msgid "Re-enter"
 msgstr ""
 
-#: portal/templates/application_detail.html:52 portal/templates/index.html:396
+#: portal/templates/application_detail.html:52 portal/templates/index.html:406
 msgid "The application has been already submitted and cannot be modified"
 msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
 
@@ -2643,7 +2742,7 @@ msgid ""
 "The application period has closed. You can no longer modify this application."
 msgstr ""
 
-#: portal/templates/application_detail.html:60 portal/templates/index.html:401
+#: portal/templates/application_detail.html:60 portal/templates/index.html:411
 msgid "Modify your application and continue application process"
 msgstr "Whakarerekētia tō tono ka whai tonu i te tukanga tono"
 
@@ -3063,8 +3162,8 @@ msgid "submit"
 msgstr "Tukuna"
 
 #: portal/templates/evaluation.html:69 portal/templates/evaluation.html:130
-#: portal/templates/index.html:233 portal/templates/index.html:511
-#: portal/templates/index.html:601
+#: portal/templates/index.html:233 portal/templates/index.html:520
+#: portal/templates/index.html:610
 #: portal/templates/portal/evaluation_form.html:143
 msgid "Show"
 msgstr "Whakaatuhia"
@@ -3090,7 +3189,7 @@ msgstr "Paearu"
 msgid "Effective Score"
 msgstr ""
 
-#: portal/templates/evaluation.html:133 portal/templates/index.html:604
+#: portal/templates/evaluation.html:133 portal/templates/index.html:613
 #: portal/templates/portal/evaluation_form.html:49
 #: portal/templates/portal/evaluation_form.html:146
 msgid "Hide"
@@ -3108,18 +3207,15 @@ msgstr ""
 
 #: portal/templates/footer_full.html:18
 #: portal/templates/international.royalsociety.org.nz/footer_full.html:18
-#: portal/templates/puanga.royalsociety.org.nz/footer_full.html:18
 msgid "Sign up for our newsletter"
 msgstr "Whakauru mai mō tō mātou kawerongo"
 
 #: portal/templates/footer_full.html:31
 #: portal/templates/international.royalsociety.org.nz/footer_full.html:31
-#: portal/templates/puanga.royalsociety.org.nz/footer_full.html:31
 msgid "Email address"
 msgstr "Wāhitau īmēra"
 
 #: portal/templates/footer_full.html:74
-#: portal/templates/puanga.royalsociety.org.nz/footer_full.html:74
 #: portal/templates/snippets/copyright.html:18
 msgid "Contact Us"
 msgstr ""
@@ -3273,22 +3369,22 @@ msgid "Application Drafts"
 msgstr "Ngā Tono Hukihuki"
 
 #: portal/templates/index.html:265 portal/templates/index.html:271
-#: portal/templates/index.html:356
+#: portal/templates/index.html:366
 #, python-format
 msgid ""
 "The round is closing in %(deadline_days)s day(s) on %(closes_on)s by "
 "%(closes_at)s"
 msgstr ""
 
-#: portal/templates/index.html:290
+#: portal/templates/index.html:297
 msgid "Current Submitted Applications"
 msgstr "Ngā Tono Kua Tukuna o Nāianei"
 
-#: portal/templates/index.html:347
+#: portal/templates/index.html:357
 msgid "Application period"
 msgstr "Wā tono"
 
-#: portal/templates/index.html:363
+#: portal/templates/index.html:373
 #, fuzzy, python-format
 #| msgid ""
 #| "\n"
@@ -3305,148 +3401,155 @@ msgstr ""
 "te whiringa \"%(round)s\".\n"
 "                "
 
-#: portal/templates/index.html:375
+#: portal/templates/index.html:385
 msgid "Read <b>More</b>"
 msgstr "Pānuitia <b>Ētahi atu</b>"
 
-#: portal/templates/index.html:385
+#: portal/templates/index.html:395
 #: portal/templates/research_office_index.html:148
 #: portal/templates/research_office_index.html:179
 #: portal/templates/research_office_index.html:208
 msgid "Show <b>Details</b>"
 msgstr "Whakaatuhia <b>Ngā Taipitopito Kōrero</b>"
 
-#: portal/templates/index.html:399 portal/templates/index.html:468
-#: portal/templates/index.html:490
+#: portal/templates/index.html:409 portal/templates/index.html:477
+#: portal/templates/index.html:499
 msgid "The application period closed on"
 msgstr "I kati te wā tono i te"
 
-#: portal/templates/index.html:399
+#: portal/templates/index.html:409
 msgid "Applications can no longer be accepted for this round."
 msgstr ""
 
-#: portal/templates/index.html:407 portal/templates/index.html:504
+#: portal/templates/index.html:417 portal/templates/index.html:513
 #: portal/templates/round_scores.html:110
 #: portal/templates/round_scores.html:173
 #: portal/templates/snippets/application_detail_table.html:7
-#: portal/views.py:5763 portal/views.py:5777
+#: portal/views.py:5809 portal/views.py:5823
 msgid "Application"
 msgstr "Tono"
 
-#: portal/templates/index.html:414
+#: portal/templates/index.html:424
 #, fuzzy
 #| msgid "You are a panellist of this round and cannot apply for it"
 msgid "You are a research officer of this round and cannot apply for it"
 msgstr "He kaiwhiriwhiri koe mō tēnei whiringa, nō reira kāore e taea te tono"
 
-#: portal/templates/index.html:417
+#: portal/templates/index.html:427
 msgid "You are a panellist of this round and cannot apply for it"
 msgstr "He kaiwhiriwhiri koe mō tēnei whiringa, nō reira kāore e taea te tono"
 
-#: portal/templates/index.html:421 portal/templates/index.html:466
-#: portal/templates/index.html:488
+#: portal/templates/index.html:431 portal/templates/index.html:475
+#: portal/templates/index.html:497
 msgid "The application will be open on"
 msgstr "Ka tūwhera te tono a te"
 
-#: portal/templates/index.html:426
+#: portal/templates/index.html:436
 #, fuzzy
 #| msgid "You have already submited one application in this round"
 msgid "You have already submitted one application in this round"
 msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
 
-#: portal/templates/index.html:430
+#: portal/templates/index.html:440
 #, fuzzy
 #| msgid "You need to be nominated in order to apply for the application"
 msgid "You need to be nominated in order to apply for this round"
 msgstr "Me tautapa tētahi i a koe kia āhei ai te tono mō te puka tono"
 
-#: portal/templates/index.html:430 portal/templates/index.html:462
+#: portal/templates/index.html:440 portal/templates/index.html:471
 msgid "Please contact your Research Office"
 msgstr ""
 
-#: portal/templates/index.html:432
+#: portal/templates/index.html:442
 msgid "Start a new application"
 msgstr "Tīmatahia tētahi tono hou"
 
-#: portal/templates/index.html:432
+#: portal/templates/index.html:442
 #, fuzzy
 #| msgid "You have been nominated for %s"
 msgid "You have been nominated for this round"
 msgstr "I tautapatia koe mō %s"
 
-#: portal/templates/index.html:453 portal/templates/index.html:476
+#: portal/templates/index.html:462 portal/templates/index.html:485
 msgid "Apply"
 msgstr "Tono mai"
 
-#: portal/templates/index.html:453
+#: portal/templates/index.html:462
 msgid "Now"
 msgstr "Ināianei"
 
-#: portal/templates/index.html:462
+#: portal/templates/index.html:471
 msgid "Only Research Office can nominate you for this round"
 msgstr ""
 
-#: portal/templates/index.html:464 portal/templates/index.html:486
+#: portal/templates/index.html:473 portal/templates/index.html:495
 msgid "You cannot apply or nominate for a round where you are a panellist"
 msgstr ""
 
-#: portal/templates/index.html:471
+#: portal/templates/index.html:480
 msgid "Nominate other person to apply ..."
 msgstr ""
 
-#: portal/templates/index.html:475
+#: portal/templates/index.html:484
 msgid "Nominate"
 msgstr "Kōhari"
 
-#: portal/templates/index.html:484 portal/templates/index.html:493
+#: portal/templates/index.html:493 portal/templates/index.html:502
 msgid "TODO: Contact your Research Office and request a nomination"
 msgstr ""
 
-#: portal/templates/index.html:496
+#: portal/templates/index.html:505
 msgid "Contact"
 msgstr ""
 
-#: portal/templates/index.html:496 portal/views.py:693
+#: portal/templates/index.html:505 portal/views.py:713
 #, fuzzy
 #| msgid "Research Topic"
 msgid "Research Office"
 msgstr "Kaupapa Rangahau"
 
-#: portal/templates/index.html:504 portal/templates/index.html:506
+#: portal/templates/index.html:513 portal/templates/index.html:515
 msgid "Review"
 msgstr "Tirotirohia"
 
-#: portal/templates/index.html:506 portal/templates/index.html:511
+#: portal/templates/index.html:515 portal/templates/index.html:520
 #: portal/templates/portal/conflictofinterest_list.html:148
 #: portal/templates/research_office_index.html:146
 #: portal/templates/sidebar.html:10 portal/templates/sidebar.html:13
 msgid "Applications"
 msgstr "Ngā Tono"
 
-#: portal/templates/index.html:518 portal/templates/profile.html:114
-#: portal/templates/profile_detail.html:92 portal/views.py:376
+#: portal/templates/index.html:527 portal/templates/profile.html:114
+#: portal/templates/profile_detail.html:92 portal/views.py:390
 msgid "Edit"
 msgstr "Takatā"
 
-#: portal/templates/index.html:526
+#: portal/templates/index.html:535
 msgid "Panellist"
 msgstr "Te kaiwhiriwhiri"
 
-#: portal/templates/index.html:533
+#: portal/templates/index.html:542
 msgid "Conflicts of"
 msgstr "Ngā Raru"
 
-#: portal/templates/index.html:534
+#: portal/templates/index.html:543
 msgid "Interest"
 msgstr "Whaipānga"
 
-#: portal/templates/index.html:541
+#: portal/templates/index.html:550
 msgid "Scheme has no round available to apply for"
 msgstr "Kāore he whiringa o tēnei whakangārahu hei tono atu"
 
 #: portal/templates/international.royalsociety.org.nz/account/email/base_message.txt:3
 #, python-format
 msgid "Hello from XXXXXXXXXXXX %(site_name)s!"
+msgstr ""
+
+#: portal/templates/international.royalsociety.org.nz/account/email/base_message.txt:7
+#, python-format
+msgid ""
+"Thank you for using %(site_name)s!\n"
+"%(site_domain)s"
 msgstr ""
 
 #: portal/templates/international.royalsociety.org.nz/pages/about.html:3
@@ -3704,22 +3807,22 @@ msgstr ""
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:68
-#: portal/templates/profile_section.html:78
+#: portal/templates/profile_section.html:87
 msgid "Description"
 msgstr "Whakaahuatanga"
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:69
-#: portal/templates/profile_section.html:79
+#: portal/templates/profile_section.html:88
 msgid "Definition"
 msgstr "Tautuhinga"
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:74
-#: portal/templates/profile_section.html:84
+#: portal/templates/profile_section.html:93
 msgid "First Stage Researcher"
 msgstr "Kairangahau Taumata Tuatahi"
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:75
-#: portal/templates/profile_section.html:85
+#: portal/templates/profile_section.html:94
 msgid ""
 "A First Stage Researcher conducts research under supervision. This may "
 "include PhD and research masters students."
@@ -3729,12 +3832,12 @@ msgstr ""
 "tauira rangahau tohu paerua."
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:78
-#: portal/templates/profile_section.html:88
+#: portal/templates/profile_section.html:97
 msgid "Emerging Researcher"
 msgstr "Kairangahau Awhero"
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:79
-#: portal/templates/profile_section.html:89
+#: portal/templates/profile_section.html:98
 msgid ""
 "An Emerging Researcher has made a contribution through original research by "
 "developing a substantial body of work, innovation or application which may "
@@ -3747,12 +3850,12 @@ msgstr ""
 "waihanga, me ngā tuhinga ka tukuna ki ngā wānanga me ngā hui taumata."
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:82
-#: portal/templates/profile_section.html:92
+#: portal/templates/profile_section.html:101
 msgid "Established Researcher"
 msgstr "Kairangahau Pūmau"
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:83
-#: portal/templates/profile_section.html:93
+#: portal/templates/profile_section.html:102
 msgid ""
 "An Established Researcher identifies research problems and opportunities "
 "within their area of expertise, conducts research independently which "
@@ -3768,12 +3871,12 @@ msgstr ""
 "kairangahau."
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:86
-#: portal/templates/profile_section.html:96
+#: portal/templates/profile_section.html:105
 msgid "Leading Researcher"
 msgstr "Kairangahau Matua"
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:87
-#: portal/templates/profile_section.html:97
+#: portal/templates/profile_section.html:106
 msgid ""
 "A Leading Researcher has an international reputation based on research "
 "excellence in their field and a proven record of securing significant "
@@ -3788,7 +3891,7 @@ msgstr ""
 "tūranga rōpū hoki."
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:91
-#: portal/templates/profile_section.html:101
+#: portal/templates/profile_section.html:110
 msgid ""
 "Non-Researchers. For example, most teachers, students, and communicators "
 "will select this."
@@ -3811,7 +3914,7 @@ msgid ""
 msgstr ""
 
 #: portal/templates/nomination_detail.html:25
-#: portal/templates/snippets/detail_buttons.html:7 portal/views.py:4434
+#: portal/templates/snippets/detail_buttons.html:7 portal/views.py:4479
 #, fuzzy
 #| msgid "Start Prize Application"
 msgid "Start Application"
@@ -3819,7 +3922,7 @@ msgstr "Me Tīmata ki te Tono"
 
 #: portal/templates/nomination_detail.html:27
 #: portal/templates/snippets/detail_buttons.html:9
-#: portal/templates/testimonial_detail.html:21 portal/views.py:4434
+#: portal/templates/testimonial_detail.html:21 portal/views.py:4479
 msgid "Start Prize Application"
 msgstr "Me Tīmata ki te Tono"
 
@@ -3993,41 +4096,6 @@ msgstr "He mea whakature te tuku kōrero"
 msgid "Save Draft"
 msgstr "Tiakina te Hukihuki"
 
-#: portal/templates/portal/widgets/invitation_status.html:8
-#, fuzzy
-#| msgid "The invitation was sent"
-msgid "The invitation was sent at "
-msgstr "Kua tukuna atu te tono"
-
-#: portal/templates/portal/widgets/invitation_status.html:11
-#, fuzzy
-#| msgid "The user has accepted your invitation"
-msgid "The user has accepted your invitation at "
-msgstr "Kua whakaaetia tō tono e te kaiwhakamahi"
-
-#: portal/templates/portal/widgets/invitation_status.html:14
-#, fuzzy
-#| msgid "This invite has been acted on."
-msgid "This invite has been acted on at "
-msgstr "Kua whakaaetia tō tono e te kaiwhakamahi."
-
-#: portal/templates/portal/widgets/invitation_status.html:17
-#, fuzzy
-#| msgid "The user has opted out of your invitation"
-msgid "The user has opted out of your invitation at "
-msgstr ""
-"I kōwhiria e te kaitautoko kia kaua e whai wāhi ki te tirotiro i tō tono"
-
-#: portal/templates/portal/widgets/invitation_status.html:22
-#, fuzzy
-#| msgid "Your Invitation Undelivered"
-msgid "The invitation delivery failed or autoreplied at"
-msgstr "Kāore i Tukuna Atu tō Tono"
-
-#: portal/templates/portal/widgets/invitation_status.html:22
-msgid "Please confirm the recipient is receiving email."
-msgstr ""
-
 #: portal/templates/profile.html:39
 #, fuzzy
 #| msgid "Middle name(s)"
@@ -4078,12 +4146,12 @@ msgstr "Tīkina ngā raraunga kāhua katoa i ORCID"
 msgid "Your Profile"
 msgstr "Tō Kāhua"
 
-#: portal/templates/profile_detail.html:25 portal/templates/sidebar.html:307
+#: portal/templates/profile_detail.html:25 portal/templates/sidebar.html:331
 msgid "Profile"
 msgstr "Kīwhaiaro"
 
-#: portal/templates/profile_detail.html:30 portal/templates/sidebar.html:322
-#: portal/views.py:3147
+#: portal/templates/profile_detail.html:30 portal/templates/sidebar.html:346
+#: portal/views.py:3192
 msgid "Career Stages"
 msgstr "Ngā wāhanga aramahi"
 
@@ -4364,6 +4432,27 @@ msgstr ""
 "        "
 
 #: portal/templates/profile_section.html:33
+#, fuzzy
+#| msgid ""
+#| "\n"
+#| "        Curriculum Vitae are required from the following:\n"
+#| "        <ul>\n"
+#| "          <li>Team leaders and sole applicants with the exception of the "
+#| "Future Scientist Prize.\n"
+#| "            Applicants for the Future Scientist Prize DO NOT need to "
+#| "provide a CV.</li>\n"
+#| "          <li>Nominators for the Science Teacher Prize</li>\n"
+#| "          <li>Referees for all prizes with the exception of the Future "
+#| "Scientist and Science Teacher Prizes</li>\n"
+#| "        </ul>\n"
+#| "        If in doubt skip this step, and when required a CV will be "
+#| "requested.<br><br>\n"
+#| "        For NZ-based researchers, a current CV in the\n"
+#| "        <a href=\"https://www.royalsociety.org.nz/assets/documents/NZ-RST-"
+#| "CV-Template.doc\">NZ RST CV Template</a> is preferred.\n"
+#| "        All others, please provide a CV in whatever is your preferred "
+#| "format.\n"
+#| "      "
 msgid ""
 "\n"
 "        Curriculum Vitae are required from the following:\n"
@@ -4378,11 +4467,6 @@ msgid ""
 "        </ul>\n"
 "        If in doubt skip this step, and when required a CV will be requested."
 "<br><br>\n"
-"        For NZ-based researchers, a current CV in the\n"
-"        <a href=\"https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-"
-"Template.doc\">NZ RST CV Template</a> is preferred.\n"
-"        All others, please provide a CV in whatever is your preferred "
-"format.\n"
 "      "
 msgstr ""
 "\n"
@@ -4405,7 +4489,29 @@ msgstr ""
 "</p>\n"
 "        "
 
-#: portal/templates/profile_section.html:47
+#: portal/templates/profile_section.html:44
+msgid ""
+"\n"
+"          For NZ-based researchers, a current CV in the\n"
+"          <a href=\"https://www.royalsociety.org.nz/assets/documents/NZ-RST-"
+"CV-Template.doc\">NZ RST CV Template</a> is required.\n"
+"        "
+msgstr ""
+
+#: portal/templates/profile_section.html:49
+msgid ""
+"\n"
+"          For NZ-based researchers, a current CV in the\n"
+"          <a href=\"https://www.royalsociety.org.nz/assets/documents/NZ-RST-"
+"CV-Template.doc\">NZ RST CV Template</a> is preferred.\n"
+"        "
+msgstr ""
+
+#: portal/templates/profile_section.html:54
+msgid "All others, please provide a CV in whatever is your preferred format."
+msgstr ""
+
+#: portal/templates/profile_section.html:56
 msgid ""
 "\n"
 "        Academic record is requested to enable analysis of the effect of "
@@ -4420,7 +4526,7 @@ msgstr ""
 "ake ai ki te mahere tauatanga me te tautoko i ētahi rōpū ake. \n"
 "        "
 
-#: portal/templates/profile_section.html:53
+#: portal/templates/profile_section.html:62
 msgid ""
 "\n"
 "        Prizes and/or medals are requested in order to enable analysis over "
@@ -4432,7 +4538,7 @@ msgstr ""
 "i ngā pūtake me ngā pānga o te whakamana.\n"
 "        "
 
-#: portal/templates/profile_section.html:58
+#: portal/templates/profile_section.html:67
 msgid ""
 "\n"
 "        Please add any prizes, medals or awards you have received for your "
@@ -4440,9 +4546,10 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"Tāpirihia ngā paraihe, ngā mētara, ngā tohu rānei kua whiwhi koe mō ō mahi rangahau."
+"Tāpirihia ngā paraihe, ngā mētara, ngā tohu rānei kua whiwhi koe mō ō mahi "
+"rangahau."
 
-#: portal/templates/profile_section.html:63
+#: portal/templates/profile_section.html:72
 msgid ""
 "\n"
 "        Information on professional bodies is useful for demonstrating "
@@ -4457,12 +4564,17 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"<p>Ko ngā mōhiohio mō ngā rōpū ngaio, he whaitake mō te whakatauira i te whai wāhitanga ki te hapori rangahau, tae atu ki te noho hei mema i roto i ngā whakahaere mō te whakamanatanga. Ka taea hoki te whakamahi tēnei wāhi hei tuhi i ngā tohu ehara i te mātauranga.</p>"
-"<p>Ko ngā Mematanga tauira ko: Ngā Mema o te Apārangi me te New Zealand Association of Science Educators.</p>"
-"<p>Ko ngā Tohu tauira ko: Kaikaute Whaitohu Mahi (CPA) me te Kaipūkaha Ngaio Whaitohu (CPEng), ā, ko te Whakahaere ko te rōpū nā rātau i tuku te tohu.</p>"
+"<p>Ko ngā mōhiohio mō ngā rōpū ngaio, he whaitake mō te whakatauira i te "
+"whai wāhitanga ki te hapori rangahau, tae atu ki te noho hei mema i roto i "
+"ngā whakahaere mō te whakamanatanga. Ka taea hoki te whakamahi tēnei wāhi "
+"hei tuhi i ngā tohu ehara i te mātauranga.</p><p>Ko ngā Mematanga tauira ko: "
+"Ngā Mema o te Apārangi me te New Zealand Association of Science Educators.</"
+"p><p>Ko ngā Tohu tauira ko: Kaikaute Whaitohu Mahi (CPA) me te Kaipūkaha "
+"Ngaio Whaitohu (CPEng), ā, ko te Whakahaere ko te rōpū nā rātau i tuku te "
+"tohu.</p>"
 
-#: portal/templates/profile_summary.html:64 portal/templates/sidebar.html:317
-#: portal/templates/sidebar.html:319 portal/views.py:3145
+#: portal/templates/profile_summary.html:64 portal/templates/sidebar.html:341
+#: portal/templates/sidebar.html:343 portal/views.py:3190
 msgid "Organisation Affiliations"
 msgstr "Ngā Tūhononga Whakahaere"
 
@@ -4486,8 +4598,8 @@ msgstr "Rā Tīmata"
 msgid "End Date"
 msgstr "Rā Mutunga"
 
-#: portal/templates/profile_summary.html:90 portal/templates/sidebar.html:325
-#: portal/views.py:3148
+#: portal/templates/profile_summary.html:90 portal/templates/sidebar.html:349
+#: portal/views.py:3193
 msgid "External IDs"
 msgstr "Tuakiri o Waho"
 
@@ -4499,8 +4611,8 @@ msgstr "Momo"
 msgid "Value"
 msgstr "Wāriu"
 
-#: portal/templates/profile_summary.html:112 portal/templates/sidebar.html:332
-#: portal/views.py:3150
+#: portal/templates/profile_summary.html:112 portal/templates/sidebar.html:356
+#: portal/views.py:3195
 msgid "Academic Records"
 msgstr "Pūkete Akoranga"
 
@@ -4529,8 +4641,7 @@ msgstr "I Whakawhiwhia E"
 msgid "Research Topic"
 msgstr "Kaupapa Rangahau"
 
-#: portal/templates/profile_summary.html:142 portal/templates/sidebar.html:337
-#: portal/views.py:3151
+#: portal/templates/profile_summary.html:142 portal/templates/sidebar.html:361
 msgid "Prizes or Medals"
 msgstr "Ngā Paraihe, Mētara rānei"
 
@@ -4546,14 +4657,14 @@ msgstr "Tohu"
 msgid "Amount"
 msgstr "Te Nui"
 
-#: portal/templates/profile_summary.html:170 portal/templates/sidebar.html:342
-#: portal/views.py:3146
+#: portal/templates/profile_summary.html:170 portal/templates/sidebar.html:366
+#: portal/views.py:3191
 msgid "Professional Bodies"
 msgstr "Tōpūtanga Ngaio"
 
 #: portal/templates/profile_summary.html:176
 #: portal/templates/snippets/application_detail_table.html:94
-#: portal/views.py:3389
+#: portal/views.py:3434
 msgid "Position"
 msgstr "Tūranga"
 
@@ -4601,7 +4712,7 @@ msgid "View <b>Contracts </b>"
 msgstr ""
 
 #: portal/templates/research_office_index.html:177
-#: portal/templates/sidebar.html:73
+#: portal/templates/sidebar.html:97
 msgid "Contracts"
 msgstr ""
 
@@ -4625,21 +4736,21 @@ msgid "View <b>Reports </b>"
 msgstr "Whakaatuhia <b>Ngā Taipitopito Kōrero</b>"
 
 #: portal/templates/research_office_index.html:206
-#: portal/templates/sidebar.html:80
+#: portal/templates/sidebar.html:104
 #, fuzzy
 #| msgid "Export"
 msgid "Reports"
 msgstr "Kaweatu"
 
 #: portal/templates/round_scores.html:86 portal/templates/round_scores.html:90
-#: portal/templates/round_scores.html:113 portal/views.py:5514
-#: portal/views.py:5766 portal/views.py:5777
+#: portal/templates/round_scores.html:113 portal/views.py:5560
+#: portal/views.py:5812 portal/views.py:5823
 msgid "Total"
 msgstr "Tapeke"
 
 #: portal/templates/round_scores.html:111
-#: portal/templates/round_scores.html:174 portal/views.py:5512
-#: portal/views.py:5764 portal/views.py:5777
+#: portal/templates/round_scores.html:174 portal/views.py:5558
+#: portal/views.py:5810 portal/views.py:5823
 msgid "Lead"
 msgstr "Kaiārahi"
 
@@ -4683,8 +4794,8 @@ msgid "Saved application drafts"
 msgstr "Ngā tono hukihuki e tiakina ana"
 
 #: portal/templates/sidebar.html:28 portal/templates/sidebar.html:36
-#: portal/templates/sidebar.html:110 portal/templates/sidebar.html:118
-#: portal/templates/sidebar.html:175 portal/templates/sidebar.html:183
+#: portal/templates/sidebar.html:134 portal/templates/sidebar.html:142
+#: portal/templates/sidebar.html:199 portal/templates/sidebar.html:207
 msgid "Drafts"
 msgstr "Ngā Hukihuki"
 
@@ -4712,133 +4823,151 @@ msgstr "Tukuna te puka tono"
 msgid "No submitted applications"
 msgstr "Tukuna te puka tono"
 
-#: portal/templates/sidebar.html:72
+#: portal/templates/sidebar.html:70
+#, fuzzy
+#| msgid "team application"
+msgid "Approved applications"
+msgstr "tono"
+
+#: portal/templates/sidebar.html:73 portal/templates/sidebar.html:81
+#, fuzzy
+#| msgid "Approve"
+msgid "Approved"
+msgstr "Whakaae"
+
+#: portal/templates/sidebar.html:78
+#, fuzzy
+#| msgid "team application"
+msgid "No approved applications"
+msgstr "tono"
+
+#: portal/templates/sidebar.html:96
 #, fuzzy
 #| msgid "No nomination saved or submitted"
 msgid "No contracts saved or submitted"
 msgstr "Kāore i tiakina, kāore i tukuna rānei te tautapanga"
 
-#: portal/templates/sidebar.html:79
+#: portal/templates/sidebar.html:103
 #, fuzzy
 #| msgid "No reviews saved or submitted"
 msgid "No reports saved or submitted"
 msgstr "Kāore i tiakina, i tukuna rānei tētahi arotakenga"
 
-#: portal/templates/sidebar.html:90 portal/templates/sidebar.html:95
+#: portal/templates/sidebar.html:114 portal/templates/sidebar.html:119
 msgid "Nominations"
 msgstr "Ngā Tautapanga"
 
-#: portal/templates/sidebar.html:94
+#: portal/templates/sidebar.html:118
 msgid "No nomination saved or submitted"
 msgstr "Kāore i tiakina, kāore i tukuna rānei te tautapanga"
 
-#: portal/templates/sidebar.html:108
+#: portal/templates/sidebar.html:132
 msgid "Saved nomination drafts"
 msgstr "Ngā tautapanga hukihuki i tiakina"
 
-#: portal/templates/sidebar.html:116
+#: portal/templates/sidebar.html:140
 #, fuzzy
 #| msgid "Saved nomination drafts"
 msgid "No nomination drafts"
 msgstr "Ngā tautapanga hukihuki i tiakina"
 
-#: portal/templates/sidebar.html:129
+#: portal/templates/sidebar.html:153
 msgid "Submitted and previous nominations"
 msgstr "Ngā tautapanga i tukuna, o mua hoki"
 
-#: portal/templates/sidebar.html:137
+#: portal/templates/sidebar.html:161
 #, fuzzy
 #| msgid "Submitted and previous nominations"
 msgid "No submitted nominations"
 msgstr "Ngā tautapanga i tukuna, o mua hoki"
 
-#: portal/templates/sidebar.html:154 portal/templates/sidebar.html:159
+#: portal/templates/sidebar.html:178 portal/templates/sidebar.html:183
 msgid "Testimonials"
 msgstr "Ngā Tuhinga Tautoko"
 
-#: portal/templates/sidebar.html:158
+#: portal/templates/sidebar.html:182
 msgid "No testimonials saved or submitted"
 msgstr "Kāore i tiakina, i tukuna rānei tētahi tuhinga tautoko"
 
-#: portal/templates/sidebar.html:173
+#: portal/templates/sidebar.html:197
 msgid "Saved testimonial drafts"
 msgstr "Ngā tuhinga tautoko hukihuki i tiakina"
 
-#: portal/templates/sidebar.html:181
+#: portal/templates/sidebar.html:205
 #, fuzzy
 #| msgid "Saved testimonial drafts"
 msgid "No testimonial drafts"
 msgstr "Ngā tuhinga tautoko hukihuki i tiakina"
 
-#: portal/templates/sidebar.html:194
+#: portal/templates/sidebar.html:218
 msgid "Submitted and previous testimonials"
 msgstr "Ngā tuhinga tautoko i tukuna, o mua hoki"
 
-#: portal/templates/sidebar.html:202
+#: portal/templates/sidebar.html:226
 #, fuzzy
 #| msgid "Submitted and previous testimonials"
 msgid "No submitted testimonials"
 msgstr "Ngā tuhinga tautoko i tukuna, o mua hoki"
 
-#: portal/templates/sidebar.html:220 portal/templates/sidebar.html:225
+#: portal/templates/sidebar.html:244 portal/templates/sidebar.html:249
 msgid "Reviews"
 msgstr "Arotakenga"
 
-#: portal/templates/sidebar.html:224
+#: portal/templates/sidebar.html:248
 msgid "No reviews saved or submitted"
 msgstr "Kāore i tiakina, i tukuna rānei tētahi arotakenga"
 
-#: portal/templates/sidebar.html:239
+#: portal/templates/sidebar.html:263
 #, fuzzy
 #| msgid "working review"
 msgid "Working reviews"
 msgstr "arotakenga e mahi tonu ana"
 
-#: portal/templates/sidebar.html:241 portal/templates/sidebar.html:249
+#: portal/templates/sidebar.html:265 portal/templates/sidebar.html:273
 msgid "Working"
 msgstr "E mahi ana"
 
-#: portal/templates/sidebar.html:247
+#: portal/templates/sidebar.html:271
 #, fuzzy
 #| msgid "working review"
 msgid "No draft reviews"
 msgstr "arotakenga e mahi tonu ana"
 
-#: portal/templates/sidebar.html:260
+#: portal/templates/sidebar.html:284
 msgid "Submitted and previous reviews"
 msgstr "Ngā arotakenga i tukuna, o mua hoki"
 
-#: portal/templates/sidebar.html:268
+#: portal/templates/sidebar.html:292
 #, fuzzy
 #| msgid "Submitted and previous reviews"
 msgid "No submitted reviews"
 msgstr "Ngā arotakenga i tukuna, o mua hoki"
 
-#: portal/templates/sidebar.html:281
+#: portal/templates/sidebar.html:305
 #, fuzzy
 #| msgid "Uploade Score Sheet"
 msgid "Uploaded score sheets"
 msgstr "Tukuatu te Raupepa Tatau"
 
-#: portal/templates/sidebar.html:283 portal/templates/sidebar.html:291
+#: portal/templates/sidebar.html:307 portal/templates/sidebar.html:315
 #, fuzzy
 #| msgid "Score Sheet"
 msgid "Score Sheets"
 msgstr "Raupepa Tatau"
 
-#: portal/templates/sidebar.html:289
+#: portal/templates/sidebar.html:313
 #, fuzzy
 #| msgid "Uploade Score Sheet"
 msgid "No uploaded score sheets"
 msgstr "Tukuatu te Raupepa Tatau"
 
-#: portal/templates/sidebar.html:377
+#: portal/templates/sidebar.html:401
 msgid "Add or remove linked external system or social network accounts"
 msgstr ""
 "Tāpirihia, tangohia rānei te pūnaha ā-waho e tūhono ana, ngā pūkete whatunga "
 "pāpori rānei"
 
-#: portal/templates/sidebar.html:386
+#: portal/templates/sidebar.html:410
 msgid "Set or reset your password"
 msgstr "Tautuhia, tautuhia anōtia rānei tō kupuhuna"
 
@@ -4877,69 +5006,77 @@ msgid "Summary (English)"
 msgstr "Whakarāpopototanga (Reo Pākehā)"
 
 #: portal/templates/snippets/application_detail_table.html:133
-msgid "Summary (Maori)"
+#, fuzzy
+#| msgid "Summary (Maori)"
+msgid "Summary (Māori)"
 msgstr "Whakarāpopototanga (Reo Māori)"
 
 #: portal/templates/snippets/application_detail_table.html:144
 msgid "Summary"
 msgstr "Whakarāpopototanga"
 
-#: portal/templates/snippets/application_detail_table.html:154
+#: portal/templates/snippets/application_detail_table.html:155
 msgid "Completed Application Form"
 msgstr "Puka Tono Kua Whakaotihia"
 
-#: portal/templates/snippets/application_detail_table.html:156
+#: portal/templates/snippets/application_detail_table.html:157
 msgid "with attachments"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:176
+#: portal/templates/snippets/application_detail_table.html:177
 msgid "Completed Application Form (PDF version)"
 msgstr "Puka Tono Kua Whakaotihia (hōputu PDF)"
 
-#: portal/templates/snippets/application_detail_table.html:228
+#: portal/templates/snippets/application_detail_table.html:200
+#, fuzzy
+#| msgid "research experience in years "
+msgid "Research Experience in Years"
+msgstr "Ngā tau e rangahau ana"
+
+#: portal/templates/snippets/application_detail_table.html:239
 #, fuzzy
 #| msgid "First Stage Researcher"
 msgid "Field(s) of Research"
 msgstr "Kairangahau Taumata Tuatahi"
 
-#: portal/templates/snippets/application_detail_table.html:249
+#: portal/templates/snippets/application_detail_table.html:260
 msgid "Types(s) of Activity"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:253
+#: portal/templates/snippets/application_detail_table.html:264
 msgid "Type of Activity"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:254
-#: portal/templates/snippets/application_detail_table.html:277
+#: portal/templates/snippets/application_detail_table.html:265
+#: portal/templates/snippets/application_detail_table.html:288
 msgid "Share"
 msgstr "Tuari"
 
-#: portal/templates/snippets/application_detail_table.html:269
+#: portal/templates/snippets/application_detail_table.html:280
 msgid "Vision Mātauranga Theme Categories"
 msgstr "Ngā Wāhanga Kaupapa o Vision Mātauranga"
 
-#: portal/templates/snippets/application_detail_table.html:276
+#: portal/templates/snippets/application_detail_table.html:287
 msgid "Vision Mātauranga Theme"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:279
+#: portal/templates/snippets/application_detail_table.html:290
 msgid "Indigenous Innovation"
 msgstr "Auahatanga Iwi Taketake"
 
-#: portal/templates/snippets/application_detail_table.html:280
+#: portal/templates/snippets/application_detail_table.html:291
 msgid "Taiao"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:281
+#: portal/templates/snippets/application_detail_table.html:292
 msgid "Hauora/Oranga"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:282
+#: portal/templates/snippets/application_detail_table.html:293
 msgid "Mātauranga"
 msgstr ""
 
-#: portal/templates/snippets/application_detail_table.html:292
+#: portal/templates/snippets/application_detail_table.html:303
 msgid "Keyword(s)"
 msgstr ""
 
@@ -5094,22 +5231,22 @@ msgstr ""
 msgid "Export Format"
 msgstr "Hōputu Kaweatu"
 
-#: portal/templatetags/tags.py:77
+#: portal/templatetags/tags.py:89
 msgid "yes"
 msgstr "āe"
 
-#: portal/templatetags/tags.py:77
+#: portal/templatetags/tags.py:89
 msgid "no"
 msgstr "kāo"
 
-#: portal/views.py:221
+#: portal/views.py:228
 #, fuzzy
 #| msgid "Your profile is not completed yet. Please complete your profile."
 msgid ""
 "Your profile is not completed yet. Please complete your profile or skip it."
 msgstr "Kāore anō kia oti tō kāhua. Tēnā whakaotihia tō kāhua."
 
-#: portal/views.py:262
+#: portal/views.py:269
 msgid ""
 "Your portal access has not been authorised, please allow up to two working "
 "days for admin us to look into your request."
@@ -5117,86 +5254,86 @@ msgstr ""
 "Kāore anō kia whakaaetia tō kāhua, kei te tirotiro te Kaiwhakahaere i tō "
 "tono."
 
-#: portal/views.py:277
+#: portal/views.py:284
 msgid "Only the administrator can access this page"
 msgstr ""
 
-#: portal/views.py:457
+#: portal/views.py:476
 msgid "Thank you! Your survey responses have been recorded."
 msgstr ""
 
-#: portal/views.py:470
+#: portal/views.py:489
 #, python-format
 msgid "Confirmation e-mail sent to %s."
 msgstr "I tukuna te īmēra whakaae ki %s."
 
-#: portal/views.py:498 portal/views.py:503
+#: portal/views.py:517 portal/views.py:522
 msgid "Thank you for subscribing to our newsletter."
 msgstr "Tēnā koe mōu i ohauru ki tā mātou kawerongo."
 
-#: portal/views.py:500 portal/views.py:509
+#: portal/views.py:519 portal/views.py:528
 msgid "We will miss You"
 msgstr "E pōuri ana i tō wehenga"
 
-#: portal/views.py:547 portal/views.py:750 portal/views.py:820
+#: portal/views.py:566 portal/views.py:772 portal/views.py:842
 #, fuzzy
 #| msgid "The application has been already submitted and cannot be modified"
 msgid "The invitation has been revoked and is not any more valid."
 msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
 
-#: portal/views.py:576
+#: portal/views.py:595
 #, fuzzy
 #| msgid "You have conflict of interest for this application."
 msgid "You have been removed from the list of the application referees."
 msgstr "He raru whaipānga tāu mō tēnei tono."
 
-#: portal/views.py:604
+#: portal/views.py:624
 #, python-brace-format
 msgid ""
 "The referee report has been already completed at <b>{r.survey_completed_at}</"
 "b>."
 msgstr ""
 
-#: portal/views.py:716
+#: portal/views.py:738
 msgid "Your request was sent to the Research Office."
 msgstr ""
 
-#: portal/views.py:724
+#: portal/views.py:746
 msgid "Your profile has not been approved, Admin is looking into your request"
 msgstr ""
 "Kāore anō kia whakaaetia tō kāhua, kei te tirotiro te Kaiwhakahaere i tō "
 "tono."
 
-#: portal/views.py:780
+#: portal/views.py:802
 msgid ""
 "The invitation was not sent to any of this profile's email addresses.Please "
 "use and log in with the account that is linked with the email address that "
 "received the invitation."
 msgstr ""
 
-#: portal/views.py:788
+#: portal/views.py:810
 #, fuzzy
 #| msgid "You have an invitation that hasn't been acted on."
 msgid "There is no invitation with the given token."
 msgstr "He tono tāu kāore anō i whakaaetia e koe."
 
-#: portal/views.py:810
+#: portal/views.py:832
 msgid "there is already user with this email address: "
 msgstr "nā tētahi atu kaiwhakamahi kē tēnei wāhitau īmēra: "
 
-#: portal/views.py:825
+#: portal/views.py:847
 #, fuzzy
 #| msgid "The invitation was accepted"
 msgid "The invitation has been already accepted."
 msgstr "Kua whakaaetia te tono"
 
-#: portal/views.py:854
+#: portal/views.py:882
 #, fuzzy
 #| msgid "Please complete your profile."
 msgid "Please complete your profile or skip it."
 msgstr "Tēnā whakaotihia tō kāhua."
 
-#: portal/views.py:1045 portal/views.py:3125
+#: portal/views.py:1073 portal/views.py:3170
 msgid ""
 "In order to import ORCID profile, please, link your ORCID account to your "
 "portal account."
@@ -5204,39 +5341,39 @@ msgstr ""
 "Hei kawemai i tō kāhua ORCID, tēnā, tūhonoa tō pūkete ORCID ki tō pūkete "
 "tomokanga."
 
-#: portal/views.py:1061
+#: portal/views.py:1089
 msgid "You are not allowed to see this profile."
 msgstr ""
 
-#: portal/views.py:1307
+#: portal/views.py:1335
 msgid "An invitation was sent to "
 msgstr "I tukuna tētahi tono ki a "
 
-#: portal/views.py:1363
+#: portal/views.py:1391
 msgid "I agree to be part of this team"
 msgstr "E whakaae ana ahau ki te kaiārahi rōpū"
 
-#: portal/views.py:1365
+#: portal/views.py:1393
 msgid "I decline the invitation"
 msgstr ""
 
-#: portal/views.py:1385
+#: portal/views.py:1413
 #, fuzzy
 #| msgid "You have conflict of interest for this application."
 msgid "You do not have permissions to view this application."
 msgstr "He raru whaipānga tāu mō tēnei tono."
 
-#: portal/views.py:1437
+#: portal/views.py:1465
 msgid "Thank you for accepting the invitation."
 msgstr ""
 
-#: portal/views.py:1450
+#: portal/views.py:1478
 #, fuzzy
 #| msgid "The application has been already submitted and cannot be modified"
 msgid "The application was cancelled. The applcant(s) were notified."
 msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
 
-#: portal/views.py:1458
+#: portal/views.py:1486
 #, fuzzy
 #| msgid "You have a request to review a Prize application to act on."
 msgid ""
@@ -5246,27 +5383,27 @@ msgstr ""
 "He tono tāu kia tirotirohia, me te tautoko i tētahi tono kāore anō kia "
 "tirotirohia."
 
-#: portal/views.py:1467
+#: portal/views.py:1495
 msgid ""
 "The application was approved. The applcant(s) and adminstrator(s) were "
 "notified."
 msgstr ""
 
-#: portal/views.py:1484
+#: portal/views.py:1515
 msgid "Please review the application and authorize your team representative."
 msgstr "Tēnā tirotirohia te tono ka whakamanahia tō māngai rōpū."
 
-#: portal/views.py:1548
+#: portal/views.py:1581
 msgid "You do not have permission to access the source application."
 msgstr ""
 
-#: portal/views.py:1567
+#: portal/views.py:1603
 #, fuzzy
 #| msgid "You have conflict of interest for this application."
 msgid "You do not have permissions to edit this application."
 msgstr "He raru whaipānga tāu mō tēnei tono."
 
-#: portal/views.py:1578
+#: portal/views.py:1614
 #, fuzzy
 #| msgid ""
 #| "Please review the application and authorize your team representative."
@@ -5275,7 +5412,7 @@ msgid ""
 "representative."
 msgstr "Tēnā tirotirohia te tono ka whakamanahia tō māngai rōpū."
 
-#: portal/views.py:1588
+#: portal/views.py:1624
 #, fuzzy
 #| msgid "The application has been already submitted and cannot be modified"
 msgid ""
@@ -5283,26 +5420,26 @@ msgid ""
 "application."
 msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
 
-#: portal/views.py:1597
+#: portal/views.py:1633
 msgid ""
 "The application period has closed. You cannot longer modify this application."
 msgstr ""
 
-#: portal/views.py:1838
+#: portal/views.py:1874
 #, python-format
 msgid "%d invitation(s) to join the team have been sent."
 msgstr "kua tukuna te/ngā tono ki te māngai rōpū kia whakamanahia %d."
 
-#: portal/views.py:1845
+#: portal/views.py:1881
 msgid "Invalid member form"
 msgstr ""
 
-#: portal/views.py:1889
+#: portal/views.py:1925
 #, python-format
 msgid "%d referee invitation(s) sent."
 msgstr "kua tukuna te/ngā tono kaitautoko %d"
 
-#: portal/views.py:1895
+#: portal/views.py:1931
 #, fuzzy
 #| msgid ""
 #| "Before inviting referees, please upload a completed application form."
@@ -5311,15 +5448,15 @@ msgid ""
 "application form."
 msgstr "Tēnā tukuatu te puka tono kua whakaotihia"
 
-#: portal/views.py:1917
+#: portal/views.py:1953
 msgid "Invalid referee form"
 msgstr ""
 
-#: portal/views.py:1931
+#: portal/views.py:1967
 msgid "An identity verification request sent to the administration."
 msgstr ""
 
-#: portal/views.py:1975
+#: portal/views.py:2011
 #, python-format
 msgid ""
 "Your application form was converted into PDF file. Please review the "
@@ -5328,7 +5465,7 @@ msgstr ""
 "I hurihia tō puka tono hei kōnae PDF. Tēnā tirotirohia te putanga o te puka "
 "tono i hurihia <a href='%s'>%s</a>"
 
-#: portal/views.py:2009
+#: portal/views.py:2045
 #, fuzzy, python-format
 #| msgid ""
 #| "Your CV was converted into PdF file. Please review the converted version "
@@ -5340,7 +5477,7 @@ msgstr ""
 "I hurihia tō tātai pūmanawa hei kōnae PDF. Tēnā tirotirohia te putanga i "
 "hurihia <a href='%s'>%s</a>."
 
-#: portal/views.py:2023
+#: portal/views.py:2059
 #, fuzzy
 #| msgid ""
 #| "Failed to convert your testimonial form into PDF. Please save your "
@@ -5352,7 +5489,7 @@ msgstr ""
 "I mūhore te huri i tō puka tautoko hei PDF. Tēna tiakina tō puka tautoko hei "
 "PDF ka tukuatu anō."
 
-#: portal/views.py:2058
+#: portal/views.py:2094
 #, fuzzy
 #| msgid ""
 #| "Your team lead/representative must submit a CVbefore submitting the "
@@ -5364,7 +5501,7 @@ msgstr ""
 "Me tuku mai tō kaiārahi/māngai rōpū tētahi tātai pūmanawa i mua i te tuku i "
 "te tono"
 
-#: portal/views.py:2072
+#: portal/views.py:2108
 msgid ""
 "To complete the application, you must provide a CV, please add a current CV "
 "to your profile. Otherwise the Prize application cannot be considered."
@@ -5373,28 +5510,28 @@ msgstr ""
 "tētahi tātai pūmanawa o nāianei ki tō kāhua. Ki te kore ka kore te tono "
 "Paraihe e whiriwhiria."
 
-#: portal/views.py:2097
+#: portal/views.py:2133
 msgid ""
 "You must submit a ethics statement with your application If it is not "
 "relevant, please state why."
 msgstr ""
 "Me tuku mai i tētahi Tauākī Matatika me tō tono i mua i te tuku i te tono"
 
-#: portal/views.py:2110
+#: portal/views.py:2146
 msgid ""
 "You have to accept the Terms and Conditions before submitting the application"
 msgstr "Me whakaae koe ki ngā Ture me ngā Here i mua i te tuku i te tono"
 
-#: portal/views.py:2124
+#: portal/views.py:2160
 msgid "You must add a budget spreadsheet before submitting the application"
 msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
 
-#: portal/views.py:2144
+#: portal/views.py:2180
 msgid ""
 "Missing the application form. Please attach an application form and re-submit"
 msgstr "Kei te ngaro te puka tono. Tēnā tāpirihia tētahi puka tono ka tuku anō"
 
-#: portal/views.py:2213
+#: portal/views.py:2249
 #, fuzzy
 #| msgid ""
 #| "Your application has been successfully submitted. The Prize secretariat "
@@ -5406,7 +5543,7 @@ msgstr ""
 "I tutuki te tuku mai i tō tono. Ka whakapā atu te tari hēkeretari Paraihe ki "
 "a koe mēnā e hiahiatia ana ētahi atu kōrero. Kia ora ki a koe."
 
-#: portal/views.py:2218
+#: portal/views.py:2254
 msgid ""
 "Your application has been successfully submitted. The Prize secretariat will "
 "be in touch if there is anything more needed. Good luck."
@@ -5414,63 +5551,63 @@ msgstr ""
 "I tutuki te tuku mai i tō tono. Ka whakapā atu te tari hēkeretari Paraihe ki "
 "a koe mēnā e hiahiatia ana ētahi atu kōrero. Kia ora ki a koe."
 
-#: portal/views.py:2424 portal/views.py:2425 portal/views.py:3667
-#: portal/views.py:3668
+#: portal/views.py:2469 portal/views.py:2470 portal/views.py:3712
+#: portal/views.py:3713
 msgid "Please upload a file ..."
 msgstr ""
 
-#: portal/views.py:2428 portal/views.py:3671
+#: portal/views.py:2473 portal/views.py:3716
 msgid "The file is required. Please upload a file ..."
 msgstr ""
 
-#: portal/views.py:2455 portal/views.py:2457
+#: portal/views.py:2500 portal/views.py:2502
 msgid "Field of Research"
 msgstr "Mātai Rangahau"
 
-#: portal/views.py:2458 portal/views.py:2508
+#: portal/views.py:2503 portal/views.py:2553
 msgid "Share in %"
 msgstr ""
 
-#: portal/views.py:2464 portal/views.py:2465
+#: portal/views.py:2509 portal/views.py:2510
 msgid "Choose a field of research..."
 msgstr ""
 
-#: portal/views.py:2468
+#: portal/views.py:2513
 #, fuzzy
 #| msgid "research summary required"
 msgid "Field of research is required"
 msgstr "e hiahiatia ana he whakarāpopototanga rangahau"
 
-#: portal/views.py:2505 portal/views.py:2507
+#: portal/views.py:2550 portal/views.py:2552
 msgid "Socio-Economic Objective"
 msgstr "Whāinga Oha-Pori"
 
-#: portal/views.py:2514
+#: portal/views.py:2559
 #, fuzzy
 #| msgid "organisation identifier type"
 msgid "Choose a ..."
 msgstr "momo tautohu whakahaere"
 
-#: portal/views.py:2515
+#: portal/views.py:2560
 msgid "Choose a Socio-Economic Objective..."
 msgstr ""
 
-#: portal/views.py:2518
+#: portal/views.py:2563
 msgid "Socio-Economic Objective is required"
 msgstr ""
 
-#: portal/views.py:2595
+#: portal/views.py:2640
 #, python-format
 msgid "You are a panellist for this round. You cannot apply for this round: %s"
 msgstr ""
 "He kaiwhiriwhiri koe mō tēnei whiringa. Kāore e taea e koe te tono mō tēnei "
 "whiringa: %s"
 
-#: portal/views.py:2603
+#: portal/views.py:2648
 msgid "You have already created an application. Please update it."
 msgstr "Kua waihanga kē koe i tētahi tono. Tēnā whakahoutia."
 
-#: portal/views.py:2632
+#: portal/views.py:2677
 #, fuzzy
 #| msgid "You have already created an application. Please update it."
 msgid ""
@@ -5478,41 +5615,47 @@ msgid ""
 "this application."
 msgstr "Kua waihanga kē koe i tētahi tono. Tēnā whakahoutia."
 
-#: portal/views.py:2849
+#: portal/views.py:2894
 msgid "Application Filter"
 msgstr "Tātari Tono"
 
-#: portal/views.py:2853
+#: portal/views.py:2898
 #, fuzzy
 #| msgid "Applications"
 msgid "Archived Applications"
 msgstr "Ngā Tono"
 
-#: portal/views.py:2856
+#: portal/views.py:2901
 #, fuzzy
 #| msgid "Applications"
 msgid "Active Applications"
 msgstr "Ngā Tono"
 
-#: portal/views.py:2860
+#: portal/views.py:2905
 msgid "Year"
 msgstr ""
 
-#: portal/views.py:3036 portal/views.py:5047 portal/views.py:5291
+#: portal/views.py:3081 portal/views.py:5093 portal/views.py:5337
 msgid "You do not have permissions to access this page."
 msgstr ""
 
-#: portal/views.py:3056
+#: portal/views.py:3101
 #, python-format
 msgid "Request to resubmit the ID sent to <b>%s</b>"
 msgstr ""
 
-#: portal/views.py:3118
+#: portal/views.py:3163
 #, python-format
 msgid " %s ORCID records imported"
 msgstr "e %s ngā pūrongo ORCID i kawemai"
 
-#: portal/views.py:3213
+#: portal/views.py:3196
+#, fuzzy
+#| msgid "Prizes or Medals"
+msgid "Prizes and/or Medals"
+msgstr "Ngā Paraihe, Mētara rānei"
+
+#: portal/views.py:3258
 #, python-format
 msgid ""
 "You cannot delete a CV that has been used as part of an application (%s). "
@@ -5521,126 +5664,126 @@ msgid ""
 "and we can do this for you."
 msgstr ""
 
-#: portal/views.py:3232
+#: portal/views.py:3277
 #, python-format
 msgid "Record deleted: %s"
 msgstr "I mukua te pūkete: %s"
 
-#: portal/views.py:3237
+#: portal/views.py:3282
 #, python-format
 msgid "%d records deleted"
 msgstr "e %d ngā pūkete i mukua"
 
-#: portal/views.py:3241
+#: portal/views.py:3286
 msgid "You have not completed the affiliation section."
 msgstr ""
 
-#: portal/views.py:3243
+#: portal/views.py:3288
 msgid "You have not completed the professional body section."
 msgstr ""
 
-#: portal/views.py:3245
+#: portal/views.py:3290
 #, fuzzy
 #| msgid "Year that you first attained the career stage"
 msgid "You have not completed the career stage section."
 msgstr "Te tau tuatahi i eke koe ki te taumata umanga"
 
-#: portal/views.py:3247
+#: portal/views.py:3292
 msgid "You have not completed the external ID section."
 msgstr ""
 
-#: portal/views.py:3249
+#: portal/views.py:3294
 msgid "You have not completed the CV section."
 msgstr ""
 
-#: portal/views.py:3251
+#: portal/views.py:3296
 msgid "You have not completed the academic record section."
 msgstr ""
 
-#: portal/views.py:3253
+#: portal/views.py:3298
 msgid "You have not completed the recognition section."
 msgstr ""
 
-#: portal/views.py:3254
+#: portal/views.py:3299
 #, fuzzy
 #| msgid "Please complete your profile."
 msgid "Please complete or skip it."
 msgstr "Tēnā whakaotihia tō kāhua."
 
-#: portal/views.py:3296
+#: portal/views.py:3341
 #, fuzzy
 #| msgid "organisation identifier type"
 msgid "Choose an identifier type or a new one..."
 msgstr "momo tautohu whakahaere"
 
-#: portal/views.py:3297
+#: portal/views.py:3342
 #, fuzzy
 #| msgid "organisation identifier type"
 msgid "Choose an identifier type or a new one ..."
 msgstr "momo tautohu whakahaere"
 
-#: portal/views.py:3300
+#: portal/views.py:3345
 #, fuzzy
 #| msgid "Referee CV required"
 msgid "Identifier type is required"
 msgstr "E hiahiatia ana te Tātai Pūmanawa a te Kaitautoko"
 
-#: portal/views.py:3317
+#: portal/views.py:3362
 #, fuzzy
 #| msgid "organisation identifier type"
 msgid "Enter an identifier or a reference ..."
 msgstr "momo tautohu whakahaere"
 
-#: portal/views.py:3318
+#: portal/views.py:3363
 #, fuzzy
 #| msgid "organisation identifier type"
 msgid "Choose an identifier value ..."
 msgstr "momo tautohu whakahaere"
 
-#: portal/views.py:3321
+#: portal/views.py:3366
 #, fuzzy
 #| msgid "Referee CV required"
 msgid "Identifier value is required"
 msgstr "E hiahiatia ana te Tātai Pūmanawa a te Kaitautoko"
 
-#: portal/views.py:3353 portal/views.py:3426 portal/views.py:3777
-#: portal/views.py:3862
+#: portal/views.py:3398 portal/views.py:3471 portal/views.py:3822
+#: portal/views.py:3907
 msgid "Import from ORCiD"
 msgstr "Kawemai i ORCiD"
 
-#: portal/views.py:3372 portal/views.py:3373
+#: portal/views.py:3417 portal/views.py:3418
 #, fuzzy
 #| msgid "Choose an organisation or create a new one ..."
 msgid "Choose an organisation ..."
 msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
 
-#: portal/views.py:3376
+#: portal/views.py:3421
 #, fuzzy
 #| msgid "Nominator CV required"
 msgid "Organisation is required"
 msgstr "E hiahiatia ana  te Tātai Pūmanawa a te Kaitautapa"
 
-#: portal/views.py:3455 portal/views.py:3752 portal/views.py:3845
+#: portal/views.py:3500 portal/views.py:3797 portal/views.py:3890
 #, fuzzy
 #| msgid "The invitation was created"
 msgid "The organisation is required ..."
 msgstr "I waihangatia te tono"
 
-#: portal/views.py:3465
+#: portal/views.py:3510
 msgid "Professional Membership"
 msgstr "Mematanga Ngaio"
 
-#: portal/views.py:3466
+#: portal/views.py:3511
 msgid "Professional Qualification"
 msgstr "Tohu Ngaio"
 
-#: portal/views.py:3655
+#: portal/views.py:3700
 #, fuzzy
 #| msgid "middle names"
 msgid "Title or name (of CV document)"
 msgstr "Taitara, ingoa rānei (of CV document)"
 
-#: portal/views.py:3700
+#: portal/views.py:3745
 #, fuzzy, python-format
 #| msgid ""
 #| "Your CV was converted into PdF file. Please review the converted version "
@@ -5652,12 +5795,12 @@ msgstr ""
 "I hurihia tō tātai pūmanawa hei kōnae PDF. Tēnā tirotirohia te putanga i "
 "hurihia <a href='%s'>%s</a>."
 
-#: portal/views.py:3714
+#: portal/views.py:3759
 #, python-format
 msgid "A CV successfully uploaded: <a href=\"%s\">%s</a>"
 msgstr "I tutuki te tukuatu i tētahi tātai pūmanawa: <a href=\"%s\">%s</a>"
 
-#: portal/views.py:3724 portal/views.py:4029
+#: portal/views.py:3769 portal/views.py:4074
 msgid ""
 "Failed to convert your nomination form into PDF. Please save your nomination "
 "form into PDF format and try to upload it again."
@@ -5665,21 +5808,21 @@ msgstr ""
 "I mūhore te huri i tō puka tautapanga hei PDF. Tēnā tiakina tō puka "
 "tautapanga hei hōputu PDF ka tukuatu anō."
 
-#: portal/views.py:3749
+#: portal/views.py:3794
 msgid "The organisation that awarded the degree"
 msgstr ""
 
-#: portal/views.py:3835
+#: portal/views.py:3880
 #, fuzzy
 #| msgid "Nominator CV required"
 msgid "The award is required ..."
 msgstr "E hiahiatia ana  te Tātai Pūmanawa a te Kaitautapa"
 
-#: portal/views.py:3842
+#: portal/views.py:3887
 msgid "The organisation that awarded the award"
 msgstr ""
 
-#: portal/views.py:3899
+#: portal/views.py:3944
 msgid ""
 "No Profile summary found or User haven't completed his/her Profile. Please "
 "come back again!"
@@ -5687,18 +5830,18 @@ msgstr ""
 "Kāore i kitea te whakarāpopototanga Kāhua, kāore rānei te Kaiwhakamahi i "
 "whakaoti i tana Kāhua. Tēnā hoki mai anō!"
 
-#: portal/views.py:3972
+#: portal/views.py:4017
 msgid "You do not have permissions to access this nomination."
 msgstr ""
 
-#: portal/views.py:3979 portal/views.py:4049
+#: portal/views.py:4024 portal/views.py:4094
 msgid ""
 "You cannot alter a nomination that has been submitted and accepted.  If you "
 "feel a need to do this, please email pmscienceprizes@royalsociety.org.nz "
 "with a reason and we may be able to enable."
 msgstr ""
 
-#: portal/views.py:4018
+#: portal/views.py:4063
 #, python-format
 msgid ""
 "Your nomination form was converted into PDF file. Please review the "
@@ -5707,14 +5850,14 @@ msgstr ""
 "I hurihia tō puka tautapanga hei kōnae PDF. Tēnā tirotirohia te putanga o te "
 "puka tautapanga i hurihia: <a href='%s'>%s</a>."
 
-#: portal/views.py:4040
+#: portal/views.py:4085
 msgid ""
 "Missing the nomination form. Please attach a nomination form and re-submit"
 msgstr ""
 "Kei te ngaro te puka tautapanga. Tēnā tāpirihia tētahi puka tautapanga ka "
 "tuku anō"
 
-#: portal/views.py:4068
+#: portal/views.py:4113
 msgid ""
 "To complete the nomination, you must provide a CV, please add a current CV "
 "to your profile. Otherwise the Prize nomination cannot be considered."
@@ -5723,41 +5866,41 @@ msgstr ""
 "tāpirihia tētahi tātai pūmanawa o nāianei ki tō kāhua. Ki te kore ka kore te "
 "tautapanga e whiriwhiria."
 
-#: portal/views.py:4078
+#: portal/views.py:4123
 #, fuzzy, python-format
 #| msgid "Invitation to submit an application resent to %s."
 msgid ""
 "An invitation to submit an application has been sent to %s (your nominee)."
 msgstr "I tukuna anōtia te tono kia tuku tono mai ki a %s."
 
-#: portal/views.py:4082
+#: portal/views.py:4127
 #, fuzzy, python-format
 #| msgid "Invitation to submit an application resent to %s."
 msgid ""
 "An invitation to submit an application has been resent to %s (your nominee)."
 msgstr "I tukuna anōtia te tono kia tuku tono mai ki a %s."
 
-#: portal/views.py:4093
+#: portal/views.py:4138
 #, python-brace-format
 msgid ""
 "Failed to submit the nomination: {ex}. Please contact administration: "
 "pmscienceprizes@royalsociety.org.nz."
 msgstr ""
 
-#: portal/views.py:4156
+#: portal/views.py:4201
 #, fuzzy
 #| msgid "I do not wish to provide a testimonial"
 msgid "You do not have permissions to access this testimonial."
 msgstr "Kāore au i te hiahia ki te tuku tuhinga tautoko"
 
-#: portal/views.py:4209
+#: portal/views.py:4254
 #, fuzzy
 #| msgid "Error while converting to pdf. Please contact Administrator: {ex}"
 msgid "Referee entry is absent. Please contact Administrator"
 msgstr ""
 "I hapa i te wā i huri hei pdf. Tēnā whakapā atu ki te Kaiwhakahaere: {ex}"
 
-#: portal/views.py:4236
+#: portal/views.py:4281
 #, python-format
 msgid ""
 "Your testimonial form was converted into PDF file. Please review the "
@@ -5766,7 +5909,7 @@ msgstr ""
 "I hurihia tō puka tautoko hei kōnae PDF. Tēna tirotirohia te putanga o te "
 "puka tautoko i hurihia <a href='%s'>%s</a>."
 
-#: portal/views.py:4247
+#: portal/views.py:4292
 msgid ""
 "Failed to convert your testimonial form into PDF. Please save your "
 "testimonial form into PDF format and try to upload it again."
@@ -5774,7 +5917,7 @@ msgstr ""
 "I mūhore te huri i tō puka tautoko hei PDF. Tēna tiakina tō puka tautoko hei "
 "PDF ka tukuatu anō."
 
-#: portal/views.py:4266
+#: portal/views.py:4311
 msgid ""
 "To complete the testimonial, you must provide a CV, please add a current CV "
 "to your profile. Otherwise the Prize application cannot be considered."
@@ -5783,11 +5926,11 @@ msgstr ""
 "tāpirihia tētahi tātai pūmanawa o nāianei ki tō kāhua. Ki te kore ka kore te "
 "tono Paraihe e whiriwhiria."
 
-#: portal/views.py:4275
+#: portal/views.py:4320
 msgid "You haven't uploaded your testimonial, please do and then submit."
 msgstr ""
 
-#: portal/views.py:4334
+#: portal/views.py:4379
 msgid ""
 "Your referee report has been submitted. The Prize secretariat will be in "
 "touch if there is anything more needed. Thank you for your participation."
@@ -5796,23 +5939,23 @@ msgstr ""
 "hēkeretari Paraihe ki a koe mēnā e hiahiatia ana ētahi atu kōrero. E mihi "
 "ana ki a koe mōu i whai wāhi mai."
 
-#: portal/views.py:4360
+#: portal/views.py:4405
 msgid "You opted out of Testimonial."
 msgstr "I kōwhiria e koe kia kaua e mahi i te Tuhinga Tautoko"
 
-#: portal/views.py:4367
+#: portal/views.py:4412
 msgid "Testimonial is already submitted."
 msgstr "Kua tukuna kē te tuhinga tautoko"
 
-#: portal/views.py:4377
+#: portal/views.py:4422
 msgid "Please submit your review."
 msgstr "Tēnā tukuna mai te tuhinga tautoko"
 
-#: portal/views.py:4421
+#: portal/views.py:4466
 msgid "You do not have permissions to view this nomination."
 msgstr ""
 
-#: portal/views.py:4439
+#: portal/views.py:4484
 #, fuzzy, python-format
 #| msgid ""
 #| "You have been nominated for the %(round)s by %(inviter)s. To accept this "
@@ -5822,81 +5965,81 @@ msgid ""
 "nomination, please <b>\"%(button_label)s\"</b>"
 msgstr "Kua tonoa koe e %(round)s kia tono mō te %(inviter)s"
 
-#: portal/views.py:4510
+#: portal/views.py:4555
 #, fuzzy
 #| msgid "I do not wish to provide a testimonial"
 msgid "You do not have permissions to view this testimonial."
 msgstr "Kāore au i te hiahia ki te tuku tuhinga tautoko"
 
-#: portal/views.py:4529
+#: portal/views.py:4574
 msgid "Add Testimonial"
 msgstr "Tāpirihia te Tuhinga Tautoko"
 
-#: portal/views.py:4531
+#: portal/views.py:4576
 msgid "Edit Testimonial"
 msgstr "Takatāngia te Tuhinga Tautoko"
 
-#: portal/views.py:4549
+#: portal/views.py:4594
 #, fuzzy
 #| msgid "Please Check the application details and submit testimonial."
 msgid "Please review the application details and submit testimonial."
 msgstr "Tēna Tirohia ngā taipitopito o te tono ka tuku i te tuhinga tautoko."
 
-#: portal/views.py:4597
+#: portal/views.py:4642
 #, python-brace-format
 msgid "Error while converting to pdf. Please contact Administrator: {ex}"
 msgstr ""
 "I hapa i te wā i huri hei pdf. Tēnā whakapā atu ki te Kaiwhakahaere: {ex}"
 
-#: portal/views.py:4606 portal/views.py:4679
+#: portal/views.py:4651 portal/views.py:4725
 msgid "Only the round panellist and staff can export the application"
 msgstr "Mā te kaiwhiriwhiri whiringa me ngā kaimahi anake e kaweatu i te tono"
 
-#: portal/views.py:4831
+#: portal/views.py:4877
 #, python-format
 msgid "%d invitation(s) to panellist sent."
 msgstr "%d te/ngā tono i tukuna ki te kaiwhiriwhiri"
 
-#: portal/views.py:4837
+#: portal/views.py:4883
 #, python-format
 msgid ""
 "Panellist <b>%s</b> with related entries - CoI statement(s) and review(s) - "
 "was successfully deleted."
 msgstr ""
 
-#: portal/views.py:4852
+#: portal/views.py:4898
 #, python-format
 msgid "The panellist %s was already invited once."
 msgstr ""
 
-#: portal/views.py:5073
+#: portal/views.py:5119
 msgid ""
 "You have already submitted a evaluation of the application and cannot change "
 "the submitted statement of conflict of interst."
 msgstr ""
 
-#: portal/views.py:5083
+#: portal/views.py:5129
 #, fuzzy
 #| msgid "The application was submitted"
 msgid "The application has not been yet submitted."
 msgstr "Kua tukuna te tono"
 
-#: portal/views.py:5106
+#: portal/views.py:5152
 msgid "You have conflict of interest for this application."
 msgstr "He raru whaipānga tāu mō tēnei tono."
 
-#: portal/views.py:5254
+#: portal/views.py:5300
 #, fuzzy
 #| msgid "You have conflict of interest for this application."
 msgid ""
 "You do not have permissions to create an evaluation for this application."
 msgstr "He raru whaipānga tāu mō tēnei tono."
 
-#: portal/views.py:5272
+#: portal/views.py:5318
 msgid "Evaluation scoring was already created"
 msgstr "I waihangatia kētia te tatau arotakenga"
 
-#: portal/views.py:5301
+#: portal/views.py:5347
 msgid ""
 "Evaluation has been already submitted. It cannot be changed after it was "
 "submitted"
@@ -5904,21 +6047,21 @@ msgstr ""
 "Kua tukuna kē te arotakenga. Kāore e āhei ki te whakarerekē i muri i te "
 "tukuna mai"
 
-#: portal/views.py:5317
+#: portal/views.py:5363
 msgid "You do not have permission to access this review."
 msgstr ""
 
-#: portal/views.py:5371
+#: portal/views.py:5417
 msgid ""
 "Your conflicts of interest statements have been recorded. You can now "
 "evaluate the application(s) and submit scores."
 msgstr ""
 
-#: portal/views.py:5511
+#: portal/views.py:5557
 msgid "Proposal/Application"
 msgstr "Tono"
 
-#: portal/views.py:5643
+#: portal/views.py:5689
 msgid ""
 "You have not yet stated your conflict of interest statement for all "
 "applications. Please submit the statements for all the applications "
@@ -5927,7 +6070,7 @@ msgstr ""
 "Kāore anō kia tuku mai i ngā tauākī raru whaipānga katoa. Tēnā tukuna mai "
 "ngā tauākī mō ngā tono katoa i tukuna i tēnei whiringa."
 
-#: portal/views.py:5777
+#: portal/views.py:5823
 msgid "Total Scores"
 msgstr "Ngā Tapeke"
 
@@ -5972,24 +6115,68 @@ msgstr ""
 "{settings.EMAIL_SUBJECT_PREFIX} I hono mai tētahi Kaiwhakamahi Hou ki te "
 "tomokanga"
 
-msgid "value"
-msgstr "wāriu"
+msgid "For more information see"
+msgstr "Mō ētahi mōhiohio anō tirohia"
+
+#, fuzzy
+#~| msgid "conferred on"
+#~ msgid "converted on"
+#~ msgstr "i whakawhiwhia i te"
+
+#, fuzzy
+#~| msgid "Confirm E-mail Address"
+#~ msgid "Please Confirm Your E-mail Address"
+#~ msgstr "Tūtohua te Wāhitau Īmērā"
+
+#, fuzzy
+#~| msgid "Password Reset"
+#~ msgid "Password Reset E-mail"
+#~ msgstr "Tautuhi Anō i te Kupuhuna"
+
+#, fuzzy
+#~| msgid "The invitation was sent"
+#~ msgid "The invitation was sent at "
+#~ msgstr "Kua tukuna atu te tono"
+
+#, fuzzy
+#~| msgid "The user has accepted your invitation"
+#~ msgid "The user has accepted your invitation at "
+#~ msgstr "Kua whakaaetia tō tono e te kaiwhakamahi"
+
+#, fuzzy
+#~| msgid "This invite has been acted on."
+#~ msgid "This invite has been acted on at "
+#~ msgstr "Kua whakaaetia tō tono e te kaiwhakamahi."
+
+#, fuzzy
+#~| msgid "The user has opted out of your invitation"
+#~ msgid "The user has opted out of your invitation at "
+#~ msgstr ""
+#~ "I kōwhiria e te kaitautoko kia kaua e whai wāhi ki te tirotiro i tō tono"
+
+#, fuzzy
+#~| msgid "Your Invitation Undelivered"
+#~ msgid "The invitation delivery failed or autoreplied at"
+#~ msgstr "Kāore i Tukuna Atu tō Tono"
+
+#~ msgid "value"
+#~ msgstr "wāriu"
 
 #~ msgid "Ooops!!! 500"
 #~ msgstr "Aue!!! 500"
 
-msgid "Please correct the email address and resend the invitation."
-msgstr "Tēnā whakatikahia te wāhitau īmēra kia tuku anō i te tono."
+#~ msgid "Please correct the email address and resend the invitation."
+#~ msgstr "Tēnā whakatikahia te wāhitau īmēra kia tuku anō i te tono."
 
-msgid "Read"
-msgstr "Pānuitia"
+#~ msgid "Read"
+#~ msgstr "Pānuitia"
 
-msgid "More"
-msgstr "Ētahi atu"
+#~ msgid "More"
+#~ msgstr "Ētahi atu"
 
-msgid ""
-"You are invited to part of a Prime Minister's Science Prize application"
-msgstr "E tono ana ki a koe ki te whakamana i tō māngai ā-rōpū"
+#~ msgid ""
+#~ "You are invited to part of a Prime Minister's Science Prize application"
+#~ msgstr "E tono ana ki a koe ki te whakamana i tō māngai ā-rōpū"
 
 #, python-format
 #~ msgid ""
@@ -6107,69 +6294,57 @@ msgstr "E tono ana ki a koe ki te whakamana i tō māngai ā-rōpū"
 #~ msgstr "Me aro ki te whakatūturutanga o tō tuakiri"
 
 #, python-format
-msgid "Please resubmit a new copy of your ID: %s"
-msgstr "Tēnā tukuna tētahi tārua hou o tō tuakiri: %s"
+#~ msgid "Please resubmit a new copy of your ID: %s"
+#~ msgstr "Tēnā tukuna tētahi tārua hou o tō tuakiri: %s"
 
-msgid "Approve User"
-msgstr "Whakaaetia te Kaiwhakamahi"
+#~ msgid "Approve User"
+#~ msgstr "Whakaaetia te Kaiwhakamahi"
 
-msgid "The Prime Minister’s Science Prize Portal"
-msgstr "Tono mai mō te Paraihe Pūtaiao a te Pirimia"
+#~ msgid "The Prime Minister’s Science Prize Portal"
+#~ msgstr "Tono mai mō te Paraihe Pūtaiao a te Pirimia"
 
-msgid ""
-"The invitation delivery failed. Please correct the email address and "
-"resend the invitation."
-msgstr ""
-"I mūhore te tuku i tō tono. Tēnā whakatikahia te wāhitau īmēra me te tuku "
-"anōi te tono."
+#~ msgid ""
+#~ "The invitation delivery failed. Please correct the email address and "
+#~ "resend the invitation."
+#~ msgstr ""
+#~ "I mūhore te tuku i tō tono. Tēnā whakatikahia te wāhitau īmēra me te tuku "
+#~ "anōi te tono."
 
-msgid "Please confirm subscription"
-msgstr "Tēnā whakaaetia tō ohaurunga"
-
-#, python-format
-msgid "Please confirm your subscription to our newsletter: %s"
-msgstr "Tēnā whakaaetia tō ohaurunga ki tā mātou kawerongo: %s"
+#~ msgid "Please confirm subscription"
+#~ msgstr "Tēnā whakaaetia tō ohaurunga"
 
 #, python-format
-msgid "Task submitted with a message '%s'"
-msgstr "I tukuna te tūmahi me tētahi karere '%s'"
+#~ msgid "Please confirm your subscription to our newsletter: %s"
+#~ msgstr "Tēnā whakaaetia tō ohaurunga ki tā mātou kawerongo: %s"
+
+#, python-format
+#~ msgid "Task submitted with a message '%s'"
+#~ msgstr "I tukuna te tūmahi me tētahi karere '%s'"
 
 #, python-brace-format
-msgid "Unable to identify your invitation token: {ex} "
-msgstr "Kāore e ahei ki te tautohu i tō waehere tono: {ex}"
+#~ msgid "Unable to identify your invitation token: {ex} "
+#~ msgstr "Kāore e ahei ki te tautohu i tō waehere tono: {ex}"
 
-msgid "A team member opted out of application"
-msgstr "I kōwhiria e tētahi mema rōpū  kia puta i te tono"
-
-#, python-format
-msgid "Your team member %s has opted out of application"
-msgstr "I kōwhiria e tō mema rōpū a %s kia puta i te tono"
-
-msgid "A Referee opted out of Testimonial"
-msgstr "I kōwhiria e tētahi Kaitautoko kia kaua e mahi i te Tuhinga Tautoko"
+#~ msgid "A team member opted out of application"
+#~ msgstr "I kōwhiria e tētahi mema rōpū  kia puta i te tono"
 
 #, python-format
-msgid "Your Referee %s has opted out of Testimonial"
-msgstr ""
-"I kōwhiria e to Kaitautoko a %s kia kaua e mahi i te Tuhinga Tautoko"
+#~ msgid "Your team member %s has opted out of application"
+#~ msgstr "I kōwhiria e tō mema rōpū a %s kia puta i te tono"
 
-msgid "previous"
-msgstr "ki mua"
-
-msgid "next"
-msgstr "ki muri"
-
-msgid "Browse"
-msgstr "Tirotiro"
-
-msgid "State"
-msgstr "Tūnga"
-
-msgid "Sign&nbsp;up&nbsp;here!"
-msgstr "Hono&nbsp;mai&nbsp;ki&nbsp;konei!"
+#~ msgid "A Referee opted out of Testimonial"
+#~ msgstr "I kōwhiria e tētahi Kaitautoko kia kaua e mahi i te Tuhinga Tautoko"
 
 #, python-format
-msgid ""
-"Already have an account? Then please <a href=\"%(login_url)s\">sign in</"
-"a>."
-msgstr "He pūkete tāu? Tēnā <a href=\"%(login_url)s\">takiuru mai</a>."
+#~ msgid "Your Referee %s has opted out of Testimonial"
+#~ msgstr ""
+#~ "I kōwhiria e to Kaitautoko a %s kia kaua e mahi i te Tuhinga Tautoko"
+
+#~ msgid "Sign&nbsp;up&nbsp;here!"
+#~ msgstr "Hono&nbsp;mai&nbsp;ki&nbsp;konei!"
+
+#, python-format
+#~ msgid ""
+#~ "Already have an account? Then please <a href=\"%(login_url)s\">sign in</"
+#~ "a>."
+#~ msgstr "He pūkete tāu? Tēnā <a href=\"%(login_url)s\">takiuru mai</a>."
