@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-27 22:21+1200\n"
+"POT-Creation-Date: 2023-08-27 22:31+1200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -590,9 +590,6 @@ msgstr ""
 #: portal/templates/base.html:214 portal/templates/profile_summary.html:41
 msgid "Email"
 msgstr "Īmēra"
-
-msgid "email"
-msgstr "īmēra"
 
 #: portal/forms.py:1121 portal/forms.py:1219
 #, fuzzy
@@ -1332,7 +1329,8 @@ msgstr "ingoa whānau"
 msgid "title"
 msgstr "taitara"
 
-#: portal/models.py:1357 portal/models.py:2923 portal/models.py:4839
+#: portal/models.py:1357 portal/models.py:2496 portal/models.py:2923
+#: portal/models.py:4839
 msgid "first name"
 msgstr "ingoa tuatahi"
 
@@ -1348,7 +1346,8 @@ msgstr "ngā ingoa waenga"
 msgid "Comma separated list of middle names"
 msgstr "Rārangi ingoa waenga e whakawehea ana e ngā irapiko"
 
-#: portal/models.py:1365 portal/models.py:2931 portal/models.py:4847
+#: portal/models.py:1365 portal/models.py:2504 portal/models.py:2931
+#: portal/models.py:4847
 msgid "last name"
 msgstr "ingoa whānau"
 
@@ -1640,6 +1639,14 @@ msgstr "tono"
 msgid "testified"
 msgstr "i taunakihia"
 
+#: portal/models.py:2495
+msgid "email"
+msgstr "īmēra"
+
+#: portal/models.py:2507 portal/models.py:4893
+msgid "status"
+msgstr "tūnga"
+
 #: portal/models.py:2581
 #, python-format
 msgid "Failed to add the referee: %s. Please constact a portal administration."
@@ -1930,10 +1937,6 @@ msgstr "Tangata Tautapa"
 #: portal/models.py:4882
 msgid "application"
 msgstr "tono"
-
-#: portal/models.py:4893
-msgid "status"
-msgstr "tūnga"
 
 #: portal/models.py:4906
 msgid "You cannot nominate yourself for this round."
