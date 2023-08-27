@@ -1,25 +1,22 @@
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.admin.filters import SimpleListFilter
 from django.contrib.auth import admin as auth_admin
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render
 from django.utils.translation import gettext as _
+from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_update_with_history
-from sentry_sdk import capture_exception
 
 from portal.models import (
-    Application,
     CurriculumVitae,
-    Member,
-    Nomination,
-    Panellist,
     Profile,
-    Referee,
     ResearchOffice,
 )
 
@@ -35,6 +32,24 @@ def titled_filter(filter_class, title):
             self.title = title
 
     return Wrapper
+
+
+class IsStaff(SimpleListFilter):
+    title = "staff status"
+    parameter_name = "is_staff"
+
+    def lookups(self, request, model_admin):
+        return (("Yes", True), ("No", False))
+
+    def queryset(self, request, queryset):
+        if self.value():
+            # If is_paid=True filter is activated
+            return queryset.filter(staff_of_sites__site=settings.SITE_ID)
+        else:
+            # If is_paid=True filter is activated
+            return queryset.filter(
+                Q(staff_of_sites__isnull=True) | ~Q(staff_of_sites=settings.SITE_ID)
+            ).distinct()
 
 
 @admin.register(User)
@@ -62,7 +77,8 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                     "is_approved",
                     "is_identity_verified",
                     "is_active",
-                    "is_staff",
+                    # "is_staff",
+                    "is_site_staff",
                     "staff_of_sites",
                     "is_superuser",
                     "groups",
@@ -72,6 +88,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
+    readonly_fields = ["is_site_staff"]
 
     list_display = [
         "username",
@@ -79,6 +96,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "full_name",
         "is_superuser",
         "date_joined",
+        "is_site_staff",
     ]
     search_fields = [
         "email",
@@ -89,7 +107,8 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
     ]
     search_help_text = "username, name, first name, last name, or email"
     list_filter = (
-        "is_staff",
+        # "is_staff",
+        # IsStaff,
         "is_superuser",
         "is_active",
         (
@@ -99,6 +118,12 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "date_joined",
     )
     date_hierarchy = "date_joined"
+
+    def is_site_staff(self, obj):
+        return obj.is_site_staff
+
+    is_site_staff.description = "Designates whether the user can log into this admin site."
+    is_site_staff.boolean = True
 
     class EmailAddressInline(admin.TabularInline):
         extra = 0

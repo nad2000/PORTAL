@@ -2,12 +2,14 @@ from hashlib import md5
 from urllib.parse import urlencode
 
 from allauth.socialaccount.models import SocialToken
+from django.conf import settings
+from django.contrib import admin
 from django.contrib.auth.models import AbstractUser
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.db.models import (
-    SET_NULL,
     DO_NOTHING,
+    SET_NULL,
     BooleanField,
     CharField,
     DateTimeField,
@@ -61,10 +63,11 @@ class User(HelperMixin, AbstractUser, PersonMixin):
     )
 
     @cached_property
+    @admin.display(description="staff status", boolean=True)
     def is_site_staff(self):
         """Test if the user is staff of the current site"""
-        if not self.is_staff:
-            return False
+        # if not self.is_staff:
+        #     return False
         return self.staff_of_sites.through.objects.filter(
             site_id=self.current_site_id, user=self
         ).exists()
