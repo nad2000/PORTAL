@@ -3001,32 +3001,33 @@ class ApplicationList(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         u = self.request.user
-        if not (
-            u.is_staff
-            or u.is_superuser
-            or (
-                "round" in self.request.GET
-                and models.Panellist.where(
-                    round=self.request.GET["round"], user=self.request.user
-                ).exists()
-            )
-        ):
-            context["filter_disabled"] = True
-            # self.table_pagination = False
-        else:
-            # update application counts:
-            # if (filter := context.get("filter")) and filter.is_bound:
-            if filter := context.get("filter"):
-                application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
-                application_submitted_count = filter.qs.filter(
-                    state__in=["submitted", "approved", "cancelled"]
-                ).count()
-                context["application_count"] = (
-                    application_draft_count + application_submitted_count
-                )
-                context["application_draft_count"] = application_draft_count
-                context["application_submitted_count"] = application_submitted_count
+        # if not (
+        #     u.is_staff
+        #     or u.is_superuser
+        #     or (
+        #         "round" in self.request.GET
+        #         and models.Panellist.where(
+        #             round=self.request.GET["round"], user=self.request.user
+        #         ).exists()
+        #     )
+        # ):
+        #     context["filter_disabled"] = True
+        #     # self.table_pagination = False
+        # else:
+        #     # update application counts:
+        #     # if (filter := context.get("filter")) and filter.is_bound:
+        #     if filter := context.get("filter"):
+        #         application_draft_count = filter.qs.filter(state__in=["new", "draft"]).count()
+        #         application_submitted_count = filter.qs.filter(
+        #             state__in=["submitted", "approved", "cancelled"]
+        #         ).count()
+        #         context["application_count"] = (
+        #             application_draft_count + application_submitted_count
+        #         )
+        #         context["application_draft_count"] = application_draft_count
+        #         context["application_submitted_count"] = application_submitted_count
 
+        context["filter_disabled"] = True
         if (state := self.request.path.split("/")[-1]) and state in ["draft", "submitted"]:
             context["state"] = state
 
@@ -3697,7 +3698,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
     factory_kwargs = {
         "exclude": ["converted_file"],
-        "labels": {"title": _("Title or name (of CV document)")},
+        "labels": {"title": _("Title or name")},
     }
 
     def get_factory_kwargs(self):

@@ -5792,10 +5792,11 @@ msgid "Professional Qualification"
 msgstr "Tohu Ngaio"
 
 #: portal/views.py:3700
-#, fuzzy
-#| msgid "middle names"
 msgid "Title or name (of CV document)"
 msgstr "Taitara, ingoa rānei (of CV document)"
+
+msgid "Title or name"
+msgstr "Taitara, ingoa rānei"
 
 #: portal/views.py:3745
 #, fuzzy, python-format
