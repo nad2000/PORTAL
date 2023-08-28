@@ -7,7 +7,7 @@
   <div class="card mb-2">
     <div class="card-header">
       {% if application_count %}
-      <a href="{% if is_staff or u.is_admin or is_ro or u.is_site_staff %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}">
+      <a href="{% if is_staff or u.is_superuser or is_ro or u.is_site_staff %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}">
         {% trans 'Applications' %} <span class="badge badge-primary">{{ application_count }}</span>
       </a>
     {% else %}
