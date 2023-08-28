@@ -4697,6 +4697,7 @@ class SchemeApplication(Model):
     )
     previous_application_number = CharField(max_length=24, null=True, blank=True)
     previous_application_title = CharField(max_length=100, null=True, blank=True)
+    previous_application_applicant_name = CharField(max_length=400, null=True, blank=True)
     previous_application_created_on = DateField(null=True, blank=True)
 
     @classmethod
@@ -4769,6 +4770,10 @@ class SchemeApplication(Model):
                             LEFT JOIN scheme AS s ON s.current_round_id = a.round_id
                         WHERE s.id IS NULL AND a.site_id = %s AND a.submitted_by_id = %s
                         GROUP BY r.scheme_id)
+                    OR (
+                        a.state IN ('cancelled', 'approved')
+                        AND a.submitted_by_id = %s
+                    )
             ) AS pa ON pa.scheme_id = r.scheme_id AND la.id IS NULL
             WHERE
               s.site_id = %s
@@ -4784,6 +4789,7 @@ class SchemeApplication(Model):
                 site_id,
                 site_id,
                 site_id,
+                user.id,
                 user.id,
                 site_id,
             ],

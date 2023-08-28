@@ -1,12 +1,13 @@
 {% load static i18n %}
 
-{% if request.user.is_approved %}
+{% with u=request.user %}
+{% if u.is_approved %}
 
-  {% if application_count > 0 or request.user.is_superuser or is_staff %}
+  {% if application_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
   <div class="card mb-2">
     <div class="card-header">
       {% if application_count %}
-      <a href="{% if is_staff or request.user.is_admin %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}">
+      <a href="{% if is_staff or u.is_admin or is_ro or u.is_site_staff %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}">
         {% trans 'Applications' %} <span class="badge badge-primary">{{ application_count }}</span>
       </a>
     {% else %}
@@ -44,7 +45,7 @@
                   class="nav-link"
                   id="applications-submitted"
                   href="{% url 'applications-submitted' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
-                  title="{% if SITE_ID == 4 and not is_staff and not u.is_superuser %}{% trans 'Submitted, approved, and withdrawn applications' %}{% else %}{% trans 'Submitted applications' %}{% endif %}"
+                  title="{% if SITE_ID == 4 and not is_staff and not u.is_superuser or u.is_site_staff %}{% trans 'Submitted, approved, and withdrawn applications' %}{% else %}{% trans 'Submitted applications' %}{% endif %}"
                   data-toggle="tooltip"
               >
                   {% trans 'Submitted' %}
@@ -107,7 +108,7 @@
   </div>
   {% endif %}
 
-  {% if nomination_count > 0 or request.user.is_superuser or is_staff %}
+  {% if nomination_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
   <div class="card mb-2">
     <div class="card-header">
       {% if nomination_count > 0 %}
@@ -171,7 +172,7 @@
   </div>
   {% endif %}
 
-  {% if testimonial_count > 0 or request.user.is_superuser or is_staff %}
+  {% if testimonial_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
   <div class="card mb-2">
     <div class="card-header">
       {% if testimonial_count > 0 %}
@@ -236,7 +237,7 @@
   </div>
   {% endif %}
 
-  {% if request.user.is_superuser or is_staff or review_count > 0 or score_sheet_count > 0 %}
+  {% if u.is_superuser or is_staff or review_count > 0 or score_sheet_count > 0 or u.is_site_staff %}
     <div class="card mb-2">
       <div class="card-header">
         {% if review_count %}
@@ -414,4 +415,5 @@
     </div>
   {% endif %}
 </div>
+{% endwith %}
 {# vim:set ft=htmldjango: #}
