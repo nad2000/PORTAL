@@ -3921,6 +3921,12 @@ input[type=button].btn-block {
 .custom-file-input:lang(en) ~ .custom-file-label::after {
   content: "Browse";
 }
+.custom-file-input:lang(es) ~ .custom-file-label::after {
+  content: "Elegir";
+}
+.custom-file-input:lang(mi) ~ .custom-file-label::after {
+  content: "Tirotiro";
+}
 .custom-file-input ~ .custom-file-label[data-browse]::after {
   content: attr(data-browse);
 }
@@ -12173,6 +12179,13 @@ footer a {
   color: white;
   border-bottom: 1px dashed white;
   text-decoration: none;
+}
+
+details ul li a.selected, details ul li a.selected:active {
+  text-decoration: none;
+  font-weight: bold;
+  color: #8E8C84;
+  background-color: #F8F5F0;
 }
 
 /* Sticky footer styles

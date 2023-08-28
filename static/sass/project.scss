@@ -13,10 +13,15 @@
 
 // READ MORE AT: https://getbootstrap.com/docs/4.1/getting-started/theming/
 
-@import "../bootstrap/scss/bootstrap";
-
 // Required
 @import "../bootstrap/scss/functions";
+$custom-file-text: (
+  en: "Browse",
+  es: "Elegir",
+  mi: "Tirotiro"
+);
+@import "../bootstrap/scss/bootstrap";
+
 @import "../bootstrap/scss/variables";
 @import "../bootstrap/scss/mixins";
 
