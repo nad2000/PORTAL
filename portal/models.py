@@ -4006,6 +4006,15 @@ class Round(Model):
         if self.title_mi == scheme.title_mi and self.opens_on:
             self.title_mi = f"{self.title_mi} {self.opens_on.year}"
 
+        if self.site_id == 4:
+            for f in [
+                "applicant_cv_required",
+                "direct_application_allowed",
+                "ethics_statement_required",
+                "letter_of_support_required",
+            ]:
+                setattr(self, f, None)
+
         return self
 
     def clone(self):
@@ -4107,6 +4116,15 @@ class Round(Model):
                 kwargs["budget_template"] = pr5.budget_template
             if "site" not in kwargs:
                 kwargs["site"] = scheme.site
+
+            if self.site_id == 4 or settings.SITE_ID == 4:
+                for f in [
+                    "applicant_cv_required",
+                    "direct_application_allowed",
+                    "ethics_statement_required",
+                    "letter_of_support_required",
+                ]:
+                    setattr(self, f, None)
 
         super().__init__(*args, **kwargs)
 

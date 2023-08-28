@@ -1651,94 +1651,108 @@ class RoundAdmin(
     ]
     search_fields = ["title"]
     actions = ["create_new_round"]
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": [
-                    "scheme",
-                    ("title_en", "title_mi"),
-                    ("opens_on", "closes_on"),
-                    "description_en",
-                    "description_mi",
-                    "guidelines",
-                    "survey_id",
-                ]
-            },
-        ),
-        (
-            "Options",
-            {
-                "fields": [
-                    (
-                        "applicant_cv_required",
-                        "team_can_apply",
-                        "can_nominate",
-                        "notify_nominator",
-                        "direct_application_allowed",
-                        "ethics_statement_required",
-                        "has_online_scoring",
-                        "has_referees",
-                        "has_title",
-                        "letter_of_support_required",
-                        "nominator_cv_required",
-                        "pid_required",
-                        "presentation_required",
-                        "referee_cv_required",
-                        "research_summary_required",
-                        "research_experience_in_years_required",
-                    ),
-                    ("required_referees", "is_flexible_number_of_referees"),
-                ]
-            },
-        ),
-        (
-            "Categories",
-            {
-                "fields": [
-                    "has_fors",
-                    "has_keywords",
-                    "has_seos",
-                    "has_toas",
-                    "has_vmts",
-                ]
-            },
-        ),
-        (
-            "Terms and Conditions",
-            {
-                # "classes": ("collapse",),
-                "fields": [
-                    "tac_en",
-                    "tac_mi",
-                ],
-            },
-        ),
-        (
-            "Templates",
-            {
-                "fields": [
-                    "score_sheet_template",
-                    "nomination_template",
-                    "application_template",
-                    "referee_template",
-                    "budget_template",
-                ]
-            },
-        ),
-    )
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
         if (site_id := settings.SITE_ID) and site_id == 4:
-            pass  # TODO:
+            exclude = exclude and exclude.copy() or []
+            exclude.extend(
+                [
+                    "applicant_cv_required",
+                    "direct_application_allowed",
+                    "ethics_statement_required",
+                    "letter_of_support_required",
+                ]
+            )
         return exclude
 
     def get_fieldsets(self, request, obj=None):
-        fieldsets = super().get_fieldsets(request, obj)
-        if (site_id := settings.SITE_ID) and site_id == 4:
-            # exclude template fieldset
-            return [(title, fields) for (title, fields) in fieldsets if title != "Templates"]
+        site_id = obj and obj.site_id or settings.SITE_ID
+        exclude = self.get_exclude(request)
+        fieldsets = [
+            (name, fields)
+            for (name, fields) in [
+                (
+                    None,
+                    {
+                        "fields": [
+                            "scheme",
+                            ("title_en", "title_mi"),
+                            ("opens_on", "closes_on"),
+                            "description_en",
+                            "description_mi",
+                            "guidelines",
+                            "survey_id",
+                        ]
+                    },
+                ),
+                (
+                    "Options",
+                    {
+                        "fields": [
+                            [
+                                f
+                                for f in [
+                                    "applicant_cv_required",
+                                    "team_can_apply",
+                                    "can_nominate",
+                                    "notify_nominator",
+                                    "direct_application_allowed",
+                                    "ethics_statement_required",
+                                    "has_online_scoring",
+                                    "has_referees",
+                                    "has_title",
+                                    "letter_of_support_required",
+                                    "nominator_cv_required",
+                                    "pid_required",
+                                    "presentation_required",
+                                    "referee_cv_required",
+                                    "research_summary_required",
+                                    "research_experience_in_years_required",
+                                ]
+                                if f not in exclude
+                            ],
+                            ("required_referees", "is_flexible_number_of_referees"),
+                        ]
+                    },
+                ),
+                (
+                    "Categories",
+                    {
+                        "fields": [
+                            "has_fors",
+                            "has_keywords",
+                            "has_seos",
+                            "has_toas",
+                            "has_vmts",
+                        ]
+                    },
+                ),
+                (
+                    "Terms and Conditions",
+                    {
+                        # "classes": ("collapse",),
+                        "fields": [
+                            "tac_en",
+                            "tac_mi",
+                        ],
+                    },
+                ),
+                (
+                    "Templates",
+                    {
+                        "fields": [
+                            "score_sheet_template",
+                            "nomination_template",
+                            "application_template",
+                            "referee_template",
+                            "budget_template",
+                        ]
+                    },
+                ),
+            ]
+            if site_id != 4 or name != "Templates"
+        ]
         return fieldsets
 
     @admin.action(description="Create new round")
@@ -1798,16 +1812,8 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
-    # inlines = [
-    #     TemplateInline,
-    #     ApplicationFormTemplateInline,
-    #     CurriculumVitaeTemplateInline,
-    #     CriterionInline,
-    #     PanellistInline,
-    # ]
-
     def get_inlines(self, request, obj):
-        if (site_id := settings.SITE_ID) and site_id == 4:
+        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id == 4:
             return [
                 self.RequiredDocumentInline,
                 self.TemplateInline,
