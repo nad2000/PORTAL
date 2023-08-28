@@ -2386,21 +2386,21 @@ class ApplicationView(LoginRequiredMixin):
 
         if round.required_referees:
             referee_count = self.object and self.object.referees.count() or 0
+            if round.is_flexible_number_of_referees:
+                extra = max(((round.required_referees or 0) - referee_count), 1)
+                max_num = referee_count + extra
+            else:
+                extra = max(((round.required_referees or 0) - referee_count), 0)
+                max_num = referee_count + extra
+
             kwargs = {
                 # "min_num": round.required_referees,
-                "max_num": round.required_referees
-                + (
-                    0
-                    if not round.is_flexible_number_of_referees
-                    or referee_count < round.required_referees
-                    else 1
-                ),
+                "max_num": max_num,
                 # "can_delete": False,
                 "can_delete": True,
                 "can_delete_extra": True,
                 # "can_delete_extra": bool(round.is_flexible_number_of_referees),
-                "extra": (round.required_referees - referee_count)
-                or (round.is_flexible_number_of_referees and 1),
+                "extra": extra,
                 "validate_max": False,
                 "validate_min": False,
             }
