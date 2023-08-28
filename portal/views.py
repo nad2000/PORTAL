@@ -2989,18 +2989,19 @@ class ApplicationListMixin:
 
 
 class ApplicationList(
-    LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
+    LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView
+    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
 ):
     model = models.Application
     table_class = tables.ApplicationTable
     extra_context = {"category": "applications"}
     template_name = "table.html"
-    filterset_class = ApplicationFilterSet
+    # filterset_class = ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        u = self.request.user
+        # u = self.request.user
         # if not (
         #     u.is_staff
         #     or u.is_superuser
