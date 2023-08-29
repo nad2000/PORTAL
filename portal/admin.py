@@ -634,12 +634,14 @@ class ApplicationAdmin(
         "updated_at",
     ]
     readonly_fields = [
+        "nomination_url",
         "created_at",
         "updated_at",
         "converted_file",
         "letter_of_support",
         "number",
         "state",
+        "main_applicant",
     ]
     search_fields = [
         "number",
@@ -752,6 +754,19 @@ class ApplicationAdmin(
         StateLogInline,
     ]
 
+    @admin.display(description="Main Applicant")
+    def main_applicant(self, obj):
+        return obj.submitted_by.full_name_with_email
+
+    @admin.display(description="Nomination")
+    def nomination_url(self, obj):
+        if n := models.Nomination.where(application=obj).last():
+            return format_html(
+                '<a href="{0}" target="_blank">{1}</a>',
+                reverse("admin:portal_nomination_change", kwargs={"object_id": n.id}),
+                f"{n} by {n.nominator.full_name_with_email}",
+            )
+
     @admin.display(description="State")
     def state_icon(self, obj):
         return format_html(
@@ -770,7 +785,7 @@ class ApplicationAdmin(
                     "round",
                     ("title", "first_name", "middle_names", "last_name", "position"),
                     ("daytime_phone", "mobile_phone"),
-                    "email",
+                    ("email", "main_applicant"),
                     "presentation_url",
                     "is_tac_accepted",
                 ]
@@ -823,6 +838,12 @@ class ApplicationAdmin(
             },
         ),
     )
+
+    def get_fieldsets(self, request, obj):
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
+            fieldsets[0][1]["fields"][0] = ("nomination_url", "state")
+        return fieldsets
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})

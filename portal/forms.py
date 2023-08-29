@@ -19,18 +19,19 @@ from crispy_forms.layout import (
 )
 from dal import autocomplete
 from django import forms
+from django.conf import settings
 from django.contrib.sites.models import Site
 from django.forms import FileField, HiddenInput, Widget, inlineformset_factory
 from django.forms.models import BaseInlineFormSet, modelformset_factory
 from django.forms.widgets import NullBooleanSelect, Select, TextInput
 from django.shortcuts import reverse
 from django.template.loader import render_to_string
+from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django_summernote.widgets import SummernoteInplaceWidget
-from django.conf import settings
 
 from . import models
 
@@ -394,10 +395,24 @@ class ApplicationForm(forms.ModelForm):
         ),
     )
 
+    @cached_property
+    def was_submitted(self):
+        return "submit" in self.data
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.was_submitted and (round := self.round):
+            if round.research_experience_in_years_required and not (
+                cleaned_data.get("research_experience_in_years")
+            ):
+                self.add_error(
+                    "research_experience_in_years", _("Research experience in years requird")
+                )
+
     def clean_letter_of_support_file(self):
         # super().clean()
 
-        if "submit" in self.data and (round := self.round):
+        if self.was_submitted and (round := self.round):
             if round.letter_of_support_required and not (
                 self.cleaned_data.get("letter_of_support_file") or self.instance.letter_of_support
             ):
@@ -410,7 +425,7 @@ class ApplicationForm(forms.ModelForm):
     def clean_cv_file(self):
         # super().clean()
 
-        if "submit" in self.data and (round := self.round):
+        if self.was_submitted and (round := self.round):
             if (
                 round.applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0

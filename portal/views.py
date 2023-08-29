@@ -330,13 +330,17 @@ class StateInPathMixin:
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
-                    if (site_id := settings.SITE_ID == 4) and (u.is_superuser or u.staff_of_sites.filter(id=site_id)):
+                    if (site_id := settings.SITE_ID == 4) and (
+                        u.is_superuser or u.staff_of_sites.filter(id=site_id)
+                    ):
                         if state == "submitted":
                             queryset = queryset.filter(state__in=["submitted", "cancelled"])
                         else:  # approved
                             queryset = queryset.filter(state="approved")
                     else:
-                        queryset = queryset.filter(state__in=["submitted", "approved", "cancelled"])
+                        queryset = queryset.filter(
+                            state__in=["submitted", "approved", "cancelled"]
+                        )
         return queryset
 
 
@@ -2238,6 +2242,19 @@ class ApplicationView(LoginRequiredMixin):
                         if not url:
                             url = self.continue_url("referees")
 
+                    if has_required_documents:
+                        for rd in a.round.required_documents.filter(is_optional=False):
+                            if not a.documents.filter(~Q(file=""), required_document=rd).exists():
+                                form.add_error(
+                                    None,
+                                    _(
+                                        f"{rd} is required. Please upload all required "
+                                        "documents before submitting the application."
+                                    ),
+                                )
+                        if form._errors:
+                            return self.form_invalid(form)
+
                     if url:
                         return redirect(url)
 
@@ -2989,7 +3006,10 @@ class ApplicationListMixin:
 
 
 class ApplicationList(
-    LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView
+    LoginRequiredMixin,
+    StateInPathMixin,
+    ApplicationListMixin,
+    SingleTableView
     # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
 ):
     model = models.Application
