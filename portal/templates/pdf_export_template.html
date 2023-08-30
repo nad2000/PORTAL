@@ -1,5 +1,4 @@
 {% load i18n tags %}
-{% block headerjs %}
 <style>
 table {
   border-collapse: collapse;
@@ -12,23 +11,20 @@ th, td {
 }
 
 tr:nth-child(even) {background-color: #f2f2f2;}
+@page {
+    size: 21cm 29.7cm;
+{% if application.site_id == 4 %}
+    margin: 2cm 1cm 1cm 2cm;
+{% else %}
+    margin: 1cm 1cm 1cm 2cm;
+{% endif %}
+}
 </style>
-{% endblock %}
 
 {% block body %}
 {% block sidebar %}{% endblock %}
 {% block header %}
-<div class="mb-0" id="header_content">
-
-  <header class="header">
-    <picture>
-      <img id="logo" width="190px" height="50px"
-           src="https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1.png"
-           alt="The Prime Minister's Science Prizes"
-           srcset="https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1@1x.png  1x">
-    </picture>
-  </header>
-</div>
+{% include 'snippets/export-header.html' %}
 {% endblock header %}
 {% for object in objects %}
 <h2>
