@@ -1950,7 +1950,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     def __str__(self):
-        if self.site_id == 4:
+        if self.site_id == 4 and self.submitted_by:
             return f"{self.number}: {self.submitted_by.full_name}"
         title = self.application_title or self.round.title
         if self.number:
@@ -4140,7 +4140,6 @@ class Round(Model):
                     "letter_of_support_required",
                 ]:
                     setattr(self, f, None)
-
 
     def __str__(self):
         return self.title or self.scheme.title
