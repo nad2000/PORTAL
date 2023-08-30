@@ -180,6 +180,8 @@ def send_mail(
             token=f"{token}#{no}" if no else token,
             invitation=invitation,
             site=site,
+            message=message,
+            html_message=html_message,
         )
     if not resp:
         raise Exception(

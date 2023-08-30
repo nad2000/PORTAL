@@ -9,6 +9,7 @@ import tempfile
 from datetime import date, datetime
 from functools import partial, wraps
 from urllib.parse import urljoin, urlparse
+from django.utils.safestring import mark_safe
 
 import simple_history
 from allauth.account.models import EmailAddress
@@ -4269,6 +4270,8 @@ class MailLog(Model):
     error = TextField(null=True, blank=True)
     token = CharField(max_length=100, default=get_unique_mail_token, unique=True)
     invitation = ForeignKey(Invitation, null=True, on_delete=SET_NULL)
+    message = TextField(null=True, blank=True)
+    html_message = TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.recipient}: {self.token}/{self.sent_at}"
