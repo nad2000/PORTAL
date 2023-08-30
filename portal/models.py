@@ -1656,7 +1656,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         _("Your team lead has not yet accepted the Prize's Terms and Conditions")
                     )
 
-        if not self.file and not self.summary:
+        if (
+            not self.file
+            and not self.summary
+            and not self.documents.filter(~Q(file=""), document_type__role="AF").exists()
+        ):
             raise Exception(
                 _(
                     "The application is not completed. Missing summary "
