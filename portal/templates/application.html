@@ -313,14 +313,16 @@
                                                         }
                                             }
                                 });
-            {% if form._errors %}
+            {% if form.errors %}
               var field = $(".invalid-feedback").first();
               if (field.length) {
                 var $closest = field.closest('.tab-pane');
                 var id = $closest.attr('id');
                 // Find the link that corresponds to the pane and have it show
                 $('.nav a[href="#' + id + '"]').tab('show');
-              }
+              }{% if form.active_tab %} else {
+                $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
+              }{% endif %}
             {% endif %}
 
             });

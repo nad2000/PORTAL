@@ -3115,7 +3115,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         if not by:
             by = request.user if request else self.inviter
         url = reverse("onboard-with-token", kwargs=dict(token=self.token))
-        site = self.site or request and getattr(request, "site", None) or Site.objects.get_current()
+        site = (
+            self.site or request and getattr(request, "site", None) or Site.objects.get_current()
+        )
         site_id, site_name = site.id, site.name
         if request:
             # url = request.build_absolute_uri(url)
@@ -4028,10 +4030,14 @@ class Round(Model):
         return nr
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         opens_on = kwargs.get("opens_on")
-        if (scheme := kwargs.get("scheme")) and (
-            last_round := Round.where(scheme=scheme).order_by("-id").first()
+        if (
+            not self.id
+            and (scheme := kwargs.get("scheme"))
+            and (last_round := Round.where(scheme=scheme).order_by("-id").first())
         ):
+            site_id = settings.SITE_ID
             for f in [
                 "has_title",
                 "applicant_cv_required",
@@ -4056,7 +4062,16 @@ class Round(Model):
                 # "budget_required",
                 "research_experience_in_years_required",
             ]:
-                if f not in kwargs:
+                if f not in kwargs and (
+                    site_id != 4
+                    or f
+                    not in [
+                        "applicant_cv_required",
+                        "direct_application_allowed",
+                        "ethics_statement_required",
+                        "letter_of_support_required",
+                    ]
+                ):
                     v = getattr(last_round, f)
                     if v:
                         kwargs[f] = getattr(last_round, f)
@@ -4126,7 +4141,6 @@ class Round(Model):
                 ]:
                     setattr(self, f, None)
 
-        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return self.title or self.scheme.title

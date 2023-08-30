@@ -1574,6 +1574,10 @@ class ApplicationView(LoginRequiredMixin):
     template_name = "application.html"
     form_class = forms.ApplicationForm
 
+    # def form_invalid(self, form):
+    #     breakpoint()
+    #     return super().form_invalid(form)
+
     @property
     def previous_application(self):
         user = self.request.user
@@ -2173,7 +2177,7 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("summary")
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
-                    if not (
+                    if site_id != 4 and not (
                         a.file
                         or (
                             has_required_documents
@@ -2257,7 +2261,8 @@ class ApplicationView(LoginRequiredMixin):
                                         "documents before submitting the application."
                                     ),
                                 )
-                        if form._errors:
+                        form.active_tab = "summary"
+                        if form.errors:
                             return self.form_invalid(form)
 
                     if url:
@@ -2646,9 +2651,6 @@ class ApplicationCreate(ApplicationView, CreateView):
     # # inlines = [MemberInline]
     # template_name = "application.html"
     # form_class = forms.ApplicationForm
-
-    # def form_invalid(self, form):
-    #     return super().form_invalid(form)
 
     def get(self, request, *args, **kwargs):
         r = (
