@@ -1899,19 +1899,20 @@ class ApplicationView(LoginRequiredMixin):
                     else:
                         return self.form_invalid(form)
 
-                if not referees.instance or not referees.instance.id:
-                    referees.instance = a
-                if referees.is_valid():
-                    # referees.instance = a
-                    has_deleted = bool(has_deleted or referees.deleted_forms)
-                    # if has_deleted or "send_invitations" in self.request.POST:
-                    #     url = self.continue_url("referees")
+                try:
+                    if not referees.instance or not referees.instance.id:
+                        referees.instance = a
+                    if referees.is_valid():
+                        # referees.instance = a
+                        has_deleted = bool(has_deleted or referees.deleted_forms)
+                        # if has_deleted or "send_invitations" in self.request.POST:
+                        #     url = self.continue_url("referees")
 
-                    # for df in referees.deleted_forms:
-                    #     if referee := df.instance:
-                    #         for i in models.Invitation.where(models.Q(referee=referee)):
-                    #             i.revoke(self.request)
-                    #             i.save()
+                        # for df in referees.deleted_forms:
+                        #     if referee := df.instance:
+                        #         for i in models.Invitation.where(models.Q(referee=referee)):
+                        #             i.revoke(self.request)
+                        #             i.save()
 
                     referees.save()
                     if (
@@ -1937,24 +1938,28 @@ class ApplicationView(LoginRequiredMixin):
                             ),
                         )
 
-                    if has_deleted:
-                        return redirect(url)
-                else:
-                    for f in referees.forms:
-                        if not f.is_valid():
-                            form.errors.update(f.errors)
-                            # if not a.file:
-                            #     url = self.continue_url("summary")
-                            #     messages.error(
-                            #         self.request,
-                            #         "Before inviting referees, please upload a completed application form.",
-                            #         # "Please upload a new application form or remove the referees.",
-                            #     )
-                            #     raise ValidationError(_("Missing application form file"))
-                            # else:
-                            #     url = self.continue_url("referees")
-                            url = self.continue_url("referees")
-                            raise ValidationError(_("Invalid referee form"))
+                        if has_deleted:
+                            return redirect(url)
+                    else:
+                        for f in referees.forms:
+                            if not f.is_valid():
+                                form.errors.update(f.errors)
+                                # if not a.file:
+                                #     url = self.continue_url("summary")
+                                #     messages.error(
+                                #         self.request,
+                                #         "Before inviting referees, please upload a completed application form.",
+                                #         # "Please upload a new application form or remove the referees.",
+                                #     )
+                                #     raise ValidationError(_("Missing application form file"))
+                                # else:
+                                #     url = self.continue_url("referees")
+                                url = self.continue_url("referees")
+                                raise ValidationError(_("Invalid referee form"))
+                except Exception as e:
+                    capture_exception(e)
+                    messages.error(self.request, str(e))
+                    return self.form_invalid(form)
 
                 if "photo_identity" in form.changed_data and instance.photo_identity:
                     iv, created = models.IdentityVerification.get_or_create(
