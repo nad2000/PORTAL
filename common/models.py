@@ -103,7 +103,7 @@ class PersonMixin:
             return self.submitted_by
         elif hasattr(self, "profile") and self.profile.user:
             return self.profile.user
-        elif hasattr(self, "referee") and self.referee.user:
+        elif getattr(self, "referee", None) and self.referee.user:
             return self.referee.user
 
     @property
@@ -128,8 +128,11 @@ class PersonMixin:
     @property
     def full_name_with_email(self):
         user = self.get_user()
-        email = getattr(self, "email", None) or user.email
-        return f"{self.full_name} ({email})"
+        email = getattr(self, "email", None) or user and user.email
+        if (full_name := self.full_name):
+            return f"{full_name} ({email})"
+        else:
+            return email
 
     @property
     def full_email_address(self):
