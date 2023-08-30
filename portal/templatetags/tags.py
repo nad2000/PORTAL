@@ -18,7 +18,7 @@ def index(indexable, i):
 
 @register.filter
 def get_item(hashable, key):
-    return hashable.get(key)
+    return hashable.get(key) or isinstance(key, str) and key.isdigit() and hashable.get(int(key))
 
 
 @register.filter()

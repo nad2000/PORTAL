@@ -29,7 +29,7 @@
                      data-toggle="tooltip"
                      title="{{ field.help_text }}"
                    {% endif %}>
-                    {{ field.label|dump }}{% if field.field.required and not field|is_checkbox %}<span class="asteriskField">*</span></span>
+                    {% if field.field.required and not field|is_checkbox %}<span class="asteriskField">*</span></span>
                     {% endif %}
                 {% endif %}
               </th>
@@ -47,9 +47,9 @@
             {% include "bootstrap4/errors.html" %}
           {% endif %}
         {% endautoescape %}
-
         {% with rd_id=form.required_document.value %}
-          {% with field_label=required_documents|get_item:rd_id form_show_labels=True %}
+          {#% with field_label=required_documents|get_item:rd_id form_show_labels=True %#}
+          {% with field_label=form.form_label form_show_labels=True %}
             {% include 'bootstrap4/field.html' with field=form.file use_custom_control=True %}
           {% endwith %}
         {% endwith %}

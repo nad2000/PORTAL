@@ -2506,7 +2506,10 @@ class ApplicationView(LoginRequiredMixin):
             )
             if self.request.POST:
                 fs = fsc(
-                    self.request.POST or None, self.request.FILES or None, instance=self.object
+                    self.request.POST or None,
+                    self.request.FILES or None,
+                    instance=self.object,
+                    initial=initial_documents,
                 )
             else:
                 fs = fsc(instance=self.object, initial=initial_documents)

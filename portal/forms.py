@@ -204,23 +204,25 @@ class DocumentInlineFormset(TableInlineFormset):
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
         formset = context[self.formset_name_in_context]
+
         required_documents = context["required_documents"]
         round = context["round"]
-        orderting = dict(
+        ordering = dict(
             round.required_documents.values_list("id", "ordering").order_by("ordering")
         )
-        formset.forms.sort(key=lambda f: orderting.get(f.initial.get("required_document"), 0))
+        formset.forms.sort(key=lambda f: ordering.get(f.initial.get("required_document"), 0))
         help_texts = {
             rd_id: make_help_text(
                 required_document=round.required_documents.filter(id=rd_id).first()
             )
-            for rd_id in orderting.keys()
+            for rd_id in ordering.keys()
         }
         for f in formset.forms:
             rd_id = f.initial.get("required_document", 0)
             if rd_id:
                 # f.file.help_text = help_texts.get(rd_id)
                 f.fields["file"].help_text = help_texts.get(rd_id)
+                f.form_label = f"{required_documents.get(rd_id, _('Document'))}"
 
         return render_to_string(
             self.template,
@@ -621,7 +623,6 @@ class ApplicationForm(forms.ModelForm):
         if has_required_documents:
             summary_fields.append(
                 Div(
-                    "documents",
                     DocumentInlineFormset("documents"),
                     css_id="documents",
                 ),
