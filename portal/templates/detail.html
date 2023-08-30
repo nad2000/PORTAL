@@ -49,6 +49,7 @@
   </table>
   </div>
 
+  {% block extra_object %}
   {% if extra_object %}
 
   <h1>
@@ -92,6 +93,7 @@
   </table>
   </div>
   {% endif %}
+  {% endblock extra_object %}
 
   <hr />
   {% include 'snippets/detail_buttons.html' %}

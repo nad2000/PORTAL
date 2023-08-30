@@ -760,7 +760,7 @@ class ApplicationAdmin(
             return format_html(
                 '<a href="{0}" target="_blank">{1}</a>',
                 reverse("admin:users_user_change", kwargs={"object_id": obj.submitted_by.pk}),
-                f"{obj.submitted_by.full_name_with_email} : {obj.submitted_by.username}"
+                f"{obj.submitted_by.full_name_with_email} : {obj.submitted_by.username}",
             )
 
     @admin.display(description="Nomination")
@@ -1175,7 +1175,7 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
         "recipient",
         "subject",
     ]
-    readonly_fields = ["message", "html_message_content"]
+    readonly_fields = ["thread_index", "thread_topic", "message", "html_message_content"]
     autocomplete_fields = ["user", "invitation"]
     search_fields = ["token", "recipient", "subject"]
     exclude = ["site", "html_message"]
@@ -1183,7 +1183,7 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
     date_hierarchy = "sent_at"
 
     def html_message_content(self, obj):
-        return mark_safe(obj.html_message)
+        return mark_safe(obj.html_message or "-")
 
 
 @admin.register(models.Nomination)
@@ -1420,7 +1420,6 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 
 @admin.register(models.Invitation)
 class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, SimpleHistoryAdmin):
-
     @admin.action(description="Resend invitations")
     def resend(self, request, queryset):
         recipients = []

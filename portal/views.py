@@ -4597,6 +4597,7 @@ class TestimonialDetail(DetailView):
 
         if a:
             context["extra_object"] = a
+
         survey_url = (
             r and r.survey_id and reverse("survey-referee", kwargs={"referee_id": referee.id})
         )

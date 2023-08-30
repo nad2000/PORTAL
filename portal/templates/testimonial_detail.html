@@ -14,6 +14,17 @@
   {% breadcrumb object view_name pk=object.pk %}
 {% endblock %}
 
+{% block extra_object %}
+  {% if extra_object %}
+    <h1>
+      {{ extra_object }}
+    </h1>
+    <div class="table-responsive">
+      {% include 'snippets/application_detail_table.html' with a=extra_object %}
+    </div>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 
   {% if start_applying %}
