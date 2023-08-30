@@ -1164,11 +1164,20 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportModelAdmin, SimpleHistoryAd
 
 @admin.register(models.Invitation)
 class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, SimpleHistoryAdmin):
+
     @admin.action(description="Resend invitations")
     def resend(self, request, queryset):
+        recipients = []
         for o in queryset:
             o.send(request)
             o.save()
+            recipients.append(o)
+
+        messages.success(
+            request,
+            "Successfully resent invitation(-s) to %d recipients: %s"
+            % (len(recipients), ", ".join(r.full_name_with_email for r in recipients)),
+        )
 
     save_on_top = True
     view_on_site = False

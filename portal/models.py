@@ -2397,7 +2397,7 @@ class InvitationMixin:
     STATUS = INVITATION_STATUS
 
 
-class Invitation(InvitationMixin, Model):
+class Invitation(InvitationMixin, PersonMixin, Model):
     STATUS = INVITATION_STATUS
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
@@ -2551,7 +2551,7 @@ class Invitation(InvitationMixin, Model):
         if not by:
             by = request.user if request else self.inviter
         url = reverse("onboard-with-token", kwargs=dict(token=self.token))
-        site = Site.objects.get_current()
+        site = self.site or Site.objects.get_current()
         site_name = site.name
         if request:
             url = request.build_absolute_uri(url)
