@@ -1407,6 +1407,7 @@ class NominationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         r = kwargs["initial"].get("round") or self.instance.round
+        site_id = settings.SITE_ID
 
         self.helper = FormHelper(self)
         self.helper.include_media = False
@@ -1415,7 +1416,11 @@ class NominationForm(forms.ModelForm):
             # "round",
             "nominator",
             Fieldset(
-                _("Nominee - details of the person you are nominating to receive this award"),
+                _(
+                    "Nominee - details of the person you are nominating to apply for the round of the scheme"
+                )
+                if site_id == 4
+                else _("Nominee - details of the person you are nominating to receive this award"),
                 Field("title", css_class="form-group col-12 mb-0"),
                 Row(
                     # Column("title", css_class="form-group col-2 mb-0"),

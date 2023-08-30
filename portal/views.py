@@ -1031,6 +1031,7 @@ def profile_protection_patterns(request):
             site = Site.objects.get_current()
             profile.account_approval_message_sent_at = timezone.now()
             profile.save(update_fields=["account_approval_message_sent_at"])
+            contact_email = models.site_contact_email(site.id)
             if site.domain == "portal.pmscienceprizes.org.nz":
                 send_mail(
                     recipient_list=[request.user.full_email_address],
@@ -1040,8 +1041,8 @@ def profile_protection_patterns(request):
                         f"<p>You have submitted an Account Approval request to {site.name}. "
                         "Please allow up to 2 working days for an Administrator to approve your request. "
                         "If you do not receive a confirmation email after 2 working days, please contact "
-                        "<a href='mailto:pmscienceprizes@royalsociety.org.nz'>"
-                        "pmscienceprizes@royalsociety.org.nz</a></p>"
+                        f"<a href='mailto:{contact_email}'>"
+                        f"{contact_email}</a></p>"
                         "<p>(Please also check your Spam/Junk inbox)</p>"
                     ),
                 )
@@ -4047,11 +4048,12 @@ class NominationView(CreateUpdateView):
                 )
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
             if n and n.status == "accepted":
+                contact_email = models.site_contact_email()
                 messages.warning(
                     request,
                     _(
                         "You cannot alter a nomination that has been submitted and accepted.  "
-                        "If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz "
+                        f"If you feel a need to do this, please email {contact_email} "
                         "with a reason and we may be able to enable."
                     ),
                 )
@@ -4117,11 +4119,12 @@ class NominationView(CreateUpdateView):
                 return resp
 
             if n.status == "accepted":
+                contact_email = models.site_contact_email()
                 messages.warning(
                     self.request,
                     _(
                         "You cannot alter a nomination that has been submitted and accepted.  "
-                        "If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz "
+                        f"If you feel a need to do this, please email {contact_email} "
                         "with a reason and we may be able to enable."
                     ),
                 )
@@ -4161,11 +4164,12 @@ class NominationView(CreateUpdateView):
                 return redirect("index")
             except Exception as ex:
                 capture_exception(ex)
+                contact_email = models.site_contact_email()
                 messages.error(
                     self.request,
                     _(
                         f"Failed to submit the nomination: {ex}. "
-                        "Please contact administration: pmscienceprizes@royalsociety.org.nz."
+                        f"Please contact administration: {contact_email}."
                     ),
                 )
         elif (

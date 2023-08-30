@@ -98,6 +98,12 @@ def __(s):
     return s
 
 
+def site_contact_email(site_id=None):
+    if site_id and site_id == 4 or settings.SITE_ID == 4:
+        return "puanga@royalsociety.org.nz"
+    return "pmscienceprizes@royalsociety.org.nz"
+
+
 GENDERS = Choices(
     (0, _("Prefer not to say")), (1, _("Male")), (2, _("Female")), (3, _("Gender diverse"))
 )
@@ -3144,11 +3150,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             ) % dict(inviter=by.full_name, url=url, site_name=site_name)
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
-            contact_email = (
-                "puanga@royalsociety.org.nz"
-                if site_id == 4
-                else "pmscienceprizes@royalsociety.org.nz"
-            )
+            contact_email = site_contact_email(site_id)
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
