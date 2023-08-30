@@ -2580,9 +2580,10 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
-            body = __(
+            body = (
                 "Tēnā koe,\n\n"
-                "You have been invited to be a referee for %(inviter)s's application to "
+                "You have been invited by %(inviter)s to be a referee for "
+                "%(main_applicant)s's application to "
                 "the %(application)s. \n\n"
                 "We strongly advise clicking on the Application Process before clicking  "
                 "on the portal link below: %(guidelines)s\n\n"
@@ -2590,14 +2591,16 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "If you have any further questions, please contact: pmscienceprizes@royalsociety.org.nz\n\n"
                 "Ngā mihi nui"
             ) % dict(
-                inviter=by,
+                inviter=by.full_name,
+                main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.application.round.get_guidelines(),
             )
-            html_body = __(
-                "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+            html_body = (
+                "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be "
+                "a referee for %(main_applicant)s's application to the "
                 "%(application)s application.</p>"
                 "<p>We strongly advise clicking on the Application Process <strong>before</strong> clicking  "
                 "on the portal link below.</p>"
@@ -2607,7 +2610,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "<p>If you have any further questions, please contact "
                 "<a href='mailto:pmscienceprizes@royalsociety.org.nz'>pmscienceprizes@royalsociety.org.nz</a></p>"
             ) % dict(
-                inviter=by,
+                inviter=by.full_name,
+                main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 site_name=site_name,
                 application=self.referee.application,

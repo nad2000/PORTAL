@@ -82,6 +82,8 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "username",
         "first_name",
         "last_name",
+        "orcid",
+        "emailaddress__email",
     ]
     list_filter = (
         "is_staff",
