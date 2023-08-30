@@ -756,7 +756,12 @@ class ApplicationAdmin(
 
     @admin.display(description="Main Applicant")
     def main_applicant(self, obj):
-        return obj.submitted_by.full_name_with_email
+        if obj.submitted_by:
+            return format_html(
+                '<a href="{0}" target="_blank">{1}</a>',
+                reverse("admin:users_user_change", kwargs={"object_id": obj.submitted_by.pk}),
+                f"{obj.submitted_by.full_name_with_email} : {obj.submitted_by.username}"
+            )
 
     @admin.display(description="Nomination")
     def nomination_url(self, obj):
@@ -1170,11 +1175,15 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
         "recipient",
         "subject",
     ]
+    readonly_fields = ["message", "html_message_content"]
     autocomplete_fields = ["user", "invitation"]
     search_fields = ["token", "recipient", "subject"]
-    exclude = ["site"]
+    exclude = ["site", "html_message"]
     list_filter = ["sent_at", "updated_at", "was_sent_successfully"]
     date_hierarchy = "sent_at"
+
+    def html_message_content(self, obj):
+        return mark_safe(obj.html_message)
 
 
 @admin.register(models.Nomination)

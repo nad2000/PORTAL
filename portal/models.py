@@ -12,6 +12,7 @@ from collections import OrderedDict
 from datetime import date, datetime
 from functools import lru_cache, partial, wraps
 from urllib.parse import urljoin, urlparse
+from django.utils.safestring import mark_safe
 
 import simple_history
 from admin_ordering.models import OrderableModel
@@ -3190,6 +3191,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 )
             ) % dict(
                 inviter=by.full_name,
+                main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
                 site_name=site_name,
@@ -3223,6 +3225,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 )
             ) % dict(
                 inviter=by.full_name,
+                main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
                 site_name=site_name,
@@ -5181,6 +5184,8 @@ class MailLog(Model):
     invitation = ForeignKey(Invitation, null=True, on_delete=SET_NULL)
     thread_index = CharField(max_length=100, null=True, blank=True)
     thread_topic = CharField(max_length=200, null=True, blank=True)
+    message = TextField(null=True, blank=True)
+    html_message = TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.recipient}: {self.token}/{self.sent_at}"

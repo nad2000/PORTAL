@@ -257,6 +257,8 @@ def send_mail(
             site=site,
             thread_index=thread_index,
             thread_topic=thread_topic,
+            message=message,
+            html_message=html_message,
         )
     if not resp:
         raise Exception(

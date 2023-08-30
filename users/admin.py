@@ -104,6 +104,8 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         "username",
         "first_name",
         "last_name",
+        "orcid",
+        "emailaddress__email",
     ]
     search_help_text = "username, name, first name, last name, or email"
     list_filter = (
