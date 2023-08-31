@@ -1434,6 +1434,10 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
             % (len(recipients), ", ".join(r.full_name_with_email for r in recipients)),
         )
 
+    @admin.display(description="invitee", ordering="email")
+    def full_name_with_email(self, obj):
+        return obj.full_name_with_email
+
     save_on_top = True
     view_on_site = False
     fsm_field = ["status"]
@@ -1444,13 +1448,11 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
         "token",
         "type",
         "status",
-        "email",
+        "full_name_with_email",
         "created_at",
         "sent_at",
-        "first_name",
-        "last_name",
-        "organisation",
         "updated_at",
+        "url",
     ]
     autocomplete_fields = [
         "inviter",
@@ -1461,7 +1463,14 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
         "panellist",
         "org",
     ]
-    list_filter = ["type", "status", "created_at", "updated_at"]
+
+    list_filter = [
+        ("org", admin.RelatedOnlyFieldListFilter),
+        "type",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
     search_fields = ["first_name", "last_name", "email", "token"]
     date_hierarchy = "created_at"
     readonly_fields = ["submitted_at", "accepted_at", "expired_at", "token", "url"]

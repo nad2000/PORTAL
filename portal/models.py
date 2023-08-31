@@ -1729,15 +1729,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if site_id == 4:
+        nomination = Nomination.where(application=self).last()
+        nominator = nomination and nomination.nominator
+        if site_id == 4 and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
-            nominator = self.nomination and self.nomination.nominator
             send_mail(
                 __("Application '%s' Submitted") % self,
                 html_message=__(
                     "<p>Kia ora %(nominator)s</p>"
-                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
-                    '"%(title)s</a></p>'
+                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: ' '"%title)s</a></p>'
                     "<p>Please reveiw and approve the submitted application.</p>"
                 )
                 % {
@@ -1758,9 +1758,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 thread_index=self.thread_index,
                 thread_topic=self.thread_topic,
             )
-        elif (
-            round.notify_nominator and self.nomination and (nominator := self.nomination.nominator)
-        ):
+        elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
             send_mail(
                 __("Application '%s' Submitted") % self,
