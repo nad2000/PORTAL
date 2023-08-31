@@ -127,7 +127,7 @@ class FormWithStatusFieldMixin:
         if instance := self.instance:
             attrs = self.fields["status"].widget.attrs
             invitation = getattr(instance, "invitation", None)
-            attrs["changed_at"] = (
+            changed_at = (
                 invitation
                 and invitation.status_changed_at
                 or instance.status_changed_at
@@ -135,6 +135,16 @@ class FormWithStatusFieldMixin:
             )
             attrs["invitation"] = invitation
             status = invitation and invitation.status or instance.status
+            if (
+                status == "accepted"
+                and instance
+                and instance.status
+                and instance.status != "new"
+                and (status != instance.status or instance.status_changed_at > changed_at)
+            ):
+                status = instance.status
+                changed_at = instance.status_changed_at
+            attrs["changed_at"] = changed_at
             attrs["status"] = status
             if status in ["bounced", "autoreplied"] and (error_message := instance.mail_log_error):
                 attrs["error_message"] = error_message

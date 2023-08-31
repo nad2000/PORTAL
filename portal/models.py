@@ -1997,7 +1997,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @classmethod
     def user_applications(
-        cls, user, state=None, round=None, select_related=True, include_inactive=True
+        cls, user, state=None, round=None, select_related=True, include_inactive=False
     ):
         q = cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
@@ -2418,11 +2418,15 @@ class Member(PersonMixin, MemberMixin, Model):
             i.accept(request)
             i.save()
 
-        if self.application.submitted_by.email:
+        if recipient_email := (
+            self.application.submitted_by
+            and self.application.submitted_by.email
+            or self.application.email
+        ):
             send_mail(
                 __("A team member accepted your invitation"),
                 __("Your team member %s has accepted your invitation.") % self,
-                recipient_list=[self.application.submitted_by.email],
+                recipient_list=[recipient_email],
                 fail_silently=False,
                 request=request,
                 reply_to=self.full_email_address,
@@ -3518,7 +3522,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     @fsm_log
     @transition(field=state, source=["new", "draft"], target="draft")
-    def save_draft(self, request=None, by=None):
+    def save_draft(self, request=None, by=None, *args, **kwargs):
         pass
 
     @fsm_log

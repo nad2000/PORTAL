@@ -2234,7 +2234,7 @@ class ApplicationView(LoginRequiredMixin):
                         and a.referees.filter(
                             ~Q(status__in=["bounced", "opted_out"])
                             if site_id == 4
-                            else Q(status == "testified")
+                            else Q(status="testified")
                         ).count()
                         < a.round.required_referees
                     ):
@@ -4418,8 +4418,9 @@ class TestimonialView(CreateUpdateView):
                 )
 
             elif "save_draft" in self.request.POST:
-                t.save_draft(request=self.request)
-                t.save()
+                if t.state != "draft":
+                    t.save_draft(request=self.request)
+                    t.save()
             elif "turn_down" in self.request.POST:
                 t.referee.opt_out()
                 t.referee.save()

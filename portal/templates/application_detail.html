@@ -262,7 +262,7 @@
                         {% endif %}>{% trans 'Approve' %}
                         </button -->
                 </span>
-                {% endif %}
+              {% endif %}
   </div>
 </form>
 
@@ -277,15 +277,17 @@
 <script>
   $(document).ready(function(){
     $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
-    $('#id_resolution_modal').on('shown.bs.modal', function (e) {
-      $("#id_resolution").focus();
-    });
-    $("input[type='submit']").on("click", function(e) {
-      e.preventDefault();
-      $('#id_action').val($(this).attr("name"));
-      $('#id_resolution_modal').modal({keyboard: true});
-      return false;
-    });
+    {% if is_ro %}
+      $('#id_resolution_modal').on('shown.bs.modal', function (e) {
+        $("#id_resolution").focus();
+      });
+      $("input[type='submit']").on("click", function(e) {
+        e.preventDefault();
+        $('#id_action').val($(this).attr("name"));
+        $('#id_resolution_modal').modal({keyboard: true});
+        return false;
+      });
+    {% endif %}
   });
 </script>
 {% endblock javascript %}
