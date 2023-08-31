@@ -2467,7 +2467,7 @@ class Member(PersonMixin, MemberMixin, Model):
         return cls.objects.raw(
             "SELECT DISTINCT m.* FROM member AS m JOIN account_emailaddress AS ae ON ae.email = m.email "
             "WHERE (m.user_id=%s OR ae.user_id=%s) "
-            "  AND (m.status IS NOT NULL OR m.status NOT IN ('authorized', 'opted_out'))",
+            "  AND NOT (m.status IS NULL OR m.status IN ('authorized', 'opted_out'))",
             [user.id, user.id],
         )
 
