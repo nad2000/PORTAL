@@ -2662,7 +2662,8 @@ class ApplicationCreate(ApplicationView, CreateView):
             if "round" in kwargs
             else models.Nomination.get(kwargs["nomination"]).round
         )
-        if r.panellists.all().filter(user=request.user).exists():
+        u = request.user
+        if r.panellists.all().filter(user=u).exists():
             messages.error(
                 self.request,
                 _("You are a panellist for this round. You cannot apply for this round: %s")
@@ -2670,12 +2671,35 @@ class ApplicationCreate(ApplicationView, CreateView):
             )
             return redirect("home")
 
-        a = models.Application.where(submitted_by=request.user, round=r).order_by("-id").first()
+        a = models.Application.where(submitted_by=u, round=r).order_by("-id").first()
         if a:
             messages.warning(
                 self.request, _("You have already created an application. Please update it.")
             )
             return redirect(reverse("application-update", kwargs=dict(pk=a.id)))
+
+        if nomination_id := request.GET.get("nomination"):
+            if n := models.Nomination.where(id=nomination_id).exists():
+                if u.email != n.email or not u.emailaddress_set.filter(email=n.email).exists():
+                    messages.error(
+                        self.request,
+                        _(
+                            "The nomination was not sent to your address. "
+                            "Please contact the portal administrators."
+                        ),
+                    )
+                    return redirect("home")
+
+        if (
+            not r.direct_application_allowed
+            and not nomination_id
+            and models.Nomination.where(id=nomination_id).exists()
+        ):
+            messages.error(
+                self.request, _("You cannot apply directly for this round without a nomination.")
+            )
+            return redirect("home")
+
         return super().get(request, *args, **kwargs)
 
     # def get_context_data(self, **kwargs):
@@ -2696,6 +2720,10 @@ class ApplicationCreate(ApplicationView, CreateView):
             if "round" in kwargs
             else models.Nomination.get(kwargs["nomination"]).round
             if "nomination" in kwargs
+            else models.Nomination.get(
+                self.request.GET.get("nomination") or self.request.POST.get("nomination")
+            ).round
+            if "nomination" in self.request.GET or "nomination" in self.request.POST
             else getattr(form.instance, "round")
         )
         if r and (a := models.Application.where(round=r, submitted_by=self.request.user).last()):
