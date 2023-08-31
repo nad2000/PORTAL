@@ -2153,7 +2153,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#ethics-statement")
 
                     if not a.is_tac_accepted:
-                        if a.sbmitted_by == user:
+                        if a.submitted_by == user:
                             messages.error(
                                 self.request,
                                 _(
@@ -3809,18 +3809,24 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         % (cf.file.url, os.path.basename(cf.file.name)),
                     )
 
-                if "next" in self.request.GET:
+                if next_url := self.request.GET.get("next"):
                     if (
                         cv := models.CurriculumVitae.where(owner=self.request.user)
                         .order_by("-id")
                         .first()
                     ):
-                        messages.info(
-                            self.request,
-                            _('A CV successfully uploaded: <a href="%s">%s</a>')
-                            % (cv.file.url, cv.filename),
+                        message_text = _('A CV successfully uploaded: <a href="%s">%s</a>') % (
+                            cv.file.url,
+                            cv.filename,
                         )
-                    return redirect(self.request.GET["next"])
+
+                        if "testimonials" in next_url:
+                            message_text = f"""{message_text}.<br/>
+                                    {_('''Now you can complete the submission of your referee report/testimonial.
+                                    <br/>Please click on the <strong>Submit</strong> button.''')}"""
+                        messages.info(self.request, message_text)
+
+                    return redirect(next_url)
             except Exception as ex:
                 capture_exception(ex)
                 messages.error(
