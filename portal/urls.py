@@ -198,7 +198,7 @@ urlpatterns = [
     ),
     path("start", views.index, name="start"),
     path("", views.index, name="index"),
-    # path("index", views.index, name="index"),
+    path("index", views.index, name="index0"),
     path("home", views.index, name="home"),
     path("index.html", views.index, name="index.html"),
     path("photo_identity", views.photo_identity, name="photo-identity"),

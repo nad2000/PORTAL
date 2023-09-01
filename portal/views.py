@@ -39,6 +39,7 @@ from django.db.models import (
     Func,
     OuterRef,
     ProtectedError,
+    Prefetch,
     Q,
     Subquery,
     Value,
@@ -654,7 +655,7 @@ def index(request):
     ).exists()
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if request.user.is_approved:
-        if is_ro and site_id != 4:
+        if is_ro and site_id != 4 and request.resolver_match.view_name == "index0":
             return render(request, "research_office_index.html", locals())
         outstanding_authorization_requests = models.Member.outstanding_requests(user)
         outstanding_testimonial_requests = models.Referee.outstanding_requests(user)
@@ -3820,7 +3821,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                             cv.filename,
                         )
 
-                        if "testimonials" in next_url:
+                        if "testimonials" in next_url or "reviews" in next_url:
                             message_text = f"""{message_text}.<br/>
                                     {_('''Now you can complete the submission of your referee report/testimonial.
                                     <br/>Please click on the <strong>Submit</strong> button.''')}"""
@@ -4473,7 +4474,10 @@ class TestimonialView(CreateUpdateView):
                 )
                 messages.info(
                     self.request,
-                    _("You opted out of Testimonial."),
+                    _(
+                        "You opted out of providing an application "
+                        "supporting referee report/testimonial."
+                    ),
                 )
                 reset_cache(self.request)
                 return redirect("testimonials")
@@ -5121,7 +5125,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
             queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
                 coi=FilteredRelation(
                     "conflict_of_interests",
-                    condition=Q(conflict_of_interests__panelist__user=user),
+                    condition=Q(conflict_of_interests__panellist__user=user),
                 )
             )
         else:
@@ -5435,6 +5439,32 @@ class EvaluationDetail(DetailView):
                 messages.error(request, _("You do not have permission to access this review."))
                 return self.handle_no_permission()
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, *args, **kwargs):
+        u = self.request.user
+        context = super().get_context_data(*args, **kwargs)
+        q = models.Application.where(
+            conflict_of_interests__panellist__user=u,
+            # conflict_of_interests__has_conflict=False,
+            round=F("round__scheme__current_round"),
+        ).prefetch_related(
+            Prefetch("evaluations", queryset=models.Evaluation.objects.filter(panellist__user=u)),
+            Prefetch(
+                "conflict_of_interests",
+                queryset=models.ConflictOfInterest.objects.filter(
+                    panellist__user=u, has_conflict=False
+                ),
+            ),
+        )
+        if q.count() > 0:
+            # context["applications"] = q.all()
+            q = q.annotate(evaluation_count=Count("evaluations"))
+            context["application_table"] = tables.RoundApplicationTable(
+                q.all(), request=self.request, exclude=("evaluation_count",),
+                order_by="number"
+            )
+
+        return context
 
     # def post(self, request, *args, **kwargs):
 

@@ -31,7 +31,7 @@ def portal_context(request):
         cache_control = request.META.get("HTTP_CACHE_CONTROL")
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             stats = cache.get(cache_key)
-        if has_refreshed or not stats:
+        if has_refreshed or not stats or request.resolver_match.view_name == "start":
             is_ro = models.ResearchOffice.where(user=u).exists()
             is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)

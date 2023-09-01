@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-
 {% load i18n tags django_bootstrap_breadcrumbs %}
+{% load django_tables2 %}
 
 {% block breadcrumbs %}
   {{ block.super }}
@@ -87,6 +87,14 @@
   <div class="collapse" id="details">
     <div class="card card-body">
 
+      {% if object.comment %}
+      <div class="row">
+        <div class="col border mb-4">
+          {{ object.comment|safe }}
+        </div>
+      </div>
+    {% endif %}
+
       <table class="table table-striped">
         <thead>
           <tr>
@@ -117,6 +125,10 @@
 
     </div>
   </div>
+
+  {% if application_table %}
+    {% render_table application_table %}
+  {% endif %}
 
 {% endblock %}
 
