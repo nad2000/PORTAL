@@ -1154,7 +1154,8 @@ def invite_team_members(request, application):
     count = 0
     members = list(
         models.Member.where(
-            ~Q(invitation__email=F("email")) | Q(status="sent") | Q(status__isnull=True)
+            ~Q(invitation__email=F("email")) | Q(status="sent") | Q(status__isnull=True),
+            application=application
         )
     )
     for m in members:
@@ -1180,7 +1181,8 @@ def invite_referee(request, application):
     # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
     referees = list(
         models.Referee.where(
-            ~Q(status__in=["testified", "accepted", "opted_out"]), ~Q(invitation__email=F("email"))
+            ~Q(status__in=["testified", "accepted", "opted_out"]), ~Q(invitation__email=F("email")),
+            application=application,
         )
     )
 
