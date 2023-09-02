@@ -363,6 +363,8 @@ def hash_int(
 
 User = get_user_model()
 
+simple_history.register(EmailAddress, app="portal", table_name="email_address_history")
+
 
 class ApplicationSiteManager(Manager):
     """Select only applications linked to the current site."""
@@ -1737,7 +1739,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 __("Application '%s' Submitted") % self,
                 html_message=__(
                     "<p>Kia ora %(nominator)s</p>"
-                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: ' '"%title)s</a></p>'
+                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
+                    '%(title)s</a></p>'
                     "<p>Please reveiw and approve the submitted application.</p>"
                 )
                 % {

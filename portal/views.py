@@ -804,7 +804,7 @@ def check_profile(request, token=None):
                     messages.warning(
                         request,
                         _(
-                            "The invitation was not sent to any of this profile's email addresses."
+                            "The invitation was not sent to any of this profile's email addresses. "
                             "Please use and log in with the account that is linked with the email "
                             "address that received the invitation."
                         ),
