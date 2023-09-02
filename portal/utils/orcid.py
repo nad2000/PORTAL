@@ -53,9 +53,12 @@ class OrcidHelper:
         return (None, False)
 
     def org_from_orcid_data(self, orcid_data):
-        org, _ = models.Organisation.objects.get_or_create(
-            name=orcid_data.get("organization").get("name")
-        )
+        org_name=orcid_data.get("organization").get("name")
+        if not (org := models.Organisation.where(name=org_name).last()):
+            org_code = models.default_organisation_code(org_name)
+            org, created = models.Organisation.objects.get_or_create(
+                name=org_name, code=org_code,
+            )
         # TODO: send a notification to admins about a new entry
         return org
 
