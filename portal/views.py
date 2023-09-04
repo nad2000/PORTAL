@@ -2281,27 +2281,28 @@ class ApplicationView(LoginRequiredMixin):
                         if not hasattr(form, "active_tab"):
                             form.active_tab = "categories"
 
-                    if (
-                        site_id == 4
-                        and a.round.has_fors
-                        and (
-                            not (
-                                fors_share_sum := a.application_fors.filter(code__is_stem=True)
-                                .aggregate(Sum("share"))
-                                .get("share__sum")
-                            )
-                            or fors_share_sum < 50
-                        )
-                    ):
-                        form.add_error(
-                            None,
-                            _(
-                                "At least 50% of the proposed research should fall under one or more of the "
-                                "ANZSRC STEM codes (excluding clinical sciences)."
-                            ),
-                        )
-                        if not hasattr(form, "active_tab"):
-                            form.active_tab = "categories"
+                    # if (
+                    #     site_id == 4
+                    #     and a.round.has_fors
+                    #     and (
+                    #         not (
+                    #             fors_share_sum := a.application_fors.filter(code__is_stem=True)
+                    #             .aggregate(Sum("share"))
+                    #             .get("share__sum")
+                    #         )
+                    #         or fors_share_sum < 50
+                    #     )
+                    # ):
+                    #     # form.add_error(
+                    #     #     None,
+                    #         # _(
+                    #         #     "Please make sure that at least 50% of the proposed "
+                    #         #     "research falls under one or more of the "
+                    #         #     "ANZSRC STEM codes (excluding clinical sciences)."
+                    #         # ),
+                    #     # )
+                    #     # if not hasattr(form, "active_tab"):
+                    #     #     form.active_tab = "categories"
 
                     if form.errors:
                         return self.form_invalid(form)
