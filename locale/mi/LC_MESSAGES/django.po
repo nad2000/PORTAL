@@ -27,7 +27,7 @@ msgid "English"
 msgstr "Reo Pākehā"
 
 #: config/settings/_base.py:43 config/settings/base.py:55
-msgid "Maori"
+msgid "Māori"
 msgstr "Reo Māori"
 
 #: portal/admin.py:35 portal/admin.py:36
@@ -151,7 +151,7 @@ msgstr "toru"
 
 #: portal/forms.py:366
 msgid "four"
-msgstr "wha"
+msgstr "whā"
 
 #: portal/forms.py:367
 msgid "five"
@@ -182,19 +182,19 @@ msgstr "Tātai Pūmanawa"
 #: portal/forms.py:409
 #, fuzzy
 #| msgid "research experience in years "
-msgid "Research experience in years requird"
+msgid "Research experience in years required"
 msgstr "Ngā tau e rangahau ana"
 
 #: portal/forms.py:420
 #, fuzzy
 #| msgid "You must add a budget spreadsheet before submitting the application"
-msgid "Need to attache a letter of support before submitting the application."
+msgid "Need to attach a letter of support before submitting the application."
 msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
 
 #: portal/forms.py:436
 #, fuzzy
 #| msgid "You must add a budget spreadsheet before submitting the application"
-msgid "Need to attache a CV before submitting the application."
+msgid "Need to attach a CV before submitting the application."
 msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
 
 #: portal/forms.py:468
@@ -470,7 +470,7 @@ msgstr ""
 
 #: portal/forms.py:963
 msgid ""
-"I affirm that I fulfil the eligibility reqirements for this scheme and that "
+"I affirm that I fulfil the eligibility requirements for this scheme and that "
 "my application abides by any rules as laid out in the scheme's guidelines. "
 "<br><br> I affirm that all information provided in this application is to "
 "the best of my knowledge true and correct."
@@ -1304,7 +1304,7 @@ msgstr ""
 
 #: portal/models.py:1294
 msgid "Keyword"
-msgstr ""
+msgstr "Ngā Kupumatua"
 
 #: portal/models.py:1328 portal/models.py:2296
 msgid "number"
@@ -1875,8 +1875,8 @@ msgid "the round cannot close before it opens."
 msgstr "kāore e taea te whiringa te kati i mua i tōna whakatūwheratanga"
 
 #: portal/models.py:4347
-msgid "Title (e.g. Dr, Professor)"
-msgstr "Taitara (e.g. Dr, Professor)"
+msgid "Title"
+msgstr "Taitara"
 
 #: portal/models.py:4368 portal/models.py:4409 portal/models.py:4439
 #, fuzzy
@@ -1887,7 +1887,7 @@ msgstr "Tātauira Mahere Pūtea"
 #: portal/models.py:4535
 #, fuzzy
 #| msgid "The panelist should comment their score"
-msgid "The panellist should comment their score"
+msgid "The panellist should comment on their score"
 msgstr "Me kōrero te kaiwhiriwhiri mō tana tatau"
 
 #: portal/models.py:4542
@@ -2028,7 +2028,7 @@ msgstr "Kāore anō kia whakaritea te tono, he putanga hukihuki rānei"
 #: portal/tables.py:43
 #, fuzzy
 #| msgid "The invitation was submitted"
-msgid "The temstimonial was just created"
+msgid "The testimonial was just created"
 msgstr "Kua tukuna te tono"
 
 #: portal/tables.py:45
@@ -2856,7 +2856,7 @@ msgstr "tono"
 #| "conflict of interest can export the application"
 msgid ""
 "The evaluation has been already submitted and the statement of the conflict "
-"of interst cannot be changed"
+"of interest cannot be changed"
 msgstr ""
 "Mā ngā kaitono me ngā kaiwhiriwhiri anake nā rātou te tauākī raru whaipānga "
 "i tuku e kaweatu te tono"
@@ -3519,7 +3519,7 @@ msgid "Nominate"
 msgstr "Kōhari"
 
 #: portal/templates/index.html:493 portal/templates/index.html:502
-msgid "TODO: Contact your Research Office and request a nomination"
+msgid "Contact your Research Office and request a nomination"
 msgstr ""
 
 #: portal/templates/index.html:505
@@ -4078,7 +4078,7 @@ msgstr "He raru whaipānga, kāore he raru whaipānga rānei mō ngātono katoa"
 
 #: portal/templates/portal/conflictofinterest_list.html:149
 #: portal/templates/score_sheet.html:21
-msgid "Conflict of Interests"
+msgid "Conflicts of Interest"
 msgstr "Ngā Raru Whaipānga"
 
 #: portal/templates/portal/conflictofinterest_list.html:185
@@ -5102,7 +5102,7 @@ msgstr "Mātauranga"
 
 #: portal/templates/snippets/application_detail_table.html:303
 msgid "Keyword(s)"
-msgstr ""
+msgstr "Ngā Kupumatua"
 
 #: portal/templates/snippets/copyright.html:25
 #: portal/templates/snippets/copyright.html:33
@@ -5296,7 +5296,7 @@ msgid "Thank you for subscribing to our newsletter."
 msgstr "Tēnā koe mōu i ohauru ki tā mātou kawerongo."
 
 #: portal/views.py:523 portal/views.py:532
-msgid "We will miss You"
+msgid "We will miss you"
 msgstr "E pōuri ana i tō wehenga"
 
 #: portal/views.py:570 portal/views.py:776 portal/views.py:846
