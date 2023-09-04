@@ -1875,6 +1875,7 @@ msgid "the round cannot close before it opens."
 msgstr "kāore e taea te whiringa te kati i mua i tōna whakatūwheratanga"
 
 #: portal/models.py:4347
+#: portal/templates/application-export.html:36 portal/templates/profile.html:40
 msgid "Title"
 msgstr "Taitara"
 
@@ -2719,10 +2720,6 @@ msgstr "kōwhiringa whakaputa"
 #: portal/templates/admin/edit_inline/tabular.html:30
 msgid "Delete?"
 msgstr ""
-
-#: portal/templates/application-export.html:36 portal/templates/profile.html:40
-msgid "Title"
-msgstr "Taitara"
 
 #: portal/templates/application.html:81
 msgid "We are processing your request.  Please be patient."
@@ -4056,12 +4053,6 @@ msgid ""
 "resubmit."
 msgstr ""
 
-#: portal/templates/portal/conflictofinterest_list.html:24
-#, fuzzy
-#| msgid "Conflict of Interest"
-msgid "Conflicts of Interest"
-msgstr "He Raru Whaipānga"
-
 #: portal/templates/portal/conflictofinterest_list.html:36
 msgid "First"
 msgstr "Tuatahi"
@@ -4078,6 +4069,7 @@ msgstr "He raru whaipānga, kāore he raru whaipānga rānei mō ngātono katoa"
 
 #: portal/templates/portal/conflictofinterest_list.html:149
 #: portal/templates/score_sheet.html:21
+#: portal/templates/portal/conflictofinterest_list.html:24
 msgid "Conflicts of Interest"
 msgstr "Ngā Raru Whaipānga"
 
