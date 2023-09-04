@@ -1706,7 +1706,7 @@ class RoundAdmin(
             exclude.extend(
                 [
                     "applicant_cv_required",
-                    "direct_application_allowed",
+                    # "direct_application_allowed",
                     "ethics_statement_required",
                     "letter_of_support_required",
                 ]

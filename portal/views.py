@@ -791,8 +791,8 @@ def check_profile(request, token=None):
                     Q(status__isnull=True)
                     | Q(status__in=["draft", "submitted", "sent", "bounced"])
                     | Q(email=u.email)
-                    | Q(email__in=u.email_addresses).order_by("-id").first()
-                )
+                    | Q(email__in=u.email_addresses)
+                ).order_by("-id").first()
             ) and i.token:
                 token = i.token
 
@@ -1173,7 +1173,7 @@ def invite_team_members(request, application):
     return count
 
 
-def invite_referee(request, application):
+def invite_referee(request, application, by=None):
     """Send invitations to all referee."""
     # members that don't have invitations
     count = 0
@@ -1189,7 +1189,7 @@ def invite_referee(request, application):
     )
 
     for r in referees:
-        get_or_create_referee_invitation(r, by=request.user)
+        get_or_create_referee_invitation(r, by=by or request and request.user)
 
     # send 'yet unsent' invitations:
     invitations = list(
@@ -1201,7 +1201,7 @@ def invite_referee(request, application):
         ).prefetch_related("referee", "referee__user")
     )
     for i in invitations:
-        i.send(request)
+        i.send(request, by=by or request and request.user)
         i.save()
         if i.referee:
             i.referee.send()

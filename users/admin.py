@@ -77,7 +77,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                     "is_approved",
                     "is_identity_verified",
                     "is_active",
-                    # "is_staff",
+                    "is_staff",
                     "is_site_staff",
                     "staff_of_sites",
                     "is_superuser",
