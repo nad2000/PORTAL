@@ -4543,7 +4543,7 @@ class Criterion(Model):
 
     round = ForeignKey(Round, on_delete=CASCADE, related_name="criteria")
     definition = TextField(max_length=200)
-    comment = BooleanField(default=True, help_text=_("The panellist should comment their score"))
+    comment = BooleanField(default=True, help_text=_("The panellist should comment on their score"))
     min_score = PositiveSmallIntegerField(default=0)
     max_score = PositiveSmallIntegerField(default=10)
     scale = SmallIntegerField(null=True, blank=True)

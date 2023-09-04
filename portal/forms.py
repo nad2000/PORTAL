@@ -418,7 +418,7 @@ class ApplicationForm(forms.ModelForm):
                 cleaned_data.get("research_experience_in_years")
             ):
                 self.add_error(
-                    "research_experience_in_years", _("Research experience in years requird")
+                    "research_experience_in_years", _("Research experience in years required")
                 )
 
     def clean_letter_of_support_file(self):
@@ -429,7 +429,7 @@ class ApplicationForm(forms.ModelForm):
                 self.cleaned_data.get("letter_of_support_file") or self.instance.letter_of_support
             ):
                 raise forms.ValidationError(
-                    _("Need to attache a letter of support before submitting the application."),
+                    _("Need to attach a letter of support before submitting the application."),
                 )
 
         return self.cleaned_data.get("letter_of_support_file")
@@ -445,7 +445,7 @@ class ApplicationForm(forms.ModelForm):
                 and settings.SITE_ID != 4
             ):
                 raise forms.ValidationError(
-                    _("Need to attache a CV before submitting the application."),
+                    _("Need to attach a CV before submitting the application."),
                 )
 
         return self.cleaned_data.get("cv_file")
@@ -971,7 +971,7 @@ class ApplicationForm(forms.ModelForm):
                     )
                 elif site_id == 2:
                     tac_text = _(
-                        "I affirm that I fulfil the eligibility reqirements for this scheme "
+                        "I affirm that I fulfil the eligibility requirements for this scheme "
                         "and that my application abides by any rules as laid out in the scheme's guidelines. <br><br> "
                         "I affirm that all information provided in this application is "
                         "to the best of my knowledge true and correct."

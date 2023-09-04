@@ -10,12 +10,12 @@ SEX_CHOICES = Choices("female", "male", "other")
 
 ETHNICITY_COICES = Choices(
     "European",
-    "Maori",
+    "Māori",
     "Chinese",
     "Indian",
     "Samoan",
     "Tongan",
-    "Cook Islands Maori",
+    "Cook Islands Māori",
     "English",
     "Filipino",
     "New Zealander",

@@ -40,7 +40,7 @@ class StatusColumn(tables.Column):
                 if isinstance(record, (models.Testimonial, models.Application)):
                     css_classes = "far fa-times-circle text-danger text-center"
                     if isinstance(record, models.Testimonial):
-                        title = _("The temstimonial was just created")
+                        title = _("The testimonial was just created")
                     else:
                         title = _("The application was just created")
                 else:
@@ -456,7 +456,7 @@ class EvaluationTable(tables.Table):
         )
 
 
-class RoundConflictOfInterstSatementTable(tables.Table):
+class RoundConflictOfInterestSatementTable(tables.Table):
     number = tables.Column(linkify=lambda record: record.application.get_absolute_url())
     has_conflict = tables.Column()
     first_name = tables.Column()

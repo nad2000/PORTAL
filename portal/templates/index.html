@@ -490,7 +490,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% if is_panellist or not round.is_open or SITE_ID == 4 and is_ro %}
                    disabled
                    {% if SITE_ID == 4 and not is_ro %}
-                   data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}."
+                   data-title="{% trans 'Contact your Research Office and request a nomination' %}."
                    {% elif is_panellist %}
                    data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
                    {% elif round.will_open %}
@@ -499,7 +499,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
                    {% endif %}
                    {% else %}
-                   data-title="{% trans 'TODO: Contact your Research Office and request a nomination' %}"
+                   data-title="{% trans 'Contact your Research Office and request a nomination' %}"
                    {% endif %}
                    >
                    <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and is_ro %}disabled{% endif %}" style="text-transform: uppercase;" onclick="contact_ro({{round.id}}); return false;" {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>

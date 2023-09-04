@@ -522,7 +522,7 @@ def confirm_subscription(request, token):
             request,
             _("Thank you for subscribing to our newsletter.")
             if is_confirmed
-            else _("We will miss You"),
+            else _("We will miss you"),
         )
         return redirect("index")
     messages.info(request, _("Thank you for subscribing to our newsletter."))
@@ -531,7 +531,7 @@ def confirm_subscription(request, token):
 
 def unsubscribe(request, token):
     get_object_or_404(models.MailLog, token=token)
-    messages.success(request, _("We will miss You"))
+    messages.success(request, _("We will miss you"))
     return redirect("index")
 
 
@@ -2337,6 +2337,29 @@ class ApplicationView(LoginRequiredMixin):
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         url = self.continue_url("referees")
                         return redirect(url)
+                    else:
+                        if (
+                            site_id == 4
+                            and a.round.has_fors
+                            and a.fors.count() > 0
+                            and (
+                                not (
+                                    fors_share_sum := a.application_fors.filter(code__is_stem=True)
+                                    .aggregate(Sum("share"))
+                                    .get("share__sum")
+                                )
+                                or fors_share_sum < 50
+                            )
+                        ):
+                            messages.warning(
+                                self.request,
+                                _(
+                                    "Please make sure that at least 50% of the proposed "
+                                    "research falls under one or more of the "
+                                    "ANZSRC STEM codes (excluding clinical sciences)."
+                                ),
+                            )
+
             except Exception as e:
                 capture_exception(e)
                 messages.error(self.request, str(e))
@@ -5743,7 +5766,7 @@ def export_score_sheet(request, round):
 class RoundConflictOfInterstSatementList(LoginRequiredMixin, ExportMixin, SingleTableView):
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.ConflictOfInterest
-    table_class = tables.RoundConflictOfInterstSatementTable
+    table_class = tables.RoundConflictOfInterestSatementTable
     paginator_class = django_tables2.paginators.LazyPaginator
     template_name = "table.html"
 
@@ -5841,7 +5864,7 @@ def score_sheet(request, round):
 class RoundScoreList(AdminRequiredMixin, ExportMixin, SingleTableView):
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.Application
-    # table_class = tables.RoundConflictOfInterstSatementTable
+    # table_class = tables.RoundConflictOfInterestSatementTable
     paginator_class = django_tables2.paginators.LazyPaginator
     # template_name = "rounds_conflict_of_interest.html"
     template_name = "table.html"

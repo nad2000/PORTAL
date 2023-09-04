@@ -18,7 +18,7 @@
 <p class="lead">{% blocktrans %}Here you can uploade a score sheet for the all application you gave the statement of the conflict of interest in the round "{{ round }}"{% endblocktrans %}</p>
   <hr class="my-4">
   <p>{% blocktrans %}Your can amend and resubmit the statements of the conflict of interest for the round "{{ round }}"{% endblocktrans %}</p>
-  <a class="btn btn-primary btn-lg" href="{% url 'round-coi' round=round.id %}" role="button">{% trans 'Conflict of Interests' %}</a>
+  <a class="btn btn-primary btn-lg" href="{% url 'round-coi' round=round.id %}" role="button">{% trans 'Conflicts of Interest' %}</a>
 </div>
 
   {% crispy form %}
