@@ -38,10 +38,11 @@ from django.db.models import (
     FilteredRelation,
     Func,
     OuterRef,
-    ProtectedError,
     Prefetch,
+    ProtectedError,
     Q,
     Subquery,
+    Sum,
     Value,
 )
 from django.db.models.functions import Coalesce
@@ -1155,7 +1156,7 @@ def invite_team_members(request, application):
     members = list(
         models.Member.where(
             ~Q(invitation__email=F("email")) | Q(status="sent") | Q(status__isnull=True),
-            application=application
+            application=application,
         )
     )
     for m in members:
@@ -1181,7 +1182,8 @@ def invite_referee(request, application):
     # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
     referees = list(
         models.Referee.where(
-            ~Q(status__in=["testified", "accepted", "opted_out"]), ~Q(invitation__email=F("email")),
+            ~Q(status__in=["testified", "accepted", "opted_out"]),
+            ~Q(invitation__email=F("email")),
             application=application,
         )
     )
@@ -2265,9 +2267,44 @@ class ApplicationView(LoginRequiredMixin):
                                         "documents before submitting the application."
                                     ),
                                 )
-                        form.active_tab = "summary"
-                        if form.errors:
-                            return self.form_invalid(form)
+                                if not hasattr(form, "active_tab"):
+                                    form.active_tab = "summary"
+
+                    if site_id == 4 and a.round.has_seos and a.application_seos.count() > 3:
+                        form.add_error(
+                            None,
+                            _(
+                                "Please enter up to THREE SEO codes from the drop-down "
+                                "field, using codes that are as specific as possible."
+                            ),
+                        )
+                        if not hasattr(form, "active_tab"):
+                            form.active_tab = "categories"
+
+                    if (
+                        site_id == 4
+                        and a.round.has_fors
+                        and (
+                            not (
+                                fors_share_sum := a.application_fors.filter(code__is_stem=True)
+                                .aggregate(Sum("share"))
+                                .get("share__sum")
+                            )
+                            or fors_share_sum < 50
+                        )
+                    ):
+                        form.add_error(
+                            None,
+                            _(
+                                "At least 50% of the proposed research should fall under one or more of the "
+                                "ANZSRC STEM codes (excluding clinical sciences)."
+                            ),
+                        )
+                        if not hasattr(form, "active_tab"):
+                            form.active_tab = "categories"
+
+                    if form.errors:
+                        return self.form_invalid(form)
 
                     if url:
                         return redirect(url)
@@ -5462,8 +5499,7 @@ class EvaluationDetail(DetailView):
             # context["applications"] = q.all()
             q = q.annotate(evaluation_count=Count("evaluations"))
             context["application_table"] = tables.RoundApplicationTable(
-                q.all(), request=self.request, exclude=("evaluation_count",),
-                order_by="number"
+                q.all(), request=self.request, exclude=("evaluation_count",), order_by="number"
             )
 
         return context

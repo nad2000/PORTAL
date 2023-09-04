@@ -234,6 +234,26 @@
       </tr>
     {% endif %}
 
+    {% if a.round.has_seos and a.application_seos.count > 0 %}
+      <tr>
+        <th class="table-dark" scope="row">{% trans 'Socio-Economic Objective(s)' %}</th>
+        <td colspan="3">
+          <table class="table table-striped table-bordered">
+            <tr>
+              <th>Socio-Economic Objective</th>
+              <th>Share</th>
+            </tr>
+            {% for r in a.application_seos.all %}
+              <tr>
+                <td>{{ r.code }}</td>
+                <td>{{ r.share }}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        </td>
+      </tr>
+    {% endif %}
+
     {% if a.round.has_fors and a.application_fors.count > 0 %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Field(s) of Research' %}</th>
