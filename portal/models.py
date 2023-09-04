@@ -1740,7 +1740,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 html_message=__(
                     "<p>Kia ora %(nominator)s</p>"
                     '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
-                    '%(title)s</a></p>'
+                    "%(title)s</a></p>"
                     "<p>Please reveiw and approve the submitted application.</p>"
                 )
                 % {
@@ -4353,7 +4353,9 @@ class Round(Model):
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
     document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
-    title = CharField(_("Title (e.g. Dr, Professor)"), max_length=200, null=True, blank=True)
+    title = CharField(
+        _("Title"), max_length=200, null=True, blank=True, help_text=_("Title (e.g. Dr, Professor")
+    )
     is_optional = BooleanField(default=False)
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
