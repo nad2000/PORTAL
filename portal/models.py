@@ -3211,7 +3211,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             )
             html_body = (
                 (
-                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+                    "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
+                    "for %(main_applicant)s's application to the "
                     "%(application)s application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
@@ -3223,7 +3224,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 )
                 if survey_url
                 else (
-                    "<p>Tēnā koe,</p><p>You have been invited to be a referee for %(inviter)s's application to the "
+                    "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
+                    "for %(main_applicant)s's application to the "
                     "%(application)s application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
