@@ -137,7 +137,7 @@ class PersonMixin:
     @property
     def full_email_address(self):
         user = self.get_user()
-        email = getattr(self, "email", None) or user.email
+        email = getattr(self, "email", None) or user and user.email
         if full_name := self.full_name:
             return f'"{full_name}" <{email}>'
         return email
