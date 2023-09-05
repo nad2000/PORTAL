@@ -792,7 +792,9 @@ def check_profile(request, token=None):
                     | Q(status__in=["draft", "submitted", "sent", "bounced"])
                     | Q(email=u.email)
                     | Q(email__in=u.email_addresses)
-                ).order_by("-id").first()
+                )
+                .order_by("-id")
+                .first()
             ) and i.token:
                 token = i.token
 
@@ -1173,31 +1175,41 @@ def invite_team_members(request, application):
     return count
 
 
-def invite_referee(request, application, by=None):
+def invite_referee(request, application=None, by=None, referees=None):
     """Send invitations to all referee."""
     # members that don't have invitations
     count = 0
     # referees = list(models.Referee.where(application=application, invitation__isnull=True))
     # referees = list(models.Referee.where(invitation__isnull=True))
     # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
-    referees = list(
-        models.Referee.where(
-            ~Q(status__in=["testified", "accepted", "opted_out"]),
-            ~Q(invitation__email=F("email")),
-            application=application,
+    if not referees:
+        referees = list(
+            models.Referee.where(
+                ~Q(status__in=["testified", "accepted", "opted_out"]),
+                ~Q(invitation__email=F("email")),
+                application=application,
+            ).prefetch_related("application", "application__submitted_by")
         )
-    )
 
     for r in referees:
-        get_or_create_referee_invitation(r, by=by or request and request.user)
+        get_or_create_referee_invitation(
+            r, by=r.application.submitted_by or by or request and request.user
+        )
 
     # send 'yet unsent' invitations:
     invitations = list(
-        models.Invitation.where(
-            Q(sent_at__isnull=True),
-            ~Q(status__in=["accepted", "expired", "bounced", "revoked"]),
-            application=application,
-            type="R",
+        (
+            models.Invitation.where(
+                Q(sent_at__isnull=True),
+                ~Q(status__in=["accepted", "expired", "bounced", "revoked"]),
+                application=application,
+                type="R",
+            )
+            if application
+            else models.Invitation.where(
+                ~Q(status__in=["accepted", "expired", "bounced", "revoked"]),
+                referee__in=Subquery(referees.values("id")),
+            )
         ).prefetch_related("referee", "referee__user")
     )
     for i in invitations:

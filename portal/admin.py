@@ -30,6 +30,8 @@ from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from . import models
+from . import views
+
 
 admin.site.site_url = "/start"
 admin.site.site_header = _("Portal Administration")
@@ -1015,6 +1017,17 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     ]
     inlines = [StateLogInline]
 
+    readonly_fields = ("invitation_link",)
+
+    @admin.display(description="invitation")
+    def invitation_link(self, obj):
+        if obj.invitation:
+            return mark_safe(
+                '<a href="{}" target="_blank">{}</a>'.format(
+                    reverse("admin:portal_invitation_change", args=(obj.invitation.pk,)), obj.invitation
+                )
+            )
+
     def has_testified(self, obj):
         return obj.status == "testified"
 
@@ -1022,6 +1035,14 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
+
+    actions = ["send_invitations"]
+
+    @admin.action(description="Send the referee invitations")
+    def send_invitations(self, request, queryset):
+        count = views.invite_referee(request, by=request.user, referees=queryset)
+
+        messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
 
 
 @admin.register(models.Member)

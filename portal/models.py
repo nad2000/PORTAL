@@ -2769,6 +2769,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         if ml := MailLog.where(invitation__panellist=self, error__isnull=False).last():
             return ml.error
 
+    # TODO: refactor and move to a common mixin
     def get_or_create_invitation(self, by=None):
         u = self.user or User.objects.filter(email=self.email).first()
         if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
@@ -4543,7 +4544,9 @@ class Criterion(Model):
 
     round = ForeignKey(Round, on_delete=CASCADE, related_name="criteria")
     definition = TextField(max_length=200)
-    comment = BooleanField(default=True, help_text=_("The panellist should comment on their score"))
+    comment = BooleanField(
+        default=True, help_text=_("The panellist should comment on their score")
+    )
     min_score = PositiveSmallIntegerField(default=0)
     max_score = PositiveSmallIntegerField(default=10)
     scale = SmallIntegerField(null=True, blank=True)
