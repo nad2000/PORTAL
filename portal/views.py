@@ -3824,7 +3824,7 @@ class SeoAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             if self.q.isdecimal():
                 q = q.filter(code__contains=self.q)
             else:
-                q = q.fiter(description__icontains=self.q)
+                q = q.filter(description__icontains=self.q)
             return q.order_by("description")
         return q
 
