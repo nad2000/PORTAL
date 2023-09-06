@@ -5244,7 +5244,7 @@ class ScoreSheet(Model):
         db_table = "score_sheet"
 
 
-def clean_private_fils():
+def clean_private_fils(dry_run=False):
     root_dir = settings.PRIVATE_STORAGE_ROOT
     total = 0
 
@@ -5261,6 +5261,7 @@ def clean_private_fils():
                 or (
                     rel_dir.startswith("ids/")
                     and not IdentityVerification.where(file=filename).exists()
+                    and not Application.where(photo_identity=filename).exists()
                 )
                 or (
                     rel_dir.startswith("score-sheeets/")
@@ -5291,10 +5292,15 @@ def clean_private_fils():
                     rel_dir.startswith("statements/")
                     and not EthicsStatement.where(file=filename).exists()
                 )
+                or (
+                    rel_dir.startswith("budget/")
+                    and not Application.where(budget=filename).exists()
+                )
             ):
                 full_filename = os.path.join(root_dir, filename)
                 size = os.path.getsize(full_filename)
-                os.remove(os.path.join(root_dir, filename))
+                if dry_run:
+                    os.remove(full_filename)
                 print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
                 total += size
 
