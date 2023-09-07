@@ -4495,8 +4495,7 @@ msgstr ""
 "Mō ngā kairangahau kei Aotearoa, e tonoa ana he tāhuhu tangata onāianei i "
 "roto i te           <a href=\"https://www.royalsociety.org.nz/assets/"
 "documents/NZ-RST-CV-Template.doc\">Tauira Tāhuhu Tangata NZ RST CV</a>.\n"
-"Mō ētahi atu, me tuku mai he tāhuhu tangata ki te takotoranga e hiahia ana "
-"koe."
+"        "
 
 #: portal/templates/profile_section.html:39
 #, fuzzy
@@ -4556,7 +4555,7 @@ msgstr ""
 
 #: portal/templates/profile_section.html:54
 msgid "All others, please provide a CV in whatever is your preferred format."
-msgstr ""
+msgstr "Mō ētahi atu, me tuku mai he tāhuhu tangata ki te takotoranga e hiahia ana koe."
 
 #: portal/templates/profile_section.html:56
 msgid ""
