@@ -164,9 +164,9 @@ def send_mail(
         recipient_list = [
             r.lower()
             if isinstance(r, str)
-            else r.full_email_address
-            if isinstance(r, models.User)
             else f"{r[0]} <{r[1].lower()}>"
+            if isinstance(r, (tuple, list))
+            else r.full_email_address
             for r in recipient_list
         ]
 
