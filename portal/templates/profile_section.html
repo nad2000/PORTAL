@@ -30,22 +30,22 @@
         Please DO NOT enter personal identifiers such as IRD Number, National Student Number or National Health Number.
       {% endblocktrans %}
     {% elif view_name == "profile-cvs" %}
-      {% blocktrans %}
-        Curriculum Vitae are required from the following:
-        <ul>
-          <li>Team leaders and sole applicants with the exception of the Future Scientist Prize.
-            Applicants for the Future Scientist Prize DO NOT need to provide a CV.</li>
-          <li>Nominators for the Science Teacher Prize</li>
-          <li>Referees for all prizes with the exception of the Future Scientist and Science Teacher Prizes</li>
-        </ul>
-        If in doubt skip this step, and when required a CV will be requested.<br><br>
-      {% endblocktrans %}
       {% if SITE_ID == 4 %}
         {% blocktrans %}
           For NZ-based researchers, a current CV in the
-          <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is required.
+          <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is requested.
         {% endblocktrans %}
       {% else %}
+        {% blocktrans %}
+          Curriculum Vitae are required from the following:
+          <ul>
+            <li>Team leaders and sole applicants with the exception of the Future Scientist Prize.
+              Applicants for the Future Scientist Prize DO NOT need to provide a CV.</li>
+            <li>Nominators for the Science Teacher Prize</li>
+            <li>Referees for all prizes with the exception of the Future Scientist and Science Teacher Prizes</li>
+          </ul>
+          If in doubt skip this step, and when required a CV will be requested.<br><br>
+        {% endblocktrans %}
         {% blocktrans %}
           For NZ-based researchers, a current CV in the
           <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.

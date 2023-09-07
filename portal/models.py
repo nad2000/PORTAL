@@ -3607,7 +3607,7 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
     profile = ForeignKey(Profile, on_delete=CASCADE, verbose_name=_("profile"))
     owner = ForeignKey(User, on_delete=CASCADE, verbose_name=_("owner"))
     title = CharField(
-        _("title"),
+        _("Title or name"),
         max_length=200,
         null=True,
         blank=True,
@@ -5387,12 +5387,19 @@ def add_title_data(apps, schema_editor):
 
 
 dummy_for_translations = (
-    _("previous"),
-    _("next"),
     _("Browse"),
-    _("browse"),
+    _("Currently"),
+    _("Change"),
+    _("More"),
+    _("Ooops!!! 500"),
+    _("Read"),
     _("State"),
+    _("Value"),
+    _("browse"),
+    _("next"),
+    _("previous"),
     _("state"),
+    _("value"),
 )
 
 # vim:set ft=python.django:

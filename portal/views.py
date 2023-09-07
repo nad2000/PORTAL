@@ -3834,7 +3834,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
     factory_kwargs = {
         "exclude": ["converted_file"],
-        "labels": {"title": _("Title or name")},
+        # "labels": {"title": _("Title or name")},
     }
 
     def get_factory_kwargs(self):
