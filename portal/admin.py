@@ -300,7 +300,7 @@ class LanguageAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
 
 
 @admin.register(models.FieldOfStudy)
-class FieldOfStudyAdmin(ExportActionMixin, ImportExportModelAdmin):
+class FieldOfStudyAdmin(ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -323,7 +323,7 @@ class FieldOfStudyAdmin(ExportActionMixin, ImportExportModelAdmin):
 
 
 @admin.register(models.SocioEconomicObjective)
-class SocioEconomicObjectiveAdmin(ExportActionMixin, ImportExportModelAdmin):
+class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -350,7 +350,7 @@ class SocioEconomicObjectiveAdmin(ExportActionMixin, ImportExportModelAdmin):
 
 
 @admin.register(models.FieldOfResearch)
-class FieldOfResearchAdmin(ExportActionMixin, ImportExportModelAdmin):
+class FieldOfResearchAdmin(ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
