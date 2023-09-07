@@ -1580,7 +1580,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if n := Nomination.where(application=self).last():
             idx = n.id
         else:
-            idx = self.application_id
+            idx = self.id
         return base64.b64encode(f"{self.site_id}:{idx}".encode()).decode()
 
     @property
