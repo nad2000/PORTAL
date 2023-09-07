@@ -22,12 +22,13 @@ class StatusColumn(tables.Column):
     attrs = {"td": {"class": "align-middle text-center"}}
 
     def render(self, value, record):
-        if not value:
+        status = getattr(record, "state", None) or getattr(record, "status", None) or value
+        if not status:
             return mark_safe(
                 '<i class="far fa-question-circle text-dark text-center" aria-hidden="true"></i>'
             )
-        elif value in ["new", "draft"]:
-            if value == "draft":
+        elif status in ["new", "draft"]:
+            if status == "draft":
                 if isinstance(record, (models.Testimonial, models.Application)):
                     css_classes = "far fa-times-circle text-danger text-center"
                     title = _("Work in progress")
@@ -46,22 +47,22 @@ class StatusColumn(tables.Column):
                 else:
                     title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
-        elif value == "sent":
+        elif status == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
-        elif value == "accepted":
+        elif status == "accepted":
             css_classes = "far fa-envelope-open text-success text-center"
             title = _("The invitation was accepted")
-        elif value == "testified":
+        elif status == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
             title = _("The testimonial was submitted")
-        elif value == "opted_out":
+        elif status == "opted_out":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("The invitee has turned down the nomination")
-        elif value == "bounced":
+        elif status == "bounced":
             css_classes = "fa fa-exclamation-triangle text-danger text-center"
             title = _("The invitation failed or autoreplied. Please check the recipient")
-        elif value == "submitted":
+        elif status == "submitted":
             css_classes = "fa fa-check text-success text-center"
             if isinstance(record, models.Testimonial):
                 title = _("The testimonial was completed and submitted")
@@ -69,10 +70,10 @@ class StatusColumn(tables.Column):
                 title = _("The application was completed and submitted")
             else:
                 title = _("The invitation was submitted")
-        elif value == "cancelled":
+        elif status == "cancelled":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("The application was cancelled")
-        elif value == "approved":
+        elif status == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
             title = _("The application was approved")
         else:

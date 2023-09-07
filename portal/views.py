@@ -4584,14 +4584,15 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
         u = self.request.user
         status = self.request.path.split("/")[-1]
         if not (u.is_superuser or u.is_staff):
-            if not status or (status == "submitted" or "submitted" in status):
-                queryset = queryset.filter(
-                    Q(nominator=u)
-                    | Q(
-                        Q(Q(user=u) | Q(email=u.email)),
-                        status="submitted",
-                    )
+            # if not status or (status == "submitted" or "submitted" in status):
+            queryset = queryset.filter(
+                Q(nominator=u)
+                | Q(nominator__research_offices__user=u)
+                | Q(
+                    Q(Q(user=u) | Q(email=u.email)),
+                    status="submitted",
                 )
+            ).distinct()
         queryset = queryset.filter(round__scheme__current_round=F("round"))
         if status == "draft":
             queryset = queryset.filter(status__in=[status, "new"])
