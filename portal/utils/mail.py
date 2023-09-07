@@ -155,14 +155,19 @@ def send_mail(
     token=None,
     convert_to_html=False,
     thread_topic=None,
-    thread_index=None
+    thread_index=None,
 ):
     site = (invitation and invitation.site) or Site.objects.get_current()
     domain = request and request.get_host() or site.domain
     root = f"https://{domain}"
     if recipient_list and isinstance(recipient_list, (list, tuple)):
         recipient_list = [
-            r.lower() if isinstance(r, str) else f"{r[0]} <{r[1].lower()}>" for r in recipient_list
+            r.lower()
+            if isinstance(r, str)
+            else r.full_email_address
+            if isinstance(r, models.User)
+            else f"{r[0]} <{r[1].lower()}>"
+            for r in recipient_list
         ]
 
     if not from_email:

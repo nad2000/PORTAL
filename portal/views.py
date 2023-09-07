@@ -4485,7 +4485,7 @@ class TestimonialView(CreateUpdateView):
                     params = {
                         "user_display": ", ".join(r.full_name for r in recipients),
                         "number": a.number,
-                        "title": a.title or a.round.title,
+                        "title": a.application_title or a.round.title,
                         "url": url,
                     }
                     send_mail(
@@ -4513,7 +4513,7 @@ class TestimonialView(CreateUpdateView):
                             "%(title)s</a></p>"
                         )
                         % params,
-                        recipient_list=[r.full_email_address for r in recipients],
+                        recipient_list=recipients,
                         fail_silently=False,
                         request=self.request,
                         reply_to=settings.DEFAULT_FROM_EMAIL,
