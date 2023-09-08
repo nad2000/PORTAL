@@ -159,7 +159,7 @@ class User(HelperMixin, AbstractUser, PersonMixin):
             url += urlencode(queries)
         return url
 
-    @property
+    @cached_property
     def email_addresses(self):
         """All user email addresses"""
         # return [self.email, *(r[0] for r in self.emailaddress_set.values_list("email"))]

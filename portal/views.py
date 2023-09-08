@@ -662,7 +662,10 @@ def index(request):
         outstanding_testimonial_requests = models.Referee.outstanding_requests(user)
         outstanding_review_requests = models.Panellist.outstanding_requests(user)
         outstanding_nominations = models.Nomination.where(
-            status__in=["sent", "submitted"], user=user
+            Q(user=user)
+            | Q(email=user.email)
+            | Q(email__in=Subquery(user.emailaddress_set.values("email"))),
+            status__in=["sent", "submitted"],
         )
         draft_applications = models.Application.user_draft_applications(user).filter(
             ~Q(round__panellists__user=user),
@@ -4273,6 +4276,7 @@ class NominationView(CreateUpdateView):
                     )
                     % invitation.email,
                 )
+                n.save()
                 reset_cache(self.request)
                 return redirect("index")
             except Exception as ex:
