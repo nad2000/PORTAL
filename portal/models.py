@@ -4988,9 +4988,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         )
         i.send(*args, **kwargs)
         i.save()
-        if not created:
-            return (i, False)
-        return (i, True)
+        return (i, created)
 
     @fsm_log
     @transition(
