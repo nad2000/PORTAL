@@ -16,7 +16,7 @@ from email.header import decode_header, make_header
 import django
 from django.db import transaction
 
-EMAIL_EX = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 
 
 if __name__ == "__main__":
@@ -57,6 +57,15 @@ if __name__ == "__main__":
 
     for part in msg.walk():
         content_type = part.get_content_type()
+        if content_type == "message/delivery-status":
+            for line in part.as_string().splitlines():
+                if line and re.search(r"(final-recipient|original-recipient)", line, re.I):
+                    match = re.search(EMAIL_EX, line, re.I)
+                    if match:
+                        final_recipient = match[0].lower()
+                        from_addresses.append(final_recipient)
+
+            pass
         if content_type == "message/disposition-notification":
             for p in part.walk():
                 message_id = p["original-message-id"]
@@ -70,11 +79,7 @@ if __name__ == "__main__":
                 from_addresses.append(final_recipient)
 
         if not message_id:
-            message_id = (
-                part["in-reply-to"]
-                or part["original-message-id"]
-                or part["x-ms-exchange-parent-message-id"]
-                or part["message-id"]
+            message_id = ( part["in-reply-to"] or part["original-message-id"] or part["x-ms-exchange-parent-message-id"] or part["message-id"]
             )
         if not message_id:
             continue
@@ -98,9 +103,7 @@ if __name__ == "__main__":
                             f"{subject}\n{datetime.datetime.now()}\n"
                             f"========================================\n{payload}"
                         )
-                if (
-                    content_type == "message/disposition-notification"
-                ):
+                if content_type == "message/disposition-notification":
                     ml.was_sent_successfully = True
                 else:
                     ml.was_sent_successfully = False
