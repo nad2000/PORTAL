@@ -13,7 +13,7 @@ XZ_OPT="-9 --memory=135000000" tar -C ./prod/private-media/ -cJf ./backup/${TS_L
 # sudo -u chmod g+w ./backup/$TS_LABEL.tar.xz 
 mv ./backup/${TS_LABEL}_*.tar.xz ./archive/
 psql -U postgres -c "SELECT pg_stop_backup();"
-sudo find ./archive -mtime +3 -exec rm -f {} \;
+sudo find ./archive -mtime +2 -exec rm -f {} \;
 
 # SEE: https://www.vultr.com/docs/how-to-use-s3cmd-with-vultr-object-storage
 if which s3cmd && [ -f $HOME/.s3cfg ] ; then
