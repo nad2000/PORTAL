@@ -191,6 +191,44 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 </div>
 {% endif %}
 
+<!-- Required documents and templates -->
+{% if SITE_ID == 4 %}
+<div class="modal fade" tabindex="-1" role="dialog" id="id_required_documents_modal">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{% trans 'Required document and templates' %}</h5>
+        <!-- button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          </button -->
+      </div>
+
+      <div class="modal-body" id="id_required_documents_modal_body">
+        <title>...</title>
+        <table class="table table-bordered searchable table-striped">
+          <thead>
+            <th>{% trans 'Document' %}</th>
+            <th>{% trans 'Optional' %}</th>
+            <th>{% trans 'Templates' %}</th>
+          </thead>
+          <tbody>
+            <tr><td>...</td><td></td><td>...</td></tr>
+            <tr><td>...</td><td></td><td>...</td></tr>
+            <tr><td>...</td><td></td><td>...</td></tr>
+            <tr><td>...</td><td></td><td>...</td></tr>
+            <tr><td>...</td><td></td><td>...</td></tr>
+            <tr><td>...</td><td></td><td>...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Close' %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 
 <div class="container">
   {% if not request.user.is_approved %}
@@ -380,11 +418,24 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {% endif %}
 
               {% if request.user.can_apply %}
-              {% if scheme.guidelines %}
-              <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
-                {% blocktrans %}Read <b>More</b>{% endblocktrans %}
-              </a>
-              {% endif %}
+                {% if scheme.guidelines %}
+                <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
+                  {% blocktrans %}Read <b>More</b>{% endblocktrans %}
+                </a>
+                {% endif %}
+                {% if SITE_ID == 4 %}
+                  <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="{% trans 'Required documents and templates' %}">
+
+                    <button type="button" class="btn btn-outline-primary"
+                                          data-toggle="modal"
+                                          data-target="#id_required_documents_modal"
+                                          data-round-id="{{ round.id }}"
+                                          data-round-title="{{ round.title }}"
+                                          style="text-transform: uppercase;">
+                      {% blocktrans %}Required <b>Documents</b>{% endblocktrans %}
+                    </button>
+                  </span>
+                {% endif %}
               {% else %}
               <button type="button" class="btn btn-outline-primary"
                                     data-toggle="modal"
@@ -604,6 +655,11 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
             $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId);
             // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
             $('#roundDetail').trigger('focus');
+          });
+          $("#id_required_documents_modal").on("show.bs.modal", function(event){
+            $("#id_required_documents_modal_label").html(event.relatedTarget.dataset.roundTitle);
+            $("#id_required_documents_modal_body").load("round/" + event.relatedTarget.dataset.roundId);
+            $('#id_required_documents_modal_body').trigger('focus');
           });
           $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
           $('#previous-applications').on('hide.bs.collapse', function () {

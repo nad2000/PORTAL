@@ -3391,9 +3391,10 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         elif self.type == INVITATION_TYPES.P:
             p = self.panellist
             p.user = by
-            p.accept(request)
-            if commit:
-                p.save()
+            if p.status != "accepted":
+                p.accept(request)
+                if commit:
+                    p.save()
 
     @fsm_log
     @transition(field=status, source=["*"], target=STATUS.bounced)

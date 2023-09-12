@@ -792,7 +792,7 @@ def check_profile(request, token=None):
             if (
                 i := models.Invitation.where(
                     Q(status__isnull=True)
-                    | Q(status__in=["draft", "submitted", "sent", "bounced"])
+                    | Q(status__in=["draft", "submitted", "sent", "bounced", "read"])
                     | Q(email=u.email)
                     | Q(email__in=u.email_addresses)
                 )
@@ -821,7 +821,7 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.status in ["draft", "submitted", "sent", "bounced"]:
+            if i.status in ["draft", "submitted", "sent", "bounced", "read"]:
                 u = User.get(request.user.id)
                 if i.first_name and not u.first_name:
                     u.first_name = i.first_name
