@@ -27,7 +27,7 @@ msgid "English"
 msgstr "Reo Pākehā"
 
 #: config/settings/_base.py:43 config/settings/base.py:55
-msgid "Maori"
+msgid "Māori"
 msgstr ""
 
 #: portal/admin.py:37 portal/admin.py:38
