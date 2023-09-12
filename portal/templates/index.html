@@ -204,7 +204,6 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       </div>
 
       <div class="modal-body" id="id_required_documents_modal_body">
-        <title>...</title>
         <table class="table table-bordered searchable table-striped">
           <thead>
             <th>{% trans 'Document' %}</th>
@@ -652,13 +651,13 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
           });
           $("#roundDetail").on("show.bs.modal", function(event){
             $("#roundDetailLabel").html(event.relatedTarget.dataset.roundTitle);
-            $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId);
+            $("#roundDetailBody").load("round/" + event.relatedTarget.dataset.roundId + "/");
             // $(this).find(".modal-body").load("round/" + event.relatedTarget.dataset.roundId);
             $('#roundDetail').trigger('focus');
           });
           $("#id_required_documents_modal").on("show.bs.modal", function(event){
             $("#id_required_documents_modal_label").html(event.relatedTarget.dataset.roundTitle);
-            $("#id_required_documents_modal_body").load("round/" + event.relatedTarget.dataset.roundId);
+            $("#id_required_documents_modal_body").load("round/" + event.relatedTarget.dataset.roundId + "/required_documents");
             $('#id_required_documents_modal_body').trigger('focus');
           });
           $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});

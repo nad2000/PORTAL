@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>{{ round.title }}</title>
+	<meta charset="utf-8" />
+</head>
+
+<body class="body" style="background-color:#f6f6f6">
+
+    <table class="table table-bordered searchable table-striped">
+      <thead>
+        <th>{% trans %}Document{% endtrans %}</th>
+        <th>{% trans %}Optional{% endtrans %}</th>
+        <th>{% trans %}Templates{% endtrans %}</th>
+      </thead>
+
+      <tbody>
+
+      {#% if round.opens_on %}
+        <tr>
+          <th style="width: 32%; min-width: 180px; max-width: 200px;">
+            Period Starts On
+          </th>
+          <td colspan="2">
+            {{ round.opens_on.strftime('%d-%m-%Y') }}
+          </td>
+        </tr>
+      {% endif %}
+
+      {% if round.closes_on %}
+        <tr>
+          <th style="width: 32%; min-width: 180px; max-width: 200px;">
+            Ends On
+          </th>
+          <td colspan="2">
+            {{ round.closes_on.strftime('%d-%m-%Y') }}
+          </td>
+        </tr>
+      {% endif %#}
+
+      {% for d in required_documents %}
+        <tr>
+          <td>
+            {{ d }}
+
+          </td>
+          <td style="text-align: center;">
+            {% if d.is_optional %}<i class="fa fa-check text-success text-center"></i>{% endif %}
+          </td>
+          <td>
+            <ul>
+              {% for t in templates.get(d.document_type, []) %}
+                <li><a href="{{ t.file.url }}" target="_blank">{{ t.file.path|basename }}</a></li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+      {% endfor %}
+
+    </tbody>
+  </table>
+
+
+</body>
+
+</html>

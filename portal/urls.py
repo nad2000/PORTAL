@@ -297,6 +297,11 @@ urlpatterns = [
         include(
             [
                 path("", views.round_detail, name="round-detail"),
+                path(
+                    "required_documents",
+                    views.round_required_documents,
+                    name="round-required-documents",
+                ),
                 path("coi", views.RoundConflictOfInterestFormSetView.as_view(), name="round-coi"),
                 path(
                     "coi/~list",

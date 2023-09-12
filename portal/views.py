@@ -537,8 +537,6 @@ def unsubscribe(request, token):
 
 @login_required
 def round_detail(request, round):
-    if "error" in request.GET:
-        raise Exception(request.GET["error"])
     user = request.user
     round = get_object_or_404(models.Round, id=round)
     applications = Application.where(round=round).values("state").annotate(total=Count("state"))
@@ -550,6 +548,21 @@ def round_detail(request, round):
     total_nominations = sum(n["total"] for n in nominations)
 
     return render(request, "round_detail.html", locals())
+
+
+def round_required_documents(request, round):
+    from itertools import groupby
+
+    round = get_object_or_404(models.Round, id=round)
+    required_documents = round.required_documents.all().order_by("ordering")
+    templates = {
+        k: list(g)
+        for k, g in groupby(
+            round.templates.all().order_by("document_type"), lambda r: r.document_type
+        )
+    }
+
+    return render(request, "round_required_documents.html", locals())
 
 
 def get_survey_api_url():

@@ -1,3 +1,5 @@
+from os.path import basename
+
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import translation
@@ -13,5 +15,6 @@ def environment(**options):
             "url": reverse,
         }
     )
+    env.filters["basename"] = basename
     env.install_gettext_translations(translation)
     return env
