@@ -671,6 +671,10 @@ def validate_orcid_id(value):
     return value
 
 
+
+
+
+
 class ProfilePersonIdentifier(Model):
     profile = ForeignKey(
         "Profile",
@@ -1146,6 +1150,7 @@ class Fund(Model):
         _("Catalyst Cost Center"), null=True, blank=True
     )
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    history = HistoricalRecords(table_name="fund_history")
 
     class Meta:
         db_table = "fund"
@@ -2761,8 +2766,36 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
+    # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
     status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
+
+    panel = models.ForeignKey("Panel", blank=True, null=True, on_delete=models.CASCADE, related_name="panellists")
+
+    role = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        choices=Choices(
+            ("Co-convenor", _("Co-convenor")),
+            ("Chair", _("Chair")),
+            ("Convenor", _("Convenor")),
+            ("Co-Convenor", _("Co-Convenor")),
+            ("Panellist", _("Panellist")),
+            ("Committee" _("Committee"))
+        ),
+    )
+    elected_on = models.DateField(blank=True, null=True)
+    expires_on = models.DateField(blank=True, null=True)
+    is_active = models.BooleanField()
+    # fund = models.CharField(max_length=2, blank=True, null=True)
+    fund = models.ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
+    fund_type = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.role}: {self.person}"
+
+
 
     @property
     def mail_log_error(self):
@@ -2867,6 +2900,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     class Meta:
         db_table = "panellist"
         unique_together = ["round", "email"]
+        # unique_together = (("panel", "person", "elected_on", "expires_on"),)
 
 
 simple_history.register(
@@ -5321,6 +5355,42 @@ class ResearchOffice(Model):
 
     class Meta:
         db_table = "research_office"
+
+
+PANEL_STATUS = Choices(
+        ("new", _("new")),
+        ("draft", _("draft")),
+        ("preliminary", _("preliminary")),
+        ("active", _("active")),
+        ("archived" _("archived"))
+        )
+
+class PanelMixin:
+    STATUS = PANEL_STATUS
+
+class Panel(PanelMixin, Model):
+
+    state = StateField()
+
+    code = models.CharField(max_length=3, blank=True, null=True)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    fund = models.ForeignKey(Fund, on_delete=models.CASCADE, blank=True, null=True)
+    panellista = models.ManyToManyField(Person, through=Panellist, related_name="panels")
+
+    @property
+    @admin.display(
+        boolean=True,
+        ordering="state",
+        description="Is active?",
+    )
+    def is_active(self):
+        return self.state and self.state == "active"
+
+    def __str__(self):
+        return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = 'panel'
 
 
 def add_title_data(apps, schema_editor):

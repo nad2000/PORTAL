@@ -129,7 +129,7 @@ class PersonMixin:
     def full_name_with_email(self):
         user = self.get_user()
         email = getattr(self, "email", None) or user and user.email
-        if (full_name := self.full_name):
+        if full_name := self.full_name:
             return f"{full_name} ({email})"
         else:
             return email
@@ -205,7 +205,7 @@ class FixedCharField(models.Field):
         return errors
 
     def cast_db_type(self, connection):
-        return f"char({self.length}"
+        return f"char({self.length}" if self.length else f"char({self.max_length})"
 
     def db_parameters(self, connection):
         db_params = super().db_parameters(connection)
