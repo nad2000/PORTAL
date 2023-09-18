@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="invitation",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[
                     ("draft", "draft"),
                     ("submitted", "submitted"),

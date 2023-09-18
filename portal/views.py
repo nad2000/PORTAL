@@ -312,9 +312,9 @@ class StateInPathMixin:
                     queryset = queryset.filter(evaluations__state=state)
             if self.model is models.Nomination:
                 if state == "draft":
-                    queryset = queryset.filter(status__in=["draft", "new"])
+                    queryset = queryset.filter(state__in=["draft", "new"])
                 else:
-                    queryset = queryset.filter(status=state)
+                    queryset = queryset.filter(state=state)
             elif self.model is models.Round:
                 if state == "draft":
                     queryset = queryset.filter(
@@ -453,7 +453,7 @@ def survey_webhook(request):
                             t.save()
                             break
                     else:
-                        if models.Referee.get(r.pk).status != "testified":
+                        if models.Referee.get(r.pk).state != "testified":
                             r.testify(by=by, description=description)
                             r._change_reason = description
                             r.save()
@@ -543,7 +543,7 @@ def round_detail(request, round):
     total_applications = sum(a["total"] for a in applications)
 
     nominations = (
-        models.Nomination.where(round=round).values("status").annotate(total=Count("status"))
+        models.Nomination.where(round=round).values("state").annotate(total=Count("state"))
     )
     total_nominations = sum(n["total"] for n in nominations)
 
@@ -579,7 +579,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
     if not request.user.is_authenticated:
         if token := request.GET.get("token"):
             if i := models.Invitation.where(token=token).first():
-                if i.status == "revoked":
+                if i.state == "revoked":
                     messages.warning(
                         request,
                         _("The invitation has been revoked and is not any more valid."),
@@ -633,7 +633,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                     t._change_reason = description
                     t.save()
                 else:
-                    if r.status != "testified":
+                    if r.state != "testified":
                         r.testify(request=request)
                     r.save()
 
@@ -678,7 +678,7 @@ def index(request):
             Q(user=user)
             | Q(email=user.email)
             | Q(email__in=Subquery(user.emailaddress_set.values("email"))),
-            status__in=["sent", "submitted"],
+            state__in=["sent", "submitted"],
         )
         draft_applications = models.Application.user_draft_applications(user).filter(
             ~Q(round__panellists__user=user),
@@ -788,7 +788,7 @@ def check_profile(request, token=None):
 
             if token:
                 request.session["invitation_token"] = token
-                if (i := models.Invitation.where(token=token).first()) and i.status == "revoked":
+                if (i := models.Invitation.where(token=token).first()) and i.state == "revoked":
                     messages.warning(
                         request,
                         _("The invitation has been revoked and is not any more valid."),
@@ -804,8 +804,8 @@ def check_profile(request, token=None):
         if not token:
             if (
                 i := models.Invitation.where(
-                    Q(status__isnull=True)
-                    | Q(status__in=["draft", "submitted", "sent", "bounced", "read"])
+                    Q(state__isnull=True)
+                    | Q(state__in=["draft", "submitted", "sent", "bounced", "read"])
                     | Q(email=u.email)
                     | Q(email__in=u.email_addresses)
                 )
@@ -834,7 +834,7 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.status in ["draft", "submitted", "sent", "bounced", "read"]:
+            if i.state in ["draft", "submitted", "sent", "bounced", "read"]:
                 u = User.get(request.user.id)
                 if i.first_name and not u.first_name:
                     u.first_name = i.first_name
@@ -860,18 +860,18 @@ def check_profile(request, token=None):
                 i.save()
                 reset_cache(request)
 
-            elif i.status == "revoked":
+            elif i.state == "revoked":
                 messages.warning(
                     request,
                     _("The invitation has been revoked and is not any more valid."),
                 )
-            elif i.status == "accepted":
+            elif i.state == "accepted":
                 messages.warning(
                     request,
                     _("The invitation has been already accepted."),
                 )
 
-            if i.status != "accepted":
+            if i.state != "accepted":
                 next_url = i.handler_url
             else:
                 if i.type == "A" and (n := i.nomination):
@@ -952,8 +952,8 @@ class ProfileView:
                     last_name__isnull=True,
                     middle_names__isnull=True,
                 ),
-                Q(status__isnull=True)
-                # | Q(status__in=["draft", "submitted", "sent", "bounced"])
+                Q(state__isnull=True)
+                # | Q(state__in=["draft", "submitted", "sent", "bounced"])
                 | Q(email=u.email) | Q(email__in=u.email_addresses),
             )
             .order_by("-id")
@@ -1042,7 +1042,7 @@ def profile_protection_patterns(request):
         if "wizard" in request.session:
             del request.session["wizard"]
             request.session.modified = True
-            i = models.Invitation.user_inviations(request.user).filter(~Q(status="bounced")).last()
+            i = models.Invitation.user_inviations(request.user).filter(~Q(state="bounced")).last()
             url = (i and i.handler_url) or "index"
         else:
             url = "profile"
@@ -1137,7 +1137,7 @@ class ProfileCreate(ProfileView, CreateView):
         initial = super().get_initial()
         u = self.request.user
         n = (
-            models.Nomination.where(user=self.request.user, status="submitted")
+            models.Nomination.where(user=self.request.user, state="submitted")
             .order_by("-id")
             .first()
         )
@@ -1173,7 +1173,7 @@ def invite_team_members(request, application):
     count = 0
     members = list(
         models.Member.where(
-            ~Q(invitation__email=F("email")) | Q(status="sent") | Q(status__isnull=True),
+            ~Q(invitation__email=F("email")) | Q(state="sent") | Q(state__isnull=True),
             application=application,
         )
     )
@@ -1201,7 +1201,7 @@ def invite_referee(request, application=None, by=None, referees=None):
     if not referees:
         referees = list(
             models.Referee.where(
-                ~Q(status__in=["testified", "accepted", "opted_out"]),
+                ~Q(state__in=["testified", "accepted", "opted_out"]),
                 ~Q(invitation__email=F("email")),
                 application=application,
             ).prefetch_related("application", "application__submitted_by")
@@ -1217,13 +1217,13 @@ def invite_referee(request, application=None, by=None, referees=None):
         (
             models.Invitation.where(
                 Q(sent_at__isnull=True),
-                ~Q(status__in=["accepted", "expired", "bounced", "revoked"]),
+                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
                 application=application,
                 type="R",
             )
             if application
             else models.Invitation.where(
-                ~Q(status__in=["accepted", "expired", "bounced", "revoked"]),
+                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
                 referee__in=Subquery(referees.values("id")),
             )
         ).prefetch_related("referee", "referee__user")
@@ -1331,14 +1331,14 @@ def invite_panellist(request, round):
     """Send invitations to all panellists."""
     count = 0
     panellist = list(
-        models.Panellist.where(~Q(invitation__email=F("email")) | Q(status__isnull=True))
+        models.Panellist.where(~Q(invitation__email=F("email")) | Q(state__isnull=True))
     )
     for p in panellist:
         p.get_or_create_invitation(by=request and request.user)
 
     invitations = list(
         models.Invitation.where(
-            ~Q(status="accepted"),
+            ~Q(state="accepted"),
             round=round,
             panellist__in=panellist,
             type="P",
@@ -1356,7 +1356,7 @@ class InvitationCreate(CreateView):
     model = models.Invitation
     template_name = "form.html"
     # form_class = ProfileForm
-    # exclude = ["organisation", "status", "submitted_at", "accepted_at", "expired_at"]
+    # exclude = ["organisation", "state", "submitted_at", "accepted_at", "expired_at"]
     fields = ["email", "first_name", "middle_names", "last_name", "org"]
     widgets = {"org": autocomplete.ModelSelect2("org-autocomplete")}
     labels = {"org": _("organisation")}
@@ -1546,7 +1546,7 @@ class ApplicationDetail(DetailView):
         if a.members.filter(
             Q(user=u) | Q(email=u.email) | Q(email__in=u.emailaddress_set.values("email")),
             # has_authorized__isnull=True,
-            Q(status__isnull=True) | ~Q(status__in=["authorized", "opted_out"]),
+            Q(state__isnull=True) | ~Q(state__in=["authorized", "opted_out"]),
         ).exists():
             messages.info(
                 self.request,
@@ -1555,7 +1555,7 @@ class ApplicationDetail(DetailView):
             context["form"] = AuthorizationForm()
         is_owner = (
             a.submitted_by == u
-            or a.members.filter(user=u, status="authorized").exists()
+            or a.members.filter(user=u, state="authorized").exists()
             or (a.site_id == 4 and a.org.where(research_offices__user=u).exists())
         )
         if p := a.round.panellists.filter(user=u).first():
@@ -1647,7 +1647,7 @@ class ApplicationView(LoginRequiredMixin):
                     return redirect("application", pk=pk)
 
                 if a.members.filter(
-                    ~Q(status="authorized"),
+                    ~Q(state="authorized"),
                     Q(user=u) | Q(email__in=u.email_addresses),
                 ).exists():
                     messages.warning(
@@ -2265,9 +2265,9 @@ class ApplicationView(LoginRequiredMixin):
                     if (
                         a.round.required_referees
                         and a.referees.filter(
-                            ~Q(status__in=["bounced", "opted_out"])
+                            ~Q(state__in=["bounced", "opted_out"])
                             if site_id == 4
-                            else Q(status="testified")
+                            else Q(state="testified")
                         ).count()
                         < a.round.required_referees
                     ):
@@ -2845,9 +2845,9 @@ class ApplicationCreate(ApplicationView, CreateView):
                 )
                 if n and not n.application:
                     n.application = self.object
-                    if n.status != models.NOMINATION_STATUS.accepted:
+                    if n.state != "accepted":
                         n.accept()
-                    n.save(update_fields=["application_id", "status"])
+                    n.save(update_fields=["application_id", "state"])
         except Exception as ex:
             capture_exception(ex)
             return self.form_invalid(form)
@@ -4006,7 +4006,7 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
 
 #     class Meta:
 #         model = models.Recognition
-#         # fields = ["status", "email", "first_name", "middle_names", "last_name", "role"]
+#         # fields = ["state", "email", "first_name", "middle_names", "last_name", "role"]
 #         exclude = ["award"]
 #         widgets = {
 #             "profile": HiddenInput(),
@@ -4176,7 +4176,7 @@ class NominationView(CreateUpdateView):
                     request, _("You do not have permissions to access this nomination.")
                 )
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
-            if n and n.status == "accepted":
+            if n and n.state == "accepted":
                 contact_email = models.site_contact_email()
                 messages.warning(
                     request,
@@ -4247,7 +4247,7 @@ class NominationView(CreateUpdateView):
                 )
                 return resp
 
-            if n.status == "accepted":
+            if n.state == "accepted":
                 contact_email = models.site_contact_email()
                 messages.warning(
                     self.request,
@@ -4305,7 +4305,7 @@ class NominationView(CreateUpdateView):
         elif (
             self.request.method == "POST"
             and "save_draft" in self.request.POST
-            and n.status != "draft"
+            and n.state != "draft"
         ):
             n.save_draft()
         n.save()
@@ -4430,9 +4430,9 @@ class TestimonialView(CreateUpdateView):
         resp = super().form_valid(form)
 
         if r := t.referee:
-            for i in models.Invitation.where(~Q(status="accepted"), type="R", referee=r):
+            for i in models.Invitation.where(~Q(state="accepted"), type="R", referee=r):
                 i.accept(self.request, by=u)
-                i.save(update_fields=["status"])
+                i.save(update_fields=["state"])
 
         if t.state != "submitted":
             if self.request.method == "POST" and "file" in form.changed_data and t.file:
@@ -4493,7 +4493,7 @@ class TestimonialView(CreateUpdateView):
                     and not models.Testimonial.where(
                         ~Q(state="submitted"), referee__application=a
                     ).exists()
-                    and not a.referees.filter(~Q(status="testified")).exists()
+                    and not a.referees.filter(~Q(state="testified")).exists()
                 ):
                     url = self.request.build_absolute_uri(
                         reverse("application-update", kwargs={"pk": a.id})
@@ -4599,22 +4599,22 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         u = self.request.user
-        status = self.request.path.split("/")[-1]
+        state = self.request.path.split("/")[-1]
         if not (u.is_superuser or u.is_staff):
-            # if not status or (status == "submitted" or "submitted" in status):
+            # if not state or (state == "submitted" or "submitted" in state):
             queryset = queryset.filter(
                 Q(nominator=u)
                 | Q(nominator__research_offices__user=u)
                 | Q(
                     Q(Q(user=u) | Q(email=u.email)),
-                    status="submitted",
+                    state="submitted",
                 )
             ).distinct()
         queryset = queryset.filter(round__scheme__current_round=F("round"))
-        if status == "draft":
-            queryset = queryset.filter(status__in=[status, "new"])
-        elif status == "submitted":
-            queryset = queryset.filter(status=status)
+        if state == "draft":
+            queryset = queryset.filter(state__in=[state, "new"])
+        elif state == "submitted":
+            queryset = queryset.filter(state=state)
         return queryset
 
 
@@ -5004,7 +5004,7 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
     exclude = (
         "user",
         "site",
-        "status_changed_at",
+        "state_changed_at",
     )
 
     @property
@@ -5078,7 +5078,7 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
                 "panellist": HiddenInput(),
                 "DELETE": Submit("submit", "DELETE"),
                 "round": HiddenInput(),
-                "status": forms.InvitationStatusInput(),
+                "state": forms.InvitationStatusInput(),
             }
         )
         kwargs["widgets"] = widgets

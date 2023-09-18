@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalreferee",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[
                     ("accepted", "accepted"),
@@ -123,7 +123,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="referee",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[
                     ("accepted", "accepted"),

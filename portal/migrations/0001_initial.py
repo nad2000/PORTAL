@@ -327,7 +327,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "state",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -453,7 +453,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         choices=[
                             ("draft", "draft"),
                             ("submitted", "submitted"),
@@ -603,7 +603,7 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True, null=True)),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -871,7 +871,7 @@ class Migration(migrations.Migration):
                 ("has_testifed", models.BooleanField(blank=True, null=True)),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -1493,7 +1493,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -1592,7 +1592,7 @@ class Migration(migrations.Migration):
                 ("has_authorized", models.BooleanField(blank=True, null=True)),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -1890,7 +1890,7 @@ class Migration(migrations.Migration):
                 ("has_testifed", models.BooleanField(blank=True, null=True)),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -2155,7 +2155,7 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(blank=True, editable=False, null=True)),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -2335,7 +2335,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -2471,7 +2471,7 @@ class Migration(migrations.Migration):
                 ("has_authorized", models.BooleanField(blank=True, null=True)),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),
@@ -2569,7 +2569,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "state",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         blank=True,
                         choices=[
                             (None, None),

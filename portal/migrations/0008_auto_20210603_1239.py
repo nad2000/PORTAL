@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='application',
             name='state',
-            field=portal.models.StateField(choices=[(0, 'dummy')], default='new', max_length=100, no_check_for_status=True),
+            field=portal.models.StatusField(choices=[(0, 'dummy')], default='new', max_length=100, no_check_for_status=True),
         ),
         migrations.AlterField(
             model_name='historicalapplication',
@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='historicalapplication',
             name='state',
-            field=portal.models.StateField(choices=[(0, 'dummy')], default='new', max_length=100, no_check_for_status=True),
+            field=portal.models.StatusField(choices=[(0, 'dummy')], default='new', max_length=100, no_check_for_status=True),
         ),
         migrations.AlterField(
             model_name='historicalround',

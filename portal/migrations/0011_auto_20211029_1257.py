@@ -230,7 +230,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="application",
             name="state",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[(0, "dummy")],
                 default="new",
                 max_length=100,
@@ -505,7 +505,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalapplication",
             name="state",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[(0, "dummy")],
                 default="new",
                 max_length=100,
@@ -591,7 +591,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalmember",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -661,7 +661,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalnomination",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -709,7 +709,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalpanellist",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -863,7 +863,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalreferee",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -949,7 +949,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="member",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -1013,7 +1013,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="nomination",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -1065,7 +1065,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="panellist",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -1357,7 +1357,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="referee",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 blank=True,
                 choices=[(0, "dummy")],
                 default="new",
@@ -1461,7 +1461,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="testimonial",
             name="state",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[(0, "dummy")],
                 default="new",
                 max_length=100,
@@ -1529,7 +1529,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "status",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         choices=[
                             ("draft", "draft"),
                             ("submitted", "submitted"),

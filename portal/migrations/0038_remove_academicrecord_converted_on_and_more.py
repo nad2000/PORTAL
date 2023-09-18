@@ -100,7 +100,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="application",
             name="state",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[
                     (None, None),
                     ("new", "new"),
@@ -170,7 +170,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalapplication",
             name="state",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[
                     (None, None),
                     ("new", "new"),
@@ -205,7 +205,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalinvitation",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[
                     ("accepted", "accepted"),
                     ("autoreplied", "autoreplied"),
@@ -295,7 +295,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="invitation",
             name="status",
-            field=portal.models.StateField(
+            field=portal.models.StatusField(
                 choices=[
                     ("accepted", "accepted"),
                     ("autoreplied", "autoreplied"),

@@ -12,7 +12,6 @@ from collections import OrderedDict
 from datetime import date, datetime
 from functools import lru_cache, partial, wraps
 from urllib.parse import urljoin, urlparse
-from django.utils.safestring import mark_safe
 
 import simple_history
 from admin_ordering.models import OrderableModel
@@ -64,9 +63,10 @@ from django.db.models.functions import Cast, Coalesce
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
-from django_fsm import FSMField, transition
+from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
@@ -351,8 +351,11 @@ class PdfFileMixin:
             return cf
 
 
-class StateField(StatusField, FSMField):
-    pass
+class StateField(FSMFieldMixin, StatusField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("max_length", 50)
+        kwargs.setdefault("choices_name", "SATES")
+        super().__init__(*args, **kwargs)
 
 
 def hash_int(
@@ -669,10 +672,6 @@ def validate_orcid_id(value):
         )
 
     return value
-
-
-
-
 
 
 class ProfilePersonIdentifier(Model):
@@ -1129,7 +1128,7 @@ class ConvertedFile(HelperMixin, Base):
         return self.file.name
 
 
-APPLICATION_STATUS = Choices(
+APPLICATION_STATES = Choices(
     (None, None),
     ("new", _("new")),
     ("draft", _("draft")),
@@ -1285,7 +1284,7 @@ class ApplicationSeo(Model):
 
 
 class ApplicationMixin:
-    STATUS = APPLICATION_STATUS
+    STATES = APPLICATION_STATES
 
 
 def photo_identity_help_text():
@@ -1441,13 +1440,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("Presentation URL"),
         help_text=_("Please enter the URL where your presentation video can be viewed"),
     )
-    state = StateField(default=APPLICATION_STATUS.new, verbose_name=_("state"))
+
+    state = StatusField(default="new", verbose_name=_("state"))
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")
     )
     tac_accepted_at = MonitorField(
         monitor="state",
-        when=[APPLICATION_STATUS.tac_accepted],
+        when=["tac_accepted"],
         null=True,
         blank=True,
         default=None,
@@ -1697,7 +1697,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if site_id == 4:
             if (
                 self.round.required_referees
-                and self.referees.filter(~Q(status__in=["bounced", "opted_out"])).count()
+                and self.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
                 < self.round.required_referees
             ):
                 raise Exception(
@@ -1709,7 +1709,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 Q(testified_at__isnull=True)
                 | Q(user__isnull=True)
                 | ~Q(testimonial__state="submitted"),
-                ~Q(status__in=["submitted", "opted_out", "testified"]),
+                ~Q(state__in=["submitted", "opted_out", "testified"]),
             ).exists():
                 raise Exception(
                     _(
@@ -1720,7 +1720,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
             if (
                 round.required_referees
-                and self.referees.filter(status="testified").count() < round.required_referees
+                and self.referees.filter(state="testified").count() < round.required_referees
             ):
                 raise Exception(
                     _("You need to procure reviews of your application from at least %d referees.")
@@ -2029,7 +2029,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             return q
 
         f = (
-            Q(members__user=user, members__status="authorized")
+            Q(members__user=user, members__state="authorized")
             | Q(referees__user=user)
             | Q(nomination__user=user)
             | Q(submitted_by=user)
@@ -2067,7 +2067,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "WHERE (r.application_id=%s OR a.id=%s) AND a.site_id=%s "
         )
         if has_testified:
-            sql += " AND r.status='testified'"
+            sql += " AND r.state='testified'"
 
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
@@ -2328,7 +2328,7 @@ class EthicsStatement(PdfFileMixin, Model):
         db_table = "ethics_statement"
 
 
-MEMBER_STATUS = Choices(
+MEMBER_STATES = Choices(
     ("accepted", _("accepted")),
     ("authorized", _("authorized")),
     ("bounced", _("bounced")),
@@ -2342,7 +2342,7 @@ MEMBER_STATUS = Choices(
 class MemberMixin:
     """Workaround for simple history."""
 
-    STATUS = MEMBER_STATUS
+    STATE = MEMBER_STATES
 
 
 class Member(PersonMixin, MemberMixin, Model):
@@ -2365,10 +2365,10 @@ class Member(PersonMixin, MemberMixin, Model):
     role = CharField(max_length=200, null=True, blank=True)
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    status = StateField(null=True, blank=True, default="new")
-    status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
+    state = StatusField(null=True, blank=True, default="new")
+    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     authorized_at = MonitorField(
-        monitor="status", when=[MEMBER_STATUS.authorized], null=True, blank=True, default=None
+        monitor="state", when=["authorized"], null=True, blank=True, default=None
     )
 
     @property
@@ -2391,9 +2391,9 @@ class Member(PersonMixin, MemberMixin, Model):
 
     @property
     def has_authorized(self):
-        if self.status == "authorized":
+        if self.state == "authorized":
             return True
-        elif self.status == "opted_out":
+        elif self.state == "opted_out":
             return False
 
     def clean(self):
@@ -2411,16 +2411,16 @@ class Member(PersonMixin, MemberMixin, Model):
             )
 
     @fsm_log
-    @transition(field=status, source=["new", "sent"], target="accepted")
+    @transition(field=state, source=["new", "sent"], target="accepted")
     def accept(self, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target="authorized")
+    @transition(field=state, source=["*"], target="authorized")
     def authorize(self, *args, **kwargs):
         # self.has_authorized = True
         request = get_request(*args, **kwargs)
-        for i in Invitation.where(~Q(status="accepted"), member=self):
+        for i in Invitation.where(~Q(state="accepted"), member=self):
             i.accept(request)
             i.save()
 
@@ -2441,12 +2441,12 @@ class Member(PersonMixin, MemberMixin, Model):
             )
 
     @fsm_log
-    @transition(field=status, source=["*"], target="bounced")
+    @transition(field=state, source=["*"], target="bounced")
     def bounce(self, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target="opted_out")
+    @transition(field=state, source=["*"], target="opted_out")
     def opt_out(self, *args, **kwargs):
         # self.has_authorized = False
         request = get_request(*args, **kwargs)
@@ -2463,7 +2463,7 @@ class Member(PersonMixin, MemberMixin, Model):
             )
 
     @fsm_log
-    @transition(field=status, source=["*"], target="sent")
+    @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
         pass
 
@@ -2475,7 +2475,7 @@ class Member(PersonMixin, MemberMixin, Model):
         return cls.objects.raw(
             "SELECT DISTINCT m.* FROM member AS m JOIN account_emailaddress AS ae ON ae.email = m.email "
             "WHERE (m.user_id=%s OR ae.user_id=%s) "
-            "  AND NOT (m.status IS NULL OR m.status IN ('authorized', 'opted_out'))",
+            "  AND NOT (m.state IS NULL OR m.state IN ('authorized', 'opted_out'))",
             [user.id, user.id],
         )
 
@@ -2489,7 +2489,7 @@ simple_history.register(
 )
 
 
-REFEREE_STATUS = Choices(
+REFEREE_STATES = Choices(
     ("accepted", _("accepted")),
     ("bounced", _("bounced")),
     ("new", _("new")),
@@ -2503,7 +2503,7 @@ REFEREE_STATUS = Choices(
 class RefereeMixin:
     """Workaround for simple history."""
 
-    STATUS = REFEREE_STATUS
+    STATE = REFEREE_STATES
 
 
 class Referee(RefereeMixin, PersonMixin, Model):
@@ -2525,10 +2525,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    status = StateField(_("status"), null=True, blank=True, default=REFEREE_STATUS.new)
-    status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
+    state = StatusField(_("state"), null=True, blank=True, default="new")
+    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     testified_at = MonitorField(
-        monitor="status", when=[REFEREE_STATUS.testified], null=True, blank=True, default=None
+        monitor="state", when=["testified"], null=True, blank=True, default=None
     )
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=100, null=True, blank=True, default=None)
@@ -2542,7 +2542,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @property
     def has_testified(self):
-        return self.status == "testified"
+        return self.state == "testified"
 
     def clean(self):
         super().clean()
@@ -2560,7 +2560,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 )
 
     @fsm_log
-    @transition(field=status, source=["*"], target="accepted")
+    @transition(field=state, source=["*"], target="accepted")
     def accept(self, *args, **kwargs):
         pass
 
@@ -2596,7 +2596,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
                 if not isinstance(resp, list):
-                    limesurvey_status = resp.get("status")
+                    limesurvey_status = resp.get("state")
                     raise Exception(
                         _(
                             "Failed to add the referee: %s. Please constact a portal administration."
@@ -2677,9 +2677,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
             return f"{server_url}/{survey_id}?token={token}"
 
     @fsm_log
-    @transition(field=status, source=["*"], target="testified")
+    @transition(field=state, source=["*"], target="testified")
     def testify(self, *args, request=None, by=None, description=True, commit=True, **kwargs):
-        for i in Invitation.where(~Q(status="accepted"), referee=self):
+        for i in Invitation.where(~Q(state="accepted"), referee=self):
             if not by:
                 if i.user:
                     by = i.user
@@ -2694,18 +2694,18 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 i.save()
 
     @fsm_log
-    @transition(field=status, source=["*"], target="bounced")
+    @transition(field=state, source=["*"], target="bounced")
     def bounce(self, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target="opted_out")
+    @transition(field=state, source=["*"], target="opted_out")
     def opt_out(self, *args, **kwargs):
         # self.has_testifed = False
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target="sent")
+    @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
         pass
 
@@ -2718,7 +2718,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             "SELECT DISTINCT r.*, tm.id AS testimonial_id "
             "FROM referee AS r JOIN account_emailaddress AS ae ON "
             "ae.email = r.email LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
-            "WHERE (r.user_id=%s OR ae.user_id=%s) AND status NOT IN ('testified', 'opted_out')",
+            "WHERE (r.user_id=%s OR ae.user_id=%s) AND state NOT IN ('testified', 'opted_out')",
             [user.id, user.id],
         )
 
@@ -2732,7 +2732,7 @@ simple_history.register(
 )
 
 
-PANELLIST_STATUS = Choices(
+PANELLIST_STATES = Choices(
     (None, None),
     ("new", _("new")),
     ("sent", _("sent")),
@@ -2744,7 +2744,7 @@ PANELLIST_STATUS = Choices(
 class PanellistMixin:
     """Workaround for simple history."""
 
-    STATUS = PANELLIST_STATUS
+    STATE = PANELLIST_STATES
 
 
 class Panellist(PanellistMixin, PersonMixin, Model):
@@ -2754,7 +2754,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     objects = CurrentSiteManager()
     all_objects = Manager()
 
-    status = StateField(null=True, blank=True, default=PANELLIST_STATUS.new)
+    state = StatusField(null=True, blank=True, default="new")
     round = ForeignKey("Round", editable=True, on_delete=DO_NOTHING, related_name="panellists")
     email = EmailField(max_length=120)
     first_name = CharField(max_length=30, null=True, blank=True)
@@ -2768,34 +2768,33 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
 
-    panel = models.ForeignKey("Panel", blank=True, null=True, on_delete=models.CASCADE, related_name="panellists")
+    panel = ForeignKey(
+        "Panel", blank=True, null=True, on_delete=SET_NULL, related_name="panellists"
+    )
 
-    role = models.CharField(
+    role = CharField(
         max_length=20,
         blank=True,
         null=True,
         choices=Choices(
-            ("Co-convenor", _("Co-convenor")),
-            ("Chair", _("Chair")),
-            ("Convenor", _("Convenor")),
-            ("Co-Convenor", _("Co-Convenor")),
-            ("Panellist", _("Panellist")),
-            ("Committee" _("Committee"))
+            ("CHAIR", _("Chair")),
+            ("COCONVENOR", _("Co-convenor")),
+            ("COMMITTEE", _("Committee")),
+            ("CONVENOR", _("Convenor")),
+            ("PANELLIST", _("Panellist")),
         ),
     )
-    elected_on = models.DateField(blank=True, null=True)
-    expires_on = models.DateField(blank=True, null=True)
-    is_active = models.BooleanField()
+    elected_on = DateField(blank=True, null=True)
+    expires_on = DateField(blank=True, null=True)
+    is_active = BooleanField(_("is active"), default=True)
     # fund = models.CharField(max_length=2, blank=True, null=True)
-    fund = models.ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
-    fund_type = models.CharField(max_length=255, blank=True, null=True)
+    ## fund = ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
+    ## fund_type = CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"{self.role}: {self.person}"
-
-
 
     @property
     def mail_log_error(self):
@@ -2819,7 +2818,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
                 i.middle_names = middle_names
                 i.last_name = last_name
                 i.sent_at = None
-                # i.status = Invitation.STATUS.submitted
+                # i.state = "submitted"
                 i.submit()
                 i.save()
             return (i, False)
@@ -2863,17 +2862,17 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         return self.has_all_coi_statements_submitted_for()
 
     @fsm_log
-    @transition(field=status, source=["new", "sent", "bounced"], target="accepted")
+    @transition(field=state, source=["new", "sent", "bounced"], target="accepted")
     def accept(self, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target="bounced")
+    @transition(field=state, source=["*"], target="bounced")
     def bounce(self, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target="sent")
+    @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
         pass
 
@@ -2940,7 +2939,7 @@ INVITATION_TYPES = Choices(
     ("P", _("panellist")),
 )
 
-INVITATION_STATUS = Choices(
+INVITATION_STATES = Choices(
     ("accepted", _("accepted")),
     ("autoreplied", _("autoreplied")),
     ("bounced", _("bounced")),
@@ -2956,11 +2955,11 @@ INVITATION_STATUS = Choices(
 class InvitationMixin:
     """Workaround for simple history."""
 
-    STATUS = INVITATION_STATUS
+    STATES = INVITATION_STATES
 
 
 class Invitation(InvitationMixin, PersonMixin, Model):
-    STATUS = INVITATION_STATUS
+    STATES = INVITATION_STATES
 
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
@@ -3004,25 +3003,25 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     round = ForeignKey(
         "Round", null=True, blank=True, on_delete=SET_NULL, related_name="invitations"
     )
-    status = StateField(default="draft")
-    status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
+    state = StatusField(default="draft")
+    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     submitted_at = MonitorField(
-        monitor="status", when=[STATUS.submitted], null=True, blank=True, default=None
+        monitor="state", when=[STATES.submitted], null=True, blank=True, default=None
     )
     sent_at = MonitorField(
-        monitor="status", when=[STATUS.sent], null=True, blank=True, default=None
+        monitor="state", when=[STATES.sent], null=True, blank=True, default=None
     )
     accepted_at = MonitorField(
-        monitor="status", when=[STATUS.accepted], null=True, blank=True, default=None
+        monitor="state", when=[STATES.accepted], null=True, blank=True, default=None
     )
     read_at = MonitorField(
-        monitor="status", when=[STATUS.read], null=True, blank=True, default=None
+        monitor="state", when=[STATES.read], null=True, blank=True, default=None
     )
     expired_at = MonitorField(
-        monitor="status", when=[STATUS.expired], null=True, blank=True, default=None
+        monitor="state", when=[STATES.expired], null=True, blank=True, default=None
     )
     bounced_at = MonitorField(
-        monitor="status", when=[STATUS.bounced], null=True, blank=True, default=None
+        monitor="state", when=[STATES.bounced], null=True, blank=True, default=None
     )
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
@@ -3075,7 +3074,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
     @property
     def handler_url(self):
-        if self.status == "revoked":
+        if self.state == "revoked":
             return reverse("index")
         elif self.type == INVITATION_TYPES.A and self.nomination_id:
             if a := self.nomination.application:
@@ -3115,18 +3114,18 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(
-        field=status,
+        field=state,
         source=["*"],
-        target=STATUS.submitted,
+        target="submitted",
     )
     def submit(self, *args, **kwargs):
         pass
 
     @fsm_log
     @transition(
-        field=status,
+        field=state,
         source=["*"],
-        target=STATUS.revoked,
+        target="revoked",
     )
     def revoke(self, request=None, by=None, *args, **kwargs):
         site = Site.objects.get_current()
@@ -3158,9 +3157,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(
-        field=status,
-        source=[STATUS.draft, STATUS.sent, STATUS.submitted, STATUS.bounced, STATUS.autoreplied],
-        target=STATUS.sent,
+        field=state,
+        source=["draft", "sent", "submitted", "bounced", "autoreplied"],
+        target="sent",
     )
     def send(self, request=None, by=None, *args, **kwargs):
         if not by:
@@ -3365,12 +3364,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         return resp
 
     @fsm_log
-    @transition(field=status, source=["*"], target=STATUS.read)
+    @transition(field=state, source=["*"], target="read")
     def mark_read(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=status, source=["*"], target=STATUS.autoreplied)
+    @transition(field=state, source=["*"], target="autoreplied")
     def mark_autoreplied(
         self, request=None, by=None, description=None, commit=True, *args, **kwargs
     ):
@@ -3378,16 +3377,16 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(
-        field=status,
+        field=state,
         source=[
-            STATUS.draft,
-            STATUS.sent,
-            STATUS.accepted,
-            STATUS.bounced,
-            STATUS.read,
-            STATUS.autoreplied,
+            "draft",
+            "sent",
+            "accepted",
+            "bounced",
+            "read",
+            "autoreplied",
         ],
-        target=STATUS.accepted,
+        target="accepted",
     )
     def accept(self, request=None, by=None, description=None, commit=True, *args, **kwargs):
         if not by and request:
@@ -3399,7 +3398,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         if (
             self.type == INVITATION_TYPES.T
             and (m := self.member)
-            and m.status not in ["accepted", "authorized"]
+            and m.state not in ["accepted", "authorized"]
         ):
             m.user = by
             m.accept(request)
@@ -3414,24 +3413,24 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         elif (
             self.type == INVITATION_TYPES.R
             and (r := self.referee)
-            and r.status not in ["accepted", "opted_out", "testified"]
+            and r.state not in ["accepted", "opted_out", "testified"]
         ):
             r.user = by
             r.accept(request, by=by, description=description, commit=False, *args, **kwargs)
             if commit:
                 r.save()
-            if self.status != self.STATUS.accepted:
+            if self.state != "accepted":
                 t, _ = Testimonial.get_or_create(referee=r)
         elif self.type == INVITATION_TYPES.P:
             p = self.panellist
             p.user = by
-            if p.status != "accepted":
+            if p.state != "accepted":
                 p.accept(request)
                 if commit:
                     p.save()
 
     @fsm_log
-    @transition(field=status, source=["*"], target=STATUS.bounced)
+    @transition(field=state, source=["*"], target=STATUS.bounced)
     def bounce(self, request=None, by=None, *args, **kwargs):
         def get_absolute_uri(request, url):
             if request:
@@ -3452,20 +3451,20 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         url = None
 
         if self.type == INVITATION_TYPES.R and self.referee:
-            self.referee.status = REFEREE_STATUS.bounced
+            self.referee.state = "bounced"
             self.referee.save()
             url = get_absolute_uri(
                 request,
                 reverse("application-update", kwargs={"pk": self.application.id}) + "?referees=1",
             )
         elif self.type == INVITATION_TYPES.T and self.member:
-            self.member.status = MEMBER_STATUS.bounced
+            self.member.state = "bounced"
             self.member.save()
             url = get_absolute_uri(
                 request, reverse("application-update", kwargs={"pk": self.application.id})
             )
         elif self.type == INVITATION_TYPES.P and self.panellist:
-            self.panellist.status = PANELLIST_STATUS.bounced
+            self.panellist.state = "bounced"
             self.panellist.save()
             url = get_absolute_uri(
                 request, reverse("panellist-invite", kwargs={"round": self.round.id})
@@ -3494,8 +3493,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site_id = cls.get_current_site_id()
         return cls.objects.raw(
             "SELECT i.* FROM invitation AS i JOIN account_emailaddress AS ae ON ae.email = i.email "
-            "WHERE ae.user_id=%s AND i.status NOT IN ('accepted', 'expired', 'revoked') AND i.site_id=%s "
-            "UNION SELECT * FROM invitation WHERE email=%s AND status NOT IN ('accepted', 'expired', 'revoked') "
+            "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked') AND i.site_id=%s "
+            "UNION SELECT * FROM invitation WHERE email=%s AND state NOT IN ('accepted', 'expired', 'revoked') "
             "  AND site_id=%s",
             [user.id, site_id, user.email, site_id],
         )
@@ -3512,7 +3511,7 @@ simple_history.register(
 )
 
 
-TESTIMONIAL_STATUS = Choices(
+TESTIMONIAL_STATES = Choices(
     (None, None),
     ("new", _("new")),
     ("draft", _("draft")),
@@ -3521,7 +3520,7 @@ TESTIMONIAL_STATUS = Choices(
 
 
 class TestimonialMixin:
-    STATUS = TESTIMONIAL_STATUS
+    STATES = TESTIMONIAL_STATES
 
 
 class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
@@ -3553,7 +3552,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         on_delete=PROTECT,
         verbose_name=_("curriculum vitae"),
     )
-    state = StateField(_("state"), default=TESTIMONIAL_STATUS.new)
+    state = StatusField(_("state"), default="new")
 
     @property
     def application(self):
@@ -3568,11 +3567,11 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
     @transition(field=state, source=["new", "draft"], target="submitted")
     def submit(self, request=None, by=None, *args, **kwargs):
         # self.referee.has_testifed = True
-        # self.referee.status = "testified"
+        # self.referee.state = "testified"
         # self.referee.testified_at = datetime.now()
         if not by and request:
             by = request.user
-        if self.referee.status != "testified":
+        if self.referee.state != "testified":
             self.referee.testify(request=request, by=by, *args, **kwargs)
             if description := kwargs.get("description"):
                 self.referee._change_reason = description
@@ -4204,7 +4203,7 @@ class Round(Model):
             Q(user=user)
             | Q(email=user.email)
             | Q(email__in=Subquery(EmailAddress.objects.filter(user=user).values("email"))),
-            status__in=["submitted", "accepted"],
+            state__in=["submitted", "accepted"],
             round=self,
         )
 
@@ -4326,7 +4325,7 @@ class Round(Model):
             """
             WITH summary AS (
                 SELECt a.id, count(r.id) AS referee_count,
-                    sum(CASE WHEN r.status='testified'
+                    sum(CASE WHEN r.state='testified'
                     -- OR has_testifed
                     THEN 1 ELSE 0 END) AS submitted_reference_count
                 FROM application AS a
@@ -4335,7 +4334,7 @@ class Round(Model):
                 GROUP BY a.id
             ), member_summary AS (
                 SELECt a.id, count(m.id) AS member_count,
-                    sum(CASE WHEN m.status='authorized' THEN 1 ELSE 0 END) AS member_authorized_count
+                    sum(CASE WHEN m.state='authorized' THEN 1 ELSE 0 END) AS member_authorized_count
                 FROM application AS a
                     LEFT JOIN member AS m ON m.application_id=a.id
                 WHERE a.round_id=%s AND a.site_id=%s
@@ -4597,7 +4596,7 @@ class Criterion(Model):
 
 
 class EvaluationMixin:
-    STATUS = Choices(
+    STATES = Choices(
         (None, None),
         ("new", _("new")),
         ("draft", _("draft")),
@@ -4621,7 +4620,7 @@ class Evaluation(EvaluationMixin, Model):
     comment = TextField(_("Overall Comment"))
     # scores = ManyToManyField(Criterion, blank=True, through="Score")
     total_score = PositiveIntegerField(_("Total Score"), default=0)
-    state = StateField(null=True, blank=True, default="new")
+    state = StatusField(null=True, blank=True, default="new")
 
     def calc_evaluation_score(self):
         return sum(
@@ -4892,7 +4891,7 @@ class SchemeApplication(Model):
         # db_table = "scheme_application_view"
 
 
-NOMINATION_STATUS = Choices(
+NOMINATION_STATES = Choices(
     ("accepted", _("accepted")),
     ("bounced", _("bounced")),
     ("draft", _("draft")),
@@ -4906,7 +4905,7 @@ NOMINATION_STATUS = Choices(
 class NominationMixin:
     """Workaround for simple history."""
 
-    STATUS = NOMINATION_STATUS
+    STATES = NOMINATION_STATES
 
 
 class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
@@ -4983,7 +4982,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("Curriculum Vitae"),
     )
 
-    status = StateField(_("status"), null=True, blank=True, default=NOMINATION_STATUS.new)
+    state = StatusField(_("state"), null=True, blank=True, default="new")
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
@@ -5000,9 +4999,9 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
 
     @fsm_log
     @transition(
-        field=status,
-        source=[NOMINATION_STATUS.new, NOMINATION_STATUS.draft],
-        target=NOMINATION_STATUS.draft,
+        field=state,
+        source=["new", "draft"],
+        target="draft",
     )
     def save_draft(self, *args, **kwargs):
         pass
@@ -5027,32 +5026,32 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
 
     @fsm_log
     @transition(
-        field=status,
+        field=state,
         source=[
-            NOMINATION_STATUS.new,
-            NOMINATION_STATUS.draft,
-            NOMINATION_STATUS.submitted,
-            NOMINATION_STATUS.bounced,
+            "new",
+            "draft",
+            "submitted",
+            "bounced",
         ],
-        target=NOMINATION_STATUS.submitted,
+        target="submitted",
     )
     def submit(self, *args, **kwargs):
         return self.send_invitation(*args, **kwargs)
 
     @fsm_log
     @transition(
-        field=status,
+        field=state,
         source=[
-            NOMINATION_STATUS.submitted,
-            NOMINATION_STATUS.bounced,
+            "submitted",
+            "bounced",
         ],
-        target=NOMINATION_STATUS.accepted,
+        target="accepted",
     )
     def accept(self, *args, **kwargs):
         pass
 
     @classmethod
-    def user_nomination_count(cls, user, status=None):
+    def user_nomination_count(cls, user, state=None):
         sql = """
             SELECT count(*) AS "count"
             FROM nomination AS n JOIN scheme AS s
@@ -5067,21 +5066,21 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             sql += " n.nominator_id=%s AND "
             params.append(user.id)
 
-        if status:
-            if isinstance(status, (list, tuple)):
-                status_list = ",".join(f"'{s}'" for s in status)
-                sql += f" n.status IN ({status_list})"
+        if state:
+            if isinstance(state, (list, tuple)):
+                state_list = ",".join(f"'{s}'" for s in state)
+                sql += f" n.state IN ({state_list})"
             else:
-                if status in ["draft", "new"]:
-                    sql += " n.status IN ('new', 'draft') OR n.status IS NULL"
+                if state in ["draft", "new"]:
+                    sql += " n.state IN ('new', 'draft') OR n.state IS NULL"
                 else:
-                    sql += " n.status=%s"
-                    params.append(status)
+                    sql += " n.state=%s"
+                    params.append(state)
         else:
-            sql += " n.status IN ('new', 'draft', 'submitted') OR n.status IS NULL"
+            sql += " n.state IN ('new', 'draft', 'submitted') OR n.state IS NULL"
         sql += ")"
-        if not status or (status == "submitted" or "submitted" in status):
-            sql += " OR (n.status='submitted' AND (n.user_id=%s OR n.email=%s))"
+        if not state or (state == "submitted" or "submitted" in state):
+            sql += " OR (n.state='submitted' AND (n.user_id=%s OR n.email=%s))"
             params.extend([user.id, user.email])
         sql += ")"
 
@@ -5357,25 +5356,25 @@ class ResearchOffice(Model):
         db_table = "research_office"
 
 
-PANEL_STATUS = Choices(
-        ("new", _("new")),
-        ("draft", _("draft")),
-        ("preliminary", _("preliminary")),
-        ("active", _("active")),
-        ("archived" _("archived"))
-        )
+PANEL_STATES = Choices(
+    ("new", _("new")),
+    ("draft", _("draft")),
+    ("preliminary", _("preliminary")),
+    ("active", _("active")),
+    ("archived", _("archived")),
+)
+
 
 class PanelMixin:
-    STATUS = PANEL_STATUS
+    STATES = PANEL_STATES
+
 
 class Panel(PanelMixin, Model):
-
-    state = StateField()
-
-    code = models.CharField(max_length=3, blank=True, null=True)
-    description = models.CharField(max_length=255, blank=True, null=True)
-    fund = models.ForeignKey(Fund, on_delete=models.CASCADE, blank=True, null=True)
-    panellista = models.ManyToManyField(Person, through=Panellist, related_name="panels")
+    state = StatusField(default="new")
+    code = CharField(_("code"), max_length=3, blank=True, null=True)
+    description = CharField(_("description"), max_length=255, blank=True, null=True)
+    fund = ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
+    # panellista = models.ManyToManyField(Person, through=Panellist, related_name="panels")
 
     @property
     @admin.display(
@@ -5386,11 +5385,17 @@ class Panel(PanelMixin, Model):
     def is_active(self):
         return self.state and self.state == "active"
 
+    def natural_key(self):
+        return (self.code,)
+
     def __str__(self):
         return f"{self.code}: {self.description}"
 
     class Meta:
-        db_table = 'panel'
+        db_table = "panel"
+
+
+simple_history.register(Panel, inherit=True, table_name="panel_history", bases=[PanelMixin, Model])
 
 
 def add_title_data(apps, schema_editor):

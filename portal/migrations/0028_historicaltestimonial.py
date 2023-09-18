@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "state",
-                    portal.models.StateField(
+                    portal.models.StatusField(
                         choices=[
                             (None, None),
                             ("new", "new"),
