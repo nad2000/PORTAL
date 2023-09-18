@@ -2097,8 +2097,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if (
             user.is_superuser
             or user.is_staff
-            or self.conflict_of_interests.filter(
-                panellist__user=user, has_conflict=False, has_conflict__isnull=False
+            or (
+                self.site_id != 4
+                and self.conflict_of_interests.filter(
+                    panellist__user=user, has_conflict=False, has_conflict__isnull=False
+                ).exists()
             )
         ):
             for n in Nomination.where(application=self, nominator__isnull=False):
