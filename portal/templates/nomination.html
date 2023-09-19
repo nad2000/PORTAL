@@ -10,9 +10,9 @@
 {% block breadcrumbs %}
   {{ block.super }}
   {% breadcrumb "Nominations" "nominations" %}
-  {% if object.status == "submitted" %}
+  {% if object.state == "submitted" %}
     {% breadcrumb "Submitted" "nominations-submitted" %}
-  {% elif not object or object.status == "draft" or object.status == "new" %}
+  {% elif not object or object.state == "draft" or object.state == "new" %}
     {% breadcrumb "Draft" "nominations-draft" %}
   {% endif %}
   {% if object and object.pk %}
@@ -60,7 +60,7 @@
 
 {% block javascript %}
   {{ block.super }}
-  {% if object and object.status != "accepted" or not object %}
+  {% if object and object.state != "accepted" or not object %}
   <script>
     $(document).ready(function(){
       $('#button-id-submit_button').click(function() {

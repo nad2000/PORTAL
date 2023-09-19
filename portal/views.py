@@ -5566,12 +5566,12 @@ class EvaluationDetail(DetailView):
     #     ).first()
     #     if "authorize_team_lead" in request.POST:
     #         member.has_authorized = True
-    #         member.status = models.MEMBER_STATUS.authorized
+    #         member.state = "authorized"
     #         # member.authorized_at = datetime.now()
     #         member.save()
     #     elif "turn_down" in request.POST:
     #         member.has_authorized = False
-    #         member.status = models.MEMBER_STATUS.opted_out
+    #         member.state = "opted_out"
     #         member.save()
     #         if self.object.submitted_by.email:
     #             send_mail(

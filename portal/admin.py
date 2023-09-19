@@ -678,7 +678,7 @@ class ApplicationAdmin(
     class MemberInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Member
-        readonly_fields = ["status", "status_changed_at"]
+        readonly_fields = ["state", "state_changed_at"]
         autocomplete_fields = ["user"]
 
         def view_on_site(self, obj):
@@ -688,8 +688,8 @@ class ApplicationAdmin(
         extra = 0
         model = models.Referee
         readonly_fields = [
-            "status",
-            "status_changed_at",
+            "state",
+            "state_changed_at",
             "has_testified",
             "testified_at",
             "survey_completed_at",
@@ -705,7 +705,7 @@ class ApplicationAdmin(
             return exclude
 
         def has_testified(self, obj):
-            return obj.status == "testified"
+            return obj.state == "testified"
 
         def survey_url(self, obj):
             if obj.application.round_id:
@@ -996,8 +996,8 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 @admin.register(models.Referee)
 class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     save_on_top = True
-    list_display = ["application", "has_testified", "email", "full_name", "status", "testified_at"]
-    fsm_field = ["status"]
+    list_display = ["application", "has_testified", "email", "full_name", "state", "testified_at"]
+    fsm_field = ["state"]
     search_fields = [
         "first_name",
         "last_name",
@@ -1005,13 +1005,13 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "application__number",
         "application__application_title",
     ]
-    list_filter = ["application__round", "created_at", "testified_at", "status"]
+    list_filter = ["application__round", "created_at", "testified_at", "state"]
     date_hierarchy = "testified_at"
     autocomplete_fields = ["user", "application"]
     readonly_fields = [
         # "application",
-        "status",
-        "status_changed_at",
+        "state",
+        "state_changed_at",
         "has_testified",
         "testified_at",
     ]
@@ -1024,12 +1024,13 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         if obj.invitation:
             return mark_safe(
                 '<a href="{}" target="_blank">{}</a>'.format(
-                    reverse("admin:portal_invitation_change", args=(obj.invitation.pk,)), obj.invitation
+                    reverse("admin:portal_invitation_change", args=(obj.invitation.pk,)),
+                    obj.invitation,
                 )
             )
 
     def has_testified(self, obj):
-        return obj.status == "testified"
+        return obj.state == "testified"
 
     has_testified.boolean = True
 
@@ -1048,8 +1049,8 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 @admin.register(models.Member)
 class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     save_on_top = True
-    list_display = ["email", "full_name", "application", "status", "has_authorized"]
-    fsm_field = ["status"]
+    list_display = ["email", "full_name", "application", "state", "has_authorized"]
+    fsm_field = ["state"]
     search_fields = [
         "email",
         "first_name",
@@ -1057,21 +1058,21 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "application__number",
         "application__application_title",
     ]
-    list_filter = ["application__round", "created_at", "updated_at", "status"]
+    list_filter = ["application__round", "created_at", "updated_at", "state"]
     date_hierarchy = "created_at"
     inlines = [StateLogInline]
     readonly_fields = [
         "application",
-        "status",
-        "status_changed_at",
+        "state",
+        "state_changed_at",
         "authorized_at",
         "has_authorized",
     ]
 
     def has_authorized(self, obj):
-        if obj.status == "authorized":
+        if obj.state == "authorized":
             return True
-        elif obj.status == "opted_out":
+        elif obj.state == "opted_out":
             return False
 
     has_authorized.boolean = True
@@ -1083,14 +1084,14 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 @admin.register(models.Panellist)
 class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
     save_on_top = True
-    list_display = ["full_name_with_email", "round", "status"]
-    fsm_field = ["status"]
+    list_display = ["full_name_with_email", "round", "state"]
+    fsm_field = ["state"]
     search_fields = ["first_name", "last_name", "email"]
-    list_filter = ["round", "created_at", "updated_at", "status"]
+    list_filter = ["round", "created_at", "updated_at", "state"]
     date_hierarchy = "created_at"
     exclude = ["site"]
     inlines = [StateLogInline]
-    readonly_fields = ["status"]
+    readonly_fields = ["state"]
 
     actions = ["resend_invitations"]
 
@@ -1104,7 +1105,7 @@ class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
 
         recipients = []
         invitations = list(
-            models.Invitation.where(~Q(status="accepted"), panellist__in=queryset, type="P")
+            models.Invitation.where(~Q(state="accepted"), panellist__in=queryset, type="P")
         )
         for i in invitations:
             i.send(request)
@@ -1119,9 +1120,9 @@ class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        if obj and obj.status != "bounced":
+        if obj and obj.state != "bounced":
             i, _ = obj.get_or_create_invitation()
-            if i.status not in ["sent", "bounced"]:
+            if i.state not in ["sent", "bounced"]:
                 i.send(request)
                 i.save()
 
@@ -1225,8 +1226,8 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
 
     list_display = ["round", "nominee_name", "nominator_name", "application"]
     date_hierarchy = "created_at"
-    list_filter = ["created_at", "updated_at", "round", "status"]
-    fsm_field = ["status"]
+    list_filter = ["created_at", "updated_at", "round", "state"]
+    fsm_field = ["state"]
     search_fields = [
         "email",
         "first_name",
@@ -1246,12 +1247,7 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
     @admin.action(description="Resend the invitations")
     def resend_invitations(self, request, queryset):
         recipients = []
-        for o in queryset.filter(
-            status__in=[
-                models.NOMINATION_STATUS.submitted,
-                models.NOMINATION_STATUS.bounced,
-            ]
-        ):
+        for o in queryset.filter(state__in=["submitted", "bounced"]):
             o.send_invitation(request)
             recipients.append(o)
 
@@ -1461,14 +1457,14 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
 
     save_on_top = True
     view_on_site = False
-    fsm_field = ["status"]
+    fsm_field = ["state"]
     exclude = [
         "site",
     ]
     list_display = [
         "token",
         "type",
-        "status",
+        "state",
         "full_name_with_email",
         "created_at",
         "sent_at",
@@ -1488,7 +1484,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
     list_filter = [
         ("org", admin.RelatedOnlyFieldListFilter),
         "type",
-        "status",
+        "state",
         "created_at",
         "updated_at",
     ]

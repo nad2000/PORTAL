@@ -72,12 +72,12 @@
       </button>
 
       <div class="tooltip-wrapper{% if not scheme.current_round.is_open %} disabled{% endif %} float-right"
-          {% if object.state == "submitted" or object.status == "submitted" %}
+          {% if object.state == "submitted" or object.state == "submitted" %}
             disabled
             data-title="{% trans 'The evaluation has been already submitted and cannot be modified.' %}"
           {% endif %}
         >
-        <a class="btn btn-primary{% if object.state == "submitted" or object.status == "submitted" %} disabled{% endif %} float-right"
+        <a class="btn btn-primary{% if object.state == "submitted" or object.state == "submitted" %} disabled{% endif %} float-right"
           href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
       </div>
 

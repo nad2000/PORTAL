@@ -55,7 +55,7 @@
 
         <tr>
           {% for field in form %}
-            {% if field.name == "status" %}
+            {% if field.name == "state" %}
               <td id="div_{{ field.auto_id }}" class="form-group align-middle text-center">
                 {% crispy_field field %}
               </td>

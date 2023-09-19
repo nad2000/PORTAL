@@ -12,35 +12,35 @@
   {% endif %}
 
   {% if survey_url %}
-    <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.status == "submitted" or object.status == "accepted" or object.referee.survey_completed_at %} disabled{% endif %}"
+    <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.state == "submitted" or object.state == "accepted" or object.referee.survey_completed_at %} disabled{% endif %}"
          {% if object.referee and object.referee.survey_completed_at %}
            disabled
          title="{% blocktrans with completed_at=object.referee.survey_completed_at %}Referee report was completed at <b>{{ completed_at }}</b>{% endblocktrans %}"
-       {% elif object.state == "submitted" or object.status == "submitted" %}
+       {% elif object.state == "submitted" or object.state == "submitted" %}
            disabled
          data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
-       {% elif object.status == "accepted" %}
+       {% elif object.state == "accepted" %}
            disabled
          title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
        {% endif %}
          >
-         <a class="btn btn-primary{% if object.state == "submitted" or object.status == "submitted" or object.status == "accepted" or object.referee.survey_completed_at  %} disabled{% endif %}"
+         <a class="btn btn-primary{% if object.state == "submitted" or object.state == "submitted" or object.state == "accepted" or object.referee.survey_completed_at  %} disabled{% endif %}"
             href="{{ survey_url }}">{% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong></a>
     </div>
 
   {% endif %}
 
   {% if update_view_name %}
-    <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.status == "submitted" or object.status == "accepted" %} disabled{% endif %}"
-         {% if object.state == "submitted" or object.status == "submitted" %}
+    <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.state == "submitted" or object.state == "accepted" %} disabled{% endif %}"
+         {% if object.state == "submitted" or object.state == "submitted" %}
            disabled
          data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
-       {% elif object.status == "accepted" %}
+       {% elif object.state == "accepted" %}
            disabled
          title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
        {% endif %}
          >
-         <a class="btn btn-primary{% if object.state == "submitted" or object.status == "submitted" or object.status == "accepted" %} disabled{% endif %}"
+         <a class="btn btn-primary{% if object.state == "submitted" or object.state == "submitted" or object.state == "accepted" %} disabled{% endif %}"
             href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
     </div>
   {% endif %}

@@ -63,7 +63,6 @@ from django.db.models.functions import Cast, Coalesce
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
@@ -75,12 +74,10 @@ from private_storage.fields import PrivateFileField
 from PyPDF2 import PdfFileMerger, PdfFileReader
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
-from taggit.managers import TaggableManager
-from taggit.models import GenericTaggedItemBase, TagBase, TaggedItemBase
+from taggit.models import TagBase
 from weasyprint import HTML
 
 from common.models import (
-    TITLES,
     Base,
     EmailField,
     FixedCharField,
@@ -354,7 +351,7 @@ class PdfFileMixin:
 class StateField(FSMFieldMixin, StatusField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("max_length", 50)
-        kwargs.setdefault("choices_name", "SATES")
+        kwargs.setdefault("choices_name", "STATES")
         super().__init__(*args, **kwargs)
 
 
@@ -1441,7 +1438,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Please enter the URL where your presentation video can be viewed"),
     )
 
-    state = StatusField(default="new", verbose_name=_("state"))
+    state = StateField(default="new", verbose_name=_("state"))
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")
     )
@@ -2342,7 +2339,7 @@ MEMBER_STATES = Choices(
 class MemberMixin:
     """Workaround for simple history."""
 
-    STATE = MEMBER_STATES
+    STATES = MEMBER_STATES
 
 
 class Member(PersonMixin, MemberMixin, Model):
@@ -2365,7 +2362,7 @@ class Member(PersonMixin, MemberMixin, Model):
     role = CharField(max_length=200, null=True, blank=True)
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    state = StatusField(null=True, blank=True, default="new")
+    state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, blank=True, default=None
@@ -2503,7 +2500,7 @@ REFEREE_STATES = Choices(
 class RefereeMixin:
     """Workaround for simple history."""
 
-    STATE = REFEREE_STATES
+    STATES = REFEREE_STATES
 
 
 class Referee(RefereeMixin, PersonMixin, Model):
@@ -2525,7 +2522,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    state = StatusField(_("state"), null=True, blank=True, default="new")
+    state = StateField(_("state"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     testified_at = MonitorField(
         monitor="state", when=["testified"], null=True, blank=True, default=None
@@ -2744,7 +2741,7 @@ PANELLIST_STATES = Choices(
 class PanellistMixin:
     """Workaround for simple history."""
 
-    STATE = PANELLIST_STATES
+    STATES = PANELLIST_STATES
 
 
 class Panellist(PanellistMixin, PersonMixin, Model):
@@ -2754,7 +2751,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     objects = CurrentSiteManager()
     all_objects = Manager()
 
-    state = StatusField(null=True, blank=True, default="new")
+    state = StateField(null=True, blank=True, default="new")
     round = ForeignKey("Round", editable=True, on_delete=DO_NOTHING, related_name="panellists")
     email = EmailField(max_length=120)
     first_name = CharField(max_length=30, null=True, blank=True)
@@ -2959,8 +2956,6 @@ class InvitationMixin:
 
 
 class Invitation(InvitationMixin, PersonMixin, Model):
-    STATES = INVITATION_STATES
-
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
@@ -3003,25 +2998,21 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     round = ForeignKey(
         "Round", null=True, blank=True, on_delete=SET_NULL, related_name="invitations"
     )
-    state = StatusField(default="draft")
+    state = StateField(default="draft")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     submitted_at = MonitorField(
-        monitor="state", when=[STATES.submitted], null=True, blank=True, default=None
+        monitor="state", when=["submitted"], null=True, blank=True, default=None
     )
-    sent_at = MonitorField(
-        monitor="state", when=[STATES.sent], null=True, blank=True, default=None
-    )
+    sent_at = MonitorField(monitor="state", when=["sent"], null=True, blank=True, default=None)
     accepted_at = MonitorField(
-        monitor="state", when=[STATES.accepted], null=True, blank=True, default=None
+        monitor="state", when=["accepted"], null=True, blank=True, default=None
     )
-    read_at = MonitorField(
-        monitor="state", when=[STATES.read], null=True, blank=True, default=None
-    )
+    read_at = MonitorField(monitor="state", when=["read"], null=True, blank=True, default=None)
     expired_at = MonitorField(
-        monitor="state", when=[STATES.expired], null=True, blank=True, default=None
+        monitor="state", when=["expired"], null=True, blank=True, default=None
     )
     bounced_at = MonitorField(
-        monitor="state", when=[STATES.bounced], null=True, blank=True, default=None
+        monitor="state", when=["bounced"], null=True, blank=True, default=None
     )
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
@@ -3430,7 +3421,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     p.save()
 
     @fsm_log
-    @transition(field=state, source=["*"], target=STATUS.bounced)
+    @transition(field=state, source=["*"], target="bounced")
     def bounce(self, request=None, by=None, *args, **kwargs):
         def get_absolute_uri(request, url):
             if request:
@@ -3552,7 +3543,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         on_delete=PROTECT,
         verbose_name=_("curriculum vitae"),
     )
-    state = StatusField(_("state"), default="new")
+    state = StateField(_("state"), default="new")
 
     @property
     def application(self):
@@ -4620,7 +4611,7 @@ class Evaluation(EvaluationMixin, Model):
     comment = TextField(_("Overall Comment"))
     # scores = ManyToManyField(Criterion, blank=True, through="Score")
     total_score = PositiveIntegerField(_("Total Score"), default=0)
-    state = StatusField(null=True, blank=True, default="new")
+    state = StateField(null=True, blank=True, default="new")
 
     def calc_evaluation_score(self):
         return sum(
@@ -4982,7 +4973,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("Curriculum Vitae"),
     )
 
-    state = StatusField(_("state"), null=True, blank=True, default="new")
+    state = StateField(_("state"), null=True, blank=True, default="new")
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
@@ -5370,7 +5361,7 @@ class PanelMixin:
 
 
 class Panel(PanelMixin, Model):
-    state = StatusField(default="new")
+    state = StateField(default="new")
     code = CharField(_("code"), max_length=3, blank=True, null=True)
     description = CharField(_("description"), max_length=255, blank=True, null=True)
     fund = ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)

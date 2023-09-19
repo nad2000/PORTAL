@@ -121,32 +121,32 @@ class ReadOnlyFieldsMixin:
     #     return super().clean()
 
 
-class FormWithStatusFieldMixin:
+class FormWithStateFieldMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if instance := self.instance:
-            attrs = self.fields["status"].widget.attrs
+            attrs = self.fields["state"].widget.attrs
             invitation = getattr(instance, "invitation", None)
             changed_at = (
                 invitation
-                and invitation.status_changed_at
-                or instance.status_changed_at
+                and invitation.state_changed_at
+                or instance.state_changed_at
                 or instance.updated_at
             )
             attrs["invitation"] = invitation
-            status = invitation and invitation.status or instance.status
+            state = invitation and invitation.state or instance.state
             if (
-                status == "accepted"
+                state == "accepted"
                 and instance
-                and instance.status
-                and instance.status != "new"
-                and (status != instance.status or instance.status_changed_at > changed_at)
+                and instance.state
+                and instance.state != "new"
+                and (state != instance.state or instance.state_changed_at > changed_at)
             ):
-                status = instance.status
-                changed_at = instance.status_changed_at
+                state = instance.state
+                changed_at = instance.state_changed_at
             attrs["changed_at"] = changed_at
-            attrs["status"] = status
-            if status in ["bounced", "autoreplied"] and (error_message := instance.mail_log_error):
+            attrs["state"] = state
+            if state in ["bounced", "autoreplied"] and (error_message := instance.mail_log_error):
                 attrs["error_message"] = error_message
 
 
@@ -1101,18 +1101,17 @@ class ApplicationForm(forms.ModelForm):
         }
 
 
-class InvitationStatusInput(Widget):
+class InvitationStateInput(Widget):
     # def __init__(self, attrs=None):
     #     super().__init__(attrs)
     #     breakpoint()
     #     pass
 
-    # template_name = "portal/widgets/invitation_status.html"
-    template_name = "invitation_status.html"
+    template_name = "invitation_state.html"
 
 
-class MemberForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm):
-    readonly_fields = ["status"]
+class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+    readonly_fields = ["state"]
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1136,9 +1135,9 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm)
 
     class Meta:
         model = models.Member
-        fields = ["status", "email", "first_name", "middle_names", "last_name", "role"]
+        fields = ["state", "email", "first_name", "middle_names", "last_name", "role"]
         # fields = ["email", "first_name", "middle_names", "last_name", "role"]
-        disabled = ["status"]
+        disabled = ["state"]
         widgets = dict(
             email=forms.EmailInput(
                 attrs={
@@ -1149,7 +1148,7 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm)
                 }
             ),
             # has_authorized=NullBooleanSelect(attrs=dict(readonly=True)),
-            status=InvitationStatusInput(attrs={"readonly": True}),
+            state=InvitationStateInput(attrs={"readonly": True}),
         )
 
 
@@ -1166,11 +1165,11 @@ class MemberFormSet(
             obj.delete()
 
 
-class RefereeForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm):
-    readonly_fields = ["status"]
+class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+    readonly_fields = ["state"]
 
     def save(self, commit=True):
-        """Prevent 'status' getting overwritten"""
+        """Prevent 'state' getting overwritten"""
         if self.errors:
             raise ValueError(
                 "The %s could not be %s because the data didn't validate."
@@ -1236,7 +1235,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm
 
     class Meta:
         model = models.Referee
-        fields = ["status", "email", "first_name", "middle_names", "last_name"]
+        fields = ["state", "email", "first_name", "middle_names", "last_name"]
         widgets = dict(
             email=forms.EmailInput(
                 attrs={
@@ -1247,7 +1246,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm
                 }
             ),
             has_testiefed=NullBooleanSelect(attrs=dict(readonly=True)),
-            status=InvitationStatusInput(attrs={"readonly": True}),
+            state=InvitationStateInput(attrs={"readonly": True}),
         )
 
 
@@ -1479,8 +1478,8 @@ class NominationForm(forms.ModelForm):
             fields.append("file")
 
         # fields.append("summary")
-        was_submitted = self.instance and self.instance.id and self.instance.status == "submitted"
-        was_accepted = self.instance and self.instance.id and self.instance.status == "accepted"
+        was_submitted = self.instance and self.instance.id and self.instance.state == "submitted"
+        was_accepted = self.instance and self.instance.id and self.instance.state == "accepted"
         self.helper.layout = Layout(
             *fields,
             HTML("""<input type="hidden" name="action">"""),
@@ -1696,8 +1695,8 @@ class IdentityVerificationForm(forms.ModelForm):
         fields = ["file", "resolution"]
 
 
-class PanellistForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelForm):
-    readonly_fields = ["status"]
+class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+    readonly_fields = ["state"]
     confirm_deletion = True
 
     @property
@@ -1743,7 +1742,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStatusFieldMixin, forms.ModelFo
         model = models.Panellist
         exclude = ("site",)
         widgets = {
-            "status": InvitationStatusInput(attrs={"readonly": True}),
+            "state": InvitationStateInput(attrs={"readonly": True}),
             "round": HiddenInput(),
         }
 
@@ -1756,7 +1755,7 @@ class PanellistFormSet(
         can_delete=True,
         widgets={
             "round": HiddenInput(),
-            # "status": InvitationStatusInput(attrs={"readonly": True}),
+            # "state": InvitationStateInput(attrs={"readonly": True}),
         },
     )
 ):
