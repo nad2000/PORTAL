@@ -3393,11 +3393,15 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 t, _ = Testimonial.get_or_create(referee=r)
         elif self.type == INVITATION_TYPES.P:
             p = self.panellist
-            p.user = by
-            if p.status != "accepted":
-                p.accept(request)
-                if commit:
-                    p.save()
+            if p:
+                p.user = by
+                if p.status != "accepted":
+                    p.accept(request)
+                    if commit:
+                        p.save()
+            else:
+                self.revoke()
+
 
     @fsm_log
     @transition(field=status, source=["*"], target=STATUS.bounced)

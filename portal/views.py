@@ -860,15 +860,16 @@ def check_profile(request, token=None):
                 i.save()
                 reset_cache(request)
 
-            elif i.status == "revoked":
-                messages.warning(
-                    request,
-                    _("The invitation has been revoked and is not any more valid."),
-                )
             elif i.status == "accepted":
                 messages.warning(
                     request,
                     _("The invitation has been already accepted."),
+                )
+
+            if i.status == "revoked":
+                messages.warning(
+                    request,
+                    _("The invitation has been revoked and is not any more valid."),
                 )
 
             if i.status != "accepted":
