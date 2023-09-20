@@ -18,17 +18,17 @@ class SubscriptionTable(tables.Table):
         )
 
 
-class StatusColumn(tables.Column):
+class StateColumn(tables.Column):
     attrs = {"td": {"class": "align-middle text-center"}}
 
     def render(self, value, record):
-        status = getattr(record, "state", None) or getattr(record, "status", None) or value
-        if not status:
+        state = getattr(record, "state", None) or getattr(record, "state", None) or value
+        if not state:
             return mark_safe(
                 '<i class="far fa-question-circle text-dark text-center" aria-hidden="true"></i>'
             )
-        elif status in ["new", "draft"]:
-            if status == "draft":
+        elif state in ["new", "draft"]:
+            if state == "draft":
                 if isinstance(record, (models.Testimonial, models.Application)):
                     css_classes = "far fa-times-circle text-danger text-center"
                     title = _("Work in progress")
@@ -47,22 +47,22 @@ class StatusColumn(tables.Column):
                 else:
                     title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
-        elif status == "sent":
+        elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
-        elif status == "accepted":
+        elif state == "accepted":
             css_classes = "far fa-envelope-open text-success text-center"
             title = _("The invitation was accepted")
-        elif status == "testified":
+        elif state == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
             title = _("The testimonial was submitted")
-        elif status == "opted_out":
+        elif state == "opted_out":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("The invitee has turned down the nomination")
-        elif status == "bounced":
+        elif state == "bounced":
             css_classes = "fa fa-exclamation-triangle text-danger text-center"
             title = _("The invitation failed or autoreplied. Please check the recipient")
-        elif status == "submitted":
+        elif state == "submitted":
             css_classes = "fa fa-check text-success text-center"
             if isinstance(record, models.Testimonial):
                 title = _("The testimonial was completed and submitted")
@@ -70,10 +70,10 @@ class StatusColumn(tables.Column):
                 title = _("The application was completed and submitted")
             else:
                 title = _("The invitation was submitted")
-        elif status == "cancelled":
+        elif state == "cancelled":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("The application was cancelled")
-        elif status == "approved":
+        elif state == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
             title = _("The application was approved")
         else:
@@ -92,12 +92,12 @@ class StatusColumn(tables.Column):
 class NominationTable(tables.Table):
     round = tables.Column(
         linkify=lambda table, record: record.get_absolute_url()
-        if record.status != "submitted"
+        if record.state != "submitted"
         else reverse("nomination-detail", args=[record.pk])
         if record.user == table.request.user or record.email == table.request.user.email
         else None
     )
-    status = StatusColumn()
+    state = StateColumn()
     application = tables.Column(
         # accessor="referee.application.number",
         linkify=lambda record: reverse("application", kwargs=dict(pk=record.application_id))
@@ -125,7 +125,7 @@ class NominationTable(tables.Table):
         template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
-            "status",
+            "state",
             "round",
             "nominator",
             "first_name",
@@ -136,7 +136,7 @@ class NominationTable(tables.Table):
 
 
 class TestimonialTable(tables.Table):
-    state = StatusColumn(verbose_name=_("Submitted"))
+    state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(
         accessor="referee.application.number",
         linkify=lambda record: reverse("testimonial-detail", kwargs=dict(pk=record.id)),
@@ -171,7 +171,7 @@ def application_round_link(table, record, value):
 
 
 class ApplicationTable(tables.Table):
-    state = StatusColumn(verbose_name=_("Submitted"))
+    state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
     round = tables.Column(linkify=application_round_link)
     email = tables.Column(
@@ -484,7 +484,7 @@ class RoundConflictOfInterestSatementTable(tables.Table):
 class RoundSummaryTable(tables.Table):
     number = tables.Column(linkify=lambda record: record.get_absolute_url())
     lead = tables.Column()
-    state = tables.Column(verbose_name=_("Status"))
+    state = tables.Column(verbose_name=_("State"))
     is_accepted = tables.Column(verbose_name=_("T&C"))
     referees = tables.Column(empty_values=(), verbose_name=_("Referees"), orderable=False)
     members = tables.Column(
@@ -549,7 +549,7 @@ class InvitationTable(tables.Table):
             "referee",
             "panellist",
             "round",
-            "status",
+            "state",
             "submitted_at",
             "sent_at",
             "accepted_at",
@@ -563,7 +563,7 @@ class SummaryReportTable(tables.Table):
         model = models.Application
         template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
-        fields = ["number", "round", "submitted_by", "status"]
+        fields = ["number", "round", "submitted_by", "state"]
 
 
 # vim:set ft=python.django:

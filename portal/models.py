@@ -2715,7 +2715,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             "SELECT DISTINCT r.*, tm.id AS testimonial_id "
             "FROM referee AS r JOIN account_emailaddress AS ae ON "
             "ae.email = r.email LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
-            "WHERE (r.user_id=%s OR ae.user_id=%s) AND state NOT IN ('testified', 'opted_out')",
+            "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')",
             [user.id, user.id],
         )
 
