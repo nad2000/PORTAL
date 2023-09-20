@@ -350,7 +350,7 @@ class PdfFileMixin:
 
 class StateField(FSMFieldMixin, StatusField):
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("max_length", 50)
+        # kwargs.setdefault("max_length", 50)
         kwargs.setdefault("choices_name", "STATES")
         super().__init__(*args, **kwargs)
 
