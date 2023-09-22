@@ -355,6 +355,19 @@ class StateField(FSMFieldMixin, StatusField):
         super().__init__(*args, **kwargs)
 
 
+# class StateKeyField(FSMFieldMixin, StatusField):
+#     def __init__(self, *args, **kwargs):
+#         # kwargs.setdefault("max_length", 50)
+#         kwargs.setdefault("choices_name", "STATES")
+#         super().__init__(*args, **kwargs)
+
+#     def get_state(self, instance):
+#         return instance.__dict__[self.attname]
+
+#     def set_state(self, instance, state):
+#         instance.__dict__[self.attname] = self.to_python(state)
+
+
 def hash_int(
     value,
 ):
@@ -579,6 +592,24 @@ class SocioEconomicObjective(Model):
 #         db_table = "type_of_activity"
 #         verbose_name = "ToA"
 #         verbose_name_plural = "ToAs"
+
+
+class Rcc(Model):
+    rcc = CharField(max_length=8)
+    description = CharField(max_length=80, blank=True, null=True)
+    source = CharField(max_length=255, blank=True, null=True)
+    code = CharField(max_length=255, blank=True, null=True)
+
+    def natural_key(self):
+        return (self.rcc,)
+
+    def __str__(self):
+        return f"{self.rcc}: {self.description}"
+
+    class Meta:
+        db_table = "rcc"
+        verbose_name = _("RCC")
+        verbose_name_plural = _("RCCs")
 
 
 class FieldOfResearch(Model):
@@ -5449,6 +5480,182 @@ def add_title_data(apps, schema_editor):
 
 #     class Meta:
 #         db_table = "affiliation"
+
+
+class ContractKeyword(Model):
+    application = ForeignKey("Contract", on_delete=CASCADE)
+    keyword = ForeignKey(Keyword, on_delete=CASCADE)
+
+    class Meta:
+        db_table = "contract_keyword"
+
+
+class ContractFor(Model):
+    contract = ForeignKey("Contract", on_delete=CASCADE, related_name="contract_fors")
+    code = ForeignKey(FieldOfResearch, db_column="code", on_delete=CASCADE, verbose_name="FoR")
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        # auto_created = True
+        db_table = "contract_for"
+        unique_together = (("contract", "code"),)
+        verbose_name = _("contract FOR")
+        verbose_name_plural = _("contract FoRs")
+
+
+class ContractSeo(Model):
+    contract = ForeignKey("Contract", on_delete=CASCADE, related_name="contract_seos")
+    code = ForeignKey(
+        SocioEconomicObjective, on_delete=CASCADE, db_column="code", verbose_name="SEO"
+    )
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        # auto_created = True
+        db_table = "contract_seo"
+        unique_together = (("contract", "code"),)
+        verbose_name = _("contract SEO")
+        verbose_name_plural = _("contract SEOs")
+
+
+class ContractMixin:
+    STATES = Choices(
+        (None, None),
+        ("ASD", _("Awaiting start date")),
+        ("COM", _("Completed")),
+        ("CUR", _("Current ")),
+        ("DCL", _("Declined")),
+        ("SUS", _("Suspended")),
+        ("TER", _("Terminated")),
+        ("TRN", _("Transferred")),
+        ("WTH", _("Withdrawn")),
+        ("accepted", _("accepted")),
+        ("approved", _("approved")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("draft")),
+        ("new", _("new")),
+        ("preliminary", _("preliminary")),
+        ("submitted", _("submitted")),
+        # ("withdrawn", _("withdrawn")),
+    )
+
+
+# class ContractState(models.Model):
+#     code = FixedCharField(max_length=3, primary_key=True)
+#     description = models.CharField(max_length=255, blank=True, null=True)
+
+#     def __str__(self):
+#         return f"{self.code}: {self.description}"
+
+#     class Meta:
+#         db_table = "contract_state"
+#         verbose_name_plural = "contract states"
+
+
+# def add_contract_state_data(apps, schema_editor):
+#     """
+#     Add to the migrations:
+#     migrations.RunPython(portal.models.add_contract_state_data, lambda *args, **kwargs: None),
+#     """
+#     ContractState = apps.get_model("portal", "ContractState")
+#     db_alias = schema_editor.connection.alias
+#     ContractState.objects.using(db_alias).bulk_create(
+#         [
+#             ContractState(
+#                 code="ASD", description="Awaiting start date", description_en="Awaiting start date"
+#             ),
+#             ContractState(code="COM", description="Completed", description_en="Completed"),
+#             ContractState(code="CUR", description="Current ", description_en="Current "),
+#             ContractState(code="DCL", description="Declined", description_en="Declined"),
+#             ContractState(code="SUS", description="Suspended", description_en="Suspended"),
+#             ContractState(code="TER", description="Terminated", description_en="Terminated"),
+#             ContractState(code="TRN", description="Transferred", description_en="Transferred"),
+#             ContractState(code="WTH", description="Withdrawn", description_en="Withdrawn"),
+#         ]
+#     )
+
+
+class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
+    site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
+    objects = CurrentSiteManager()
+    all_objects = Manager()
+
+    number = CharField(_("number"), max_length=40, unique=True)
+    refcode = CharField(null=True, blank=True, max_length=40, help_text=_("IE-Contracts REFCODE"))
+    year = CharField(max_length=4, blank=True, null=True)
+    org = ForeignKey(
+        Organisation, on_delete=CASCADE, related_name="contracts", null=True, blank=True
+    )
+    # proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, blank=True, null=True)
+    application = ForeignKey(Application, on_delete=CASCADE, blank=True, null=True)
+
+    submitted_by = ForeignKey(
+        User, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("submitted by")
+    )
+    project_title = CharField(
+        max_length=200, null=True, blank=True, verbose_name=_("project title")
+    )
+    state = StateField(default="new", verbose_name=_("state"))
+
+    start_date = DateField(blank=True, null=True)
+    end_date = DateField(blank=True, null=True)
+    duration = PositiveIntegerField(blank=True, null=True)
+
+    notes = TextField(blank=True, null=True)
+    abstract = TextField(blank=True, null=True)
+    completed_on = DateField(blank=True, null=True)
+
+    rccs = ManyToManyField(Rcc, blank=True, db_table="contract_rcc", related_name="contracts")
+    fors = ManyToManyField(
+        FieldOfResearch,
+        blank=True,
+        related_name="contracts",
+        through=ContractFor,
+        verbose_name="FoRs",
+    )
+    seos = ManyToManyField(
+        SocioEconomicObjective,
+        blank=True,
+        through=ContractSeo,
+        related_name="contracts",
+        verbose_name="SEOs",
+    )
+    keywords = ManyToManyField(
+        Keyword,
+        verbose_name=_("Keywords"),
+        through=ContractKeyword,
+        blank=True,
+        related_name="contracts",
+    )
+    fund = ForeignKey(Fund, on_delete=CASCADE, blank=True, null=True)
+    # seo_keyword_list = models.CharField(max_length=800, blank=True, null=True)
+    # seo_keywords = models.ManyToManyField(
+    #     Keyword,
+    #     verbose_name="SEO Keywords",
+    #     db_table='stage"."contract_seo_keyword',
+    #     related_name="+",
+    # )
+    url = CharField(max_length=120, blank=True, null=True)
+    fin_received = BooleanField(blank=True, null=True)
+    fin_supp = BooleanField(blank=True, null=True)
+    ## code = models.CharField(max_length=3, blank=True, null=True)
+    ## panel_code = models.CharField(max_length=3, blank=True, null=True)
+    panels = ManyToManyField(
+        Panel, blank=True, db_table="contract_panel", related_name="contracts"
+    )
+
+    # "ie-contracts"
+    ## total_amount = IntegerField(null=True, blank=True)
+    ## actual_amount = IntegerField(null=True, blank=True)
+    ## currency = IntegerField(null=True, blank=True)
 
 
 dummy_for_translations = (
