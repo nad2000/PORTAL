@@ -36,6 +36,26 @@ from . import views
 admin.site.site_url = "/start"
 admin.site.site_header = _("Portal Administration")
 admin.site.site_title = _("Portal Administration")
+admin.site.index_title = _("Portal Administration")
+
+
+# class RFDAModelAdminMixin:
+#     def get_form(self, request, obj=None, change=False, **kwargs):
+#         form = super().get_form(request, obj=obj, change=change, **kwargs)
+#         for f in form.base_fields.values():
+#             if f.help_text:
+#                 f.widget.attrs.update({"placeholder": f.help_text, "title": f.help_text})
+#         return form
+
+#     @property
+#     def media(self):
+#         return super().media + forms.Media(
+#             css={"screen": ["//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"]},
+#             js=["https://code.jquery.com/ui/1.13.2/jquery-ui.js"],
+#         )
+
+# class ModelAdmin(RFDAModelAdminMixin, admin.ModelAdmin):
+#     pass
 
 
 @html_safe
@@ -1906,6 +1926,165 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
             return reverse("scores-list", kwargs={"round": obj.criterion.round_id})
 
     inlines = [ScoreInline, StateLogInline]
+
+
+@admin.register(models.Contract)
+class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+    save_on_top = True
+    show_close_button = True
+
+    list_display = (
+        "number",
+        # "category",
+        "fund",
+        "project_title",
+        "state",
+    )
+
+    list_filter = (("fund", admin.RelatedOnlyFieldListFilter), "state")
+    search_fields = ["number", "project_title"]
+    autocomplete_fields = [
+        # "principal",
+        # "coordinator",
+        "fund",
+        "panels",
+        "proposal",
+        "source",
+        "supervisor",
+        "rccs",
+        "seos",
+        # "seo_keywords",
+    ]
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": [
+                    (
+                        "state",
+                        # "status",
+                        "completed_on",
+                    ),
+                    ("number", "refcode", "year"),
+                    "project_title",
+                    # ("source", "source_code"),
+                    ("org", "application"),
+                    # ("proposal", "proposal_number"),
+                    # ("principal", "principal_code"),
+                    # ("coordinator", "coordinator_code"),
+                    # ("supervisor", "supervisor_code"),
+                    ("start_date", "end_date", "duration"),
+                    # "category",
+                    ("fund", "fund_code"),
+                    ("fin_received", "fin_supp"),
+                    # "code",
+                ],
+            },
+        ),
+        (
+            "Additional Information",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    # "panel_code",
+                    "panel",
+                    ("total_amount", "actual_amount", "currency"),
+                    "url",
+                    "abstract",
+                    "notes",
+                    "mf_round_yr",
+                    # "seo_list",
+                    # "keyword_list",
+                    # "seo_keyword_list",
+                ],
+            },
+        ),
+    ]
+    readonly_fields = []
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("fund", "application")
+
+    # class TeamInline(admin.StackedInline):
+    #     model = models.ContractTeam
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["person", "country"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class ReportingInline(admin.StackedInline):
+    #     model = models.ContractReporting
+    #     exclude = ["contract_number"]
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class AllocationInline(admin.TabularInline):
+    #     model = models.ContractAllocation
+    #     exclude = ["contract_number"]
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class PanelAllocationInline(admin.StackedInline):
+    #     model = models.ContractPanelAllocation
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["panel"]
+    #     classes = ["collapse"]
+
+    # class VisitInline(admin.StackedInline):
+    #     model = models.ContractVisit
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class ExchangeInline(admin.StackedInline):
+    #     model = models.ContractExchange
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["country"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class EventInline(admin.StackedInline):
+    #     model = models.ContractEvent
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["from_country", "to_country"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class LogInline(admin.TabularInline):
+    #     model = models.ContractLog
+    #     extra = 0
+    #     view_on_site = False
+    #     # autocomplete_fields = ["from_country", "to_country"]
+    #     readonly_fields = ["contract_number", "logged_by", "logged_on"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    class ForInline(admin.TabularInline):
+        model = models.ContractFor
+        extra = 0
+        view_on_site = False
+        autocomplete_fields = ["code"]
+        classes = ["collapse"]
+
+    inlines = [
+        ForInline,
+        # TeamInline,
+        # AllocationInline,
+        # PanelAllocationInline,
+        # ReportingInline,
+        # VisitInline,
+        # ExchangeInline,
+        # EventInline,
+        # LogInline,
+        StateLogInline,
+    ]
 
 
 # vim:set ft=python.django:
