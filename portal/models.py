@@ -5658,6 +5658,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     ## currency = IntegerField(null=True, blank=True)
 
 
+simple_history.register(
+    Contract,
+    inherit=True,
+    table_name="contract_history",
+    bases=[ContractMixin, PersonMixin, PdfFileMixin, Model],
+)
+
 dummy_for_translations = (
     _("Browse"),
     _("Currently"),
