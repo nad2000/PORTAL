@@ -319,6 +319,16 @@ class LanguageAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
     resource_class = LanguageResource
 
 
+@admin.register(models.Rcc)
+class RccAdmin(admin.ModelAdmin):
+    show_close_button = True
+    list_display = ("code", "description", "source", "code")
+    search_fields = ["code", "description", "rcc"]
+
+    def has_module_permission(self, request):
+        return False
+
+
 @admin.register(models.FieldOfStudy)
 class FieldOfStudyAdmin(ImportExportModelAdmin):
     save_on_top = True
@@ -525,6 +535,100 @@ class QualificationDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
     search_fields = ["description", "definition"]
     list_display = ["code", "description", "definition"]
     resource_class = QualificationDecisionResource
+
+
+class FundResource(ModelResource):
+    class Meta:
+        exclude = ["created_at", "updated_at", "id"]
+        import_id_fields = ["code"]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+        model = models.Fund
+
+
+# @admin.register(models.Fund)
+# class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, TranslationAdmin):
+#     save_on_top = True
+#     list_display = ["code", "code3", "description", "site"]
+#     list_filter = ["site"]
+#     search_fields = ["code", "code", "description_en", "description_mi"]
+#     resource_class = FundResource
+
+
+@admin.register(models.Fund)
+class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, TranslationAdmin):
+    show_close_button = True
+    save_on_top = True
+    resource_class = FundResource
+    list_filter = ["site"]
+
+    class PanelInline(admin.StackedInline):
+        extra = 0
+        model = models.Panel
+        view_on_site = False
+        classes = ["collapse"]
+
+    # class CoordinatorRolesInline(admin.TabularInline):
+    #     extra = 0
+    #     model = models.CoordinatorRole.funds.through
+    #     # view_on_site = False
+    #     verbose_name = "Coordinator Role"
+    #     verbose_name_plural = "Coordinator Roles"
+    #     # show_change_link = False
+
+    list_display = (
+        "code",
+        "code3",
+        "description",
+        "cost_centre",
+        "catalyst_cost_centre",
+    )
+    search_fields = ["code", "code3", "description_en", "description_mi"]
+    # filter_horizontal = ("coordinator_roles",)
+
+    # inlines = [PanelInline, CommitteeInline, CoordinatorRolesInline]
+    inlines = [PanelInline]
+
+
+@admin.register(models.Panel)
+class PanelAdmin(admin.ModelAdmin):
+    show_close_button = True
+    list_display = ("code", "state", "description", "is_active", "fund")
+    list_filter = (
+        ("fund", admin.RelatedOnlyFieldListFilter),
+        "state",
+    )
+    search_fields = ["code", "description"]
+    fields = (("state", "is_active"), "code", "description", "fund")
+    readonly_fields = ("is_active",)
+
+    def is_active(self, obj):
+        return obj.is_active
+
+    is_active.boolean = True
+    is_active.short_description = "Is active?"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("fund")
+
+    class PanellistInline(admin.StackedInline):
+        extra = 0
+        model = models.Panellist
+        view_on_site = False
+        # autocomplete_fields = ["user", "fund"]
+        autocomplete_fields = ["user"]
+
+        # def get_queryset(self, *args, **kwargs):
+        #     return super().get_queryset(*args, **kwargs).prefetch_related("person").prefetch_related("fund")
+
+    # class FundInline(admin.StackedInline):
+    #     extra = 0
+    #     model = models.Fund
+    #     view_on_site = False
+
+    inlines = [PanellistInline]
 
 
 @admin.register(models.Profile)
@@ -1571,25 +1675,6 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
         return reverse("application", kwargs={"pk": obj.referee.application_id})
 
 
-class FundResource(ModelResource):
-    class Meta:
-        exclude = ["created_at", "updated_at", "id"]
-        import_id_fields = ["code"]
-        skip_unchanged = True
-        report_skipped = True
-        raise_errors = False
-        model = models.Fund
-
-
-@admin.register(models.Fund)
-class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, TranslationAdmin):
-    save_on_top = True
-    list_display = ["code", "code3", "description", "site"]
-    list_filter = ["site"]
-    search_fields = ["code", "code", "description_en", "description_mi"]
-    resource_class = FundResource
-
-
 class SchemeResource(ModelResource):
     class Meta:
         exclude = ["created_at", "updated_at", "groups", "id", "current_round"]
@@ -1948,9 +2033,9 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # "coordinator",
         "fund",
         "panels",
-        "proposal",
-        "source",
-        "supervisor",
+        "application",
+        # "source",
+        # "supervisor",
         "rccs",
         "seos",
         # "seo_keywords",

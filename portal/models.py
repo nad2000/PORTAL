@@ -5387,13 +5387,21 @@ PANEL_STATES = Choices(
 )
 
 
+class PanelManager(Manager):
+    def get_by_natural_key(self, code):
+        return self.get(code=code)
+
+
 class PanelMixin:
     STATES = PANEL_STATES
 
 
 class Panel(PanelMixin, Model):
+
+    objects = PanelManager()
+
     state = StateField(default="new")
-    code = CharField(_("code"), max_length=3, blank=True, null=True)
+    code = CharField(_("code"), max_length=3, blank=True, null=True, unique=True)
     description = CharField(_("description"), max_length=255, blank=True, null=True)
     fund = ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
     # panellista = models.ManyToManyField(Person, through=Panellist, related_name="panels")
