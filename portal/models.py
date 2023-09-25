@@ -1168,6 +1168,11 @@ APPLICATION_STATES = Choices(
 )
 
 
+class FundManager(Manager):
+    def get_by_natural_key(self, code, *args, **kwargs):
+        return self.get(code=code)
+
+
 class Fund(Model):
     code = FixedCharField(max_length=2, primary_key=True, db_column="code")
     code3 = FixedCharField(max_length=3, null=True, blank=True)
@@ -1178,6 +1183,7 @@ class Fund(Model):
     )
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     history = HistoricalRecords(table_name="fund_history")
+    objects = FundManager()
 
     class Meta:
         db_table = "fund"
@@ -5388,8 +5394,8 @@ PANEL_STATES = Choices(
 
 
 class PanelManager(Manager):
-    def get_by_natural_key(self, code):
-        return self.get(code=code)
+    def get_by_natural_key(self, code, fund, state, *args, **kwargs):
+        return self.get(code=code, fund=fund, state=state)
 
 
 class PanelMixin:
@@ -5397,14 +5403,13 @@ class PanelMixin:
 
 
 class Panel(PanelMixin, Model):
-
-    objects = PanelManager()
-
     state = StateField(default="new")
-    code = CharField(_("code"), max_length=3, blank=True, null=True, unique=True)
+    code = CharField(_("code"), max_length=3, blank=True, null=True)
     description = CharField(_("description"), max_length=255, blank=True, null=True)
     fund = ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
     # panellista = models.ManyToManyField(Person, through=Panellist, related_name="panels")
+
+    objects = PanelManager()
 
     @property
     @admin.display(
@@ -5416,7 +5421,7 @@ class Panel(PanelMixin, Model):
         return self.state and self.state == "active"
 
     def natural_key(self):
-        return (self.code,)
+        return (self.code, self.fund_id, self.state)
 
     def __str__(self):
         return f"{self.code}: {self.description}"

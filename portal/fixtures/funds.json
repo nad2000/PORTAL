@@ -1,0 +1,464 @@
+[
+{
+  "model": "portal.fund",
+  "pk": 1,
+  "fields": {
+    "code": "CO",
+    "code3": "COR",
+    "description": "Centres of Research Excellence (CoRE)",
+    "cost_centre": 6102,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 2,
+  "fields": {
+    "code": "MF",
+    "code3": "MFP",
+    "description": "Marsden Fund",
+    "cost_centre": 6101,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 3,
+  "fields": {
+    "code": "RD",
+    "code3": "RDF",
+    "description": "Rutherford Discovery Fellowships",
+    "cost_centre": 6111,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 4,
+  "fields": {
+    "code": "RF",
+    "code3": "RFT",
+    "description": "Rutherford Foundation",
+    "cost_centre": 7840,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 5,
+  "fields": {
+    "code": "CW",
+    "code3": "COW",
+    "description": "CoRE Wananga Consultation",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 6,
+  "fields": {
+    "code": "CU",
+    "code3": "COU",
+    "description": "CoRE University Consultation",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 7,
+  "fields": {
+    "code": "CP",
+    "code3": "COP",
+    "description": "CoRE Polytechnic Consultation",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 8,
+  "fields": {
+    "code": "CE",
+    "code3": "COE",
+    "description": "CoRE College of Education Consultation",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 9,
+  "fields": {
+    "code": "JC",
+    "code3": "JCF",
+    "description": "James Cook Research Fellowships",
+    "cost_centre": 7953,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 10,
+  "fields": {
+    "code": "JP",
+    "code3": "JSP",
+    "description": "Japan Society for the Promotion of Science",
+    "cost_centre": 7965,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 11,
+  "fields": {
+    "code": "TW",
+    "code3": "TWN",
+    "description": "Taiwan",
+    "cost_centre": 7981,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 12,
+  "fields": {
+    "code": "DU",
+    "code3": "DDU",
+    "description": "Dumont d’Urville NZ-France S&T Support Programme",
+    "cost_centre": 7979,
+    "catalyst_cost_centre": 8503
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 13,
+  "fields": {
+    "code": "EA",
+    "code3": "EAP",
+    "description": "East Asia Pacific Summer Institutes Program (EAPSI)",
+    "cost_centre": 7964,
+    "catalyst_cost_centre": 8402
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 14,
+  "fields": {
+    "code": "CT",
+    "code3": "CST",
+    "description": "European Cooperation in Science and Technology (COST)",
+    "cost_centre": 7978,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 15,
+  "fields": {
+    "code": "FR",
+    "code3": "FRI",
+    "description": "FRIENZ (Facilitating Research and Innovation co-operation between Europe and New Zealand)",
+    "cost_centre": 7966,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 16,
+  "fields": {
+    "code": "IM",
+    "code3": "IMF",
+    "description": "International Mobility Fund",
+    "cost_centre": 7972,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 17,
+  "fields": {
+    "code": "JH",
+    "code3": "JVH",
+    "description": "Julius von Haast Fellowship Award",
+    "cost_centre": 7977,
+    "catalyst_cost_centre": 8403
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 18,
+  "fields": {
+    "code": "CN",
+    "code3": "CHN",
+    "description": "New Zealand-China Scientist Exchange Programme",
+    "cost_centre": 7969,
+    "catalyst_cost_centre": 8404
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 19,
+  "fields": {
+    "code": "IR",
+    "code3": "IRS",
+    "description": "New Zealand-EU International Research Staff Exchange Scheme (IRSES)",
+    "cost_centre": 7976,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 20,
+  "fields": {
+    "code": "DE",
+    "code3": "FRG",
+    "description": "New Zealand-Germany Science & Technology Programme",
+    "cost_centre": 7968,
+    "catalyst_cost_centre": 8502
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 21,
+  "fields": {
+    "code": "KR",
+    "code3": "KOR",
+    "description": "New Zealand-Korea Joint Research Projects",
+    "cost_centre": 7980,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 22,
+  "fields": {
+    "code": "RI",
+    "code3": "RIS",
+    "description": "Research and Innovation Staff Exchange (RISE)",
+    "cost_centre": 7976,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 23,
+  "fields": {
+    "code": "SC",
+    "code3": "SCA",
+    "description": "SCAR Biology Travel Award\r\nSCAR Biology Travel Award",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 24,
+  "fields": {
+    "code": "EC",
+    "code3": "ECO",
+    "description": "New Zealand Ecohydraulics Trust Travel Award",
+    "cost_centre": 9808,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 25,
+  "fields": {
+    "code": "ES",
+    "code3": "SPN",
+    "description": "NZ-Spain Science & Technology Programme",
+    "cost_centre": 7974,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 26,
+  "fields": {
+    "code": "GE",
+    "code3": "DFG",
+    "description": "Deutsche Forschungsgemeinschaft (DFG)",
+    "cost_centre": 7973,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 27,
+  "fields": {
+    "code": "IS",
+    "code3": "IST",
+    "description": "International Science and Technology Linkages Fund (ISAT)",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 28,
+  "fields": {
+    "code": "BR",
+    "code3": "BRP",
+    "description": "Bi-lateral Research Activities Programme (BRAP)",
+    "cost_centre": 7956,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 29,
+  "fields": {
+    "code": "IC",
+    "code3": "ICF",
+    "description": "International Conference Fund",
+    "cost_centre": 7961,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 30,
+  "fields": {
+    "code": "CS",
+    "code3": "CSF",
+    "description": "International Workshop Fund/Conference Seed Fund",
+    "cost_centre": 7975,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 31,
+  "fields": {
+    "code": "TR",
+    "code3": "TRV",
+    "description": "International Travel",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 32,
+  "fields": {
+    "code": "UN",
+    "code3": "IUN",
+    "description": "International Union Subscriptions",
+    "cost_centre": 9820,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 33,
+  "fields": {
+    "code": "00",
+    "code3": "000",
+    "description": "Unknown",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 34,
+  "fields": {
+    "code": "HP",
+    "code3": "HPE",
+    "description": "HOPE Meetings (JSPS)",
+    "cost_centre": 7982,
+    "catalyst_cost_centre": 8405
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 35,
+  "fields": {
+    "code": "JG",
+    "code3": "JGH",
+    "description": "James G Hay Travel Award",
+    "cost_centre": 9156,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 36,
+  "fields": {
+    "code": "CA",
+    "code3": "CSG",
+    "description": "General",
+    "cost_centre": 8501,
+    "catalyst_cost_centre": 8501
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 37,
+  "fields": {
+    "code": "IL",
+    "code3": "ILF",
+    "description": "International Leader Fellowship",
+    "cost_centre": 7984,
+    "catalyst_cost_centre": 8401
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 38,
+  "fields": {
+    "code": "SE",
+    "code3": "SEE",
+    "description": "Catalyst: Seeding",
+    "cost_centre": null,
+    "catalyst_cost_centre": null
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 39,
+  "fields": {
+    "code": "JR",
+    "code3": "JRP",
+    "description": "JSPS Joint Research Projects",
+    "cost_centre": null,
+    "catalyst_cost_centre": 8504
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 40,
+  "fields": {
+    "code": "LE",
+    "code3": "LEA",
+    "description": "Catalyst: Leaders",
+    "cost_centre": null,
+    "catalyst_cost_centre": 0
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 41,
+  "fields": {
+    "code": "WF",
+    "code3": "MWF",
+    "description": "MBIE Science Whitinga Fellowship",
+    "cost_centre": 6115,
+    "catalyst_cost_centre": 0
+  }
+},
+{
+  "model": "portal.fund",
+  "pk": 42,
+  "fields": {
+    "code": "FW",
+    "code3": "FWL",
+    "description": "Falling Walls Lab",
+    "cost_centre": null,
+    "catalyst_cost_centre": 0
+  }
+}
+]

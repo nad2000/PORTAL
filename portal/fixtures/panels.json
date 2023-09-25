@@ -1,0 +1,590 @@
+[
+{
+  "model": "portal.panel",
+  "pk": 1,
+  "fields": {
+    "state": "archived",
+    "code": "36-",
+    "description": "Transferred from PGSF",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 2,
+  "fields": {
+    "state": "archived",
+    "code": "ALS",
+    "description": "Agricultural and Life Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 3,
+  "fields": {
+    "state": "archived",
+    "code": "AML",
+    "description": "Agriculture, Medical, Life Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 4,
+  "fields": {
+    "state": "archived",
+    "code": "B&B",
+    "description": "Biochemical and Biomedical",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 5,
+  "fields": {
+    "state": "active",
+    "code": "BMS",
+    "description": "Biomedical Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 6,
+  "fields": {
+    "state": "active",
+    "code": "CMP",
+    "description": "Cellular, Molecular and Physiological Biology",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 7,
+  "fields": {
+    "state": "archived",
+    "code": "COR",
+    "description": "CoRE Panel",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 8,
+  "fields": {
+    "state": "archived",
+    "code": "EBE",
+    "description": "Ecology, Biodiversity and Ecosystems",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 9,
+  "fields": {
+    "state": "archived",
+    "code": "ECP",
+    "description": "Economics, Commerce and Policy Studies",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 10,
+  "fields": {
+    "state": "active",
+    "code": "EEB",
+    "description": "Ecology, Evolution and Behaviour",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 11,
+  "fields": {
+    "state": "active",
+    "code": "EHB",
+    "description": "Economics and Human and Behavioural Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 12,
+  "fields": {
+    "state": "active",
+    "code": "ESA",
+    "description": "Earth Sciences and Astronomy",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 13,
+  "fields": {
+    "state": "archived",
+    "code": "ESO",
+    "description": "Education and Social Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 14,
+  "fields": {
+    "state": "archived",
+    "code": "GBF",
+    "description": "Genetics, Biological and Food Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 15,
+  "fields": {
+    "state": "archived",
+    "code": "GBS",
+    "description": "Genetics, Biotechnology and Biological Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 16,
+  "fields": {
+    "state": "archived",
+    "code": "HMT",
+    "description": "Health Management",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 17,
+  "fields": {
+    "state": "active",
+    "code": "HUM",
+    "description": "Humanities",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 18,
+  "fields": {
+    "state": "archived",
+    "code": "LFS",
+    "description": "Life Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 19,
+  "fields": {
+    "state": "archived",
+    "code": "MDS",
+    "description": "Medical Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 20,
+  "fields": {
+    "state": "archived",
+    "code": "MED",
+    "description": "Medical Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 21,
+  "fields": {
+    "state": "active",
+    "code": "MIS",
+    "description": "Mathematical and Information Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 22,
+  "fields": {
+    "state": "active",
+    "code": "PEM",
+    "description": "Physical Sciences, Engineering and Mathematics",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 23,
+  "fields": {
+    "state": "archived",
+    "code": "PSE",
+    "description": "Physical Sciences and Engineering",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 24,
+  "fields": {
+    "state": "archived",
+    "code": "PSM",
+    "description": "Physical Sciences and Mathematics",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 25,
+  "fields": {
+    "state": "active",
+    "code": "SEP",
+    "description": "Social Sciences, Economics and Policy",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 26,
+  "fields": {
+    "state": "active",
+    "code": "SOC",
+    "description": "Social Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 27,
+  "fields": {
+    "state": "active",
+    "code": "EIS",
+    "description": "Engineering and Interdisciplinary Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 28,
+  "fields": {
+    "state": "active",
+    "code": "PCB",
+    "description": "Physics, Chemistry and Biochemistry",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 29,
+  "fields": {
+    "state": "active",
+    "code": "HSS",
+    "description": "Humanities and the Social Sciences",
+    "fund": [
+      "RD"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 30,
+  "fields": {
+    "state": "active",
+    "code": "LFS",
+    "description": "Life Sciences",
+    "fund": [
+      "RD"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 31,
+  "fields": {
+    "state": "active",
+    "code": "PEM",
+    "description": "Physical Sciences, Engineering and Mathematics",
+    "fund": [
+      "RD"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 32,
+  "fields": {
+    "state": "archived",
+    "code": "RFT",
+    "description": "Trustees of the Rutherford Foundation",
+    "fund": [
+      "RF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 33,
+  "fields": {
+    "state": "active",
+    "code": "EST",
+    "description": "Engineering Sciences and Technology",
+    "fund": [
+      "JC"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 34,
+  "fields": {
+    "state": "archived",
+    "code": "HSC",
+    "description": "Health Sciences",
+    "fund": [
+      "JC"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 35,
+  "fields": {
+    "state": "active",
+    "code": "SOC",
+    "description": "Social Sciences",
+    "fund": [
+      "JC"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 36,
+  "fields": {
+    "state": "archived",
+    "code": "PES",
+    "description": "Physical  and Earth Science, Engineering, Maths (was PEM until 2013)",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 37,
+  "fields": {
+    "state": "archived",
+    "code": "MHS",
+    "description": "Medical and Health Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 38,
+  "fields": {
+    "state": "archived",
+    "code": "EME",
+    "description": "Earth, Marine and Environmental Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 39,
+  "fields": {
+    "state": "archived",
+    "code": "SEE",
+    "description": "Social, Economic and Environmental Policy (was SEP until 2013)",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 41,
+  "fields": {
+    "state": "active",
+    "code": "BIO",
+    "description": "Biological Sciences",
+    "fund": [
+      "JC"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 42,
+  "fields": {
+    "state": "archived",
+    "code": "PSC",
+    "description": "Physical Sciences",
+    "fund": [
+      "JC"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 43,
+  "fields": {
+    "state": "archived",
+    "code": "REL",
+    "description": "Research of Relevance to the Peoples of New Zealand and/or the South-west Pacific",
+    "fund": [
+      "JC"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 44,
+  "fields": {
+    "state": "active",
+    "code": "MFC",
+    "description": "Marsden Fund Council",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 45,
+  "fields": {
+    "state": "archived",
+    "code": "HBS",
+    "description": "Humanities, Behavioural and Social Sciences",
+    "fund": [
+      "MF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 46,
+  "fields": {
+    "state": "active",
+    "code": "RFP",
+    "description": "Rutherford Foundation Selection Panel",
+    "fund": [
+      "RF"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 47,
+  "fields": {
+    "state": "active",
+    "code": "CHL",
+    "description": "Culture, Heritage and Language",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 48,
+  "fields": {
+    "state": "active",
+    "code": "BHS",
+    "description": "Biological and Health Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 49,
+  "fields": {
+    "state": "active",
+    "code": "EME",
+    "description": "Ecology, Marine and Environmental Sciences",
+    "fund": [
+      "CO"
+    ]
+  }
+},
+{
+  "model": "portal.panel",
+  "pk": 50,
+  "fields": {
+    "state": "active",
+    "code": "ACC",
+    "description": "Advisory Committee - CoREs",
+    "fund": [
+      "CO"
+    ]
+  }
+}
+]
