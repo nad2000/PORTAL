@@ -6278,7 +6278,7 @@ class MemberFTEForm(ModelForm):
     def __init__(self, *args, **kwargs):
         duration = 3
         super().__init__(*args, **kwargs)
-        for i in range(1, duration+1):
+        for i in range(1, duration + 1):
             self.fields[f"FTE:{i}"] = IntegerField(required=False, initial=0)
 
     class Meta:
@@ -6326,5 +6326,6 @@ def demo(request):
 
     return render(request, "demo.html", locals())
     pass
+
 
 # vim:set ft=python.django:

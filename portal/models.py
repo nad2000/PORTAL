@@ -2433,6 +2433,14 @@ class Member(PersonMixin, MemberMixin, Model):
         elif self.state == "opted_out":
             return False
 
+    def __getattribute__(self, name):
+        if name.startswith("fte_"):
+            i = int(name.split("_")[1])
+            if me := self.efforts.filter(year=self.created_at.year + i - 1).first():
+                return me.fte
+            return None
+        return super().__getattribute__(name)
+
     def clean(self):
         super().clean()
         if not (application := getattr(self, "application", None)):
@@ -2527,7 +2535,7 @@ simple_history.register(
 
 
 class MemberEffort(Model):
-    member = ForeignKey(Member, on_delete=CASCADE)
+    member = ForeignKey(Member, on_delete=CASCADE, related_name="efforts")
     year = PositiveSmallIntegerField()
     fte = DecimalField(
         _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2

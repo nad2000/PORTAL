@@ -1115,7 +1115,6 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
 
     def save(self, commit=True):
         super().save(commit=commit)
-        breakpoint()
         m = self.instance
         a = m.application
         year = a.created_at.year
@@ -1145,6 +1144,7 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
                 min_value=0,
                 max_digits=4,
                 decimal_places=2,
+                initial=getattr(self.instance, f"fte_{i}", None)
             )
 
     def clean(self):
