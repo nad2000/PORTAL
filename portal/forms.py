@@ -1131,7 +1131,16 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
             update_fields=["fte"],
             unique_fields=["member", "year"],
         )
-        pass
+        m.efforts.filter(
+            year__in=[
+                year + int(i) - 1
+                for (_, i) in [
+                    f.split("_")
+                    for f in self.fields.keys()
+                    if f.startswith("fte_") and not self.cleaned_data[f]
+                ]
+            ]
+        ).delete()
 
     def __init__(self, *args, **kwargs):
         duration = 3
@@ -1144,7 +1153,7 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
                 min_value=0,
                 max_digits=4,
                 decimal_places=2,
-                initial=getattr(self.instance, f"fte_{i}", None)
+                initial=getattr(self.instance, f"fte_{i}", None),
             )
 
     def clean(self):
