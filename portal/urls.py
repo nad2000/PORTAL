@@ -461,6 +461,7 @@ urlpatterns = [
     path("413/", views.handler413),
     path("favicon.ico", views.favicon),
     path("webhooks/survey/", views.survey_webhook),
+    path("demo/", views.demo),
 ]
 
 if settings.SENTRY_DSN:

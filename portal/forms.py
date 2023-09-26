@@ -1113,6 +1113,40 @@ class InvitationStateInput(Widget):
 class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
     readonly_fields = ["state"]
 
+    def save(self, commit=True):
+        super().save(commit=commit)
+        breakpoint()
+        m = self.instance
+        a = m.application
+        year = a.created_at.year
+        models.MemberEffort.objects.bulk_create(
+            [
+                models.MemberEffort(member=m, year=year + int(i) - 1, fte=self.cleaned_data[f])
+                for (f, (_, i)) in [
+                    (f, f.split("_"))
+                    for f in self.fields.keys()
+                    if f.startswith("fte_") and self.cleaned_data[f]
+                ]
+            ],
+            update_conflicts=True,
+            update_fields=["fte"],
+            unique_fields=["member", "year"],
+        )
+        pass
+
+    def __init__(self, *args, **kwargs):
+        duration = 3
+        super().__init__(*args, **kwargs)
+        for i in range(1, duration + 1):
+            self.fields[f"fte_{i}"] = forms.DecimalField(
+                required=False,
+                label=f"FTE{i}",
+                max_value=1,
+                min_value=0,
+                max_digits=4,
+                decimal_places=2,
+            )
+
     def clean(self):
         cleaned_data = super().clean()
         if member := cleaned_data.get("id"):

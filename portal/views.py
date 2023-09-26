@@ -49,6 +49,7 @@ from django.db.models.functions import Coalesce
 from django.forms import (
     DateInput,
     Form,
+    IntegerField,
     HiddenInput,
     ModelForm,
     TextInput,
@@ -6235,5 +6236,95 @@ def headers(request, application_id, page_count=1, output_type="pdf"):
     response["Content-Disposition"] = 'attachment; filename="{}.pdf"'.format("headers.pdf")
     return response
 
+
+# class FTEInlineFormset(forms.TableInlineFormset):
+#     template = "portal/application_document_formset.html"
+
+#     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+#         formset = context[self.formset_name_in_context]
+
+#         required_documents = context["required_documents"]
+#         round = context["round"]
+#         ordering = dict(
+#             round.required_documents.values_list("id", "ordering").order_by("ordering")
+#         )
+#         formset.forms.sort(key=lambda f: ordering.get(f.initial.get("required_document"), 0))
+#         help_texts = {
+#             rd_id: make_help_text(
+#                 required_document=round.required_documents.filter(id=rd_id).first()
+#             )
+#             for rd_id in ordering.keys()
+#         }
+#         for f in formset.forms:
+#             rd_id = f.initial.get("required_document", 0)
+#             if rd_id:
+#                 # f.file.help_text = help_texts.get(rd_id)
+#                 f.fields["file"].help_text = help_texts.get(rd_id)
+#                 f.form_label = f"{required_documents.get(rd_id, _('Document'))}"
+
+#         return render_to_string(
+#             self.template,
+#             {
+#                 "formset": formset,
+#                 "form_id": self.form_id,
+#                 "required_documents": required_documents,
+#             },
+#         )
+
+
+class MemberFTEForm(ModelForm):
+    # application = IntegerField(label="Application ID", required=False, widget=HiddenInput())
+
+    def __init__(self, *args, **kwargs):
+        duration = 3
+        super().__init__(*args, **kwargs)
+        for i in range(1, duration+1):
+            self.fields[f"FTE:{i}"] = IntegerField(required=False, initial=0)
+
+    class Meta:
+        model = models.Member
+        # exclude = ["state"]
+        fields = ["email", "first_name", "middle_names", "last_name", "user", "role"]
+
+
+# inlineformset_factory(
+#     models.Application, models.Member, form=MemberForm, extra=1, can_delete=True
+# )
+
+
+def demo(request):
+    a = Application.get(1683)
+    duration = 3
+    MemberFTEFormSet = forms.inlineformset_factory(
+        models.Application,
+        models.Member,
+        form=MemberFTEForm,
+        formset=forms.MandatoryApplicationFormInlineFormSet,
+        exclude=["state"],
+        edit_only=True,
+        can_delete_extra=False,
+    )
+    if request.method == "POST":
+        # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
+        formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
+
+        if formset.is_valid():
+            pass
+
+    else:
+        formset = MemberFTEFormSet(instance=a, prefix="demo")
+
+    formset.helper = FormHelper()
+    formset.helper.help_text_inline = True
+    formset.helper.html5_required = True
+    formset.helper.layout = Layout(
+        forms.Div(
+            forms.TableInlineFormset("formset"),
+            css_id="demo",
+        )
+    )
+
+    return render(request, "demo.html", locals())
+    pass
 
 # vim:set ft=python.django:

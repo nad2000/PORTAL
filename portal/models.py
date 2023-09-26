@@ -1185,6 +1185,9 @@ class Fund(Model):
     history = HistoricalRecords(table_name="fund_history")
     objects = FundManager()
 
+    def __str__(self):
+        return f"{self.code}: {self.description}"
+
     class Meta:
         db_table = "fund"
         # unique_together = ("code", "site")
@@ -2521,6 +2524,18 @@ class Member(PersonMixin, MemberMixin, Model):
 simple_history.register(
     Member, inherit=True, table_name="member_history", bases=[MemberMixin, Model]
 )
+
+
+class MemberEffort(Model):
+    member = ForeignKey(Member, on_delete=CASCADE)
+    year = PositiveSmallIntegerField()
+    fte = DecimalField(
+        _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
+    )
+
+    class Meta:
+        db_table = "member_effort"
+        unique_together = ["member", "year"]
 
 
 REFEREE_STATES = Choices(
