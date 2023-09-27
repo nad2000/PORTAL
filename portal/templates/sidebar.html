@@ -92,13 +92,19 @@
   {% endif %}
 
   {% if is_ro %}
+
   <div class="card mb-2">
     <div class="card-header">
+      {% if contract_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
+        <a href="{% url 'contract-list' %}">{% trans 'Contracts' %}</a> <span class="badge badge-primary">{{ contract_count }}</span>
+      {% else %}
       <span data-toggle="tooltip" title="{% trans 'No contracts saved or submitted' %}">
         {% trans 'Contracts' %} <span class="badge badge-primary">0</span>
       </span>
+      {% endif %}
     </div>
   </div>
+
   <div class="card mb-2">
     <div class="card-header">
       <span data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}">

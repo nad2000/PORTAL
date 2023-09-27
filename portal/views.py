@@ -3170,6 +3170,7 @@ class ContractCreate(CreateView):
         form.instance.submitted_by = self.request.user
         form.instance.org = a.org
         form.instance.application = a
+        reset_cache(self.request)
         return super().form_valid(form)
 
     # def get_context_data(self, **kwargs):

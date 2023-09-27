@@ -74,6 +74,9 @@ def portal_context(request):
                 stats["application_approved_count"] = application_approved_count
                 application_count += application_approved_count
             stats["application_count"] = application_count
+            if is_ro or u.is_superuser or u.is_staff or u.is_site_staff:
+                stats["contract_count"] = models.Contract.objects.count()
+
             # if outstanding_testimonial_requests:
             #     stats["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or u.is_staff):
