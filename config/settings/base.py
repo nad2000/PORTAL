@@ -473,3 +473,6 @@ SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
 ## LIMESURVEY_API_URL = "<URL>"
 ## LIMESURVEY_API_USERNAME = "<API username>"
 ## LIMESURVEY_API_PASSWORD = "<API username password>"
+
+DJANGO_TABLES2_TABLE_ATTRS = {"class": "table table-striped table-bordered"}
+DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4-responsive.html"
