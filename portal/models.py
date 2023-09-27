@@ -2436,7 +2436,7 @@ class Member(PersonMixin, MemberMixin, Model):
     def __getattribute__(self, name):
         if name.startswith("fte_"):
             i = int(name.split("_")[1])
-            if me := self.efforts.filter(year=self.created_at.year + i - 1).first():
+            if me := self.efforts.filter(year=i).first():
                 return me.fte
             return None
         return super().__getattribute__(name)
@@ -2540,6 +2540,8 @@ class MemberEffort(Model):
     fte = DecimalField(
         _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
     )
+
+    history = HistoricalRecords(table_name="member_effort_history")
 
     class Meta:
         db_table = "member_effort"
@@ -3869,7 +3871,7 @@ class Round(Model):
     nominator_cv_required = BooleanField(_("Nominator CV required"), default=True)
 
     has_referees = BooleanField(_("can invite referees"), default=True)
-    required_referees = PositiveIntegerField(
+    required_referees = PositiveSmallIntegerField(
         _("Required number of referees"),
         null=True,
         blank=True,
@@ -3878,6 +3880,9 @@ class Round(Model):
         help_text="Minimum of referees the application needs to nominate",
     )
     is_flexible_number_of_referees = BooleanField(_("Flexible number of referees"), default=False)
+    duration = PositiveSmallIntegerField(
+        _("Duration"), help_text=_("Default contract duration"), null=True, blank=True
+    )
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
     survey_id = PositiveIntegerField(help_text=_("LimeSurvey Survey ID"), null=True, blank=True)
 

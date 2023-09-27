@@ -1882,6 +1882,7 @@ class RoundAdmin(
                                 if f not in exclude
                             ],
                             ("required_referees", "is_flexible_number_of_referees"),
+                            "duration",
                         ]
                     },
                 ),

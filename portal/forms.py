@@ -1120,7 +1120,7 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
         year = a.created_at.year
         models.MemberEffort.objects.bulk_create(
             [
-                models.MemberEffort(member=m, year=year + int(i) - 1, fte=self.cleaned_data[f])
+                models.MemberEffort(member=m, year=int(i), fte=self.cleaned_data[f])
                 for (f, (_, i)) in [
                     (f, f.split("_"))
                     for f in self.fields.keys()
@@ -1143,18 +1143,19 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
         ).delete()
 
     def __init__(self, *args, **kwargs):
-        duration = 3
+        duration = kwargs.pop("duration", None)
         super().__init__(*args, **kwargs)
-        for i in range(1, duration + 1):
-            self.fields[f"fte_{i}"] = forms.DecimalField(
-                required=False,
-                label=f"FTE{i}",
-                max_value=1,
-                min_value=0,
-                max_digits=4,
-                decimal_places=2,
-                initial=getattr(self.instance, f"fte_{i}", None),
-            )
+        if duration:
+            for i in range(1, duration + 1):
+                self.fields[f"fte_{i}"] = forms.DecimalField(
+                    required=False,
+                    label=f"FTE{i}",
+                    max_value=1,
+                    min_value=0,
+                    max_digits=3,
+                    decimal_places=2,
+                    initial=self.instance and self.instance.pk and getattr(self.instance, f"fte_{i}", None),
+                )
 
     def clean(self):
         cleaned_data = super().clean()

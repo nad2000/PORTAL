@@ -2476,11 +2476,14 @@ class ApplicationView(LoginRequiredMixin):
 
         if round.scheme.team_can_apply:
             context["helper"] = forms.MemberFormSetHelper()
+            duration = round.duration
             if self.request.POST:
                 context["members"] = (
-                    forms.MemberFormSet(self.request.POST, instance=self.object)
+                    forms.MemberFormSet(
+                        self.request.POST, instance=self.object, form_kwargs={"duration": duration}
+                    )
                     if self.object
-                    else forms.MemberFormSet(self.request.POST)
+                    else forms.MemberFormSet(self.request.POST, form_kwargs={"duration": duration})
                 )
             else:
                 initial_members = (
@@ -2499,9 +2502,15 @@ class ApplicationView(LoginRequiredMixin):
                     else []
                 )
                 context["members"] = (
-                    forms.MemberFormSet(instance=self.object, initial=initial_members)
+                    forms.MemberFormSet(
+                        instance=self.object,
+                        initial=initial_members,
+                        form_kwargs={"duration": duration},
+                    )
                     if self.object
-                    else forms.MemberFormSet(initial=initial_members)
+                    else forms.MemberFormSet(
+                        initial=initial_members, form_kwargs={"duration": duration}
+                    )
                 )
 
         if round.required_referees:

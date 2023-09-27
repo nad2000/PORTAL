@@ -142,7 +142,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                     </li>
                     {% if is_ro %}
                       <li class="nav-item" id="contracts">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="{% url 'contract-list' %}">
                           <i class="fa fa-fw fa-file-contract"></i> {% trans 'Contracting' %}<!-- span class="sr-only">(current)</span -->
                         </a>
                       </li>
