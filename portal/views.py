@@ -69,9 +69,9 @@ from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
-from django.views.generic import DetailView as _DetailView
+from django.views.generic import DetailView
 from django.views.generic import TemplateView
-from django.views.generic.edit import CreateView as _CreateView
+from django.views.generic.edit import CreateView
 from django.views.generic.edit import UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, SingleTableView
@@ -82,7 +82,6 @@ from extra_views import (
     ModelFormSetView,
     UpdateWithInlinesView,
 )
-from limesurveyrc2api.limesurvey import LimeSurvey
 from private_storage.views import PrivateStorageDetailView
 from PyPDF2 import PdfFileMerger
 from rest_framework.authentication import TokenAuthentication
@@ -381,7 +380,7 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
             )
 
 
-class DetailView(LoginRequiredMixin, _DetailView):
+class DetailView(LoginRequiredMixin, DetailView):
     template_name = "detail.html"
 
     def get_context_data(self, *args, **kwargs):
@@ -400,7 +399,7 @@ class DetailView(LoginRequiredMixin, _DetailView):
         return context
 
 
-class CreateView(LoginRequiredMixin, _CreateView):
+class CreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         try:
             return super().get_success_url()
@@ -1075,7 +1074,7 @@ def profile_protection_patterns(request):
     return render(request, "profile_protection_patterns.html", locals())
 
 
-class ProfileDetail(ProfileView, LoginRequiredMixin, _DetailView):
+class ProfileDetail(ProfileView, DetailView):
     template_name = "profile.html"
     raise_exception = True
 
@@ -3121,6 +3120,136 @@ class InvitationList(LoginRequiredMixin, SingleTableView):
         if not (u.is_superuser or u.is_staff):
             queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
         return queryset
+
+
+class ContractList(LoginRequiredMixin, SingleTableView):
+    # table_class = tables.InvitationTable
+    model = models.Contract
+    template_name = "table.html"
+    # extra_context = {"category": "applications"}
+
+    # def get_queryset(self, *args, **kwargs):
+    #     queryset = super().get_queryset(*args, **kwargs)
+    #     u = self.request.user
+    #     if not (u.is_superuser or u.is_staff):
+    #         queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
+    #     return queryset
+
+
+class ContractDetail(DetailView):
+    model = models.Contract
+
+
+class ContractForm(ModelForm):
+    class Meta:
+        model = models.Contract
+        exclude = [
+            "site",
+            "org",
+            "application",
+            "submitted_by",
+            "rccs",
+            "fors",
+            "seos",
+            "keywords",
+            "state",
+        ]
+
+
+class ContractCreate(CreateView):
+    model = models.Contract
+    form_class = ContractForm
+    # fields = "__all__"
+    # exclude = ["site", "org", "application", "submitted_by", "rccs", "fors", "seos", "keywords"]
+
+    # template_name = "profile_form.html"
+    # form_class = forms.ProfileForm
+
+    def form_valid(self, form):
+        a = self.application
+        form.instance.submitted_by = self.request.user
+        form.instance.org = a.org
+        form.instance.application = a
+        return super().form_valid(form)
+
+    # def get_context_data(self, **kwargs):
+    #     data = super().get_context_data(**kwargs)
+
+    #     if "user_form" not in kwargs:
+    #         kwargs["user_form"] = self.get_user_form()
+
+    #     return data
+
+    @property
+    def application(self):
+        return get_object_or_404(
+            models.Application,
+            pk=(
+                self.kwargs.get("pk")
+                or self.kwargs.get("application_pk")
+                or self.kwargs.get("application_id")
+                or self.request.GET.get("application_id")
+            ),
+        )
+
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        a = self.application
+        initial["application"] = a
+        initial["year"] = a.created_at.year
+        initial["org"] = a.org
+        initial["number"] = a.number
+        initial["project_title"] = a.application_title or a.round.title
+        initial["start_date"] = timezone.now()
+        return initial
+
+        # u = self.request.user
+        # n = (
+        #     models.Nomination.where(user=self.request.user, state="submitted")
+        #     .order_by("-id")
+        #     .first()
+        # )
+        # if n:
+        #     initial["first_name"] = n.first_name or u.first_name
+        #     initial["middle_names"] = n.middle_names or u.middle_names
+        #     initial["last_name"] = n.last_name or u.last_name
+        #     initial["title"] = n.title or u.title
+        return initial
+
+
+class ContractUpdate(LoginRequiredMixin, UpdateView):
+    model = models.Contract
+    form_class = ContractForm
+
+    # fields = "__all__"
+    # template_name = "profile_form.html"
+    # form_class = forms.ProfileForm
+
+    # def form_valid(self, form):
+    #     form.instance.user = self.request.user
+    #     return super().form_valid(form)
+
+    # def get_context_data(self, **kwargs):
+    #     data = super().get_context_data(**kwargs)
+
+    #     if "user_form" not in kwargs:
+    #         kwargs["user_form"] = self.get_user_form()
+
+    #     return data
+
+    # def get_initial(self):
+    #     initial = super().get_initial()
+    #     a = get_object_or_404(
+    #         models.Application,
+    #         pk=(
+    #             self.kwargs.get("pk")
+    #             or self.kwargs.get("application_pk")
+    #             or self.kwargs.get("application_id")
+    #             or self.request.GET.get("application_id")
+    #         ),
+    #     )
+    #     initial["application"] = a
+    #     return initial
 
 
 class ApplicationListMixin:

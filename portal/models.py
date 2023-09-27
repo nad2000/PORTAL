@@ -5693,6 +5693,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     ## actual_amount = IntegerField(null=True, blank=True)
     ## currency = IntegerField(null=True, blank=True)
 
+    class Meta:
+        db_table = "contract"
+
 
 simple_history.register(
     Contract,

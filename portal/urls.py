@@ -87,6 +87,33 @@ urlpatterns = [
         ),
     ),
     path(
+        "contracts/",
+        include(
+            [
+                path(
+                    "",
+                    views.ContractList.as_view(),
+                    name="contract-list",
+                ),
+                path(
+                    "~create",
+                    views.ContractCreate.as_view(),
+                    name="contract-create",
+                ),
+                path(
+                    "<int:pk>/",
+                    views.ContractDetail.as_view(),
+                    name="contract-detail",
+                ),
+                path(
+                    "<int:pk>/~update",
+                    views.ContractUpdate.as_view(),
+                    name="contract-update",
+                ),
+            ]
+        ),
+    ),
+    path(
         "evaluation/",
         include(
             [

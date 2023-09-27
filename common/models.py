@@ -86,7 +86,11 @@ class Model(TimeStampMixin, HelperMixin, Base):
     # history = HistoricalRecords(inherit=True)
 
     def get_absolute_url(self):
-        return reverse(self._meta.db_table.replace("_", "-"), args=[str(self.id)])
+        model_name_slug = self._meta.db_table.replace("_", "-")
+        try:
+            return reverse(model_name_slug, args=[str(self.id)])
+        except:
+            return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
 
     class Meta:
         abstract = True

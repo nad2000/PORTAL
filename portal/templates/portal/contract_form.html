@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
+
+{% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
+{% block sidebar %}{% include 'sidebar.html' with category="contacts" %}{% endblock sidebar %}
+{% block head_title %}{{ object }}{% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
+<style>
+#div_id_title span.select2-selection--single {height: 42px;}
+</style>
+  {{ form.media.css }}
+{% endblock %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% breadcrumb "Profile" "profile" %}
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12 mb-4">
+
+      <form method="post">{% csrf_token %}
+        {{ form|crispy }}
+        {% if progress %}
+          <input type="submit" style="float:right" class="btn btn-primary float-right" value="{% trans 'Next' %} &raquo;">
+        {% else %}
+          {% if object.id %}
+            <input class="btn btn-primary" type="submit" name="update" value="{% trans 'Update' %}">
+          {% else %}
+            <input class="btn btn-primary" type="submit" name="save" value="{% trans 'Create' %}">
+          {% endif %}
+          <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+        {% endif %}
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <!-- JS -->
+  {{ form.media.js }}
+  <!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
+  <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
+
+{% endblock %}
