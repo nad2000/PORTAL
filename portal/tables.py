@@ -566,4 +566,79 @@ class SummaryReportTable(tables.Table):
         fields = ["number", "round", "submitted_by", "state"]
 
 
+class ContractTable(tables.Table):
+    application = tables.Column(
+        linkify=lambda value, record: reverse(
+            "application", kwargs=dict(pk=record.application_id)
+        )
+    )
+    number = tables.Column(
+        linkify=lambda value, record: reverse("contract-detail", kwargs=dict(pk=record.pk))
+    )
+    # contract_pi = tables.Column(linkify=application_link)
+
+    # email = tables.Column(
+    #     linkify=lambda table, record, value: reverse(
+    #         "admin:users_user_change", kwargs={"object_id": record.submitted_by_id}
+    #     )
+    #     if (table.request.user.is_staff or table.request.user.is_superuser)
+    #     and record.submitted_by_id
+    #     else None
+    # )
+    # export = tables.LinkColumn(
+    #     "application-export",
+    #     args=[tables.A("pk")],
+    #     text=gettext_lazy("Export"),
+    #     attrs={
+    #         "a": {
+    #             "class": "btn btn-primary btn-sm",
+    #             "target": "_blank",
+    #             "data-toggle": "tooltip",
+    #             "title": gettext_lazy("Export the application into a consolidated PDF file"),
+    #         },
+    #         "td": {"style": "padding: 6px 0 0 16px;"},
+    #     },
+    # )
+
+    # def before_render(self, request):
+    #     if (u := request.user) and not u.is_superuser and not u.is_staff:
+    #         self.columns.hide("export")
+
+    # def render_number(self, record, value):
+    #     if (
+    #         record.state in ["draft", "new"]
+    #         and (deadline_days := record.deadline_days)
+    #         and record.deadline_days < 5
+    #     ):
+    #         r = record.round
+    #         return format_html(
+    #             """<span
+    #                 data-toggle="tooltip"
+    #                 title="%s"
+    #             >
+    #                 <i class="fas fa-exclamation-circle text-danger"
+    #                 ></i> %s
+    #             </span>"""
+    #             % (
+    #                 _("The round is closing in %s day(s) on %s by %s")
+    #                 % (
+    #                     deadline_days,
+    #                     r.closes_on.strftime("%d-%m-%Y"),
+    #                     r.closes_on.strftime("%I:%M %P"),
+    #                 ),
+    #                 value,
+    #             )
+    #         )
+    #     return value
+
+    class Meta:
+        model = models.Contract
+        fields = (
+            "number",
+            "application",
+            # "contract_pi",
+            "state",
+        )
+
+
 # vim:set ft=python.django:

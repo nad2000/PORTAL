@@ -3132,7 +3132,7 @@ class InvitationList(LoginRequiredMixin, SingleTableView):
 
 
 class ContractList(LoginRequiredMixin, SingleTableView):
-    # table_class = tables.InvitationTable
+    table_class = tables.ContractTable
     model = models.Contract
     template_name = "table.html"
     # extra_context = {"category": "applications"}
@@ -3149,30 +3149,19 @@ class ContractDetail(DetailView):
     model = models.Contract
 
 
-class ContractForm(ModelForm):
-    class Meta:
-        model = models.Contract
-        exclude = [
-            "site",
-            "org",
-            "application",
-            "submitted_by",
-            "rccs",
-            "fors",
-            "seos",
-            "keywords",
-            "state",
-        ]
-
-
 class ContractCreate(CreateView):
     model = models.Contract
-    form_class = ContractForm
+    form_class = forms.ContractForm
     # fields = "__all__"
     # exclude = ["site", "org", "application", "submitted_by", "rccs", "fors", "seos", "keywords"]
 
     # template_name = "profile_form.html"
     # form_class = forms.ProfileForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         a = self.application
@@ -3211,6 +3200,7 @@ class ContractCreate(CreateView):
         initial["number"] = a.number
         initial["project_title"] = a.application_title or a.round.title
         initial["start_date"] = timezone.now()
+        initial["user"] = self.request.user
         return initial
 
         # u = self.request.user
@@ -3229,7 +3219,7 @@ class ContractCreate(CreateView):
 
 class ContractUpdate(LoginRequiredMixin, UpdateView):
     model = models.Contract
-    form_class = ContractForm
+    form_class = forms.ContractForm
 
     # fields = "__all__"
     # template_name = "profile_form.html"
@@ -3812,10 +3802,6 @@ class Unaccent(Func):
     function = "unaccent"
 
 
-from dal import autocomplete
-from taggit.models import Tag
-
-
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -3983,6 +3969,18 @@ class SeoAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 q = q.filter(description__icontains=self.q)
             return q.order_by("description")
         return q
+
+
+class PanelAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return False  # request.user.is_authenticated
+
+    def get_queryset(self):
+        q = models.Panel.where(state="active")
+        if self.q:
+            q = q.filter(Q(description__istartswith=self.q) | Q(code__istartswith=self.q))
+        return q.order_by("code")
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):

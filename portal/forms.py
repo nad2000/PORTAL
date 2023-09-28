@@ -1101,6 +1101,156 @@ class ApplicationForm(forms.ModelForm):
         }
 
 
+class ContractForm(forms.ModelForm):
+    fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
+
+    def __init__(self, *args, **kwargs):
+        initial = kwargs.get("initial", {})
+        user = kwargs.pop("user", None) or initial.get("user")
+
+        super().__init__(*args, **kwargs)
+        # language = get_language()
+        instance = self.instance
+        site_id = settings.SITE_ID
+        if site_id == 4:
+            self.fields["protect_title"].label = _("Title of proposed research project")
+            # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
+            # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
+
+        submission_disabled = not instance or (
+            instance.submitted_by and instance.submitted_by != user
+        )
+        submit_button = Submit(
+            "submit",
+            _("Submit"),
+            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+            data_toggle="tooltip",
+            title=_(
+                "Your team leader must accept the Terms and Conditions before the submission can happen"
+            )
+            if submission_disabled
+            else _("Submit the application"),
+            css_class="btn-outline-primary",
+            disabled=submission_disabled,
+        )
+        self.helper = FormHelper(self)
+        self.helper.layout = Layout(
+            TabHolder(
+                Tab(
+                    _("Summary"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    Row(Field("start_date"), Field("end_date")),
+                    css_id="summary",
+                ),
+                Tab(
+                    _("Research"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    Field("project_title"),
+                    Field("abstract"),
+                    Field("notes"),
+                    css_id="research",
+                ),
+                Tab(
+                    _("Personnel"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    css_id="personnel",
+                ),
+                Tab(
+                    _("Proposal"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    css_id="proposal",
+                ),
+                Tab(
+                    _("Reporting"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    css_id="reporting",
+                ),
+                Tab(
+                    _("Compliance"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    css_id="compliance",
+                ),
+                Tab(
+                    _("Finances"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    css_id="finances",
+                ),
+                Tab(
+                    _("Correspondence"),
+                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    css_id="correspondence",
+                ),
+            ),
+            ButtonHolder(
+                Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
+                Div(
+                    Submit(
+                        "save_draft",
+                        _("Save"),
+                        css_class="btn-primary",
+                        data_toggle="tooltip",
+                        title=_("Save draft contract"),
+                    ),
+                    submit_button,
+                    HTML(
+                        """<a href="{{ view.get_success_url }}"
+                        type="button"
+                        role="button"
+                        class="btn btn-secondary"
+                        id="cancel">
+                            %s
+                        </a>"""
+                        % _("Cancel")
+                    ),
+                    Button("next", _("Next") + " »", css_class="btn-primary"),
+                    css_class="float-right",
+                ),
+                css_class="mb-5",
+            ),
+        )
+        self.helper.include_media = False
+
+    class Meta:
+        model = models.Contract
+        exclude = [
+            "site",
+            "org",
+            "application",
+            "submitted_by",
+            "rccs",
+            "fors",
+            "seos",
+            "keywords",
+            "state",
+        ]
+        widgets = dict(
+            start_date=DateInput(),
+            end_date=DateInput(),
+            keywords=autocomplete.ModelSelect2Multiple(
+                url="keyword-autocomplete",
+                attrs={
+                    "data-placeholder": _("Choose a keyword or create a new one ..."),
+                },
+            ),
+            panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
+            panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
+            # summary=SummernoteWidget(),
+            daytime_phone=TelInput(),
+            mobile_phone=TelInput(),
+            # file=FileInput(),
+            abstract=SummernoteInplaceWidget(),
+            notes=SummernoteInplaceWidget(),
+            summary=SummernoteInplaceWidget(),
+            summary_en=SummernoteInplaceWidget(),
+            summary_mi=SummernoteInplaceWidget(),
+            ethics_statement__comment=SummernoteInplaceWidget(),
+            # round=HiddenInput(),
+            letter_of_support_file=forms.ClearableFileInput(
+                attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            ),
+        )
+
+
 class InvitationStateInput(Widget):
     # def __init__(self, attrs=None):
     #     super().__init__(attrs)
@@ -1154,7 +1304,9 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
                     min_value=0,
                     max_digits=3,
                     decimal_places=2,
-                    initial=self.instance and self.instance.pk and getattr(self.instance, f"fte_{i}", None),
+                    initial=self.instance
+                    and self.instance.pk
+                    and getattr(self.instance, f"fte_{i}", None),
                 )
 
     def clean(self):

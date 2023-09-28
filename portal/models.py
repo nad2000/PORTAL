@@ -5580,7 +5580,7 @@ class ContractMixin:
         ("approved", _("approved")),
         ("archived", _("archived")),
         ("cancelled", _("cancelled")),
-        ("draft", _("draft")),
+        ("draft", _("WIP")),
         ("new", _("new")),
         ("preliminary", _("preliminary")),
         ("submitted", _("submitted")),

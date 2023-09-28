@@ -25,18 +25,22 @@
   <div class="row">
     <div class="col-sm-12 mb-4">
 
+      {% comment %}
+      <form method="post" enctype="multipart/form-data" id="contract-form">
+        {% crispy form form.helper %}
+      </form>
+      {% endcomment %}
+
+      {% comment %}
+      {% endcomment %}
       <form method="post">{% csrf_token %}
         {{ form|crispy }}
-        {% if progress %}
-          <input type="submit" style="float:right" class="btn btn-primary float-right" value="{% trans 'Next' %} &raquo;">
+        {% if object.id %}
+          <input class="btn btn-primary" type="submit" name="update" value="{% trans 'Update' %}">
         {% else %}
-          {% if object.id %}
-            <input class="btn btn-primary" type="submit" name="update" value="{% trans 'Update' %}">
-          {% else %}
-            <input class="btn btn-primary" type="submit" name="save" value="{% trans 'Create' %}">
-          {% endif %}
-          <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+          <input class="btn btn-primary" type="submit" name="save" value="{% trans 'Create' %}">
         {% endif %}
+        <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
       </form>
 
     </div>
@@ -51,5 +55,36 @@
   {{ form.media.js }}
   <!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
   <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
+  <script src="{% static 'js/project.js' %}"></script>
+  <script>
+    // $('.yearpicker').datepicker({format: "yyyy", startView: 2});
+    function setDatePickers(el) {
+      el.find(".yearpicker").datepicker({
+        format: "yyyy",
+        // format: "yyyyy",
+        startDate: '1960',
+        endDate: '2040',
+        startView: 2,
+        minViewMode: 2,
+        clearBtn: true,
+        autoclose: true
+      });
+      el.find(".datepicker").datepicker({
+        format: "yyyy-mm-dd",
+        // startDate: '1960-01-01',
+        // endDate: '2001-12-31',
+        // startDate: $(this).data("min"),
+        // endDate: $(this).data("max"),
+        startView: 2,
+        clearBtn: true,
+        autoclose: true
+      });
+      $("td:has(div>input.datepicker)").css("width", "6em");
+      $("td:has(div>input.yearpicker)").css("width", "4em");
+    }
+    $(document).ready(function() {
+      setDatePickers($(document.documentElement));
+    });
+  </script>
 {% endblock %}

@@ -283,6 +283,11 @@ urlpatterns = [
                     name="seo-autocomplete",
                 ),
                 path(
+                    "panel/",
+                    views.PanelAutocomplete.as_view(model=models.Panel),
+                    name="panel-autocomplete",
+                ),
+                path(
                     "award/",
                     views.AwardAutocomplete.as_view(model=models.Award, create_field="name"),
                     name="award-autocomplete",

@@ -28,7 +28,7 @@
             <td>
               {% if object|field_is_empty:field.name %}
                 {% trans 'N/A' %}
-              {% elif field.name == "summary" %}
+              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" %}
                 {{ object|field_value:field.name|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>
