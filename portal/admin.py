@@ -1839,89 +1839,94 @@ class RoundAdmin(
         site_id = obj and obj.site_id or settings.SITE_ID
         exclude = self.get_exclude(request)
         fieldsets = [
-            (name, fields)
-            for (name, fields) in [
-                (
-                    None,
-                    {
-                        "fields": [
-                            "scheme",
-                            ("title_en", "title_mi"),
-                            ("opens_on", "closes_on"),
-                            "description_en",
-                            "description_mi",
-                            "guidelines",
-                            "survey_id",
-                        ]
-                    },
-                ),
-                (
-                    "Options",
-                    {
-                        "fields": [
-                            [
-                                f
-                                for f in [
-                                    "applicant_cv_required",
-                                    "team_can_apply",
-                                    "can_nominate",
-                                    "notify_nominator",
-                                    "direct_application_allowed",
-                                    "ethics_statement_required",
-                                    "has_online_scoring",
-                                    "has_referees",
-                                    "has_title",
-                                    "letter_of_support_required",
-                                    "nominator_cv_required",
-                                    "pid_required",
-                                    "presentation_required",
-                                    "referee_cv_required",
-                                    "research_summary_required",
-                                    "research_experience_in_years_required",
-                                ]
-                                if f not in exclude
-                            ],
-                            ("required_referees", "is_flexible_number_of_referees"),
-                            "duration",
-                        ]
-                    },
-                ),
-                (
-                    "Categories",
-                    {
-                        "fields": [
-                            "has_fors",
-                            "has_keywords",
-                            "has_seos",
-                            "has_toas",
-                            "has_vmts",
-                        ]
-                    },
-                ),
-                (
-                    "Terms and Conditions",
-                    {
-                        # "classes": ("collapse",),
-                        "fields": [
-                            "tac_en",
-                            "tac_mi",
+            (
+                None,
+                {
+                    "fields": [
+                        "scheme",
+                        ("title_en", "title_mi"),
+                        ("opens_on", "closes_on"),
+                        "description_en",
+                        "description_mi",
+                        "guidelines",
+                        "survey_id",
+                    ]
+                },
+            ),
+            (
+                "Options",
+                {
+                    "fields": [
+                        [
+                            f
+                            for f in [
+                                "applicant_cv_required",
+                                "team_can_apply",
+                                "can_nominate",
+                                "notify_nominator",
+                                "direct_application_allowed",
+                                "ethics_statement_required",
+                                "has_online_scoring",
+                                "has_referees",
+                                "has_title",
+                                "letter_of_support_required",
+                                "nominator_cv_required",
+                                "pid_required",
+                                "presentation_required",
+                                "referee_cv_required",
+                                "research_summary_required",
+                                "research_experience_in_years_required",
+                            ]
+                            if f not in exclude
                         ],
-                    },
-                ),
-                (
-                    "Templates",
-                    {
-                        "fields": [
-                            "score_sheet_template",
-                            "nomination_template",
-                            "application_template",
-                            "referee_template",
-                            "budget_template",
-                        ]
-                    },
-                ),
-            ]
-            if site_id != 4 or name != "Templates"
+                        ("required_referees", "is_flexible_number_of_referees"),
+                        "duration",
+                    ]
+                },
+            ),
+            (
+                "Categories",
+                {
+                    "fields": [
+                        "has_fors",
+                        "has_keywords",
+                        "has_seos",
+                        "has_toas",
+                        "has_vmts",
+                    ]
+                },
+            ),
+            (
+                "Terms and Conditions",
+                {
+                    # "classes": ("collapse",),
+                    "fields": [
+                        "tac_en",
+                        "tac_mi",
+                    ],
+                },
+            ),
+            (
+                "Other Templates",
+                {
+                    "fields": [
+                        "referee_template",
+                    ]
+                },
+            )
+            if site_id == 4
+            else (
+                "Templates",
+                {
+                    "fields": [
+                        "score_sheet_template",
+                        "nomination_template",
+                        "application_template",
+                        "referee_template",
+                        "budget_template",
+                    ]
+                },
+            ),
         ]
         return fieldsets
 

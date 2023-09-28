@@ -2139,8 +2139,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if (
             user.is_superuser
             or user.is_staff
-            or self.conflict_of_interests.filter(
-                panellist__user=user, has_conflict=False, has_conflict__isnull=False
+            or (
+                self.site_id != 4
+                and self.conflict_of_interests.filter(
+                    panellist__user=user, has_conflict=False, has_conflict__isnull=False
+                ).exists()
             )
         ):
             for n in Nomination.where(application=self, nominator__isnull=False):
@@ -3476,11 +3479,14 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 t, _ = Testimonial.get_or_create(referee=r)
         elif self.type == INVITATION_TYPES.P:
             p = self.panellist
-            p.user = by
-            if p.state != "accepted":
-                p.accept(request)
-                if commit:
-                    p.save()
+            if p:
+                p.user = by
+                if p.state != "accepted":
+                    p.accept(request)
+                    if commit:
+                        p.save()
+            else:
+                self.revoke()
 
     @fsm_log
     @transition(field=state, source=["*"], target="bounced")

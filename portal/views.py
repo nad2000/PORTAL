@@ -870,8 +870,6 @@ def check_profile(request, token=None):
                     request,
                     _("The invitation has been already accepted."),
                 )
-
-            if i.state != "accepted":
                 next_url = i.handler_url
             else:
                 if i.type == "A" and (n := i.nomination):
