@@ -1797,7 +1797,9 @@ class TestimonialForm(forms.ModelForm):
                 ),
                 Submit(
                     "turn_down",
-                    _("I do not wish to provide a testimonial"),
+                    _("I do not wish to provide a report")
+                    if site_id == 4
+                    else _("I do not wish to provide a testimonial"),
                     css_class="btn-outline-danger",
                 ),
                 HTML(

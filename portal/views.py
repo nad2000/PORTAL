@@ -4863,7 +4863,7 @@ class TestimonialDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         t = self.get_object()
-        referee = self.get_object().referee
+        referee = t.referee
         a = referee.application
         r = a and referee.application.round
 
@@ -4897,7 +4897,7 @@ class TestimonialDetail(DetailView):
             else:
                 messages.info(
                     self.request,
-                    _("Please review the application details and submit testimonial."),
+                    _("Please review the application details and submit referee report.") if t.site_id == 4 else _("Please review the application details and submit testimonial."),
                 )
         return context
 
