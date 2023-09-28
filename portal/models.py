@@ -3582,6 +3582,10 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     def __str__(self):
         if self.referee_id:
+            if self.site_id == 4:
+                return _("Referee report by {0} for {1}").format(
+                    self.referee, self.referee.application
+                )
             return _("Testimonial By Referee {0} For Application {1}").format(
                 self.referee, self.referee.application
             )
