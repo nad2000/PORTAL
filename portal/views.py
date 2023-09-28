@@ -4862,6 +4862,7 @@ class TestimonialDetail(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        t = self.get_object()
         referee = self.get_object().referee
         a = referee.application
         r = a and referee.application.round
@@ -4874,11 +4875,11 @@ class TestimonialDetail(DetailView):
         )
         if survey_url:
             context["survey_url"] = survey_url
-        if self.get_object().state == "new":
+        if t.state == "new":
             context["update_view_name"] = f"{self.model.__name__.lower()}-create"
-            context["update_button_name"] = _("Add Testimonial")
+            context["update_button_name"] = _("Add Referee Report") if t.site_id == 4 else _("Add Testimonial")
         else:
-            context["update_button_name"] = _("Edit Testimonial")
+            context["update_button_name"] = _("Edit Referee Report") if t.site_id == 4 else _("Edit Testimonial")
         if not referee.has_testified:
             if r and r.survey_id:
                 site = models.Site.objects.get_current()

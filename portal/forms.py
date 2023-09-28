@@ -1754,6 +1754,7 @@ class TestimonialForm(forms.ModelForm):
         self.helper.include_media = False
         self.helper.form_id = "entry-form"
         initial = kwargs.get("initial")
+        site_id = self.instance.site_id
         round = (
             self.instance.id
             and self.instance.application.round
@@ -1765,6 +1766,8 @@ class TestimonialForm(forms.ModelForm):
             # Field("summary"),
             # Field("referee"),
         ]
+        if site_id == 4:
+            self.fields["file"].label = ""
         if round.referee_template:
             help_text = _(
                 'You can download the application review form template at <strong><a href="%s">%s</a></strong>'
@@ -1773,7 +1776,7 @@ class TestimonialForm(forms.ModelForm):
             self.fields["file"].help_text = help_text
         self.fields["file"].required = True
         fields = [
-            Fieldset(_("Testimonial"), *fields),
+            Fieldset(_("Referee Report") if site_id == 4 else _("Testimonial"), *fields),
         ]
 
         self.helper.layout = Layout(
