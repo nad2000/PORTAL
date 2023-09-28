@@ -196,8 +196,8 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
 
         if email and not self.invitation:
             self.invitation = Invitation.where(
-                Q(status__isnull=True)
-                | Q(status__in=["draft", "submitted", "sent", "bounced"])
+                Q(state__isnull=True)
+                | Q(state__in=["draft", "submitted", "sent", "bounced"])
                 | Q(email=email)
             ).last()
 
