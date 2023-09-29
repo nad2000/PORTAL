@@ -2539,7 +2539,7 @@ simple_history.register(
 
 class MemberEffort(Model):
     member = ForeignKey(Member, on_delete=CASCADE, related_name="efforts")
-    year = PositiveSmallIntegerField()
+    period = PositiveSmallIntegerField()
     fte = DecimalField(
         _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
     )
@@ -2548,7 +2548,7 @@ class MemberEffort(Model):
 
     class Meta:
         db_table = "member_effort"
-        unique_together = ["member", "year"]
+        unique_together = ["member", "period"]
 
 
 REFEREE_STATES = Choices(
@@ -5718,6 +5718,19 @@ simple_history.register(
     table_name="contract_history",
     bases=[ContractMixin, PersonMixin, PdfFileMixin, Model],
 )
+
+
+class Allocation(Model):
+    contract = ForeignKey(Contract, on_delete=CASCADE)
+    period = PositiveSmallIntegerField(_("period"))
+    allocation = DecimalField(_("allocation"), max_digits=15, decimal_places=2)
+
+    history = HistoricalRecords(table_name="allocation_history")
+
+    class Meta:
+        db_table = "allocation"
+        unique_together = (("contract", "period"),)
+
 
 dummy_for_translations = (
     _("Browse"),

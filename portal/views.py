@@ -6450,18 +6450,28 @@ def demo(request):
     else:
         formset = MemberFTEFormSet(instance=a, prefix="demo")
 
-    formset.helper = FormHelper()
-    formset.helper.help_text_inline = True
-    formset.helper.html5_required = True
-    formset.helper.layout = Layout(
+    form = Form()
+    form.helper = FormHelper()
+    form.helper.help_text_inline = True
+    form.helper.html5_required = True
+    form.helper.layout = Layout(
         forms.Div(
             forms.TableInlineFormset("formset"),
             css_id="demo",
         )
     )
 
+    # formset.helper = FormHelper()
+    # formset.helper.help_text_inline = True
+    # formset.helper.html5_required = True
+    # formset.helper.layout = Layout(
+    #     forms.Div(
+    #         forms.TableInlineFormset("formset"),
+    #         css_id="demo",
+    #     )
+    # )
+
     return render(request, "demo.html", locals())
-    pass
 
 
 # vim:set ft=python.django:

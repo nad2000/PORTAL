@@ -1266,11 +1266,9 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
     def save(self, commit=True):
         super().save(commit=commit)
         m = self.instance
-        a = m.application
-        year = a.created_at.year
         models.MemberEffort.objects.bulk_create(
             [
-                models.MemberEffort(member=m, year=int(i), fte=self.cleaned_data[f])
+                models.MemberEffort(member=m, period=int(i), fte=self.cleaned_data[f])
                 for (f, (_, i)) in [
                     (f, f.split("_"))
                     for f in self.fields.keys()
@@ -1279,11 +1277,11 @@ class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
             ],
             update_conflicts=True,
             update_fields=["fte"],
-            unique_fields=["member", "year"],
+            unique_fields=["member", "period"],
         )
         m.efforts.filter(
-            year__in=[
-                year + int(i) - 1
+            period__in=[
+                i
                 for (_, i) in [
                     f.split("_")
                     for f in self.fields.keys()
