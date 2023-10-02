@@ -37,6 +37,7 @@ from django.db.models import (
     F,
     FilteredRelation,
     Func,
+    Min,
     OuterRef,
     Prefetch,
     ProtectedError,
@@ -3755,11 +3756,21 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         # return True  # request.user.is_authenticated
 
     def get_queryset(self):
+        q =  models.Organisation.objects.all()
         if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
-            return models.Organisation.where(Q(research_offices__user_id=nominator))
-        elif self.q:
-            return models.Organisation.where(name__icontains=self.q).order_by("-id", "name")
-        return models.Organisation.objects.order_by("-id", "name")
+            q = q.filter(Q(research_offices__user_id=nominator))
+        if self.q:
+            q = q.filter(
+                name__icontains=self.q,
+                id__in=models.Organisation.where(
+                    name__icontains=self.q
+                ).values("name").annotate(Min("id")).values("id__min")
+            )
+        else:
+            q = q.filter(
+                id__in=models.Organisation.objects.all().values("name").annotate(Min("id")).values("id__min")
+            )
+        return q.order_by("name")
 
 
 class AwardAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
