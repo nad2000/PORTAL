@@ -1,0 +1,65 @@
+{% load i18n tags %}
+<div class="table-responsive">
+  <table class="table table-bordered searchable">
+    <tbody>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {% trans 'Application Number' %}
+            </th>
+            <td>
+              {% with application_number=object.application.number %}
+                <a href="{% url 'application-detail' number=application_number %}" target="_blank">{{ application_number }}</a>
+              {% endwith %}
+            </td>
+          </tr>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              Application
+            </th>
+            <td>
+                Emerging Scientist Prize 3000 (ESP-UOA-2022-001)
+            </td>
+          </tr>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              Submitted By
+            </th>
+            <td>
+                Rad Cirskis (nad2000@gmail.com)
+            </td>
+          </tr>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              Project Title
+            </th>
+            <td>
+                Emerging Scientist Prize 3000
+            </td>
+          </tr>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              State
+            </th>
+            <td>
+                &lt;NEW&gt;
+            </td>
+          </tr>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              Start Date
+            </th>
+            <td>
+                Oct. 2, 2023
+            </td>
+          </tr>
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              Fund
+            </th>
+            <td>
+                WF: MBIE Science Whitinga Fellowship
+            </td>
+          </tr>
+    </tbody>
+  </table>
+  </div>

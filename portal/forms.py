@@ -1101,8 +1101,24 @@ class ApplicationForm(forms.ModelForm):
         }
 
 
+class AllocationForm(forms.ModelForm):
+    period = forms.IntegerField(disabled=True)
+
+    class Meta:
+        model = models.Allocation
+        fields = ["period", "allocation"]
+
+
+class AllocationFormSet(
+    inlineformset_factory(
+        models.Contract, models.Allocation, can_delete=False, form=AllocationForm, extra=0
+    )
+):
+    pass
+
+
 class ContractForm(forms.ModelForm):
-    fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
+    # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -1173,6 +1189,11 @@ class ContractForm(forms.ModelForm):
                 Tab(
                     _("Finances"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    Fieldset(
+                        _("Budget Allocation"),
+                        TableInlineFormset("allocations"),
+                        css_id="allocations",
+                    ),
                     css_id="finances",
                 ),
                 Tab(
@@ -1214,8 +1235,10 @@ class ContractForm(forms.ModelForm):
         model = models.Contract
         exclude = [
             "site",
+            "fund",
             "org",
             "application",
+            "number",
             "submitted_by",
             "rccs",
             "fors",

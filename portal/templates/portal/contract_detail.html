@@ -1,0 +1,12 @@
+{% extends 'detail.html' %}
+{% load i18n tags %}
+
+{% block content %}
+
+<div class="table-responsive">
+  {% include 'snippets/contract_summary.html' %}
+</div>
+
+{{ block.super }}
+
+{% endblock %}

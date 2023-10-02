@@ -1440,6 +1440,8 @@ class AuthorizationForm(Form):
 class ApplicationDetail(DetailView):
     model = Application
     template_name = "application_detail.html"
+    slug_field = "number"
+    slug_url_kwarg = "number"
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
@@ -3144,17 +3146,65 @@ class ContractList(LoginRequiredMixin, SingleTableView):
 
 
 class ContractDetail(DetailView):
+    template_name = "portal/contract_detail.html"
     model = models.Contract
+    slug_field = "number"
+    slug_url_kwarg = "number"
 
 
-class ContractCreate(CreateView):
+class ContractViewMixin:
+    @cached_property
+    def application(self):
+        if self.object and self.object.application_id:
+            return self.object.application
+        return get_object_or_404(
+            models.Application,
+            pk=(
+                self.kwargs.get("pk")
+                or self.kwargs.get("application_pk")
+                or self.kwargs.get("application_id")
+                or self.request.GET.get("application_id")
+            ),
+        )
+
+    def get_allocation_formset(self, *args, **kwargs):
+        if self.object and self.object.id:
+            extra = 0
+            initial_allocations = []
+        else:
+            a = self.application
+            duration = a.round.duration or 3
+            extra = duration
+            initial_allocations = [
+                dict(
+                    period=p,
+                    allocation=0.0,
+                )
+                for p in range(1, duration + 1)
+            ]
+        fsc = forms.inlineformset_factory(
+            models.Contract,
+            models.Allocation,
+            can_delete=False,
+            form=forms.AllocationForm,
+            extra=extra,
+        )
+        return fsc(
+            self.request.POST or None,
+            instance=self.object,
+            initial=initial_allocations,
+            # form_kwargs={"duration": duration},
+        )
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        self.allocations = context["allocations"] = self.get_allocation_formset()
+        return context
+
+
+class ContractCreate(ContractViewMixin, CreateView):
     model = models.Contract
     form_class = forms.ContractForm
-    # fields = "__all__"
-    # exclude = ["site", "org", "application", "submitted_by", "rccs", "fors", "seos", "keywords"]
-
-    # template_name = "profile_form.html"
-    # form_class = forms.ProfileForm
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -3166,8 +3216,29 @@ class ContractCreate(CreateView):
         form.instance.submitted_by = self.request.user
         form.instance.org = a.org
         form.instance.application = a
+        form.instance.number = a.number
+        form.instance.fund = models.Fund.last()
+        resp = super().form_valid(form)
+        allocation_fs = self.get_allocation_formset()
         reset_cache(self.request)
-        return super().form_valid(form)
+        return resp
+
+    # def post(self, request, *args, **kwargs):
+    #     form = self.get_user_form()
+    #     if not form.is_valid():
+    #         return self.form_invalid(form)
+    #     form.save()
+    #     reset_cache(self.request)
+    #     return super().post(request, *args, **kwargs)
+
+    # def post(self, request, *args, **kwargs):
+    #     self.object = None
+    #     form = self.get_form()
+    #     if form.is_valid():
+    #         allocation_fs = self.get_allocation_formset()
+    #         return self.form_valid(form)
+    #     else:
+    #         return self.form_invalid(form)
 
     # def get_context_data(self, **kwargs):
     #     data = super().get_context_data(**kwargs)
@@ -3177,28 +3248,18 @@ class ContractCreate(CreateView):
 
     #     return data
 
-    @property
-    def application(self):
-        return get_object_or_404(
-            models.Application,
-            pk=(
-                self.kwargs.get("pk")
-                or self.kwargs.get("application_pk")
-                or self.kwargs.get("application_id")
-                or self.request.GET.get("application_id")
-            ),
-        )
-
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         a = self.application
         initial["application"] = a
         initial["year"] = a.created_at.year
         initial["org"] = a.org
-        initial["number"] = a.number
         initial["project_title"] = a.application_title or a.round.title
         initial["start_date"] = timezone.now()
         initial["user"] = self.request.user
+        # TODO:
+        initial["number"] = a.number
+        initial["fund"] = models.Fund.last()
         return initial
 
         # u = self.request.user
@@ -3215,52 +3276,14 @@ class ContractCreate(CreateView):
         return initial
 
 
-class ContractUpdate(LoginRequiredMixin, UpdateView):
+class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
     model = models.Contract
     form_class = forms.ContractForm
-
-    # fields = "__all__"
-    # template_name = "profile_form.html"
-    # form_class = forms.ProfileForm
-
-    # def form_valid(self, form):
-    #     form.instance.user = self.request.user
-    #     return super().form_valid(form)
-
-    # def get_context_data(self, **kwargs):
-    #     data = super().get_context_data(**kwargs)
-
-    #     if "user_form" not in kwargs:
-    #         kwargs["user_form"] = self.get_user_form()
-
-    #     return data
-
-    # def get_initial(self):
-    #     initial = super().get_initial()
-    #     a = get_object_or_404(
-    #         models.Application,
-    #         pk=(
-    #             self.kwargs.get("pk")
-    #             or self.kwargs.get("application_pk")
-    #             or self.kwargs.get("application_id")
-    #             or self.request.GET.get("application_id")
-    #         ),
-    #     )
-    #     initial["application"] = a
-    #     return initial
 
 
 class ApplicationListMixin:
     def get_queryset(self, *args, **kwargs):
         u = self.request.user
-        # if not (u.is_superuser or u.is_staff):
-        #     return models.Application.user_applications(
-        #         self.request.user, round=self.request.GET.get("round")
-        #     )
-        # queryset = super().get_queryset(*args, **kwargs)
-        # if "round" in self.request.GET:
-        #     queryset = queryset.filter(round=self.request.GET["round"])
-        # return queryset
         return models.Application.user_applications(u, round=self.request.GET.get("round"))
 
 
@@ -4877,9 +4900,13 @@ class TestimonialDetail(DetailView):
             context["survey_url"] = survey_url
         if t.state == "new":
             context["update_view_name"] = f"{self.model.__name__.lower()}-create"
-            context["update_button_name"] = _("Add Referee Report") if t.site_id == 4 else _("Add Testimonial")
+            context["update_button_name"] = (
+                _("Add Referee Report") if t.site_id == 4 else _("Add Testimonial")
+            )
         else:
-            context["update_button_name"] = _("Edit Referee Report") if t.site_id == 4 else _("Edit Testimonial")
+            context["update_button_name"] = (
+                _("Edit Referee Report") if t.site_id == 4 else _("Edit Testimonial")
+            )
         if not referee.has_testified:
             if r and r.survey_id:
                 site = models.Site.objects.get_current()
@@ -4897,7 +4924,9 @@ class TestimonialDetail(DetailView):
             else:
                 messages.info(
                     self.request,
-                    _("Please review the application details and submit referee report.") if t.site_id == 4 else _("Please review the application details and submit testimonial."),
+                    _("Please review the application details and submit referee report.")
+                    if t.site_id == 4
+                    else _("Please review the application details and submit testimonial."),
                 )
         return context
 

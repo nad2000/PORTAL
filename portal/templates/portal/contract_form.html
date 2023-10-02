@@ -16,7 +16,11 @@
 
 {% block breadcrumbs %}
   {{ block.super }}
-  {% breadcrumb "Profile" "profile" %}
+  {% if object.id %}
+    {% breadcrumb "Contrarct" "contract-update" %}
+  {% else %}
+    {% breadcrumb "Contrarct" "contract-create" %}
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -26,13 +30,12 @@
     <div class="col-sm-12 mb-4">
 
       {% comment %}
+      {% endcomment %}
       <form method="post" enctype="multipart/form-data" id="contract-form">
         {% crispy form form.helper %}
       </form>
-      {% endcomment %}
 
       {% comment %}
-      {% endcomment %}
       <form method="post">{% csrf_token %}
         {{ form|crispy }}
         {% if object.id %}
@@ -42,6 +45,7 @@
         {% endif %}
         <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
       </form>
+      {% endcomment %}
 
     </div>
   </div>

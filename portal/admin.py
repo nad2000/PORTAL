@@ -2066,7 +2066,8 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                     # ("supervisor", "supervisor_code"),
                     ("start_date", "end_date", "duration"),
                     # "category",
-                    ("fund", "fund_code"),
+                    # ("fund", "fund_code"),
+                    "fund",
                     ("fin_received", "fin_supp"),
                     # "code",
                 ],
@@ -2079,11 +2080,11 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                 "fields": [
                     # "panel_code",
                     "panel",
-                    ("total_amount", "actual_amount", "currency"),
+                    # ("total_amount", "actual_amount", "currency"),
                     "url",
                     "abstract",
                     "notes",
-                    "mf_round_yr",
+                    # "mf_round_yr",
                     # "seo_list",
                     # "keyword_list",
                     # "seo_keyword_list",
@@ -2157,6 +2158,12 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     #     exclude = ["contract_number"]
     #     classes = ["collapse"]
 
+    class AllocationInline(admin.StackedInline):
+        model = models.Allocation
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
     class ForInline(admin.TabularInline):
         model = models.ContractFor
         extra = 0
@@ -2165,6 +2172,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         classes = ["collapse"]
 
     inlines = [
+        AllocationInline,
         ForInline,
         # TeamInline,
         # AllocationInline,
