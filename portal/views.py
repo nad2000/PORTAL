@@ -3906,10 +3906,16 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:
+            s = self.q.lower()
+            s0 = s.split(" ")
+            if s0[0] == "the":
+                s0 =  " ".join(s0[1:0]).strip() or f"the {s}"
+            else:
+                s0 =  f"the {s}"
+            q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
             q = q.filter(
-                name__icontains=self.q,
                 id__in=models.Organisation.where(
-                    name__icontains=self.q
+                    Q(name__istartswith=s) | Q(name__istartswith=s0)
                 ).values("name").annotate(Min("id")).values("id__min")
             )
         else:
