@@ -1,10 +1,13 @@
 import os
 from urllib.parse import parse_qs
 
+import jinja2
 from django import forms, template
 from django.db import models
 from django.forms.widgets import NullBooleanSelect
+from django.template.loader import get_template
 from django.utils.translation import gettext as _
+from markupsafe import Markup
 
 from .. import models as m
 
@@ -209,3 +212,13 @@ def video_id(value):
 @register.filter()
 def user_has_nomination(value, user):
     return value.user_has_nomination(user)
+
+
+@register.simple_tag(takes_context=True)
+# @jinja2.pass_context
+def contract_summary(context, *args, **kwargs):
+    request = context.get("request")
+    site = context.get("site")
+    object = context.get("object")
+    output = get_template("contract_summary.html").render(locals())
+    return Markup(output)

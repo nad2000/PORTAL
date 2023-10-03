@@ -1,15 +1,13 @@
-{% load i18n tags %}
+{% set application_number=object.application.number %}
 <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
           <tr>
             <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {% trans 'Application Number' %}
+              {{ _('Application Number') }}
             </th>
             <td>
-              {% with application_number=object.application.number %}
-                <a href="{% url 'application-detail' number=application_number %}" target="_blank">{{ application_number }}</a>
-              {% endwith %}
+                <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
             </td>
           </tr>
           <tr>

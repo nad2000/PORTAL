@@ -21,7 +21,13 @@ def environment(**options):
             "get_messages": messages.get_messages,
             "crispy": crispy,
             "static": static,
-            "url": reverse,
+            "url": lambda viewname, urlconf=None, current_app=None, *args, **kwargs: reverse(
+                viewname=viewname,
+                urlconf=urlconf,
+                args=args or None,
+                kwargs=kwargs or None,
+                current_app=current_app,
+            ),
         }
     )
     env.filters["basename"] = basename
