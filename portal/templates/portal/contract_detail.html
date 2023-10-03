@@ -1,12 +1,10 @@
 {% extends 'detail.html' %}
 {% load tags %}
 
-{% block content %}
+{% block object_details %}
 
 <div class="table-responsive">
   {% contract_summary %}
 </div>
-
-{{ block.super }}
 
 {% endblock %}

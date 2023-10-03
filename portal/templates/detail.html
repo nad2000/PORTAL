@@ -14,6 +14,7 @@
     </div>
   </div>
 
+  {% block object_details %}
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -48,6 +49,7 @@
     </tbody>
   </table>
   </div>
+  {% endblock object_details %}
 
   {% block extra_object %}
   {% if extra_object %}

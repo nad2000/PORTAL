@@ -5713,6 +5713,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     ## actual_amount = IntegerField(null=True, blank=True)
     ## currency = IntegerField(null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+
     def natural_key(self):
         return (self.number,)
 

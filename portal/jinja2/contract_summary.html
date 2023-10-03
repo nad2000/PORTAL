@@ -34,12 +34,22 @@
 
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Fund') }}
+        </th>
+        <td>
+          {{ c.fund or _('N/A') }}
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Project Title') }}
         </th>
         <td>
           {{ c.project_title or a.application_title or a.round.name }}
         </td>
       </tr>
+
     </tbody>
   </table>
 
