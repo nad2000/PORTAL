@@ -98,7 +98,7 @@
           <td>{{ _("Year") }} {{ a.period }}:</td>
           <td>{{ a.allocation }}</td>
           {% set e=schedule_entries.get(a.period) %}
-          <td>{{ e and e.type or _('N/A') }}</td>
+          <td>{{ e and e.type and e.get_type_display() or _('N/A') }}</td>
           <td>{{ e and e.due_date or _('N/A') }}</td>
         </tr>
       {% endfor %}
