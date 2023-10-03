@@ -1154,8 +1154,14 @@ class ContractForm(forms.ModelForm):
             TabHolder(
                 Tab(
                     _("Summary"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    Row(Field("start_date"), Field("end_date")),
+                    *(
+                        [HTML("{% load tags %}{% contract_summary %}")]
+                        if self.instance and self.instance.id
+                        else [
+                            HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                            Row(Field("start_date"), Field("end_date")),
+                        ]
+                    ),
                     css_id="summary",
                 ),
                 Tab(
