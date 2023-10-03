@@ -1185,6 +1185,11 @@ class ContractForm(forms.ModelForm):
                 Tab(
                     _("Reporting"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    Fieldset(
+                        _("Reporting Schedule"),
+                        TableInlineFormset("reporting_schedule"),
+                        css_id="reporting_schedule",
+                    ),
                     css_id="reporting",
                 ),
                 Tab(

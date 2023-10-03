@@ -6,6 +6,7 @@ import traceback
 from functools import wraps
 from urllib.parse import quote
 
+from dateutil.relativedelta import relativedelta
 import django.utils.translation
 import django_filters
 import django_tables2
@@ -3209,20 +3210,50 @@ class ContractViewMixin:
             # form_kwargs={"duration": duration},
         )
 
+    def get_reporting_schedule_formset(self, *args, **kwargs):
+        if self.object and self.object.id:
+            initial = None
+        else:
+            a = self.application
+            duration = a.round.duration or 3
+            initial = [
+                dict(
+                    period=p,
+                    type="A" if p != duration else "F",
+                    # due_date=timezone.now()+relativedelta(years=p),
+                    due_date=a.submitted_at.year + relativedelta(years=p),
+                )
+                for p in range(1, duration + 1)
+            ]
+        fsc = forms.inlineformset_factory(
+            models.Contract,
+            models.ReportingScheduleEntry,
+            can_delete=True,
+            can_delete_extra=True,
+            # form=forms.AllocationForm,
+            # fields="__all__",
+            exclude=["request_info_date", "state", "acknowledged_at"],
+            extra=1,
+            labels={"date_first_remind": _("First Reminder")},
+            widgets={
+                "due_date": forms.DateInput(start_date="-1y", end_date="+10y"),
+                "date_first_remind": forms.DateInput(start_date="-1y", end_date="+10y"),
+            },
+        )
+        return fsc(
+            self.request.POST or None,
+            instance=self.object,
+            initial=initial,
+            # form_kwargs={"duration": duration}
+        )
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         self.allocations = context["allocations"] = self.get_allocation_formset()
+        self.reporting_schedule = context[
+            "reporting_schedule"
+        ] = self.get_reporting_schedule_formset()
         return context
-
-
-class ContractCreate(ContractViewMixin, CreateView):
-    model = models.Contract
-    form_class = forms.ContractForm
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        return kwargs
 
     def form_valid(self, form):
         a = self.application
@@ -3232,9 +3263,23 @@ class ContractCreate(ContractViewMixin, CreateView):
         form.instance.number = a.number
         form.instance.fund = models.Fund.last()
         resp = super().form_valid(form)
-        allocation_fs = self.get_allocation_formset()
+        fs = self.get_allocation_formset()
+        if fs.is_valid():
+            fs.save()
+        fs = self.get_reporting_schedule_formset()
+        if fs.is_valid():
+            fs.save()
         reset_cache(self.request)
         return resp
+
+class ContractCreate(ContractViewMixin, CreateView):
+    model = models.Contract
+    form_class = forms.ContractForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     # def post(self, request, *args, **kwargs):
     #     form = self.get_user_form()

@@ -5633,10 +5633,15 @@ class ContractMixin:
 #     )
 
 
+class ContractManager(CurrentSiteManager):
+    def get_by_natural_key(self, code, *args, **kwargs):
+        return self.get(code=code)
+
+
 class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
-    objects = CurrentSiteManager()
+    objects = ContractManager()
     all_objects = Manager()
 
     number = CharField(_("number"), max_length=40, unique=True)
@@ -5707,6 +5712,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     ## total_amount = IntegerField(null=True, blank=True)
     ## actual_amount = IntegerField(null=True, blank=True)
     ## currency = IntegerField(null=True, blank=True)
+
+    def natural_key(self):
+        return (self.number,)
 
     class Meta:
         db_table = "contract"
@@ -5788,16 +5796,15 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     # notes2 = models.TextField(blank=True, null=True)
     # duration = models.IntegerField(blank=True, null=True)
 
-
     class Meta:
-        db_table ="reporting_schedule_entry"
+        db_table = "reporting_schedule_entry"
         unique_together = (("contract", "period", "type", "due_date"),)
 
 
 simple_history.register(
     ReportingScheduleEntry,
     inherit=True,
-    table_name = "reporting_schedule_entry_history",
+    table_name="reporting_schedule_entry_history",
     bases=[ReportingScheduleEntryMixin, Model],
 )
 
