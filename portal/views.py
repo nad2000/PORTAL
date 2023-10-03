@@ -3152,6 +3152,18 @@ class ContractDetail(DetailView):
     slug_field = "number"
     slug_url_kwarg = "number"
 
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                Prefetch(
+                    "allocations", queryset=models.Allocation.objects.all().order_by("period")
+                ),
+                "reporting_schedule",
+            )
+        )
+
 
 class ContractViewMixin:
     @cached_property
@@ -3902,25 +3914,29 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         # return True  # request.user.is_authenticated
 
     def get_queryset(self):
-        q =  models.Organisation.objects.all()
+        q = models.Organisation.objects.all()
         if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:
             s = self.q.lower()
             s0 = s.split(" ")
             if s0[0] == "the":
-                s0 =  " ".join(s0[1:0]).strip() or f"the {s}"
+                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
             else:
-                s0 =  f"the {s}"
+                s0 = f"the {s}"
             q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
             q = q.filter(
-                id__in=models.Organisation.where(
-                    Q(name__istartswith=s) | Q(name__istartswith=s0)
-                ).values("name").annotate(Min("id")).values("id__min")
+                id__in=models.Organisation.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
             )
         else:
             q = q.filter(
-                id__in=models.Organisation.objects.all().values("name").annotate(Min("id")).values("id__min")
+                id__in=models.Organisation.objects.all()
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
             )
         return q.order_by("name")
 

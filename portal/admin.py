@@ -2120,6 +2120,12 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     #     view_on_site = False
     #     classes = ["collapse"]
 
+    class ReportingScheduleEntryInline(admin.TabularInline):
+        model = models.ReportingScheduleEntry
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
     # class PanelAllocationInline(admin.StackedInline):
     #     model = models.ContractPanelAllocation
     #     extra = 0
@@ -2158,7 +2164,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     #     exclude = ["contract_number"]
     #     classes = ["collapse"]
 
-    class AllocationInline(admin.StackedInline):
+    class AllocationInline(admin.TabularInline):
         model = models.Allocation
         extra = 0
         view_on_site = False
@@ -2172,11 +2178,11 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         classes = ["collapse"]
 
     inlines = [
+        ReportingScheduleEntryInline,
         AllocationInline,
         ForInline,
         # TeamInline,
         # AllocationInline,
-        # PanelAllocationInline,
         # ReportingInline,
         # VisitInline,
         # ExchangeInline,

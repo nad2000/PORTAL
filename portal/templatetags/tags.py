@@ -219,6 +219,7 @@ def user_has_nomination(value, user):
 def contract_summary(context, *args, **kwargs):
     request = context.get("request")
     site = context.get("site")
-    object = context.get("object")
+    contract = object = context.get("object")
+    schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period")}
     output = get_template("contract_summary.html").render(locals())
     return Markup(output)

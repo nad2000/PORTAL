@@ -1,63 +1,141 @@
-{% set application_number=object.application.number %}
+{% set c=contract %}
+{% set a=c.application %}
+{% set application_number=a.number %}
 <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {{ _('Application Number') }}
-            </th>
-            <td>
-                <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
-            </td>
-          </tr>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              Application
-            </th>
-            <td>
-                Emerging Scientist Prize 3000 (ESP-UOA-2022-001)
-            </td>
-          </tr>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              Submitted By
-            </th>
-            <td>
-                Rad Cirskis (nad2000@gmail.com)
-            </td>
-          </tr>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              Project Title
-            </th>
-            <td>
-                Emerging Scientist Prize 3000
-            </td>
-          </tr>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              State
-            </th>
-            <td>
-                &lt;NEW&gt;
-            </td>
-          </tr>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              Start Date
-            </th>
-            <td>
-                Oct. 2, 2023
-            </td>
-          </tr>
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              Fund
-            </th>
-            <td>
-                WF: MBIE Science Whitinga Fellowship
-            </td>
-          </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Application Number') }}
+        </th>
+        <td>
+          <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Type') }}
+        </th>
+        <td>
+          TODO: Visit
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Panel') }}
+        </th>
+        <td>
+          {{ c.panel or _('N/A') }}
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Project Title') }}
+        </th>
+        <td>
+          {{ c.project_title or a.application_title or a.round.name }}
+        </td>
+      </tr>
     </tbody>
   </table>
-  </div>
+
+  <table class="table">
+    <tr>
+      <td>{{ _('Contract starts') }}: {{ c.start_date or '-'}} </td>
+      <td>{{ _('Contract ends') }}: {{ c.end_date or '-' }} </td>
+    </tr>
+  </table>
+
+  <table class="table table-bordered searchable table-striped">
+    <thead>
+      <tr class="thead-dark">
+        <th scope="col">
+          {{ _('Part') }}
+        </th>
+        <th scope="col">
+          {{ _('Organisation Status') }}
+        </th>
+        <th scope="col">
+          {{ _('Society Status') }}
+        </th>
+      </tr>
+
+    </thead>
+    <tbody>
+      <tr>
+        <td>Aims</td><td>Approved</td><td>Approved</td>
+      </tr><tr>
+        <td>Timeline</td><td>Approved</td><td>Approved</td>
+      </tr><tr>
+        <td>Budget</td><td>Approved</td><td>To Review</td>
+      </tr><tr>
+        <td>Declaration</td><td>Approved</td><td>Approved</td>
+      </tr><tr>
+        <td>Compliance</td><td>Approved</td><td>Approved</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="table table-bordered searchable table-striped">
+    <thead>
+      <tr class="thead-dark">
+        <th scope="col">
+          {{ _('Part') }}
+        </th>
+        <th scope="col">
+          {{ _('Organisation Status') }}
+        </th>
+        <th scope="col">
+          {{ _('Society Status') }}
+        </th>
+      </tr>
+
+    </thead>
+    <tbody>
+      <tr>
+        <td>Aims</td><td>Approved</td><td>Approved</td>
+      </tr><tr>
+        <td>Timeline</td><td>Approved</td><td>Approved</td>
+      </tr><tr>
+        <td>Budget</td><td>Approved</td><td>To Review</td>
+      </tr><tr>
+        <td>Declaration</td><td>Approved</td><td>Approved</td>
+      </tr><tr>
+        <td>Compliance</td><td>Approved</td><td>Approved</td>
+      </tr>
+    </tbody>
+  </table>
+
+
+  <table class="table table-bordered searchable table-striped">
+    <thead>
+      <tr class="thead-dark">
+        <th scope="col" colspan="2">
+          {{ _('Funding') }}
+        </th>
+        <th scope="col" colspan="2">
+          {{ _('Reporting Due') }}
+        </th>
+      </tr>
+
+    </thead>
+    <tbody>
+      {% for a in c.allocations.all() %}
+        <tr>
+          <td>{{ _("Year") }} {{ a.period }}:</td>
+          <td>{{ a.allocation }}</td>
+          {% set e=schedule_entries.get(a.period) %}
+          <td>{{ e and e.type or _('N/A') }}</td>
+          <td>{{ e and e.due_date or _('N/A') }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+
+
+</div>

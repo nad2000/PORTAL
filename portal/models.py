@@ -5721,7 +5721,7 @@ simple_history.register(
 
 
 class Allocation(Model):
-    contract = ForeignKey(Contract, on_delete=CASCADE)
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="allocations")
     period = PositiveSmallIntegerField(_("period"))
     allocation = DecimalField(_("allocation"), max_digits=15, decimal_places=2)
 
@@ -5730,6 +5730,76 @@ class Allocation(Model):
     class Meta:
         db_table = "allocation"
         unique_together = (("contract", "period"),)
+
+
+class ReportingScheduleEntryMixin:
+    STATES = Choices(
+        ("accepted", _("accepted")),
+        ("acknowledged", _("acknowledged")),
+        ("approved", _("approved")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("draft")),
+        ("new", _("new")),
+        ("submitted", _("submitted")),
+        # ("withdrawn", _("withdrawn")),
+    )
+
+
+class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
+    # recno = models.AutoField(primary_key=True)
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="reporting_schedule")
+    # number = models.CharField(unique=True, max_length=255)
+    period = PositiveSmallIntegerField(_("period"))
+    type = FixedCharField(
+        max_length=1,
+        choices=Choices(
+            ("A", _("Annual")),
+            ("E", _("Exchange")),
+            ("F", _("Final")),
+            ("I", _("Interim")),
+            ("L", _("Follow up")),
+        ),
+        help_text=_("Reporting Type"),
+    )
+    due_date = DateField(blank=True, null=True)
+    request_info_date = DateField(
+        blank=True,
+        null=True,
+        help_text=_("Date that RO/applicants is first emailed for more information"),
+    )
+    date_first_remind = DateField(blank=True, null=True)
+    state = StateField(default="new", verbose_name=_("state"))
+    acknowledged_at = MonitorField(
+        monitor="state", when=["acknowledged"], null=True, blank=True, default=None
+    )
+
+    # reported = models.BooleanField(blank=True, null=True)
+    # reported_date = models.DateField(blank=True, null=True)
+    # assessed = models.BooleanField(blank=True, null=True)
+    # assessed_date = models.DateField(blank=True, null=True)
+    # exported = models.BooleanField(blank=True, null=True)
+    # exported_date = models.DateField(blank=True, null=True)
+    # assessor = models.CharField(max_length=255, blank=True, null=True)
+    # email_acknowledgement = models.CharField(max_length=255, blank=True, null=True)
+    # is_confidential = models.BooleanField(default=False, blank=True, null=True)
+    # is_highlighted = models.BooleanField(default=False, blank=True, null=True)
+    # notes = models.TextField(blank=True, null=True)
+    # notes2 = models.TextField(blank=True, null=True)
+    # duration = models.IntegerField(blank=True, null=True)
+
+
+    class Meta:
+        db_table ="reporting_schedule_entry"
+        unique_together = (("contract", "period", "type", "due_date"),)
+
+
+simple_history.register(
+    ReportingScheduleEntry,
+    inherit=True,
+    table_name = "reporting_schedule_entry_history",
+    bases=[ReportingScheduleEntryMixin, Model],
+)
 
 
 dummy_for_translations = (
