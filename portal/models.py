@@ -448,10 +448,15 @@ class Language(Model):
 
 
 DOCUMENT_ROLES = Choices(
+    ("AB", _("Award Budget")),
     ("AF", _("Application Form")),
+    ("AIMS", _("Research Aims")),
     ("B", _("Budget")),
     ("CV", _("Curriculum Vitae")),
+    ("E", _("Ethics Statement")),
     ("F", _("Form")),
+    ("PB", _("Proposal Budget")),
+    ("PT", _("Project Timeline")),
 )
 
 
@@ -466,6 +471,18 @@ class DocumentType(Model):
 
     class Meta:
         db_table = "document_type"
+
+
+class RoleType(Model):
+    code = FixedCharField(primary_key=True, max_length=2)
+    name = CharField(max_length=255, blank=True, null=True)
+    description = CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.code}: {self.name}"
+
+    class Meta:
+        db_table = "role_type"
 
 
 class CareerStage(Model):
@@ -875,7 +892,7 @@ def validate_bod(value):
         )
 
 
-class Profile(Model, PersonMixin):
+class Profile(PersonMixin, Model):
     user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="profile")
     gender = PositiveSmallIntegerField(
         _("gender"), choices=GENDERS, null=True, blank=False, default=0
@@ -1367,6 +1384,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     objects = CurrentSiteManager()
     all_objects = Manager()
 
+    is_preliminary = BooleanField(_("is preliminary"), null=True, blank=True, default=False)
+    preliminary = ForeignKey(
+        "self",
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
+        help_text=_("Expression of Interest or preliminary application"),
+    )
     number = CharField(
         _("number"), max_length=24, null=True, blank=True, editable=False, unique=True
     )
@@ -2439,7 +2464,7 @@ class Member(PersonMixin, MemberMixin, Model):
     def __getattribute__(self, name):
         if name.startswith("fte_"):
             i = int(name.split("_")[1])
-            if me := self.efforts.filter(year=i).first():
+            if me := self.efforts.filter(period=i).first():
                 return me.fte
             return None
         return super().__getattribute__(name)
@@ -5634,8 +5659,8 @@ class ContractMixin:
 
 
 class ContractManager(CurrentSiteManager):
-    def get_by_natural_key(self, code, *args, **kwargs):
-        return self.get(code=code)
+    def get_by_natural_key(self, number, email, *args, **kwargs):
+        return self.get(email=email, contract__number=number)
 
 
 class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
@@ -5729,6 +5754,202 @@ simple_history.register(
     table_name="contract_history",
     bases=[ContractMixin, PersonMixin, PdfFileMixin, Model],
 )
+
+
+class PartMixin:
+    STATES = Choices(
+        ("accepted", _("accepted")),
+        ("approved", _("approved")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("WIP")),
+        ("new", _("new")),
+        ("released", _("released")),
+        ("submitted", _("submitted")),
+    )
+
+
+class RequiredPart(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="required_parts")
+    document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_parts")
+    title = CharField(
+        _("Title"), max_length=200, null=True, blank=True, help_text=_("Contract part title")
+    )
+    is_optional = BooleanField(default=False)
+    # min_pages = PositiveSmallIntegerField(null=True, blank=True)
+    # max_pages = PositiveSmallIntegerField(null=True, blank=True)
+
+    def __str__(self):
+        dt = self.document_type.name
+        title = self.title or dt
+        if title == dt:
+            return title
+        return f"{dt}: {title}"
+
+    class Meta(OrderableModel.Meta):
+        db_table = "required_part"
+
+
+class Part(PartMixin, PdfFileMixin, Model):
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="parts")
+    state = StateField(default="new", verbose_name=_("state"))
+    document_type = ForeignKey(
+        DocumentType, related_name="contract_parts", on_delete=CASCADE, null=True, blank=True
+    )
+    required_part = ForeignKey(RequiredPart, on_delete=DO_NOTHING, related_name="+")
+    page_count = PositiveSmallIntegerField(null=True, blank=True)
+    file = PrivateFileField(
+        blank=True,
+        null=True,
+        upload_subfolder=lambda instance: [
+            "contract",
+            hash_int(instance.application_id),
+            hash_int(instance.contract_id),
+        ],
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "csv",
+                    "ctv",
+                    "doc",
+                    "docb",
+                    "docm",
+                    "docx",
+                    "dot",
+                    "dotm",
+                    "dotx",
+                    "odm",
+                    "odt",
+                    "oth",
+                    "ott",
+                    "pdf",
+                    "rtf",
+                    "tex",
+                    "xls",
+                    "xlsb",
+                    "xlsm",
+                    "xlsx",
+                    "xlt",
+                    "xltm",
+                    "xltx",
+                    "xlw",
+                    "xml",
+                ]
+            )
+        ],
+    )
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+    )
+
+    def __str__(self):
+        return f"{self.document_type}: {os.path.basename(self.file.name)}"
+
+    class Meta:
+        db_table = "contract_part"
+
+
+simple_history.register(
+    Part,
+    inherit=True,
+    table_name="contract_part_history",
+    bases=[PartMixin, PdfFileMixin, Model],
+)
+
+
+class ContractMemberManager(Manager):
+    def get_by_natural_key(self, code, *args, **kwargs):
+        return self.get(code=code)
+
+
+class ContractMember(PersonMixin, Model):
+    """Contract team member."""
+
+    objects = ContractMemberManager()
+    all_objects = Manager()
+
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="members")
+    email = EmailField(max_length=120, null=True, blank=True)
+    first_name = CharField(max_length=30, null=True, blank=True)
+    middle_names = CharField(
+        _("middle names"),
+        blank=True,
+        null=True,
+        max_length=280,
+        help_text=_("Comma separated list of middle names"),
+    )
+    last_name = CharField(max_length=150, null=True, blank=True)
+    role = ForeignKey(
+        RoleType,
+        on_delete=SET_NULL,
+        related_name="contract_members",
+        null=True,
+        blank=True,
+        db_column="role",
+    )
+    # has_authorized = BooleanField(null=True, blank=True)
+    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    # state = StateField(null=True, blank=True, default="new")
+    # state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
+    # authorized_at = MonitorField(
+    #     monitor="state", when=["authorized"], null=True, blank=True, default=None
+    # )
+    history = HistoricalRecords(table_name="contract_member_history")
+
+    def natural_key(self):
+        return (self.contract.number, self.email)
+
+    @property
+    def thread_index(self):
+        site_id = self.contract.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{self.contract_id}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.contract.number
+
+    def __getattribute__(self, name):
+        if name.startswith("fte_"):
+            i = int(name.split("_")[1])
+            if me := self.efforts.filter(period=i).first():
+                return me.fte
+            return None
+        return super().__getattribute__(name)
+
+    def clean(self):
+        super().clean()
+        if not (c := getattr(self, "contract", None)):
+            raise ValidationError(_("Missing contract"))
+        member_id = getattr(self, "id", None)
+        q = c.members.filter(email=self.email)
+        if member_id:
+            q = q.filter(~Q(id=member_id))
+        if q.exists():
+            raise ValidationError(
+                _("Team member with the email address %(email)s was alrady added"),
+                params={"email": self.email},
+            )
+
+    def __str__(self):
+        return self.full_name_with_email
+
+    class Meta:
+        unique_together = (("contract", "email"),)
+        db_table = "contract_member"
+
+
+class ContractMemberEffort(Model):
+    member = ForeignKey(ContractMember, on_delete=CASCADE, related_name="efforts")
+    period = PositiveSmallIntegerField()
+    fte = DecimalField(
+        _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
+    )
+
+    history = HistoricalRecords(table_name="contract_member_effort_history")
+
+    class Meta:
+        db_table = "contract_member_effort"
+        unique_together = ["member", "period"]
 
 
 class Allocation(Model):

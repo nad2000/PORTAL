@@ -97,4 +97,12 @@ class ProtectionPatternProfileOptions(TranslationOptions):
     )
 
 
+@register(models.RoleType)
+class RoleTypeOptions(TranslationOptions):
+    fields = (
+        "name",
+        "description",
+    )
+
+
 # vim:set ft=python.django:
