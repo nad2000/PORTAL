@@ -36,7 +36,13 @@ tr:nth-child(even) {background-color: #f2f2f2;}
     {% with name=field.name %}
       {% if name != 'summary' and name != 'converted_file' and name != 'id' and exclude is None or name not in exclude %}
         <tr>
-          <th style="width: 21%; min-width: 160px; max-width: 180px;">{{ field.verbose_name|title }}</th>
+          <th style="width: 21%; min-width: 160px; max-width: 180px;">
+            {% if name == "state" %}
+              {% trans 'Status' %}
+            {% else %}
+              {{ field.verbose_name|title }}
+            {% endif %}
+          </th>
           <td>
             {% if name == "summary" %}
               {{ object|field_value:field.name|safe }}

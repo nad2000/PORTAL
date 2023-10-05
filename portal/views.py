@@ -3756,25 +3756,29 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         # return True  # request.user.is_authenticated
 
     def get_queryset(self):
-        q =  models.Organisation.objects.all()
+        q = models.Organisation.objects.all()
         if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:
             s = self.q.lower()
             s0 = s.split(" ")
             if s0[0] == "the":
-                s0 =  " ".join(s0[1:0]).strip() or f"the {s}"
+                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
             else:
-                s0 =  f"the {s}"
+                s0 = f"the {s}"
             q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
             q = q.filter(
-                id__in=models.Organisation.where(
-                    Q(name__istartswith=s) | Q(name__istartswith=s0)
-                ).values("name").annotate(Min("id")).values("id__min")
+                id__in=models.Organisation.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
             )
         else:
             q = q.filter(
-                id__in=models.Organisation.objects.all().values("name").annotate(Min("id")).values("id__min")
+                id__in=models.Organisation.objects.all()
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
             )
         return q.order_by("name")
 
@@ -4759,9 +4763,13 @@ class TestimonialDetail(DetailView):
             context["survey_url"] = survey_url
         if t.state == "new":
             context["update_view_name"] = f"{self.model.__name__.lower()}-create"
-            context["update_button_name"] = _("Add Referee Report") if t.site_id == 4 else _("Add Testimonial")
+            context["update_button_name"] = (
+                _("Add Referee Report") if t.site_id == 4 else _("Add Testimonial")
+            )
         else:
-            context["update_button_name"] = _("Edit Referee Report") if t.site_id == 4 else _("Edit Testimonial")
+            context["update_button_name"] = (
+                _("Edit Referee Report") if t.site_id == 4 else _("Edit Testimonial")
+            )
         if not referee.has_testified:
             if r and r.survey_id:
                 site = models.Site.objects.get_current()
@@ -4779,7 +4787,9 @@ class TestimonialDetail(DetailView):
             else:
                 messages.info(
                     self.request,
-                    _("Please review the application details and submit referee report.") if t.site_id == 4 else _("Please review the application details and submit testimonial."),
+                    _("Please review the application details and submit referee report.")
+                    if t.site_id == 4
+                    else _("Please review the application details and submit testimonial."),
                 )
         return context
 
@@ -4806,7 +4816,7 @@ class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
             template = get_template(self.template)
             attachments = self.get_attachments(pk)
             merger = PdfFileMerger()
-            merger.addMetadata(self.get_metadata(pk))
+            merger.add_metadata(self.get_metadata(pk))
 
             html = HTML(string=template.render({"objects": objects}))
             pdf_object = html.write_pdf(presentational_hints=True)
@@ -4929,8 +4939,8 @@ class RoundExportView(ExportView):
         round = self.round
 
         merger = PdfFileMerger()
-        merger.addMetadata({"/Title": f"{round.title or self.round.scheme.title}"})
-        merger.addMetadata({"/Subject": f"{round.title or self.round.scheme.title}"})
+        merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
+        merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 
         numbers = []
         for a in self.round.applications.all().order_by("number"):
@@ -4943,7 +4953,7 @@ class RoundExportView(ExportView):
                 bookmark=f"{a.number}: {a.application_title or round.title}",
                 import_bookmarks=True,
             )
-        merger.addMetadata({"/Keywords": ", ".join(numbers)})
+        merger.add_metadata({"/Keywords": ", ".join(numbers)})
 
         content = io.BytesIO()
         merger.write(content)
@@ -4972,7 +4982,8 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         metadata.update(
             {
                 "/Author": testimonial.referee.full_name_with_email,
-                "/Subject": testimonial.application.title or testimonial.application.round.title,
+                "/Subject": testimonial.application.application_title
+                or testimonial.application.round.title,
                 "/Number": testimonial.application.number,
             }
         )
