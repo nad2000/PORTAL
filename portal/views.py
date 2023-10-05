@@ -5031,7 +5031,7 @@ class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
             template = get_template(self.template)
             attachments = self.get_attachments(pk)
             merger = PdfFileMerger()
-            merger.addMetadata(self.get_metadata(pk))
+            merger.add_metadata(self.get_metadata(pk))
 
             html = HTML(string=template.render({"objects": objects}))
             pdf_object = html.write_pdf(presentational_hints=True)
@@ -5154,8 +5154,8 @@ class RoundExportView(ExportView):
         round = self.round
 
         merger = PdfFileMerger()
-        merger.addMetadata({"/Title": f"{round.title or self.round.scheme.title}"})
-        merger.addMetadata({"/Subject": f"{round.title or self.round.scheme.title}"})
+        merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
+        merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 
         numbers = []
         for a in self.round.applications.all().order_by("number"):
@@ -5168,7 +5168,7 @@ class RoundExportView(ExportView):
                 bookmark=f"{a.number}: {a.application_title or round.title}",
                 import_bookmarks=True,
             )
-        merger.addMetadata({"/Keywords": ", ".join(numbers)})
+        merger.add_metadata({"/Keywords": ", ".join(numbers)})
 
         content = io.BytesIO()
         merger.write(content)
@@ -5197,7 +5197,8 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         metadata.update(
             {
                 "/Author": testimonial.referee.full_name_with_email,
-                "/Subject": testimonial.application.title or testimonial.application.round.title,
+                "/Subject": testimonial.application.application_title
+                or testimonial.application.round.title,
                 "/Number": testimonial.application.number,
             }
         )
