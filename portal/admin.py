@@ -1024,7 +1024,8 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         if obj.invitation:
             return mark_safe(
                 '<a href="{}" target="_blank">{}</a>'.format(
-                    reverse("admin:portal_invitation_change", args=(obj.invitation.pk,)), obj.invitation
+                    reverse("admin:portal_invitation_change", args=(obj.invitation.pk,)),
+                    obj.invitation,
                 )
             )
 
@@ -1411,6 +1412,8 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                             )
 
                         for o in orgs:
+                            if not target.alternative_name.filter(name=o.name).exists():
+                                models.OrgName.create(org=target, name=o.name)
                             o._change_reason = f"Organisation {o} merged into {target} by {u}"
                             o.delete()
                         deleted = [f"{o.code}: {o.name}" for o in orgs]
@@ -1811,7 +1814,9 @@ class RoundAdmin(
                         "referee_template",
                     ]
                 },
-            ) if site_id == 4 else (
+            )
+            if site_id == 4
+            else (
                 "Templates",
                 {
                     "fields": [

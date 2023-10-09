@@ -803,6 +803,24 @@ class Organisation(Model):
         db_table = "organisation"
 
 
+class OrgName(Model):
+    org = ForeignKey(
+        Organisation,
+        on_delete=CASCADE,
+        verbose_name=_("organisation"),
+        related_name="alternative_names",
+    )
+    name = CharField(max_length=200)
+
+    history = HistoricalRecords(table_name="org_name_history")
+
+    def __str__(self):
+        return f"{self.org}: {self.name}"
+
+    class Meta:
+        db_table = "org_name"
+
+
 class Affiliation(Model):
     profile = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
     org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"))
@@ -3401,7 +3419,6 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                         p.save()
             else:
                 self.revoke()
-
 
     @fsm_log
     @transition(field=status, source=["*"], target=STATUS.bounced)
