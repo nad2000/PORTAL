@@ -1213,12 +1213,12 @@ class LetterOfSupport(PdfFileMixin, Model):
         db_table = "letter_of_support"
 
 
-def default_application_number(application):
+def default_application_number(application, exclude_numbers=None):
     code = application.round.scheme.code
     org_code = application.org.get_code()
     year = f"{application.round.opens_on.year}"
     last_number = (
-        Application.where(
+        Application.all_objects.filter(
             # round=application.round,
             number__isnull=False,
             number__istartswith=f"{code}-{org_code}-{year}",
@@ -1228,7 +1228,11 @@ def default_application_number(application):
         .first()
     )
     application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
-    return f"{code}-{org_code}-{year}-{application_number:03}"
+    while True:
+        number = f"{code}-{org_code}-{year}-{application_number:03}"
+        if not exclude_numbers or number not in exclude_numbers:
+            return number
+        application_number += 1
 
 
 class ApplicationFor(Model):

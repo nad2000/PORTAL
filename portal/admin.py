@@ -1363,9 +1363,13 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                                 r._change_reason = (
                                     f"Organisation {r.application.org} merged into {target} by {u}"
                                 )
+                            new_numbers = []
                             for a in org_applications:
                                 a.org = target
-                                a.number = models.default_application_number(a)
+                                a.number = models.default_application_number(
+                                    a, exclude_numbers=new_numbers
+                                )
+                                new_numbers.append(a.number)
                                 a._change_reason = (
                                     f"Organisation {a.org} merged into {target} by {u}"
                                 )
