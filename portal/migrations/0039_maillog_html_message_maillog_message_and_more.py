@@ -233,17 +233,17 @@ class Migration(migrations.Migration):
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),
-        migrations.AlterField(
-            model_name="curriculumvitae",
-            name="title",
-            field=models.CharField(
-                blank=True,
-                help_text="A title or name you can assign to the upload CV file",
-                max_length=200,
-                null=True,
-                verbose_name="Title or name",
-            ),
-        ),
+        # migrations.AlterField(
+        #     model_name="curriculumvitae",
+        #     name="title",
+        #     field=models.CharField(
+        #         blank=True,
+        #         help_text="A title or name you can assign to the upload CV file",
+        #         max_length=200,
+        #         null=True,
+        #         verbose_name="Title or name",
+        #     ),
+        # ),
         migrations.CreateModel(
             name="OrgName",
             fields=[

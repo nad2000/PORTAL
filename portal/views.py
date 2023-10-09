@@ -3755,8 +3755,16 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return not ("nominator" in self.forwarded and settings.SITE_ID == 4)
         # return True  # request.user.is_authenticated
 
+    def get_result_label(self, result):
+        return result[1]
+
+    def get_result_value(self, result):
+        return result[0]
+
     def get_queryset(self):
         q = models.Organisation.objects.all()
+        # breakpoint()
+        # raw = self.model.objects.raw
         if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:
@@ -3768,10 +3776,27 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 s0 = f"the {s}"
             q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
             q = q.filter(
-                id__in=models.Organisation.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
-                .values("name")
-                .annotate(Min("id"))
-                .values("id__min")
+                Q(
+                    id__in=models.Organisation.where(
+                        Q(name__istartswith=s) | Q(name__istartswith=s0)
+                    )
+                    .values("name")
+                    .annotate(Min("id"))
+                    .values("id__min")
+                )
+            ).values_list("id", "name")
+            q = q.union(
+                models.OrgName.where(
+                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
+                    Q(
+                        org_id__in=models.OrgName.where(
+                            Q(name__istartswith=s) | Q(name__istartswith=s0)
+                        )
+                        .values("name")
+                        .annotate(Min("org_id"))
+                        .values("org_id__min")
+                    ),
+                ).values_list("org_id", "name")
             )
         else:
             q = q.filter(
@@ -3779,8 +3804,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 .values("name")
                 .annotate(Min("id"))
                 .values("id__min")
-            )
-        return q.order_by("name")
+            ).values_list("id", "name")
+        return q.order_by("name").values_list("id", "name")
 
 
 class AwardAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):

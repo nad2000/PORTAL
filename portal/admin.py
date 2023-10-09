@@ -1323,7 +1323,16 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
         view_on_site = False
         can_delete = True
 
-    inlines = [ResearchOfficeInline]
+    class NameInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.OrgName
+        ordering = ["name"]
+
+        view_on_site = False
+        can_delete = True
+        classes = ["collapse"]
+
+    inlines = [ResearchOfficeInline, NameInline]
 
     @admin.action(description="Merge Organisations")
     def merge_orgs(self, request, queryset):
@@ -1373,7 +1382,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                                 models.ApplicationNumber,
                                 default_user=u,
                                 ignore_conflicts=True,
-                                manager=models.Application.all_objects,
+                                # manager=models.Application.all_objects,
                             )
 
                         for model, field, objects in (
@@ -1412,7 +1421,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                             )
 
                         for o in orgs:
-                            if not target.alternative_name.filter(name=o.name).exists():
+                            if not target.alternative_names.filter(name=o.name).exists():
                                 models.OrgName.create(org=target, name=o.name)
                             o._change_reason = f"Organisation {o} merged into {target} by {u}"
                             o.delete()
