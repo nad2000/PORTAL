@@ -38,6 +38,7 @@ def add_title_data(apps, schema_editor):
 def add_role_type_data(apps, schema_editor):
     """
     Add to the migrations:
+    from portal import migration_utils
     migrations.RunPython(migration_utils.add_role_type_data, lambda *args, **kwargs: None),
     """
     RoleType = apps.get_model("portal", "RoleType")
