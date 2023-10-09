@@ -289,165 +289,255 @@ class Migration(migrations.Migration):
                 to="portal.application",
             ),
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalinvitation",
-            name="state",
-            field=portal.models.StateField(
-                choices=[
-                    ("accepted", "accepted"),
-                    ("autoreplied", "autoreplied"),
-                    ("bounced", "bounced"),
-                    ("draft", "draft"),
-                    ("expired", "expired"),
-                    ("read", "read"),
-                    ("revoked", "revoked"),
-                    ("sent", "sent"),
-                    ("submitted", "submitted"),
-                ],
-                default="draft",
-                max_length=100,
-                no_check_for_status=True,
-            ),
+            old_name="status",
+            new_name="state",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalinvitation",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            old_name="status_changed_at",
+            new_name="state_changed_at",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalmember",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    ("accepted", "accepted"),
-                    ("authorized", "authorized"),
-                    ("bounced", "bounced"),
-                    ("new", "new"),
-                    ("opted_out", "opted out"),
-                    ("sent", "sent"),
-                    (None, None),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-            ),
+            old_name="status",
+            new_name="state",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalmember",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            old_name="status_changed_at",
+            new_name="state_changed_at",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalnomination",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    ("accepted", "accepted"),
-                    ("bounced", "bounced"),
-                    ("draft", "draft"),
-                    ("new", "new"),
-                    ("sent", "sent"),
-                    ("submitted", "submitted"),
-                    (None, None),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-                verbose_name="state",
-            ),
+            old_name="status",
+            new_name="state",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalpanellist",
-            name="elected_on",
-            field=models.DateField(blank=True, null=True),
+            old_name="status",
+            new_name="state",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalpanellist",
-            name="expires_on",
-            field=models.DateField(blank=True, null=True),
+            old_name="status_changed_at",
+            new_name="state_changed_at",
         ),
-        migrations.AddField(
-            model_name="historicalpanellist",
-            name="is_active",
-            field=models.BooleanField(default=True, verbose_name="is active"),
-        ),
-        migrations.AddField(
-            model_name="historicalpanellist",
-            name="role",
-            field=models.CharField(
-                blank=True,
-                choices=[
-                    ("CHAIR", "Chair"),
-                    ("COCONVENOR", "Co-convenor"),
-                    ("COMMITTEE", "Committee"),
-                    ("CONVENOR", "Convenor"),
-                    ("PANELLIST", "Panellist"),
-                ],
-                max_length=20,
-                null=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="historicalpanellist",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    (None, None),
-                    ("new", "new"),
-                    ("sent", "sent"),
-                    ("accepted", "accepted"),
-                    ("bounced", "bounced"),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="historicalpanellist",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
-        ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalreferee",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    ("accepted", "accepted"),
-                    ("bounced", "bounced"),
-                    ("new", "new"),
-                    ("opted_out", "opted out"),
-                    ("sent", "sent"),
-                    ("testified", "testified"),
-                    (None, None),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-                verbose_name="state",
-            ),
+            old_name="status",
+            new_name="state",
         ),
-        migrations.AddField(
+        migrations.RenameField(
             model_name="historicalreferee",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            old_name="status_changed_at",
+            new_name="state_changed_at",
         ),
+        migrations.RenameField(
+            model_name="invitation",
+            old_name="status",
+            new_name="state",
+        ),
+        migrations.RenameField(
+            model_name="invitation",
+            old_name="status_changed_at",
+            new_name="state_changed_at",
+        ),
+        migrations.RenameField(
+            model_name="member",
+            old_name="status",
+            new_name="state",
+        ),
+        migrations.RenameField(
+            model_name="member",
+            old_name="status_changed_at",
+            new_name="state_changed_at",
+        ),
+        migrations.RenameField(
+            model_name="nomination",
+            old_name="status",
+            new_name="state",
+        ),
+        migrations.RenameField(
+            model_name="panellist",
+            old_name="status",
+            new_name="state",
+        ),
+        migrations.RenameField(
+            model_name="panellist",
+            old_name="status_changed_at",
+            new_name="state_changed_at",
+        ),
+        migrations.RenameField(
+            model_name="referee",
+            old_name="status",
+            new_name="state",
+        ),
+        migrations.RenameField(
+            model_name="referee",
+            old_name="status_changed_at",
+            new_name="state_changed_at",
+        ),
+        # migrations.AddField(
+        #     model_name="historicalinvitation",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("autoreplied", "autoreplied"),
+        #             ("bounced", "bounced"),
+        #             ("draft", "draft"),
+        #             ("expired", "expired"),
+        #             ("read", "read"),
+        #             ("revoked", "revoked"),
+        #             ("sent", "sent"),
+        #             ("submitted", "submitted"),
+        #         ],
+        #         default="draft",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalinvitation",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalmember",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("authorized", "authorized"),
+        #             ("bounced", "bounced"),
+        #             ("new", "new"),
+        #             ("opted_out", "opted out"),
+        #             ("sent", "sent"),
+        #             (None, None),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalmember",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalnomination",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("bounced", "bounced"),
+        #             ("draft", "draft"),
+        #             ("new", "new"),
+        #             ("sent", "sent"),
+        #             ("submitted", "submitted"),
+        #             (None, None),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #         verbose_name="state",
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalpanellist",
+        #     name="elected_on",
+        #     field=models.DateField(blank=True, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalpanellist",
+        #     name="expires_on",
+        #     field=models.DateField(blank=True, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalpanellist",
+        #     name="is_active",
+        #     field=models.BooleanField(default=True, verbose_name="is active"),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalpanellist",
+        #     name="role",
+        #     field=models.CharField(
+        #         blank=True,
+        #         choices=[
+        #             ("CHAIR", "Chair"),
+        #             ("COCONVENOR", "Co-convenor"),
+        #             ("COMMITTEE", "Committee"),
+        #             ("CONVENOR", "Convenor"),
+        #             ("PANELLIST", "Panellist"),
+        #         ],
+        #         max_length=20,
+        #         null=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalpanellist",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             (None, None),
+        #             ("new", "new"),
+        #             ("sent", "sent"),
+        #             ("accepted", "accepted"),
+        #             ("bounced", "bounced"),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalpanellist",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalreferee",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("bounced", "bounced"),
+        #             ("new", "new"),
+        #             ("opted_out", "opted out"),
+        #             ("sent", "sent"),
+        #             ("testified", "testified"),
+        #             (None, None),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #         verbose_name="state",
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="historicalreferee",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
         migrations.AddField(
             model_name="historicalround",
             name="duration",
@@ -458,81 +548,81 @@ class Migration(migrations.Migration):
                 verbose_name="Duration",
             ),
         ),
-        migrations.AddField(
-            model_name="invitation",
-            name="state",
-            field=portal.models.StateField(
-                choices=[
-                    ("accepted", "accepted"),
-                    ("autoreplied", "autoreplied"),
-                    ("bounced", "bounced"),
-                    ("draft", "draft"),
-                    ("expired", "expired"),
-                    ("read", "read"),
-                    ("revoked", "revoked"),
-                    ("sent", "sent"),
-                    ("submitted", "submitted"),
-                ],
-                default="draft",
-                max_length=100,
-                no_check_for_status=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="invitation",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="member",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    ("accepted", "accepted"),
-                    ("authorized", "authorized"),
-                    ("bounced", "bounced"),
-                    ("new", "new"),
-                    ("opted_out", "opted out"),
-                    ("sent", "sent"),
-                    (None, None),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="member",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="nomination",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    ("accepted", "accepted"),
-                    ("bounced", "bounced"),
-                    ("draft", "draft"),
-                    ("new", "new"),
-                    ("sent", "sent"),
-                    ("submitted", "submitted"),
-                    (None, None),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-                verbose_name="state",
-            ),
-        ),
+        # migrations.AddField(
+        #     model_name="invitation",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("autoreplied", "autoreplied"),
+        #             ("bounced", "bounced"),
+        #             ("draft", "draft"),
+        #             ("expired", "expired"),
+        #             ("read", "read"),
+        #             ("revoked", "revoked"),
+        #             ("sent", "sent"),
+        #             ("submitted", "submitted"),
+        #         ],
+        #         default="draft",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="invitation",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="member",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("authorized", "authorized"),
+        #             ("bounced", "bounced"),
+        #             ("new", "new"),
+        #             ("opted_out", "opted out"),
+        #             ("sent", "sent"),
+        #             (None, None),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="member",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="nomination",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("bounced", "bounced"),
+        #             ("draft", "draft"),
+        #             ("new", "new"),
+        #             ("sent", "sent"),
+        #             ("submitted", "submitted"),
+        #             (None, None),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #         verbose_name="state",
+        #     ),
+        # ),
         migrations.AddField(
             model_name="panellist",
             name="elected_on",
@@ -564,59 +654,59 @@ class Migration(migrations.Migration):
                 null=True,
             ),
         ),
-        migrations.AddField(
-            model_name="panellist",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    (None, None),
-                    ("new", "new"),
-                    ("sent", "sent"),
-                    ("accepted", "accepted"),
-                    ("bounced", "bounced"),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="panellist",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="referee",
-            name="state",
-            field=portal.models.StateField(
-                blank=True,
-                choices=[
-                    ("accepted", "accepted"),
-                    ("bounced", "bounced"),
-                    ("new", "new"),
-                    ("opted_out", "opted out"),
-                    ("sent", "sent"),
-                    ("testified", "testified"),
-                    (None, None),
-                ],
-                default="new",
-                max_length=100,
-                no_check_for_status=True,
-                null=True,
-                verbose_name="state",
-            ),
-        ),
-        migrations.AddField(
-            model_name="referee",
-            name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
-        ),
+        # migrations.AddField(
+        #     model_name="panellist",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             (None, None),
+        #             ("new", "new"),
+        #             ("sent", "sent"),
+        #             ("accepted", "accepted"),
+        #             ("bounced", "bounced"),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="panellist",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="referee",
+        #     name="state",
+        #     field=portal.models.StateField(
+        #         blank=True,
+        #         choices=[
+        #             ("accepted", "accepted"),
+        #             ("bounced", "bounced"),
+        #             ("new", "new"),
+        #             ("opted_out", "opted out"),
+        #             ("sent", "sent"),
+        #             ("testified", "testified"),
+        #             (None, None),
+        #         ],
+        #         default="new",
+        #         max_length=100,
+        #         no_check_for_status=True,
+        #         null=True,
+        #         verbose_name="state",
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="referee",
+        #     name="state_changed_at",
+        #     field=model_utils.fields.MonitorField(
+        #         blank=True, default=None, monitor="state", null=True
+        #     ),
+        # ),
         migrations.AddField(
             model_name="round",
             name="duration",
