@@ -851,6 +851,24 @@ class Organisation(Model):
         db_table = "organisation"
 
 
+class OrgName(Model):
+    org = ForeignKey(
+        Organisation,
+        on_delete=CASCADE,
+        verbose_name=_("organisation"),
+        related_name="alternative_names",
+    )
+    name = CharField(max_length=200)
+
+    history = HistoricalRecords(table_name="org_name_history")
+
+    def __str__(self):
+        return f"{self.org}: {self.name}"
+
+    class Meta:
+        db_table = "org_name"
+
+
 class Affiliation(Model):
     profile = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
     org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"))
@@ -1253,12 +1271,12 @@ class LetterOfSupport(PdfFileMixin, Model):
         db_table = "letter_of_support"
 
 
-def default_application_number(application):
+def default_application_number(application, exclude_numbers=None):
     code = application.round.scheme.code
     org_code = application.org.get_code()
     year = f"{application.round.opens_on.year}"
     last_number = (
-        Application.where(
+        Application.all_objects.filter(
             # round=application.round,
             number__isnull=False,
             number__istartswith=f"{code}-{org_code}-{year}",
@@ -1268,7 +1286,11 @@ def default_application_number(application):
         .first()
     )
     application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
-    return f"{code}-{org_code}-{year}-{application_number:03}"
+    while True:
+        number = f"{code}-{org_code}-{year}-{application_number:03}"
+        if not exclude_numbers or number not in exclude_numbers:
+            return number
+        application_number += 1
 
 
 class ApplicationFor(Model):
