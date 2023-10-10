@@ -5716,6 +5716,34 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     abstract = TextField(blank=True, null=True)
     completed_on = DateField(blank=True, null=True)
 
+    has_animal_use = BooleanField(
+        _("has animal use"),
+        null=True,
+        blank=True,
+        help_text=_("Does the proposed research use animals for research or teaching?"),
+    )
+    is_signatory_to_oa = BooleanField(
+        _("is a signatory to the O.A."),
+        null=True,
+        blank=True,
+        help_text=_("Is your institution a signatory to the ANZCCART Openness Agreement?"),
+    )
+    involves_childeren = BooleanField(
+        _("involves children "),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Does the research involve and will therefore be subject to Section 19 "
+            "of the Vulnerable Children Act 2014?"
+        ),
+    )
+    has_child_protection = BooleanField(
+        _("has a child protection policy"),
+        null=True,
+        blank=True,
+        help_text=_("If yes, does your institution have a child protection policy?"),
+    )
+
     rccs = ManyToManyField(Rcc, blank=True, db_table="contract_rcc", related_name="contracts")
     fors = ManyToManyField(
         FieldOfResearch,

@@ -3221,7 +3221,7 @@ class ContractViewMixin:
                     period=p,
                     type="A" if p != duration else "F",
                     # due_date=timezone.now()+relativedelta(years=p),
-                    due_date=a.submitted_at.year + relativedelta(years=p),
+                    due_date=a.created_at + relativedelta(years=p),
                 )
                 for p in range(1, duration + 1)
             ]
@@ -3271,6 +3271,7 @@ class ContractViewMixin:
             fs.save()
         reset_cache(self.request)
         return resp
+
 
 class ContractCreate(ContractViewMixin, CreateView):
     model = models.Contract

@@ -155,3 +155,7 @@ def add_role_type_data(apps, schema_editor):
         update_fields=["name", "name_en", "description", "description_en"],
         unique_fields=["code"],
     )
+
+
+def dummy(*args, **kwargs):
+    pass

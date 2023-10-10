@@ -1,7 +1,7 @@
 import os
 from functools import partial
 
-from crispy_forms.bootstrap import Tab, TabHolder
+from crispy_forms.bootstrap import Tab, TabHolder, InlineRadios
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -1119,6 +1119,33 @@ class AllocationFormSet(
 
 class ContractForm(forms.ModelForm):
     # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
+    has_animal_use = forms.ChoiceField(
+        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        widget=forms.RadioSelect,
+        required=False,
+        label=gettext_lazy("Does the proposed research use animals for research or teaching?"),
+    )
+    is_signatory_to_oa = forms.ChoiceField(
+        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        widget=forms.RadioSelect,
+        required=False,
+        label=gettext_lazy("Is your institution a signatory to the ANZCCART Openness Agreement?"),
+    )
+    involves_childeren = forms.ChoiceField(
+        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        widget=forms.RadioSelect,
+        required=False,
+        label=gettext_lazy(
+            "Does the research involve and will therefore be subject to Section 19 "
+            "of the Vulnerable Children Act 2014?"
+        ),
+    )
+    has_child_protection = forms.ChoiceField(
+        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        widget=forms.RadioSelect,
+        required=False,
+        label=gettext_lazy("If yes, does your institution have a child protection policy?"),
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -1195,6 +1222,10 @@ class ContractForm(forms.ModelForm):
                 Tab(
                     _("Compliance"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    InlineRadios("has_animal_use"),
+                    InlineRadios("is_signatory_to_oa"),
+                    InlineRadios("involves_childeren"),
+                    InlineRadios("has_child_protection"),
                     css_id="compliance",
                 ),
                 Tab(
