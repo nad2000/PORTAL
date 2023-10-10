@@ -103,7 +103,7 @@
 
     </thead>
     <tbody>
-      {% for a in c.allocations.all() %}
+      {% for a in c.allocations.order_by("period") %}
         <tr>
           <td>{{ _("Year") }} {{ a.period }}:</td>
           <td>{{ a.allocation }}</td>

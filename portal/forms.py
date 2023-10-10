@@ -1101,20 +1101,18 @@ class ApplicationForm(forms.ModelForm):
         }
 
 
-class AllocationForm(forms.ModelForm):
-    period = forms.IntegerField(disabled=True)
+class ContractMemberForm(forms.ModelForm):
+    class Meta:
+        model = models.ContractMember
+        fields = "__all__"
+        widgets = dict(user=HiddenInput())
 
+
+class AllocationForm(forms.ModelForm):
     class Meta:
         model = models.Allocation
         fields = ["period", "allocation"]
-
-
-class AllocationFormSet(
-    inlineformset_factory(
-        models.Contract, models.Allocation, can_delete=False, form=AllocationForm, extra=0
-    )
-):
-    pass
+        widgets = {"period": TextInput(attrs={"readonly": "readonly"})}
 
 
 class ContractForm(forms.ModelForm):
@@ -1202,6 +1200,7 @@ class ContractForm(forms.ModelForm):
                 Tab(
                     _("Personnel"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    TableInlineFormset("personnel"),
                     css_id="personnel",
                 ),
                 Tab(

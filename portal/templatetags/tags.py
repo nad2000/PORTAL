@@ -220,6 +220,6 @@ def contract_summary(context, *args, **kwargs):
     request = context.get("request")
     site = context.get("site")
     contract = object = context.get("object")
-    schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period")}
+    schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
     output = get_template("contract_summary.html").render(locals())
     return Markup(output)

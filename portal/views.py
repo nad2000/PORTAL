@@ -3213,6 +3213,7 @@ class ContractViewMixin:
     def get_reporting_schedule_formset(self, *args, **kwargs):
         if self.object and self.object.id:
             initial = None
+            extra = 0
         else:
             a = self.application
             duration = a.round.duration or 3
@@ -3225,6 +3226,7 @@ class ContractViewMixin:
                 )
                 for p in range(1, duration + 1)
             ]
+            extra = duration
         fsc = forms.inlineformset_factory(
             models.Contract,
             models.ReportingScheduleEntry,
@@ -3233,7 +3235,7 @@ class ContractViewMixin:
             # form=forms.AllocationForm,
             # fields="__all__",
             exclude=["request_info_date", "state", "acknowledged_at"],
-            extra=1,
+            extra=extra,
             labels={"date_first_remind": _("First Reminder")},
             widgets={
                 "due_date": forms.DateInput(start_date="-1y", end_date="+10y"),
@@ -3247,12 +3249,55 @@ class ContractViewMixin:
             # form_kwargs={"duration": duration}
         )
 
+    def get_personnel_formset(self, *args, **kwargs):
+        if self.object and self.object.id:
+            extra = 1
+            initial = []
+        else:
+            a = self.application
+            initial = [
+                dict(
+                    email=a.email or a.submitted_by.email,
+                    first_name=a.first_name or a.submitted_by and a.submitted_by.first_name,
+                    middle_names=a.middle_names,
+                    last_name=a.last_name or a.submitted_by and a.submitted_by.last_name,
+                    role="PI",
+                    user=a.submitted_by,
+                ),
+                *[
+                    dict(
+                        email=m.email,
+                        first_name=m.first_name or m.user and m.user.first_name,
+                        middle_names=m.middle_names,
+                        last_name=m.last_name or m.user and m.user.last_name,
+                        role=m.role and models.RoleType.where(name__icontains=m.role).first(),
+                        user=m.user,
+                    )
+                    for m in a.members.all()
+                ],
+            ]
+            extra = len(initial) + 1
+        fsc = forms.inlineformset_factory(
+            models.Contract,
+            models.ContractMember,
+            can_delete=True,
+            form=forms.ContractMemberForm,
+            extra=extra,
+        )
+        return fsc(
+            self.request.POST or None,
+            instance=self.object,
+            initial=initial,
+            # form_kwargs={"duration": duration},
+        )
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         self.allocations = context["allocations"] = self.get_allocation_formset()
         self.reporting_schedule = context[
             "reporting_schedule"
         ] = self.get_reporting_schedule_formset()
+        self.personnel = context["personnel"] = self.get_personnel_formset()
         return context
 
     def form_valid(self, form):
@@ -3262,14 +3307,27 @@ class ContractViewMixin:
         form.instance.application = a
         form.instance.number = a.number
         form.instance.fund = models.Fund.last()
-        resp = super().form_valid(form)
-        fs = self.get_allocation_formset()
-        if fs.is_valid():
-            fs.save()
-        fs = self.get_reporting_schedule_formset()
-        if fs.is_valid():
-            fs.save()
-        reset_cache(self.request)
+        try:
+            with transaction.atomic():
+                resp = super().form_valid(form)
+                fs = self.get_allocation_formset()
+                if fs.is_valid():
+                    fs.instance = self.object
+                    fs.save()
+                fs = self.get_reporting_schedule_formset()
+                if fs.is_valid():
+                    fs.instance = self.object
+                    fs.save()
+                fs = self.get_personnel_formset()
+                if fs.is_valid():
+                    fs.instance = self.object
+                    fs.save()
+                reset_cache(self.request)
+        except Exception as ex:
+            capture_exception(ex)
+            messages.error(self.request, getattr(ex, "message", str(ex)))
+            return super().forms_invalid(form)
+        return resp
         return resp
 
 
@@ -3979,16 +4037,20 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             else:
                 s0 = f"the {s}"
             q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
-            q = q.filter(
-                Q(
-                    id__in=models.Organisation.where(
-                        Q(name__istartswith=s) | Q(name__istartswith=s0)
+            q = (
+                q.filter(
+                    Q(
+                        id__in=models.Organisation.where(
+                            Q(name__istartswith=s) | Q(name__istartswith=s0)
+                        )
+                        .values("name")
+                        .annotate(Min("id"))
+                        .values("id__min")
                     )
-                    .values("name")
-                    .annotate(Min("id"))
-                    .values("id__min")
                 )
-            ).order_by("name", "id").values_list("id", "name")
+                .order_by("name", "id")
+                .values_list("id", "name")
+            )
             q = q.union(
                 models.OrgName.where(
                     Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
@@ -4000,15 +4062,21 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .annotate(Min("org_id"))
                         .values("org_id__min")
                     ),
-                ).order_by("name", "org_id").values_list("org_id", "name")
+                )
+                .order_by("name", "org_id")
+                .values_list("org_id", "name")
             )
         else:
-            q = q.filter(
-                id__in=models.Organisation.objects.all()
-                .values("name")
-                .annotate(Min("id"))
-                .values("id__min")
-            ).order_by("name").values_list("id", "name")
+            q = (
+                q.filter(
+                    id__in=models.Organisation.objects.all()
+                    .values("name")
+                    .annotate(Min("id"))
+                    .values("id__min")
+                )
+                .order_by("name")
+                .values_list("id", "name")
+            )
         return q
 
 
