@@ -3784,7 +3784,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                     .annotate(Min("id"))
                     .values("id__min")
                 )
-            ).values_list("id", "name")
+            ).order_by("name", "id").values_list("id", "name")
             q = q.union(
                 models.OrgName.where(
                     Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
@@ -3796,7 +3796,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .annotate(Min("org_id"))
                         .values("org_id__min")
                     ),
-                ).values_list("org_id", "name")
+                ).order_by("name", "org_id").values_list("org_id", "name")
             )
         else:
             q = q.filter(
@@ -3804,8 +3804,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 .values("name")
                 .annotate(Min("id"))
                 .values("id__min")
-            ).values_list("id", "name")
-        return q.order_by("name").values_list("id", "name")
+            ).order_by("name").values_list("id", "name")
+        return q
 
 
 class AwardAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
