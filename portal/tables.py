@@ -569,11 +569,11 @@ class SummaryReportTable(tables.Table):
 class ContractTable(tables.Table):
     application = tables.Column(
         linkify=lambda value, record: reverse(
-            "application", kwargs=dict(pk=record.application_id)
+            "application-detail", kwargs=dict(number=record.application.number)
         )
     )
     number = tables.Column(
-        linkify=lambda value, record: reverse("contract-detail", kwargs=dict(pk=record.pk))
+        linkify=lambda value, record: reverse("contract-detail", kwargs=dict(number=record.number))
     )
     # contract_pi = tables.Column(linkify=application_link)
 

@@ -71,6 +71,15 @@ YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type"
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input"})
 
 
+class InvitationStateInput(Widget):
+    # def __init__(self, attrs=None):
+    #     super().__init__(attrs)
+    #     breakpoint()
+    #     pass
+
+    template_name = "invitation_state.html"
+
+
 class OppositeBooleanField(forms.BooleanField):
     def prepare_value(self, value):
         return not value  # toggle the value when loaded from the model
@@ -148,6 +157,53 @@ class FormWithStateFieldMixin:
             attrs["state"] = state
             if state in ["bounced", "autoreplied"] and (error_message := instance.mail_log_error):
                 attrs["error_message"] = error_message
+
+
+class FTEMixin:
+    def __init__(self, *args, **kwargs):
+        duration = kwargs.pop("duration", None)
+        super().__init__(*args, **kwargs)
+        if duration:
+            for i in range(1, duration + 1):
+                self.fields[f"fte_{i}"] = forms.DecimalField(
+                    required=False,
+                    label=f"FTE{i}",
+                    max_value=1,
+                    min_value=0,
+                    max_digits=3,
+                    decimal_places=2,
+                    initial=self.instance
+                    and self.instance.pk
+                    and getattr(self.instance, f"fte_{i}", None),
+                )
+
+    def save(self, commit=True):
+        super().save(commit=commit)
+        m = self.instance
+        Effort = m.efforts.model
+        Effort.objects.bulk_create(
+            [
+                Effort(member=m, period=int(i), fte=self.cleaned_data[f])
+                for (f, (_, i)) in [
+                    (f, f.split("_"))
+                    for f in self.fields.keys()
+                    if f.startswith("fte_") and self.cleaned_data[f]
+                ]
+            ],
+            update_conflicts=True,
+            update_fields=["fte"],
+            unique_fields=["member", "period"],
+        )
+        m.efforts.filter(
+            period__in=[
+                i
+                for (_, i) in [
+                    f.split("_")
+                    for f in self.fields.keys()
+                    if f.startswith("fte_") and not self.cleaned_data[f]
+                ]
+            ]
+        ).delete()
 
 
 class TableInlineFormset(LayoutObject):
@@ -1101,11 +1157,12 @@ class ApplicationForm(forms.ModelForm):
         }
 
 
-class ContractMemberForm(forms.ModelForm):
+class ContractMemberForm(FTEMixin, forms.ModelForm):
     class Meta:
         model = models.ContractMember
         fields = "__all__"
-        widgets = dict(user=HiddenInput())
+        disabled = ["state"]
+        widgets = dict(user=HiddenInput(), state=InvitationStateInput(attrs={"readonly": True}))
 
 
 class AllocationForm(forms.ModelForm):
@@ -1315,61 +1372,8 @@ class ContractForm(forms.ModelForm):
         )
 
 
-class InvitationStateInput(Widget):
-    # def __init__(self, attrs=None):
-    #     super().__init__(attrs)
-    #     breakpoint()
-    #     pass
-
-    template_name = "invitation_state.html"
-
-
-class MemberForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
     readonly_fields = ["state"]
-
-    def save(self, commit=True):
-        super().save(commit=commit)
-        m = self.instance
-        models.MemberEffort.objects.bulk_create(
-            [
-                models.MemberEffort(member=m, period=int(i), fte=self.cleaned_data[f])
-                for (f, (_, i)) in [
-                    (f, f.split("_"))
-                    for f in self.fields.keys()
-                    if f.startswith("fte_") and self.cleaned_data[f]
-                ]
-            ],
-            update_conflicts=True,
-            update_fields=["fte"],
-            unique_fields=["member", "period"],
-        )
-        m.efforts.filter(
-            period__in=[
-                i
-                for (_, i) in [
-                    f.split("_")
-                    for f in self.fields.keys()
-                    if f.startswith("fte_") and not self.cleaned_data[f]
-                ]
-            ]
-        ).delete()
-
-    def __init__(self, *args, **kwargs):
-        duration = kwargs.pop("duration", None)
-        super().__init__(*args, **kwargs)
-        if duration:
-            for i in range(1, duration + 1):
-                self.fields[f"fte_{i}"] = forms.DecimalField(
-                    required=False,
-                    label=f"FTE{i}",
-                    max_value=1,
-                    min_value=0,
-                    max_digits=3,
-                    decimal_places=2,
-                    initial=self.instance
-                    and self.instance.pk
-                    and getattr(self.instance, f"fte_{i}", None),
-                )
 
     def clean(self):
         cleaned_data = super().clean()

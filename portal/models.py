@@ -5908,8 +5908,8 @@ simple_history.register(
 
 
 class ContractMemberManager(Manager):
-    def get_by_natural_key(self, code, *args, **kwargs):
-        return self.get(code=code)
+    def get_by_natural_key(self, number, email, role, *args, **kwargs):
+        return self.get(email=emai, role_id=role, contract__number=number)
 
 
 class ContractMember(PersonMixin, Model):
@@ -5947,7 +5947,7 @@ class ContractMember(PersonMixin, Model):
     history = HistoricalRecords(table_name="contract_member_history")
 
     def natural_key(self):
-        return (self.contract.number, self.email)
+        return (self.contract.number, self.email, self.role_id)
 
     @property
     def thread_index(self):
@@ -5984,7 +5984,7 @@ class ContractMember(PersonMixin, Model):
         return self.full_name_with_email
 
     class Meta:
-        unique_together = (("contract", "email"),)
+        unique_together = (("contract", "email", "role"),)
         db_table = "contract_member"
 
 

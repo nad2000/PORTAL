@@ -3250,6 +3250,8 @@ class ContractViewMixin:
         )
 
     def get_personnel_formset(self, *args, **kwargs):
+        a = self.application
+        duration = a and a.round.duration or 3
         if self.object and self.object.id:
             extra = 1
             initial = []
@@ -3288,7 +3290,7 @@ class ContractViewMixin:
             self.request.POST or None,
             instance=self.object,
             initial=initial,
-            # form_kwargs={"duration": duration},
+            form_kwargs={"duration": duration}
         )
 
     def get_context_data(self, *args, **kwargs):
@@ -3311,22 +3313,22 @@ class ContractViewMixin:
             with transaction.atomic():
                 resp = super().form_valid(form)
                 fs = self.get_allocation_formset()
+                fs.instance = self.object
                 if fs.is_valid():
-                    fs.instance = self.object
                     fs.save()
                 fs = self.get_reporting_schedule_formset()
+                fs.instance = self.object
                 if fs.is_valid():
-                    fs.instance = self.object
                     fs.save()
                 fs = self.get_personnel_formset()
+                fs.instance = self.object
                 if fs.is_valid():
-                    fs.instance = self.object
                     fs.save()
                 reset_cache(self.request)
         except Exception as ex:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
-            return super().forms_invalid(form)
+            return super().form_invalid(form)
         return resp
         return resp
 
