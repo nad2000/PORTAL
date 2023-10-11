@@ -16,10 +16,11 @@
 
 {% block breadcrumbs %}
   {{ block.super }}
-  {% if object.id %}
-    {% breadcrumb "Contrarct" "contract-update" %}
+  {% breadcrumb "Contracts" "contract-list" %}
+  {% if object.pk %}
+    {% breadcrumb object "Contrarct" "contract-update" object.pk %}
   {% else %}
-    {% breadcrumb "Contrarct" "contract-create" %}
+    {% breadcrumb "New Contract" "contract-create" %}
   {% endif %}
 {% endblock %}
 

@@ -3178,6 +3178,7 @@ class ContractViewMixin:
                 or self.kwargs.get("application_pk")
                 or self.kwargs.get("application_id")
                 or self.request.GET.get("application_id")
+                or self.request.GET.get("application_pk")
             ),
         )
 
@@ -3290,7 +3291,7 @@ class ContractViewMixin:
             self.request.POST or None,
             instance=self.object,
             initial=initial,
-            form_kwargs={"duration": duration}
+            form_kwargs={"duration": duration},
         )
 
     def get_context_data(self, *args, **kwargs):
@@ -3403,7 +3404,10 @@ class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
 class ApplicationListMixin:
     def get_queryset(self, *args, **kwargs):
         u = self.request.user
-        return models.Application.user_applications(u, round=self.request.GET.get("round"))
+        q = models.Application.user_applications(u, round=self.request.GET.get("round"))
+        if u.is_staff or u.is_superuser:
+            return q.prefetch_related("contracts")
+        return q
 
 
 class ApplicationList(
@@ -5789,6 +5793,13 @@ class EvaluationMixin:
             ).last()
 
         return data
+
+
+@login_required
+def application_contract(request, pk):
+    if c := models.Contract.where(application_id=pk).last():
+        return redirect("contract-detail", number=c.number)
+    return redirect(f'{reverse("contract-create")}?application_pk={pk}')
 
 
 @login_required

@@ -170,6 +170,12 @@ def application_round_link(table, record, value):
     return application_link(table, record, value)
 
 
+def application_contract_link(table, record, value):
+    if value:
+        return reverse("contract-detail", kwargs={"number": value.number})
+    return f'{reverse("contract-create")}?application_id={record.pk}'
+
+
 class ApplicationTable(tables.Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
@@ -196,10 +202,25 @@ class ApplicationTable(tables.Table):
             "td": {"style": "padding: 6px 0 0 16px;"},
         },
     )
+    latest_contract = tables.LinkColumn(
+        "application-contract",
+        args=[tables.A("pk")],
+        text=lambda record: gettext_lazy("Open") if record.contract else gettext_lazy("Create"),
+        attrs={
+            "a": {
+                "class": "btn btn-primary btn-sm",
+                "target": "_blank",
+                "data-toggle": "tooltip",
+                "title": gettext_lazy("Create or update a contract"),
+            },
+            "td": {"style": "padding: 6px 0 0 16px;"},
+        },
+    )
 
     def before_render(self, request):
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
+            self.columns.hide("latest_contract")
 
     def render_number(self, record, value):
         if (
@@ -240,6 +261,7 @@ class ApplicationTable(tables.Table):
             "first_name",
             "last_name",
             "export",
+            "latest_contract",
         )
 
 

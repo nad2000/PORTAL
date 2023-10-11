@@ -53,6 +53,11 @@ urlpatterns = [
                     name="application-evaluation",
                 ),
                 path(
+                    "<int:pk>/contract",
+                    views.application_contract,
+                    name="application-contract",
+                ),
+                path(
                     "<int:round>/~create",
                     views.ApplicationCreate.as_view(),
                     name="application-create",

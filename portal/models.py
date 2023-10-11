@@ -1665,6 +1665,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     @property
+    def contract(self):
+        """The latest contract."""
+        return self.contracts.last()
+
+    @property
     def thread_index(self):
         if n := Nomination.where(application=self).last():
             idx = n.id
@@ -5698,7 +5703,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         Organisation, on_delete=CASCADE, related_name="contracts", null=True, blank=True
     )
     # proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, blank=True, null=True)
-    application = ForeignKey(Application, on_delete=CASCADE, blank=True, null=True)
+    application = ForeignKey(
+        Application, on_delete=CASCADE, blank=True, null=True, related_name="contracts"
+    )
 
     submitted_by = ForeignKey(
         User, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("submitted by")
