@@ -16,6 +16,21 @@
       </td>
     </tr>
 
+      {% if a.preliminary %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {% trans 'Preliminary Application' %} / {% trans 'Expression of Interest' %}</th>
+        <td colspan="3">
+          <strong>
+              <a href="{% url 'application-detail' number=a.preliminary.number %}" target="_blank">
+                {{ a.preliminary.number }}
+              </a>
+        </strong>{% if a.preliminary.application_title %}: {{ a.preliminary.application_title }}{% endif %}
+        </td>
+      </tr>
+    {% endif %}
+
+
     {% if a.presentation_url %}
       <tr>
         <td colspan="4">
@@ -160,10 +175,16 @@
           <td colspan="3">
             {% if a.file %}
               {% if a|can_edit:user %}
+                {% if a.preliminary and a.preliminary.file %}
+                  {% trans 'E.O.I.' %}: <a href="{{ a.preliminary.file.url }}" target="_blank"> {{ a.preliminary.filename }} </a><br>
+                {% endif %}
                 <a href="{{ a.file.url }}" target="_blank"> {{ a.filename }} </a>
               {% elif is_panellist %}
                 <a href="{% url 'application-export' pk=a.pk %}" target="_blank"> {{ a.number }}.pdf </a>
               {% else %}
+                {% if a.preliminary and a.preliminary.file %}
+                  {% trans 'E.O.I.' %}: <a href="{{ a.preliminary.pdf_file.url }}" target="_blank"> {{ a.preliminary.pdf_filename }} </a><br>
+                {% endif %}
                 <a href="{{ a.pdf_file.url }}" target="_blank"> {{ a.pdf_filename }} </a>
               {% endif %}
             {% else %}
@@ -171,12 +192,16 @@
             {% endif %}
           </td>
         </tr>
-
-        {% if a.converted_file and a|can_edit:user %}
+        {% if a.converted_file and a|can_edit:user or a.preliminary and a.preliminary.converted_file and a.preliminary|can_edit:user %}
           <tr>
             <th class="table-dark" scope="row">{% trans 'Completed Application Form (PDF version)' %}</th>
             <td colspan="3">
-              <a href="{{ a.converted_file.file.url }}" target="_blank"> {{ a.converted_file.file.name|basename }} </a>
+              {% if a.preliminary and a.preliminary.converted_file %}
+                {% trans 'E.O.I.' %}: <br><a href="{{ a.preliminary.converted_file.file.url }}" target="_blank"> {{ a.preliminary.converted_file.file.name|basename }} </a>
+              {% endif %}
+              {% if a.converted_file and a|can_edit:user %}
+                <a href="{{ a.converted_file.file.url }}" target="_blank"> {{ a.converted_file.file.name|basename }} </a>
+              {% endif %}
             </td>
           </tr>
         {% endif %}

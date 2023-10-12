@@ -1263,6 +1263,7 @@ class ContractForm(forms.ModelForm):
                 Tab(
                     _("Proposal"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
                     css_id="proposal",
                 ),
                 Tab(

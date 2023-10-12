@@ -1285,6 +1285,8 @@ def default_application_number(application, exclude_numbers=None):
         .values("number")
         .first()
     )
+    if last_number and last_number.endswith("-E"):
+        last_number = last_number.removesuffix("-E")
     application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
     while True:
         number = f"{code}-{org_code}-{year}-{application_number:03}"
@@ -1715,6 +1717,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self.application_title = self.round.title
         if not self.number:
             self.number = default_application_number(self)
+            if self.is_preliminary:
+                self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
 
     @fsm_log
@@ -2386,6 +2390,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         return merger
 
+    def clean(self):
+        super().clean()
+        if self.is_preliminary and self.preliminary_id:
+            raise ValidationError(
+                _("A prelimenary application cannot have a prelimenary application.")
+            )
+
     class Meta:
         db_table = "application"
 
@@ -2508,6 +2519,10 @@ class Member(PersonMixin, MemberMixin, Model):
             raise ValidationError(
                 _("Team member with the email address %(email)s was alrady added"),
                 params={"email": self.email},
+            )
+        if self.is_preliminary and self.preliminary_id:
+            raise ValidationError(
+                _("A prelimenary application cannot have a prelimenary application.")
             )
 
     @fsm_log
