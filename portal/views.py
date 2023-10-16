@@ -3212,12 +3212,12 @@ class ContractViewMixin:
         )
 
     def get_reporting_schedule_formset(self, *args, **kwargs):
+        a = self.application
+        duration = a.round.duration or 3
         if self.object and self.object.id:
             initial = None
-            extra = 0
+            extra = 1
         else:
-            a = self.application
-            duration = a.round.duration or 3
             initial = [
                 dict(
                     period=p,
@@ -3239,6 +3239,9 @@ class ContractViewMixin:
             extra=extra,
             labels={"date_first_remind": _("First Reminder")},
             widgets={
+                "period": forms.Select(
+                    choices=[(None, "---"), *((i, i) for i in range(1, duration + 1))]
+                ),
                 "due_date": forms.DateInput(start_date="-1y", end_date="+10y"),
                 "date_first_remind": forms.DateInput(start_date="-1y", end_date="+10y"),
             },
