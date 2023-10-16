@@ -91,6 +91,15 @@ from common.models import (
 from .utils import send_mail, vignere
 
 
+class CurrentSiteManager(CurrentSiteManager):
+    """Select all entries if SITE_ID==0."""
+
+    def get_queryset(self):
+        if bool(settings.SITE_ID):
+            return super().get_queryset()
+        return super(Manager, self).get_queryset()
+
+
 def __(s):
     """Temporarily disabale 'gettex'"""
     return s

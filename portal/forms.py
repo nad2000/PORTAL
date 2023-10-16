@@ -1202,6 +1202,20 @@ class ContractForm(forms.ModelForm):
         label=gettext_lazy("If yes, does your institution have a child protection policy?"),
     )
 
+    research_aims = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"},
+        ),
+    )
+
+    project_timeline = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
         user = kwargs.pop("user", None) or initial.get("user")
@@ -1250,6 +1264,25 @@ class ContractForm(forms.ModelForm):
                     _("Research"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                     Field("project_title"),
+                    Fieldset(
+                        None,
+                        Field("research_aims", label=""),
+                        Button(
+                            "approve_research_aims",
+                            _("Approve"),
+                            css_class="btn-primary float-right",
+                        ),
+                    ),
+                    Fieldset(
+                        None,
+                        # _("Project Timeline"),
+                        Field("project_timeline", label=""),
+                        Button(
+                            "approve_project_timeline",
+                            _("Approve"),
+                            css_class="btn-primary float-right",
+                        ),
+                    ),
                     Field("abstract"),
                     Field("notes"),
                     css_id="research",
@@ -1263,7 +1296,9 @@ class ContractForm(forms.ModelForm):
                 Tab(
                     _("Proposal"),
                     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+                    HTML(
+                        '{% include "snippets/application_detail_table.html" with a=application %}'
+                    ),
                     css_id="proposal",
                 ),
                 Tab(
