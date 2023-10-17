@@ -172,6 +172,27 @@
               </span>
             {% endif %}
           </li>
+          <li class="nav-item">
+            {% if nomination_accepted_count > 0 %}
+              <a
+                  class="nav-link"
+                  id="nominations-accepted"
+                  href="{% url 'nominations-accepted' %}"
+                  title="{% trans 'Accepted nominations' %}"
+                  data-toggle="tooltip"
+                  >{% trans 'Accepted' %}
+                  <span class="badge badge-primary">{{ nomination_accepted_count }}</span>
+              </a>
+            {% else %}
+              <span
+                  class="nav-link"
+                  title="{% trans 'No submitted nominations' %}"
+                  data-toggle="tooltip"
+                  >{% trans 'Submitted' %}
+                  <span class="badge badge-primary">0</span>
+              </span>
+            {% endif %}
+          </li>
         </ul>
       </div>
     {% endif %}

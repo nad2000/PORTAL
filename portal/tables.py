@@ -92,9 +92,9 @@ class StateColumn(tables.Column):
 class NominationTable(tables.Table):
     round = tables.Column(
         linkify=lambda table, record: record.get_absolute_url()
-        if record.state != "submitted"
+        if record.state not in ["submitted", "accepted"]
         else reverse("nomination-detail", args=[record.pk])
-        if record.user == table.request.user or record.email == table.request.user.email
+        if record.user == table.request.user or record.nominator == table.request.user or record.email == table.request.user.email
         else None
     )
     state = StateColumn()

@@ -4687,7 +4687,7 @@ class NominationView(CreateUpdateView):
     def get_close_url(self):
         referer = self.request.META.get("HTTP_REFERER")
         return self.request.GET.get("next") or (
-            referer if not referer.endswith(self.request.path) else reverse("nominations")
+            referer if referer and not referer.endswith(self.request.path) else reverse("nominations")
         )
 
 
@@ -4954,7 +4954,7 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
         queryset = queryset.filter(round__scheme__current_round=F("round"))
         if state == "draft":
             queryset = queryset.filter(state__in=[state, "new"])
-        elif state == "submitted":
+        elif state in ["submitted", "accepted"]:
             queryset = queryset.filter(state=state)
         return queryset
 

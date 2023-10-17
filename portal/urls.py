@@ -381,6 +381,7 @@ urlpatterns = [
                 path("<int:pk>", views.NominationDetail.as_view(), name="nomination-detail"),
                 path("draft", views.NominationList.as_view(), name="nominations-draft"),
                 path("submitted", views.NominationList.as_view(), name="nominations-submitted"),
+                path("accepted", views.NominationList.as_view(), name="nominations-accepted"),
                 path("", views.NominationList.as_view(), name="nominations"),
             ]
         ),
