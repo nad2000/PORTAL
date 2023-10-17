@@ -1,5 +1,7 @@
 import os
 from urllib.parse import parse_qs
+from itertools import groupby
+from operator import itemgetter
 
 import jinja2
 from django import forms, template
@@ -220,6 +222,6 @@ def contract_summary(context, *args, **kwargs):
     request = context.get("request")
     site = context.get("site")
     contract = object = context.get("object")
-    schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
+    # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
     output = get_template("contract_summary.html").render(locals())
     return Markup(output)

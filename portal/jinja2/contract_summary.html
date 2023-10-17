@@ -105,16 +105,28 @@
     <tbody>
       {% for a in c.allocations.order_by("period") %}
         <tr>
-          <td>{{ _("Year") }} {{ a.period }}:</td>
-          <td>{{ a.allocation }}</td>
-          {% set e=schedule_entries.get(a.period) %}
-          <td>{{ e and e.type and e.get_type_display() or _('N/A') }}</td>
-          <td>{{ e and e.due_date or _('N/A') }}</td>
+          {% set schedule=c.reporting_schedule.filter(period=a.period).order_by("due_date") %}
+          {% set sec=schedule.count() %}
+          <td{% if sec %} rowspan="{{ sec }}"{% endif %} style="vertical-align: middle;">{{ _("Year") }} {{ a.period }}:</td>
+          <td{% if sec %} rowspan="{{ sec }}"{% endif %} style="vertical-align: middle;">{{ a.allocation }}</td>
+          {#% set e=schedule_entries.get(a.period) %#}
+          {% if sec %}
+            {% for e in schedule %}
+              {% if loop.index0 %}<tr>{% endif %}
+              <td style="vertical-align: middle;">
+                {{ e and e.type and e.get_type_display() or _('N/A') }}
+              </td>
+              <td>
+                {{ e and e.due_date or _('N/A') }}
+              </td>
+              {% if loop.index0 %}</tr>{% endif %}
+            {% endfor %}
+          {% else %}
+            <td>&nbsp;</td><td>&nbsp;</td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>
   </table>
-
-
 
 </div>
