@@ -2529,10 +2529,6 @@ class Member(PersonMixin, MemberMixin, Model):
                 _("Team member with the email address %(email)s was alrady added"),
                 params={"email": self.email},
             )
-        if self.is_preliminary and self.preliminary_id:
-            raise ValidationError(
-                _("A prelimenary application cannot have a prelimenary application.")
-            )
 
     @fsm_log
     @transition(field=state, source=["new", "sent"], target="accepted")
