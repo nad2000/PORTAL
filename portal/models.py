@@ -5077,7 +5077,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                     sql += " n.status=%s"
                     params.append(status)
         else:
-            sql += " n.status IN ('new', 'draft', 'submitted') OR n.status IS NULL"
+            sql += " n.status IN ('new', 'draft', 'submitted', 'accepted') OR n.status IS NULL"
         sql += ")"
         if not status or (status == "submitted" or "submitted" in status):
             sql += " OR (n.status='submitted' AND (n.user_id=%s OR n.email=%s))"

@@ -4660,7 +4660,7 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
         queryset = queryset.filter(round__scheme__current_round=F("round"))
         if status == "draft":
             queryset = queryset.filter(status__in=[status, "new"])
-        elif status == "submitted":
+        elif status in ["submitted", "accepted"]:
             queryset = queryset.filter(status=status)
         return queryset
 

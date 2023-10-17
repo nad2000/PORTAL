@@ -212,6 +212,16 @@
         </td>
       </tr>
     {% endif %}
+    {% if nominator or a|can_edit:user  %}
+      <tr>
+        <th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
+        <td colspan="3">
+          <a href="{% url 'nomination-detail' pk=a.nomination.pk %}" target="_blank">
+            {{ a.nomination }}
+          </a>
+        </td>
+      </tr>
+    {% endif %}
 
     {% if r.has_referees and  a.referees.all.count and a|can_see_referees:u %}
       <tr>

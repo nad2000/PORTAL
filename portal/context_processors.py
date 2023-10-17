@@ -56,6 +56,7 @@ def portal_context(request):
                 "nomination_submitted_count": models.Nomination.user_nomination_count(
                     u, "submitted"
                 ),
+                "nomination_accepted_count": models.Nomination.user_nomination_count(u, "accepted"),
                 "testimonial_count": models.Testimonial.user_testimonial_count(u),
                 "testimonial_draft_count": models.Testimonial.user_testimonial_count(u, "draft"),
                 "testimonial_submitted_count": models.Testimonial.user_testimonial_count(
