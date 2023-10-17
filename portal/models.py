@@ -3337,6 +3337,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
+            cc= self.nomination and [self.nomination.nominator.email] or by and [by.email] or None,
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
