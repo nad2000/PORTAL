@@ -237,15 +237,22 @@
         </td>
       </tr>
     {% endif %}
-    {% if nominator or a|can_edit:user  %}
-      <tr>
-        <th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
-        <td colspan="3">
-          <a href="{% url 'nomination-detail' pk=a.nomination.pk %}" target="_blank">
-            {{ a.nomination }}
-          </a>
-        </td>
-      </tr>
+    {#% if nominator or user.is_superuser or user.is_site_staff or a|can_edit:user %#}
+    {% if nominator or  a|can_edit:user %}
+
+	  {% with nomination=a.nomination %}
+		{% if nomination %}
+		  <tr>
+			<th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
+			<td colspan="3">
+			  <a href="{% url 'nomination-detail' pk=nomination.pk %}" target="_blank">
+				{{ nomination }}
+			  </a>
+			</td>
+		  </tr>
+		{% endif %}
+	  {% endwith %}
+
     {% endif %}
 
     {% if r.has_referees and  a.referees.all.count and a|can_see_referees:u %}
