@@ -1322,16 +1322,20 @@ class ContractForm(forms.ModelForm):
                 ),
                 Tab(
                     _("Finances"),
-                    HTML("""{% load i18n %}<div class="alert alert-dark" role="alert">
+                    HTML(
+                        """{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
                     You can distributed it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
-                    </div>"""),
+                    </div>"""
+                    ),
                     Fieldset(
                         _("Budget Allocation"),
-                        TableInlineFormset("allocations"),
+                        TableInlineFormset(
+                            "allocations", template="portal/allocations_table_inline_formset.html"
+                        ),
                         css_id="allocations",
                     ),
                     css_id="finances",
