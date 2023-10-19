@@ -74,13 +74,13 @@
     </tbody>
   </table>
 
-  <a class="btn btn-primary" href="{{ url('round-summary', kwargs={'round': round.id}) }}" role="button">{{ _("Show Detailed Report") }}</a>
+  <a class="btn btn-primary" href="{{ url('round-summary', round=round.id) }}" role="button">{{ _("Show Detailed Report") }}</a>
 
-  <a class="btn btn-outline-primary" href="{{ url('scores-list', kwargs={'round': round.id}) }}" role="button">{{ _("Show Scores") }}</a>
+  <a class="btn btn-outline-primary" href="{{ url('scores-list', round=round.id) }}" role="button">{{ _("Show Scores") }}</a>
 
   <a
     class="btn btn-outline-primary"
-    href="{{ url('round-application-export', kwargs={'pk': round.id}) }}"
+    href="{{ url('round-application-export', pk=round.id) }}"
     data-toggle="tooltip" title="{{ _('Export all the applications of the round') }}"
     role="button">
       {{ _("Export PDF") }}
