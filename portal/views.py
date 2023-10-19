@@ -3309,7 +3309,8 @@ class ContractViewMixin:
 
     def form_valid(self, form):
         a = self.application
-        form.instance.submitted_by = self.request.user
+        u = self.request.user
+        form.instance.submitted_by = u
         form.instance.org = a.org
         form.instance.application = a
         form.instance.number = a.number
@@ -3334,7 +3335,14 @@ class ContractViewMixin:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
             return super().form_invalid(form)
-        return resp
+        if "post_comment" in self.request.POST:
+            if a.org.research_offices.filter(user=u).exists():
+                pass
+            else:
+                pass
+            return redirect(
+                reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
+            )
         return resp
 
 
@@ -4687,7 +4695,9 @@ class NominationView(CreateUpdateView):
     def get_close_url(self):
         referer = self.request.META.get("HTTP_REFERER")
         return self.request.GET.get("next") or (
-            referer if referer and not referer.endswith(self.request.path) else reverse("nominations")
+            referer
+            if referer and not referer.endswith(self.request.path)
+            else reverse("nominations")
         )
 
 

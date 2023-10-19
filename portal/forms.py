@@ -1232,6 +1232,22 @@ class ContractForm(forms.ModelForm):
         ),
     )
 
+    attachment = FileField(
+        required=False,
+        label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+            }
+        ),
+    )
+    comment = forms.CharField(
+        label="",
+        required=False,
+        widget=SummernoteInplaceWidget(),
+    )
+
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
         user = kwargs.pop("user", None) or initial.get("user")
@@ -1393,7 +1409,16 @@ class ContractForm(forms.ModelForm):
                 ),
                 Tab(
                     _("Correspondence"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    Field("comment"),
+                    Fieldset(
+                        None,
+                        Field("attachment"),
+                        Submit(
+                            "post_comment",
+                            _("Post Comment"),
+                            css_class="btn-primary float-right",
+                        ),
+                    ),
                     css_id="correspondence",
                 ),
             ),
