@@ -2,6 +2,8 @@ import os
 from functools import partial
 
 from crispy_forms.bootstrap import Tab, TabHolder, InlineRadios
+
+# from crispy_forms.bootstrap import Modal
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -1216,6 +1218,20 @@ class ContractForm(forms.ModelForm):
         ),
     )
 
+    proposal_budget = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+        ),
+    )
+
+    award_budget = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
         user = kwargs.pop("user", None) or initial.get("user")
@@ -1248,6 +1264,23 @@ class ContractForm(forms.ModelForm):
         self.helper = FormHelper(self)
         self.helper.layout = Layout(
             TabHolder(
+                # Tab(
+                #     "Playgroud",
+                #     Modal(
+                #         # email.help_text was set during the initalization of the django form field
+                #         Field("email", placeholder="Email", wrapper_class="mb-0"),
+                #         Button(
+                #             "submit",
+                #             "Send Reset Email",
+                #             id="email_reset",
+                #             css_class="btn-primary mt-3",
+                #             onClick="someJavasciptFunction()",  # used to submit the form
+                #         ),
+                #         css_id="my_modal_id",
+                #         title="This is my modal",
+                #         title_class="w-100 text-center",
+                #     ),
+                # ),
                 Tab(
                     _("Summary"),
                     *(
@@ -1337,6 +1370,24 @@ class ContractForm(forms.ModelForm):
                             "allocations", template="portal/allocations_table_inline_formset.html"
                         ),
                         css_id="allocations",
+                    ),
+                    Field("proposal_budget"),
+                    Fieldset(
+                        None,
+                        Field("award_budget", label=""),
+                        ButtonHolder(
+                            Button(
+                                "request_budget_correction",
+                                _("Request Correction"),
+                                css_class="btn-primary",
+                            ),
+                            Button(
+                                "approve_budget",
+                                _("Awaiting Approval"),
+                                css_class="btn-secondary",
+                            ),
+                            css_class="float-right",
+                        ),
                     ),
                     css_id="finances",
                 ),
