@@ -126,6 +126,11 @@
           {% endif %}
         </tr>
       {% endfor %}
+      <tr>
+        <td>{{ _("Total") }}:</td>
+        <td style="vertical-align: middle;">{{ '%0.2f' % c.total_allocation }}</td>
+        <td>&nbsp;</td><td>&nbsp;</td>
+      </tr>
     </tbody>
   </table>
 

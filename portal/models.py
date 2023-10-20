@@ -10,6 +10,7 @@ import tempfile
 import time
 from collections import OrderedDict
 from datetime import date, datetime
+from decimal import Decimal
 from functools import lru_cache, partial, wraps
 from urllib.parse import urljoin, urlparse
 
@@ -3473,7 +3474,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
-            cc= self.nomination and [self.nomination.nominator.email] or by and [by.email] or None,
+            cc=self.nomination and [self.nomination.nominator.email] or by and [by.email] or None,
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
@@ -5821,6 +5822,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     def natural_key(self):
         return (self.number,)
+
+    @property
+    def total_allocation(self):
+        return self.allocations.aggregate(Sum("allocation", default=0)).get(
+            "allocation__sum", Decimal("0.00")
+        )
 
     class Meta:
         db_table = "contract"

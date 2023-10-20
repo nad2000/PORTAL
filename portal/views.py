@@ -6,7 +6,6 @@ import traceback
 from functools import wraps
 from urllib.parse import quote
 
-from dateutil.relativedelta import relativedelta
 import django.utils.translation
 import django_filters
 import django_tables2
@@ -17,6 +16,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout
 from dal import autocomplete
 from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -51,8 +51,8 @@ from django.db.models.functions import Coalesce
 from django.forms import (
     DateInput,
     Form,
-    IntegerField,
     HiddenInput,
+    IntegerField,
     ModelForm,
     TextInput,
     ValidationError,
@@ -71,10 +71,8 @@ from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
-from django.views.generic import DetailView
-from django.views.generic import TemplateView
-from django.views.generic.edit import CreateView
-from django.views.generic.edit import UpdateView
+from django.views.generic import DetailView, TemplateView
+from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, SingleTableView
 from django_tables2.export import ExportMixin
