@@ -73,6 +73,7 @@ from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from private_storage.fields import PrivateFileField
 from PyPDF2 import PdfFileMerger, PdfFileReader
+from PyPDF2.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from taggit.managers import TaggableManager
@@ -2301,7 +2302,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     import_bookmarks=True,
                 )
 
-            merger.append(a, bookmark=title, import_bookmarks=True)
+            # merger.append(a, bookmark=title, import_bookmarks=True)
+            try:
+                merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
+            except PdfReadError:
+                capture_message(f'Failed to merge file {a}')
+                raise 
 
         if add_headers or self.site_id == 4:
             template = get_template("headers.html")
