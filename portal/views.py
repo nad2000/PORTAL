@@ -3880,8 +3880,11 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
             )
-            if data and data.org:
-                models.Affiliation.get_or_create(
+            if data and data.org and not models.Affiliation.where(
+                    profile=self.request.user.profile,
+                    org=data.org,
+                    type=models.AFFILIATION_TYPES.EMP).exists():
+                models.Affiliation.create(
                     profile=self.request.user.profile,
                     org=data.org,
                     type=models.AFFILIATION_TYPES.EMP,
