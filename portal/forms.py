@@ -34,6 +34,7 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django_summernote.widgets import SummernoteInplaceWidget
+from sentry_sdk import capture_message
 
 from . import models
 
@@ -1555,6 +1556,8 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm)
     def save(self, commit=True):
         """Prevent 'state' getting overwritten"""
         if self.errors:
+            for e in self.errors:
+                capture_message(f"{e}")
             raise ValueError(
                 "The %s could not be %s because the data didn't validate."
                 % (

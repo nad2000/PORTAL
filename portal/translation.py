@@ -105,8 +105,8 @@ class RoleTypeOptions(TranslationOptions):
     )
 
 
-@register(models.QualificationLevel)
-class QualificationLevelOptions(TranslationOptions):
+@register(models.EducationLevel)
+class EducationLevelOptions(TranslationOptions):
     fields = ("name",)
 
 
