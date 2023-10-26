@@ -16,7 +16,7 @@ def enable_constraints(apps, schema_editor):
     #     schema_editor.execute("SET FOREIGN_KEY_CHECKS=1;")
 
 
-def add_qualification_level_data(apps, schema_editor):
+def add_education_level_data(apps, schema_editor):
     from django.utils.translation import activate, gettext
     
     def get_name(value, language="en"):
@@ -24,21 +24,21 @@ def add_qualification_level_data(apps, schema_editor):
         return gettext(value)
 
     
-    QualificationLevel = apps.get_model("portal", "QualificationLevel")
+    EducationLevel = apps.get_model("portal", "EducationLevel")
     db_alias = schema_editor.connection.alias
 
-    QualificationLevel.objects.using(db_alias).bulk_create(
+    EducationLevel.objects.using(db_alias).bulk_create(
         [
-            QualificationLevel(
-                id=id, 
+            EducationLevel(
+                code=c, 
+                name=get_name(v),
                 name_en=get_name(v),
-                name=v,
                 name_mi=get_name(v, "mi")
-            ) for (id, v) in QUALIFICATION_LEVEL
+            ) for (c, v) in QUALIFICATION_LEVEL
         ],
         update_conflicts=True,
         update_fields=["name", "name_en", "name_mi"],
-        unique_fields=["id"]
+        unique_fields=["code"]
     )
 
 

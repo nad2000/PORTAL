@@ -5361,12 +5361,14 @@ class ResearchOffice(Model):
     class Meta:
         db_table = "research_office"
 
-class QualificationLevel(Model):
 
+class EducationLevel(Model):
+
+    code = PositiveSmallIntegerField(_("code"), primary_key=True)
     name = CharField(_("Name"), max_length=100)
 
     class Meta:
-        db_table = "qualification_level"
+        db_table = "education_level"
 
 
 def add_title_data(apps, schema_editor):
