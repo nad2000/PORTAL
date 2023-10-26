@@ -5361,6 +5361,13 @@ class ResearchOffice(Model):
     class Meta:
         db_table = "research_office"
 
+class QualificationLevel(Model):
+
+    name = CharField(_("Name"), max_length=100)
+
+    class Meta:
+        db_table = "qualification_level"
+
 
 def add_title_data(apps, schema_editor):
     """

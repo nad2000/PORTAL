@@ -97,4 +97,11 @@ class ProtectionPatternProfileOptions(TranslationOptions):
     )
 
 
+@register(models.QualificationLevel)
+class QualificationLevelOptions(TranslationOptions):
+    fields = (
+        "name",
+    )
+
+
 # vim:set ft=python.django:
