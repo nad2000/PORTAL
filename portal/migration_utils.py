@@ -17,7 +17,6 @@ def enable_constraints(apps, schema_editor):
     #     schema_editor.execute("SET FOREIGN_KEY_CHECKS=1;")
 
 
-<<<<<<< HEAD
 def add_title_data(apps, schema_editor):
     """
     Add to the migrations:
