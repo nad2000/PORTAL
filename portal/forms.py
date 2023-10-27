@@ -1258,7 +1258,7 @@ class ContractForm(forms.ModelForm):
         instance = self.instance
         site_id = settings.SITE_ID
         if site_id == 4:
-            self.fields["protect_title"].label = _("Title of proposed research project")
+            self.fields["project_title"].label = _("Title of proposed research project")
             # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
 
@@ -1279,135 +1279,136 @@ class ContractForm(forms.ModelForm):
             disabled=submission_disabled,
         )
         self.helper = FormHelper(self)
-        self.helper.layout = Layout(
-            TabHolder(
-                # Tab(
-                #     "Playgroud",
-                #     Modal(
-                #         # email.help_text was set during the initalization of the django form field
-                #         Field("email", placeholder="Email", wrapper_class="mb-0"),
-                #         Button(
-                #             "submit",
-                #             "Send Reset Email",
-                #             id="email_reset",
-                #             css_class="btn-primary mt-3",
-                #             onClick="someJavasciptFunction()",  # used to submit the form
-                #         ),
-                #         css_id="my_modal_id",
-                #         title="This is my modal",
-                #         title_class="w-100 text-center",
-                #     ),
-                # ),
-                Tab(
-                    _("Summary"),
-                    *(
-                        [HTML("{% load tags %}{% contract_summary %}")]
-                        if self.instance and self.instance.id
-                        else [
-                            HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                            Row(Field("start_date"), Field("end_date")),
-                        ]
+        tabs = [
+            # Tab(
+            #     "Playgroud",
+            #     Modal(
+            #         # email.help_text was set during the initalization of the django form field
+            #         Field("email", placeholder="Email", wrapper_class="mb-0"),
+            #         Button(
+            #             "submit",
+            #             "Send Reset Email",
+            #             id="email_reset",
+            #             css_class="btn-primary mt-3",
+            #             onClick="someJavasciptFunction()",  # used to submit the form
+            #         ),
+            #         css_id="my_modal_id",
+            #         title="This is my modal",
+            #         title_class="w-100 text-center",
+            #     ),
+            # ),
+            Tab(
+                _("Summary"),
+                *(
+                    [HTML("{% load tags %}{% contract_summary %}")]
+                    if self.instance and self.instance.id
+                    else [
+                        HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                        Row(Field("start_date"), Field("end_date")),
+                    ]
+                ),
+                css_id="summary",
+            ),
+            Tab(
+                _("Research"),
+                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                Field("project_title"),
+                Fieldset(
+                    None,
+                    Field("research_aims", label=""),
+                    Button(
+                        "approve_research_aims",
+                        _("Approve"),
+                        css_class="btn-primary float-right",
                     ),
-                    css_id="summary",
                 ),
-                Tab(
-                    _("Research"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    Field("project_title"),
-                    Fieldset(
-                        None,
-                        Field("research_aims", label=""),
-                        Button(
-                            "approve_research_aims",
-                            _("Approve"),
-                            css_class="btn-primary float-right",
-                        ),
+                Fieldset(
+                    None,
+                    # _("Project Timeline"),
+                    Field("project_timeline", label=""),
+                    Button(
+                        "approve_project_timeline",
+                        _("Approve"),
+                        css_class="btn-primary float-right",
                     ),
-                    Fieldset(
-                        None,
-                        # _("Project Timeline"),
-                        Field("project_timeline", label=""),
-                        Button(
-                            "approve_project_timeline",
-                            _("Approve"),
-                            css_class="btn-primary float-right",
-                        ),
-                    ),
-                    Field("abstract"),
-                    Field("notes"),
-                    css_id="research",
                 ),
-                Tab(
-                    _("Personnel"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    TableInlineFormset("personnel"),
-                    css_id="personnel",
+                Field("abstract"),
+                Field("notes"),
+                css_id="research",
+            ),
+            Tab(
+                _("Personnel"),
+                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                TableInlineFormset("personnel"),
+                css_id="personnel",
+            ),
+            Tab(
+                _("Proposal"),
+                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+                css_id="proposal",
+            ),
+            Tab(
+                _("Reporting"),
+                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                Fieldset(
+                    _("Reporting Schedule"),
+                    TableInlineFormset("reporting_schedule"),
+                    css_id="reporting_schedule",
                 ),
-                Tab(
-                    _("Proposal"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    HTML(
-                        '{% include "snippets/application_detail_table.html" with a=application %}'
-                    ),
-                    css_id="proposal",
-                ),
-                Tab(
-                    _("Reporting"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    Fieldset(
-                        _("Reporting Schedule"),
-                        TableInlineFormset("reporting_schedule"),
-                        css_id="reporting_schedule",
-                    ),
-                    css_id="reporting",
-                ),
-                Tab(
-                    _("Compliance"),
-                    HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    InlineRadios("has_animal_use"),
-                    InlineRadios("is_signatory_to_oa"),
-                    InlineRadios("involves_childeren"),
-                    InlineRadios("has_child_protection"),
-                    css_id="compliance",
-                ),
-                Tab(
-                    _("Finances"),
-                    HTML(
-                        """{% load i18n %}<div class="alert alert-dark" role="alert">
+                css_id="reporting",
+            ),
+            Tab(
+                _("Compliance"),
+                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                InlineRadios("has_animal_use"),
+                InlineRadios("is_signatory_to_oa"),
+                InlineRadios("involves_childeren"),
+                InlineRadios("has_child_protection"),
+                css_id="compliance",
+            ),
+            Tab(
+                _("Finances"),
+                HTML(
+                    """{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
                     You can distributed it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
                     </div>"""
-                    ),
-                    Fieldset(
-                        _("Budget Allocation"),
-                        TableInlineFormset(
-                            "allocations", template="portal/allocations_table_inline_formset.html"
-                        ),
-                        css_id="allocations",
-                    ),
-                    Field("proposal_budget"),
-                    Fieldset(
-                        None,
-                        Field("award_budget", label=""),
-                        ButtonHolder(
-                            Button(
-                                "request_budget_correction",
-                                _("Request Correction"),
-                                css_class="btn-primary",
-                            ),
-                            Button(
-                                "approve_budget",
-                                _("Awaiting Approval"),
-                                css_class="btn-secondary",
-                            ),
-                            css_class="float-right",
-                        ),
-                    ),
-                    css_id="finances",
                 ),
+                Fieldset(
+                    _("Budget Allocation"),
+                    TableInlineFormset(
+                        "allocations", template="portal/allocations_table_inline_formset.html"
+                    ),
+                    css_id="allocations",
+                ),
+                Field("proposal_budget"),
+                Fieldset(
+                    None,
+                    Field("award_budget", label=""),
+                    ButtonHolder(
+                        Button(
+                            "request_budget_correction",
+                            _("Request Correction"),
+                            css_class="btn-primary",
+                        ),
+                        Button(
+                            "approve_budget",
+                            _("Awaiting Approval"),
+                            css_class="btn-secondary",
+                        ),
+                        css_class="float-right",
+                    ),
+                ),
+                css_id="finances",
+            ),
+        ]
+
+        if instance and instance.pk:
+            tabs.append(
                 Tab(
                     _("Correspondence"),
                     Field("comment"),
@@ -1421,8 +1422,10 @@ class ContractForm(forms.ModelForm):
                         ),
                     ),
                     css_id="correspondence",
-                ),
-            ),
+                )
+            )
+        self.helper.layout = Layout(
+            TabHolder(*tabs),
             ButtonHolder(
                 Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
                 Div(
