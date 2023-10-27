@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core import checks, exceptions, validators
+from django.core import checks, validators
 from django.db import connection, connections, models, router
 from django.db.models import CharField, DateTimeField
 from django.db.models import Model as Base
@@ -140,8 +140,19 @@ class PersonMixin:
 
     @property
     def full_email_address(self):
-        user = self.get_user()
-        email = getattr(self, "email", None) or user and user.email
+        user = self.get_user() or self
+        email = (
+            getattr(self, "email", None)
+            or user
+            and (
+                user.email
+                or user.emailaddress_set.filter(primary=True).first()
+                or user.emailaddress_set.last()
+            )
+        )
+        if not user or not email:
+            breakpoint()
+
         if full_name := self.full_name:
             return f'"{full_name}" <{email}>'
         return email

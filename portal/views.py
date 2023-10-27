@@ -3335,7 +3335,17 @@ class ContractViewMixin:
             return super().form_invalid(form)
         if "post_comment" in self.request.POST:
             if a.org.research_offices.filter(user=u).exists():
-                pass
+                attachment = form.cleaned_data.get("attachment", None)
+                staff_users = [
+                    u for u in Site.objects.get_current().staff_users.all()
+                ] or [u for u in User.where(is_superuser=True)]
+                send_mail(
+                    subject=f"Comment posted by {u} to {self}",
+                    message=f"Comment posted by {u} to {self}",
+                    cc=[u.full_email_address],
+                    attachments=attachment and [attachment],
+                    recipient_list=staff_users,
+                )
             else:
                 pass
             return redirect(
@@ -3880,10 +3890,15 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
             )
-            if data and data.org and not models.Affiliation.where(
+            if (
+                data
+                and data.org
+                and not models.Affiliation.where(
                     profile=self.request.user.profile,
                     org=data.org,
-                    type=models.AFFILIATION_TYPES.EMP).exists():
+                    type=models.AFFILIATION_TYPES.EMP,
+                ).exists()
+            ):
                 models.Affiliation.create(
                     profile=self.request.user.profile,
                     org=data.org,

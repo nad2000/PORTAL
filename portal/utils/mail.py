@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.urls import reverse
+import mimetypes
 
 from .. import models
 
@@ -143,6 +144,7 @@ def send_mail(
     recipient_list=None,
     cc=None,
     bcc=None,
+    attachments=None,
     fail_silently=False,
     auth_user=None,
     auth_password=None,
@@ -227,14 +229,20 @@ def send_mail(
     headers["Thread-Index"] = thread_index
     headers["Thread-Topic"] = thread_topic
     msg = mail.EmailMultiAlternatives(
-        subject,
-        message,
-        from_email,
-        recipient_list,
+        subject=subject,
+        body=message,
+        from_email=from_email,
+        to=recipient_list,
+        # attachments=attachments,
         cc=cc or None,
         bcc=bcc or None,
         headers=headers,
     )
+    if attachments:
+        for a in attachments:
+            msg.attach(
+                a.name, a.file.getvalue(), a.content_type or mimetypes.guess_type(a.name)[0]
+            )
     if not reply_to and invitation and (inviter := invitation.inviter):
         reply_to = inviter.full_email_address
     if reply_to:
