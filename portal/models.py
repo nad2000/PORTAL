@@ -7,6 +7,7 @@ import secrets
 import ssl
 import subprocess
 import tempfile
+import pikepdf
 import time
 from collections import OrderedDict
 from datetime import date, datetime
@@ -2304,10 +2305,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
             # merger.append(a, bookmark=title, import_bookmarks=True)
             try:
-                merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
+                reader = PdfFileReader(a, "rb")
+                if reader.is_encrypted:
+                    pdf = pikepdf.Pdf.open(a)
+                    decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                    pdf.save(decrypted)
+                    merger.append(decrypted, bookmark=title, import_bookmarks=True)
+                else:
+                    # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
+                    merger.append(reader, bookmark=title, import_bookmarks=True)
             except PdfReadError:
-                capture_message(f'Failed to merge file {a}')
-                raise 
+                capture_message(f"Failed to merge file {a}")
+                raise
 
         if add_headers or self.site_id == 4:
             template = get_template("headers.html")
@@ -3343,7 +3352,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
-            cc= self.nomination and [self.nomination.nominator.email] or by and [by.email] or None,
+            cc=self.nomination and [self.nomination.nominator.email] or by and [by.email] or None,
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
@@ -5363,7 +5372,6 @@ class ResearchOffice(Model):
 
 
 class EducationLevel(Model):
-
     code = PositiveSmallIntegerField(_("code"), primary_key=True)
     name = CharField(_("Name"), max_length=100)
 
