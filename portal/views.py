@@ -3760,9 +3760,13 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         # return True  # request.user.is_authenticated
 
     def get_result_label(self, result):
+        if isinstance(result, models.Organisation):
+            return result.name
         return result[1]
 
     def get_result_value(self, result):
+        if isinstance(result, models.Organisation):
+            return result.pk
         return result[0]
 
     def get_queryset(self):
