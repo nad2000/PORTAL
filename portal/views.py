@@ -4976,7 +4976,8 @@ class RoundExportView(ExportView):
         merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 
         numbers = []
-        for a in self.round.applications.all().order_by("number"):
+        # for a in self.round.applications.all().order_by("number"):
+        for a in self.round.applications.filter(state="accepted").order_by("number"):
             numbers.append(a.number)
             content = io.BytesIO()
             a.to_pdf(request).write(content)

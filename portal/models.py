@@ -1154,6 +1154,7 @@ APPLICATION_STATUS = Choices(
     ("cancelled", _("cancelled")),
     ("withdrawn", _("withdrawn")),
     ("approved", _("approved")),
+    ("accepted", _("accepted")),
 )
 
 
@@ -1809,7 +1810,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
     @fsm_log
-    @transition(field=state, source=["submitted", "approved"], target="approved")
+    @transition(field=state, source=["submitted"], target="approved")
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -1866,6 +1867,63 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "Successfully sent notificatio to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
+
+    @fsm_log
+    @transition(field=state, source=["approved"], target="accepted")
+    def accept(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution and isinstance(description, str):
+            resolution = resolution.strip()
+        if not by and request:
+            by = request.user
+        # approved by the R.O.
+        recipients = [self.submitted_by, *self.members.all()]
+        if (nomination := Nomination.where(application=self).last()) and (nominator := nomination and nomination.nominator):
+            recipients.append(nominator)
+        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        if not resolution:
+            resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
+        subject = f'Application "{self}" was ACCEPTED'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        params = {
+            "user_display": ", ".join(r.full_name for r in recipients),
+            "number": self.number,
+            "user": by and by.full_name_with_email,
+            "title": self.title or self.round.title,
+            "url": url,
+            "resolution": resolution,
+        }
+        # send_mail(
+        #     subject,
+        #     (
+        #         "Kia ora %(user_display)s\n\n"
+        #         'The application "%(number)s: %(title)s" was approved: %(url)s by %(user)s.\n\n'
+        #         "Resolution:\n"
+        #         "===========\n\n%(resolution)s\n\n"
+        #     )
+        #     % params,
+        #     html_message=(
+        #         "<p>Kia ora %(user_display)s</p>"
+        #         '<p>Your application <a href="%(url)s">%(number)s: %(title)s</a> was approved.</p>'
+        #         "<h3>Resolution</h3>\n"
+        #         "<pre>%(resolution)s</pre>\n\n"
+        #     )
+        #     % params,
+        #     recipient_list=[r.full_email_address for r in recipients],
+        #     fail_silently=False,
+        #     request=request,
+        #     reply_to=by and by.full_email_address or settings.DEFAULT_FROM_EMAIL,
+        #     thread_index=self.thread_index,
+        #     thread_topic=self.thread_topic,
+        # )
+        messages.success(
+            request,
+            "Successfully sent notificatio to %s"
+            % ", ".join(u.full_name_with_email for u in recipients),
+        )
+
 
     @fsm_log
     @transition(field=state, source=["submitted", "draft"], target="draft")
@@ -1984,6 +2042,60 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "Successfully sent notificatio to review applicant to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
+
+    @fsm_log
+    @transition(field=state, source=["approved"], target="cancelled")
+    def invalidate(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution and isinstance(description, str):
+            resolution = resolution.strip()
+        if not resolution:
+            resolution = f'{by.full_email_address} invalidated your application "{self}".'
+        subject = f'Application "{self}" was CANCELLED'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        recipients = [self.submitted_by, *self.members.all()]
+        if (nomination := Nomination.where(application=self).last()) and (nominator := nomination and nomination.nominator):
+            recipients.append(nominator)
+        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        params = {
+            "user_display": ", ".join(r.full_name for r in recipients),
+            "number": self.number,
+            "user": by and by.full_name_with_email,
+            "title": self.title or self.round.title,
+            "url": url,
+            "resolution": resolution or "Requested for reviewing and re-drafting.",
+        }
+        # send_mail(
+        #     subject,
+        #     __(
+        #         "Kia ora %(user_display)s\n\n"
+        #         'Your application "%(number)s: %(title)s" was cancelled: %(url)s by %(user)s.\n\n'
+        #         "Resolution:\n"
+        #         "===========\n\n%(resolution)s\n\n"
+        #     )
+        #     % params,
+        #     html_message=__(
+        #         "<p>Kia ora %(user_display)s</p>"
+        #         '<p>Your application <a href="%(url)s">%(number)s: %(title)s</a> was cancelled by %(user)s.</p>'
+        #         "<h3>Resolution</h3>\n"
+        #         "<pre>%(resolution)s</pre>\n\n"
+        #     )
+        #     % params,
+        #     recipient_list=[r.full_email_address for r in recipients],
+        #     fail_silently=False,
+        #     request=request,
+        #     reply_to=by and by.full_email_address or settings.DEFAULT_FROM_EMAIL,
+        #     thread_index=self.thread_index,
+        #     thread_topic=self.thread_topic,
+        # )
+        messages.success(
+            request,
+            "Successfully sent notificatio to review applicant to %s"
+            % ", ".join(u.full_name_with_email for u in recipients),
+        )
+
 
     def __str__(self):
         if self.site_id == 4 and self.submitted_by:
