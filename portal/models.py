@@ -2305,15 +2305,35 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
             # merger.append(a, bookmark=title, import_bookmarks=True)
             try:
-                reader = PdfFileReader(a, "rb")
+                try:
+                    reader = PdfFileReader(a, "rb")
+                except PdfReadError as ex:
+                    if "'%PDF-' expected" in ex.args[0]:
+                        pdf = pikepdf.Pdf.open(a)
+                        mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                        pdf.save(mended, normalize_content=True)
+                        reader = PdfFileReader(mended, "rb")
+                    else:
+                        raise
+
+                # test if book marks can be imported
+                try:
+                    reader.outlines
+                    import_bookmarks = True
+                except PdfReadError as ex:
+                    if ex.args[0].startswith("Unexpected destination "):
+                        import_bookmarks = False
+                    else:
+                        raise
+
                 if reader.is_encrypted:
                     pdf = pikepdf.Pdf.open(a)
                     decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
-                    pdf.save(decrypted)
-                    merger.append(decrypted, bookmark=title, import_bookmarks=True)
+                    pdf.save(decrypted, normalize_content=True)
+                    merger.append(decrypted, bookmark=title, import_bookmarks=import_bookmarks)
                 else:
                     # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
-                    merger.append(reader, bookmark=title, import_bookmarks=True)
+                    merger.append(reader, bookmark=title, import_bookmarks=import_bookmarks)
             except PdfReadError:
                 capture_message(f"Failed to merge file {a}")
                 raise
