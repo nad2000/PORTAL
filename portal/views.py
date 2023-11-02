@@ -1,4 +1,5 @@
 import io
+from datetime import timedelta
 import json
 import os
 import shutil
@@ -83,7 +84,7 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from private_storage.views import PrivateStorageDetailView
-from PyPDF2 import PdfFileMerger
+from PyPDF2 import PdfFileMerger, PdfReader
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -293,7 +294,15 @@ class StateInPathMixin:
     def state(self):
         if (
             state := self.request.GET.get("state") or self.request.path.split("/")[-1]
-        ) and state in ["new", "draft", "submitted", "archived", "approved", "cancelled"]:
+        ) and state in [
+            "new",
+            "draft",
+            "submitted",
+            "archived",
+            "approved",
+            "cancelled",
+            "accepted",
+        ]:
             return state
 
     def get_context_data(self, **kwargs):
@@ -329,6 +338,8 @@ class StateInPathMixin:
             else:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
+                elif state == "accepted":
+                    queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
@@ -1668,7 +1679,7 @@ class ApplicationView(LoginRequiredMixin):
                         ),
                     )
                     return redirect("application", pk=pk)
-                if not r.is_open:
+                if not r.is_open and r.closes_on > (timezone.now() + timedelta(days=1)):
                     messages.error(
                         request,
                         _(
@@ -3474,7 +3485,13 @@ class ApplicationList(
         #         context["application_submitted_count"] = application_submitted_count
 
         context["filter_disabled"] = True
-        if (state := self.request.path.split("/")[-1]) and state in ["draft", "submitted"]:
+        if (state := self.request.path.split("/")[-1]) and state in [
+            "draft",
+            "submitted",
+            "approved",
+            "accepted",
+            "cancelled",
+        ]:
             context["state"] = state
 
         return context
@@ -4052,9 +4069,13 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         # return True  # request.user.is_authenticated
 
     def get_result_label(self, result):
+        if isinstance(result, models.Organisation):
+            return result.name
         return result[1]
 
     def get_result_value(self, result):
+        if isinstance(result, models.Organisation):
+            return result.pk
         return result[0]
 
     def get_queryset(self):
@@ -5282,20 +5303,30 @@ class RoundExportView(ExportView):
 
     def get(self, request, pk):
         round = self.round
+        site_id = settings.SITE_ID
 
-        merger = PdfFileMerger()
+        # merger = PdfFileMerger()
+        merger = PdfFileMerger(strict=False)
         merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
         merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 
         numbers = []
-        for a in self.round.applications.all().order_by("number"):
+        # for a in self.round.applications.all().order_by("number"):
+        for a in (
+            self.round.applications.filter(state="accepted")
+            if site_id == 4
+            else self.round.applications.filter(state__in=["submitted", "approved"])
+        ).order_by("number"):
             numbers.append(a.number)
             content = io.BytesIO()
-            a.to_pdf(request).write(content)
+            a.to_pdf(request, skip_excluded=(site_id == 4)).write(content)
             content.seek(0)
+            reader = PdfReader(content)
             merger.append(
-                content,
-                bookmark=f"{a.number}: {a.application_title or round.title}",
+                reader,
+                bookmark=f"{a}"
+                if a.site_id == 4
+                else f"{a.number}: {a.application_title or round.title}",
                 import_bookmarks=True,
             )
         merger.add_metadata({"/Keywords": ", ".join(numbers)})

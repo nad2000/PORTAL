@@ -10,6 +10,7 @@ from multisite import SiteID
 ROOT_DIR = Path(__file__).parents[2]
 # portal/)
 APPS_DIR = ROOT_DIR / "portal"
+EXPORTED_DIR = ROOT_DIR / "exported"
 env = environ.Env()
 
 ENV = env("ENV", default="local")

@@ -85,6 +85,30 @@
               {% endif %}
             </li>
           {% endif %}
+          {% if application_accepted_count %}
+            <li class="nav-item">
+              {% if application_accepted_count > 0 %}
+                <a
+                    class="nav-link"
+                    id="applications-accepted"
+                    href="{% url 'applications-accepted' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+                    title="{% trans 'Accepted applications' %}"
+                    data-toggle="tooltip"
+                >
+                    {% trans 'Accepted' %}
+                    <span class="badge badge-primary">{{ application_accepted_count }}</span>
+                </a>
+              {% else %}
+                <span class="nav-link"
+                    title="{% trans 'No accepted applications' %}"
+                    data-toggle="tooltip"
+                >
+                  {% trans 'Accepted' %}
+                  <span class="badge badge-primary">0</span>
+                </span>
+              {% endif %}
+            </li>
+          {% endif %}
         </ul>
       </div>
     {% endif %}

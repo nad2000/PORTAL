@@ -51,8 +51,12 @@ class StateColumn(tables.Column):
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
         elif state == "accepted":
-            css_classes = "far fa-envelope-open text-success text-center"
-            title = _("The invitation was accepted")
+            if isinstance(record, models.Application):
+                css_classes = "fas fa-star text-success text-center"
+                title = _("The application was accepted")
+            else:
+                css_classes = "far fa-envelope-open text-success text-center"
+                title = _("The invitation was accepted")
         elif state == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
             title = _("The testimonial was submitted")

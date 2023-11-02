@@ -53,15 +53,18 @@
            {% elif not is_owner %}
            disabled
            data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
+           {% comment %}
            {% elif not a.round.is_open %}
            disabled
            data-title="{% trans 'The application period has closed. You can no longer modify this application.' %}"
+              class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
+           {% endcomment %}
            {% elif not a.org|is_ro:u %}
            data-title="{% trans 'Modify your application and continue application process' %}"
            {% endif %}
            >
            <a href="{% url update_view_name pk=a.pk %}"
-              class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
+              class="btn btn-primary{% if not is_owner or was_submitted %} disabled{% endif %}"
               >{% trans update_button_name %}
            </a>
       </div>

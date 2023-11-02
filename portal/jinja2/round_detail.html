@@ -80,8 +80,9 @@
 
   <a
     class="btn btn-outline-primary"
+    target="_blank"
     href="{{ url('round-application-export', pk=round.id) }}"
-    data-toggle="tooltip" title="{{ _('Export all the applications of the round') }}"
+    data-toggle="tooltip" title="{{ _('Export all the applications of the round') }}{% if round.site_id == 4 %}{{ _(' (only ACCEPTED)') }}{% endif %}"
     role="button">
       {{ _("Export PDF") }}
   </a>

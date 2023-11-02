@@ -1212,6 +1212,7 @@ APPLICATION_STATES = Choices(
     ("cancelled", _("cancelled")),
     ("withdrawn", _("withdrawn")),
     ("approved", _("approved")),
+    ("accepted", _("accepted")),
 )
 
 
@@ -1428,9 +1429,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         help_text=_("Expression of Interest or preliminary application"),
     )
-    number = CharField(
-        _("number"), max_length=24, null=True, blank=True, editable=False, unique=True
-    )
+    number = CharField(_("number"), max_length=24, null=True, blank=True, unique=True)
     submitted_by = ForeignKey(
         User, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("submitted by")
     )
@@ -1895,7 +1894,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
     @fsm_log
-    @transition(field=state, source=["submitted", "approved"], target="approved")
+    @transition(field=state, source=["submitted"], target="approved")
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -1947,6 +1946,64 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
+        messages.success(
+            request,
+            "Successfully sent notificatio to %s"
+            % ", ".join(u.full_name_with_email for u in recipients),
+        )
+
+    @fsm_log
+    @transition(field=state, source=["approved"], target="accepted")
+    def accept(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution and isinstance(description, str):
+            resolution = resolution.strip()
+        if not by and request:
+            by = request.user
+        # approved by the R.O.
+        recipients = [self.submitted_by, *self.members.all()]
+        if (nomination := Nomination.where(application=self).last()) and (
+            nominator := nomination and nomination.nominator
+        ):
+            recipients.append(nominator)
+        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        if not resolution:
+            resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
+        subject = f'Application "{self}" was ACCEPTED'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        params = {
+            "user_display": ", ".join(r.full_name for r in recipients),
+            "number": self.number,
+            "user": by and by.full_name_with_email,
+            "title": self.title or self.round.title,
+            "url": url,
+            "resolution": resolution,
+        }
+        # send_mail(
+        #     subject,
+        #     (
+        #         "Kia ora %(user_display)s\n\n"
+        #         'The application "%(number)s: %(title)s" was approved: %(url)s by %(user)s.\n\n'
+        #         "Resolution:\n"
+        #         "===========\n\n%(resolution)s\n\n"
+        #     )
+        #     % params,
+        #     html_message=(
+        #         "<p>Kia ora %(user_display)s</p>"
+        #         '<p>Your application <a href="%(url)s">%(number)s: %(title)s</a> was approved.</p>'
+        #         "<h3>Resolution</h3>\n"
+        #         "<pre>%(resolution)s</pre>\n\n"
+        #     )
+        #     % params,
+        #     recipient_list=[r.full_email_address for r in recipients],
+        #     fail_silently=False,
+        #     request=request,
+        #     reply_to=by and by.full_email_address or settings.DEFAULT_FROM_EMAIL,
+        #     thread_index=self.thread_index,
+        #     thread_topic=self.thread_topic,
+        # )
         messages.success(
             request,
             "Successfully sent notificatio to %s"
@@ -2071,6 +2128,61 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             % ", ".join(u.full_name_with_email for u in recipients),
         )
 
+    @fsm_log
+    @transition(field=state, source=["approved"], target="cancelled")
+    def invalidate(self, request=None, by=None, description=None, *args, **kwargs):
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution and isinstance(description, str):
+            resolution = resolution.strip()
+        if not resolution:
+            resolution = f'{by.full_email_address} invalidated your application "{self}".'
+        subject = f'Application "{self}" was CANCELLED'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        recipients = [self.submitted_by, *self.members.all()]
+        if (nomination := Nomination.where(application=self).last()) and (
+            nominator := nomination and nomination.nominator
+        ):
+            recipients.append(nominator)
+        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        params = {
+            "user_display": ", ".join(r.full_name for r in recipients),
+            "number": self.number,
+            "user": by and by.full_name_with_email,
+            "title": self.title or self.round.title,
+            "url": url,
+            "resolution": resolution or "Requested for reviewing and re-drafting.",
+        }
+        # send_mail(
+        #     subject,
+        #     __(
+        #         "Kia ora %(user_display)s\n\n"
+        #         'Your application "%(number)s: %(title)s" was cancelled: %(url)s by %(user)s.\n\n'
+        #         "Resolution:\n"
+        #         "===========\n\n%(resolution)s\n\n"
+        #     )
+        #     % params,
+        #     html_message=__(
+        #         "<p>Kia ora %(user_display)s</p>"
+        #         '<p>Your application <a href="%(url)s">%(number)s: %(title)s</a> was cancelled by %(user)s.</p>'
+        #         "<h3>Resolution</h3>\n"
+        #         "<pre>%(resolution)s</pre>\n\n"
+        #     )
+        #     % params,
+        #     recipient_list=[r.full_email_address for r in recipients],
+        #     fail_silently=False,
+        #     request=request,
+        #     reply_to=by and by.full_email_address or settings.DEFAULT_FROM_EMAIL,
+        #     thread_index=self.thread_index,
+        #     thread_topic=self.thread_topic,
+        # )
+        messages.success(
+            request,
+            "Successfully sent notificatio to review applicant to %s"
+            % ", ".join(u.full_name_with_email for u in recipients),
+        )
+
     def __str__(self):
         if self.site_id == 4 and self.submitted_by:
             return f"{self.number}: {self.submitted_by.full_name}"
@@ -2173,10 +2285,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         if has_testified:
             sql += " AND r.state='testified'"
+        sql += " ORDER BY tm.id"
+        if self.round.required_referees:
+            sql += f" LIMIT {self.round.required_referees}"
 
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
-    def to_pdf(self, request=None, user=None, add_headers=None):
+    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         """Create PDF file for export and return PdfFileMerger"""
 
         r = self.round
@@ -2203,6 +2318,31 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     cv.title_page,
                 )
             )
+
+        def add_testimonials(attachments):
+            for t in self.get_testimonials(has_testified=True):
+                if t.file and t.referee:
+                    attachments.append(
+                        (
+                            _("Testimonial Form Submitted By %s") % t.referee.full_name,
+                            settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
+                            t.title_page,
+                        )
+                    )
+
+                    if (
+                        r.referee_cv_required
+                        and (referee_cv := t.cv or CurriculumVitae.last_user_cv(t.referee.user))
+                        and referee_cv not in cvs
+                    ):
+                        cvs.append(referee_cv)
+                        attachments.append(
+                            (
+                                f"{referee_cv.full_name} {_('Curriculum Vitae')}",
+                                settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
+                                referee_cv.title_page,
+                            )
+                        )
 
         if (
             user.is_superuser
@@ -2238,29 +2378,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-            for t in self.get_testimonials():
-                if t.file and t.referee:
-                    attachments.append(
-                        (
-                            _("Testimonial Form Submitted By %s") % t.referee.full_name,
-                            settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
-                            t.title_page,
-                        )
-                    )
+            if self.site_id != 4:
+                add_testimonials(attachments)
 
-                    if (
-                        r.referee_cv_required
-                        and (referee_cv := t.cv or CurriculumVitae.last_user_cv(t.referee.user))
-                        and referee_cv not in cvs
-                    ):
-                        cvs.append(referee_cv)
-                        attachments.append(
-                            (
-                                f"{referee_cv.full_name} {_('Curriculum Vitae')}",
-                                settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
-                                referee_cv.title_page,
-                            )
-                        )
         if (
             self.round.letter_of_support_required
             and self.letter_of_support
@@ -2275,6 +2395,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         for d in self.documents.order_by("required_document__ordering"):
+            if skip_excluded and d.required_document.exclude:
+                continue
             attachments.append(
                 (
                     f"{d.required_document}",
@@ -2283,11 +2405,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+        if self.site_id == 4:
+            add_testimonials(attachments)
+
         ssl._create_default_https_context = ssl._create_unverified_context
 
         merger = PdfFileMerger(strict=False)
         merger.addMetadata(
-            {"/Title": f"{self.number}: {self.application_title or self.round.title}"}
+            {
+                "/Title": f"{self}"
+                if self.site_id == 4
+                else f"{self.number}: {self.application_title or self.round.title}"
+            }
         )
         merger.addMetadata({"/Author": self.lead_with_email})
         merger.addMetadata({"/Subject": self.round.title})
@@ -2391,15 +2520,37 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
             # merger.append(a, bookmark=title, import_bookmarks=True)
             try:
-                reader = PdfFileReader(a, "rb")
+                try:
+                    reader = PdfFileReader(a, "rb")
+                except PdfReadError as ex:
+                    if "'%PDF-' expected" in ex.args[0]:
+                        pdf = pikepdf.Pdf.open(a)
+                        mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                        pdf.save(mended, normalize_content=True)
+                        reader = PdfFileReader(mended, "rb")
+                    else:
+                        raise
                 if reader.is_encrypted:
                     pdf = pikepdf.Pdf.open(a)
                     decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
-                    pdf.save(decrypted)
-                    merger.append(decrypted, bookmark=title, import_bookmarks=True)
-                else:
+                    pdf.save(decrypted, normalize_content=True)
+                    reader = PdfFileReader(decrypted, "rb")
+                    # merger.append(decrypted, bookmark=title, import_bookmarks=import_bookmarks)
                     # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
-                    merger.append(reader, bookmark=title, import_bookmarks=True)
+
+                # test if book marks can be imported
+                try:
+                    reader.outlines
+                    import_bookmarks = True
+                except PdfReadError as ex:
+                    if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
+                        "Multiple definitions in dictionary at "
+                    ):
+                        import_bookmarks = False
+                    else:
+                        raise
+
+                merger.append(reader, bookmark=title, import_bookmarks=import_bookmarks)
             except PdfReadError:
                 capture_message(f"Failed to merge file {a}")
                 raise
@@ -4549,6 +4700,7 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         _("Title"), max_length=200, null=True, blank=True, help_text=_("Title (e.g. Dr, Professor")
     )
     is_optional = BooleanField(default=False)
+    exclude = BooleanField(default=False, help_text=_("Exclude from the final export"))
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
 

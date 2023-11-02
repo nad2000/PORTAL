@@ -765,7 +765,7 @@ class ApplicationAdmin(
         "updated_at",
         "converted_file",
         "letter_of_support",
-        "number",
+        # "number",
         "state",
         "main_applicant",
     ]
