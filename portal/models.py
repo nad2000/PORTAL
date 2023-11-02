@@ -1351,9 +1351,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     objects = CurrentSiteManager()
     all_objects = Manager()
 
-    number = CharField(
-        _("number"), max_length=24, null=True, blank=True, editable=False, unique=True
-    )
+    number = CharField(_("number"), max_length=24, null=True, blank=True, unique=True)
     submitted_by = ForeignKey(
         User, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("submitted by")
     )
@@ -1878,7 +1876,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             by = request.user
         # approved by the R.O.
         recipients = [self.submitted_by, *self.members.all()]
-        if (nomination := Nomination.where(application=self).last()) and (nominator := nomination and nomination.nominator):
+        if (nomination := Nomination.where(application=self).last()) and (
+            nominator := nomination and nomination.nominator
+        ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
         if not resolution:
@@ -1923,7 +1923,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "Successfully sent notificatio to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
-
 
     @fsm_log
     @transition(field=state, source=["submitted", "draft"], target="draft")
@@ -2056,7 +2055,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self._change_reason = resolution
 
         recipients = [self.submitted_by, *self.members.all()]
-        if (nomination := Nomination.where(application=self).last()) and (nominator := nomination and nomination.nominator):
+        if (nomination := Nomination.where(application=self).last()) and (
+            nominator := nomination and nomination.nominator
+        ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
         params = {
@@ -2095,7 +2096,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "Successfully sent notificatio to review applicant to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
-
 
     def __str__(self):
         if self.site_id == 4 and self.submitted_by:
@@ -2199,10 +2199,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         if has_testified:
             sql += " AND r.status='testified'"
+        sql += " ORDER BY tm.id"
+        if self.round.required_referees:
+            sql += f" LIMIT {self.round.required_referees}"
 
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
-    def to_pdf(self, request=None, user=None, add_headers=None):
+    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         """Create PDF file for export and return PdfFileMerger"""
 
         r = self.round
@@ -2229,6 +2232,31 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     cv.title_page,
                 )
             )
+
+        def add_testimonials(attachments):
+            for t in self.get_testimonials(has_testified=True):
+                if t.file and t.referee:
+                    attachments.append(
+                        (
+                            _("Testimonial Form Submitted By %s") % t.referee.full_name,
+                            settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
+                            t.title_page,
+                        )
+                    )
+
+                    if (
+                        r.referee_cv_required
+                        and (referee_cv := t.cv or CurriculumVitae.last_user_cv(t.referee.user))
+                        and referee_cv not in cvs
+                    ):
+                        cvs.append(referee_cv)
+                        attachments.append(
+                            (
+                                f"{referee_cv.full_name} {_('Curriculum Vitae')}",
+                                settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
+                                referee_cv.title_page,
+                            )
+                        )
 
         if (
             user.is_superuser
@@ -2264,29 +2292,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-            for t in self.get_testimonials():
-                if t.file and t.referee:
-                    attachments.append(
-                        (
-                            _("Testimonial Form Submitted By %s") % t.referee.full_name,
-                            settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
-                            t.title_page,
-                        )
-                    )
+            if self.site_id != 4:
+                add_testimonials(attachments)
 
-                    if (
-                        r.referee_cv_required
-                        and (referee_cv := t.cv or CurriculumVitae.last_user_cv(t.referee.user))
-                        and referee_cv not in cvs
-                    ):
-                        cvs.append(referee_cv)
-                        attachments.append(
-                            (
-                                f"{referee_cv.full_name} {_('Curriculum Vitae')}",
-                                settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
-                                referee_cv.title_page,
-                            )
-                        )
         if (
             self.round.letter_of_support_required
             and self.letter_of_support
@@ -2301,6 +2309,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         for d in self.documents.order_by("required_document__ordering"):
+            if skip_excluded and d.required_document.exclude:
+                continue
             attachments.append(
                 (
                     f"{d.required_document}",
@@ -2309,11 +2319,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+        if self.site_id == 4:
+            add_testimonials(attachments)
+
         ssl._create_default_https_context = ssl._create_unverified_context
 
         merger = PdfFileMerger(strict=False)
         merger.addMetadata(
-            {"/Title": f"{self.number}: {self.application_title or self.round.title}"}
+            {
+                "/Title": f"{self}"
+                if self.site_id == 4
+                else f"{self.number}: {self.application_title or self.round.title}"
+            }
         )
         merger.addMetadata({"/Author": self.lead_with_email})
         merger.addMetadata({"/Subject": self.round.title})
@@ -2427,25 +2444,27 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         reader = PdfFileReader(mended, "rb")
                     else:
                         raise
+                if reader.is_encrypted:
+                    pdf = pikepdf.Pdf.open(a)
+                    decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                    pdf.save(decrypted, normalize_content=True)
+                    reader = PdfFileReader(decrypted, "rb")
+                    # merger.append(decrypted, bookmark=title, import_bookmarks=import_bookmarks)
+                    # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
 
                 # test if book marks can be imported
                 try:
                     reader.outlines
                     import_bookmarks = True
                 except PdfReadError as ex:
-                    if ex.args[0].startswith("Unexpected destination "):
+                    if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
+                        "Multiple definitions in dictionary at "
+                    ):
                         import_bookmarks = False
                     else:
                         raise
 
-                if reader.is_encrypted:
-                    pdf = pikepdf.Pdf.open(a)
-                    decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
-                    pdf.save(decrypted, normalize_content=True)
-                    merger.append(decrypted, bookmark=title, import_bookmarks=import_bookmarks)
-                else:
-                    # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
-                    merger.append(reader, bookmark=title, import_bookmarks=import_bookmarks)
+                merger.append(reader, bookmark=title, import_bookmarks=import_bookmarks)
             except PdfReadError:
                 capture_message(f"Failed to merge file {a}")
                 raise
@@ -4541,6 +4560,7 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         _("Title"), max_length=200, null=True, blank=True, help_text=_("Title (e.g. Dr, Professor")
     )
     is_optional = BooleanField(default=False)
+    exclude = BooleanField(default=False, help_text=_("Exclude from the final export"))
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
 

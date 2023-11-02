@@ -85,7 +85,7 @@ from extra_views import (
 )
 from limesurveyrc2api.limesurvey import LimeSurvey
 from private_storage.views import PrivateStorageDetailView
-from PyPDF2 import PdfFileMerger
+from PyPDF2 import PdfFileMerger, PdfReader
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -295,7 +295,15 @@ class StateInPathMixin:
     def state(self):
         if (
             state := self.request.GET.get("state") or self.request.path.split("/")[-1]
-        ) and state in ["new", "draft", "submitted", "archived", "approved", "cancelled"]:
+        ) and state in [
+            "new",
+            "draft",
+            "submitted",
+            "archived",
+            "approved",
+            "cancelled",
+            "accepted",
+        ]:
             return state
 
     def get_context_data(self, **kwargs):
@@ -331,6 +339,8 @@ class StateInPathMixin:
             else:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
+                elif state == "accepted":
+                    queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
@@ -1671,7 +1681,7 @@ class ApplicationView(LoginRequiredMixin):
                         ),
                     )
                     return redirect("application", pk=pk)
-                if not r.is_open and r.closes_on > (timezone.now()+timedelta(days=1)):
+                if not r.is_open and r.closes_on > (timezone.now() + timedelta(days=1)):
                     messages.error(
                         request,
                         _(
@@ -3183,7 +3193,13 @@ class ApplicationList(
         #         context["application_submitted_count"] = application_submitted_count
 
         context["filter_disabled"] = True
-        if (state := self.request.path.split("/")[-1]) and state in ["draft", "submitted"]:
+        if (state := self.request.path.split("/")[-1]) and state in [
+            "draft",
+            "submitted",
+            "approved",
+            "accepted",
+            "cancelled",
+        ]:
             context["state"] = state
 
         return context
@@ -3599,10 +3615,15 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
             )
-            if data and data.org and not models.Affiliation.where(
+            if (
+                data
+                and data.org
+                and not models.Affiliation.where(
                     profile=self.request.user.profile,
                     org=data.org,
-                    type=models.AFFILIATION_TYPES.EMP).exists():
+                    type=models.AFFILIATION_TYPES.EMP,
+                ).exists()
+            ):
                 models.Affiliation.create(
                     profile=self.request.user.profile,
                     org=data.org,
@@ -3783,16 +3804,20 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             else:
                 s0 = f"the {s}"
             q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
-            q = q.filter(
-                Q(
-                    id__in=models.Organisation.where(
-                        Q(name__istartswith=s) | Q(name__istartswith=s0)
+            q = (
+                q.filter(
+                    Q(
+                        id__in=models.Organisation.where(
+                            Q(name__istartswith=s) | Q(name__istartswith=s0)
+                        )
+                        .values("name")
+                        .annotate(Min("id"))
+                        .values("id__min")
                     )
-                    .values("name")
-                    .annotate(Min("id"))
-                    .values("id__min")
                 )
-            ).order_by("name", "id").values_list("id", "name")
+                .order_by("name", "id")
+                .values_list("id", "name")
+            )
             q = q.union(
                 models.OrgName.where(
                     Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
@@ -3804,15 +3829,21 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .annotate(Min("org_id"))
                         .values("org_id__min")
                     ),
-                ).order_by("name", "org_id").values_list("org_id", "name")
+                )
+                .order_by("name", "org_id")
+                .values_list("org_id", "name")
             )
         else:
-            q = q.filter(
-                id__in=models.Organisation.objects.all()
-                .values("name")
-                .annotate(Min("id"))
-                .values("id__min")
-            ).order_by("name").values_list("id", "name")
+            q = (
+                q.filter(
+                    id__in=models.Organisation.objects.all()
+                    .values("name")
+                    .annotate(Min("id"))
+                    .values("id__min")
+                )
+                .order_by("name")
+                .values_list("id", "name")
+            )
         return q
 
 
@@ -4401,7 +4432,9 @@ class NominationView(CreateUpdateView):
     def get_close_url(self):
         referer = self.request.META.get("HTTP_REFERER")
         return self.request.GET.get("next") or (
-            referer if referer and not referer.endswith(self.request.path) else reverse("nominations")
+            referer
+            if referer and not referer.endswith(self.request.path)
+            else reverse("nominations")
         )
 
 
@@ -4970,21 +5003,30 @@ class RoundExportView(ExportView):
 
     def get(self, request, pk):
         round = self.round
+        site_id = settings.SITE_ID
 
-        merger = PdfFileMerger()
+        # merger = PdfFileMerger()
+        merger = PdfFileMerger(strict=False)
         merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
         merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 
         numbers = []
         # for a in self.round.applications.all().order_by("number"):
-        for a in self.round.applications.filter(state="accepted").order_by("number"):
+        for a in (
+            self.round.applications.filter(state="accepted")
+            if site_id == 4
+            else self.round.applications.filter(state__in=["submitted", "approved"])
+        ).order_by("number"):
             numbers.append(a.number)
             content = io.BytesIO()
-            a.to_pdf(request).write(content)
+            a.to_pdf(request, skip_excluded=(site_id == 4)).write(content)
             content.seek(0)
+            reader = PdfReader(content)
             merger.append(
-                content,
-                bookmark=f"{a.number}: {a.application_title or round.title}",
+                reader,
+                bookmark=f"{a}"
+                if a.site_id == 4
+                else f"{a.number}: {a.application_title or round.title}",
                 import_bookmarks=True,
             )
         merger.add_metadata({"/Keywords": ", ".join(numbers)})

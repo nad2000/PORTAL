@@ -44,13 +44,15 @@ def portal_context(request):
                 if site_id == 4 and (is_staff or u.is_superuser)
                 else ["submitted", "approved", "cancelled"],
             )
+            application_accepted_count = models.Application.user_application_count(u, ["accepted"])
             # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
-            application_count = application_draft_count + application_submitted_count
+            application_count = application_draft_count + application_submitted_count + application_accepted_count
             stats = {
                 "is_staff": is_staff,
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_draft_count": application_draft_count,
                 "application_submitted_count": application_submitted_count,
+                "application_accepted_count": application_accepted_count,
                 "nomination_count": models.Nomination.user_nomination_count(u),
                 "nomination_draft_count": models.Nomination.user_nomination_count(u, "draft"),
                 "nomination_submitted_count": models.Nomination.user_nomination_count(
