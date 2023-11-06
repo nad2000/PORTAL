@@ -29,7 +29,7 @@ class StateColumn(tables.Column):
             )
         elif state in ["new", "draft"]:
             if state == "draft":
-                if isinstance(record, (models.Testimonial, models.Application)):
+                if isinstance(record, (models.Testimonial, models.Application, models.Contract)):
                     css_classes = "far fa-times-circle text-danger text-center"
                     title = _("Work in progress")
                 else:
@@ -38,12 +38,15 @@ class StateColumn(tables.Column):
                         "The invitation has not been processed yet or it is in draft version"
                     )
             else:
-                if isinstance(record, (models.Testimonial, models.Application)):
+                if isinstance(record, (models.Testimonial, models.Application, models.Contract)):
                     css_classes = "far fa-times-circle text-danger text-center"
-                    if isinstance(record, models.Testimonial):
-                        title = _("The testimonial was just created")
-                    else:
-                        title = _("The application was just created")
+                    title = _("The %(verbose_name)s was just created") % {
+                        "verbose_name": _(record._meta.verbose_name)
+                    }
+                    # if isinstance(record, models.Testimonial):
+                    #     title = _("The testimonial was just created")
+                    # else:
+                    #     title = _("The application was just created")
                 else:
                     title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
@@ -98,7 +101,9 @@ class NominationTable(tables.Table):
         linkify=lambda table, record: record.get_absolute_url()
         if record.state not in ["submitted", "accepted"]
         else reverse("nomination-detail", args=[record.pk])
-        if record.user == table.request.user or record.nominator == table.request.user or record.email == table.request.user.email
+        if record.user == table.request.user
+        or record.nominator == table.request.user
+        or record.email == table.request.user.email
         else None
     )
     state = StateColumn()
@@ -601,6 +606,7 @@ class ContractTable(tables.Table):
     number = tables.Column(
         linkify=lambda value, record: reverse("contract-detail", kwargs=dict(number=record.number))
     )
+    state = StateColumn()
     # contract_pi = tables.Column(linkify=application_link)
 
     # email = tables.Column(
@@ -660,10 +666,10 @@ class ContractTable(tables.Table):
     class Meta:
         model = models.Contract
         fields = (
+            "state",
             "number",
             "application",
             # "contract_pi",
-            "state",
         )
 
 
