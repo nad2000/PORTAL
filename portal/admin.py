@@ -974,6 +974,9 @@ class ApplicationAdmin(
         fieldsets = super().get_fieldsets(request, obj)
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "state")
+        if settings.SITE_ID == 4:
+            fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
+
         return fieldsets
 
     def view_on_site(self, obj):
