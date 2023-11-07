@@ -80,7 +80,7 @@ SITE_ID = SiteID(default=1)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = True
+USE_L10N = False
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
@@ -455,8 +455,10 @@ RAPIDCONNECT_LOGOUT = "https://rapidconnect.tuakiri.ac.nz/logout"
 
 # DATE_FORMAT = "Y-m-d"
 DATE_FORMAT = "d-m-Y"
-TIME_FORMAT = "H:M"
+TIME_FORMAT = "H:i"
 DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT}"
+SHORT_DATETIME_FORMAT = DATETIME_FORMAT
+SHORT_DATE_FORMAT = DATE_FORMAT
 
 # FSM_ADMIN_FORCE_PERMIT = True
 # Captcha settings you will need to create new captcha app here https://www.google.com/recaptcha/admin/

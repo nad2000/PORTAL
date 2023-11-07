@@ -2147,8 +2147,29 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     class CommentInline(admin.TabularInline):
         model = models.ContractComment
         extra = 0
+        can_delete = False
         view_on_site = False
+        fields = ["created_at", "submitted_by", "html_comment", "attachment_link"]
+        readonly_fields = ["created_at", "html_comment", "submitted_by", "attachment_link"]
         classes = ["collapse"]
+
+        def has_change_permission(self, request, obj):
+            return False
+
+        def has_add_permission(self, request, obj):
+            return False
+
+        @admin.display(description=_("comment"))
+        def html_comment(self, obj):
+            return mark_safe(obj.comment or "-")
+
+        @admin.display(description=_("attachment"))
+        def attachment_link(self, obj):
+            return mark_safe(
+                obj.attachment
+                and f'<a href="{obj.attachment.url}">{os.path.basename(obj.attachment.name)}</a>'
+                or "-"
+            )
 
     # class PanelAllocationInline(admin.StackedInline):
     # class PanelAllocationInline(admin.StackedInline):

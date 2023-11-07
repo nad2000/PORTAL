@@ -5854,7 +5854,7 @@ class ContractComment(Model):
     )
 
     def __str__(self):
-        return self.code_id
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
 
     class Meta:
         db_table = "contract_comment"
