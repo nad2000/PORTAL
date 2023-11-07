@@ -1431,7 +1431,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
     number = CharField(_("number"), max_length=24, null=True, blank=True, unique=True)
     submitted_by = ForeignKey(
-        User, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("submitted by")
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+        related_name="applications",
     )
     cv = ForeignKey(
         "CurriculumVitae",
@@ -2643,7 +2648,7 @@ class Member(PersonMixin, MemberMixin, Model):
     last_name = CharField(max_length=150, null=True, blank=True)
     role = CharField(max_length=200, null=True, blank=True)
     # has_authorized = BooleanField(null=True, blank=True)
-    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     authorized_at = MonitorField(
@@ -5824,6 +5829,27 @@ class ContractSeo(Model):
         verbose_name_plural = _("contract SEOs")
 
 
+class ContractComment(Model):
+    contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
+    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    attachment = PrivateFileField(_("attachment"), null=True, blank=True)
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+        related_name="contract_comments",
+    )
+
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        db_table = "contract_comment"
+        verbose_name = _("comment")
+
+
 class ContractMixin:
     STATES = Choices(
         (None, None),
@@ -6003,6 +6029,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         return self.allocations.aggregate(Sum("allocation", default=0)).get(
             "allocation__sum", Decimal("0.00")
         )
+
+    @property
+    def thread_index(self):
+        return base64.b64encode(f"{self.site_id}:{self.pk}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.number
 
     class Meta:
         db_table = "contract"

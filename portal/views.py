@@ -3319,11 +3319,17 @@ class ContractViewMixin:
     def form_valid(self, form):
         a = self.application
         u = self.request.user
-        form.instance.submitted_by = u
-        form.instance.org = a.org
-        form.instance.application = a
-        form.instance.number = a.number
-        form.instance.fund = models.Fund.last()
+        i = form.instance
+        if not i.submitted_by:
+            i.submitted_by = u
+        if not i.org:
+            i.org = a.org
+        if not i.application:
+            i.application = a
+        if not i.number:
+            i.number = a.number
+        if not i.fund:
+            i.fund = models.Fund.last()
         try:
             with transaction.atomic():
                 resp = super().form_valid(form)
@@ -3345,20 +3351,31 @@ class ContractViewMixin:
             messages.error(self.request, getattr(ex, "message", str(ex)))
             return super().form_invalid(form)
         if "post_comment" in self.request.POST:
-            if a.org.research_offices.filter(user=u).exists():
-                attachment = form.cleaned_data.get("attachment", None)
-                staff_users = [
-                    u for u in Site.objects.get_current().staff_users.all()
-                ] or [u for u in User.where(is_superuser=True)]
-                send_mail(
-                    subject=f"Comment posted by {u} to {self}",
-                    message=f"Comment posted by {u} to {self}",
-                    cc=[u.full_email_address],
-                    attachments=attachment and [attachment],
-                    recipient_list=staff_users,
-                )
+            attachment = form.cleaned_data.get("attachment", None)
+            if body := form.cleaned_data.get("comment", None):
+                body = body.strip()
+
+            if (
+                a.org.research_offices.filter(user=u).exists()
+                or a.submitted_by == u
+                or a.members.filter(user=u).exists()
+            ):
+                ricipients = [u for u in Site.objects.get_current().staff_users.all()] or [
+                    u for u in User.where(is_superuser=True)
+                ]
             else:
-                pass
+                ricipients = [u for u in a.org.research_offices.all()] or [
+                    u for u in User.where(Q(applications=a) | Q(members__application=a))
+                ]
+            send_mail(
+                subject=f"Comment posted by {u} to {self}",
+                message_html=body or f"<p>Comment posted by {u} to {self}.</p>",
+                cc=[u.full_email_address],
+                attachments=attachment and [attachment],
+                recipient_list=ricipients,
+                thread_index=i.thread_index,
+                thread_topic=i.thread_topic,
+            )
             return redirect(
                 reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
             )

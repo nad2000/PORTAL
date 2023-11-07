@@ -46,7 +46,7 @@ class User(HelperMixin, AbstractUser, PersonMixin):
     name = CharField(_("Name of User"), blank=True, null=True, max_length=255)
     orcid = CharField("ORCID iD", blank=True, null=True, max_length=80)
     history = HistoricalRecords()
-    is_approved = BooleanField("Is Approved", default=False)
+    is_approved = BooleanField(_("Is Approved"), default=False)
 
     is_identity_verified = BooleanField(null=True, blank=True)
     identity_verified_by = ForeignKey("self", null=True, blank=True, on_delete=SET_NULL)
@@ -63,7 +63,7 @@ class User(HelperMixin, AbstractUser, PersonMixin):
     )
 
     @cached_property
-    @admin.display(description="staff status", boolean=True)
+    @admin.display(description=_("staff status"), boolean=True)
     def is_site_staff(self):
         """Test if the user is staff of the current site"""
         # if not self.is_staff:
