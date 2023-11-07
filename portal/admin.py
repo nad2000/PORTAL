@@ -2144,6 +2144,13 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         view_on_site = False
         classes = ["collapse"]
 
+    class CommentInline(admin.TabularInline):
+        model = models.ContractComment
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    # class PanelAllocationInline(admin.StackedInline):
     # class PanelAllocationInline(admin.StackedInline):
     #     model = models.ContractPanelAllocation
     #     extra = 0
@@ -2206,6 +2213,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # ExchangeInline,
         # EventInline,
         # LogInline,
+        CommentInline,
         StateLogInline,
     ]
 

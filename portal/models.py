@@ -5833,7 +5833,17 @@ class ContractComment(Model):
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
     comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
-    attachment = PrivateFileField(_("attachment"), null=True, blank=True)
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_subfolder=lambda instance: [
+            "contracts",
+            # hash_int(instance.application_id),
+            hash_int(instance.contract_id),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
     submitted_by = ForeignKey(
         User,
         null=True,
@@ -6099,8 +6109,8 @@ class Part(PartMixin, PdfFileMixin, Model):
         blank=True,
         null=True,
         upload_subfolder=lambda instance: [
-            "contract",
-            hash_int(instance.application_id),
+            "contracts",
+            # hash_int(instance.application_id),
             hash_int(instance.contract_id),
         ],
         validators=[
