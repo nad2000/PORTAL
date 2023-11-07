@@ -3351,28 +3351,46 @@ class ContractViewMixin:
             messages.error(self.request, getattr(ex, "message", str(ex)))
             return super().form_invalid(form)
         if "post_comment" in self.request.POST:
+            token = models.get_unique_mail_token()
             attachment = form.cleaned_data.get("attachment", None)
             if body := form.cleaned_data.get("comment", None):
                 body = body.strip()
+
+            if body or attachment:
+                models.ContractComment.create(
+                    contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
+                )
 
             if (
                 a.org.research_offices.filter(user=u).exists()
                 or a.submitted_by == u
                 or a.members.filter(user=u).exists()
             ):
-                ricipients = [u for u in Site.objects.get_current().staff_users.all()] or [
+                recipients = [u for u in Site.objects.get_current().staff_users.all()] or [
                     u for u in User.where(is_superuser=True)
                 ]
             else:
-                ricipients = [u for u in a.org.research_offices.all()] or [
+                recipients = [ro.user for ro in a.org.research_offices.all()] or [
                     u for u in User.where(Q(applications=a) | Q(members__application=a))
                 ]
+            respond_url = (
+                self.request.build_absolute_uri(
+                    reverse("contract-update", kwargs=dict(pk=self.object.pk))
+                )
+                + "#correspondence"
+            )
+            html_message = (
+                f"<p>Comment posted by {u.full_name_with_email} to {i}.</p>"
+                if body
+                else f"<p>Comment posted by {u.full_name_with_email} to {i}:</p>{body}"
+            )
+            html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
             send_mail(
-                subject=f"Comment posted by {u} to {self}",
-                message_html=body or f"<p>Comment posted by {u} to {self}.</p>",
+                subject=f"Comment posted by {u.full_name_with_email} to {i}",
+                html_message=html_message,
                 cc=[u.full_email_address],
                 attachments=attachment and [attachment],
-                recipient_list=ricipients,
+                recipient_list=recipients,
                 thread_index=i.thread_index,
                 thread_topic=i.thread_topic,
             )

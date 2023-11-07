@@ -5831,6 +5831,7 @@ class ContractSeo(Model):
 
 class ContractComment(Model):
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
+    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
     comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
     attachment = PrivateFileField(_("attachment"), null=True, blank=True)
     submitted_by = ForeignKey(
@@ -6032,11 +6033,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     @property
     def thread_index(self):
-        return base64.b64encode(f"{self.site_id}:{self.pk}".encode()).decode()
+        return base64.b64encode(
+            f"{self.site_id}:{self._meta.model_name}:{self.pk}".encode()
+        ).decode()
 
     @property
     def thread_topic(self):
-        return self.number
+        return f"{self._meta.model_name}:{self.number}"
 
     class Meta:
         db_table = "contract"
