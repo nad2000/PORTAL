@@ -1142,10 +1142,12 @@ class ApplicationForm(forms.ModelForm):
             position=TextInput(
                 attrs={"placeholder": _("student, postdoc, etc.")},
             ),
-            summary=SummernoteInplaceWidget(),
-            summary_en=SummernoteInplaceWidget(),
-            summary_mi=SummernoteInplaceWidget(),
-            ethics_statement__comment=SummernoteInplaceWidget(),
+            summary=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            summary_en=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            summary_mi=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            ethics_statement__comment=SummernoteInplaceWidget(
+                attrs={"summernote": {"width": "100%"}}
+            ),
             # round=HiddenInput(),
             letter_of_support_file=forms.ClearableFileInput(
                 attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
@@ -1246,7 +1248,7 @@ class ContractForm(forms.ModelForm):
     comment = forms.CharField(
         label="",
         required=False,
-        widget=SummernoteInplaceWidget(),
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -1298,7 +1300,7 @@ class ContractForm(forms.ModelForm):
             #     ),
             # ),
             Tab(
-                _("Summary"),
+                mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
                 *(
                     [HTML("{% load tags %}{% contract_summary %}")]
                     if self.instance and self.instance.id
@@ -1368,7 +1370,7 @@ class ContractForm(forms.ModelForm):
                 css_id="compliance",
             ),
             Tab(
-                _("Finances"),
+                mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
                 HTML(
                     """{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
@@ -1410,7 +1412,7 @@ class ContractForm(forms.ModelForm):
         if instance and instance.pk:
             tabs.append(
                 Tab(
-                    _("Correspondence"),
+                    mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
                     Field("comment"),
                     Fieldset(
                         None,
@@ -1420,6 +1422,9 @@ class ContractForm(forms.ModelForm):
                             _("Post Comment"),
                             css_class="btn-primary float-right",
                         ),
+                    ),
+                    HTML(
+                        '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
                     ),
                     css_id="correspondence",
                 )
@@ -1485,12 +1490,14 @@ class ContractForm(forms.ModelForm):
             daytime_phone=TelInput(),
             mobile_phone=TelInput(),
             # file=FileInput(),
-            abstract=SummernoteInplaceWidget(),
-            notes=SummernoteInplaceWidget(),
-            summary=SummernoteInplaceWidget(),
-            summary_en=SummernoteInplaceWidget(),
-            summary_mi=SummernoteInplaceWidget(),
-            ethics_statement__comment=SummernoteInplaceWidget(),
+            abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            summary=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            summary_en=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            summary_mi=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            ethics_statement__comment=SummernoteInplaceWidget(
+                attrs={"summernote": {"width": "100%"}}
+            ),
             # round=HiddenInput(),
             letter_of_support_file=forms.ClearableFileInput(
                 attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
@@ -2220,7 +2227,11 @@ class ConflictOfInterestForm(forms.ModelForm):
             "has_conflict",
         ]
 
-        widgets = dict(comment=SummernoteInplaceWidget())
+        widgets = dict(
+            comment=SummernoteInplaceWidget(
+                attrs={"summernote": {"width": "100%", "height": "200px"}}
+            )
+        )
 
 
 class CriterionWidget(Widget):

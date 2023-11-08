@@ -444,7 +444,12 @@ SOCIALACCOUNT_PROVIDERS = {
 # https://github.com/summernote/django-summernote
 SUMMERNOTE_THEME = "bs4"
 # SUMMERNOTE_CONFIG = {"iframe": False}
-SUMMERNOTE_CONFIG = {"iframe": True}
+SUMMERNOTE_CONFIG = {
+    # "iframe": True,
+    # "summernote": {
+    #     "width": "100%",
+    # },
+}
 IMPORT_EXPORT_USE_TRANSACTIONS = True
 IMPORT_EXPORT_SKIP_ADMIN_LOG = True
 

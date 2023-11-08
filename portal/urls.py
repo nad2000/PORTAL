@@ -67,8 +67,6 @@ urlpatterns = [
                     views.ApplicationUpdate.as_view(),
                     name="application-update",
                 ),
-                path("<int:pk>", views.ApplicationDetail.as_view(), name="application"),
-                path("<number>", views.ApplicationDetail.as_view(), name="application-detail"),
                 path(
                     "<int:application>/review/~create",
                     views.TestimonialView.as_view(),
@@ -79,6 +77,8 @@ urlpatterns = [
                 path("approved", views.ApplicationList.as_view(), name="applications-approved"),
                 path("accepted", views.ApplicationList.as_view(), name="applications-accepted"),
                 # path("cancelled", views.ApplicationList.as_view(), name="applications-cancelled"),
+                path("<int:pk>", views.ApplicationDetail.as_view(), name="application"),
+                path("<number>", views.ApplicationDetail.as_view(), name="application-detail"),
                 path("", views.ApplicationList.as_view(), name="applications"),
                 path(
                     "<int:pk>/~export",

@@ -5859,6 +5859,7 @@ class ContractComment(Model):
     class Meta:
         db_table = "contract_comment"
         verbose_name = _("comment")
+        ordering = ["-id"]
 
 
 class ContractMixin:
