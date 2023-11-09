@@ -971,10 +971,75 @@ class ApplicationAdmin(
     )
 
     def get_fieldsets(self, request, obj):
-        fieldsets = super().get_fieldsets(request, obj)
+        # fieldsets = super().get_fieldsets(request, obj).copy()
+        fieldsets = (
+            (
+                None,
+                {
+                    "fields": [
+                        "state",
+                        ("number", "application_title_en", "application_title_mi"),
+                        "is_bilingual",
+                        "round",
+                        ("title", "first_name", "middle_names", "last_name", "position"),
+                        ("daytime_phone", "mobile_phone"),
+                        ("email", "main_applicant"),
+                        "presentation_url",
+                        "is_tac_accepted",
+                    ]
+                },
+            ),
+            (
+                "Organisation",
+                {
+                    "fields": [
+                        "org",
+                        "postal_address",
+                        "city",
+                        "postcode",
+                    ],
+                },
+            ),
+            (
+                "Summary and Files",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        "file",
+                    ],
+                },
+            ),
+            (
+                "Vision Mātauranga",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        "vm_ecs",
+                        "vm_ens",
+                        "vm_hsw",
+                        "vm_ink",
+                        "is_vm_na",
+                        "vm_rationane",
+                    ],
+                },
+            ),
+            (
+                "Type of Activity",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        "toa_applied",
+                        "toa_basic",
+                        "toa_strategic",
+                        "toa_experimental",
+                    ],
+                },
+            ),
+        )
+
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "state")
-        if settings.SITE_ID == 4:
+        if obj.site_id == 4:
             fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
 
         return fieldsets
