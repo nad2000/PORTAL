@@ -47,6 +47,9 @@ if __name__ == "__main__":
         sender = match[0].lower()
         from_addresses.append(sender)
 
+    if to and (recipient_match := re.search(EMAIL_EX, to)):
+        to = recipient_match[0].lower()
+
     if subject:
         subject = str(make_header(decode_header(subject)))
     body = msg["body"]
@@ -79,7 +82,11 @@ if __name__ == "__main__":
                 from_addresses.append(final_recipient)
 
         if not message_id:
-            message_id = ( part["in-reply-to"] or part["original-message-id"] or part["x-ms-exchange-parent-message-id"] or part["message-id"]
+            message_id = (
+                part["in-reply-to"]
+                or part["original-message-id"]
+                or part["x-ms-exchange-parent-message-id"]
+                or part["message-id"]
             )
         if not message_id:
             continue
@@ -132,6 +139,32 @@ if __name__ == "__main__":
             break
         else:
             message_id = None
+
+    if to and (to.startswith("contracts") or to.startswith("comments")) and message_id:
+        if contract := models.Contract.all_objects.filter(comments__token=message_id).last():
+            by = models.User.where(
+                models.Q(email=sender) | models.Q(emailaddress__email=sender)
+            ).first()
+            body = msg["body"]
+            if not msg.is_multipart():
+                body = msg.get_payload(decode=True)
+            else:
+                for part in msg.walk():
+                    content_type = part.get_content_type()
+                    if content_type == "multipart/alternative":
+                        for p in part.get_payload():
+                            body = p.get_payload(decode=True)
+                            if p.get_content_type() == "text/html":
+                                break
+            if by or body:
+                token = models.get_unique_mail_token()
+                models.ContractComment.create(
+                    contract=contract,
+                    submitted_by=by,
+                    comment=body and body.decode(),
+                    token=token,
+                    # attachment=attachment,
+                )
 
     # with open("%s-%s.txt" % (msg["from"], subject), "w") as f:
     #     f.write(full_msg)
