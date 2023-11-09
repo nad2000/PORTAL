@@ -3380,12 +3380,14 @@ class ContractViewMixin:
                 + "#correspondence"
             )
             html_message = (
-                f"<p>Comment posted by {u.full_name_with_email} to {i}.</p>"
+                f"<p>Comment posted by {u.full_name_with_email} to {i}:</p>{body}"
                 if body
-                else f"<p>Comment posted by {u.full_name_with_email} to {i}:</p>{body}"
+                else f"<p>Comment posted by {u.full_name_with_email} to {i}.</p>"
             )
             html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
             send_mail(
+                request=self.request,
+                from_email="comments",
                 subject=f"Comment posted by {u.full_name_with_email} to {i}",
                 html_message=html_message,
                 cc=[u.full_email_address],
@@ -3393,6 +3395,7 @@ class ContractViewMixin:
                 recipient_list=recipients,
                 thread_index=i.thread_index,
                 thread_topic=i.thread_topic,
+                token=token,
             )
             return redirect(
                 reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"

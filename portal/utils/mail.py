@@ -172,11 +172,11 @@ def send_mail(
             for r in recipient_list
         ]
 
-    if not from_email:
+    if not from_email or "@" not in from_email:
         if ":" in domain or "." not in domain:
-            from_email = f"{site.name} <noreply@{site.domain}>"
+            from_email = f"{site.name} <{from_email or 'noreply'}@{site.domain}>"
         else:
-            from_email = f"{site.name} <noreply@{domain}>"
+            from_email = f"{site.name} <{from_email or 'noreply'}@{domain}>"
 
     if not message and html_message:
         message = html2text.html2text(html_message)
