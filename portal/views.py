@@ -512,7 +512,7 @@ def subscribe(request):
         send_mail(
             __("Please confirm subscription"),
             __("Please confirm your subscription to our newsletter: %s") % url,
-            recipient_list=[email],
+            recipients=[email],
             fail_silently=False,
             token=token,
             request=request,
@@ -742,7 +742,7 @@ def index(request):
             )
             if research_officers.count() > 0:
                 try:
-                    recipient_list = [
+                    recipients = [
                         (ro.full_name or _("Research Office"), ro.email)
                         for ro in research_officers
                     ]
@@ -758,7 +758,7 @@ def index(request):
                             f'<p>You can submit the nomination at <a href="{url}">Nominate for {request_round}</a>.</p>'
                         ),
                         reply_to=user.full_email_address,
-                        recipient_list=recipient_list,
+                        recipients=recipients,
                         cc=[user.full_email_address],
                         request=request,
                     )
@@ -1063,7 +1063,7 @@ def profile_protection_patterns(request):
             contact_email = models.site_contact_email(site.id)
             if site.domain == "portal.pmscienceprizes.org.nz":
                 send_mail(
-                    recipient_list=[request.user.full_email_address],
+                    recipients=[request.user.full_email_address],
                     subject="Account Approval request submitted",
                     html_message=(
                         "<p>Tēnā koe,</p>"
@@ -3366,7 +3366,7 @@ class ContractViewMixin:
                 or a.submitted_by == u
                 or a.members.filter(user=u).exists()
             ):
-                recipients = [u for u in Site.objects.get_current().staff_users.all()] or [
+                recipients = i.host_contact_email or [u for u in Site.objects.get_current().staff_users.all()] or [
                     u for u in User.where(is_superuser=True)
                 ]
             else:
@@ -3382,6 +3382,7 @@ class ContractViewMixin:
             html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
             html_message += f":</p>{body}" if body else "."
             html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            breakpoint()
             send_mail(
                 request=self.request,
                 from_email="contracts",
@@ -3389,7 +3390,7 @@ class ContractViewMixin:
                 html_message=html_message,
                 cc=[u.full_email_address],
                 attachments=attachment and [attachment],
-                recipient_list=recipients,
+                recipients=recipients,
                 thread_index=i.thread_index,
                 thread_topic=i.thread_topic,
                 token=token,
@@ -4571,7 +4572,7 @@ def approve_user(request, user_id=None):
         u.save()
         url = request.build_absolute_uri(reverse("index"))
         send_mail(
-            recipient_list=[u.full_email_address],
+            recipients=[u.full_email_address],
             subject=f"Confirmation of {u.email} Signup",
             html_message="<p>You have been approved by schema administrators, "
             f"now start submitting an application to the Portal: {url}</p>",
@@ -4953,7 +4954,7 @@ class TestimonialView(CreateUpdateView):
                             "%(title)s</a></p>"
                         )
                         % params,
-                        recipient_list=recipients,
+                        recipients=recipients,
                         fail_silently=False,
                         request=self.request,
                         reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -4978,7 +4979,7 @@ class TestimonialView(CreateUpdateView):
                     __("A Referee opted out of Testimonial"),
                     __("Your Referee %s has opted out of Testimonial") % t.referee,
                     settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[
+                    recipients=[
                         t.referee.application.submitted_by.email
                         if t.referee.application.submitted_by
                         else t.referee.application.email
@@ -5099,7 +5100,7 @@ class NominationDetail(DetailView):
     #             _("A team member opted out of application"),
     #             _("Your team member %s has opted out of application") % member,
     #             settings.DEFAULT_FROM_EMAIL,
-    #             recipient_list=[self.object.submitted_by.email],
+    #             recipients=[self.object.submitted_by.email],
     #             fail_silently=False,
     #         )
     #     return self.get(request, *args, **kwargs)
@@ -6026,7 +6027,7 @@ class EvaluationDetail(DetailView):
     #                 _("A team member opted out of application"),
     #                 _("Your team member %s has opted out of application") % member,
     #                 settings.DEFAULT_FROM_EMAIL,
-    #                 recipient_list=[self.object.submitted_by.email],
+    #                 recipients=[self.object.submitted_by.email],
     #                 fail_silently=False,
     #                 request=self.request,
     #                 reply_to=settings.DEFAULT_FROM_EMAIL,

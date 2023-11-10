@@ -141,7 +141,7 @@ def send_mail(
     subject,
     message=None,
     from_email=None,
-    recipient_list=None,
+    recipients=None,
     cc=None,
     bcc=None,
     attachments=None,
@@ -161,16 +161,20 @@ def send_mail(
 ):
     site = (invitation and invitation.site) or Site.objects.get_current()
     domain = request and request.get_host() or site.domain
+    if ":" in domain:
+        domain = domain.split(":")[0]
     root = f"https://{domain}"
-    if recipient_list and isinstance(recipient_list, (list, tuple)):
-        recipient_list = [
+    if recipients and isinstance(recipients, (list, tuple)):
+        recipients = [
             r.lower()
             if isinstance(r, str)
             else f"{r[0]} <{r[1].lower()}>"
             if isinstance(r, (tuple, list))
             else r.full_email_address
-            for r in recipient_list
+            for r in recipients
         ]
+    if recipients and isinstance(recipients, str):
+        recipients = [recipients.strip().lower()]
 
     if not from_email or "@" not in from_email:
         if ":" in domain or "." not in domain:
@@ -232,7 +236,7 @@ def send_mail(
         subject=subject,
         body=message,
         from_email=from_email,
-        to=recipient_list,
+        to=recipients,
         # attachments=attachments,
         cc=cc or None,
         bcc=bcc or None,
@@ -254,9 +258,9 @@ def send_mail(
     resp = msg.send()
 
     all_recipients = (
-        recipient_list.union(bcc or [])
-        if isinstance(recipient_list, set)
-        else ((recipient_list or []) + (bcc or []))
+        recipients.union(bcc or [])
+        if isinstance(recipients, set)
+        else ((recipients or []) + (bcc or []))
     )
     for no, r in enumerate(all_recipients):
         models.MailLog.create(
@@ -284,15 +288,15 @@ def mail_admins(subject, message, fail_silently=False, connection=None, html_mes
     """Send a message to the admins, as defined by the ADMINS setting."""
     if not all(isinstance(a, (list, tuple)) and len(a) == 2 for a in settings.ADMINS):
         raise ValueError("The ADMINS setting must be a list of 2-tuples.")
-    recipient_list = set([f'"{a[0]}" <{a[1]}>' for a in settings.ADMINS])
-    recipient_list.update(
+    recipients = set([f'"{a[0]}" <{a[1]}>' for a in settings.ADMINS])
+    recipients.update(
         [u.full_email_address for u in models.User.where(is_superuser=True).all()]
     )
 
     send_mail(
         subject=subject,
         message=message,
-        recipient_list=recipient_list,
+        recipients=recipients,
         fail_silently=fail_silently,
         connection=connection,
         html_message=html_message,

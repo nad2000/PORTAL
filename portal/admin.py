@@ -2069,13 +2069,10 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
             None,
             {
                 "fields": [
-                    (
-                        "state",
-                        # "status",
-                        "completed_on",
-                    ),
+                    ("state", "completed_on"),
                     ("number", "refcode", "year"),
                     "project_title",
+                    "host_contact_email",
                     # ("source", "source_code"),
                     ("org", "application"),
                     # ("proposal", "proposal_number"),

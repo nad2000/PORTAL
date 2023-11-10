@@ -1863,7 +1863,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "number": self.number,
                     "title": self.application_title or round.title,
                 },
-                recipient_list=[nominator.full_email_address],
+                recipients=[nominator.full_email_address],
                 cc=[
                     ro.user.full_email_address
                     for ro in ResearchOffice.where(org=self.org)
@@ -1890,7 +1890,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "number": self.number,
                     "title": self.application_title or round.title,
                 },
-                recipient_list=[nominator.full_email_address],
+                recipients=[nominator.full_email_address],
                 fail_silently=False,
                 request=request,
                 reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -1944,7 +1944,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "<pre>%(resolution)s</pre>\n\n"
             )
             % params,
-            recipient_list=[r.full_email_address for r in recipients],
+            recipients=[r.full_email_address for r in recipients],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -2002,7 +2002,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #         "<pre>%(resolution)s</pre>\n\n"
         #     )
         #     % params,
-        #     recipient_list=[r.full_email_address for r in recipients],
+        #     recipients=[r.full_email_address for r in recipients],
         #     fail_silently=False,
         #     request=request,
         #     reply_to=by and by.full_email_address or settings.DEFAULT_FROM_EMAIL,
@@ -2064,7 +2064,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "<pre>%(resolution)s</pre>\n\n"
             )
             % params,
-            recipient_list=[r.full_email_address for r in recipients],
+            recipients=[r.full_email_address for r in recipients],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -2120,7 +2120,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "<pre>%(resolution)s</pre>\n\n"
             )
             % params,
-            recipient_list=[r.full_email_address for r in recipients],
+            recipients=[r.full_email_address for r in recipients],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -2175,7 +2175,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #         "<pre>%(resolution)s</pre>\n\n"
         #     )
         #     % params,
-        #     recipient_list=[r.full_email_address for r in recipients],
+        #     recipients=[r.full_email_address for r in recipients],
         #     fail_silently=False,
         #     request=request,
         #     reply_to=by and by.full_email_address or settings.DEFAULT_FROM_EMAIL,
@@ -2724,7 +2724,7 @@ class Member(PersonMixin, MemberMixin, Model):
             send_mail(
                 __("A team member accepted your invitation"),
                 __("Your team member %s has accepted your invitation.") % self,
-                recipient_list=[recipient_email],
+                recipients=[recipient_email],
                 fail_silently=False,
                 request=request,
                 reply_to=self.full_email_address,
@@ -2746,7 +2746,7 @@ class Member(PersonMixin, MemberMixin, Model):
             send_mail(
                 __("A team member opted out of application"),
                 __("Your team member %s has opted out of application") % self,
-                recipient_list=[self.application.submitted_by.email],
+                recipients=[self.application.submitted_by.email],
                 fail_silently=False,
                 request=request,
                 reply_to=self.full_email_address,
@@ -3442,7 +3442,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         send_mail(
             subject,
             html_message=html_body,
-            recipient_list=[self.email],
+            recipients=[self.email],
             fail_silently=False,
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
@@ -3640,7 +3640,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject,
             body,
             html_message=html_body,
-            recipient_list=[self.email],
+            recipients=[self.email],
             fail_silently=False,
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
@@ -3783,7 +3783,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             send_mail(
                 __("Your Invitation Undelivered"),
                 body,
-                recipient_list=[self.inviter.email],
+                recipients=[self.inviter.email],
                 fail_silently=False,
                 request=request,
                 reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
@@ -5467,7 +5467,7 @@ class IdentityVerification(Model):
                 "Please review the ID here: <a href='%(url)s'>%(url)s</a></p>"
             )
             % dict(user=self.user, url=url),
-            recipient_list=list(
+            recipients=list(
                 User.where(staff_of_sites__id=settings.SITE_ID, is_staff=True)
                 .distinct()
                 .values_list("name", "email")
@@ -5498,7 +5498,7 @@ class IdentityVerification(Model):
         send_mail(
             subject,
             body,
-            recipient_list=[self.user.email],
+            recipients=[self.user.email],
             fail_silently=False,
             request=request,
             reply_to=request.user.email
@@ -5932,6 +5932,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     all_objects = Manager()
 
     number = CharField(_("number"), max_length=40, unique=True)
+    host_number = CharField(_("host_number"), max_length=100, null=True, blank=True)
     refcode = CharField(null=True, blank=True, max_length=40, help_text=_("IE-Contracts REFCODE"))
     year = CharField(max_length=4, blank=True, null=True)
     org = ForeignKey(
@@ -6024,6 +6025,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     panels = ManyToManyField(
         Panel, blank=True, db_table="contract_panel", related_name="contracts"
     )
+    host_contact_email = EmailField(_("host contact email address"), max_length=120, null=True, blank=True)
 
     # "ie-contracts"
     ## total_amount = IntegerField(null=True, blank=True)

@@ -1465,6 +1465,8 @@ class ContractForm(forms.ModelForm):
         exclude = [
             "site",
             "fund",
+            "host_contact_email",
+            "host_number",
             "org",
             "application",
             "number",

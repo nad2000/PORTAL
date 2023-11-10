@@ -25,6 +25,23 @@
 
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Organisation') }} / {{ _('Source') }}
+        </th>
+        <td>
+            {% if c.org %}
+                {% if request.user.is_superuser %}
+                  <a href="{{ url('admin:portal_organisation_change', object_id=c.org_id) }}" target="_blank">{{ c.org }}</a>
+                {% else %}
+                  {{ c.org }}
+                {% endif %}
+            {% else %}
+                {{ _('N/A') }}
+            {% endif %}
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Panel') }}
         </th>
         <td>
