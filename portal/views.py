@@ -4028,6 +4028,7 @@ class Unaccent(Func):
 
 
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return models.Title.objects.none()
@@ -4097,14 +4098,16 @@ class IwiGroupAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
                 )
         return models.IwiGroup.objects.order_by("description")
 
+
 class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
     def has_add_permission(self, request):
         # return False
         return True
 
     def get_result_label(self, result):
         if isinstance(result, EmailAddress):
-            return result.email
+            return f"{result.user.full_name} <{result.email}>"
         return result
 
     def get_result_value(self, result):
@@ -4129,7 +4132,7 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
                 Q(user__first_name__istartswith=self.q) |
                 Q(user__last_name__istartswith=self.q)
             )
-        return q
+        return q.order_by("email").distinct()
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):

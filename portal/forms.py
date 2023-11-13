@@ -1177,6 +1177,21 @@ class AllocationForm(forms.ModelForm):
         widgets = {"period": TextInput(attrs={"readonly": "readonly"})}
 
 
+class ModelSelect2NoPK(autocomplete.ModelSelect2):
+    def filter_choices_to_render(self, selected_choices):
+        """Filter out un-selected choices if choices is a QuerySet."""
+        if isinstance(self.choices, list):
+            if selected_choices:
+                if not self.choices:
+                    self.choices = [(v, v) for v in selected_choices]
+                else:
+                    self.choices = [
+                            (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
+                    ]
+        else:
+            super().filter_choices_to_render(selected_choices)
+
+
 class ContractForm(forms.ModelForm):
     # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
     has_animal_use = forms.ChoiceField(
@@ -1413,7 +1428,7 @@ class ContractForm(forms.ModelForm):
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
-                    # Field("host_contact_email"),
+                    Field("host_contact_email"),
                     Field("comment"),
                     Fieldset(
                         None,
@@ -1487,7 +1502,7 @@ class ContractForm(forms.ModelForm):
                     "data-placeholder": _("Choose a keyword or create a new one ..."),
                 },
             ),
-            host_contact_email=autocomplete.ModelSelect2(url="org-email-autocomplete"),
+            host_contact_email=ModelSelect2NoPK(url="org-email-autocomplete"),
             panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
             # summary=SummernoteWidget(),
