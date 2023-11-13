@@ -1413,6 +1413,7 @@ class ContractForm(forms.ModelForm):
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
+                    # Field("host_contact_email"),
                     Field("comment"),
                     Fieldset(
                         None,
@@ -1465,7 +1466,7 @@ class ContractForm(forms.ModelForm):
         exclude = [
             "site",
             "fund",
-            "host_contact_email",
+            # "host_contact_email",
             "host_number",
             "org",
             "application",
@@ -1486,6 +1487,7 @@ class ContractForm(forms.ModelForm):
                     "data-placeholder": _("Choose a keyword or create a new one ..."),
                 },
             ),
+            host_contact_email=autocomplete.ModelSelect2(url="org-email-autocomplete"),
             panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
             # summary=SummernoteWidget(),

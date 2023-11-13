@@ -4097,6 +4097,39 @@ class IwiGroupAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
                 )
         return models.IwiGroup.objects.order_by("description")
 
+class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        # return False
+        return True
+
+    def get_result_label(self, result):
+        if isinstance(result, EmailAddress):
+            return result.email
+        return result
+
+    def get_result_value(self, result):
+        if isinstance(result, EmailAddress):
+            return result.email
+        return result
+
+    def create_object(self, text):
+        return text
+
+    def get_queryset(self):
+        u = self.request.user
+        q = EmailAddress.objects.filter(
+            Q(user__profile__affiliations__org__in=Subquery(u.profile.affiliations.all().values_list("org"))) |
+            Q(user__research_offices__org__in=Subquery(u.profile.affiliations.all().values_list("org")))
+        )
+        # breakpoint()
+        # raw = self.model.objects.raw
+        if self.q:
+            q = q.filter(
+                Q(email__istartswith=self.q) |
+                Q(user__first_name__istartswith=self.q) |
+                Q(user__last_name__istartswith=self.q)
+            )
+        return q
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):

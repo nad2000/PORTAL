@@ -883,7 +883,7 @@ class OrgName(Model):
 
 class Affiliation(Model):
     profile = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
-    org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"))
+    org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"), related_name="affiliations")
     type = CharField(_("type"), max_length=10, choices=AFFILIATION_TYPES)
     role = CharField(
         _("role"),
