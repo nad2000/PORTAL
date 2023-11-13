@@ -189,41 +189,41 @@ if __name__ == "__main__":
                     token=token,
                     # attachment=attachment,
                 )
-                # if by:
-                #     if (
-                #         contract.org.research_offices.filter(user=by).exists()
-                #         or a.submitted_by == by
-                #         or a.members.filter(user=by).exists()
-                #     ):
-                #         recipients = i.host_contact_email or [u for u in Site.objects.get_current().staff_users.all()] or [
-                #             u for u in User.where(is_superuser=True)
-                #         ]
-                #     else:
-                #         recipients = [ro.user for ro in a.org.research_offices.all()] or [
-                #             u for u in User.where(Q(applications=a) | Q(members__application=a))
-                #         ]
-                #     respond_url = (
-                #         self.request.build_absolute_uri(
-                #             reverse("contract-update", kwargs=dict(pk=self.object.pk))
-                #         )
-                #         + "#correspondence"
-                #     )
-                #     html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-                #     html_message += f":</p>{body}" if body else "."
-                #     html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                #     breakpoint()
-                #     send_mail(
-                #         request=self.request,
-                #         from_email="contracts",
-                #         subject=f"Comment posted by {u.full_name_with_email} to {i}",
-                #         html_message=html_message,
-                #         cc=[u.full_email_address],
-                #         attachments=attachment and [attachment],
-                #         recipients=recipients,
-                #         thread_index=i.thread_index,
-                #         thread_topic=i.thread_topic,
-                #         token=token,
-                #     )
+                if by:
+                    if (
+                        contract.org.research_offices.filter(user=by).exists()
+                        or a.submitted_by == by
+                        or a.members.filter(user=by).exists()
+                    ):
+                        recipients = i.host_contact_email or [u for u in Site.objects.get_current().staff_users.all()] or [
+                            u for u in User.where(is_superuser=True)
+                        ]
+                    else:
+                        recipients = [ro.user for ro in a.org.research_offices.all()] or [
+                            u for u in User.where(Q(applications=a) | Q(members__application=a))
+                        ]
+                    respond_url = (
+                        self.request.build_absolute_uri(
+                            reverse("contract-update", kwargs=dict(pk=self.object.pk))
+                        )
+                        + "#correspondence"
+                    )
+                    html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+                    html_message += f":</p>{body}" if body else "."
+                    html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                    breakpoint()
+                    send_mail(
+                        request=self.request,
+                        from_email="contracts",
+                        subject=f"Comment posted by {u.full_name_with_email} to {i}",
+                        html_message=html_message,
+                        cc=[u.full_email_address],
+                        attachments=attachment and [attachment],
+                        recipients=recipients,
+                        thread_index=i.thread_index,
+                        thread_topic=i.thread_topic,
+                        token=token,
+                    )
 
 
     # with open("%s-%s.txt" % (msg["from"], subject), "w") as f:
