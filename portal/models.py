@@ -13,12 +13,14 @@ from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
 from functools import lru_cache, partial, wraps
+from itertools import groupby
 from urllib.parse import urljoin, urlparse
 
 import simple_history
 from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
 from dateutil.relativedelta import relativedelta
+from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
@@ -1259,9 +1261,7 @@ class Category(Model):
 
 class LetterOfSupport(PdfFileMixin, Model):
     file = PrivateFileField(
-        upload_subfolder=lambda instance: [
-            "letters_of_support",
-        ],
+        upload_to="letters_of_support",
         validators=[
             FileExtensionValidator(
                 allowed_extensions=[
@@ -1513,7 +1513,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         null=True,
         verbose_name=_("completed application form"),
         help_text=_("Please upload completed application form"),
-        upload_subfolder=lambda instance: ["applications", hash_int(instance.round_id)],
+        upload_to="applications",
+        upload_subfolder=lambda instance: [hash_int(instance.round_id)],
         validators=[
             FileExtensionValidator(
                 allowed_extensions=[
@@ -1536,7 +1537,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     photo_identity = PrivateFileField(
         null=True,
         blank=True,
-        upload_subfolder=lambda instance: ["ids", hash_int(instance.submitted_by_id)],
+        upload_to="ids",
+        upload_subfolder=lambda instance: [hash_int(instance.submitted_by_id)],
         verbose_name=_("Photo Identity"),
         help_text=photo_identity_help_text,
         validators=[FileExtensionValidator(allowed_extensions=["pdf", "jpg", "jpeg", "png"])],
@@ -1565,7 +1567,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         null=True,
         verbose_name=_("completed application budget spreadsheet"),
         help_text=_("Please upload completed application budget spreadsheet"),
-        upload_subfolder=lambda instance: ["budgets", hash_int(instance.round_id)],
+        upload_to="budgets",
+        upload_subfolder=lambda instance: [hash_int(instance.round_id)],
         validators=[
             FileExtensionValidator(
                 allowed_extensions=[
@@ -2606,7 +2609,8 @@ class EthicsStatement(PdfFileMixin, Model):
     file = PrivateFileField(
         verbose_name=_("ethics statement"),
         help_text=_("Please upload human or animal ethics statement."),
-        upload_subfolder=lambda instance: ["statements", hash_int(instance.application_id)],
+        upload_to="statements",
+        upload_subfolder=lambda instance: [hash_int(instance.application_id)],
         blank=True,
         null=True,
     )
@@ -3846,7 +3850,8 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
     file = PrivateFileField(
         verbose_name=_("endorsement, testimonial, or feedback"),
         help_text=_("Please upload your endorsement, testimonial, or feedback"),
-        upload_subfolder=lambda instance: ["testimonials", hash_int(instance.referee_id)],
+        upload_to="testimonials",
+        upload_subfolder=lambda instance: [hash_int(instance.referee_id)],
         blank=True,
         null=True,
     )
@@ -3961,7 +3966,8 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         help_text=_("A title or name you can assign to the upload CV file"),
     )
     file = PrivateFileField(
-        upload_subfolder=lambda instance: ["cv", hash_int(instance.profile_id)],
+        upload_to="cv",
+        upload_subfolder=lambda instance: [hash_int(instance.profile_id)],
         verbose_name=_("file"),
         validators=[
             FileExtensionValidator(
@@ -4837,8 +4843,8 @@ class ApplicationDocument(PdfFileMixin, Model):
     file = PrivateFileField(
         blank=True,
         null=True,
+        upload_to="applications",
         upload_subfolder=lambda instance: [
-            "applications",
             hash_int(instance.application.round_id),
             hash_int(instance.application_id),
         ],
@@ -5268,7 +5274,8 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     file = PrivateFileField(
         null=True,
         blank=True,
-        upload_subfolder=lambda instance: ["nominations", hash_int(instance.nominator_id)],
+        upload_to="nominations",
+        upload_subfolder=lambda instance: [hash_int(instance.nominator_id)],
         verbose_name=_("Nominator form"),
         help_text=_("Upload filled-in nominator form"),
     )
@@ -5424,7 +5431,8 @@ class IdentityVerification(Model):
     file = PrivateFileField(
         null=True,
         blank=True,
-        upload_subfolder=lambda instance: ["ids", hash_int(instance.user_id)],
+        upload_to="ids",
+        upload_subfolder=lambda instance: [hash_int(instance.user_id)],
         verbose_name=_("Photo Identity"),
     )
     application = OneToOneField(
@@ -5566,8 +5574,8 @@ class ScoreSheet(Model):
     panellist = ForeignKey(Panellist, null=True, on_delete=SET_NULL)
     round = ForeignKey(Round, editable=False, on_delete=CASCADE, related_name="score_sheets")
     file = PrivateFileField(
+        upload_to="score-sheets",
         upload_subfolder=lambda instance: [
-            "score-sheets",
             instance.round.title.lower().replace(" ", "-")
             if instance.round.title
             else hash_int(instance.round_id),
@@ -5596,62 +5604,93 @@ class ScoreSheet(Model):
 def clean_private_fils(dry_run=False):
     root_dir = settings.PRIVATE_STORAGE_ROOT
     total = 0
+    file_fields = sorted(
+        [f for m in apps.get_models() for f in m._meta.fields if isinstance(f, PrivateFileField)],
+        key=lambda f: f.upload_to.split("/")[0],
+    )
+    file_fields = {
+        dir_name: list(file_fields)
+        for (dir_name, file_fields) in groupby(file_fields, lambda f: f"{f.upload_to.split('/')[0]}/")
+    }
 
     for root, dirs, files in os.walk(root_dir):
         rel_dir = os.path.relpath(root, root_dir)
         for rel_name in files:
             filename = os.path.join(rel_dir, rel_name)
-            if (
-                (rel_dir.startswith("cv/") and not CurriculumVitae.where(file=filename).exists())
-                or (
-                    rel_dir.startswith("converted/")
-                    and not ConvertedFile.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("ids/")
-                    and not IdentityVerification.where(file=filename).exists()
-                    and not Application.where(photo_identity=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("score-sheeets/")
-                    and not ScoreSheet.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("nominations/")
-                    and not Nomination.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("applications/")
-                    and not Application.where(file=filename).exists()
-                    and not ApplicationDocument.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("letters_of_support/")
-                    and not LetterOfSupport.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("testimonials/")
-                    and not Testimonial.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("score-sheets/")
-                    and not ScoreSheet.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("statements/")
-                    and not EthicsStatement.where(file=filename).exists()
-                )
-                or (
-                    rel_dir.startswith("budget/")
-                    and not Application.where(budget=filename).exists()
-                )
-            ):
+            for f in file_fields.get(f"{rel_dir.split('/')[0]}/", []):
+                if (
+                    getattr(f.model, "all_objects", f.model.objects)
+                    .filter(**{f.name: filename})
+                    .exists()
+                ):
+                    break
+            else:
                 full_filename = os.path.join(root_dir, filename)
                 size = os.path.getsize(full_filename)
-                if dry_run:
+                if not dry_run:
                     os.remove(full_filename)
                 print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
                 total += size
+
+            # if (
+            #     (rel_dir.startswith("cv/") and not CurriculumVitae.where(file=filename).exists())
+            #     or (
+            #         rel_dir.startswith("converted/")
+            #         and not ConvertedFile.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("ids/")
+            #         and not IdentityVerification.where(file=filename).exists()
+            #         and not Application.where(photo_identity=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("score-sheeets/")
+            #         and not ScoreSheet.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("nominations/")
+            #         and not Nomination.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("applications/")
+            #         and not Application.where(file=filename).exists()
+            #         and not ApplicationDocument.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("letters_of_support/")
+            #         and not LetterOfSupport.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("testimonials/")
+            #         and not Testimonial.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("score-sheets/")
+            #         and not ScoreSheet.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("statements/")
+            #         and not EthicsStatement.where(file=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("budget/")
+            #         and not Application.where(budget=filename).exists()
+            #     )
+            #     or (
+            #         rel_dir.startswith("contracts/")
+            #         and not (
+            #             ContractComment.where(attachment=filename).exists()
+            #             or ContractCommentAttachment.where(attachment=filename).exists()
+            #             or Part.where(file=filename).exists()
+            #         )
+            #     )
+            # ):
+            #     full_filename = os.path.join(root_dir, filename)
+            #     size = os.path.getsize(full_filename)
+            #     if dry_run:
+            #         os.remove(full_filename)
+            #     print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
+            #     total += size
 
     if total:
         total = round(total / 1048576, 2)
@@ -5840,8 +5879,9 @@ class ContractComment(Model):
     comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
     attachment = PrivateFileField(
         _("attachment"),
+        upload_to="contracts",
         upload_subfolder=lambda instance: [
-            "contracts",
+            # "contracts",
             # hash_int(instance.application_id),
             hash_int(instance.contract_id),
             "comments",
@@ -5871,8 +5911,8 @@ class ContractCommentAttachment(Model):
     comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="attachments")
     attachment = PrivateFileField(
         _("attachment"),
+        upload_to="contracts",
         upload_subfolder=lambda instance: [
-            "contracts",
             # hash_int(instance.application_id),
             hash_int(instance.comment.contract_id),
             "comments",
@@ -6139,8 +6179,8 @@ class Part(PartMixin, PdfFileMixin, Model):
     file = PrivateFileField(
         blank=True,
         null=True,
+        upload_to="contracts",
         upload_subfolder=lambda instance: [
-            "contracts",
             # hash_int(instance.application_id),
             hash_int(instance.contract_id),
         ],
