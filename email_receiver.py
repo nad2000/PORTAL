@@ -7,16 +7,20 @@
 import datetime
 import email
 import importlib
+import io
 import os
 import re
 import sys
-from pathlib import Path
 from email.header import decode_header, make_header
+from pathlib import Path
 
 import django
+from django.core.files.base import File
 from django.db import transaction
+from django.shortcuts import reverse
 
 EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+message_id = None
 
 
 if __name__ == "__main__":
@@ -34,10 +38,13 @@ if __name__ == "__main__":
     django.setup()
 
     from portal import models
+    from portal.utils import send_mail
 
     # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
     # msg = email.message_from_string(full_msg)
     msg = email.message_from_file(open(sys.argv[1], "r") if len(sys.argv) > 1 else sys.stdin)
+    if len(sys.argv) > 2:
+        message_id = sys.argv[2]
 
     to = msg["to"]
     subject = msg["subject"]
@@ -57,7 +64,7 @@ if __name__ == "__main__":
     if not msg.is_multipart():
         body = msg.get_payload(decode=True)
 
-    message_id = msg["references"] or msg["in-reply-to"]
+    message_id = message_id or msg["references"] or msg["in-reply-to"]
 
     for part in msg.walk():
         content_type = part.get_content_type()
@@ -91,24 +98,31 @@ if __name__ == "__main__":
             )
         if not message_id:
             continue
-        message_id = message_id.split("@")[0][1:]
+        if "@" in message_id:
+            message_id = message_id.split("@")[0][1:]
         if not message_id:
             continue
-        ml = models.MailLog.all_objects.filter(
-            models.Q(recipient__in=from_addresses) | models.Q(recipient__in=models.Subquery(
-                models.User.where(
-                    emailaddress__email__in=from_addresses
-                ).values_list("emailaddress__email")
-            )),
-            token__startswith=message_id, 
-        ).first() or models.MailLog.all_objects.filter(token=message_id).first()
+        ml = (
+            models.MailLog.all_objects.filter(
+                models.Q(recipient__in=from_addresses)
+                | models.Q(
+                    recipient__in=models.Subquery(
+                        models.User.where(emailaddress__email__in=from_addresses).values_list(
+                            "emailaddress__email"
+                        )
+                    )
+                ),
+                token__startswith=message_id,
+            ).first()
+            or models.MailLog.all_objects.filter(token=message_id).first()
+        )
         if ml:
             with transaction.atomic():
                 if payload := (body or part.get_payload()):
                     if isinstance(payload, list):
                         payload = payload[0].get_payload(decode=True)
                     if payload:
-                        for encoding in ["utf-8", 'iso-8859-4']:
+                        for encoding in ["utf-8", "iso-8859-4"]:
                             try:
                                 payload = payload.decode(encoding)
                                 break
@@ -123,10 +137,14 @@ if __name__ == "__main__":
                             f"========================================\n{payload}"
                         )
                 subject_lower = subject.lower()
-                if content_type == "message/disposition-notification" or "read:" in subject_lower or not (
+                if (
+                    content_type == "message/disposition-notification"
+                    or "read:" in subject_lower
+                    or not (
                         "undelivered" in subject_lower
                         or "fail" in subject_lower
                         or "error" in subject_lower
+                    )
                 ):
                     ml.was_sent_successfully = True
                 else:
@@ -173,60 +191,69 @@ if __name__ == "__main__":
                             body = p.get_payload(decode=True)
                             if p.get_content_type() == "text/html":
                                 break
-                for a in msg.walk():
-                    pass
+
+            attachments = [
+                File(io.BytesIO(a.as_bytes()), name=a.get_filename())
+                for a in msg.walk()
+                if a.get_filename()
+            ]
 
             if by or body:
                 token = models.get_unique_mail_token()
                 if body:
-                    for encoding in ["utf-8", 'iso-8859-4']:
+                    for encoding in ["utf-8", "iso-8859-4"]:
                         try:
                             body = body.decode(encoding)
                             break
                         except:
                             pass
-                models.ContractComment.create(
+                comment = models.ContractComment.create(
                     contract=contract,
                     submitted_by=by,
                     comment=body,
                     token=token,
-                    # attachment=attachment,
+                    attachment=attachments and attachments[0] or None,
                 )
-                # if by:
-                #     if (
-                #         contract.org.research_offices.filter(user=by).exists()
-                #         or a.submitted_by == by
-                #         or a.members.filter(user=by).exists()
-                #     ):
-                #         recipients = i.host_contact_email or [u for u in Site.objects.get_current().staff_users.all()] or [
-                #             u for u in User.where(is_superuser=True)
-                #         ]
-                #     else:
-                #         recipients = [ro.user for ro in a.org.research_offices.all()] or [
-                #             u for u in User.where(Q(applications=a) | Q(members__application=a))
-                #         ]
-                #     respond_url = (
-                #         self.request.build_absolute_uri(
-                #             reverse("contract-update", kwargs=dict(pk=self.object.pk))
-                #         )
-                #         + "#correspondence"
-                #     )
-                #     html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-                #     html_message += f":</p>{body}" if body else "."
-                #     html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                #     send_mail(
-                #         request=self.request,
-                #         from_email="contracts",
-                #         subject=f"Comment posted by {u.full_name_with_email} to {i}",
-                #         html_message=html_message,
-                #         cc=[u.full_email_address],
-                #         attachments=attachment and [attachment],
-                #         recipients=recipients,
-                #         thread_index=i.thread_index,
-                #         thread_topic=i.thread_topic,
-                #         token=token,
-                #     )
 
+                for a in attachments[1:]:
+                    ca = models.ContractCommentAttachment(comment=comment)
+                    ca.attachment.save(content=a, name=a.name)
+                    ca.save()
 
-    # with open("%s-%s.txt" % (msg["from"], subject), "w") as f:
-    #     f.write(full_msg)
+                if by:
+                    domain = to.split("@")[1]
+                    if (
+                        contract.org.research_offices.filter(user=by).exists()
+                        or a.submitted_by == by
+                        or a.members.filter(user=by).exists()
+                    ):
+                        recipients = [
+                            u for u in models.Site.objects.get_current().staff_users.all()
+                        ] or [u for u in models.User.where(is_superuser=True)]
+                    else:
+                        a = contract.application
+                        recipients = (
+                            i.host_contact_email
+                            or [ro.user for ro in contract.org.research_offices.all()]
+                            or [
+                                u
+                                for u in User.where(Q(applications=a) | Q(members__application=a))
+                            ]
+                        )
+                    respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
+                    html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{contract.number}">{contract}</data>'
+                    html_message += f":</p>{body}" if body else "."
+                    html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                    send_mail(
+                        from_email=to,
+                        subject=f"Comment posted by {by.full_name_with_email} to {contract}",
+                        html_message=html_message,
+                        cc=[by.full_email_address],
+                        attachments=attachments or None,
+                        recipients=recipients,
+                        thread_index=contract.thread_index,
+                        thread_topic=contract.thread_topic,
+                        token=token,
+                    )
+
+# vim:set ft=python.django:

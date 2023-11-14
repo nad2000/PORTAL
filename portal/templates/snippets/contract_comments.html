@@ -19,6 +19,9 @@
       {% if c.attachment %}
       <hr/>
         <a class="card-link" href="{{ c.attachment.url }}">{{ c.attachment|basename }}</a>
+        {% for a in c.attachments.all %}
+          <a class="card-link" href="{{ a.attachment.url }}">{{ a.attachment|basename }}</a>
+        {% endfor %}
       {% endif %}
       </div>
     </div>

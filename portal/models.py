@@ -883,7 +883,12 @@ class OrgName(Model):
 
 class Affiliation(Model):
     profile = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
-    org = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("organisation"), related_name="affiliations")
+    org = ForeignKey(
+        Organisation,
+        on_delete=CASCADE,
+        verbose_name=_("organisation"),
+        related_name="affiliations",
+    )
     type = CharField(_("type"), max_length=10, choices=AFFILIATION_TYPES)
     role = CharField(
         _("role"),
@@ -5862,6 +5867,27 @@ class ContractComment(Model):
         ordering = ["-id"]
 
 
+class ContractCommentAttachment(Model):
+    comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="attachments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_subfolder=lambda instance: [
+            "contracts",
+            # hash_int(instance.application_id),
+            hash_int(instance.comment.contract_id),
+            "comments",
+            hash_int(instance.comment_id),
+            "attachments",
+        ],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "contract_comment_attachment"
+        verbose_name = _("attachment")
+
+
 class ContractMixin:
     STATES = Choices(
         (None, None),
@@ -6025,7 +6051,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     panels = ManyToManyField(
         Panel, blank=True, db_table="contract_panel", related_name="contracts"
     )
-    host_contact_email = EmailField(_("host contact email address"), max_length=120, null=True, blank=True)
+    host_contact_email = EmailField(
+        _("host contact email address"), max_length=120, null=True, blank=True
+    )
 
     # "ie-contracts"
     ## total_amount = IntegerField(null=True, blank=True)

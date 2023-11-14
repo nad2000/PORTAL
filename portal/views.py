@@ -3382,7 +3382,6 @@ class ContractViewMixin:
             html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
             html_message += f":</p>{body}" if body else "."
             html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-            breakpoint()
             send_mail(
                 request=self.request,
                 from_email="contracts",
@@ -4124,8 +4123,6 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
             Q(user__profile__affiliations__org__in=Subquery(u.profile.affiliations.all().values_list("org"))) |
             Q(user__research_offices__org__in=Subquery(u.profile.affiliations.all().values_list("org")))
         )
-        # breakpoint()
-        # raw = self.model.objects.raw
         if self.q:
             q = q.filter(
                 Q(email__istartswith=self.q) |
@@ -4152,8 +4149,6 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         q = models.Organisation.objects.all()
-        # breakpoint()
-        # raw = self.model.objects.raw
         if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:

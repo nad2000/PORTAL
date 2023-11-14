@@ -1186,7 +1186,7 @@ class ModelSelect2NoPK(autocomplete.ModelSelect2):
                     self.choices = [(v, v) for v in selected_choices]
                 else:
                     self.choices = [
-                            (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
+                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
                     ]
         else:
             super().filter_choices_to_render(selected_choices)
@@ -1502,7 +1502,12 @@ class ContractForm(forms.ModelForm):
                     "data-placeholder": _("Choose a keyword or create a new one ..."),
                 },
             ),
-            host_contact_email=ModelSelect2NoPK(url="org-email-autocomplete"),
+            host_contact_email=ModelSelect2NoPK(
+                url="org-email-autocomplete",
+                attrs={
+                    "data-placeholder": _("Select an email addrss or create a new one ..."),
+                },
+            ),
             panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
             # summary=SummernoteWidget(),

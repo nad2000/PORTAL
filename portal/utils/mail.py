@@ -245,7 +245,7 @@ def send_mail(
     if attachments:
         for a in attachments:
             msg.attach(
-                a.name, a.file.getvalue(), a.content_type or mimetypes.guess_type(a.name)[0]
+                a.name, a.file.getvalue(), getattr(a, "content_type", None) or mimetypes.guess_type(a.name)[0]
             )
     if not reply_to and invitation and (inviter := invitation.inviter):
         reply_to = inviter.full_email_address
