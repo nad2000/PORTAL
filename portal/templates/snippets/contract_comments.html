@@ -17,12 +17,15 @@
       <div class="card-body">
       {% if c.comment %}{{ c.comment|safe }}{% else %}{% trans 'N/A' %}{% endif %}
       {% if c.attachment %}
-      <hr/>
+        <hr/>
         <a class="card-link" href="{{ c.attachment.url }}">{{ c.attachment|basename }}</a>
-        {% for a in c.attachments.all %}
-          <a class="card-link" href="{{ a.attachment.url }}">{{ a.attachment|basename }}</a>
-        {% endfor %}
       {% endif %}
+      {% for a in c.attachments.all %}
+        {% if not c.attachment and forloop.first %}
+          <hr/>
+        {% endif %}
+        <a class="card-link" href="{{ a.attachment.url }}">{{ a.attachment|basename }}</a>
+      {% endfor %}
       </div>
     </div>
   </div>

@@ -117,6 +117,7 @@ if __name__ == "__main__":
             or models.MailLog.all_objects.filter(token=message_id).first()
         )
         if ml:
+            site = ml.site
             with transaction.atomic():
                 if payload := (body or part.get_payload()):
                     if isinstance(payload, list):
@@ -151,6 +152,7 @@ if __name__ == "__main__":
                     ml.was_sent_successfully = False
                 ml.save()
                 if ml.invitation:
+                    site = ml.invitation.site
                     by = (
                         models.User.where(
                             models.Q(email=ml.recipient)
@@ -177,6 +179,7 @@ if __name__ == "__main__":
 
     if to and (to.startswith("contracts") or to.startswith("comments")) and message_id:
         if contract := models.Contract.all_objects.filter(comments__token=message_id).last():
+            site = contract.site
             by = models.User.where(
                 models.Q(email=sender) | models.Q(emailaddress__email=sender)
             ).first()
@@ -212,10 +215,11 @@ if __name__ == "__main__":
                     submitted_by=by,
                     comment=body,
                     token=token,
-                    attachment=attachments and attachments[0] or None,
+                    # attachment=attachments and attachments[0] or None,
                 )
 
-                for a in attachments[1:]:
+                # for a in attachments[1:]:
+                for a in attachments:
                     ca = models.ContractCommentAttachment(comment=comment)
                     ca.attachment.save(content=a, name=a.name)
                     ca.save()
@@ -228,16 +232,18 @@ if __name__ == "__main__":
                         or a.members.filter(user=by).exists()
                     ):
                         recipients = [
-                            u for u in models.Site.objects.get_current().staff_users.all()
+                            u for u in site.staff_users.all()
                         ] or [u for u in models.User.where(is_superuser=True)]
                     else:
                         a = contract.application
                         recipients = (
-                            i.host_contact_email
+                            contract.host_contact_email
                             or [ro.user for ro in contract.org.research_offices.all()]
                             or [
                                 u
-                                for u in User.where(Q(applications=a) | Q(members__application=a))
+                                for u in models.User.where(
+                                    models.Q(applications=a) | models.Q(members__application=a)
+                                )
                             ]
                         )
                     respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
@@ -254,6 +260,7 @@ if __name__ == "__main__":
                         thread_index=contract.thread_index,
                         thread_topic=contract.thread_topic,
                         token=token,
+                        site=site,
                     )
 
 # vim:set ft=python.django:

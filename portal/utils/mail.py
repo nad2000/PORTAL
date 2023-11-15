@@ -158,9 +158,14 @@ def send_mail(
     convert_to_html=False,
     thread_topic=None,
     thread_index=None,
+    site=None,
 ):
-    site = (invitation and invitation.site) or Site.objects.get_current()
-    domain = request and request.get_host() or site.domain
+    if not site:
+        site = (invitation and invitation.site) or Site.objects.get_current()
+    if not request and from_email and "@" in from_email:
+        domain = from_email.split("@")[1]
+    else:
+        domain = request and request.get_host() or site.domain
     if ":" in domain:
         domain = domain.split(":")[0]
     root = f"https://{domain}"
