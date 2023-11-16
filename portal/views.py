@@ -3314,6 +3314,7 @@ class ContractViewMixin:
         ] = self.get_reporting_schedule_formset()
         self.personnel = context["personnel"] = self.get_personnel_formset()
         context["application"] = self.application
+        context["needs_attention"] = ["research", "finances"]
         return context
 
     def form_valid(self, form):

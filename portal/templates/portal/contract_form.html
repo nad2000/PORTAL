@@ -83,6 +83,28 @@
     }
     $(document).ready(function() {
       setDatePickers($(document.documentElement));
+      // Keep track of the active tab
+      $(document.body).on("click", "a[data-toggle='tab']", function(event) {
+        location.hash = this.getAttribute("href");
+      });
+      // Jump to the last active tab:
+      if (location.hash) {
+          $('.nav a[href="' + location.hash + '"]').tab('show');
+      }{% if needs_attention %} else {
+        $('.nav a[href="#{{ needs_attention.0 }}"]').tab('show');
+      }{% endif %};
+      if (!location.hash || location.hash == "#summary") {
+        // document.getElementById("button-id-previous").disabled = true;
+        $("#button-id-previous").hide();
+      } else if (location.hash.endsWith($(".tab-pane").last().attr('id'))) {
+        // document.getElementById("button-id-next").disabled = true;
+        $("#button-id-next").hide();
+      }
+      {% if needs_attention %}
+        {% for a in needs_attention %}
+          $("[href='#{{ a }}']").attr("style", "color: red; font-weight: bold;");
+        {% endfor %}
+      {% endif %}
     });
   </script>
 {% endblock %}

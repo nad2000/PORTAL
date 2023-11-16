@@ -1343,7 +1343,6 @@ class ContractForm(forms.ModelForm):
             ),
             Tab(
                 _("Research"),
-                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                 Field("project_title"),
                 Fieldset(
                     None,
@@ -1370,19 +1369,16 @@ class ContractForm(forms.ModelForm):
             ),
             Tab(
                 _("Personnel"),
-                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                 TableInlineFormset("personnel"),
                 css_id="personnel",
             ),
             Tab(
                 _("Proposal"),
-                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                 HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
                 css_id="proposal",
             ),
             Tab(
                 _("Reporting"),
-                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                 Fieldset(
                     _("Reporting Schedule"),
                     TableInlineFormset("reporting_schedule"),
@@ -1392,7 +1388,13 @@ class ContractForm(forms.ModelForm):
             ),
             Tab(
                 _("Compliance"),
-                HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                HTML(
+                    """<div class="alert alert-dark" role="alert">%s</div>"""
+                    % _(
+                        "Please provide an ethic from. If this is not applicable to your application, "
+                        'click "Not Applicable" and state why in the comment.'
+                    )
+                ),
                 InlineRadios("has_animal_use"),
                 InlineRadios("is_signatory_to_oa"),
                 InlineRadios("involves_childeren"),
