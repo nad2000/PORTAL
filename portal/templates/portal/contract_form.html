@@ -100,9 +100,10 @@
         // document.getElementById("button-id-next").disabled = true;
         $("#button-id-next").hide();
       }
+      // highlight the tabs that required attaention:
       {% if needs_attention %}
         {% for a in needs_attention %}
-          $("[href='#{{ a }}']").attr("style", "color: red; font-weight: bold;");
+          $("[href='#{{ a }}']").addClass("text-danger").attr("style", "font-weight: bold;");
         {% endfor %}
       {% endif %}
     });
