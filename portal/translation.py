@@ -10,7 +10,12 @@ class DocumentTypeTranslationOptions(TranslationOptions):
 
 
 @register(models.RequiredDocument)
-class DocumentTypeTranslationOptions(TranslationOptions):
+class RequiredDocumentTranslationOptions(TranslationOptions):
+    fields = ("title",)
+
+
+@register(models.RequiredPart)
+class RequiredPartTranslationOptions(TranslationOptions):
     fields = ("title",)
 
 

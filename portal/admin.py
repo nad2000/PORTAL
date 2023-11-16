@@ -2070,6 +2070,16 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
+    class RequiredPartInline(
+        StaffPermsMixin, OrderableAdmin, modeltranslation.admin.TranslationTabularInline
+    ):
+        extra = 0
+        model = models.RequiredPart
+        autocomplete_fields = ["document_type"]
+        view_on_site = False
+        ordering_field_hide_input = True
+        classes = ["collapse"]
+
     def get_inlines(self, request, obj):
         if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id == 4:
             return [
@@ -2078,6 +2088,7 @@ class RoundAdmin(
                 # self.CurriculumVitaeTemplateInline,
                 self.CriterionInline,
                 self.PanellistInline,
+                self.RequiredPartInline,
             ]
 
         return [
@@ -2085,6 +2096,7 @@ class RoundAdmin(
             self.CurriculumVitaeTemplateInline,
             self.CriterionInline,
             self.PanellistInline,
+            self.RequiredPartInline,
         ]
 
 
@@ -2193,12 +2205,12 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     #     view_on_site = False
     #     classes = ["collapse"]
 
-    # class AllocationInline(admin.TabularInline):
-    #     model = models.ContractAllocation
-    #     exclude = ["contract_number"]
-    #     extra = 0
-    #     view_on_site = False
-    #     classes = ["collapse"]
+    class PartInline(admin.TabularInline):
+        model = models.Part
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
 
     class ReportingScheduleEntryInline(admin.TabularInline):
         model = models.ReportingScheduleEntry
@@ -2286,6 +2298,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         classes = ["collapse"]
 
     inlines = [
+        PartInline,
         ReportingScheduleEntryInline,
         AllocationInline,
         ForInline,

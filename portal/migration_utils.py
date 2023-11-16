@@ -1,4 +1,4 @@
-from .models import QUALIFICATION_LEVEL
+from .models import DOCUMENT_ROLES, QUALIFICATION_LEVEL
 
 
 def disable_constraints(apps, schema_editor):
@@ -167,22 +167,40 @@ def add_education_level_data(apps, schema_editor):
         activate(language)
         return gettext(value)
 
-
-    EducationLevel = apps.get_model("portal", "EducationLevel")
+    model = apps.get_model("portal", "EducationLevel")
     db_alias = schema_editor.connection.alias
 
-    EducationLevel.objects.using(db_alias).bulk_create(
+    model.objects.using(db_alias).bulk_create(
         [
-            EducationLevel(
-                code=c,
-                name=get_name(v),
-                name_en=get_name(v),
-                name_mi=get_name(v, "mi")
-            ) for (c, v) in QUALIFICATION_LEVEL
+            model(
+                code=c, name=get_name(v), name_en=get_name(v), name_mi=get_name(v, "mi")
+            )
+            for (c, v) in QUALIFICATION_LEVEL
         ],
         update_conflicts=True,
         update_fields=["name", "name_en", "name_mi"],
-        unique_fields=["code"]
+        unique_fields=["code"],
+    )
+
+
+def add_document_type_data(apps, schema_editor):
+    from django.utils.translation import activate, gettext
+
+    def get_name(value, language="en"):
+        activate(language)
+        return gettext(value)
+
+    model = apps.get_model("portal", "DocumentType")
+    db_alias = schema_editor.connection.alias
+
+    model.objects.using(db_alias).bulk_create(
+        [
+            model(role=r, name=get_name(v), name_en=get_name(v), name_mi=get_name(v, "mi"))
+            for (r, v) in DOCUMENT_ROLES
+        ],
+        ignore_conflicts=True,
+        update_fields=["name", "name_en", "name_mi"],
+        unique_fields=["role"],
     )
 
 

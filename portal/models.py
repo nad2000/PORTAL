@@ -6220,6 +6220,13 @@ class Part(PartMixin, PdfFileMixin, Model):
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
 
+    def save(self, *args, **kwargs):
+        if not self.file.name:
+            return
+        if not self.document_type_id:
+            self.document_type = self.required_part.document_type
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.document_type}: {os.path.basename(self.file.name)}"
 

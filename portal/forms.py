@@ -37,6 +37,7 @@ from django_summernote.widgets import SummernoteInplaceWidget
 from sentry_sdk import capture_message
 
 from . import models
+from .models import DOCUMENT_ROLES
 
 # DateInput = partial(
 #     forms.DateInput,
@@ -1194,6 +1195,12 @@ class ModelSelect2NoPK(autocomplete.ModelSelect2):
 
 class ContractForm(forms.ModelForm):
     # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
+    part_fields = (
+        ("research_aims", DOCUMENT_ROLES.AIMS),
+        ("project_timeline", DOCUMENT_ROLES.PT),
+        ("proposal_budget", DOCUMENT_ROLES.PB),
+        ("award_budget", DOCUMENT_ROLES.AB),
+    )
     has_animal_use = forms.ChoiceField(
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
@@ -1268,7 +1275,15 @@ class ContractForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
+        if initial:
+            kwargs["initial"] = initial
         user = kwargs.pop("user", None) or initial.get("user")
+
+        if instance := kwargs.get("instance"):
+            for fn, dr in self.part_fields:
+                part = instance.parts.filter(document_type__role=dr).last()
+                if part:
+                    initial[fn] = part.file
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -1475,6 +1490,32 @@ class ContractForm(forms.ModelForm):
             ),
         )
         self.helper.include_media = False
+
+    def save(self, *args, **kwargs):
+        res = super().save(*args, **kwargs)
+        r = self.instance.application.round
+        for fn, dr in self.part_fields:
+            if fn in self.changed_data:
+                file = self.cleaned_data.get(fn, None)
+                part = self.instance.parts.filter(document_type__role=dr).last()
+                if part:
+                    if not file:
+                        part.delete()
+                    else:
+                        part.file.save(
+                            name=file.name,
+                            content=file,
+                        )
+                elif file:
+                    required_part = r.required_parts.filter(document_type__role=dr).last()
+                    if not required_part:
+                        dt = models.DocumentType.where(role=dr).last()
+                        required_part = models.RequiredPart.create(round=r, document_type=dt)
+
+                    models.Part.create(
+                        contract=self.instance, required_part=required_part, file=file
+                    )
+        return res
 
     class Meta:
         model = models.Contract
