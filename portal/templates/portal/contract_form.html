@@ -106,6 +106,24 @@
           $("[href='#{{ a }}']").addClass("text-danger").attr("style", "font-weight: bold;");
         {% endfor %}
       {% endif %}
+      $("input[type='file']").on("change", function() {
+        var approve_button = $(this).closest("fieldset").find("input[type='submit']");
+        if (approve_button) {
+          disabled = !$(this).val();
+          if (approve_button.prop("disabled") != disabled) {
+            approve_button.prop("disabled", disabled);
+            approve_button.tooltip(disabled ? "enable" : "disable");
+            approve_button.css("pointer-events", disabled ? "none" : "");
+            var span = $(this).closest("fieldset").find("span");
+            if (span) {
+              span.tooltip(disabled ? "enable" : "disable");
+              if (!disabled) {
+                approve_button.detach().insertBefore(span);
+              };
+            }
+          };
+        };
+      });
     });
   </script>
 {% endblock %}

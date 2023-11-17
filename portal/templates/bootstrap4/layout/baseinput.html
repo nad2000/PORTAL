@@ -1,7 +1,11 @@
 {% load tags %}
 {% if input.attrs.disabled and input.attrs.title %}
-  <span tabindex="0" class="d-inline-block" data-toggle="tooltip" title="{{ input.attrs.title|safe }}">
-  {% endif %}
+<span
+    tabindex="0"
+    class="d-inline-block{% if 'float-right' in input.field_classes %} float-right{% elif 'float-left' in input.field_classes %}float-left{% endif %}"
+    data-toggle="tooltip"
+    title="{{ input.attrs.title|safe }}">
+{% endif %}
   <input type="{{ input.input_type }}"
        name="{% if input.name|wordcount > 1 %}{{ input.name|slugify }}{% else %}{{ input.name }}{% endif %}"
        value="{{ input.value }}"
@@ -12,6 +16,4 @@
      {% endif %}
        {{ input.flat_attrs|safe }}
        />
-  {% if "disabled" in input.attrs and input.attrs.title %}
-    </span>
-  {% endif %}
+{% if "disabled" in input.attrs and input.attrs.title %}</span>{% endif %}

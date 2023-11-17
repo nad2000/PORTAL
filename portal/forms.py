@@ -1294,6 +1294,14 @@ class ContractForm(forms.ModelForm):
             # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
 
+        # r = self.instance.application.round
+        # parts = dict((v, v) for f, v in self.part_fields)
+        parts = (
+            {p.document_type.role: p for p in instance.parts.prefetch_related("document_type")}
+            if instance.pk
+            else {}
+        )
+
         submission_disabled = not instance or (
             instance.submitted_by and instance.submitted_by != user
         )
@@ -1347,21 +1355,40 @@ class ContractForm(forms.ModelForm):
                 Fieldset(
                     None,
                     Field("research_aims", label=""),
-                    Button(
+                    Submit(
                         "approve_research_aims",
                         _("Approve"),
+                        data_toggle="tooltip",
+                        data_enabled_title=_("Approve research aims"),
+                        data_disabled_title=_("Please upload research aims before approving it"),
+                        title=_("Approve research aims")
+                        if "AIMS" in parts
+                        else _("Please upload research aims before approving it"),
                         css_class="btn-primary float-right",
+                        # css_class="btn-outline-primary",
+                        disabled=("AIMS" not in parts),
                     ),
+                    css_id="research_aims_fieldset",
                 ),
                 Fieldset(
                     None,
-                    # _("Project Timeline"),
                     Field("project_timeline", label=""),
-                    Button(
+                    Submit(
                         "approve_project_timeline",
                         _("Approve"),
+                        data_toggle="tooltip",
+                        data_enabled_title=_("Submit the application"),
+                        data_disabled_title=_(
+                            "Please upload project timeline before approving it"
+                        ),
+                        title=_("Approve project timeline")
+                        if "PT" in parts
+                        else _("Please upload project timeline before approving it"),
                         css_class="btn-primary float-right",
+                        # css_class="btn-outline-primary",
+                        disabled=("PT" not in parts),
                     ),
+                    css_id="project_timeline_fieldset",
                 ),
                 Field("abstract"),
                 Field("notes"),
