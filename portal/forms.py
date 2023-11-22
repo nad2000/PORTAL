@@ -1306,7 +1306,7 @@ class ContractForm(forms.ModelForm):
             instance.submitted_by and instance.submitted_by != user
         )
         submit_button = Submit(
-            "submit",
+            "submit_contract",  # NB! Never call a button 'submit'!
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
@@ -1362,12 +1362,14 @@ class ContractForm(forms.ModelForm):
                         data_toggle="tooltip",
                         data_enabled_title=_("Approve research aims"),
                         data_disabled_title=_("Please upload research aims before approving it"),
+                        data_document_role="AIMS",
                         title=_("Approve research aims")
                         if "AIMS" in parts
                         else _("Please upload research aims before approving it"),
                         css_class="btn-primary float-right",
                         # css_class="btn-outline-primary",
                         disabled=("AIMS" not in parts),
+                        css_id="id_approve_research_aims",
                     ),
                     css_id="research_aims_fieldset",
                 ),
@@ -1377,6 +1379,7 @@ class ContractForm(forms.ModelForm):
                     Submit(
                         "approve_project_timeline",
                         _("Approve"),
+                        data_document_role="PT",
                         data_toggle="tooltip",
                         data_enabled_title=_("Submit the application"),
                         data_disabled_title=_(
@@ -1452,15 +1455,17 @@ class ContractForm(forms.ModelForm):
                     None,
                     Field("award_budget", label=""),
                     ButtonHolder(
-                        Button(
+                        Submit(
                             "request_budget_correction",
                             _("Request Correction"),
                             css_class="btn-primary",
+                            data_document_role="B",
                         ),
-                        Button(
+                        Submit(
                             "approve_budget",
                             _("Awaiting Approval"),
                             css_class="btn-secondary",
+                            data_document_role="B",
                         ),
                         css_class="float-right",
                     ),

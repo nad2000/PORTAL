@@ -932,7 +932,12 @@ def validate_bod(value):
 class Profile(PersonMixin, Model):
     user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="profile")
     gender = PositiveSmallIntegerField(
-        _("gender"), choices=GENDERS, null=True, blank=False, default=0
+        _("gender"),
+        choices=GENDERS,
+        null=True,
+        blank=False,
+        default=0,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in GENDERS),
     )
     date_of_birth = DateField(_("date of birth"), null=True, blank=True, validators=[validate_bod])
     ethnicities = ManyToManyField(
@@ -5610,7 +5615,9 @@ def clean_private_fils(dry_run=False):
     )
     file_fields = {
         dir_name: list(file_fields)
-        for (dir_name, file_fields) in groupby(file_fields, lambda f: f"{f.upload_to.split('/')[0]}/")
+        for (dir_name, file_fields) in groupby(
+            file_fields, lambda f: f"{f.upload_to.split('/')[0]}/"
+        )
     }
 
     for root, dirs, files in os.walk(root_dir):
@@ -6220,6 +6227,18 @@ class Part(PartMixin, PdfFileMixin, Model):
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
 
+    @fsm_log
+    @transition(
+        field=state, source=["submitted", "new", "released"], target="approved"
+    )
+    def approve(self, request=None, by=None, description=None, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(field=state, source=["submitted", "approved", "released"], target="accepted")
+    def accept(self, request=None, by=None, description=None, *args, **kwargs):
+        pass
+
     def save(self, *args, **kwargs):
         if not self.file.name:
             return
@@ -6244,7 +6263,7 @@ simple_history.register(
 
 class ContractMemberManager(Manager):
     def get_by_natural_key(self, number, email, role, *args, **kwargs):
-        return self.get(email=emai, role_id=role, contract__number=number)
+        return self.get(email=email, role_id=role, contract__number=number)
 
 
 class ContractMember(PersonMixin, Model):
