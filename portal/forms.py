@@ -1344,7 +1344,8 @@ class ContractForm(forms.ModelForm):
                     if self.instance and self.instance.id
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                        Row(Field("start_date"), Field("end_date")),
+                        Field("start_date"),
+                        Field("end_date"),
                     ]
                 ),
                 css_id="summary",
