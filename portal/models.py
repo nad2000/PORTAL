@@ -6235,7 +6235,7 @@ class Part(PartMixin, PdfFileMixin, Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["submitted", "approved", "released"], target="accepted")
+    @transition(field=state, source=["new", "submitted", "approved", "released"], target="accepted")
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
