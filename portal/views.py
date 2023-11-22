@@ -3351,6 +3351,72 @@ class ContractViewMixin:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
             return super().form_invalid(form)
+
+        is_host = (
+            a.org.research_offices.filter(user=u).exists()
+            or a.submitted_by == u
+            or a.members.filter(user=u).exists()
+        )
+        recipients = (
+            (
+                (
+                    i.host_contact_email
+                    or [u for u in Site.objects.get_current().staff_users.all()]
+                    or [u for u in User.where(is_superuser=True)]
+                )
+                if is_host
+                else [ro.user for ro in a.org.research_offices.all()]
+                or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
+            )
+            if self.request.POST.get("approve") or "post_comment" in self.request.POST
+            else []
+        )
+        if self.request.POST.get("approve"):
+            document_role_to_approve = form.data.get("approve")
+            resolution = (form.data.get("resolution") or "").strip()
+            if document_role_to_approve in models.DOCUMENT_ROLES and (
+                d := i.parts.filter(
+                    required_part__document_type__role=document_role_to_approve
+                ).last()
+            ):
+                previous_state = d.state
+                if is_host:
+                    if d.state not in ["accepted", "approved"]:
+                        d.approve(request=self.request, description=resolution or f"approved by {u}")
+                        # d.save()
+                    else:
+                        messages.warning(
+                            self.request, _("The document was already %s") % _(d.state)
+                        )
+                else:
+                    if d.state != "accepted":
+                        d.accept(request=self.request, description=resolution or f"approved by {u}")
+                        # d.save()
+                    else:
+                        messages.warning(
+                            self.request, _("The document was already %s") % _(d.state)
+                        )
+                if d.state != previous_state:
+                    messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
+
+                respond_url = self.request.build_absolute_uri(
+                    reverse("contract-update", kwargs=dict(pk=i.pk))
+                )
+                html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
+                html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+                html_message += f":</p>{resolution}" if resolution else "."
+                html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+                send_mail(
+                    request=self.request,
+                    subject=f"Contract {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}",
+                    html_message=html_message,
+                    cc=[u.full_email_address],
+                    recipients=recipients,
+                    thread_index=i.thread_index,
+                    thread_topic=i.thread_topic,
+                )
+                return redirect("contract-update", pk=i.pk)
+
         if "post_comment" in self.request.POST:
             token = models.get_unique_mail_token()
             attachment = form.cleaned_data.get("attachment", None)
@@ -3362,22 +3428,8 @@ class ContractViewMixin:
                     contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
                 )
 
-            if (
-                a.org.research_offices.filter(user=u).exists()
-                or a.submitted_by == u
-                or a.members.filter(user=u).exists()
-            ):
-                recipients = i.host_contact_email or [u for u in Site.objects.get_current().staff_users.all()] or [
-                    u for u in User.where(is_superuser=True)
-                ]
-            else:
-                recipients = [ro.user for ro in a.org.research_offices.all()] or [
-                    u for u in User.where(Q(applications=a) | Q(members__application=a))
-                ]
             respond_url = (
-                self.request.build_absolute_uri(
-                    reverse("contract-update", kwargs=dict(pk=self.object.pk))
-                )
+                self.request.build_absolute_uri(reverse("contract-update", kwargs=dict(pk=i.pk)))
                 + "#correspondence"
             )
             html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
@@ -4028,7 +4080,6 @@ class Unaccent(Func):
 
 
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return models.Title.objects.none()
@@ -4100,7 +4151,6 @@ class IwiGroupAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
 
 
 class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def has_add_permission(self, request):
         # return False
         return True
@@ -4121,16 +4171,25 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
     def get_queryset(self):
         u = self.request.user
         q = EmailAddress.objects.filter(
-            Q(user__profile__affiliations__org__in=Subquery(u.profile.affiliations.all().values_list("org"))) |
-            Q(user__research_offices__org__in=Subquery(u.profile.affiliations.all().values_list("org")))
+            Q(
+                user__profile__affiliations__org__in=Subquery(
+                    u.profile.affiliations.all().values_list("org")
+                )
+            )
+            | Q(
+                user__research_offices__org__in=Subquery(
+                    u.profile.affiliations.all().values_list("org")
+                )
+            )
         )
         if self.q:
             q = q.filter(
-                Q(email__istartswith=self.q) |
-                Q(user__first_name__istartswith=self.q) |
-                Q(user__last_name__istartswith=self.q)
+                Q(email__istartswith=self.q)
+                | Q(user__first_name__istartswith=self.q)
+                | Q(user__last_name__istartswith=self.q)
             )
         return q.order_by("email").distinct()
+
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
