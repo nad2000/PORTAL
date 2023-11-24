@@ -5555,7 +5555,7 @@ class MailLog(Model):
     user = ForeignKey(User, null=True, on_delete=SET_NULL)
     recipient = CharField(max_length=200, db_index=True)
     sender = CharField(max_length=200)
-    subject = CharField(max_length=200)
+    subject = CharField(max_length=1000)
     was_sent_successfully = BooleanField(null=True)
     error = TextField(null=True, blank=True)
     token = CharField(max_length=100, default=get_unique_mail_token, unique=True)
