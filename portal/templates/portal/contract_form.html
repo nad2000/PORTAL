@@ -31,7 +31,8 @@
 
   <form method="post" enctype="multipart/form-data" id="contract-form">
 
-    <input type="hidden" name="approve" id="id_approve" value="">
+    <input type="hidden" name="doc_role" id="id_doc_role" value="">
+    <input type="hidden" name="doc_action" id="id_doc_action" value="">
     <div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -51,7 +52,7 @@
 
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary" onclick='return confirmApproval(this);'>{% trans 'Approve' %}</button>
+            <button type="button" class="btn btn-primary" id="id_confirm_action" onclick='return confirmAction(this);'>{% trans 'Approve' %}</button>
             <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
           </div>
         </div>
@@ -84,16 +85,23 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
   <script src="{% static 'js/project.js' %}"></script>
   <script>
-    var doc_role_to_approve = null;
-    function confirmApproval(val) {
-        $("#id_approve").val(doc_role_to_approve);
+    var doc_role = null;
+    var doc_action = null;
+    function confirmAction(val) {
+        $("#id_doc_role").val(doc_role);
+        $("#id_doc_action").val(doc_action || "approve");
         $(val).closest("form").submit();
         return true;
     };
     $('input[data-document-role]').on("click", function(event) {
       event.preventDefault();
       event.stopPropagation();
-      doc_role_to_approve = this.dataset["documentRole"];
+      doc_action = this.dataset["documentAction"];
+      doc_role = this.dataset["documentRole"];
+      $("#id_confirm_action").text(
+        doc_action == "request_correction" ? "{% trans 'Request Correction' %}" : (
+          doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : "{% trans 'Approve' %}")
+      );
       $('#id_resolution_modal').modal('show');
       return false;
     });

@@ -3369,47 +3369,82 @@ class ContractViewMixin:
                 else [ro.user for ro in a.org.research_offices.all()]
                 or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
             )
-            if self.request.POST.get("approve") or "post_comment" in self.request.POST
+            if self.request.POST.get("doc_role") or "post_comment" in self.request.POST
             else []
         )
-        if self.request.POST.get("approve"):
-            document_role_to_approve = form.data.get("approve")
+        recipient_list = ", ".join(
+            [
+                r.full_name_with_email if isinstance(r, models.User) else r
+                for r in (recipients if isinstance(recipients, (list, tuple)) else [recipients])
+            ]
+        )
+        if self.request.POST.get("doc_role"):
+            document_role = form.data.get("doc_role")
+            document_action = form.data.get("doc_action")
             resolution = (form.data.get("resolution") or "").strip()
-            if document_role_to_approve in models.DOCUMENT_ROLES and (
-                d := i.parts.filter(
-                    required_part__document_type__role=document_role_to_approve
-                ).last()
+            if document_role in models.DOCUMENT_ROLES and (
+                d := i.parts.filter(required_part__document_type__role=document_role).last()
             ):
                 previous_state = d.state
-                if is_host:
-                    if d.state not in ["accepted", "approved"]:
-                        d.approve(request=self.request, description=resolution or f"approved by {u}")
-                        # d.save()
+                if document_action == "approve":
+                    if is_host:
+                        if d.state not in ["accepted", "approved"]:
+                            d.approve(
+                                request=self.request, description=resolution or f"approved by {u}"
+                            )
+                            # d.save()
+                        else:
+                            messages.warning(
+                                self.request, _("The document was already %s") % _(d.state)
+                            )
                     else:
-                        messages.warning(
-                            self.request, _("The document was already %s") % _(d.state)
-                        )
-                else:
-                    if d.state != "accepted":
-                        d.accept(request=self.request, description=resolution or f"approved by {u}")
-                        # d.save()
-                    else:
-                        messages.warning(
-                            self.request, _("The document was already %s") % _(d.state)
-                        )
-                if d.state != previous_state:
-                    messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
+                        if d.state != "accepted":
+                            d.accept(
+                                request=self.request, description=resolution or f"approved by {u}"
+                            )
+                            # d.save()
+                        else:
+                            messages.warning(
+                                self.request, _("The document was already %s") % _(d.state)
+                            )
+                    if d.state != previous_state:
+                        messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
 
                 respond_url = self.request.build_absolute_uri(
                     reverse("contract-update", kwargs=dict(pk=i.pk))
                 )
-                html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
-                html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-                html_message += f":</p>{resolution}" if resolution else "."
-                html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+                if document_role in ["B", "PB", "AB"]:
+                    respond_url += "#finances"
+                elif document_role in ["AIM", "PT"]:
+                    respond_url += "#research"
+
+                if not document_action or document_action == "approve":
+                    html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
+                    html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+                    html_message += f":</p>{resolution}" if resolution else "."
+                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+                    subject = f"Contract {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}"
+                elif document_action == "request_correction":
+                    html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}'
+                    html_message += f":</p>{resolution}" if resolution else ".</p>"
+                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+                    subject = f"{u.full_name_with_email} requested correction(s) of the contract {i} {d.document_type} {d}"
+                    messages.info(
+                        self.request,
+                        _("The request to amend the %s was sent to %s") % (d, recipient_list),
+                    )
+                elif document_action in ["request_approval", "awaiting_approval"]:
+                    html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:'
+                    html_message += f":</p>{resolution}" if resolution else ".</p>"
+                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+                    subject = f"{u.full_name_with_email} requested approval of the contract {i} {d.document_type} {d}"
+                    messages.info(
+                        self.request,
+                        _("The request to approve the %s was sent to %s") % (d, recipient_list),
+                    )
                 send_mail(
                     request=self.request,
-                    subject=f"Contract {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}",
+                    subject=subject,
                     html_message=html_message,
                     cc=[u.full_email_address],
                     recipients=recipients,
