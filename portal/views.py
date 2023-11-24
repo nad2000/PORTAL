@@ -3532,9 +3532,14 @@ class ContractCreate(ContractViewMixin, CreateView):
         initial["project_title"] = a.application_title or a.round.title
         initial["start_date"] = timezone.now()
         initial["user"] = self.request.user
-        # TODO:
-        initial["number"] = a.number
-        initial["fund"] = models.Fund.last()
+        initial["number"] = models.Contract.new_number(application=a)
+        initial["fund"] = a.round.scheme.fund or models.Fund.last()
+        if research_aims := a.file and a or a.documents.filter(document_type__role="AF").last():
+            initial["research_aims"] = research_aims.file
+        if project_timeline := a.documents.filter(document_type__role="PT").last():
+            initial["project_timeline"] = project_timeline.file
+        if proposal_budget := a.budget and a or a.documents.filter(document_type__role="B").last():
+            initial["proposal_budget"] = a.budget or proposal_budget.file
         return initial
 
         # u = self.request.user

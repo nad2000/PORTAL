@@ -6129,6 +6129,27 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     def thread_topic(self):
         return f"{self._meta.model_name}:{self.number}"
 
+    @classmethod
+    def new_number(cls, application, org=None, year=None):
+        round = application.round
+        scheme = round.scheme
+        fund = scheme.fund
+        prefix = fund and (fund.code3 or fund.code) or scheme.code
+        if not org:
+            org = application.org
+        yy = year and f"{year:02d}" or application.created_at.strftime("%y")
+        c = (
+            cls.all_objects.filter(number__startswith=f"{prefix}-{org.code}{yy}")
+            .order_by("-number")
+            .first()
+        )
+        suffix = int(c.number[-2:]) + 1 if c else 1
+        while True:
+            number = f"{prefix}-{org.code}{yy}{suffix}"
+            if not cls.all_objects.filter(number=number).exists():
+                return number
+            suffix += 1
+
     class Meta:
         db_table = "contract"
 
@@ -6228,14 +6249,14 @@ class Part(PartMixin, PdfFileMixin, Model):
     )
 
     @fsm_log
-    @transition(
-        field=state, source=["submitted", "new", "released"], target="approved"
-    )
+    @transition(field=state, source=["submitted", "new", "released"], target="approved")
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=state, source=["new", "submitted", "approved", "released"], target="accepted")
+    @transition(
+        field=state, source=["new", "submitted", "approved", "released"], target="accepted"
+    )
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 

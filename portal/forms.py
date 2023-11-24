@@ -1529,10 +1529,11 @@ class ContractForm(forms.ModelForm):
         self.helper.include_media = False
 
     def save(self, *args, **kwargs):
+        created = not self.instance.pk
         res = super().save(*args, **kwargs)
         r = self.instance.application.round
         for fn, dr in self.part_fields:
-            if fn in self.changed_data:
+            if created or fn in self.changed_data:
                 file = self.cleaned_data.get(fn, None)
                 part = self.instance.parts.filter(document_type__role=dr).last()
                 if part:
