@@ -1297,17 +1297,20 @@ class LetterOfSupport(PdfFileMixin, Model):
 def default_application_number(application, exclude_numbers=None):
     code = application.round.scheme.code
     org_code = application.org.get_code()
-    year = f"{application.round.opens_on.year}"
+    year = application.round.opens_on.strftime("%y")
+    yy = application.round.opens_on.strftime("%y")
+    prefix1 = f"{code}-{org_code}-{year}"
+    prefix2 = f"{code}-{org_code}-{yy}"
     last_number = (
         Application.all_objects.filter(
             # round=application.round,
+            Q(number__istartswith=prefix1) | Q(number__istartswith=prefix1),
             number__isnull=False,
-            number__istartswith=f"{code}-{org_code}-{year}",
         )
         .order_by("-number")
         .values("number")
         .first()
-    )
+    ).get("number")
     if last_number and last_number.endswith("-E"):
         last_number = last_number.removesuffix("-E")
     application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
@@ -6114,7 +6117,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         if (
             not self.pk
             and self.application
-            and (not self.number or self.__class__.all_objects(number=self.number).exists())
+            and (not self.number or self.__class__.all_objects.filter(number=self.number).exists())
         ):
             self.number = self.__class__.new_number(self.application)
         super().save(*args, **kwargs)
@@ -6154,7 +6157,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         )
         suffix = int(c.number[-2:]) + 1 if c else 1
         while True:
-            number = f"{prefix}-{org.code}{yy}{suffix}"
+            number = f"{prefix}-{org.code}{yy}{suffix:02d}"
             if not cls.all_objects.filter(number=number).exists():
                 return number
             suffix += 1

@@ -1114,6 +1114,7 @@ class ApplicationForm(forms.ModelForm):
             "documents",
             "fors",
             "letter_of_support",
+            "number",
             "organisation",
             "round",
             "seos",

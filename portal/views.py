@@ -3329,7 +3329,7 @@ class ContractViewMixin:
         if not i.application:
             i.application = a
         if not i.number:
-            i.number = a.number
+            i.number = models.Contract.new_number(application=a)
         if not i.fund:
             i.fund = models.Fund.last()
         try:
