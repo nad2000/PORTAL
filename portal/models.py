@@ -6110,6 +6110,15 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     def __str__(self):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
+    def save(self, *args, **kwargs):
+        if (
+            not self.pk
+            and self.application
+            and (not self.number or self.__class__.all_objects(number=self.number).exists())
+        ):
+            self.number = self.__class__.new_number(self.application)
+        super().save(*args, **kwargs)
+
     def natural_key(self):
         return (self.number,)
 
