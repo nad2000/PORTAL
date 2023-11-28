@@ -6,8 +6,8 @@ import re
 import secrets
 import ssl
 import subprocess
+import sys
 import tempfile
-import pikepdf
 import time
 from collections import OrderedDict
 from datetime import date, datetime
@@ -16,6 +16,7 @@ from functools import lru_cache, partial, wraps
 from itertools import groupby
 from urllib.parse import urljoin, urlparse
 
+import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
@@ -74,6 +75,9 @@ from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
+from ooopy import Transforms
+from ooopy.OOoPy import OOoPy
+from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
 from PyPDF2 import PdfFileMerger, PdfFileReader
 from PyPDF2.errors import PdfReadError
@@ -6162,6 +6166,31 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 return number
             suffix += 1
 
+    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+        pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
+        fields = {
+            "START_DATE": self.start_date.strftime("%d %B, %Y"),
+            "PROJECT_TITLE": self.project_title,
+            # "TITLE": pi.title and pi.title.name or "",
+            "TITLE": "Dr.",
+            "FIRSTNAME": pi.first_name,
+            # "MIDDLE_INITIALS": pi.middle_name_initials,
+            "LASTNAME": pi.last_name,
+            "LEGALNAME": self.org.name,
+        }
+        with open("/home/rcir178/Documents/RDF contract template.odt", "rb") as infile, open(
+            "/home/rcir178/Documents/output.odt", "wb"
+        ) as outfile:
+            o = OOoPy(infile=infile, outfile=outfile)
+            t = Transformer(
+                o.mimetype,
+                Transforms.Editinfo(),
+                Transforms.Field_Replace(replace=fields),
+                Transforms.Fix_OOo_Tag(),
+            )
+            t.transform(o)
+            o.close()
+
     class Meta:
         db_table = "contract"
 
@@ -6295,6 +6324,7 @@ simple_history.register(
 
 
 class ContractMemberManager(Manager):
+
     def get_by_natural_key(self, number, email, role, *args, **kwargs):
         return self.get(email=email, role_id=role, contract__number=number)
 

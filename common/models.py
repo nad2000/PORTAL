@@ -138,6 +138,12 @@ class PersonMixin:
         else:
             return email
 
+    # def get_title(self):
+    #     if not (title := getattr(self, "title", None)):
+    #         if u := self.get_user():
+    #             if not (title := getattr(u, "title", None)):
+
+
     @property
     def full_email_address(self):
         user = self.get_user() or self

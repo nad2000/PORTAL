@@ -405,7 +405,7 @@ class DetailView(LoginRequiredMixin, DetailView):
         ]
         context["update_view_name"] = f"{self.model.__name__.lower()}-update"
         context["update_button_name"] = _("Edit")
-        if self.model and self.model in (models.Application, models.Testimonial):
+        if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{self.model.__name__.lower()}-export"
         return context
 
@@ -5448,6 +5448,22 @@ class ApplicationExportView(ExportView):
         #         _(f"Error while converting to pdf. Please contact Administrator: {ex}"),
         #     )
         #     return redirect(self.request.META.get("HTTP_REFERER"))
+
+
+class ContractExportView(ExportView):
+    """Contract PDF export view"""
+
+    model = models.Contract
+    # permission_denied_message = _("Only the round panellist and staff can export the application")
+
+    def test_func(self):
+        # TODO
+        return True
+
+    def get(self, request, pk):
+        c = self.model.get(pk)
+        c.to_pdf()
+        return redirect("contract-detail", number=c.number)
 
 
 class RoundExportView(ExportView):

@@ -123,6 +123,11 @@ urlpatterns = [
                     views.ContractUpdate.as_view(),
                     name="contract-update",
                 ),
+                path(
+                    "<int:pk>/~export",
+                    views.ContractExportView.as_view(),
+                    name="contract-export",
+                ),
             ]
         ),
     ),
@@ -277,7 +282,9 @@ urlpatterns = [
                 ),
                 path(
                     "org_email/",
-                    views.OrgEmailAutocomplete.as_view(model=models.EmailAddress, create_field="email"),
+                    views.OrgEmailAutocomplete.as_view(
+                        model=models.EmailAddress, create_field="email"
+                    ),
                     name="org-email-autocomplete",
                 ),
                 # path(
