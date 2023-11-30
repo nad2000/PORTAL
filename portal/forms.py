@@ -1288,7 +1288,8 @@ class ContractForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
         # language = get_language()
-        instance = self.instance
+        instance = self.instance or instance
+        application = instance.application or initial.get("application")
         site_id = settings.SITE_ID
         if site_id == 4:
             self.fields["project_title"].label = _("Title of proposed research project")
@@ -1308,7 +1309,8 @@ class ContractForm(forms.ModelForm):
         )
         is_pi = instance and (
             instance.submitted_by == user
-            or instance.members.filter(user=user, role__code="PI").exists()
+            or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
+            or application.submitted_by == user
         )
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!
