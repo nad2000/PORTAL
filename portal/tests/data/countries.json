@@ -1,0 +1,4733 @@
+[
+{
+  "model": "portal.country",
+  "pk": "AD",
+  "fields": {
+    "code3": "AND",
+    "name": "Andorra",
+    "num": 20.0,
+    "itu": "AND",
+    "fips": "AN",
+    "ioc": "AND",
+    "fifa": "AND",
+    "ds": "AND",
+    "wmo": " ",
+    "gaul": 7.0,
+    "marc": "an",
+    "dial": "376",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AE",
+  "fields": {
+    "code3": "ARE",
+    "name": "United Arab Emirates",
+    "num": 784.0,
+    "itu": "UAE",
+    "fips": "AE",
+    "ioc": "UAE",
+    "fifa": "UAE",
+    "ds": " ",
+    "wmo": "ER",
+    "gaul": 255.0,
+    "marc": "ts",
+    "dial": "971",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AF",
+  "fields": {
+    "code3": "AFG",
+    "name": "Afghanistan",
+    "num": 4.0,
+    "itu": "AFG",
+    "fips": "AF",
+    "ioc": "AFG",
+    "fifa": "AFG",
+    "ds": "AFG",
+    "wmo": "AF",
+    "gaul": 1.0,
+    "marc": "af",
+    "dial": "93",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AG",
+  "fields": {
+    "code3": "ATG",
+    "name": "Antigua and Barbuda",
+    "num": 28.0,
+    "itu": "ATG",
+    "fips": "AC",
+    "ioc": "ANT",
+    "fifa": "ATG",
+    "ds": " ",
+    "wmo": "AT",
+    "gaul": 11.0,
+    "marc": "aq",
+    "dial": "1-268",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AI",
+  "fields": {
+    "code3": "AIA",
+    "name": "Anguilla",
+    "num": 660.0,
+    "itu": "AIA",
+    "fips": "AV",
+    "ioc": "AIA",
+    "fifa": "AIA",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 9.0,
+    "marc": "am",
+    "dial": "1-264",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AL",
+  "fields": {
+    "code3": "ALB",
+    "name": "Albania",
+    "num": 8.0,
+    "itu": "ALB",
+    "fips": "AL",
+    "ioc": "ALB",
+    "fifa": "ALB",
+    "ds": "AL",
+    "wmo": "AB",
+    "gaul": 3.0,
+    "marc": "aa",
+    "dial": "355",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AM",
+  "fields": {
+    "code3": "ARM",
+    "name": "Armenia",
+    "num": 51.0,
+    "itu": "ARM",
+    "fips": "AM",
+    "ioc": "ARM",
+    "fifa": "ARM",
+    "ds": "AM",
+    "wmo": "AY",
+    "gaul": 13.0,
+    "marc": "ai",
+    "dial": "374",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AO",
+  "fields": {
+    "code3": "AGO",
+    "name": "Angola",
+    "num": 24.0,
+    "itu": "AGL",
+    "fips": "AO",
+    "ioc": "ANG",
+    "fifa": "ANG",
+    "ds": " ",
+    "wmo": "AN",
+    "gaul": 8.0,
+    "marc": "ao",
+    "dial": "244",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AQ",
+  "fields": {
+    "code3": "ATA",
+    "name": "Antarctica",
+    "num": 10.0,
+    "itu": " ",
+    "fips": "AY",
+    "ioc": " ",
+    "fifa": "ROS3",
+    "ds": " ",
+    "wmo": "AA",
+    "gaul": 10.0,
+    "marc": "ay",
+    "dial": "672",
+    "independent": "International"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AR",
+  "fields": {
+    "code3": "ARG",
+    "name": "Argentina",
+    "num": 32.0,
+    "itu": "ARG",
+    "fips": "AR",
+    "ioc": "ARG",
+    "fifa": "ARG",
+    "ds": "RA",
+    "wmo": "AG",
+    "gaul": 12.0,
+    "marc": "ag",
+    "dial": "54",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AS",
+  "fields": {
+    "code3": "ASM",
+    "name": "American Samoa",
+    "num": 16.0,
+    "itu": "SMA",
+    "fips": "AQ",
+    "ioc": "ASA",
+    "fifa": "ASA",
+    "ds": "USA",
+    "wmo": " ",
+    "gaul": 5.0,
+    "marc": "as",
+    "dial": "1-684",
+    "independent": "Territory of US"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AT",
+  "fields": {
+    "code3": "AUT",
+    "name": "Austria",
+    "num": 40.0,
+    "itu": "AUT",
+    "fips": "AU",
+    "ioc": "AUT",
+    "fifa": "AUT",
+    "ds": "A",
+    "wmo": "OS",
+    "gaul": 18.0,
+    "marc": "au",
+    "dial": "43",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AU",
+  "fields": {
+    "code3": "AUS",
+    "name": "Australia",
+    "num": 36.0,
+    "itu": "AUS",
+    "fips": "AS",
+    "ioc": "AUS",
+    "fifa": "AUS",
+    "ds": "AUS",
+    "wmo": "AU",
+    "gaul": 17.0,
+    "marc": "at",
+    "dial": "61",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AW",
+  "fields": {
+    "code3": "ABW",
+    "name": "Aruba",
+    "num": 533.0,
+    "itu": "ABW",
+    "fips": "AA",
+    "ioc": "ARU",
+    "fifa": "ARU",
+    "ds": " ",
+    "wmo": "NU",
+    "gaul": 14.0,
+    "marc": "aw",
+    "dial": "297",
+    "independent": "Part of NL"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AX",
+  "fields": {
+    "code3": "ALA",
+    "name": "Åland",
+    "num": 248.0,
+    "itu": " ",
+    "fips": " ",
+    "ioc": " ",
+    "fifa": "ALD",
+    "ds": "FIN",
+    "wmo": " ",
+    "gaul": 1242.0,
+    "marc": " ",
+    "dial": "358",
+    "independent": "Part of FI"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "AZ",
+  "fields": {
+    "code3": "AZE",
+    "name": "Azerbaijan",
+    "num": 31.0,
+    "itu": "AZE",
+    "fips": "AJ",
+    "ioc": "AZE",
+    "fifa": "AZE",
+    "ds": "AZ",
+    "wmo": "AJ",
+    "gaul": 19.0,
+    "marc": "aj",
+    "dial": "994",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BA",
+  "fields": {
+    "code3": "BIH",
+    "name": "Bosnia and Herzegovina",
+    "num": 70.0,
+    "itu": "BIH",
+    "fips": "BK",
+    "ioc": "BIH",
+    "fifa": "BIH",
+    "ds": "BIH",
+    "wmo": "BG",
+    "gaul": 34.0,
+    "marc": "bn",
+    "dial": "387",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BB",
+  "fields": {
+    "code3": "BRB",
+    "name": "Barbados",
+    "num": 52.0,
+    "itu": "BRB",
+    "fips": "BB",
+    "ioc": "BAR",
+    "fifa": "BRB",
+    "ds": "BDS",
+    "wmo": "BR",
+    "gaul": 24.0,
+    "marc": "bb",
+    "dial": "1-246",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BD",
+  "fields": {
+    "code3": "BGD",
+    "name": "Bangladesh",
+    "num": 50.0,
+    "itu": "BGD",
+    "fips": "BG",
+    "ioc": "BAN",
+    "fifa": "BAN",
+    "ds": "BD",
+    "wmo": "BW",
+    "gaul": 23.0,
+    "marc": "bg",
+    "dial": "880",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BE",
+  "fields": {
+    "code3": "BEL",
+    "name": "Belgium",
+    "num": 56.0,
+    "itu": "BEL",
+    "fips": "BE",
+    "ioc": "BEL",
+    "fifa": "BEL",
+    "ds": "B",
+    "wmo": "BX",
+    "gaul": 27.0,
+    "marc": "be",
+    "dial": "32",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BF",
+  "fields": {
+    "code3": "BFA",
+    "name": "Burkina Faso",
+    "num": 854.0,
+    "itu": "BFA",
+    "fips": "UV",
+    "ioc": "BUR",
+    "fifa": "BFA",
+    "ds": "BF",
+    "wmo": "HV",
+    "gaul": 42.0,
+    "marc": "uv",
+    "dial": "226",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BG",
+  "fields": {
+    "code3": "BGR",
+    "name": "Bulgaria",
+    "num": 100.0,
+    "itu": "BUL",
+    "fips": "BU",
+    "ioc": "BUL",
+    "fifa": "BUL",
+    "ds": "BG",
+    "wmo": "BU",
+    "gaul": 41.0,
+    "marc": "bu",
+    "dial": "359",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BH",
+  "fields": {
+    "code3": "BHR",
+    "name": "Bahrain",
+    "num": 48.0,
+    "itu": "BHR",
+    "fips": "BA",
+    "ioc": "BRN",
+    "fifa": "BHR",
+    "ds": "BRN",
+    "wmo": "BN",
+    "gaul": 21.0,
+    "marc": "ba",
+    "dial": "973",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BI",
+  "fields": {
+    "code3": "BDI",
+    "name": "Burundi",
+    "num": 108.0,
+    "itu": "BDI",
+    "fips": "BY",
+    "ioc": "BDI",
+    "fifa": "BDI",
+    "ds": "RU",
+    "wmo": "BI",
+    "gaul": 43.0,
+    "marc": "bd",
+    "dial": "257",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BJ",
+  "fields": {
+    "code3": "BEN",
+    "name": "Benin",
+    "num": 204.0,
+    "itu": "BEN",
+    "fips": "BN",
+    "ioc": "BEN",
+    "fifa": "BEN",
+    "ds": "DY",
+    "wmo": "BJ",
+    "gaul": 29.0,
+    "marc": "dm",
+    "dial": "229",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BL",
+  "fields": {
+    "code3": "BLM",
+    "name": "Saint Barthélemy",
+    "num": 652.0,
+    "itu": " ",
+    "fips": "TB",
+    "ioc": " ",
+    "fifa": " ",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": null,
+    "marc": "sc",
+    "dial": "590",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BM",
+  "fields": {
+    "code3": "BMU",
+    "name": "Bermuda",
+    "num": 60.0,
+    "itu": "BER",
+    "fips": "BD",
+    "ioc": "BER",
+    "fifa": "BER",
+    "ds": " ",
+    "wmo": "BE",
+    "gaul": 30.0,
+    "marc": "bm",
+    "dial": "1-441",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BN",
+  "fields": {
+    "code3": "BRN",
+    "name": "Brunei Darussalam",
+    "num": 96.0,
+    "itu": "BRU",
+    "fips": "BX",
+    "ioc": "BRU",
+    "fifa": "BRU",
+    "ds": "BRU",
+    "wmo": "BD",
+    "gaul": 40.0,
+    "marc": "bx",
+    "dial": "673",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BO",
+  "fields": {
+    "code3": "BOL",
+    "name": "Bolivia",
+    "num": 68.0,
+    "itu": "BOL",
+    "fips": "BL",
+    "ioc": "BOL",
+    "fifa": "BOL",
+    "ds": "BOL",
+    "wmo": "BO",
+    "gaul": 33.0,
+    "marc": "bo",
+    "dial": "591",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BQ",
+  "fields": {
+    "code3": "BES",
+    "name": "Bonaire, Sint Eustatius and Saba",
+    "num": 535.0,
+    "itu": "ATN",
+    "fips": "NL",
+    "ioc": "AHO",
+    "fifa": "ANT",
+    "ds": "NA",
+    "wmo": "NU",
+    "gaul": 176.0,
+    "marc": "ca",
+    "dial": "599",
+    "independent": "Part of NL"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BR",
+  "fields": {
+    "code3": "BRA",
+    "name": "Brazil",
+    "num": 76.0,
+    "itu": "B",
+    "fips": "BR",
+    "ioc": "BRA",
+    "fifa": "BRA",
+    "ds": "BR",
+    "wmo": "BZ",
+    "gaul": 37.0,
+    "marc": "bl",
+    "dial": "55",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BS",
+  "fields": {
+    "code3": "BHS",
+    "name": "Bahamas",
+    "num": 44.0,
+    "itu": "BAH",
+    "fips": "BF",
+    "ioc": "BAH",
+    "fifa": "BAH",
+    "ds": "BS",
+    "wmo": "BA",
+    "gaul": 20.0,
+    "marc": "bf",
+    "dial": "1-242",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BT",
+  "fields": {
+    "code3": "BTN",
+    "name": "Bhutan",
+    "num": 64.0,
+    "itu": "BTN",
+    "fips": "BT",
+    "ioc": "BHU",
+    "fifa": "BHU",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 31.0,
+    "marc": "bt",
+    "dial": "975",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BV",
+  "fields": {
+    "code3": "BVT",
+    "name": "Bouvet Island",
+    "num": 74.0,
+    "itu": " ",
+    "fips": "BV",
+    "ioc": " ",
+    "fifa": null,
+    "ds": " ",
+    "wmo": "BV",
+    "gaul": 36.0,
+    "marc": "bv",
+    "dial": "47",
+    "independent": "Territory of NO"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BW",
+  "fields": {
+    "code3": "BWA",
+    "name": "Botswana",
+    "num": 72.0,
+    "itu": "BOT",
+    "fips": "BC",
+    "ioc": "BOT",
+    "fifa": "BOT",
+    "ds": "BW",
+    "wmo": "BC",
+    "gaul": 35.0,
+    "marc": "bs",
+    "dial": "267",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BY",
+  "fields": {
+    "code3": "BLR",
+    "name": "Belarus",
+    "num": 112.0,
+    "itu": "BLR",
+    "fips": "BO",
+    "ioc": "BLR",
+    "fifa": "BLR",
+    "ds": "BY",
+    "wmo": "BY",
+    "gaul": 26.0,
+    "marc": "bw",
+    "dial": "375",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "BZ",
+  "fields": {
+    "code3": "BLZ",
+    "name": "Belize",
+    "num": 84.0,
+    "itu": "BLZ",
+    "fips": "BH",
+    "ioc": "BIZ",
+    "fifa": "BLZ",
+    "ds": "BZ",
+    "wmo": "BH",
+    "gaul": 28.0,
+    "marc": "bh",
+    "dial": "501",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CA",
+  "fields": {
+    "code3": "CAN",
+    "name": "Canada",
+    "num": 124.0,
+    "itu": "CAN",
+    "fips": "CA",
+    "ioc": "CAN",
+    "fifa": "CAN",
+    "ds": "CDN",
+    "wmo": "CN",
+    "gaul": 46.0,
+    "marc": "xxc",
+    "dial": "1",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CC",
+  "fields": {
+    "code3": "CCK",
+    "name": "Cocos (Keeling) Islands",
+    "num": 166.0,
+    "itu": "ICO",
+    "fips": "CK",
+    "ioc": " ",
+    "fifa": "CCK",
+    "ds": "AUS",
+    "wmo": "KK",
+    "gaul": 56.0,
+    "marc": "xb",
+    "dial": "61",
+    "independent": "Territory of AU"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CD",
+  "fields": {
+    "code3": "COD",
+    "name": "Congo (Kinshasa)",
+    "num": 180.0,
+    "itu": "COD",
+    "fips": "CG",
+    "ioc": "COD",
+    "fifa": "COD",
+    "ds": "ZRE",
+    "wmo": "ZR",
+    "gaul": 68.0,
+    "marc": "cg",
+    "dial": "243",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CF",
+  "fields": {
+    "code3": "CAF",
+    "name": "Central African Republic",
+    "num": 140.0,
+    "itu": "CAF",
+    "fips": "CT",
+    "ioc": "CAF",
+    "fifa": "CTA",
+    "ds": "RCA",
+    "wmo": "CE",
+    "gaul": 49.0,
+    "marc": "cx",
+    "dial": "236",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CG",
+  "fields": {
+    "code3": "COG",
+    "name": "Congo (Brazzaville)",
+    "num": 178.0,
+    "itu": "COG",
+    "fips": "CF",
+    "ioc": "CGO",
+    "fifa": "CGO",
+    "ds": "RCB",
+    "wmo": "CG",
+    "gaul": 59.0,
+    "marc": "cf",
+    "dial": "242",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CH",
+  "fields": {
+    "code3": "CHE",
+    "name": "Switzerland",
+    "num": 756.0,
+    "itu": "SUI",
+    "fips": "SZ",
+    "ioc": "SUI",
+    "fifa": "SUI",
+    "ds": "CH",
+    "wmo": "SW",
+    "gaul": 237.0,
+    "marc": "sz",
+    "dial": "41",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CI",
+  "fields": {
+    "code3": "CIV",
+    "name": "Côte d'Ivoire",
+    "num": 384.0,
+    "itu": "CTI",
+    "fips": "IV",
+    "ioc": "CIV",
+    "fifa": "CIV",
+    "ds": "CI",
+    "wmo": "IV",
+    "gaul": 66.0,
+    "marc": "iv",
+    "dial": "225",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CK",
+  "fields": {
+    "code3": "COK",
+    "name": "Cook Islands",
+    "num": 184.0,
+    "itu": "CKH",
+    "fips": "CW",
+    "ioc": "COK",
+    "fifa": "COK",
+    "ds": "NZ",
+    "wmo": "KU",
+    "gaul": 60.0,
+    "marc": "cw",
+    "dial": "682",
+    "independent": "Associated with NZ"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CL",
+  "fields": {
+    "code3": "CHL",
+    "name": "Chile",
+    "num": 152.0,
+    "itu": "CHL",
+    "fips": "CI",
+    "ioc": "CHI",
+    "fifa": "CHI",
+    "ds": "RCH",
+    "wmo": "CH",
+    "gaul": 51.0,
+    "marc": "cl",
+    "dial": "56",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CM",
+  "fields": {
+    "code3": "CMR",
+    "name": "Cameroon",
+    "num": 120.0,
+    "itu": "CME",
+    "fips": "CM",
+    "ioc": "CMR",
+    "fifa": "CMR",
+    "ds": "CAM",
+    "wmo": "CM",
+    "gaul": 45.0,
+    "marc": "cm",
+    "dial": "237",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CN",
+  "fields": {
+    "code3": "CHN",
+    "name": "China",
+    "num": 156.0,
+    "itu": "CHN",
+    "fips": "CH",
+    "ioc": "CHN",
+    "fifa": "CHN",
+    "ds": " ",
+    "wmo": "CI",
+    "gaul": 53.0,
+    "marc": "cc",
+    "dial": "86",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CO",
+  "fields": {
+    "code3": "COL",
+    "name": "Colombia",
+    "num": 170.0,
+    "itu": "CLM",
+    "fips": "CO",
+    "ioc": "COL",
+    "fifa": "COL",
+    "ds": "CO",
+    "wmo": "CO",
+    "gaul": 57.0,
+    "marc": "ck",
+    "dial": "57",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CR",
+  "fields": {
+    "code3": "CRI",
+    "name": "Costa Rica",
+    "num": 188.0,
+    "itu": "CTR",
+    "fips": "CS",
+    "ioc": "CRC",
+    "fifa": "CRC",
+    "ds": "CR",
+    "wmo": "CS",
+    "gaul": 61.0,
+    "marc": "cr",
+    "dial": "506",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CU",
+  "fields": {
+    "code3": "CUB",
+    "name": "Cuba",
+    "num": 192.0,
+    "itu": "CUB",
+    "fips": "CU",
+    "ioc": "CUB",
+    "fifa": "CUB",
+    "ds": "C",
+    "wmo": "CU",
+    "gaul": 63.0,
+    "marc": "cu",
+    "dial": "53",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CV",
+  "fields": {
+    "code3": "CPV",
+    "name": "Cape Verde",
+    "num": 132.0,
+    "itu": "CPV",
+    "fips": "CV",
+    "ioc": "CPV",
+    "fifa": "CPV",
+    "ds": " ",
+    "wmo": "CV",
+    "gaul": 47.0,
+    "marc": "cv",
+    "dial": "238",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CW",
+  "fields": {
+    "code3": "CUW",
+    "name": "Curaçao",
+    "num": 531.0,
+    "itu": null,
+    "fips": "UC",
+    "ioc": null,
+    "fifa": null,
+    "ds": null,
+    "wmo": null,
+    "gaul": null,
+    "marc": "co",
+    "dial": null,
+    "independent": "Part of NL"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CX",
+  "fields": {
+    "code3": "CXR",
+    "name": "Christmas Island",
+    "num": 162.0,
+    "itu": "CHR",
+    "fips": "KT",
+    "ioc": " ",
+    "fifa": "CXR",
+    "ds": "AUS",
+    "wmo": "KI",
+    "gaul": 54.0,
+    "marc": "xa",
+    "dial": "61",
+    "independent": "Territory of AU"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CY",
+  "fields": {
+    "code3": "CYP",
+    "name": "Cyprus",
+    "num": 196.0,
+    "itu": "CYP",
+    "fips": "CY",
+    "ioc": "CYP",
+    "fifa": "CYP",
+    "ds": "CY",
+    "wmo": "CY",
+    "gaul": 64.0,
+    "marc": "cy",
+    "dial": "357",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "CZ",
+  "fields": {
+    "code3": "CZE",
+    "name": "Czech Republic",
+    "num": 203.0,
+    "itu": "CZE",
+    "fips": "EZ",
+    "ioc": "CZE",
+    "fifa": "CZE",
+    "ds": "CZ",
+    "wmo": "CZ",
+    "gaul": 65.0,
+    "marc": "xr",
+    "dial": "420",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "DE",
+  "fields": {
+    "code3": "DEU",
+    "name": "Germany",
+    "num": 276.0,
+    "itu": "D",
+    "fips": "GM",
+    "ioc": "GER",
+    "fifa": "GER",
+    "ds": "D",
+    "wmo": "DL",
+    "gaul": 93.0,
+    "marc": "gw",
+    "dial": "49",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "DJ",
+  "fields": {
+    "code3": "DJI",
+    "name": "Djibouti",
+    "num": 262.0,
+    "itu": "DJI",
+    "fips": "DJ",
+    "ioc": "DJI",
+    "fifa": "DJI",
+    "ds": " ",
+    "wmo": "DJ",
+    "gaul": 70.0,
+    "marc": "ft",
+    "dial": "253",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "DK",
+  "fields": {
+    "code3": "DNK",
+    "name": "Denmark",
+    "num": 208.0,
+    "itu": "DNK",
+    "fips": "DA",
+    "ioc": "DEN",
+    "fifa": "DEN",
+    "ds": "DK",
+    "wmo": "DN",
+    "gaul": 69.0,
+    "marc": "dk",
+    "dial": "45",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "DM",
+  "fields": {
+    "code3": "DMA",
+    "name": "Dominica",
+    "num": 212.0,
+    "itu": "DMA",
+    "fips": "DO",
+    "ioc": "DMA",
+    "fifa": "DMA",
+    "ds": "WD",
+    "wmo": "DO",
+    "gaul": 71.0,
+    "marc": "dq",
+    "dial": "1-767",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "DO",
+  "fields": {
+    "code3": "DOM",
+    "name": "Dominican Republic",
+    "num": 214.0,
+    "itu": "DOM",
+    "fips": "DR",
+    "ioc": "DOM",
+    "fifa": "DOM",
+    "ds": "DOM",
+    "wmo": "DR",
+    "gaul": 72.0,
+    "marc": "dr",
+    "dial": "1-809; 1-829; 1-849",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "DZ",
+  "fields": {
+    "code3": "DZA",
+    "name": "Algeria",
+    "num": 12.0,
+    "itu": "ALG",
+    "fips": "AG",
+    "ioc": "ALG",
+    "fifa": "ALG",
+    "ds": "DZ",
+    "wmo": "AL",
+    "gaul": 4.0,
+    "marc": "ae",
+    "dial": "213",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "EC",
+  "fields": {
+    "code3": "ECU",
+    "name": "Ecuador",
+    "num": 218.0,
+    "itu": "EQA",
+    "fips": "EC",
+    "ioc": "ECU",
+    "fifa": "ECU",
+    "ds": "EC",
+    "wmo": "EQ",
+    "gaul": 73.0,
+    "marc": "ec",
+    "dial": "593",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "EE",
+  "fields": {
+    "code3": "EST",
+    "name": "Estonia",
+    "num": 233.0,
+    "itu": "EST",
+    "fips": "EN",
+    "ioc": "EST",
+    "fifa": "EST",
+    "ds": "EST",
+    "wmo": "EO",
+    "gaul": 78.0,
+    "marc": "er",
+    "dial": "372",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "EG",
+  "fields": {
+    "code3": "EGY",
+    "name": "Egypt",
+    "num": 818.0,
+    "itu": "EGY",
+    "fips": "EG",
+    "ioc": "EGY",
+    "fifa": "EGY",
+    "ds": "ET",
+    "wmo": "EG",
+    "gaul": 40765.0,
+    "marc": "ua",
+    "dial": "20",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "EH",
+  "fields": {
+    "code3": "ESH",
+    "name": "Western Sahara",
+    "num": 732.0,
+    "itu": "AOE",
+    "fips": "WI",
+    "ioc": " ",
+    "fifa": "SAH",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 268.0,
+    "marc": "ss",
+    "dial": "212",
+    "independent": "In contention"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ER",
+  "fields": {
+    "code3": "ERI",
+    "name": "Eritrea",
+    "num": 232.0,
+    "itu": "ERI",
+    "fips": "ER",
+    "ioc": "ERI",
+    "fifa": "ERI",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 77.0,
+    "marc": "ea",
+    "dial": "291",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ES",
+  "fields": {
+    "code3": "ESP",
+    "name": "Spain",
+    "num": 724.0,
+    "itu": "E",
+    "fips": "SP",
+    "ioc": "ESP",
+    "fifa": "ESP",
+    "ds": "E",
+    "wmo": "SP",
+    "gaul": 229.0,
+    "marc": "sp",
+    "dial": "34",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ET",
+  "fields": {
+    "code3": "ETH",
+    "name": "Ethiopia",
+    "num": 231.0,
+    "itu": "ETH",
+    "fips": "ET",
+    "ioc": "ETH",
+    "fifa": "ETH",
+    "ds": "ETH",
+    "wmo": "ET",
+    "gaul": 79.0,
+    "marc": "et",
+    "dial": "251",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "FI",
+  "fields": {
+    "code3": "FIN",
+    "name": "Finland",
+    "num": 246.0,
+    "itu": "FIN",
+    "fips": "FI",
+    "ioc": "FIN",
+    "fifa": "FIN",
+    "ds": "FIN",
+    "wmo": "FI",
+    "gaul": 84.0,
+    "marc": "fi",
+    "dial": "358",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "FJ",
+  "fields": {
+    "code3": "FJI",
+    "name": "Fiji",
+    "num": 242.0,
+    "itu": "FJI",
+    "fips": "FJ",
+    "ioc": "FIJ",
+    "fifa": "FIJ",
+    "ds": "FJI",
+    "wmo": "FJ",
+    "gaul": 83.0,
+    "marc": "fj",
+    "dial": "679",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "FK",
+  "fields": {
+    "code3": "FLK",
+    "name": "Falkland Islands",
+    "num": 238.0,
+    "itu": "FLK",
+    "fips": "FK",
+    "ioc": "FLK",
+    "fifa": "FLK",
+    "ds": " ",
+    "wmo": "FK",
+    "gaul": 81.0,
+    "marc": "fk",
+    "dial": "500",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "FM",
+  "fields": {
+    "code3": "FSM",
+    "name": "Micronesia",
+    "num": 583.0,
+    "itu": "FSM",
+    "fips": "FM",
+    "ioc": "FSM",
+    "fifa": "FSM",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 163.0,
+    "marc": "fm",
+    "dial": "691",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "FO",
+  "fields": {
+    "code3": "FRO",
+    "name": "Faroe Islands",
+    "num": 234.0,
+    "itu": "FRO",
+    "fips": "FO",
+    "ioc": "FAR",
+    "fifa": "FRO",
+    "ds": "FO",
+    "wmo": "FA",
+    "gaul": 82.0,
+    "marc": "fa",
+    "dial": "298",
+    "independent": "Part of DK"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "FR",
+  "fields": {
+    "code3": "FRA",
+    "name": "France",
+    "num": 250.0,
+    "itu": "F",
+    "fips": "FR",
+    "ioc": "FRA",
+    "fifa": "FRA",
+    "ds": "F",
+    "wmo": "FR",
+    "gaul": 85.0,
+    "marc": "fr",
+    "dial": "33",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GA",
+  "fields": {
+    "code3": "GAB",
+    "name": "Gabon",
+    "num": 266.0,
+    "itu": "GAB",
+    "fips": "GB",
+    "ioc": "GAB",
+    "fifa": "GAB",
+    "ds": "G",
+    "wmo": "GO",
+    "gaul": 89.0,
+    "marc": "go",
+    "dial": "241",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GB",
+  "fields": {
+    "code3": "GBR",
+    "name": "United Kingdom",
+    "num": 826.0,
+    "itu": "G",
+    "fips": "UK",
+    "ioc": "GBR",
+    "fifa": "1",
+    "ds": "GB",
+    "wmo": "UK",
+    "gaul": 256.0,
+    "marc": "xxk",
+    "dial": "44",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GD",
+  "fields": {
+    "code3": "GRD",
+    "name": "Grenada",
+    "num": 308.0,
+    "itu": "GRD",
+    "fips": "GJ",
+    "ioc": "GRN",
+    "fifa": "GRN",
+    "ds": "WG",
+    "wmo": "GD",
+    "gaul": 99.0,
+    "marc": "gd",
+    "dial": "1-473",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GE",
+  "fields": {
+    "code3": "GEO",
+    "name": "Georgia",
+    "num": 268.0,
+    "itu": "GEO",
+    "fips": "GG",
+    "ioc": "GEO",
+    "fifa": "GEO",
+    "ds": "GE",
+    "wmo": "GG",
+    "gaul": 92.0,
+    "marc": "gs",
+    "dial": "995",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GF",
+  "fields": {
+    "code3": "GUF",
+    "name": "French Guiana",
+    "num": 254.0,
+    "itu": "GUF",
+    "fips": "FG",
+    "ioc": "FGU",
+    "fifa": "GUF",
+    "ds": "F",
+    "wmo": "FG",
+    "gaul": 86.0,
+    "marc": "fg",
+    "dial": "594",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GG",
+  "fields": {
+    "code3": "GGY",
+    "name": "Guernsey",
+    "num": 831.0,
+    "itu": " ",
+    "fips": "GK",
+    "ioc": " ",
+    "fifa": "GBG",
+    "ds": "GBG",
+    "wmo": " ",
+    "gaul": 104.0,
+    "marc": "uik",
+    "dial": "44",
+    "independent": "Crown dependency of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GH",
+  "fields": {
+    "code3": "GHA",
+    "name": "Ghana",
+    "num": 288.0,
+    "itu": "GHA",
+    "fips": "GH",
+    "ioc": "GHA",
+    "fifa": "GHA",
+    "ds": "GH",
+    "wmo": "GH",
+    "gaul": 94.0,
+    "marc": "gh",
+    "dial": "233",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GI",
+  "fields": {
+    "code3": "GIB",
+    "name": "Gibraltar",
+    "num": 292.0,
+    "itu": "GIB",
+    "fips": "GI",
+    "ioc": "GIB",
+    "fifa": "GBZ",
+    "ds": "GBZ",
+    "wmo": "GI",
+    "gaul": 95.0,
+    "marc": "gi",
+    "dial": "350",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GL",
+  "fields": {
+    "code3": "GRL",
+    "name": "Greenland",
+    "num": 304.0,
+    "itu": "GRL",
+    "fips": "GL",
+    "ioc": "GRL",
+    "fifa": "GRL",
+    "ds": "DK",
+    "wmo": "GL",
+    "gaul": 98.0,
+    "marc": "gl",
+    "dial": "299",
+    "independent": "Part of DK"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GM",
+  "fields": {
+    "code3": "GMB",
+    "name": "Gambia",
+    "num": 270.0,
+    "itu": "GMB",
+    "fips": "GA",
+    "ioc": "GAM",
+    "fifa": "GAM",
+    "ds": "WAG",
+    "wmo": "GB",
+    "gaul": 90.0,
+    "marc": "gm",
+    "dial": "220",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GN",
+  "fields": {
+    "code3": "GIN",
+    "name": "Guinea",
+    "num": 324.0,
+    "itu": "GUI",
+    "fips": "GV",
+    "ioc": "GUI",
+    "fifa": "GUI",
+    "ds": "RG",
+    "wmo": "GN",
+    "gaul": 106.0,
+    "marc": "gv",
+    "dial": "224",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GP",
+  "fields": {
+    "code3": "GLP",
+    "name": "Guadeloupe",
+    "num": 312.0,
+    "itu": "GDL",
+    "fips": "GP",
+    "ioc": "GUD",
+    "fifa": "GLP",
+    "ds": "F",
+    "wmo": "MF",
+    "gaul": 100.0,
+    "marc": "gp",
+    "dial": "590",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GQ",
+  "fields": {
+    "code3": "GNQ",
+    "name": "Equatorial Guinea",
+    "num": 226.0,
+    "itu": "GNE",
+    "fips": "EK",
+    "ioc": "GEQ",
+    "fifa": "EQG",
+    "ds": " ",
+    "wmo": "GQ",
+    "gaul": 76.0,
+    "marc": "eg",
+    "dial": "240",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GR",
+  "fields": {
+    "code3": "GRC",
+    "name": "Greece",
+    "num": 300.0,
+    "itu": "GRC",
+    "fips": "GR",
+    "ioc": "GRE",
+    "fifa": "GRE",
+    "ds": "GR",
+    "wmo": "GR",
+    "gaul": 97.0,
+    "marc": "gr",
+    "dial": "30",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GS",
+  "fields": {
+    "code3": "SGS",
+    "name": "South Georgia and South Sandwich Islands",
+    "num": 239.0,
+    "itu": " ",
+    "fips": "SX",
+    "ioc": " ",
+    "fifa": null,
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 228.0,
+    "marc": "xs",
+    "dial": "500",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GT",
+  "fields": {
+    "code3": "GTM",
+    "name": "Guatemala",
+    "num": 320.0,
+    "itu": "GTM",
+    "fips": "GT",
+    "ioc": "GUA",
+    "fifa": "GUA",
+    "ds": "GCA",
+    "wmo": "GU",
+    "gaul": 103.0,
+    "marc": "gt",
+    "dial": "502",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GU",
+  "fields": {
+    "code3": "GUM",
+    "name": "Guam",
+    "num": 316.0,
+    "itu": "GUM",
+    "fips": "GQ",
+    "ioc": "GUM",
+    "fifa": "GUM",
+    "ds": "USA",
+    "wmo": "GM",
+    "gaul": 101.0,
+    "marc": "gu",
+    "dial": "1-671",
+    "independent": "Territory of US"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GW",
+  "fields": {
+    "code3": "GNB",
+    "name": "Guinea-Bissau",
+    "num": 624.0,
+    "itu": "GNB",
+    "fips": "PU",
+    "ioc": "GBS",
+    "fifa": "GNB",
+    "ds": " ",
+    "wmo": "GW",
+    "gaul": 105.0,
+    "marc": "pg",
+    "dial": "245",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "GY",
+  "fields": {
+    "code3": "GUY",
+    "name": "Guyana",
+    "num": 328.0,
+    "itu": "GUY",
+    "fips": "GY",
+    "ioc": "GUY",
+    "fifa": "GUY",
+    "ds": "GUY",
+    "wmo": "GY",
+    "gaul": 107.0,
+    "marc": "gy",
+    "dial": "592",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "HK",
+  "fields": {
+    "code3": "HKG",
+    "name": "Hong Kong",
+    "num": 344.0,
+    "itu": "HKG",
+    "fips": "HK",
+    "ioc": "HKG",
+    "fifa": "HKG",
+    "ds": "HK",
+    "wmo": "HK",
+    "gaul": 33364.0,
+    "marc": " ",
+    "dial": "852",
+    "independent": "Part of CN"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "HM",
+  "fields": {
+    "code3": "HMD",
+    "name": "Heard and McDonald Islands",
+    "num": 334.0,
+    "itu": " ",
+    "fips": "HM",
+    "ioc": " ",
+    "fifa": null,
+    "ds": "AUS",
+    "wmo": " ",
+    "gaul": 109.0,
+    "marc": "hm",
+    "dial": "672",
+    "independent": "Territory of AU"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "HN",
+  "fields": {
+    "code3": "HND",
+    "name": "Honduras",
+    "num": 340.0,
+    "itu": "HND",
+    "fips": "HO",
+    "ioc": "HON",
+    "fifa": "HON",
+    "ds": " ",
+    "wmo": "HO",
+    "gaul": 111.0,
+    "marc": "ho",
+    "dial": "504",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "HR",
+  "fields": {
+    "code3": "HRV",
+    "name": "Croatia",
+    "num": 191.0,
+    "itu": "HRV",
+    "fips": "HR",
+    "ioc": "CRO",
+    "fifa": "CRO",
+    "ds": "HR",
+    "wmo": "RH",
+    "gaul": 62.0,
+    "marc": "ci",
+    "dial": "385",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "HT",
+  "fields": {
+    "code3": "HTI",
+    "name": "Haiti",
+    "num": 332.0,
+    "itu": "HTI",
+    "fips": "HA",
+    "ioc": "HAI",
+    "fifa": "HAI",
+    "ds": "RH",
+    "wmo": "HA",
+    "gaul": 108.0,
+    "marc": "ht",
+    "dial": "509",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "HU",
+  "fields": {
+    "code3": "HUN",
+    "name": "Hungary",
+    "num": 348.0,
+    "itu": "HNG",
+    "fips": "HU",
+    "ioc": "HUN",
+    "fifa": "HUN",
+    "ds": "H",
+    "wmo": "HU",
+    "gaul": 113.0,
+    "marc": "hu",
+    "dial": "36",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ID",
+  "fields": {
+    "code3": "IDN",
+    "name": "Indonesia",
+    "num": 360.0,
+    "itu": "INS",
+    "fips": "ID",
+    "ioc": "INA",
+    "fifa": "IDN",
+    "ds": "RI",
+    "wmo": "ID",
+    "gaul": 116.0,
+    "marc": "io",
+    "dial": "62",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IE",
+  "fields": {
+    "code3": "IRL",
+    "name": "Ireland",
+    "num": 372.0,
+    "itu": "IRL",
+    "fips": "EI",
+    "ioc": "IRL",
+    "fifa": "IRL",
+    "ds": "IRL",
+    "wmo": "IE",
+    "gaul": 119.0,
+    "marc": "ie",
+    "dial": "353",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IL",
+  "fields": {
+    "code3": "ISR",
+    "name": "Israel",
+    "num": 376.0,
+    "itu": "ISR",
+    "fips": "IS",
+    "ioc": "ISR",
+    "fifa": "ISR",
+    "ds": "IL",
+    "wmo": "IS",
+    "gaul": 121.0,
+    "marc": "is",
+    "dial": "972",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IM",
+  "fields": {
+    "code3": "IMN",
+    "name": "Isle of Man",
+    "num": 833.0,
+    "itu": " ",
+    "fips": "IM",
+    "ioc": " ",
+    "fifa": "GBM",
+    "ds": "GBM",
+    "wmo": " ",
+    "gaul": 120.0,
+    "marc": "uik",
+    "dial": "44",
+    "independent": "Crown dependency of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IN",
+  "fields": {
+    "code3": "IND",
+    "name": "India",
+    "num": 356.0,
+    "itu": "IND",
+    "fips": "IN",
+    "ioc": "IND",
+    "fifa": "IND",
+    "ds": "IND",
+    "wmo": "IN",
+    "gaul": 115.0,
+    "marc": "ii",
+    "dial": "91",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IO",
+  "fields": {
+    "code3": "IOT",
+    "name": "British Indian Ocean Territory",
+    "num": 86.0,
+    "itu": "BIO",
+    "fips": "IO",
+    "ioc": " ",
+    "fifa": null,
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 38.0,
+    "marc": "bi",
+    "dial": "246",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IQ",
+  "fields": {
+    "code3": "IRQ",
+    "name": "Iraq",
+    "num": 368.0,
+    "itu": "IRQ",
+    "fips": "IZ",
+    "ioc": "IRQ",
+    "fifa": "IRQ",
+    "ds": "IRQ",
+    "wmo": "IQ",
+    "gaul": 118.0,
+    "marc": "iq",
+    "dial": "964",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IR",
+  "fields": {
+    "code3": "IRN",
+    "name": "Iran",
+    "num": 364.0,
+    "itu": "IRN",
+    "fips": "IR",
+    "ioc": "IRI",
+    "fifa": "IRN",
+    "ds": "IR",
+    "wmo": "IR",
+    "gaul": 117.0,
+    "marc": "ir",
+    "dial": "98",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IS",
+  "fields": {
+    "code3": "ISL",
+    "name": "Iceland",
+    "num": 352.0,
+    "itu": "ISL",
+    "fips": "IC",
+    "ioc": "ISL",
+    "fifa": "ISL",
+    "ds": "IS",
+    "wmo": "IL",
+    "gaul": 114.0,
+    "marc": "ic",
+    "dial": "354",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "IT",
+  "fields": {
+    "code3": "ITA",
+    "name": "Italy",
+    "num": 380.0,
+    "itu": "I",
+    "fips": "IT",
+    "ioc": "ITA",
+    "fifa": "ITA",
+    "ds": "I",
+    "wmo": "IY",
+    "gaul": 122.0,
+    "marc": "it",
+    "dial": "39",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "JE",
+  "fields": {
+    "code3": "JEY",
+    "name": "Jersey",
+    "num": 832.0,
+    "itu": " ",
+    "fips": "JE",
+    "ioc": " ",
+    "fifa": "GBJ",
+    "ds": "GBJ",
+    "wmo": " ",
+    "gaul": 128.0,
+    "marc": "uik",
+    "dial": "44",
+    "independent": "Crown dependency of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "JM",
+  "fields": {
+    "code3": "JAM",
+    "name": "Jamaica",
+    "num": 388.0,
+    "itu": "JMC",
+    "fips": "JM",
+    "ioc": "JAM",
+    "fifa": "JAM",
+    "ds": "JA",
+    "wmo": "JM",
+    "gaul": 123.0,
+    "marc": "jm",
+    "dial": "1-876",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "JO",
+  "fields": {
+    "code3": "JOR",
+    "name": "Jordan",
+    "num": 400.0,
+    "itu": "JOR",
+    "fips": "JO",
+    "ioc": "JOR",
+    "fifa": "JOR",
+    "ds": "HKJ",
+    "wmo": "JD",
+    "gaul": 130.0,
+    "marc": "jo",
+    "dial": "962",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "JP",
+  "fields": {
+    "code3": "JPN",
+    "name": "Japan",
+    "num": 392.0,
+    "itu": "J",
+    "fips": "JA",
+    "ioc": "JPN",
+    "fifa": "JPN",
+    "ds": "J",
+    "wmo": "JP",
+    "gaul": 126.0,
+    "marc": "ja",
+    "dial": "81",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KE",
+  "fields": {
+    "code3": "KEN",
+    "name": "Kenya",
+    "num": 404.0,
+    "itu": "KEN",
+    "fips": "KE",
+    "ioc": "KEN",
+    "fifa": "KEN",
+    "ds": "EAK",
+    "wmo": "KN",
+    "gaul": 133.0,
+    "marc": "ke",
+    "dial": "254",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KG",
+  "fields": {
+    "code3": "KGZ",
+    "name": "Kyrgyzstan",
+    "num": 417.0,
+    "itu": "KGZ",
+    "fips": "KG",
+    "ioc": "KGZ",
+    "fifa": "KGZ",
+    "ds": "KS",
+    "wmo": "KG",
+    "gaul": 138.0,
+    "marc": "kg",
+    "dial": "996",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KH",
+  "fields": {
+    "code3": "KHM",
+    "name": "Cambodia",
+    "num": 116.0,
+    "itu": "CBG",
+    "fips": "CB",
+    "ioc": "CAM",
+    "fifa": "CAM",
+    "ds": "K",
+    "wmo": "KP",
+    "gaul": 44.0,
+    "marc": "cb",
+    "dial": "855",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KI",
+  "fields": {
+    "code3": "KIR",
+    "name": "Kiribati",
+    "num": 296.0,
+    "itu": "KIR",
+    "fips": "KR",
+    "ioc": "KIR",
+    "fifa": "KIR",
+    "ds": " ",
+    "wmo": "KB",
+    "gaul": 135.0,
+    "marc": "gb",
+    "dial": "686",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KM",
+  "fields": {
+    "code3": "COM",
+    "name": "Comoros",
+    "num": 174.0,
+    "itu": "COM",
+    "fips": "CN",
+    "ioc": "COM",
+    "fifa": "COM",
+    "ds": " ",
+    "wmo": "IC",
+    "gaul": 58.0,
+    "marc": "cq",
+    "dial": "269",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KN",
+  "fields": {
+    "code3": "KNA",
+    "name": "Saint Kitts and Nevis",
+    "num": 659.0,
+    "itu": "KNA",
+    "fips": "SC",
+    "ioc": "SKN",
+    "fifa": "SKN",
+    "ds": " ",
+    "wmo": "AT",
+    "gaul": 208.0,
+    "marc": "xd",
+    "dial": "1-869",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KP",
+  "fields": {
+    "code3": "PRK",
+    "name": "Korea, North",
+    "num": 408.0,
+    "itu": "KRE",
+    "fips": "KN",
+    "ioc": "PRK",
+    "fifa": "PRK",
+    "ds": " ",
+    "wmo": "KR",
+    "gaul": 67.0,
+    "marc": "kn",
+    "dial": "850",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KR",
+  "fields": {
+    "code3": "KOR",
+    "name": "Korea, South",
+    "num": 410.0,
+    "itu": "KOR",
+    "fips": "KS",
+    "ioc": "KOR",
+    "fifa": "KOR",
+    "ds": "ROK",
+    "wmo": "KO",
+    "gaul": 202.0,
+    "marc": "ko",
+    "dial": "82",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KW",
+  "fields": {
+    "code3": "KWT",
+    "name": "Kuwait",
+    "num": 414.0,
+    "itu": "KWT",
+    "fips": "KU",
+    "ioc": "KUW",
+    "fifa": "KUW",
+    "ds": "KWT",
+    "wmo": "KW",
+    "gaul": 137.0,
+    "marc": "ku",
+    "dial": "965",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KY",
+  "fields": {
+    "code3": "CYM",
+    "name": "Cayman Islands",
+    "num": 136.0,
+    "itu": "CYM",
+    "fips": "CJ",
+    "ioc": "CAY",
+    "fifa": "CAY",
+    "ds": " ",
+    "wmo": "GC",
+    "gaul": 48.0,
+    "marc": "cj",
+    "dial": "1-345",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "KZ",
+  "fields": {
+    "code3": "KAZ",
+    "name": "Kazakhstan",
+    "num": 398.0,
+    "itu": "KAZ",
+    "fips": "KZ",
+    "ioc": "KAZ",
+    "fifa": "KAZ",
+    "ds": "KZ",
+    "wmo": "KZ",
+    "gaul": 132.0,
+    "marc": "kz",
+    "dial": "7",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LA",
+  "fields": {
+    "code3": "LAO",
+    "name": "Laos",
+    "num": 418.0,
+    "itu": "LAO",
+    "fips": "LA",
+    "ioc": "LAO",
+    "fifa": "LAO",
+    "ds": "LAO",
+    "wmo": "LA",
+    "gaul": 139.0,
+    "marc": "ls",
+    "dial": "856",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LB",
+  "fields": {
+    "code3": "LBN",
+    "name": "Lebanon",
+    "num": 422.0,
+    "itu": "LBN",
+    "fips": "LE",
+    "ioc": "LIB",
+    "fifa": "LIB",
+    "ds": "RL",
+    "wmo": "LB",
+    "gaul": 141.0,
+    "marc": "le",
+    "dial": "961",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LC",
+  "fields": {
+    "code3": "LCA",
+    "name": "Saint Lucia",
+    "num": 662.0,
+    "itu": "LCA",
+    "fips": "ST",
+    "ioc": "LCA",
+    "fifa": "LCA",
+    "ds": "WL",
+    "wmo": "LC",
+    "gaul": 209.0,
+    "marc": "xk",
+    "dial": "1-758",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LI",
+  "fields": {
+    "code3": "LIE",
+    "name": "Liechtenstein",
+    "num": 438.0,
+    "itu": "LIE",
+    "fips": "LS",
+    "ioc": "LIE",
+    "fifa": "LIE",
+    "ds": "FL",
+    "wmo": " ",
+    "gaul": 146.0,
+    "marc": "lh",
+    "dial": "423",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LK",
+  "fields": {
+    "code3": "LKA",
+    "name": "Sri Lanka",
+    "num": 144.0,
+    "itu": "CLN",
+    "fips": "CE",
+    "ioc": "SRI",
+    "fifa": "SRI",
+    "ds": "CL",
+    "wmo": "SB",
+    "gaul": 231.0,
+    "marc": "ce",
+    "dial": "94",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LR",
+  "fields": {
+    "code3": "LBR",
+    "name": "Liberia",
+    "num": 430.0,
+    "itu": "LBR",
+    "fips": "LI",
+    "ioc": "LBR",
+    "fifa": "LBR",
+    "ds": "LB",
+    "wmo": "LI",
+    "gaul": 144.0,
+    "marc": "lb",
+    "dial": "231",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LS",
+  "fields": {
+    "code3": "LSO",
+    "name": "Lesotho",
+    "num": 426.0,
+    "itu": "LSO",
+    "fips": "LT",
+    "ioc": "LES",
+    "fifa": "LES",
+    "ds": "LS",
+    "wmo": "LS",
+    "gaul": 142.0,
+    "marc": "lo",
+    "dial": "266",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LT",
+  "fields": {
+    "code3": "LTU",
+    "name": "Lithuania",
+    "num": 440.0,
+    "itu": "LTU",
+    "fips": "LH",
+    "ioc": "LTU",
+    "fifa": "LTU",
+    "ds": "LT",
+    "wmo": "LT",
+    "gaul": 147.0,
+    "marc": "li",
+    "dial": "370",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LU",
+  "fields": {
+    "code3": "LUX",
+    "name": "Luxembourg",
+    "num": 442.0,
+    "itu": "LUX",
+    "fips": "LU",
+    "ioc": "LUX",
+    "fifa": "LUX",
+    "ds": "L",
+    "wmo": "BX",
+    "gaul": 148.0,
+    "marc": "lu",
+    "dial": "352",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LV",
+  "fields": {
+    "code3": "LVA",
+    "name": "Latvia",
+    "num": 428.0,
+    "itu": "LVA",
+    "fips": "LG",
+    "ioc": "LAT",
+    "fifa": "LVA",
+    "ds": "LV",
+    "wmo": "LV",
+    "gaul": 140.0,
+    "marc": "lv",
+    "dial": "371",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "LY",
+  "fields": {
+    "code3": "LBY",
+    "name": "Libya",
+    "num": 434.0,
+    "itu": "LBY",
+    "fips": "LY",
+    "ioc": "LBA",
+    "fifa": "LBY",
+    "ds": "LAR",
+    "wmo": "LY",
+    "gaul": 145.0,
+    "marc": "ly",
+    "dial": "218",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MA",
+  "fields": {
+    "code3": "MAR",
+    "name": "Morocco",
+    "num": 504.0,
+    "itu": "MRC",
+    "fips": "MO",
+    "ioc": "MAR",
+    "fifa": "MAR",
+    "ds": "MA",
+    "wmo": "MC",
+    "gaul": 169.0,
+    "marc": "mr",
+    "dial": "212",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MC",
+  "fields": {
+    "code3": "MCO",
+    "name": "Monaco",
+    "num": 492.0,
+    "itu": "MCO",
+    "fips": "MN",
+    "ioc": "MON",
+    "fifa": "MON",
+    "ds": "MC",
+    "wmo": " ",
+    "gaul": 166.0,
+    "marc": "mc",
+    "dial": "377",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MD",
+  "fields": {
+    "code3": "MDA",
+    "name": "Moldova",
+    "num": 498.0,
+    "itu": "MDA",
+    "fips": "MD",
+    "ioc": "MDA",
+    "fifa": "MDA",
+    "ds": "MD",
+    "wmo": "RM",
+    "gaul": 165.0,
+    "marc": "mv",
+    "dial": "373",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ME",
+  "fields": {
+    "code3": "MNE",
+    "name": "Montenegro",
+    "num": 499.0,
+    "itu": "MNE",
+    "fips": "MJ",
+    "ioc": "MGO",
+    "fifa": "MNE",
+    "ds": "(See Serbia)",
+    "wmo": null,
+    "gaul": 2647.0,
+    "marc": "mo",
+    "dial": "382",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MF",
+  "fields": {
+    "code3": "MAF",
+    "name": "Saint Martin (French part)",
+    "num": 663.0,
+    "itu": " ",
+    "fips": "RN",
+    "ioc": " ",
+    "fifa": " ",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": null,
+    "marc": "st",
+    "dial": "590",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MG",
+  "fields": {
+    "code3": "MDG",
+    "name": "Madagascar",
+    "num": 450.0,
+    "itu": "MDG",
+    "fips": "MA",
+    "ioc": "MAD",
+    "fifa": "MAD",
+    "ds": "RM",
+    "wmo": "MG",
+    "gaul": 150.0,
+    "marc": "mg",
+    "dial": "261",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MH",
+  "fields": {
+    "code3": "MHL",
+    "name": "Marshall Islands",
+    "num": 584.0,
+    "itu": "MHL",
+    "fips": "RM",
+    "ioc": "MSH",
+    "fifa": "MHL",
+    "ds": " ",
+    "wmo": "MH",
+    "gaul": 157.0,
+    "marc": "xe",
+    "dial": "692",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MK",
+  "fields": {
+    "code3": "MKD",
+    "name": "Macedonia",
+    "num": 807.0,
+    "itu": "MKD",
+    "fips": "MK",
+    "ioc": "MKD",
+    "fifa": "MKD",
+    "ds": "MK",
+    "wmo": "MJ",
+    "gaul": 241.0,
+    "marc": "xn",
+    "dial": "389",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ML",
+  "fields": {
+    "code3": "MLI",
+    "name": "Mali",
+    "num": 466.0,
+    "itu": "MLI",
+    "fips": "ML",
+    "ioc": "MLI",
+    "fifa": "MLI",
+    "ds": "RMM",
+    "wmo": "MI",
+    "gaul": 155.0,
+    "marc": "ml",
+    "dial": "223",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MM",
+  "fields": {
+    "code3": "MMR",
+    "name": "Myanmar",
+    "num": 104.0,
+    "itu": "MYA",
+    "fips": "BM",
+    "ioc": "MYA",
+    "fifa": "MYA",
+    "ds": "BUR",
+    "wmo": "BM",
+    "gaul": 171.0,
+    "marc": "br",
+    "dial": "95",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MN",
+  "fields": {
+    "code3": "MNG",
+    "name": "Mongolia",
+    "num": 496.0,
+    "itu": "MNG",
+    "fips": "MG",
+    "ioc": "MGL",
+    "fifa": "MNG",
+    "ds": "MGL",
+    "wmo": "MO",
+    "gaul": 167.0,
+    "marc": "mp",
+    "dial": "976",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MO",
+  "fields": {
+    "code3": "MAC",
+    "name": "Macau",
+    "num": 446.0,
+    "itu": "MAC",
+    "fips": "MC",
+    "ioc": "MAC",
+    "fifa": "MAC",
+    "ds": " ",
+    "wmo": "MU",
+    "gaul": 149.0,
+    "marc": " ",
+    "dial": "853",
+    "independent": "Part of CN"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MP",
+  "fields": {
+    "code3": "MNP",
+    "name": "Northern Mariana Islands",
+    "num": 580.0,
+    "itu": "MRA",
+    "fips": "CQ",
+    "ioc": "NMA",
+    "fifa": "NMI",
+    "ds": "USA",
+    "wmo": "MY",
+    "gaul": 185.0,
+    "marc": "nw",
+    "dial": "1-670",
+    "independent": "Commonwealth of US"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MQ",
+  "fields": {
+    "code3": "MTQ",
+    "name": "Martinique",
+    "num": 474.0,
+    "itu": "MRT",
+    "fips": "MB",
+    "ioc": "MRT",
+    "fifa": "MTQ",
+    "ds": "F",
+    "wmo": "MR",
+    "gaul": 158.0,
+    "marc": "mq",
+    "dial": "596",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MR",
+  "fields": {
+    "code3": "MRT",
+    "name": "Mauritania",
+    "num": 478.0,
+    "itu": "MTN",
+    "fips": "MR",
+    "ioc": "MTN",
+    "fifa": "MTN",
+    "ds": "RIM",
+    "wmo": "MT",
+    "gaul": 159.0,
+    "marc": "mu",
+    "dial": "222",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MS",
+  "fields": {
+    "code3": "MSR",
+    "name": "Montserrat",
+    "num": 500.0,
+    "itu": "MSR",
+    "fips": "MH",
+    "ioc": "MNT",
+    "fifa": "MSR",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 168.0,
+    "marc": "mj",
+    "dial": "1-664",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MT",
+  "fields": {
+    "code3": "MLT",
+    "name": "Malta",
+    "num": 470.0,
+    "itu": "MLT",
+    "fips": "MT",
+    "ioc": "MLT",
+    "fifa": "MLT",
+    "ds": "M",
+    "wmo": "ML",
+    "gaul": 156.0,
+    "marc": "mm",
+    "dial": "356",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MU",
+  "fields": {
+    "code3": "MUS",
+    "name": "Mauritius",
+    "num": 480.0,
+    "itu": "MAU",
+    "fips": "MP",
+    "ioc": "MRI",
+    "fifa": "MRI",
+    "ds": "MS",
+    "wmo": "MA",
+    "gaul": 160.0,
+    "marc": "mf",
+    "dial": "230",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MV",
+  "fields": {
+    "code3": "MDV",
+    "name": "Maldives",
+    "num": 462.0,
+    "itu": "MLD",
+    "fips": "MV",
+    "ioc": "MDV",
+    "fifa": "MDV",
+    "ds": " ",
+    "wmo": "MV",
+    "gaul": 154.0,
+    "marc": "xc",
+    "dial": "960",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MW",
+  "fields": {
+    "code3": "MWI",
+    "name": "Malawi",
+    "num": 454.0,
+    "itu": "MWI",
+    "fips": "MI",
+    "ioc": "MAW",
+    "fifa": "MWI",
+    "ds": "MW",
+    "wmo": "MW",
+    "gaul": 152.0,
+    "marc": "mw",
+    "dial": "265",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MX",
+  "fields": {
+    "code3": "MEX",
+    "name": "Mexico",
+    "num": 484.0,
+    "itu": "MEX",
+    "fips": "MX",
+    "ioc": "MEX",
+    "fifa": "MEX",
+    "ds": "MEX",
+    "wmo": "MX",
+    "gaul": 162.0,
+    "marc": "mx",
+    "dial": "52",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MY",
+  "fields": {
+    "code3": "MYS",
+    "name": "Malaysia",
+    "num": 458.0,
+    "itu": "MLA",
+    "fips": "MY",
+    "ioc": "MAS",
+    "fifa": "MAS",
+    "ds": "MAL",
+    "wmo": "MS",
+    "gaul": 153.0,
+    "marc": "my",
+    "dial": "60",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "MZ",
+  "fields": {
+    "code3": "MOZ",
+    "name": "Mozambique",
+    "num": 508.0,
+    "itu": "MOZ",
+    "fips": "MZ",
+    "ioc": "MOZ",
+    "fifa": "MOZ",
+    "ds": "MOC",
+    "wmo": "MZ",
+    "gaul": 170.0,
+    "marc": "mz",
+    "dial": "258",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NA",
+  "fields": {
+    "code3": "NAM",
+    "name": "Namibia",
+    "num": 516.0,
+    "itu": "NMB",
+    "fips": "WA",
+    "ioc": "NAM",
+    "fifa": "NAM",
+    "ds": "NAM",
+    "wmo": "NM",
+    "gaul": 172.0,
+    "marc": "sx",
+    "dial": "264",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NC",
+  "fields": {
+    "code3": "NCL",
+    "name": "New Caledonia",
+    "num": 540.0,
+    "itu": "NCL",
+    "fips": "NC",
+    "ioc": "NCD",
+    "fifa": "NCL",
+    "ds": "F",
+    "wmo": "NC",
+    "gaul": 178.0,
+    "marc": "nl",
+    "dial": "687",
+    "independent": "Territory of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NE",
+  "fields": {
+    "code3": "NER",
+    "name": "Niger",
+    "num": 562.0,
+    "itu": "NGR",
+    "fips": "NG",
+    "ioc": "NIG",
+    "fifa": "NIG",
+    "ds": "RN",
+    "wmo": "NR",
+    "gaul": 181.0,
+    "marc": "ng",
+    "dial": "227",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NF",
+  "fields": {
+    "code3": "NFK",
+    "name": "Norfolk Island",
+    "num": 574.0,
+    "itu": "NFK",
+    "fips": "NF",
+    "ioc": "NFI",
+    "fifa": "NFK",
+    "ds": "AUS",
+    "wmo": "NF",
+    "gaul": 184.0,
+    "marc": "nx",
+    "dial": "672",
+    "independent": "Territory of AU"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NG",
+  "fields": {
+    "code3": "NGA",
+    "name": "Nigeria",
+    "num": 566.0,
+    "itu": "NIG",
+    "fips": "NI",
+    "ioc": "NGR",
+    "fifa": "NGA",
+    "ds": "NGR",
+    "wmo": "NI",
+    "gaul": 182.0,
+    "marc": "nr",
+    "dial": "234",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NI",
+  "fields": {
+    "code3": "NIC",
+    "name": "Nicaragua",
+    "num": 558.0,
+    "itu": "NCG",
+    "fips": "NU",
+    "ioc": "NCA",
+    "fifa": "NCA",
+    "ds": "NIC",
+    "wmo": "NK",
+    "gaul": 180.0,
+    "marc": "nq",
+    "dial": "505",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NL",
+  "fields": {
+    "code3": "NLD",
+    "name": "Netherlands",
+    "num": 528.0,
+    "itu": "HOL",
+    "fips": "NL",
+    "ioc": "NED",
+    "fifa": "NED",
+    "ds": "NL",
+    "wmo": "NL",
+    "gaul": 177.0,
+    "marc": "ne",
+    "dial": "31",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NO",
+  "fields": {
+    "code3": "NOR",
+    "name": "Norway",
+    "num": 578.0,
+    "itu": "NOR",
+    "fips": "NO",
+    "ioc": "NOR",
+    "fifa": "NOR",
+    "ds": "N",
+    "wmo": "NO",
+    "gaul": 186.0,
+    "marc": "no",
+    "dial": "47",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NP",
+  "fields": {
+    "code3": "NPL",
+    "name": "Nepal",
+    "num": 524.0,
+    "itu": "NPL",
+    "fips": "NP",
+    "ioc": "NEP",
+    "fifa": "NEP",
+    "ds": "NEP",
+    "wmo": "NP",
+    "gaul": 175.0,
+    "marc": "np",
+    "dial": "977",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NR",
+  "fields": {
+    "code3": "NRU",
+    "name": "Nauru",
+    "num": 520.0,
+    "itu": "NRU",
+    "fips": "NR",
+    "ioc": "NRU",
+    "fifa": "NRU",
+    "ds": "NAU",
+    "wmo": "NW",
+    "gaul": 173.0,
+    "marc": "nu",
+    "dial": "674",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NU",
+  "fields": {
+    "code3": "NIU",
+    "name": "Niue",
+    "num": 570.0,
+    "itu": "NIU",
+    "fips": "NE",
+    "ioc": "NIU",
+    "fifa": "NIU",
+    "ds": "NZ",
+    "wmo": " ",
+    "gaul": 183.0,
+    "marc": "xh",
+    "dial": "683",
+    "independent": "Associated with NZ"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "NZ",
+  "fields": {
+    "code3": "NZL",
+    "name": "New Zealand",
+    "num": 554.0,
+    "itu": "NZL",
+    "fips": "NZ",
+    "ioc": "NZL",
+    "fifa": "NZL",
+    "ds": "NZ",
+    "wmo": "NZ",
+    "gaul": 179.0,
+    "marc": "nz",
+    "dial": "64",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "OM",
+  "fields": {
+    "code3": "OMN",
+    "name": "Oman",
+    "num": 512.0,
+    "itu": "OMA",
+    "fips": "MU",
+    "ioc": "OMA",
+    "fifa": "OMA",
+    "ds": " ",
+    "wmo": "OM",
+    "gaul": 187.0,
+    "marc": "mk",
+    "dial": "968",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PA",
+  "fields": {
+    "code3": "PAN",
+    "name": "Panama",
+    "num": 591.0,
+    "itu": "PNR",
+    "fips": "PM",
+    "ioc": "PAN",
+    "fifa": "PAN",
+    "ds": "PA",
+    "wmo": "PM",
+    "gaul": 191.0,
+    "marc": "pn",
+    "dial": "507",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PE",
+  "fields": {
+    "code3": "PER",
+    "name": "Peru",
+    "num": 604.0,
+    "itu": "PRU",
+    "fips": "PE",
+    "ioc": "PER",
+    "fifa": "PER",
+    "ds": "PE",
+    "wmo": "PR",
+    "gaul": 195.0,
+    "marc": "pe",
+    "dial": "51",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PF",
+  "fields": {
+    "code3": "PYF",
+    "name": "French Polynesia",
+    "num": 258.0,
+    "itu": "OCE",
+    "fips": "FP",
+    "ioc": "FPO",
+    "fifa": "TAH2",
+    "ds": "F",
+    "wmo": "PF",
+    "gaul": 87.0,
+    "marc": "fp",
+    "dial": "689",
+    "independent": "Territory of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PG",
+  "fields": {
+    "code3": "PNG",
+    "name": "Papua New Guinea",
+    "num": 598.0,
+    "itu": "PNG",
+    "fips": "PP",
+    "ioc": "PNG",
+    "fifa": "PNG",
+    "ds": "PNG",
+    "wmo": "NG",
+    "gaul": 192.0,
+    "marc": "pp",
+    "dial": "675",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PH",
+  "fields": {
+    "code3": "PHL",
+    "name": "Philippines",
+    "num": 608.0,
+    "itu": "PHL",
+    "fips": "RP",
+    "ioc": "PHI",
+    "fifa": "PHI",
+    "ds": "RP",
+    "wmo": "PH",
+    "gaul": 196.0,
+    "marc": "ph",
+    "dial": "63",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PK",
+  "fields": {
+    "code3": "PAK",
+    "name": "Pakistan",
+    "num": 586.0,
+    "itu": "PAK",
+    "fips": "PK",
+    "ioc": "PAK",
+    "fifa": "PAK",
+    "ds": "PK",
+    "wmo": "PK",
+    "gaul": 188.0,
+    "marc": "pk",
+    "dial": "92",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PL",
+  "fields": {
+    "code3": "POL",
+    "name": "Poland",
+    "num": 616.0,
+    "itu": "POL",
+    "fips": "PL",
+    "ioc": "POL",
+    "fifa": "POL",
+    "ds": "PL",
+    "wmo": "PL",
+    "gaul": 198.0,
+    "marc": "pl",
+    "dial": "48",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PM",
+  "fields": {
+    "code3": "SPM",
+    "name": "Saint Pierre and Miquelon",
+    "num": 666.0,
+    "itu": "SPM",
+    "fips": "SB",
+    "ioc": "SPM",
+    "fifa": "SPM",
+    "ds": "F",
+    "wmo": "FP",
+    "gaul": 210.0,
+    "marc": "xl",
+    "dial": "508",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PN",
+  "fields": {
+    "code3": "PCN",
+    "name": "Pitcairn",
+    "num": 612.0,
+    "itu": "PTC",
+    "fips": "PC",
+    "ioc": " ",
+    "fifa": "PCN",
+    "ds": " ",
+    "wmo": "PT",
+    "gaul": 197.0,
+    "marc": "pc",
+    "dial": "870",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PR",
+  "fields": {
+    "code3": "PRI",
+    "name": "Puerto Rico",
+    "num": 630.0,
+    "itu": "PTR",
+    "fips": "RQ",
+    "ioc": "PUR",
+    "fifa": "PUR",
+    "ds": "USA",
+    "wmo": "PU",
+    "gaul": 200.0,
+    "marc": "pr",
+    "dial": "1",
+    "independent": "Commonwealth of US"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PS",
+  "fields": {
+    "code3": "PSE",
+    "name": "Palestine",
+    "num": 275.0,
+    "itu": " ",
+    "fips": "GZ; WE",
+    "ioc": "PLE",
+    "fifa": "PLE",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": null,
+    "marc": "gz;wj",
+    "dial": "970",
+    "independent": "In contention"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PT",
+  "fields": {
+    "code3": "PRT",
+    "name": "Portugal",
+    "num": 620.0,
+    "itu": "POR",
+    "fips": "PO",
+    "ioc": "POR",
+    "fifa": "POR",
+    "ds": "P",
+    "wmo": "PO",
+    "gaul": 199.0,
+    "marc": "po",
+    "dial": "351",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PW",
+  "fields": {
+    "code3": "PLW",
+    "name": "Palau",
+    "num": 585.0,
+    "itu": "PLW",
+    "fips": "PS",
+    "ioc": "PLW",
+    "fifa": "PLW",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 189.0,
+    "marc": "pw",
+    "dial": "680",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "PY",
+  "fields": {
+    "code3": "PRY",
+    "name": "Paraguay",
+    "num": 600.0,
+    "itu": "PRG",
+    "fips": "PA",
+    "ioc": "PAR",
+    "fifa": "PAR",
+    "ds": "PY",
+    "wmo": "PY",
+    "gaul": 194.0,
+    "marc": "py",
+    "dial": "595",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "QA",
+  "fields": {
+    "code3": "QAT",
+    "name": "Qatar",
+    "num": 634.0,
+    "itu": "QAT",
+    "fips": "QA",
+    "ioc": "QAT",
+    "fifa": "QAT",
+    "ds": "Q",
+    "wmo": "QT",
+    "gaul": 201.0,
+    "marc": "qa",
+    "dial": "974",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "RE",
+  "fields": {
+    "code3": "REU",
+    "name": "Reunion",
+    "num": 638.0,
+    "itu": "REU",
+    "fips": "RE",
+    "ioc": "REU",
+    "fifa": "REU",
+    "ds": "F",
+    "wmo": "RE",
+    "gaul": 206.0,
+    "marc": "re",
+    "dial": "262",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "RO",
+  "fields": {
+    "code3": "ROU",
+    "name": "Romania",
+    "num": 642.0,
+    "itu": "ROU",
+    "fips": "RO",
+    "ioc": "ROU",
+    "fifa": "ROU",
+    "ds": "RO",
+    "wmo": "RO",
+    "gaul": 203.0,
+    "marc": "rm",
+    "dial": "40",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "RS",
+  "fields": {
+    "code3": "SRB",
+    "name": "Serbia",
+    "num": 688.0,
+    "itu": "SRB",
+    "fips": "RI;KV",
+    "ioc": "SRB",
+    "fifa": "SRB",
+    "ds": "SCG",
+    "wmo": "YG",
+    "gaul": 2648.0,
+    "marc": "rb",
+    "dial": "381",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "RU",
+  "fields": {
+    "code3": "RUS",
+    "name": "Russian Federation",
+    "num": 643.0,
+    "itu": "RUS",
+    "fips": "RS",
+    "ioc": "RUS",
+    "fifa": "RUS",
+    "ds": "RUS",
+    "wmo": "RS",
+    "gaul": 204.0,
+    "marc": "ru",
+    "dial": "7",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "RW",
+  "fields": {
+    "code3": "RWA",
+    "name": "Rwanda",
+    "num": 646.0,
+    "itu": "RRW",
+    "fips": "RW",
+    "ioc": "RWA",
+    "fifa": "RWA",
+    "ds": "RWA",
+    "wmo": "RW",
+    "gaul": 205.0,
+    "marc": "rw",
+    "dial": "250",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SA",
+  "fields": {
+    "code3": "SAU",
+    "name": "Saudi Arabia",
+    "num": 682.0,
+    "itu": "ARS",
+    "fips": "SA",
+    "ioc": "KSA",
+    "fifa": "KSA",
+    "ds": "SA",
+    "wmo": "SD",
+    "gaul": 215.0,
+    "marc": "su",
+    "dial": "966",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SB",
+  "fields": {
+    "code3": "SLB",
+    "name": "Solomon Islands",
+    "num": 90.0,
+    "itu": "SLM",
+    "fips": "BP",
+    "ioc": "SOL",
+    "fifa": "SOL",
+    "ds": " ",
+    "wmo": "SO",
+    "gaul": 225.0,
+    "marc": "bp",
+    "dial": "677",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SC",
+  "fields": {
+    "code3": "SYC",
+    "name": "Seychelles",
+    "num": 690.0,
+    "itu": "SEY",
+    "fips": "SE",
+    "ioc": "SEY",
+    "fifa": "SEY",
+    "ds": "SY",
+    "wmo": "SC",
+    "gaul": 220.0,
+    "marc": "se",
+    "dial": "248",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SD",
+  "fields": {
+    "code3": "SDN",
+    "name": "Sudan",
+    "num": 729.0,
+    "itu": "SDN",
+    "fips": "SU",
+    "ioc": "SUD",
+    "fifa": "SUD",
+    "ds": "SUD",
+    "wmo": "SU",
+    "gaul": 40764.0,
+    "marc": "sj",
+    "dial": "249",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SE",
+  "fields": {
+    "code3": "SWE",
+    "name": "Sweden",
+    "num": 752.0,
+    "itu": "S",
+    "fips": "SW",
+    "ioc": "SWE",
+    "fifa": "SWE",
+    "ds": "S",
+    "wmo": "SN",
+    "gaul": 236.0,
+    "marc": "sw",
+    "dial": "46",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SG",
+  "fields": {
+    "code3": "SGP",
+    "name": "Singapore",
+    "num": 702.0,
+    "itu": "SNG",
+    "fips": "SN",
+    "ioc": "SIN",
+    "fifa": "SIN",
+    "ds": "SGP",
+    "wmo": "SR",
+    "gaul": 222.0,
+    "marc": "si",
+    "dial": "65",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SH",
+  "fields": {
+    "code3": "SHN",
+    "name": "Saint Helena",
+    "num": 654.0,
+    "itu": "SHN",
+    "fips": "SH",
+    "ioc": "HEL",
+    "fifa": "SHN",
+    "ds": " ",
+    "wmo": "HE",
+    "gaul": 207.0,
+    "marc": "xj",
+    "dial": "290",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SI",
+  "fields": {
+    "code3": "SVN",
+    "name": "Slovenia",
+    "num": 705.0,
+    "itu": "SVN",
+    "fips": "SI",
+    "ioc": "SLO",
+    "fifa": "SVN",
+    "ds": "SLO",
+    "wmo": "LJ",
+    "gaul": 224.0,
+    "marc": "xv",
+    "dial": "386",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SJ",
+  "fields": {
+    "code3": "SJM",
+    "name": "Svalbard and Jan Mayen Islands",
+    "num": 744.0,
+    "itu": "NOR",
+    "fips": "SV;JN",
+    "ioc": null,
+    "fifa": null,
+    "ds": null,
+    "wmo": "SZ",
+    "gaul": 234.0,
+    "marc": " ",
+    "dial": "47",
+    "independent": "Territory of NO"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SK",
+  "fields": {
+    "code3": "SVK",
+    "name": "Slovakia",
+    "num": 703.0,
+    "itu": "SVK",
+    "fips": "LO",
+    "ioc": "SVK",
+    "fifa": "SVK",
+    "ds": "SK",
+    "wmo": "SQ",
+    "gaul": 223.0,
+    "marc": "xo",
+    "dial": "421",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SL",
+  "fields": {
+    "code3": "SLE",
+    "name": "Sierra Leone",
+    "num": 694.0,
+    "itu": "SRL",
+    "fips": "SL",
+    "ioc": "SLE",
+    "fifa": "SLE",
+    "ds": "WAL",
+    "wmo": "SL",
+    "gaul": 221.0,
+    "marc": "sl",
+    "dial": "232",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SM",
+  "fields": {
+    "code3": "SMR",
+    "name": "San Marino",
+    "num": 674.0,
+    "itu": "SMR",
+    "fips": "SM",
+    "ioc": "SMR",
+    "fifa": "SMR",
+    "ds": "RSM",
+    "wmo": " ",
+    "gaul": 213.0,
+    "marc": "sm",
+    "dial": "378",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SN",
+  "fields": {
+    "code3": "SEN",
+    "name": "Senegal",
+    "num": 686.0,
+    "itu": "SEN",
+    "fips": "SG",
+    "ioc": "SEN",
+    "fifa": "SEN",
+    "ds": "SN",
+    "wmo": "SG",
+    "gaul": 217.0,
+    "marc": "sg",
+    "dial": "221",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SO",
+  "fields": {
+    "code3": "SOM",
+    "name": "Somalia",
+    "num": 706.0,
+    "itu": "SOM",
+    "fips": "SO",
+    "ioc": "SOM",
+    "fifa": "SOM",
+    "ds": "SO",
+    "wmo": "SI",
+    "gaul": 226.0,
+    "marc": "so",
+    "dial": "252",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SR",
+  "fields": {
+    "code3": "SUR",
+    "name": "Suriname",
+    "num": 740.0,
+    "itu": "SUR",
+    "fips": "NS",
+    "ioc": "SUR",
+    "fifa": "SUR",
+    "ds": "SME",
+    "wmo": "SM",
+    "gaul": 233.0,
+    "marc": "sr",
+    "dial": "597",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SS",
+  "fields": {
+    "code3": "SSD",
+    "name": "South Sudan",
+    "num": 728.0,
+    "itu": "SSD",
+    "fips": "OD",
+    "ioc": null,
+    "fifa": null,
+    "ds": null,
+    "wmo": null,
+    "gaul": null,
+    "marc": "sd",
+    "dial": "211",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ST",
+  "fields": {
+    "code3": "STP",
+    "name": "Sao Tome and Principe",
+    "num": 678.0,
+    "itu": "STP",
+    "fips": "TP",
+    "ioc": "STP",
+    "fifa": "STP",
+    "ds": " ",
+    "wmo": "TP",
+    "gaul": 214.0,
+    "marc": "sf",
+    "dial": "239",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SV",
+  "fields": {
+    "code3": "SLV",
+    "name": "El Salvador",
+    "num": 222.0,
+    "itu": "SLV",
+    "fips": "ES",
+    "ioc": "ESA",
+    "fifa": "SLV",
+    "ds": "ES",
+    "wmo": "ES",
+    "gaul": 75.0,
+    "marc": "es",
+    "dial": "503",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SX",
+  "fields": {
+    "code3": "SXM",
+    "name": "Sint Maarten",
+    "num": 534.0,
+    "itu": null,
+    "fips": "NN",
+    "ioc": null,
+    "fifa": null,
+    "ds": null,
+    "wmo": null,
+    "gaul": null,
+    "marc": "sn",
+    "dial": null,
+    "independent": "Part of NL"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SY",
+  "fields": {
+    "code3": "SYR",
+    "name": "Syria",
+    "num": 760.0,
+    "itu": "SYR",
+    "fips": "SY",
+    "ioc": "SYR",
+    "fifa": "SYR",
+    "ds": "SYR",
+    "wmo": "SY",
+    "gaul": 238.0,
+    "marc": "sy",
+    "dial": "963",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "SZ",
+  "fields": {
+    "code3": "SWZ",
+    "name": "Swaziland",
+    "num": 748.0,
+    "itu": "SWZ",
+    "fips": "WZ",
+    "ioc": "SWZ",
+    "fifa": "SWZ",
+    "ds": "SD",
+    "wmo": "SV",
+    "gaul": 235.0,
+    "marc": "sq",
+    "dial": "268",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TC",
+  "fields": {
+    "code3": "TCA",
+    "name": "Turks and Caicos Islands",
+    "num": 796.0,
+    "itu": "TCA",
+    "fips": "TK",
+    "ioc": "TKS",
+    "fifa": "TCA",
+    "ds": " ",
+    "wmo": "TI",
+    "gaul": 251.0,
+    "marc": "tc",
+    "dial": "1-649",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TD",
+  "fields": {
+    "code3": "TCD",
+    "name": "Chad",
+    "num": 148.0,
+    "itu": "TCD",
+    "fips": "CD",
+    "ioc": "CHA",
+    "fifa": "CHA",
+    "ds": "TCH",
+    "wmo": "CD",
+    "gaul": 50.0,
+    "marc": "cd",
+    "dial": "235",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TF",
+  "fields": {
+    "code3": "ATF",
+    "name": "French Southern Lands",
+    "num": 260.0,
+    "itu": " ",
+    "fips": "FS",
+    "ioc": " ",
+    "fifa": null,
+    "ds": "F",
+    "wmo": " ",
+    "gaul": 88.0,
+    "marc": "fs",
+    "dial": "262",
+    "independent": "Territory of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TG",
+  "fields": {
+    "code3": "TGO",
+    "name": "Togo",
+    "num": 768.0,
+    "itu": "TGO",
+    "fips": "TO",
+    "ioc": "TOG",
+    "fifa": "TOG",
+    "ds": "TG",
+    "wmo": "TG",
+    "gaul": 243.0,
+    "marc": "tg",
+    "dial": "228",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TH",
+  "fields": {
+    "code3": "THA",
+    "name": "Thailand",
+    "num": 764.0,
+    "itu": "THA",
+    "fips": "TH",
+    "ioc": "THA",
+    "fifa": "THA",
+    "ds": "T",
+    "wmo": "TH",
+    "gaul": 240.0,
+    "marc": "th",
+    "dial": "66",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TJ",
+  "fields": {
+    "code3": "TJK",
+    "name": "Tajikistan",
+    "num": 762.0,
+    "itu": "TJK",
+    "fips": "TI",
+    "ioc": "TJK",
+    "fifa": "TJK",
+    "ds": "TJ",
+    "wmo": "TA",
+    "gaul": 239.0,
+    "marc": "ta",
+    "dial": "992",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TK",
+  "fields": {
+    "code3": "TKL",
+    "name": "Tokelau",
+    "num": 772.0,
+    "itu": "TKL",
+    "fips": "TL",
+    "ioc": " ",
+    "fifa": "TKL",
+    "ds": "NZ",
+    "wmo": "TK",
+    "gaul": 244.0,
+    "marc": "tl",
+    "dial": "690",
+    "independent": "Territory of NZ"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TL",
+  "fields": {
+    "code3": "TLS",
+    "name": "Timor-Leste",
+    "num": 626.0,
+    "itu": "TLS",
+    "fips": "TT",
+    "ioc": "TLS",
+    "fifa": "TLS",
+    "ds": " ",
+    "wmo": "TM",
+    "gaul": 242.0,
+    "marc": "em",
+    "dial": "670",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TM",
+  "fields": {
+    "code3": "TKM",
+    "name": "Turkmenistan",
+    "num": 795.0,
+    "itu": "TKM",
+    "fips": "TX",
+    "ioc": "TKM",
+    "fifa": "TKM",
+    "ds": "TM",
+    "wmo": "TR",
+    "gaul": 250.0,
+    "marc": "tk",
+    "dial": "993",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TN",
+  "fields": {
+    "code3": "TUN",
+    "name": "Tunisia",
+    "num": 788.0,
+    "itu": "TUN",
+    "fips": "TS",
+    "ioc": "TUN",
+    "fifa": "TUN",
+    "ds": "TN",
+    "wmo": "TS",
+    "gaul": 248.0,
+    "marc": "ti",
+    "dial": "216",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TO",
+  "fields": {
+    "code3": "TON",
+    "name": "Tonga",
+    "num": 776.0,
+    "itu": "TON",
+    "fips": "TN",
+    "ioc": "TGA",
+    "fifa": "TGA",
+    "ds": " ",
+    "wmo": "TO",
+    "gaul": 245.0,
+    "marc": "to",
+    "dial": "676",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TR",
+  "fields": {
+    "code3": "TUR",
+    "name": "Turkey",
+    "num": 792.0,
+    "itu": "TUR",
+    "fips": "TU",
+    "ioc": "TUR",
+    "fifa": "TUR",
+    "ds": "TR",
+    "wmo": "TU",
+    "gaul": 249.0,
+    "marc": "tu",
+    "dial": "90",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TT",
+  "fields": {
+    "code3": "TTO",
+    "name": "Trinidad and Tobago",
+    "num": 780.0,
+    "itu": "TRD",
+    "fips": "TD",
+    "ioc": "TRI",
+    "fifa": "TRI",
+    "ds": "TT",
+    "wmo": "TD",
+    "gaul": 246.0,
+    "marc": "tr",
+    "dial": "1-868",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TV",
+  "fields": {
+    "code3": "TUV",
+    "name": "Tuvalu",
+    "num": 798.0,
+    "itu": "TUV",
+    "fips": "TV",
+    "ioc": "TUV",
+    "fifa": "TUV",
+    "ds": " ",
+    "wmo": "TV",
+    "gaul": 252.0,
+    "marc": "tv",
+    "dial": "688",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TW",
+  "fields": {
+    "code3": "TWN",
+    "name": "Taiwan",
+    "num": 158.0,
+    "itu": " ",
+    "fips": "TW",
+    "ioc": "TPE",
+    "fifa": "TPE",
+    "ds": "RC",
+    "wmo": " ",
+    "gaul": 925.0,
+    "marc": "ch",
+    "dial": "886",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "TZ",
+  "fields": {
+    "code3": "TZA",
+    "name": "Tanzania",
+    "num": 834.0,
+    "itu": "TZA",
+    "fips": "TZ",
+    "ioc": "TAN",
+    "fifa": "TAN",
+    "ds": "EAT",
+    "wmo": "TN",
+    "gaul": 257.0,
+    "marc": "tz",
+    "dial": "255",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "UA",
+  "fields": {
+    "code3": "UKR",
+    "name": "Ukraine",
+    "num": 804.0,
+    "itu": "UKR",
+    "fips": "UP",
+    "ioc": "UKR",
+    "fifa": "UKR",
+    "ds": "UA",
+    "wmo": "UR",
+    "gaul": 254.0,
+    "marc": "un",
+    "dial": "380",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "UG",
+  "fields": {
+    "code3": "UGA",
+    "name": "Uganda",
+    "num": 800.0,
+    "itu": "UGA",
+    "fips": "UG",
+    "ioc": "UGA",
+    "fifa": "UGA",
+    "ds": "EAU",
+    "wmo": "UG",
+    "gaul": 253.0,
+    "marc": "ug",
+    "dial": "256",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "UM",
+  "fields": {
+    "code3": "UMI",
+    "name": "United States Minor Outlying Islands",
+    "num": 581.0,
+    "itu": " ",
+    "fips": null,
+    "ioc": " ",
+    "fifa": null,
+    "ds": "USA",
+    "wmo": " ",
+    "gaul": null,
+    "marc": null,
+    "dial": " ",
+    "independent": "Territories of US"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "US",
+  "fields": {
+    "code3": "USA",
+    "name": "United States of America",
+    "num": 840.0,
+    "itu": "USA",
+    "fips": "US",
+    "ioc": "USA",
+    "fifa": "USA",
+    "ds": "USA",
+    "wmo": "US",
+    "gaul": 259.0,
+    "marc": "xxu",
+    "dial": "1",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "UY",
+  "fields": {
+    "code3": "URY",
+    "name": "Uruguay",
+    "num": 858.0,
+    "itu": "URG",
+    "fips": "UY",
+    "ioc": "URU",
+    "fifa": "URU",
+    "ds": "ROU",
+    "wmo": "UY",
+    "gaul": 260.0,
+    "marc": "uy",
+    "dial": "598",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "UZ",
+  "fields": {
+    "code3": "UZB",
+    "name": "Uzbekistan",
+    "num": 860.0,
+    "itu": "UZB",
+    "fips": "UZ",
+    "ioc": "UZB",
+    "fifa": "UZB",
+    "ds": "UZ",
+    "wmo": "UZ",
+    "gaul": 261.0,
+    "marc": "uz",
+    "dial": "998",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VA",
+  "fields": {
+    "code3": "VAT",
+    "name": "Vatican City",
+    "num": 336.0,
+    "itu": "CVA",
+    "fips": "VT",
+    "ioc": " ",
+    "fifa": "VAT",
+    "ds": "V",
+    "wmo": " ",
+    "gaul": 110.0,
+    "marc": "vc",
+    "dial": "39-06",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VC",
+  "fields": {
+    "code3": "VCT",
+    "name": "Saint Vincent and the Grenadines",
+    "num": 670.0,
+    "itu": "VCT",
+    "fips": "VC",
+    "ioc": "VIN",
+    "fifa": "VIN",
+    "ds": "WV",
+    "wmo": "VG",
+    "gaul": 211.0,
+    "marc": "xm",
+    "dial": "1-784",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VE",
+  "fields": {
+    "code3": "VEN",
+    "name": "Venezuela",
+    "num": 862.0,
+    "itu": "VEN",
+    "fips": "VE",
+    "ioc": "VEN",
+    "fifa": "VEN",
+    "ds": "YV",
+    "wmo": "VN",
+    "gaul": 263.0,
+    "marc": "ve",
+    "dial": "58",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VG",
+  "fields": {
+    "code3": "VGB",
+    "name": "Virgin Islands, British",
+    "num": 92.0,
+    "itu": "VRG",
+    "fips": "VI",
+    "ioc": "IVB",
+    "fifa": "VGB",
+    "ds": "BVI",
+    "wmo": "VI",
+    "gaul": 39.0,
+    "marc": "vb",
+    "dial": "1-284",
+    "independent": "Territory of GB"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VI",
+  "fields": {
+    "code3": "VIR",
+    "name": "Virgin Islands, U.S.",
+    "num": 850.0,
+    "itu": "VIR",
+    "fips": "VQ",
+    "ioc": "ISV",
+    "fifa": "VIR",
+    "ds": "USA",
+    "wmo": "VI",
+    "gaul": 258.0,
+    "marc": "vi",
+    "dial": "1-340",
+    "independent": "Territory of US"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VN",
+  "fields": {
+    "code3": "VNM",
+    "name": "Vietnam",
+    "num": 704.0,
+    "itu": "VTN",
+    "fips": "VM",
+    "ioc": "VIE",
+    "fifa": "VIE",
+    "ds": "VN",
+    "wmo": "VS",
+    "gaul": 264.0,
+    "marc": "vm",
+    "dial": "84",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "VU",
+  "fields": {
+    "code3": "VUT",
+    "name": "Vanuatu",
+    "num": 548.0,
+    "itu": "VUT",
+    "fips": "NH",
+    "ioc": "VAN",
+    "fifa": "VAN",
+    "ds": " ",
+    "wmo": "NV",
+    "gaul": 262.0,
+    "marc": "nn",
+    "dial": "678",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "WF",
+  "fields": {
+    "code3": "WLF",
+    "name": "Wallis and Futuna Islands",
+    "num": 876.0,
+    "itu": "WAL",
+    "fips": "WF",
+    "ioc": "WAF",
+    "fifa": "WLF",
+    "ds": "F",
+    "wmo": "FW",
+    "gaul": 266.0,
+    "marc": "wf",
+    "dial": "681",
+    "independent": "Territory of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "WS",
+  "fields": {
+    "code3": "WSM",
+    "name": "Samoa",
+    "num": 882.0,
+    "itu": "SMO",
+    "fips": "WS",
+    "ioc": "SAM",
+    "fifa": "SAM",
+    "ds": "WS",
+    "wmo": "ZM",
+    "gaul": 212.0,
+    "marc": "ws",
+    "dial": "685",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "YE",
+  "fields": {
+    "code3": "YEM",
+    "name": "Yemen",
+    "num": 887.0,
+    "itu": "YEM",
+    "fips": "YM",
+    "ioc": "YEM",
+    "fifa": "YEM",
+    "ds": "YAR",
+    "wmo": "YE",
+    "gaul": 269.0,
+    "marc": "ye",
+    "dial": "967",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "YT",
+  "fields": {
+    "code3": "MYT",
+    "name": "Mayotte",
+    "num": 175.0,
+    "itu": "MYT",
+    "fips": "MF",
+    "ioc": "MAY",
+    "fifa": "MYT",
+    "ds": " ",
+    "wmo": " ",
+    "gaul": 161.0,
+    "marc": "ot",
+    "dial": "262",
+    "independent": "Part of FR"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ZA",
+  "fields": {
+    "code3": "ZAF",
+    "name": "South Africa",
+    "num": 710.0,
+    "itu": "AFS",
+    "fips": "SF",
+    "ioc": "RSA",
+    "fifa": "RSA",
+    "ds": "ZA",
+    "wmo": "ZA",
+    "gaul": 227.0,
+    "marc": "sa",
+    "dial": "27",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ZM",
+  "fields": {
+    "code3": "ZMB",
+    "name": "Zambia",
+    "num": 894.0,
+    "itu": "ZMB",
+    "fips": "ZA",
+    "ioc": "ZAM",
+    "fifa": "ZAM",
+    "ds": "Z",
+    "wmo": "ZB",
+    "gaul": 270.0,
+    "marc": "za",
+    "dial": "260",
+    "independent": "Yes"
+  }
+},
+{
+  "model": "portal.country",
+  "pk": "ZW",
+  "fields": {
+    "code3": "ZWE",
+    "name": "Zimbabwe",
+    "num": 716.0,
+    "itu": "ZWE",
+    "fips": "ZI",
+    "ioc": "ZIM",
+    "fifa": "ZIM",
+    "ds": "ZW",
+    "wmo": "ZW",
+    "gaul": 271.0,
+    "marc": "rh",
+    "dial": "263",
+    "independent": "Yes"
+  }
+}
+]
