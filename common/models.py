@@ -4,6 +4,7 @@ from django.db import connection, connections, models, router
 from django.db.models import CharField, DateTimeField
 from django.db.models import Model as Base
 from django.urls import reverse
+from django.utils.functional import cached_property
 from model_utils import Choices
 
 SEX_CHOICES = Choices("female", "male", "other")
@@ -110,7 +111,7 @@ class PersonMixin:
         elif getattr(self, "referee", None) and self.referee.user:
             return self.referee.user
 
-    @property
+    @cached_property
     def full_name(self):
         user = self.get_user()
         first_name = getattr(self, "first_name", None) or user and user.first_name
@@ -129,7 +130,7 @@ class PersonMixin:
         user = self.get_user()
         return getattr(self, "last_name", None) or user and user.last_name
 
-    @property
+    @cached_property
     def full_name_with_email(self):
         user = self.get_user()
         email = getattr(self, "email", None) or user and user.email
@@ -138,13 +139,24 @@ class PersonMixin:
         else:
             return email
 
+    @cached_property
+    def full_name_with_title(self):
+        user = self.get_user()
+        first_name = getattr(self, "first_name", None) or user and user.first_name
+        middle_names = getattr(self, "middle_names", None) or user and user.middle_names
+        middle_name_initials = "".join(f"{n.strip()[0].upper()}." for n in middle_names.split(","))
+        last_name = getattr(self, "last_name", None) or user and user.last_name
+        full_name = " ".join(s for s in [first_name, middle_name_initials, last_name] if s)
+        if hasattr(self, "title") and self.title:
+            full_name = f"{self.title.name} {full_name}"
+        return full_name or user and user.username or self.email
+
     # def get_title(self):
     #     if not (title := getattr(self, "title", None)):
     #         if u := self.get_user():
     #             if not (title := getattr(u, "title", None)):
 
-
-    @property
+    @cached_property
     def full_email_address(self):
         user = self.get_user() or self
         email = (

@@ -1306,18 +1306,22 @@ class ContractForm(forms.ModelForm):
         submission_disabled = not instance or (
             instance.submitted_by and instance.submitted_by != user
         )
+        is_pi = instance and (
+            instance.submitted_by == user
+            or instance.members.filter(user=user, role__code="PI").exists()
+        )
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
-            title=_(
-                "Your team leader must accept the Terms and Conditions before the submission can happen"
-            )
+            title=_("Only P.I. can submit the contract")
+            if not is_pi
+            else _("Not all the parts/appendices of the contract were approved and/or accepted")
             if submission_disabled
-            else _("Submit the application"),
+            else _("Submit the contract"),
             css_class="btn-outline-primary",
-            disabled=submission_disabled,
+            disabled=submission_disabled or not is_pi,
         )
         self.helper = FormHelper(self)
         tabs = [
@@ -1561,7 +1565,6 @@ class ContractForm(forms.ModelForm):
         exclude = [
             "site",
             "fund",
-            # "host_contact_email",
             "host_number",
             "org",
             "application",

@@ -3711,6 +3711,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Profile.where(user=self.request.user).exists():
+            request.session["wizard"] = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
@@ -3803,7 +3804,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         return context
 
     def get_success_url(self):
-        if not self.request.user.profile.is_completed or self.request.session.get("wizard"):
+        if self.request.session.get("wizard"):
             view_idx = self.section_views.index(self.request.resolver_match.url_name)
             if "previous" in self.request.POST:
                 return reverse(self.section_views[view_idx - 1])

@@ -15,6 +15,7 @@ from decimal import Decimal
 from functools import lru_cache, partial, wraps
 from itertools import groupby
 from urllib.parse import urljoin, urlparse
+from odfdo import Document, Paragraph, Table, Column, Header, List, ListItem
 
 import pikepdf
 import simple_history
@@ -48,6 +49,7 @@ from django.db.models import (
     DecimalField,
     F,
     FileField,
+    FloatField,
     ForeignKey,
     Manager,
     ManyToManyField,
@@ -409,6 +411,32 @@ class RoundSiteManager(Manager):
 
     def get_queryset(self):
         return super().get_queryset().filter(round__site=Site.objects.get_current())
+
+
+class Country(Model):
+    code = FixedCharField(max_length=2, primary_key=True)
+    code3 = FixedCharField(max_length=3, unique=True)
+    name = CharField(max_length=255, blank=True, null=True)
+    num = FloatField(blank=True, null=True)
+    itu = CharField(max_length=255, blank=True, null=True)
+    fips = CharField(max_length=255, blank=True, null=True)
+    ioc = CharField(max_length=255, blank=True, null=True)
+    fifa = CharField(max_length=255, blank=True, null=True)
+    ds = CharField(max_length=255, blank=True, null=True)
+    wmo = CharField(max_length=255, blank=True, null=True)
+    gaul = FloatField(blank=True, null=True)
+    marc = CharField(max_length=255, blank=True, null=True)
+    dial = CharField(max_length=255, blank=True, null=True)
+    independent = CharField(max_length=255, blank=True, null=True)
+
+    history = HistoricalRecords(table_name="country_history")
+
+    def __str__(self):
+        return f"{self.code}/{self.code3}: {self.name}"
+
+    class Meta:
+        db_table = "country"
+        verbose_name_plural = _("countries")
 
 
 class Subscription(Model):
@@ -834,7 +862,27 @@ class Organisation(Model):
     identifier_type = ForeignKey(OrgIdentifierType, null=True, blank=True, on_delete=SET_NULL)
     identifier = CharField(max_length=24, null=True, blank=True)
     code = CharField(max_length=10, blank=True, default="", unique=True)
+    is_active = BooleanField(default=True)
 
+    legal_name = CharField(max_length=255, blank=True, null=True)
+    alt_name = CharField(max_length=100, blank=True, null=True)
+    grid = CharField(max_length=15, blank=True, null=True)
+    ror = CharField(max_length=25, blank=True, null=True)
+    gst = CharField(max_length=11, blank=True, null=True)
+    nzbn = CharField(max_length=13, blank=True, null=True)
+    nz_ris_type = CharField(max_length=4, blank=True, null=True)
+
+    address = TextField(blank=True, null=True)
+    city = CharField(max_length=255, blank=True, null=True)
+    country = ForeignKey(
+        Country,
+        db_column="country",
+        on_delete=CASCADE,
+        blank=True,
+        null=True,
+        related_name="organisations",
+    )
+    website = CharField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
     def __str__(self):
@@ -6167,9 +6215,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             suffix += 1
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+        pass
+
+    def to_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
         pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
         fields = {
             "START_DATE": self.start_date.strftime("%d %B, %Y"),
+            "END_DATE": self.end_date.strftime("%d %B, %Y"),
             "PROJECT_TITLE": self.project_title,
             # "TITLE": pi.title and pi.title.name or "",
             "TITLE": "Dr.",
@@ -6177,6 +6229,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             # "MIDDLE_INITIALS": pi.middle_name_initials,
             "LASTNAME": pi.last_name,
             "LEGALNAME": self.org.name,
+            "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         }
         with open("/home/rcir178/Documents/RDF contract template.odt", "rb") as infile, open(
             "/home/rcir178/Documents/output.odt", "wb"
@@ -6324,7 +6377,6 @@ simple_history.register(
 
 
 class ContractMemberManager(Manager):
-
     def get_by_natural_key(self, number, email, role, *args, **kwargs):
         return self.get(email=email, role_id=role, contract__number=number)
 
