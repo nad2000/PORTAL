@@ -16,6 +16,8 @@ from functools import lru_cache, partial, wraps
 from itertools import groupby
 from urllib.parse import urljoin, urlparse
 from odfdo import Document, Paragraph, Table, Column, Header, List, ListItem
+import odfdo as od
+
 
 import pikepdf
 import simple_history
@@ -36,6 +38,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import connection
+from django.db.models import aggregates
 from django.db.models import (
     CASCADE,
     DO_NOTHING,
@@ -6215,7 +6218,66 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             suffix += 1
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
-        pass
+        with open("/home/rcir178/PMSPP/schedule001.html", "w") as ofile:
+            d = self.get_schedule_part()
+            ofile.write(d)
+        cp = subprocess.run(
+            [
+                "loffice",
+                "--headless",
+                "--convert-to",
+                "odt",
+                "--outdir",
+                "/home/rcir178/PMSPP/",
+                "/home/rcir178/PMSPP/schedule001.html",
+            ],
+            capture_output=True,
+        )
+        if cp.returncode or (
+            (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
+        ):
+            if cp.returncode:
+                raise Exception(
+                    _(
+                        "Failed to convert your application form into PDF. "
+                        "Please save your application form into PDF format and try to upload it again."
+                    ),
+                )
+
+            raise Exception(
+                _(
+                    "Failed to convert your application form into PDF: %s. "
+                    "Please save your application form into PDF format and try to upload it again."
+                )
+                % stderr,
+            )
+
+    def get_schedule_part(self, request=None, user=None, add_headers=None, skip_excluded=False):
+        # d = od.Document()
+        # b = d.body
+        # b.append(od.Header(1, "Schedule"))
+        # b.append(od.Paragraph(f"{_('Programme Contract Number')}:\t{self.number}"))
+        # b.append(od.Paragraph(f"{_('Programme Title')}:\t{self.project_title}"))
+        # l = od.List()
+        # l.append(f"Application Number: {self.application.number}")
+        # t = od.Table("Schedule", template-name="Simple Grid Columns")
+        # r = od.Row()
+        # r.set_values(["", "Funding amount (GST inclusive)", "Date of payments"])
+        # t.append_row(r)
+        # for a in self.allocations.all():
+        #     r = od.Row()
+        #     r.set_values([f"Year {a.period}", f"${a.allocation}", "[Monthly, on the 2nd Business Day after the 20th of month]"])
+        #     t.append_row(r)
+        # li = od.ListItem("Total approved funding and payment process:")
+        # li.append(od.Paragraph(t))
+        # l.append_item(li)
+        # b.append(l)
+        # b.append(t)
+        # return d
+
+        template = get_template("contract_schedule.html")
+        context = {"contract": self}
+        return template.render(context)
 
     def to_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
         pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
@@ -6426,6 +6488,10 @@ class ContractMember(PersonMixin, Model):
     @property
     def thread_topic(self):
         return self.contract.number
+
+    @property
+    def total_fte(self):
+        return self.efforts.aggregate(aggregates.Avg("fte", default=0)).get("fte__avg")
 
     def __getattribute__(self, name):
         if name.startswith("fte_"):
