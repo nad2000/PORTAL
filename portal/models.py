@@ -6283,7 +6283,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
         fields = {
             "START_DATE": self.start_date.strftime("%d %B, %Y"),
-            "END_DATE": self.end_date.strftime("%d %B, %Y"),
+            "END_DATE": self.end_date and self.end_date.strftime("%d %B, %Y"),
             "PROJECT_TITLE": self.project_title,
             # "TITLE": pi.title and pi.title.name or "",
             "TITLE": "Dr.",
@@ -6299,9 +6299,15 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             o = OOoPy(infile=infile, outfile=outfile)
             t = Transformer(
                 o.mimetype,
+                Transforms.get_meta(o.mimetype),
                 Transforms.Editinfo(),
                 Transforms.Field_Replace(replace=fields),
                 Transforms.Fix_OOo_Tag(),
+                Transforms.Concatenate("/home/rcir178/PMSPP/schedule001.odt"),
+                Transforms.renumber_all(o.mimetype),
+                Transforms.set_meta(o.mimetype),
+                Transforms.Fix_OOo_Tag(),
+                Transforms.Manifest_Append(),
             )
             t.transform(o)
             o.close()
@@ -6447,7 +6453,7 @@ class ContractMember(PersonMixin, Model):
     """Contract team member."""
 
     objects = ContractMemberManager()
-    all_objects = Manager()
+    # all_objects = Manager()
 
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="members")
     email = EmailField(max_length=120, null=True, blank=True)

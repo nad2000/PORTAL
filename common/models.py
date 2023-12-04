@@ -144,7 +144,9 @@ class PersonMixin:
         user = self.get_user()
         first_name = getattr(self, "first_name", None) or user and user.first_name
         middle_names = getattr(self, "middle_names", None) or user and user.middle_names
-        middle_name_initials = "".join(f"{n.strip()[0].upper()}." for n in middle_names.split(","))
+        middle_name_initials = middle_names and "".join(
+            f"{n.strip()[0].upper()}." for n in middle_names.split(",")
+        )
         last_name = getattr(self, "last_name", None) or user and user.last_name
         full_name = " ".join(s for s in [first_name, middle_name_initials, last_name] if s)
         if hasattr(self, "title") and self.title:
