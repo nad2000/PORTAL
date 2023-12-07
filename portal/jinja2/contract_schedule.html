@@ -1,0 +1,152 @@
+{%- set c=contract -%}
+{%- set a=c.application -%}
+{%- set application_number=a.number -%}
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<title></title>
+<meta name="generator" content="RFDA PORTAL"/>
+<meta name="author" content="{{ user.full_name_with_email }}"/>
+<meta name="created" content="{{ current_ts.isoformat() }}"/>
+<meta name="changedby" content="{{ user.full_name_with_email }}"/>
+<meta name="changed" content="{{ current_ts.isoformat() }}"/>
+<style type="text/css">
+/* @page { size: 21cm 29.7cm; margin: 2cm; } */
+@page { size: 21cm 29.7cm; margin-left: 2.54cm; margin-right: 2.54cm; margin-top: 1.19cm; margin-bottom: 1.19cm }
+/* p { line-height: 115%; margin-bottom: 0.25cm; background: transparent } */
+p { line-height: 115%; text-align: left; orphans: 2; widows: 2; margin-bottom: 0.25cm; direction: ltr; background: transparent }
+p.western { font-family: "Arial", serif; so-language: en-NZ }
+p.ctl { font-family: "Times New Roman"; font-size: 10pt }
+h1 { line-height: 120%; text-align: left; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent }
+h1.western { font-family: "Arial", serif; font-size: 12pt; so-language: en-NZ; font-weight: bold }
+h1.cjk { font-size: 12pt; font-weight: bold }
+h1.ctl { font-family: "Georgia-BoldItalic"; font-size: 26pt; font-style: italic; font-weight: bold }
+h2 { line-height: 100%; text-align: left; orphans: 2; widows: 2; margin-top: 0.2cm; margin-bottom: 0cm; direction: ltr; background: transparent }
+h2.western { font-family: "Arial", serif; so-language: en-AU; font-weight: bold }
+h2.cjk { font-weight: bold }
+h2.ctl { font-family: "Times New Roman"; font-size: 14pt }
+h3 { line-height: 100%; text-align: justify; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent }
+h3.western { font-family: "Arial", serif; so-language: en-NZ; font-weight: normal }
+h3.cjk { font-weight: normal }
+h3.ctl { font-family: "Times New Roman"; font-size: 12pt; so-language: en-US }
+h4 { line-height: 100%; text-align: left; orphans: 2; widows: 2; text-indent: -1.27cm; margin-left: 2.54cm; margin-bottom: 0.11cm; direction: ltr; background: transparent; page-break-after: avoid }
+h4.western { font-family: "Arial", serif; so-language: en-NZ }
+h4.ctl { font-family: "Times New Roman"; font-size: 10pt }
+a:link { color: #0000ff; text-decoration: underline }
+a.sdfootnotesym-western { font-family: "Arial", serif }
+a.sdendnotesym-western { font-family: "Arial", serif }
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {padding: 8px;}
+    tr:nth-child(even) {background-color: #f2f2f2;}
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: center;
+      vertical-align: bottom;
+    }
+</style>
+  </head>
+  <body lang="en-NZ" link="#0000ff" vlink="#800000" dir="ltr">
+    <h1 class="western" style="page-break-before: always">SCHEDULE</h1>
+    <p>
+    Programme Contract Number: <strong>{{ c.number }}</strong>
+    </p>
+    <p>
+    Programme Title: <strong>{{ c.project_title }}</strong>
+    </p>
+    <ol>
+      <li>Application Number: <strong>{{ a.number }}</strong></li>
+      <li>Total approved funding and payment process:<br/>
+        <dl><dd>
+            <table border="1" cellpadding="7" cellspacing="0" with="100%">
+              <col width="96"/>
+              <col width="225"/>
+              <col width="197"/>
+              <tr bgcolor="#d0d0d0" valign="middle">
+                <th></th>
+                <th><b>Funding amount</b> (GST inclusive)</th>
+                <th><b>Date of payments</b></th>
+              </tr>
+              {% for a in c.allocations.all() %}
+                <tr valign="middle">
+                  <td>Year {{ a.period }}</td>
+                  <td style="text-align: right;">${{ a.allocation }}</td>
+                  <td>[Monthly, on the 2nd Business Day after the 20th of month]</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </dd></dl>
+      </li>
+      <li>Start Date: <strong>{{ c.start_date.strftime("%d %B, %Y") }}</strong></li>
+      <li>Competion Date: <strong>{{ c.start_date.strftime("%d %B, %Y") }}</strong></li>
+      <li>Reporting dates:
+
+        <table border="1" cellpadding="5" cellspacing="0" with="100%">
+          <tr bgcolor="#d0d0d0">
+            <th><b>Report</b></th>
+            <th><b>Due date</b></th>
+          </tr>
+          {% for r in c.reporting_schedule.order_by("period", "due_date").all() %}
+            <tr>
+              <td>{{ r.get_type_display() }} Report (Year {{ r.period }})</td>
+              <td>{{ r.due_date.strftime("%d %B, %Y") }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+
+      </li>
+      <li>
+        Key Personnel and FTE totals:
+
+        <table border="1" cellpadding="5" cellspacing="0" with="100%">
+          <tr bgcolor="#d0d0d0">
+            <th><b>Name</b></th>
+            <th><b>Role</b></th>
+            <th><b>Time (%)</b></th>
+          </tr>
+          {% for m in c.members.all() %}
+            <tr>
+              <td>{{ m.full_name_with_title }}</td>
+              <td>{{ m.role.name }}</td>
+              <td>{{ m.total_fte }}%</td>
+            </tr>
+          {% endfor %}
+        </table>
+
+      </li>
+    </ol>
+    <div title="footer" style="font-size: 6pt; font-family: Arial">
+      <font size="1" style="font-size: 6pt; font-family: Arial;" face="Arial">
+      <table border="0" style="border: none; font-size: 6pt; font-family: Arial;">
+        <col align="left">
+        <col align="center">
+        <col align="right">
+        <tr>
+          <td border="0" style="border: none; font-family: Arial; font-size: 6pt;">
+            <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
+              <span lang="en-NZ" style="font-family: Arial; font-size: 6pt;">{{ c.fund.code }} {{ c.number }}</span>
+            </font>
+          </td>
+          <td border="0" style="border: none; font-family: Arial; font-size: 6pt;" align="center">
+            <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
+              <span lang="en-NZ">Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ c.start_date.strftime("%d %B, %Y") }}</sdfield></span>
+            </font>
+          </td>
+          <td border="0" style="border: none; font-family: Arial; font-size: 6pt;" align="right">
+            <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
+              Page <b><sdfield type=PAGE subtype=RANDOM format=PAGE>N</sdfield></b> of <b><sdfield type=DOCSTAT subtype=PAGE format=PAGE>NN</sdfield></b>
+            </font>
+          </td>
+        </tr>
+      </table>
+      </font>
+    </div>
+  </body>
+</html>

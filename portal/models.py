@@ -15,10 +15,8 @@ from decimal import Decimal
 from functools import lru_cache, partial, wraps
 from itertools import groupby
 from urllib.parse import urljoin, urlparse
-from odfdo import Document, Paragraph, Table, Column, Header, List, ListItem
+
 import odfdo as od
-
-
 import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
@@ -38,7 +36,6 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import connection
-from django.db.models import aggregates
 from django.db.models import (
     CASCADE,
     DO_NOTHING,
@@ -67,12 +64,14 @@ from django.db.models import (
     TextField,
     URLField,
     When,
+    aggregates,
     prefetch_related_objects,
 )
 from django.db.models.functions import Cast, Coalesce
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
@@ -80,6 +79,7 @@ from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
+from odfdo import Column, Document, Header, List, ListItem, Paragraph, Table
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
@@ -6218,8 +6218,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             suffix += 1
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
-        with open("/home/rcir178/PMSPP/schedule001.html", "w") as ofile:
-            d = self.get_schedule_part()
+        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.html", "w") as ofile:
+        with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
+            d = self.get_schedule_part(request=request)
             ofile.write(d)
         cp = subprocess.run(
             [
@@ -6229,7 +6230,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 "odt",
                 "--outdir",
                 "/home/rcir178/PMSPP/",
-                "/home/rcir178/PMSPP/schedule001.html",
+                f"/home/rcir178/PMSPP/schedule_{self.number}.fodt",
             ],
             capture_output=True,
         )
@@ -6275,9 +6276,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         # b.append(t)
         # return d
 
-        template = get_template("contract_schedule.html")
-        context = {"contract": self}
-        return template.render(context)
+        # template = get_template("contract_schedule.html")
+        template = get_template("contract_schedule.fodt")
+        current_ts = timezone.now()
+        contract = self
+        user = request.user
+        return template.render(locals())
 
     def to_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
         pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
@@ -6303,7 +6307,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 Transforms.Editinfo(),
                 Transforms.Field_Replace(replace=fields),
                 Transforms.Fix_OOo_Tag(),
-                Transforms.Concatenate("/home/rcir178/PMSPP/schedule001.odt"),
+                Transforms.Concatenate(f"/home/rcir178/PMSPP/schedule_{self.number}.odt"),
                 Transforms.renumber_all(o.mimetype),
                 Transforms.set_meta(o.mimetype),
                 Transforms.Fix_OOo_Tag(),
@@ -6464,6 +6468,12 @@ class ContractMember(PersonMixin, Model):
         null=True,
         max_length=280,
         help_text=_("Comma separated list of middle names"),
+    )
+    last_name = CharField(max_length=150, null=True, blank=True)
+    role = ForeignKey(
+        RoleType,
+        on_delete=SET_NULL,
+        related_name="contract_members",
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     role = ForeignKey(
