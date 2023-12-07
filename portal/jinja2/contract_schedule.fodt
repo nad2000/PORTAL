@@ -779,7 +779,7 @@
 			<style:text-properties fo:font-size="6pt" officeooo:paragraph-rsid="000ca094" style:font-size-asian="6pt" style:font-size-complex="6pt"/>
 		</style:style>
 		<style:style style:name="P3" style:family="paragraph" style:parent-style-name="Heading_20_1">
-			<style:paragraph-properties fo:break-before="page"/>
+			<style:paragraph-properties style:page-number="auto" fo:break-before="page" fo:keep-with-next="always"/>
 		</style:style>
 		<style:style style:name="P4" style:family="paragraph" style:parent-style-name="Standard">
 			<style:text-properties fo:language="en" fo:country="NZ"/>
