@@ -1161,7 +1161,7 @@ class ConvertedFileAdmin(admin.ModelAdmin):
 @admin.register(models.CurriculumVitae)
 class CurriculumVitaeAdmin(admin.ModelAdmin):
     save_on_top = True
-    list_display = ["profile", "owner", "title", "file"]
+    list_display = ["person", "owner", "title", "file"]
     # list_filter = ["owner"]
     search_fields = [
         "owner__first_name",

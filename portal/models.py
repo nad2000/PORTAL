@@ -722,7 +722,7 @@ class FieldOfStudy(Model):
 
 
 class ProfileCareerStage(Model):
-    profile = ForeignKey("Profile", on_delete=CASCADE)
+    person = ForeignKey("Profile", on_delete=CASCADE)
     career_stage = ForeignKey(CareerStage, on_delete=CASCADE, verbose_name=_("career stage"))
     year_achieved = PositiveSmallIntegerField(
         _("year achieved"),
@@ -733,7 +733,7 @@ class ProfileCareerStage(Model):
     )
 
     class Meta:
-        db_table = "profile_career_stage"
+        db_table = "person_career_stage"
 
 
 ORCID_ID_REGEX = re.compile(r"^([X\d]{4}-?){3}[X\d]{4}$")
@@ -769,7 +769,7 @@ def validate_orcid_id(value):
 
 
 class ProfilePersonIdentifier(Model):
-    profile = ForeignKey(
+    person = ForeignKey(
         "Profile",
         on_delete=CASCADE,
     )
@@ -783,7 +783,7 @@ class ProfilePersonIdentifier(Model):
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
 
     class Meta:
-        db_table = "profile_person_identifier"
+        db_table = "person_person_identifier"
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
@@ -939,7 +939,7 @@ class OrgName(Model):
 
 
 class Affiliation(Model):
-    profile = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
+    person = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
     org = ForeignKey(
         Organisation,
         on_delete=CASCADE,
@@ -985,7 +985,7 @@ def validate_bod(value):
 
 
 class Profile(PersonMixin, Model):
-    user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="profile")
+    user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="person")
     gender = PositiveSmallIntegerField(
         _("gender"),
         choices=GENDERS,
@@ -996,7 +996,7 @@ class Profile(PersonMixin, Model):
     )
     date_of_birth = DateField(_("date of birth"), null=True, blank=True, validators=[validate_bod])
     ethnicities = ManyToManyField(
-        Ethnicity, db_table="profile_ethnicity", blank=True, verbose_name=_("ethnicities")
+        Ethnicity, db_table="person_ethnicity", blank=True, verbose_name=_("ethnicities")
     )
     is_ethnicities_completed = BooleanField(default=True)
     # CharField(max_length=20, null=True, blank=True, choices=ETHNICITIES)
@@ -1014,7 +1014,7 @@ class Profile(PersonMixin, Model):
         Language, db_table="profile_language", blank=True, verbose_name=_("languages spoken")
     )
     iwi_groups = ManyToManyField(
-        IwiGroup, db_table="profile_iwi_group", blank=True, verbose_name=_("iwi groups")
+        IwiGroup, db_table="person_iwi_group", blank=True, verbose_name=_("iwi groups")
     )
     is_iwi_groups_completed = BooleanField(default=True)
     # study participation
@@ -1040,7 +1040,7 @@ class Profile(PersonMixin, Model):
 
     is_external_ids_completed = BooleanField(default=False)
 
-    history = HistoricalRecords(table_name="profile_history")
+    history = HistoricalRecords(table_name="person_history")
     has_protection_patterns = BooleanField(default=True)
     account_approval_message_sent_at = DateTimeField(null=True, blank=True, editable=False)
 
@@ -1083,7 +1083,7 @@ class Profile(PersonMixin, Model):
         if created:
             ProfileProtectionPattern.objects.bulk_create(
                 [
-                    ProfileProtectionPattern(profile=self, protection_pattern_id=code)
+                    ProfileProtectionPattern(person=self, protection_pattern_id=code)
                     for code in [5, 6]
                 ]
             )
@@ -1118,25 +1118,25 @@ class Profile(PersonMixin, Model):
         self.is_accepted = value
 
     class Meta:
-        db_table = "profile"
+        db_table = "person"
 
 
 class ProfileProtectionPattern(Model):
-    profile = ForeignKey(Profile, on_delete=CASCADE, related_name="profile_protection_patterns")
+    person = ForeignKey(Profile, on_delete=CASCADE, related_name="person_protection_patterns")
     protection_pattern = ForeignKey(
         ProtectionPattern,
         on_delete=CASCADE,
-        related_name="profile_protection_patterns",
+        related_name="person_protection_patterns",
         verbose_name=_("protection pattern"),
     )
     expires_on = DateField(_("expires on"), null=True, blank=True)
 
     def __str__(self):
-        return f"{self.protection_pattern} of {self.profile}"
+        return f"{self.protection_pattern} of {self.person}"
 
     class Meta:
-        db_table = "profile_protection_pattern"
-        unique_together = ("profile", "protection_pattern")
+        db_table = "person_protection_pattern"
+        unique_together = ("person", "protection_pattern")
 
 
 class ProtectionPatternProfile(Model):
@@ -1144,12 +1144,12 @@ class ProtectionPatternProfile(Model):
     description = CharField(_("description"), max_length=80)
     pattern = CharField(_("pattern"), max_length=80)
     comment = TextField(_("comment"), null=True, blank=True)
-    profile = ForeignKey(Profile, null=True, on_delete=DO_NOTHING, verbose_name=_("profile"))
+    person = ForeignKey(Profile, null=True, on_delete=DO_NOTHING, verbose_name=_("profile"))
     expires_on = DateField(_("expires on"), null=True, blank=True)
 
     @classmethod
     # for people only demographic, identifiable and professional protections make sense
-    def get_data(cls, profile):
+    def get_data(cls, person):
         q = cls.objects.raw(
             """
             SELECT
@@ -1161,19 +1161,19 @@ class ProtectionPatternProfile(Model):
                 pp.comment_en,
                 pp.comment_mi,
                 ppp.expires_on,
-                ppp.profile_id,
+                ppp.person_id,
                 ppp.created_at,
                 ppp.updated_at
             FROM protection_pattern AS pp
-            LEFT JOIN profile_protection_pattern AS ppp
-                ON ppp.protection_pattern_id=pp.code AND ppp.profile_id=%s
+            LEFT JOIN person_protection_pattern AS ppp
+                ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
             ORDER BY description_"""
             + get_language(),
-            [profile.id],
+            [person.id],
         )
 
-        prefetch_related_objects(q, "profile")
+        prefetch_related_objects(q, "person")
         return q
 
     class Meta:
@@ -1181,7 +1181,7 @@ class ProtectionPatternProfile(Model):
 
 
 class AcademicRecord(Model):
-    profile = ForeignKey(Profile, related_name="academic_records", on_delete=CASCADE)
+    person = ForeignKey(Profile, related_name="academic_records", on_delete=CASCADE)
     start_year = PositiveIntegerField(
         _("start year"),
         validators=[MinValueValidator(1960), MaxValueValidator(2099)],
@@ -1216,7 +1216,7 @@ class Award(Model):
 
 
 class Recognition(Model):
-    profile = ForeignKey(Profile, related_name="recognitions", on_delete=CASCADE)
+    person = ForeignKey(Profile, related_name="recognitions", on_delete=CASCADE)
     recognized_in = PositiveSmallIntegerField(_("year of recognition"), null=True, blank=True)
     award = ForeignKey(Award, on_delete=CASCADE, verbose_name=_("award"))
     awarded_by = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("awarded by"))
@@ -4007,7 +4007,7 @@ FILE_TYPE = Choices("CV")
 
 # class PrivateFile(Model):
 
-#     profile = ForeignKey(Profile, null=True, blank=True, on_delete=CASCADE)
+#     person = ForeignKey(Profile, null=True, blank=True, on_delete=CASCADE)
 #     owner = ForeignKey(User, on_delete=CASCADE)
 #     type = CharField(max_length=100, choices=FILE_TYPE)
 #     title = CharField("title", max_length=200, null=True, blank=True)
@@ -4019,7 +4019,7 @@ FILE_TYPE = Choices("CV")
 
 
 class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
-    profile = ForeignKey(Profile, on_delete=CASCADE, verbose_name=_("profile"))
+    person = ForeignKey(Profile, on_delete=CASCADE, verbose_name=_("person"))
     owner = ForeignKey(User, on_delete=CASCADE, verbose_name=_("owner"))
     title = CharField(
         _("Title or name"),
@@ -4030,7 +4030,7 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
     )
     file = PrivateFileField(
         upload_to="cv",
-        upload_subfolder=lambda instance: [hash_int(instance.profile_id)],
+        upload_subfolder=lambda instance: [hash_int(instance.person_id)],
         verbose_name=_("file"),
         validators=[
             FileExtensionValidator(
@@ -4059,7 +4059,7 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
 
     @classmethod
     def last_user_cv(cls, user):
-        return cls.where(Q(owner=user) | Q(profile__user=user)).order_by("-id").first()
+        return cls.where(Q(owner=user) | Q(person__user=user)).order_by("-id").first()
 
     def __str__(self):
         return self.filename
@@ -4736,7 +4736,7 @@ class Round(Model):
             FROM application AS a JOIN summary AS s ON s.id=a.id
                 LEFT JOIN member_summary AS ms ON ms.id=a.id
                 LEFT JOIN users_user AS u ON u.id = a.submitted_by_id
-                LEFT JOIN profile AS p ON p.user_id = u.id
+                LEFT JOIN person AS p ON p.user_id = u.id
                 LEFT JOIN scheme ON scheme.current_round_id = a.round_id
             WHERE a.round_id=%s AND a.site_id=%s
             ORDER BY a.number
