@@ -809,15 +809,14 @@
 		<style:style style:name="P11" style:family="paragraph" style:parent-style-name="Standard">
 			<style:paragraph-properties fo:line-height="200%">
 				<style:tab-stops>
-					<style:tab-stop style:position="6.331cm"/>
+					<style:tab-stop style:position="6.3cm"/>
 				</style:tab-stops>
 			</style:paragraph-properties>
 		</style:style>
 		<style:style style:name="P12" style:family="paragraph" style:parent-style-name="Standard">
 			<style:paragraph-properties fo:line-height="200%">
 				<style:tab-stops>
-					<style:tab-stop style:position="0cm"/>
-					<style:tab-stop style:position="6.331cm"/>
+					<style:tab-stop style:position="6.5cm"/>
 				</style:tab-stops>
 			</style:paragraph-properties>
 		</style:style>
@@ -983,7 +982,7 @@
 				<text:sequence-decl text:display-outline-level="0" text:name="Drawing"/>
 				<text:sequence-decl text:display-outline-level="0" text:name="Figure"/>
 			</text:sequence-decls>
-			<text:h text:style-name="P3" text:outline-level="1"><text:bookmark-start text:name="_Toc531705534"/>SCHEDULE<text:bookmark-end text:name="_Toc531705534"/></text:h>
+			<text:h text:style-name="P3" text:outline-level="1"><text:bookmark-start text:name="_Toc_SCHEDULE_09431"/>SCHEDULE<text:bookmark-end text:name="_Toc_SCHEDULE_09431"/></text:h>
 			<text:p text:style-name="P11"><text:span text:style-name="T3">Programme Contract Number:<text:tab/></text:span><text:span text:style-name="T6">{{ c.number }}</text:span></text:p>
 			<text:p text:style-name="P12"><text:span text:style-name="T3">Programme Title:<text:tab/></text:span><text:span text:style-name="T6">{{ c.project_title }}</text:span></text:p>
 			<text:list xml:id="list3727263953" text:style-name="WWNum1">
@@ -1085,7 +1084,7 @@
 						<text:p text:style-name="Standard"><text:span text:style-name="T3">{{ m.role.name }}</text:span></text:p>
 					</table:table-cell>
 					<table:table-cell table:style-name="Table3.C2" office:value-type="string">
-						<text:p text:style-name="Standard"><text:span text:style-name="T3">{{ m.total_fte }}%</text:span></text:p>
+						<text:p text:style-name="Standard"><text:span text:style-name="T3">{{ m.total_fte * 100 }}%</text:span></text:p>
 					</table:table-cell>
 				</table:table-row>
 				{% endfor %}

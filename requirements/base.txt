@@ -10,7 +10,7 @@ whitenoise>=5.0.1,<6.0.0  # https://github.com/evansd/whitenoise
 
 # Django
 # ------------------------------------------------------------------------------
-django>=4.0.6,<4.3  # pyup: < 3.1  # https://www.djangoproject.com/
+django>=4.0.6,<5.1  # pyup: < 3.1  # https://www.djangoproject.com/
 django-environ>=0.4.5,<0.5.0  # https://github.com/joke2k/django-environ
 django-model-utils>=4.0.0,<5.0.0  # https://github.com/jazzband/django-model-utils
 # django-allauth>=0.41.0,<0.52.0  # https://github.com/pennersr/django-allauth

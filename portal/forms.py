@@ -6,6 +6,7 @@ from crispy_forms.bootstrap import Tab, TabHolder, InlineRadios
 # from crispy_forms.bootstrap import Modal
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
+    Hidden,
     HTML,
     TEMPLATE_PACK,
     BaseInput,
@@ -1347,7 +1348,11 @@ class ContractForm(forms.ModelForm):
             Tab(
                 mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
                 *(
-                    [HTML("{% load tags %}{% contract_summary %}")]
+                    [
+                        HTML("{% load tags %}{% contract_summary %}"),
+                        Field("start_date", type="hidden", css_class="hidden"),
+                        Field("end_date", type="hidden", css_class="hidden"),
+                    ]
                     if self.instance and self.instance.id
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
