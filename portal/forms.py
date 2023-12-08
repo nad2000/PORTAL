@@ -348,7 +348,7 @@ class ProfileForm(forms.ModelForm):
         return True
 
     class Meta:
-        model = models.Profile
+        model = models.Person
         fields = [
             "date_of_birth",
             "gender",

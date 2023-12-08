@@ -16,7 +16,7 @@ from simple_history.utils import bulk_update_with_history
 
 from portal.models import (
     CurriculumVitae,
-    Profile,
+    Person,
     ResearchOffice,
 )
 
@@ -152,10 +152,10 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
             u = request.user
             if target_id := request.POST.get("target"):
                 target = User.get(target_id)
-                profile = Profile.where(user=target).first()
+                profile = Person.where(user=target).first()
                 users = queryset.filter(~Q(id=target_id))
                 object_ids = [u.id for u in users]
-                profiles = Profile.where(user_id__in=object_ids)
+                profiles = Person.where(user_id__in=object_ids)
                 profile_ids = [p.id for p in profiles]
 
                 # for u in list(queryset.filter(~Q(id=target_id))):
@@ -175,12 +175,12 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                 #             CurriculumVitae.where(owner=u).update(owner=target)
                 #             ResearchOffice.where(user=u).update(user=target)
 
-                #             if p := Profile.where(user=u).first():
+                #             if p := Person.where(user=u).first():
                 #                 if profile:
                 #                     CurriculumVitae.where(profile=p).update(profile=profile)
                 #                 else:
                 #                     CurriculumVitae.where(profile=p).delete()
-                #             Profile.where(user=u).delete()
+                #             Person.where(user=u).delete()
                 #             u.delete()
                 #             deleted.append(u.username)
                 #     except Exception as ex:
@@ -188,7 +188,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                 try:
                     with transaction.atomic():
                         for u_id in object_ids:
-                            p = Profile.where(user_id=u_id).first()
+                            p = Person.where(user_id=u_id).first()
                             if p:
                                 if profile:
                                     for cv in CurriculumVitae.where(profile=p):
@@ -227,7 +227,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                 )
                                 for (model, field) in (
                                     (rel.related_model, rel.remote_field.name)
-                                    for rel in get_candidate_relations_to_delete(Profile._meta)
+                                    for rel in get_candidate_relations_to_delete(Person._meta)
                                     if not issubclass(rel.related_model, HistoricalChanges)
                                 )
                             ):
@@ -248,7 +248,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                             else:
                                 for model, field in (
                                     (rel.related_model, rel.remote_field.name)
-                                    for rel in get_candidate_relations_to_delete(Profile._meta)
+                                    for rel in get_candidate_relations_to_delete(Person._meta)
                                     if not issubclass(rel.related_model, HistoricalChanges)
                                 ):
                                     to_delete = list(

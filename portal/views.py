@@ -97,7 +97,7 @@ from weasyprint import HTML
 
 from . import forms, models, tables
 from .forms import Submit
-from .models import Application, Profile, ProfileCareerStage, Subscription, User
+from .models import Application, Person, ProfileCareerStage, Subscription, User
 from .pyinfo import info
 from .utils import send_mail, vignere
 from .utils.orcid import OrcidHelper
@@ -207,7 +207,7 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
-        profile = Profile.where(user=user).first()
+        profile = Person.where(user=user).first()
         if not profile or not profile.is_completed:
             view_name = "profile-create"
             if profile:
@@ -607,7 +607,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                 + f"?next={quote(request.get_full_path())}"
             )
 
-    profile = Profile.where(user=request.user).last()
+    profile = Person.where(user=request.user).last()
     if not profile or not profile.is_completed:
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
@@ -902,7 +902,7 @@ def check_profile(request, token=None):
                     elif a_id := r.application_id:
                         next_url = reverse("application", kwargs={"pk": a_id})
 
-        if Profile.where(user=request.user).exists() and request.user.profile.is_completed:
+        if Person.where(user=request.user).exists() and request.user.profile.is_completed:
             if token and (
                 i := models.Invitation.where(
                     token=token, type="P", panellist__isnull=False
@@ -915,7 +915,7 @@ def check_profile(request, token=None):
             messages.info(request, _("Please complete your profile or skip it."))
             return redirect(
                 reverse("profile-update")
-                if Profile.where(user=request.user).exists()
+                if Person.where(user=request.user).exists()
                 else reverse("profile-create")
                 + "?next="
                 + (quote(next_url) if next_url else reverse("home"))
@@ -930,13 +930,13 @@ def user_profile(request, pk=None):
     u = User.objects.get(pk=pk) if pk else request.user
     return (
         redirect("profile")
-        if models.Profile.where(user=u).exists()
+        if models.Person.where(user=u).exists()
         else redirect("profile-create")
     )
 
 
 class ProfileView:
-    model = models.Profile
+    model = models.Person
     template_name = "profile_form.html"
     form_class = forms.ProfileForm
 
@@ -982,7 +982,7 @@ class ProfileView:
     def get_context_data(self, **kwargs):
         if "progress" not in kwargs:
             u = self.request.user
-            if not Profile.where(user=u).exists() or not u.profile.is_completed:
+            if not Person.where(user=u).exists() or not u.profile.is_completed:
                 kwargs["progress"] = 10
                 self.request.session["wizard"] = True
 
@@ -1009,7 +1009,7 @@ class ProfileView:
 @csrf_exempt
 def disable_profile_protection_patterns(request):
     if request.method == "POST":
-        if profile := models.Profile.where(user=request.user).first():
+        if profile := models.Person.where(user=request.user).first():
             models.ProfileProtectionPattern.where(profile=profile).delete()
             profile.has_protection_patterns = False
             profile.save()
@@ -2896,7 +2896,7 @@ class ApplicationCreate(ApplicationView, CreateView):
 #     ]
 
 #     def dispatch(self, request, *args, **kwargs):
-#         if request.user.is_authenticated and not Profile.where(user=self.request.user).exists():
+#         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
 #             return redirect("onboard")
 #         return super().dispatch(request, *args, **kwargs)
 
@@ -3710,7 +3710,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     ]
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not Profile.where(user=self.request.user).exists():
+        if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
             request.session["wizard"] = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
@@ -4651,7 +4651,7 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
 
         context = super().get_context_data(**kwargs)
         user = self.object
-        if not (profile := models.Profile.where(user=user).first()):
+        if not (profile := models.Person.where(user=user).first()):
             messages.warning(
                 self.request,
                 _(

@@ -631,7 +631,7 @@ class PanelAdmin(admin.ModelAdmin):
     inlines = [PanellistInline]
 
 
-@admin.register(models.Profile)
+@admin.register(models.Person)
 class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
 

@@ -721,8 +721,8 @@ class FieldOfStudy(Model):
         verbose_name_plural = _("fields of study")
 
 
-class ProfileCareerStage(Model):
-    person = ForeignKey("Profile", on_delete=CASCADE)
+class PersonCareerStage(Model):
+    person = ForeignKey("Person", on_delete=CASCADE)
     career_stage = ForeignKey(CareerStage, on_delete=CASCADE, verbose_name=_("career stage"))
     year_achieved = PositiveSmallIntegerField(
         _("year achieved"),
@@ -768,9 +768,9 @@ def validate_orcid_id(value):
     return value
 
 
-class ProfilePersonIdentifier(Model):
+class PersonPersonIdentifier(Model):
     person = ForeignKey(
-        "Profile",
+        "Person",
         on_delete=CASCADE,
     )
     code = ForeignKey(
@@ -939,7 +939,7 @@ class OrgName(Model):
 
 
 class Affiliation(Model):
-    person = ForeignKey("Profile", on_delete=CASCADE, related_name="affiliations")
+    person = ForeignKey("Person", on_delete=CASCADE, related_name="affiliations")
     org = ForeignKey(
         Organisation,
         on_delete=CASCADE,
@@ -984,7 +984,7 @@ def validate_bod(value):
         )
 
 
-class Profile(PersonMixin, Model):
+class Person(PersonMixin, Model):
     user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="person")
     gender = PositiveSmallIntegerField(
         _("gender"),
@@ -1011,7 +1011,7 @@ class Profile(PersonMixin, Model):
         _("primary language spoken"), max_length=40, null=True, blank=True, choices=LANGUAGES
     )
     languages_spoken = ManyToManyField(
-        Language, db_table="profile_language", blank=True, verbose_name=_("languages spoken")
+        Language, db_table="person_language", blank=True, verbose_name=_("languages spoken")
     )
     iwi_groups = ManyToManyField(
         IwiGroup, db_table="person_iwi_group", blank=True, verbose_name=_("iwi groups")
@@ -1027,13 +1027,13 @@ class Profile(PersonMixin, Model):
     # occupation
     is_accepted = BooleanField(_("privacy policy accepted"), default=False)
     career_stages = ManyToManyField(
-        CareerStage, blank=True, through="ProfileCareerStage", verbose_name=_("career stages")
+        CareerStage, blank=True, through="PersonCareerStage", verbose_name=_("career stages")
     )
     is_career_stages_completed = BooleanField(default=False)
     external_ids = ManyToManyField(
         PersonIdentifierType,
         blank=True,
-        through="ProfilePersonIdentifier",
+        through="PersonPersonIdentifier",
         verbose_name=_("external IDs"),
     )
     # affiliations = ManyToManyField(Organisation, blank=True, through="Affiliation")
@@ -1063,7 +1063,7 @@ class Profile(PersonMixin, Model):
 
     @property
     def protection_patterns(self):
-        return ProtectionPatternProfile.get_data(self)
+        return ProtectionPatternPerson.get_data(self)
 
     def __str__(self):
         u = self.user
@@ -1081,9 +1081,9 @@ class Profile(PersonMixin, Model):
         created = not self.id
         super().save(*args, **kwargs)
         if created:
-            ProfileProtectionPattern.objects.bulk_create(
+            PersonProtectionPattern.objects.bulk_create(
                 [
-                    ProfileProtectionPattern(person=self, protection_pattern_id=code)
+                    PersonProtectionPattern(person=self, protection_pattern_id=code)
                     for code in [5, 6]
                 ]
             )
@@ -1121,8 +1121,8 @@ class Profile(PersonMixin, Model):
         db_table = "person"
 
 
-class ProfileProtectionPattern(Model):
-    person = ForeignKey(Profile, on_delete=CASCADE, related_name="person_protection_patterns")
+class PersonProtectionPattern(Model):
+    person = ForeignKey(Person, on_delete=CASCADE, related_name="person_protection_patterns")
     protection_pattern = ForeignKey(
         ProtectionPattern,
         on_delete=CASCADE,
@@ -1139,12 +1139,12 @@ class ProfileProtectionPattern(Model):
         unique_together = ("person", "protection_pattern")
 
 
-class ProtectionPatternProfile(Model):
+class ProtectionPatternPerson(Model):
     code = PositiveSmallIntegerField(_("code"), primary_key=True)
     description = CharField(_("description"), max_length=80)
     pattern = CharField(_("pattern"), max_length=80)
     comment = TextField(_("comment"), null=True, blank=True)
-    person = ForeignKey(Profile, null=True, on_delete=DO_NOTHING, verbose_name=_("profile"))
+    person = ForeignKey(Person, null=True, on_delete=DO_NOTHING, verbose_name=_("person"))
     expires_on = DateField(_("expires on"), null=True, blank=True)
 
     @classmethod
@@ -1181,7 +1181,7 @@ class ProtectionPatternProfile(Model):
 
 
 class AcademicRecord(Model):
-    person = ForeignKey(Profile, related_name="academic_records", on_delete=CASCADE)
+    person = ForeignKey(Person, related_name="academic_records", on_delete=CASCADE)
     start_year = PositiveIntegerField(
         _("start year"),
         validators=[MinValueValidator(1960), MaxValueValidator(2099)],
@@ -1216,7 +1216,7 @@ class Award(Model):
 
 
 class Recognition(Model):
-    person = ForeignKey(Profile, related_name="recognitions", on_delete=CASCADE)
+    person = ForeignKey(Person, related_name="recognitions", on_delete=CASCADE)
     recognized_in = PositiveSmallIntegerField(_("year of recognition"), null=True, blank=True)
     award = ForeignKey(Award, on_delete=CASCADE, verbose_name=_("award"))
     awarded_by = ForeignKey(Organisation, on_delete=CASCADE, verbose_name=_("awarded by"))
@@ -4007,7 +4007,7 @@ FILE_TYPE = Choices("CV")
 
 # class PrivateFile(Model):
 
-#     person = ForeignKey(Profile, null=True, blank=True, on_delete=CASCADE)
+#     person = ForeignKey(Person, null=True, blank=True, on_delete=CASCADE)
 #     owner = ForeignKey(User, on_delete=CASCADE)
 #     type = CharField(max_length=100, choices=FILE_TYPE)
 #     title = CharField("title", max_length=200, null=True, blank=True)
@@ -4019,7 +4019,7 @@ FILE_TYPE = Choices("CV")
 
 
 class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
-    person = ForeignKey(Profile, on_delete=CASCADE, verbose_name=_("person"))
+    person = ForeignKey(Person, on_delete=CASCADE, verbose_name=_("person"))
     owner = ForeignKey(User, on_delete=CASCADE, verbose_name=_("owner"))
     title = CharField(
         _("Title or name"),
