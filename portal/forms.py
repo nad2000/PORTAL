@@ -1782,17 +1782,17 @@ class MandatoryApplicationFormInlineFormSet(BaseInlineFormSet):
 class ProfileCareerStageForm(forms.ModelForm):
     class Meta:
         exclude = ()
-        model = models.ProfileCareerStage
+        model = models.PersonCareerStage
 
 
 ProfileCareerStageFormSet = modelformset_factory(
-    models.ProfileCareerStage,
+    models.PersonCareerStage,
     # form=ProfileCareerStageForm,
     # fields=["profile", "year_achieved", "career_stage"],
     exclude=(),
     can_delete=True,
     widgets=dict(
-        profile=HiddenInput(),
+        person=HiddenInput(),
         year_achieved=YearInput(attrs={"min": "-60y", "max": "+3y"}),
         career_stage=Select(
             attrs={
@@ -1809,7 +1809,7 @@ ProfileCareerStageFormSet = modelformset_factory(
 
 
 ProfilePersonIdentifierFormSet = modelformset_factory(
-    models.ProfilePersonIdentifier,
+    models.PersonPersonIdentifier,
     # form=ProfileCareerStageForm,
     # fields=["profile", "year_achieved", "career_stage"],
     exclude=(),
@@ -1829,7 +1829,7 @@ class ProfilePersonIdentifierForm(forms.ModelForm):
             raise forms.ValidationError(_("Invalid identifier value. Please enter a valid value."))
 
         if getattr(data.get("code"), "code") == "02" and (orcid := data.get("value")):
-            p = data.get("profile")
+            p = data.get("person")
             u = p.user
             if (
                 not (u.orcid and u.orcid.endswith(orcid))
@@ -1849,7 +1849,7 @@ class ProfilePersonIdentifierForm(forms.ModelForm):
 
     class Meta:
         exclude = ()
-        model = models.ProfilePersonIdentifier
+        model = models.PersonPersonIdentifier
 
 
 class MemberFormSetHelper(FormHelper):
@@ -1885,7 +1885,7 @@ class MemberFormSetHelper(FormHelper):
 class ProfileSectionFormSetHelper(FormHelper):
     template = "portal/table_inline_formset.html"
 
-    def __init__(self, profile=None, previous_step=None, next_step=None, *args, **kwargs):
+    def __init__(self, person=None, previous_step=None, next_step=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # add_more_button = Button(
         #     "add_more", _("Add More"), css_class="btn btn-outline-warning", css_id="add_more"
@@ -1914,7 +1914,7 @@ class ProfileSectionFormSetHelper(FormHelper):
                 self.add_input(
                     Submit(
                         "save",
-                        _("Save") if profile.is_completed else _("Finish and Save"),
+                        _("Save") if person.is_completed else _("Finish and Save"),
                         css_class="btn-primary float-right",
                     )
                 )

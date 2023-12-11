@@ -985,7 +985,39 @@ def validate_bod(value):
 
 
 class Person(PersonMixin, Model):
-    user = OneToOneField(User, on_delete=CASCADE, verbose_name=_("user"), related_name="person")
+    user = OneToOneField(
+        User,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("user"),
+        related_name="person",
+    )
+    code = CharField(max_length=8, unique=True, blank=True, null=True)
+    email = CharField(max_length=60, blank=True, null=True)
+    orcid = CharField(max_length=20, blank=True, null=True)
+    title = ForeignKey(
+        Title,
+        null=True,
+        blank=True,
+        verbose_name=_("title"),
+        db_column="title",
+        on_delete=DO_NOTHING,
+    )
+    initials = CharField(max_length=15, blank=True, null=True)
+    first_name = CharField(max_length=30, blank=True, null=True)
+    last_name = CharField(max_length=50, blank=True, null=True)
+    middle_names = CharField(
+        _("middle names"),
+        blank=True,
+        null=True,
+        max_length=280,
+        help_text=_("Comma separated list of middle names"),
+    )
+    salutation = CharField(max_length=100, blank=True, null=True)
+    other_names = CharField(max_length=200, blank=True, null=True)
+    friendly_name = CharField(max_length=50, blank=True, null=True)
+    label_name = CharField(max_length=120, blank=True, null=True)
     gender = PositiveSmallIntegerField(
         _("gender"),
         choices=GENDERS,
@@ -998,7 +1030,7 @@ class Person(PersonMixin, Model):
     ethnicities = ManyToManyField(
         Ethnicity, db_table="person_ethnicity", blank=True, verbose_name=_("ethnicities")
     )
-    is_ethnicities_completed = BooleanField(default=True)
+    # is_ethnicities_completed = BooleanField(default=True)
     # CharField(max_length=20, null=True, blank=True, choices=ETHNICITIES)
     education_level = PositiveSmallIntegerField(
         _("education level"), null=True, blank=True, choices=QUALIFICATION_LEVEL
@@ -1016,7 +1048,7 @@ class Person(PersonMixin, Model):
     iwi_groups = ManyToManyField(
         IwiGroup, db_table="person_iwi_group", blank=True, verbose_name=_("iwi groups")
     )
-    is_iwi_groups_completed = BooleanField(default=True)
+    # is_iwi_groups_completed = BooleanField(default=True)
     # study participation
     # legally registered relationship status
     # highest secondary school qualification
@@ -1029,7 +1061,7 @@ class Person(PersonMixin, Model):
     career_stages = ManyToManyField(
         CareerStage, blank=True, through="PersonCareerStage", verbose_name=_("career stages")
     )
-    is_career_stages_completed = BooleanField(default=False)
+    # is_career_stages_completed = BooleanField(default=False)
     external_ids = ManyToManyField(
         PersonIdentifierType,
         blank=True,
@@ -1038,7 +1070,77 @@ class Person(PersonMixin, Model):
     )
     # affiliations = ManyToManyField(Organisation, blank=True, through="Affiliation")
 
-    is_external_ids_completed = BooleanField(default=False)
+    # is_external_ids_completed = BooleanField(default=False)
+
+    activity = FixedCharField(
+        max_length=2, blank=True, null=True, choices=Choices("CE", "CO", "CP", "CU", "CW")
+    )
+
+    # source = models.ForeignKey(
+    #     Source, on_delete=models.SET_NULL, blank=True, null=True, related_name="people"
+    # )
+    # source_code = models.CharField(max_length=3, blank=True, null=True)
+    # institution = models.CharField(max_length=120, blank=True, null=True)
+    # department = models.CharField(max_length=120, blank=True, null=True)
+    # position = models.CharField(max_length=80, blank=True, null=True)
+
+    # address = models.TextField(blank=True, null=True, editable=False)
+    # delivery = models.TextField(blank=True, null=True, editable=False)
+    # postal_address = models.TextField(blank=True, null=True, editable=False)
+    # home_address = models.TextField(blank=True, null=True, editable=False)
+    # city = models.CharField(max_length=100, blank=True, null=True, editable=False)
+    # country_name = models.CharField(max_length=200, blank=True, null=True, editable=False)
+    # country = models.ForeignKey(
+    #     Country,
+    #     db_column="country",
+    #     on_delete=models.CASCADE,
+    #     blank=True,
+    #     null=True,
+    #     related_name="+",
+    #     editable=False,
+    # )
+    # postcode = models.CharField(max_length=40, blank=True, null=True, editable=False)
+
+    # phone = models.CharField(max_length=20, blank=True, null=True, editable=False)
+    # fax = models.CharField(max_length=20, blank=True, null=True, editable=False)
+    # phone_pvt = models.CharField(max_length=20, blank=True, null=True, editable=False)
+    # work_phone = models.CharField(max_length=120, blank=True, null=True, editable=False)
+    # extension = models.CharField(max_length=5, blank=True, null=True, editable=False)
+    # home_phone = models.CharField(max_length=80, blank=True, null=True, editable=False)
+    # mobile_phone = models.CharField(max_length=80, blank=True, null=True, editable=False)
+
+    # active = models.BooleanField()
+    # notes = models.TextField(blank=True, null=True)
+    # publish = models.BooleanField()
+    # rcc_comment = models.TextField(blank=True, null=True, verbose_name="RCC comments")
+
+    # maori_descent = models.BooleanField(null=True, blank=True)
+    # year_hipd = models.IntegerField(blank=True, null=True)
+    # year_hipd_since = models.IntegerField(blank=True, null=True)
+    # marsden_newsletter = models.BooleanField(null=True, blank=True)
+    # year_added = models.IntegerField(blank=True, null=True)
+    # use_when = models.CharField(max_length=20, blank=True, null=True)
+    # url = models.CharField(max_length=150, blank=True, null=True)
+    # date_added = models.DateField(blank=True, null=True)
+    # date_changed = models.DateField(blank=True, null=True)
+    # ref_update_request = models.BooleanField(null=True, blank=True)
+    # date_update_request = models.DateField(blank=True, null=True)
+    # rccs = models.ManyToManyField("Rcc", through=PersonRcc, verbose_name="RCCs")
+    # fors = models.ManyToManyField("FieldOfResearch", through=PersonFor, verbose_name="FORs")
+    # ethnicities = models.ManyToManyField("Ethnicity", through=PersonEthnicity)
+    # iwies = models.ManyToManyField(Iwi, through=PersonIwi)
+
+    # phd_date = models.DateField(blank=True, null=True)
+    # phd_years_since = models.IntegerField(blank=True, null=True)
+    # phd_exemption_requested = models.BooleanField(blank=True, null=True, default=False)
+    # phd_exemption_granted = models.BooleanField(blank=True, null=True, default=False)
+    # phd_exemption_reason = models.TextField(blank=True, null=True)
+
+    # residency_status = models.CharField(max_length=32, blank=True, null=True)
+    # residency_years = models.IntegerField(blank=True, null=True)
+    # degree_year = models.CharField(max_length=16, blank=True, null=True)
+
+    # affiliations = models.ManyToManyField(Source, blank=True, through="Affiliation")
 
     history = HistoricalRecords(table_name="person_history")
     has_protection_patterns = BooleanField(default=True)
@@ -1048,18 +1150,18 @@ class Person(PersonMixin, Model):
     def employments(self):
         return self.affiliations.filter(type="EMP")
 
-    is_employments_completed = BooleanField(default=False)
+    # is_employments_completed = BooleanField(default=False)
 
     @property
     def educations(self):
         return self.affiliations.filter(type="EDU")
 
-    is_professional_bodies_completed = BooleanField(default=False)
+    # is_professional_bodies_completed = BooleanField(default=False)
 
-    is_academic_records_completed = BooleanField(default=False)
-    is_recognitions_completed = BooleanField(default=False)
+    # is_academic_records_completed = BooleanField(default=False)
+    # is_recognitions_completed = BooleanField(default=False)
     # is_professional_memberships_completed = BooleanField(default=False)
-    is_cvs_completed = BooleanField(default=False)
+    # is_cvs_completed = BooleanField(default=False)
 
     @property
     def protection_patterns(self):
@@ -1091,31 +1193,31 @@ class Person(PersonMixin, Model):
     def get_absolute_url(self):
         return reverse("profile-instance", kwargs={"pk": self.pk})
 
-    @property
-    def is_completed(self):
-        return (
-            self.is_career_stages_completed
-            and self.is_employments_completed
-            and self.is_ethnicities_completed
-            and self.is_professional_bodies_completed
-            and self.is_recognitions_completed
-            and self.is_iwi_groups_completed
-            and self.is_external_ids_completed
-            and self.is_cvs_completed
-            and self.is_accepted
-        )
+    # @property
+    # def is_completed(self):
+    #     return (
+    #         self.is_career_stages_completed
+    #         and self.is_employments_completed
+    #         and self.is_ethnicities_completed
+    #         and self.is_professional_bodies_completed
+    #         and self.is_recognitions_completed
+    #         and self.is_iwi_groups_completed
+    #         and self.is_external_ids_completed
+    #         and self.is_cvs_completed
+    #         and self.is_accepted
+    #     )
 
-    @is_completed.setter
-    def is_completed(self, value):
-        self.is_career_stages_completed = value
-        self.is_professional_bodies_completed = value
-        self.is_employments_completed = value
-        self.is_ethnicities_completed = value
-        self.is_recognitions_completed = value
-        self.is_iwi_groups_completed = value
-        self.is_external_ids_completed = value
-        self.is_cvs_completed = value
-        self.is_accepted = value
+    # @is_completed.setter
+    # def is_completed(self, value):
+    #     self.is_career_stages_completed = value
+    #     self.is_professional_bodies_completed = value
+    #     self.is_employments_completed = value
+    #     self.is_ethnicities_completed = value
+    #     self.is_recognitions_completed = value
+    #     self.is_iwi_groups_completed = value
+    #     self.is_external_ids_completed = value
+    #     self.is_cvs_completed = value
+    #     self.is_accepted = value
 
     class Meta:
         db_table = "person"

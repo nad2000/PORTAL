@@ -637,12 +637,12 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
 
     class ProfileCareerStageInline(admin.StackedInline):
         extra = 1
-        model = models.ProfileCareerStage
+        model = models.PersonCareerStage
         view_on_site = False
 
     class ProfilePersonIdentifierInline(admin.StackedInline):
         extra = 1
-        model = models.ProfilePersonIdentifier
+        model = models.PersonPersonIdentifier
         view_on_site = False
 
     class AffiliationInline(admin.StackedInline):
@@ -658,7 +658,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
 
     class ProtectionPatternInline(admin.TabularInline):
         extra = 0
-        model = models.ProfileProtectionPattern
+        model = models.PersonProtectionPattern
         verbose_name = _("Protection Pattern")
         verbose_name_plural = _("Protection Patterns")
 

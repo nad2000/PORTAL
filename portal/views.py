@@ -97,7 +97,7 @@ from weasyprint import HTML
 
 from . import forms, models, tables
 from .forms import Submit
-from .models import Application, Person, ProfileCareerStage, Subscription, User
+from .models import Application, Person, PersonCareerStage, Subscription, User
 from .pyinfo import info
 from .utils import send_mail, vignere
 from .utils.orcid import OrcidHelper
@@ -207,24 +207,11 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
-        profile = Person.where(user=user).first()
-        if not profile or not profile.is_completed:
+        person = Person.where(user=user).first()
+        if not person or request.session.get("wizard"):
             view_name = "profile-create"
-            if profile:
-                if not profile.is_employments_completed:
-                    view_name = "profile-employments"
-                elif not profile.is_career_stages_completed:
-                    view_name = "profile-career-stages"
-                elif not profile.is_external_ids_completed:
-                    view_name = "profile-external-ids"
-                elif not profile.is_cvs_completed:
-                    view_name = "profile-cvs"
-                elif not profile.is_academic_records_completed:
-                    view_name = "profile-academic-records"
-                elif not profile.is_recognitions_completed:
-                    view_name = "profile-recognitions"
-                elif not profile.is_professional_bodies_completed:
-                    view_name = "profile-professional-records"
+            if person and (wizard_views := request.session.get("wizard-views")):
+                view_name = wizard_views[0]
             messages.info(
                 request,
                 _(
@@ -233,7 +220,7 @@ def shoud_be_onboarded(function):
                 ),
             )
             return redirect(reverse(view_name) + "?next=" + quote(request.get_full_path()))
-        request.profile = profile
+        request.person = person
         return function(request, *args, **kwargs)
 
     return wrap
@@ -607,8 +594,8 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                 + f"?next={quote(request.get_full_path())}"
             )
 
-    profile = Person.where(user=request.user).last()
-    if not profile or not profile.is_completed:
+    person = Person.where(user=request.user).last()
+    if not person or not person.is_completed:
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
@@ -672,7 +659,7 @@ def index(request):
     has_ro = models.ResearchOffice.where(
         Q(
             org__in=Subquery(
-                models.Affiliation.where(profile__user=user, end_date__isnull=True).values(
+                models.Affiliation.where(person__user=user, end_date__isnull=True).values(
                     "org_id"
                 )
             )
@@ -735,7 +722,7 @@ def index(request):
             is_ajax = not request.META.get("HTTP_ACCEPT", "").startswith("text/html")
             research_officers = User.where(
                 research_offices__org__in=Subquery(
-                    models.Affiliation.where(profile__user=user, end_date__isnull=True).values(
+                    models.Affiliation.where(person__user=user, end_date__isnull=True).values(
                         "org_id"
                     )
                 )
@@ -902,7 +889,8 @@ def check_profile(request, token=None):
                     elif a_id := r.application_id:
                         next_url = reverse("application", kwargs={"pk": a_id})
 
-        if Person.where(user=request.user).exists() and request.user.profile.is_completed:
+        # if Person.where(user=request.user).exists() and request.user.person.is_completed:
+        if Person.where(user=request.user).exists():
             if token and (
                 i := models.Invitation.where(
                     token=token, type="P", panellist__isnull=False
@@ -913,6 +901,13 @@ def check_profile(request, token=None):
             return redirect(next_url or "home")
         else:
             messages.info(request, _("Please complete your profile or skip it."))
+            # person.is_employments_completed = True
+            # person.is_professional_bodies_completed = True
+            # person.is_career_stages_completed = True
+            # person.is_external_ids_completed = True
+            # person.is_cvs_completed = True
+            # person.is_academic_records_completed = True
+            # person.is_recognitions_completed = True
             return redirect(
                 reverse("profile-update")
                 if Person.where(user=request.user).exists()
@@ -982,7 +977,7 @@ class ProfileView:
     def get_context_data(self, **kwargs):
         if "progress" not in kwargs:
             u = self.request.user
-            if not Person.where(user=u).exists() or not u.profile.is_completed:
+            if not Person.where(user=u).exists() or not u.person.is_completed:
                 kwargs["progress"] = 10
                 self.request.session["wizard"] = True
 
@@ -992,7 +987,7 @@ class ProfileView:
         return super().get_context_data(**kwargs)
 
     def get_success_url(self):
-        if not self.request.user.profile.is_completed:
+        if not self.request.user.person.is_completed:
             return reverse(ProfileSectionFormSetView.section_views[0])
         return super().get_success_url()
 
@@ -1009,17 +1004,17 @@ class ProfileView:
 @csrf_exempt
 def disable_profile_protection_patterns(request):
     if request.method == "POST":
-        if profile := models.Person.where(user=request.user).first():
-            models.ProfileProtectionPattern.where(profile=profile).delete()
-            profile.has_protection_patterns = False
-            profile.save()
+        if person := models.Person.where(user=request.user).first():
+            models.PersonProtectionPattern.where(person=person).delete()
+            person.has_protection_patterns = False
+            person.save()
     return HttpResponse(status=204)
 
 
 @login_required
 @shoud_be_onboarded
 def profile_protection_patterns(request):
-    profile = request.profile
+    person = request.person
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
         rp = request.POST
@@ -1027,15 +1022,15 @@ def profile_protection_patterns(request):
         pp_flags = {ppc: f"pp_enabled:{ppc}" in rp.keys() for ppc in pp_codes}
         if not no_protection_needed and not any(pp_flags.values()):
             no_protection_needed = True
-        profile.has_protection_patterns = not no_protection_needed
-        profile.save()
+        person.has_protection_patterns = not no_protection_needed
+        person.save()
 
         if not no_protection_needed:
             expires_on_dates = rp.getlist("expires_on")
             for idx, ppc in enumerate(pp_codes):
                 if pp_flags[ppc]:
-                    ppp, _ = models.ProfileProtectionPattern.objects.get_or_create(
-                        protection_pattern_id=ppc, profile=profile
+                    ppp, _ = models.PersonProtectionPattern.objects.get_or_create(
+                        protection_pattern_id=ppc, person=person
                     )
                     expires_on = expires_on_dates[idx]
                     if expires_on:
@@ -1043,23 +1038,24 @@ def profile_protection_patterns(request):
                         ppp.save()
 
                 else:
-                    models.ProfileProtectionPattern.where(
-                        protection_pattern_id=ppc, profile=profile
+                    models.PersonProtectionPattern.where(
+                        protection_pattern_id=ppc, person=person
                     ).delete()
         else:
-            models.ProfileProtectionPattern.where(profile=profile).delete()
+            models.PersonProtectionPattern.where(person=person).delete()
         if "wizard" in request.session:
             del request.session["wizard"]
+            del request.session["wizard-views"]
             request.session.modified = True
             i = models.Invitation.user_inviations(request.user).filter(~Q(state="bounced")).last()
             url = (i and i.handler_url) or "index"
         else:
             url = "profile"
 
-        if not request.user.is_approved and not profile.account_approval_message_sent_at:
+        if not request.user.is_approved and not person.account_approval_message_sent_at:
             site = Site.objects.get_current()
-            profile.account_approval_message_sent_at = timezone.now()
-            profile.save(update_fields=["account_approval_message_sent_at"])
+            person.account_approval_message_sent_at = timezone.now()
+            person.save(update_fields=["account_approval_message_sent_at"])
             contact_email = models.site_contact_email(site.id)
             if site.domain == "portal.pmscienceprizes.org.nz":
                 send_mail(
@@ -1079,7 +1075,7 @@ def profile_protection_patterns(request):
         reset_cache(request)
         return redirect(url)
 
-    protection_patterns = profile.protection_patterns
+    protection_patterns = person.protection_patterns
     return render(request, "profile_protection_patterns.html", locals())
 
 
@@ -1121,12 +1117,12 @@ class ProfileDetail(ProfileView, DetailView):
             if u.is_staff or u.is_superuser or p.user == u:
                 return p
             raise PermissionDenied(_("You are not allowed to see this profile."))
-        return self.request.user.profile
+        return self.request.user.person
 
 
 class ProfileUpdate(ProfileView, LoginRequiredMixin, UpdateView):
     def get_object(self):
-        return self.request.user.profile
+        return self.request.user.person
 
 
 class ProfileCreate(ProfileView, CreateView):
@@ -1752,7 +1748,7 @@ class ApplicationView(LoginRequiredMixin):
             initial["email"] = user.email
             initial["language"] = django.utils.translation.get_language()
             current_affiliation = (
-                models.Affiliation.where(profile=user.profile, end_date__isnull=True)
+                models.Affiliation.where(person=user.person, end_date__isnull=True)
                 .order_by("-start_date")
                 .first()
             )
@@ -1775,7 +1771,7 @@ class ApplicationView(LoginRequiredMixin):
                     )
                 if not research_experience_in_years and (
                     ar := models.AcademicRecord.where(
-                        profile__user=user,
+                        person__user=user,
                         start_year__isnull=False,
                         qualification__in=Subquery(
                             models.Qualification.where(description__icontains="phd").values("id")
@@ -1786,9 +1782,9 @@ class ApplicationView(LoginRequiredMixin):
                 ):
                     research_experience_in_years = timezone.now().year - ar.start_year
                 if not research_experience_in_years and (
-                    pcs := ProfileCareerStage.where(
+                    pcs := PersonCareerStage.where(
                         ~Q(career_stage__code="R9"),
-                        profile__user=user,
+                        person__user=user,
                         year_achieved__isnull=False,
                     )
                     .order_by("year_achieved")
@@ -1881,7 +1877,7 @@ class ApplicationView(LoginRequiredMixin):
 
                 if round.applicant_cv_required and (cv_file := self.request.FILES.get("cv_file")):
                     cv = models.CurriculumVitae.create(
-                        file=cv_file, owner=user, profile=user.profile
+                        file=cv_file, owner=user, person=user.person
                     )
                     instance.cv = cv
                     # if letter_of_support_file.name.endswith(".pdf")
@@ -3712,12 +3708,13 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
             request.session["wizard"] = True
+            request.session["wizard-views"] = self.section_views
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
     def get_defaults(self):
         """Default values for a form."""
-        return dict(profile=self.request.user.profile)
+        return dict(person=self.request.user.person)
 
     def get_formset(self):
         klass = super().get_formset()
@@ -3739,7 +3736,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         widgets = kwargs.get("widgets", {})
         widgets.update(
             {
-                "profile": HiddenInput(),
+                "person": HiddenInput(),
                 "DELETE": Submit("submit", "DELETE"),
             }
         )
@@ -3774,8 +3771,8 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        profile = self.request.user.profile
-        context["profile"] = profile
+        person = self.request.user.person
+        context["person"] = person
         previous_step = next_step = None
         # if not profile.is_completed:
         #     self.request.session["wizard"] = True
@@ -3799,7 +3796,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 context["next_step"] = next_step
             context["progress"] = ((view_idx + 1) * 100) / (len(self.section_views) + 1)
         context["helper"] = forms.ProfileSectionFormSetHelper(
-            profile=profile, previous_step=previous_step, next_step=next_step
+            person=person, previous_step=previous_step, next_step=next_step
         )
         return context
 
@@ -3815,33 +3812,23 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
 
     def formset_valid(self, formset):
         url_name = self.request.resolver_match.url_name
-        profile = self.request.user.profile
+        request = self.request
         if "complete" in self.request.POST:
-            profile.is_employments_completed = True
-            profile.is_professional_bodies_completed = True
-            profile.is_career_stages_completed = True
-            profile.is_external_ids_completed = True
-            profile.is_cvs_completed = True
-            profile.is_academic_records_completed = True
-            profile.is_recognitions_completed = True
+            del request.session["wizard"]
+            del request.session["wizard-views"]
             if not self.success_url:
                 self.success_url = reverse("home")
-        else:
-            if url_name == "profile-employments":
-                profile.is_employments_completed = True
-            elif url_name == "profile-professional-records":
-                profile.is_professional_bodies_completed = True
-            elif url_name == "profile-career-stages":
-                profile.is_career_stages_completed = True
-            elif url_name == "profile-external-ids":
-                profile.is_external_ids_completed = True
-            elif url_name == "profile-cvs":
-                profile.is_cvs_completed = True
-            elif url_name == "profile-academic-records":
-                profile.is_academic_records_completed = True
-            elif url_name == "profile-recognitions":
-                profile.is_recognitions_completed = True
-        profile.save()
+        elif request.session.get("wizard"):
+            if not request.session["wizard-views"]:
+                request.session["wizard-views"] = ProfileSectionFormSetView.section_views
+            wizard_views = request.session.get("wizard-views", [])
+            if url_name in wizard_views:
+                del wizard_views[wizard_views.index(url_name)]
+                if not wizard_views:
+                    del request.session["wizard"]
+                    del request.session["wizard-views"]
+                else:
+                    request.session["wizard-views"] = wizard_views
         try:
             resp = super().formset_valid(formset)
         except ProtectedError as ex:
@@ -3875,20 +3862,20 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                     self.request,
                     _("%d records deleted") % len(formset.deleted_objects),
                 )
-        elif not profile.is_completed:
-            if not profile.is_employments_completed:
+        elif wizard_views := request.session.get("wizard-views", []):
+            if "profile-employments" in wizard_views:
                 msg = _("You have not completed the affiliation section.")
-            elif not profile.is_professional_bodies_completed:
+            elif "profile-professional-records" in wizard_views:
                 msg = _("You have not completed the professional body section.")
-            elif not profile.is_career_stages_completed:
+            elif "profile-career-stages" in wizard_views:
                 msg = _("You have not completed the career stage section.")
-            elif not profile.is_external_ids_completed:
+            elif "profile-external-ids" in wizard_views:
                 msg = _("You have not completed the external ID section.")
-            elif not profile.is_cvs_completed:
+            elif "profile-cvs" in wizard_views:
                 msg = _("You have not completed the CV section.")
-            elif not profile.is_academic_records_completed:
+            elif "profile-academic-records" in wizard_views:
                 msg = _("You have not completed the academic record section.")
-            elif not profile.is_recognitions_completed:
+            elif "profile-recognitions" in wizard_views:
                 msg = _("You have not completed the recognition section.")
             messages.info(self.request, "%s %s" % (msg, _("Please complete or skip it.")))
 
@@ -3896,7 +3883,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
 
 
 class ProfileCareerStageFormSetView(ProfileSectionFormSetView):
-    model = ProfileCareerStage
+    model = PersonCareerStage
     formset_class = forms.ProfileCareerStageFormSet
     factory_kwargs = {
         "widgets": {
@@ -3914,11 +3901,11 @@ class ProfileCareerStageFormSetView(ProfileSectionFormSetView):
     }
 
     def get_queryset(self):
-        return self.model.where(profile=self.request.user.profile).order_by("year_achieved")
+        return self.model.where(person=self.request.user.person).order_by("year_achieved")
 
 
 class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
-    model = models.ProfilePersonIdentifier
+    model = models.PersonPersonIdentifier
     # formset_class = forms.ProfilePersonIdentifierFormSet
     orcid_sections = ["externalid"]
     form_class = forms.ProfilePersonIdentifierForm
@@ -3928,7 +3915,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
         kwargs.update(
             {
                 "widgets": {
-                    "profile": HiddenInput(),
+                    "person": HiddenInput(),
                     "code": autocomplete.ModelSelect2(
                         "person-identifier-autocomplete",
                         attrs={
@@ -3965,7 +3952,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
             }
         )
         # widgets = {
-        #     "profile": HiddenInput(),
+        #     "person": HiddenInput(),
         #     "code": autocomplete.ModelSelect2(
         #         "person-identifier-autocomplete", attrs={"required": True}
         #     ),
@@ -3980,7 +3967,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
         return kwargs
 
     def get_queryset(self):
-        return self.model.where(profile=self.request.user.profile).order_by("code")
+        return self.model.where(person=self.request.user.person).order_by("code")
 
     def get_context_data(self, **kwargs):
         """Get the context data"""
@@ -4020,7 +4007,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                         attrs={"placeholder": _("student, postdoc, etc.")},
                     ),
                     "type": HiddenInput(),
-                    "profile": HiddenInput(),
+                    "person": HiddenInput(),
                     "qualification": HiddenInput(),
                     "start_date": forms.DateInput(),
                     "end_date": forms.DateInput(),
@@ -4032,7 +4019,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
 
     def get_queryset(self):
         # if there is an invitation or nomination reuse it:
-        if not self.request.user.profile.is_employments_completed:
+        if not self.request.user.person.is_employments_completed:
             data = (
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
@@ -4041,19 +4028,19 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                 data
                 and data.org
                 and not models.Affiliation.where(
-                    profile=self.request.user.profile,
+                    person=self.request.user.person,
                     org=data.org,
                     type=models.AFFILIATION_TYPES.EMP,
                 ).exists()
             ):
                 models.Affiliation.create(
-                    profile=self.request.user.profile,
+                    person=self.request.user.person,
                     org=data.org,
                     type=models.AFFILIATION_TYPES.EMP,
                 )
 
         return self.model.where(
-            profile=self.request.user.profile, type__in=self.affiliation_type.values()
+            person=self.request.user.person, type__in=self.affiliation_type.values()
         ).order_by(
             "start_date",
             "end_date",
@@ -4104,7 +4091,7 @@ class ProfileProfessionalFormSetView(ProfileAffiliationsFormSetView):
                         },
                     ),
                     "type": HiddenInput(),
-                    "profile": HiddenInput(),
+                    "person": HiddenInput(),
                     "start_date": forms.DateInput(),
                     "end_date": forms.DateInput(),
                 },
@@ -4214,13 +4201,13 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
         u = self.request.user
         q = EmailAddress.objects.filter(
             Q(
-                user__profile__affiliations__org__in=Subquery(
-                    u.profile.affiliations.all().values_list("org")
+                user__person__affiliations__org__in=Subquery(
+                    u.person.affiliations.all().values_list("org")
                 )
             )
             | Q(
                 user__research_offices__org__in=Subquery(
-                    u.profile.affiliations.all().values_list("org")
+                    u.person.affiliations.all().values_list("org")
                 )
             )
         )
@@ -4413,7 +4400,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
         kwargs.update(
             {
                 "widgets": {
-                    "profile": HiddenInput(),
+                    "person": HiddenInput(),
                     "owner": HiddenInput(),
                     "file": widgets.ClearableFileInput(
                         attrs={
@@ -4499,7 +4486,7 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
         kwargs.update(
             {
                 "widgets": {
-                    "profile": HiddenInput(),
+                    "person": HiddenInput(),
                     "start_year": DateInput(attrs={"class": "yearpicker"}),
                     "qualification": autocomplete.ModelSelect2("qualification-autocomplete"),
                     "awarded_by": autocomplete.ModelSelect2(
@@ -4526,7 +4513,7 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
         return kwargs
 
     def get_queryset(self):
-        return self.model.where(profile=self.request.user.profile).order_by("-start_year")
+        return self.model.where(person=self.request.user.person).order_by("-start_year")
 
     def get_context_data(self, **kwargs):
         """Get the context data"""
@@ -4564,7 +4551,7 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
 #         # fields = ["state", "email", "first_name", "middle_names", "last_name", "role"]
 #         exclude = ["award"]
 #         widgets = {
-#             "profile": HiddenInput(),
+#             "person": HiddenInput(),
 #             "recognized_in": forms.YearInput(),
 #             "award": autocomplete.ModelSelect2("award-autocomplete"),
 #             "awarded_by": autocomplete.ModelSelect2("org-autocomplete"),
@@ -4583,7 +4570,7 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
         kwargs.update(
             {
                 "widgets": {
-                    "profile": HiddenInput(),
+                    "person": HiddenInput(),
                     "recognized_in": forms.YearInput(),
                     "award": autocomplete.ModelSelect2(
                         "award-autocomplete",
@@ -4611,7 +4598,7 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
         return kwargs
 
     def get_queryset(self):
-        return self.model.where(profile=self.request.user.profile).order_by("-recognized_in")
+        return self.model.where(person=self.request.user.person).order_by("-recognized_in")
 
     def get_context_data(self, **kwargs):
         """Get the context data"""
@@ -4651,7 +4638,7 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
 
         context = super().get_context_data(**kwargs)
         user = self.object
-        if not (profile := models.Person.where(user=user).first()):
+        if not (person := models.Person.where(user=user).first()):
             messages.warning(
                 self.request,
                 _(
@@ -4661,30 +4648,30 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
             )
 
         context["user"] = user
-        context["profile"] = profile
+        context["person"] = person
         context["image_url"] = user.image_url()
 
-        if profile:
+        if person:
             try:
                 context["qualification"] = models.Affiliation.where(
-                    profile=profile, type__in=["EMP"]
+                    person=person, type__in=["EMP"]
                 ).order_by(
                     "start_date",
                     "end_date",
                 )
                 context["professional_records"] = models.Affiliation.where(
-                    profile=profile, type__in=["MEM", "SER"]
+                    person=person, type__in=["MEM", "SER"]
                 ).order_by(
                     "start_date",
                     "end_date",
                 )
-                context["external_id_records"] = models.ProfilePersonIdentifier.where(
-                    profile=profile
+                context["external_id_records"] = models.PersonPersonIdentifier.where(
+                    person=person
                 ).order_by("code")
                 context["academic_records"] = models.AcademicRecord.where(
-                    profile=profile
+                    person=person
                 ).order_by("-start_year")
-                context["recognitions"] = models.Recognition.where(profile=profile).order_by(
+                context["recognitions"] = models.Recognition.where(person=person).order_by(
                     "-recognized_in"
                 )
             except Exception as ex:
@@ -4876,7 +4863,7 @@ class NominationView(CreateUpdateView):
             and "initial" in kwargs
         ):
             a = (
-                self.request.user.profile.affiliations.filter(type="EMP", end_date__isnull=True)
+                self.request.user.person.affiliations.filter(type="EMP", end_date__isnull=True)
                 .order_by("-id")
                 .first()
             )

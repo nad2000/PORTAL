@@ -94,8 +94,8 @@ class ProtectionPatternOptions(TranslationOptions):
     )
 
 
-@register(models.ProtectionPatternProfile)
-class ProtectionPatternProfileOptions(TranslationOptions):
+@register(models.ProtectionPatternPerson)
+class ProtectionPatternPersonOptions(TranslationOptions):
     fields = (
         "description",
         "comment",

@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
             name="person",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to="portal.profile",
+                to="portal.person",
                 verbose_name="person",
             ),
         ),
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="person_protection_patterns",
-                to="portal.profile",
+                to="portal.person",
             ),
         ),
     ]
