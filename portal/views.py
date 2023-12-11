@@ -1675,7 +1675,7 @@ class ApplicationView(LoginRequiredMixin):
                         ),
                     )
                     return redirect("application", pk=pk)
-                if not r.is_open and r.closes_on > (timezone.now() + timedelta(days=1)):
+                if not r.is_open and r.closes_at > (timezone.now() + timedelta(days=1)):
                     messages.error(
                         request,
                         _(

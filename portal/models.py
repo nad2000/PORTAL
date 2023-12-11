@@ -4282,7 +4282,8 @@ class Round(Model):
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
     opens_on = DateField(_("opens on"), null=True, blank=True)
-    closes_on = DateTimeField(_("closes on"), null=True, blank=True)
+    closes_at = DateTimeField(_("closes at"), null=True, blank=True)
+    has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
     guidelines = CharField(_("guideline link URL"), max_length=120, null=True, blank=True)
     description = TextField(_("short description"), null=True, blank=True)
@@ -4471,9 +4472,9 @@ class Round(Model):
     def clean(self):
         if (
             self.opens_on
-            and self.closes_on
+            and self.closes_at
             and datetime.combine(self.opens_on, datetime.min.time()).timestamp()
-            > self.closes_on.timestamp()
+            > self.closes_at.timestamp()
         ):
             raise ValidationError(_("the round cannot close before it opens."))
         if not self.title:
@@ -4516,7 +4517,7 @@ class Round(Model):
             scheme = self.scheme or last_round.scheme
 
             for f in [f.name for f in self._meta.fields]:
-                if f in ["title", "opens_on", "closes_on", "id", "title_en", "title_mi"]:
+                if f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]:
                     continue
                 v = getattr(last_round, f)
                 if v and not getattr(self, f):
@@ -4525,8 +4526,8 @@ class Round(Model):
             if not self.opens_on and last_round.opens_on:
                 self.opens_on = last_round.opens_on + relativedelta(years=1)
 
-            if not self.closes_on and last_round.closes_on:
-                self.closes_on = last_round.closes_on + relativedelta(years=1)
+            if not self.closes_at and last_round.closes_at:
+                self.closes_at = last_round.closes_at + relativedelta(years=1)
 
         if not self.title_en:
             title = scheme.title_en
@@ -4621,8 +4622,8 @@ class Round(Model):
                     kwargs["opens_on"] = opens_on
                     self.opens_on = opens_on
 
-            if "closes_on" not in kwargs and last_round.closes_on:
-                self.closes_on = kwargs["closes_on"] = last_round.closes_on + relativedelta(
+            if "closes_at" not in kwargs and last_round.closes_at:
+                self.closes_at = kwargs["closes_at"] = last_round.closes_at + relativedelta(
                     years=1
                 )
 
@@ -4701,21 +4702,21 @@ class Round(Model):
 
     @property
     def deadline_days(self):
-        if closes_on := self.closes_on:
-            now = datetime.now(tz=closes_on.tzinfo)
-            if closes_on >= now:
-                ts = closes_on - now
+        if closes_at := self.closes_at:
+            now = datetime.now(tz=closes_at.tzinfo)
+            if closes_at >= now:
+                ts = closes_at - now
                 return round(ts.total_seconds() / 86400)
 
     @property
     def is_open(self):
         return self.opens_on <= date.today() and (
-            self.closes_on is None or self.closes_on >= datetime.now(tz=self.closes_on.tzinfo)
+            self.closes_at is None or self.closes_at >= datetime.now(tz=self.closes_at.tzinfo)
         )
 
     @property
     def has_closed(self):
-        return self.closes_on and self.closes_on < datetime.now(tz=self.closes_on.tzinfo)
+        return self.closes_at and self.closes_at < datetime.now(tz=self.closes_at.tzinfo)
 
     @property
     def will_open(self):

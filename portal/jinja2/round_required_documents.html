@@ -28,13 +28,13 @@
                 </tr>
                 {% endif %}
 
-                {% if round.closes_on %}
+                {% if round.closes_at %}
                 <tr>
                     <th style="width: 32%; min-width: 180px; max-width: 200px;">
                         Ends On
                     </th>
                     <td colspan="2">
-                        {{ round.closes_on.strftime('%d-%m-%Y') }}
+                        {{ round.closes_at.strftime('%d-%m-%Y') }}
                     </td>
                 </tr>
                 {% endif %#}

@@ -299,13 +299,13 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
         {% if a.deadline_days > 0 and a.deadline_days < 5 %}
         <i class="fas fa-exclamation-circle text-danger"
            data-toggle="tooltip"
-           title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_on|date:"d-m-Y" closes_at=a.round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+           title="{% blocktrans with deadline_days=a.deadline_days closes_at=a.round.closes_at|date:"d-m-Y" closes_at=a.round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_at }} by {{ closes_at }}{% endblocktrans %}"
            ></i>
         {% endif %}
         <a href="{% if SITE_ID == 4 %}{% url 'application' pk=a.id %}{% else %}{% url 'application-update' pk=a.id %}{% endif %}"
            {% if a.deadline_days < 5 %}
            data-toggle="tooltip"
-           title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_on|date:"d-m-Y" closes_at=a.round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+           title="{% blocktrans with deadline_days=a.deadline_days closes_at=a.round.closes_at|date:"d-m-Y" closes_at=a.round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_at }} by {{ closes_at }}{% endblocktrans %}"
            {% elif SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
            data-toggle="tooltip"
            {% endif %}
@@ -400,14 +400,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   {% endif %}
                   {% if round.deadline_days > 0 and round.deadline_days < 5 %}
                   data-toggle="tooltip"
-                  title="{% blocktrans with deadline_days=round.deadline_days closes_on=round.closes_on|date:"d-m-Y" closes_at=round.closes_on|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+                  title="{% blocktrans with deadline_days=round.deadline_days closes_at=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_at }} by {{ closes_at }}{% endblocktrans %}"
                   {% endif %}
                   >
                   {{ round.opens_on|date:"d-m-Y" }}
-                  {% if round.closes_on %}
-                  - {{ round.closes_on|date:"d-m-Y" }}
-                  {% if round.closes_on.hour or round.closes_on.minute %}
-                  {% blocktrans  with round.closes_on|time:"P" as closes_at %}
+                  {% if round.closes_at %}
+                  - {{ round.closes_at|date:"d-m-Y" }}
+                  {% if round.closes_at.hour or round.closes_at.minute %}
+                  {% blocktrans  with round.closes_at|time:"P" as closes_at %}
                   at {{ closes_at }}
                   {% endblocktrans %}
                   {% endif %}
@@ -456,7 +456,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
                    {% elif round.has_closed %}
                    disabled
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
+                   data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
                    {% else %}
                    data-title="{% trans 'Modify your application and continue application process' %}"
                    {% endif %}
@@ -524,7 +524,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% elif round.will_open %}
                    data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
                    {% else %}
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
+                   data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
                    {% endif %}
                    {% else %}
                    data-title="{% trans 'Nominate other person to apply ...' %}"
@@ -546,7 +546,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% elif round.will_open %}
                    data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
                    {% else %}
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_on|date:'o-m-d'}}"
+                   data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
                    {% endif %}
                    {% else %}
                    data-title="{% trans 'Contact your Research Office and request a nomination' %}"

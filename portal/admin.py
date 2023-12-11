@@ -1807,7 +1807,7 @@ class SchemeAdmin(
             "year",
             "title",
             "opens_on",
-            "closes_on",
+            "closes_at",
         ]
         readonly_fields = ["is_active", "year"]
 
@@ -1895,8 +1895,8 @@ class RoundAdmin(
         "tac_mi",
     )
     save_on_top = True
-    list_display = ["title", "scheme", "opens_on", "closes_on", "is_active"]
-    list_filter = [IsActiveRoundListFilter, "opens_on", "closes_on"]
+    list_display = ["title", "scheme", "opens_on", "closes_at", "is_active"]
+    list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
     date_hierarchy = "opens_on"
     exclude = [
         "site",
@@ -1928,7 +1928,7 @@ class RoundAdmin(
                     "fields": [
                         "scheme",
                         ("title_en", "title_mi"),
-                        ("opens_on", "closes_on"),
+                        ("opens_on", "closes_at"),
                         "description_en",
                         "description_mi",
                         "guidelines",

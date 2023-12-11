@@ -250,8 +250,8 @@ class ApplicationTable(tables.Table):
                     _("The round is closing in %s day(s) on %s by %s")
                     % (
                         deadline_days,
-                        r.closes_on.strftime("%d-%m-%Y"),
-                        r.closes_on.strftime("%I:%M %P"),
+                        r.closes_at.strftime("%d-%m-%Y"),
+                        r.closes_at.strftime("%I:%M %P"),
                     ),
                     value,
                 )
@@ -296,7 +296,7 @@ class RoundTable(tables.Table):
     title = tables.Column(linkify=round_link, verbose_name=_("Round"))
     scheme = tables.Column(verbose_name=_("Scheme"))
     opens_on = tables.Column(verbose_name=_("Opens On"))
-    closes_on = tables.Column(verbose_name=_("Closes On"))
+    closes_at = tables.Column(verbose_name=_("Closes On"))
     evaluation_count = tables.Column(
         verbose_name=_("Review Count"),
         attrs={
@@ -314,7 +314,7 @@ class RoundTable(tables.Table):
             "title",
             "scheme",
             "opens_on",
-            "closes_on",
+            "closes_at",
             "evaluation_count",
         )
 
@@ -442,8 +442,8 @@ class RoundApplicationTable(tables.Table):
                     _("The round is closing in %(days)s day(s) on %(date)s by %(time)s")
                     % {
                         "days": deadline_days,
-                        "date": r.closes_on.strftime("%d-%m-%Y"),
-                        "time": r.closes_on.strftime("%I:%M %P"),
+                        "date": r.closes_at.strftime("%d-%m-%Y"),
+                        "time": r.closes_at.strftime("%I:%M %P"),
                     },
                     value,
                 )
@@ -655,8 +655,8 @@ class ContractTable(tables.Table):
     #                 _("The round is closing in %s day(s) on %s by %s")
     #                 % (
     #                     deadline_days,
-    #                     r.closes_on.strftime("%d-%m-%Y"),
-    #                     r.closes_on.strftime("%I:%M %P"),
+    #                     r.closes_at.strftime("%d-%m-%Y"),
+    #                     r.closes_at.strftime("%I:%M %P"),
     #                 ),
     #                 value,
     #             )
