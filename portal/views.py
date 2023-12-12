@@ -208,8 +208,8 @@ def shoud_be_onboarded(function):
     def wrap(request, *args, **kwargs):
         user = request.user
         person = Person.where(user=user).first()
-        if not person or request.session.get("wizard"):
-            view_name = "profile-create"
+        if not person or request.session.get("wizard") or request.session.get("wizard-views"):
+            view_name = person and "profile-update" or "profile-create"
             if person and (wizard_views := request.session.get("wizard-views")):
                 view_name = wizard_views[0]
             messages.info(
@@ -935,6 +935,7 @@ def is_profile_completed(request):
 
 
 class ProfileView:
+
     model = models.Person
     template_name = "profile_form.html"
     form_class = forms.ProfileForm
@@ -3711,7 +3712,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
             request.session["wizard"] = True
-            request.session["wizard-views"] = self.section_views
+            request.session["wizard-views"] = self.section_views.copy()
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
@@ -3817,30 +3818,31 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         return super().get_success_url()
 
     def formset_valid(self, formset):
-        url_name = self.request.resolver_match.url_name
         request = self.request
-        if "complete" in self.request.POST:
-            del request.session["wizard"]
-            del request.session["wizard-views"]
-            if not self.success_url:
-                self.success_url = reverse("home")
-        elif request.session.get("wizard"):
-            if not request.session["wizard-views"]:
-                request.session["wizard-views"] = ProfileSectionFormSetView.section_views
-            wizard_views = request.session.get("wizard-views", [])
-            if url_name in wizard_views:
-                del wizard_views[wizard_views.index(url_name)]
-                if not wizard_views:
-                    del request.session["wizard"]
-                    del request.session["wizard-views"]
-                else:
-                    request.session["wizard-views"] = wizard_views
+        url_name = request.resolver_match.url_name
         try:
             resp = super().formset_valid(formset)
+            success_url = self.success_url
+            if "complete" in request.POST:
+                del request.session["wizard"]
+                del request.session["wizard-views"]
+                if not success_url:
+                    self.success_url = reverse("home")
+            elif request.session.get("wizard"):
+                if not request.session.get("wizard-views"):
+                    request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+                wizard_views = request.session.get("wizard-views", [])
+                if url_name in wizard_views:
+                    del wizard_views[wizard_views.index(url_name)]
+                    if not wizard_views:
+                        del request.session["wizard"]
+                        del request.session["wizard-views"]
+                    else:
+                        request.session["wizard-views"] = wizard_views
         except ProtectedError as ex:
             if url_name == "profile-cvs" and hasattr(formset, "deleted_objects"):
                 messages.error(
-                    self.request,
+                    request,
                     _(
                         "You cannot delete a CV that has been used as part of an application (%s). "
                         "<br/>If you are trying to update your CV, you can replace the old with a new document. "
@@ -3855,17 +3857,17 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                         for o in ex.protected_objects
                     ),
                 )
-                return redirect(self.request.path_info)
+                return redirect(request.path_info)
 
         if hasattr(formset, "deleted_objects"):
             if len(formset.deleted_objects) == 1:
                 messages.info(
-                    self.request,
+                    request,
                     _("Record deleted: %s") % formset.deleted_objects[0],
                 )
             elif len(formset.deleted_objects) > 1:
                 messages.info(
-                    self.request,
+                    request,
                     _("%d records deleted") % len(formset.deleted_objects),
                 )
         elif wizard_views := request.session.get("wizard-views", []):
@@ -3883,7 +3885,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 msg = _("You have not completed the academic record section.")
             elif "profile-recognitions" in wizard_views:
                 msg = _("You have not completed the recognition section.")
-            messages.info(self.request, "%s %s" % (msg, _("Please complete or skip it.")))
+            messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
 
         return resp
 
