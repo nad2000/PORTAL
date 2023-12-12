@@ -595,7 +595,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             )
 
     person = Person.where(user=request.user).last()
-    if not person or not person.is_completed:
+    if not person or not is_profile_completed(request):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
@@ -659,9 +659,7 @@ def index(request):
     has_ro = models.ResearchOffice.where(
         Q(
             org__in=Subquery(
-                models.Affiliation.where(person__user=user, end_date__isnull=True).values(
-                    "org_id"
-                )
+                models.Affiliation.where(person__user=user, end_date__isnull=True).values("org_id")
             )
         )
     ).exists()
@@ -924,9 +922,15 @@ def check_profile(request, token=None):
 def user_profile(request, pk=None):
     u = User.objects.get(pk=pk) if pk else request.user
     return (
-        redirect("profile")
-        if models.Person.where(user=u).exists()
-        else redirect("profile-create")
+        redirect("profile") if models.Person.where(user=u).exists() else redirect("profile-create")
+    )
+
+
+def is_profile_completed(request):
+    return (
+        Person.where(user=request.user).exists()
+        and "wizard" not in request.session
+        and "wizard-views" not in request.session
     )
 
 
@@ -976,8 +980,7 @@ class ProfileView:
 
     def get_context_data(self, **kwargs):
         if "progress" not in kwargs:
-            u = self.request.user
-            if not Person.where(user=u).exists() or not u.person.is_completed:
+            if not is_profile_completed(self.request):
                 kwargs["progress"] = 10
                 self.request.session["wizard"] = True
 
@@ -987,7 +990,7 @@ class ProfileView:
         return super().get_context_data(**kwargs)
 
     def get_success_url(self):
-        if not self.request.user.person.is_completed:
+        if not is_profile_completed(self.request):
             return reverse(ProfileSectionFormSetView.section_views[0])
         return super().get_success_url()
 
@@ -3796,7 +3799,10 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 context["next_step"] = next_step
             context["progress"] = ((view_idx + 1) * 100) / (len(self.section_views) + 1)
         context["helper"] = forms.ProfileSectionFormSetHelper(
-            person=person, previous_step=previous_step, next_step=next_step
+            person=person,
+            previous_step=previous_step,
+            next_step=next_step,
+            wizard="wizard" in self.request.session,
         )
         return context
 
@@ -4019,7 +4025,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
 
     def get_queryset(self):
         # if there is an invitation or nomination reuse it:
-        if not self.request.user.person.is_employments_completed:
+        if not self.request.user.person.employments.count() > 0:
             data = (
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
@@ -4668,9 +4674,9 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
                 context["external_id_records"] = models.PersonPersonIdentifier.where(
                     person=person
                 ).order_by("code")
-                context["academic_records"] = models.AcademicRecord.where(
-                    person=person
-                ).order_by("-start_year")
+                context["academic_records"] = models.AcademicRecord.where(person=person).order_by(
+                    "-start_year"
+                )
                 context["recognitions"] = models.Recognition.where(person=person).order_by(
                     "-recognized_in"
                 )
