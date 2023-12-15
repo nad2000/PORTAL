@@ -428,6 +428,7 @@ REST_FRAMEWORK = {
 # Your stuff...
 # ------------------------------------------------------------------------------
 
+SOCIALACCOUNT_SITES_ENABLED = True
 SOCIALACCOUNT_STORE_TOKENS = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
