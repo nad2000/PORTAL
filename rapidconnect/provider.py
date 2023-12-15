@@ -80,9 +80,11 @@ class RapidConnectProvider(Provider):
             return [EmailAddress(email=email.lower(), verified=True, primary=True)]
         return []
 
-    def cleanup_email_addresses(self, email, addresses):
+    def cleanup_email_addresses(self, email, addresses, email_verified, *args, **kwargs):
         if email and email.lower() not in [a.email.lower() for a in addresses]:
-            addresses.append(EmailAddress(email=email.lower(), verified=False, primary=True))
+            addresses.append(
+                EmailAddress(email=email.lower(), verified=email_verified or False, primary=True)
+            )
 
 
 provider_classes = [RapidConnectProvider]

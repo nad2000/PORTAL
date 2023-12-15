@@ -1,12 +1,12 @@
-from urllib.parse import urljoin
 import re
+from urllib.parse import urljoin
 
 import html2text
+from allauth.account import app_settings as account_settings
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
 from allauth.account.utils import perform_login
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from allauth.utils import email_address_exists
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -24,11 +24,26 @@ from portal.utils.mail import DEFAULT_HTML_FOOTER, DEFAULT_SITE_HTML_FOOTER
 User = get_user_model()
 
 
+def email_address_exists(email, exclude_user=None):
+    emailaddresses = EmailAddress.objects
+    if exclude_user:
+        emailaddresses = emailaddresses.exclude(user=exclude_user)
+    ret = emailaddresses.filter(email__iexact=email).exists()
+    if not ret:
+        email_field = account_settings.USER_MODEL_EMAIL_FIELD
+        if email_field:
+            users = get_user_model().objects
+            if exclude_user:
+                users = users.exclude(pk=exclude_user.pk)
+            ret = users.filter(**{email_field + "__iexact": email}).exists()
+    return ret
+
+
 class AccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request):
         url = super().get_login_redirect_url(request)
         try:
-            request.user.profile
+            request.user.person
         except ObjectDoesNotExist:
             return resolve_url("profile-create")
         return url
@@ -107,9 +122,11 @@ class AccountAdapter(DefaultAccountAdapter):
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
                 "site_name": site.name,
                 "domain": site.domain,
-                "logo_url": f"{urljoin(root, 'static/images/alt_logo.jpg')}"
-                if site.domain == "portal.pmscienceprizes.org.nz"
-                else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}",
+                "logo_url": (
+                    f"{urljoin(root, 'static/images/alt_logo.jpg')}"
+                    if site.domain == "portal.pmscienceprizes.org.nz"
+                    else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                ),
             }
             html_message = f"<html><body>{html_message}\n{html_footer}"
             bodies["html"] = html_message

@@ -20,6 +20,7 @@ from django.urls import reverse
 from django.utils.crypto import get_random_string
 from django.utils.http import urlencode
 from django.views.decorators.csrf import csrf_exempt
+from allauth.socialaccount.adapter import get_adapter
 
 from .provider import ATTRIBUTE_KEY, BASE_URL, RapidConnectProvider
 
@@ -29,7 +30,8 @@ class RapidConnectApiError(Exception):
 
 
 def login(request):
-    app = providers.registry.by_id(RapidConnectProvider.id, request).get_app(request)
+    # app = providers.registry.by_id(RapidConnectProvider.id, request).get_app(request)
+    app = get_adapter().get_app(request, RapidConnectProvider.id)
 
     url = app.client_id
     if BASE_URL:
@@ -68,7 +70,9 @@ def callback(request):
     auth_exception = None
 
     try:
-        app = providers.registry.by_id(RapidConnectProvider.id, request).get_app(request)
+        # app = providers.registry.by_id(RapidConnectProvider.id, request).get_app(request)
+        adapter = get_adapter()
+        app = get_adapter().get_app(request, RapidConnectProvider.id)
         audience = request.scheme + "://" + request.get_host()
         token = jwt.decode(
             request.POST["assertion"],
@@ -79,7 +83,7 @@ def callback(request):
         )
         attributes = token[ATTRIBUTE_KEY]
 
-        provider = providers.registry.by_id(RapidConnectProvider.id, request)
+        provider = adapter.get_provider(request, RapidConnectProvider.id)
         login = provider.sociallogin_from_response(request, attributes)
         login.token = SocialToken(app=app, token=token["jti"])
 
@@ -108,7 +112,8 @@ def callback(request):
 
 
 def logout(request):
-    app = providers.registry.by_id(RapidConnectProvider.id, request).get_app(request)
+    # app = providers.registry.by_id(RapidConnectProvider.id, request).get_app(request)
+    app = get_adapter().get_app(request, RapidConnectProvider.id)
     url = app.client_id or BASE_URL
     url = urljoin(url, "/logout")
 

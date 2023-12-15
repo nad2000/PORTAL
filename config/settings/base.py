@@ -246,6 +246,7 @@ MIDDLEWARE = [
     "simple_history.middleware.HistoryRequestMiddleware",
     # "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
     "portal.middleware.FlatpageFallbackMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 
@@ -427,6 +428,10 @@ REST_FRAMEWORK = {
 # Your stuff...
 # ------------------------------------------------------------------------------
 
+SOCIALACCOUNT_STORE_TOKENS = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = False
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": [
@@ -441,6 +446,7 @@ SOCIALACCOUNT_PROVIDERS = {
     "orcid": {
         "BASE_DOMAIN": "sandbox.orcid.org",
         "MEMBER_API": False,
+        # "MEMBER_API": True,
     },
     "rapidconnect": {
         "BASE_URL": "https://rapidconnect.staging.tuakiri.ac.nz/jwt/authnrequest/research/",

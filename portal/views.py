@@ -237,8 +237,12 @@ def logout(request):
                 sites__id=settings.SITE_ID, provider="rapidconnect"
             ).first()
         ) and (id_value := sa.client_id.split("/")[-1]):
-            return redirect(f"{settings.RAPIDCONNECT_LOGOUT}?id={id_value}&return={return_url}")
-        return redirect(f"{settings.RAPIDCONNECT_LOGOUT}?return={return_url}")
+            resp = redirect(f"{settings.RAPIDCONNECT_LOGOUT}?id={id_value}&return={return_url}")
+        else:
+            resp = redirect(f"{settings.RAPIDCONNECT_LOGOUT}?return={return_url}")
+        # Add delete session before rediction - force 'logout' - an ugly workaround:
+        resp.delete_cookie("sessionid")
+        return resp
 
     return redirect(account_logout)
 

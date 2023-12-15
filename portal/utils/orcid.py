@@ -12,7 +12,7 @@ class OrcidHelper:
     """ORCID Data immport helper."""
 
     user = None
-    profile = None
+    person = None
 
     # The list of the ORCDI section that will be imported
     sections = None
@@ -35,7 +35,7 @@ class OrcidHelper:
     def __init__(self, user, sections=None):
         # user = models.User.get(user.id)
         self.user = user
-        self.profile = user.profile
+        self.person = user.person
         self.sections = sections or self.DEFAULT_SECTIONS
 
     def get_orcid_profile(self, orcid_api_url, access_token):
@@ -53,11 +53,12 @@ class OrcidHelper:
         return (None, False)
 
     def org_from_orcid_data(self, orcid_data):
-        org_name=orcid_data.get("organization").get("name")
+        org_name = orcid_data.get("organization").get("name")
         if not (org := models.Organisation.where(name=org_name).last()):
             org_code = models.default_organisation_code(org_name)
             org, created = models.Organisation.objects.get_or_create(
-                name=org_name, code=org_code,
+                name=org_name,
+                code=org_code,
             )
         # TODO: send a notification to admins about a new entry
         return org
@@ -67,10 +68,10 @@ class OrcidHelper:
         orcid = self.user.orcid
         if (
             not orcid
-            and self.user.profile
+            and self.user.person
             and (
-                ppi := models.ProfilePersonIdentifier.where(
-                    profile=self.user.profile, code__code="02"
+                ppi := models.PersonPersonIdentifier.where(
+                    person=self.user.person, code__code="02"
                 )
                 .order_by("-id")
                 .first()
@@ -141,7 +142,7 @@ class OrcidHelper:
 
     def create_and_save_affiliation_record(self, org, orcid_data, section):
         affiliation_obj, _ = models.Affiliation.objects.get_or_create(
-            put_code=orcid_data.get("put-code"), profile=self.profile, org=org
+            put_code=orcid_data.get("put-code"), person=self.person, org=org
         )
         affiliation_obj.type = self.AFFILIATION_SECTION_MAP[section]
         affiliation_obj.role = orcid_data.get("role-title")
@@ -169,12 +170,12 @@ class OrcidHelper:
     def create_and_save_academic_record(self, org, orcid_data):
         # Role-title is empty for ORCID vanilla record.
         qualification, _ = models.Qualification.objects.get_or_create(
-            description=orcid_data.get("role-title")
-            if orcid_data.get("role-title")
-            else "Don't Know"
+            description=(
+                orcid_data.get("role-title") if orcid_data.get("role-title") else "Don't Know"
+            )
         )
         academic_obj, _ = models.AcademicRecord.get_or_create(
-            put_code=orcid_data.get("put-code"), profile=self.profile, awarded_by=org
+            put_code=orcid_data.get("put-code"), person=self.person, awarded_by=org
         )
         academic_obj.qualification = qualification
 
@@ -214,7 +215,7 @@ class OrcidHelper:
             )
             rec_obj, created = models.Recognition.objects.get_or_create(
                 put_code=orcid_data.get("put-code"),
-                profile=self.profile,
+                person=self.person,
                 defaults=dict(awarded_by=org, award=award),
             )
 
@@ -245,8 +246,8 @@ class OrcidHelper:
         person_identifier_orcid, _ = models.PersonIdentifierType.objects.get_or_create(
             description="ORCID ID", code="02"
         )
-        _, created = models.ProfilePersonIdentifier.objects.get_or_create(
-            profile=self.profile,
+        _, created = models.PersonPersonIdentifier.objects.get_or_create(
+            person=self.person,
             code=person_identifier_orcid,
             value=self.user.orcid,
         )
@@ -259,8 +260,8 @@ class OrcidHelper:
             description=orcid_data.get("external-id-type")
         )
         value = orcid_data.get("external-id-value")
-        ext_obj, _ = models.ProfilePersonIdentifier.get_or_create(
-            profile=self.profile, put_code=orcid_data.get("put-code"), code=code
+        ext_obj, _ = models.PersonPersonIdentifier.get_or_create(
+            person=self.person, put_code=orcid_data.get("put-code"), code=code
         )
         ext_obj.value = value
         ext_obj.save()
