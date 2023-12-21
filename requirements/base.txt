@@ -61,8 +61,7 @@ pikepdf<=8.6.0
 
 django-bootstrap4<23.0.0
 django-filter<22.2
-# django-sql-explorer<3.0.0
- git+https://github.com/nad2000/django-sql-explorer@issue477
+django-sql-explorer[xls,charts]>=3.0.0,<4.0.0
 
 #django-bootstrap-breadcrumbs<1.0.0
  git+https://github.com/nad2000/bootstrap-breadcrumbs.git
