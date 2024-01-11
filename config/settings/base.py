@@ -174,6 +174,7 @@ EXPLORER_DATA_EXPORTERS = [
     ('excel', 'explorer.exporters.ExcelExporter'),
     ('json', 'explorer.exporters.JSONExporter')
 ]
+# EXPLORER_CHARTS_ENABLED = True
 
 LOCAL_APPS = [
     "portal",
