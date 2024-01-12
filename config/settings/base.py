@@ -169,6 +169,11 @@ SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - o
 # EXPLORER_DEFAULT_CONNECTION = "readonly"
 EXPLORER_CONNECTIONS = {"Default": "default"}
 EXPLORER_DEFAULT_CONNECTION = "default"
+EXPLORER_DATA_EXPORTERS = [
+    ('csv', 'explorer.exporters.CSVExporter'),
+    ('excel', 'explorer.exporters.ExcelExporter'),
+    ('json', 'explorer.exporters.JSONExporter')
+]
 
 LOCAL_APPS = [
     "portal",
