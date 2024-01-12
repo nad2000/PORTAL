@@ -134,7 +134,7 @@ table.table .asteriskField,.popover-header {color: gray;}
               <div class="collapse navbar-collapse" id="navbarSupportedContent">
 
                 <ul class="navbar-nav mr-auto">
-                  {% if request.user.is_authenticated %}
+                  {% if user.is_authenticated %}
                     <li class="nav-item" id="home">
                       <a class="nav-link" href="{% url 'home' %}">
                         <i class="fa fa-fw fa-home"></i> {% trans 'Home' %}<span class="sr-only">(current)</span>
@@ -181,17 +181,17 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
                       </li>
                     {% endif %}
-                    {% if request.user.is_superuser or request.user.is_site_staff %}
+                    {% if user.is_superuser or user.is_site_staff %}
                       <li class="nav-item" id="admin:index">
                         <a id="admin-link" class="nav-link" href="{% url 'admin:index' %}">
                           <i class="fas fa-radiation"></i> {% trans "Admin" %}</a>
                       </li>
-                      {% if request.user.is_superuser %}
+                      {#% if user.is_superuser or user.is_site_staff %#}
                         <li class="nav-item" id="explorer_index">
                           <a id="admin-link" class="nav-link" href="{% url 'explorer_index' %}">
                             <i class="fas fa-database"></i> {% trans "DB Explorer" %}</a>
                         </li>
-                      {% endif %}
+                      {#% endif %#}
                       <li class="nav-item" id="invitation-create">
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'invitation-create' %}">
@@ -204,17 +204,17 @@ table.table .asteriskField,.popover-header {color: gray;}
 
                 <ul class="navbar-nav ml-auto">
 
-                  {% if request.user.is_authenticated %}
+                  {% if user.is_authenticated %}
                     <img alt="GRAVATAR"
-                         src="{{ request.user.avatar }}"
+                         src="{{ user.avatar }}"
                          style="-webkit-border-radius: 12%; border-radius: 12%; max-width: 38px;"
                          data-toggle="popover"
                          data-html="true"
                          data-placement="left"
                          title="{% trans 'User' %}"
-                         data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ request.user.email }}<br/>
-                                <b>{% trans 'Name' %}:&nbsp</b>{{ request.user.name|default:'N/A' }}<br/>
-                                <b>{% trans 'Username' %}:&nbsp</b>{{ request.user.username }}</p>"
+                         data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ user.email }}<br/>
+                                <b>{% trans 'Name' %}:&nbsp</b>{{ user.name|default:'N/A' }}<br/>
+                                <b>{% trans 'Username' %}:&nbsp</b>{{ user.username }}</p>"
                     >
                     <li class="nav-item dropdown" id="profile">
                       <a class="nav-link dropdown-toggle"
@@ -223,7 +223,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                          aria-expanded="false"
                          id="navbarDropdownMenuLinkProfile">
                         <!-- i class="fas fa-user"></i -->
-                        {{ request.user.username }}
+                        {{ user.username }}
                       </a>
                       <div class="dropdown-menu dropdown-menu-right dropdown-info"
                            aria-labelledby="navbarDropdownMenuLinkProfile">
@@ -234,7 +234,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
 
                         <a class="dropdown-item"
-                           href="{% if request.user.has_rapidconnect_account %}{% url 'logout' %}{% else %}{% url 'account_logout' %}{% endif %}"
+                           href="{% if user.has_rapidconnect_account %}{% url 'logout' %}{% else %}{% url 'account_logout' %}{% endif %}"
                            id="logout">
                           <i class="fas fa-sign-out-alt"></i> {% trans "Sign Out" %}
                         </a>

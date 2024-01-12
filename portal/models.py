@@ -563,6 +563,10 @@ class SocioEconomicObjective(Model):
     def __str__(self):
         return f"{self.code}: {self.description}"
 
+    def natural_key(self):
+        return self.code
+
+
     class Meta:
         db_table = "socio_economic_objective"
         verbose_name = "SEO"
@@ -598,6 +602,9 @@ class FieldOfResearch(Model):
         default=False,
         help_text=_("Science, Technology, Engineering, and Mathematics.."),
     )
+
+    def natural_key(self):
+        return self.code
 
     def __str__(self):
         return f"{self.code}: {self.description}"
@@ -773,6 +780,9 @@ class Organisation(Model):
 
     history = HistoricalRecords(table_name="organisation_history")
 
+    def natural_key(self):
+        return self.code
+
     def __str__(self):
         return self.name
 
@@ -918,6 +928,9 @@ class Profile(Model, PersonMixin):
     history = HistoricalRecords(table_name="profile_history")
     has_protection_patterns = BooleanField(default=True)
     account_approval_message_sent_at = DateTimeField(null=True, blank=True, editable=False)
+
+    def natural_key(self):
+        return self.user.username
 
     @property
     def employments(self):
@@ -1137,6 +1150,9 @@ class ConvertedFile(HelperMixin, Base):
 
     file = PrivateFileField(upload_to="converted/%Y/%m/%d")
 
+    def natural_key(self):
+        return self.file.name
+
     @property
     def file_size(self):
         return os.path.getsize(self.file.path)
@@ -1243,6 +1259,9 @@ class ApplicationFor(Model):
     code = ForeignKey(FieldOfResearch, on_delete=CASCADE, db_column="code", verbose_name="FoR")
     share = PositiveSmallIntegerField(null=True, blank=True, default=None)
 
+    def natural_key(self):
+        return (self.application.number, self.code)
+
     def __str__(self):
         return self.code_id
 
@@ -1260,6 +1279,9 @@ class ApplicationSeo(Model):
         SocioEconomicObjective, on_delete=CASCADE, db_column="code", verbose_name="SEO"
     )
     share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def natural_key(self):
+        return (self.application.number, self.code)
 
     def __str__(self):
         return self.code_id
@@ -1317,6 +1339,10 @@ def photo_identity_help_text():
 
 
 class Keyword(TagBase):
+
+    def natural_key(self):
+        return self.name
+
     class Meta:
         verbose_name = _("Keyword")
         verbose_name_plural = _("Keywords")
@@ -1340,6 +1366,9 @@ class Keyword(TagBase):
 class ApplicationKeyword(Model):
     application = ForeignKey("Application", on_delete=CASCADE)
     keyword = ForeignKey(Keyword, on_delete=CASCADE)
+
+    def natural_key(self):
+        return (self.application.number, self.keywords.name)
 
     class Meta:
         db_table = "application_keyword"
@@ -2480,6 +2509,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         return merger
 
+    def clean(self):
+        super().clean()
+        if self.is_preliminary and self.preliminary_id:
+            raise ValidationError(
+                _("A prelimenary application cannot have a prelimenary application.")
+            )
+
+    def natural_key(self):
+        return self.number
+
     class Meta:
         db_table = "application"
 
@@ -2493,6 +2532,9 @@ class ApplicationNumber(Model):
     )
     is_active = BooleanField(default=False)
     history = HistoricalRecords(table_name="application_number_history")
+
+    def natural_key(self):
+        return (self.application.number, self.number)
 
     class Meta:
         db_table = "application_number"
@@ -2509,6 +2551,9 @@ class EthicsStatement(PdfFileMixin, Model):
     )
     not_relevant = BooleanField(default=False, verbose_name=_("Not Applicable"))
     comment = TextField(_("Comment"), max_length=1000, null=True, blank=True)
+
+    def natural_key(self):
+        return (self.application.number, self.file.name)
 
     class Meta:
         db_table = "ethics_statement"
@@ -2556,6 +2601,9 @@ class Member(PersonMixin, MemberMixin, Model):
     authorized_at = MonitorField(
         monitor="status", when=[MEMBER_STATUS.authorized], null=True, blank=True, default=None
     )
+
+    def natural_key(self):
+        return (self.application.number, self.email)
 
     @property
     def thread_index(self):
@@ -2720,6 +2768,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
     survey_token = CharField(max_length=100, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
+
+    def natural_key(self):
+        return (self.application.number, self.email)
 
     @property
     def mail_log_error(self):
@@ -2954,6 +3005,9 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     last_name = CharField(max_length=150, null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
     status_changed_at = MonitorField(monitor="status", null=True, blank=True, default=None)
+
+    def natural_key(self):
+        return (self.application.number, self.panellist.email)
 
     @property
     def mail_log_error(self):
@@ -3841,6 +3895,9 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
 
+    def natural_key(self):
+        return self.file.name
+
     @classmethod
     def last_user_cv(cls, user):
         return cls.where(Q(owner=user) | Q(profile__user=user)).order_by("-id").first()
@@ -3888,6 +3945,9 @@ class Scheme(Model):
     current_round = OneToOneField(
         "Round", blank=True, null=True, on_delete=SET_NULL, related_name="+"
     )
+
+    def natural_key(self):
+        return self.code
 
     def save(self, *args, **kwargs):
         if self.fund and self.fund.site and self.site != self.fund.site:
@@ -4133,6 +4193,9 @@ class Round(Model):
             )
         ],
     )
+
+    def natural_key(self):
+        return (self.scheme.code, self.opens_on)
 
     def get_guidelines(self):
         if not self.guidelines and (
@@ -4728,6 +4791,9 @@ class ApplicationDocument(PdfFileMixin, Model):
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
 
+    def natural_key(self):
+        return (self.application.number, self.file.name)
+
     def save(self, *args, **kwargs):
         if not self.file.name:
             return
@@ -4788,6 +4854,9 @@ class Evaluation(EvaluationMixin, Model):
     # scores = ManyToManyField(Criterion, blank=True, through="Score")
     total_score = PositiveIntegerField(_("Total Score"), default=0)
     state = StateField(null=True, blank=True, default="new")
+
+    def natural_key(self):
+        return (self.application.number, self.panellist.email)
 
     def calc_evaluation_score(self):
         return sum(
@@ -4850,6 +4919,9 @@ class Score(Model):
     criterion = ForeignKey(Criterion, on_delete=CASCADE, related_name="scores")
     value = PositiveIntegerField(_("Score"), default=0)
     comment = TextField(null=True, blank=True)
+
+    def natural_key(self):
+        return (self.evaluation.application.number, self.evaluation.panellist.email)
 
     @property
     def effective_score(self):
@@ -5081,37 +5153,37 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     all_objects = Manager()
 
     round = ForeignKey(
-        Round, on_delete=CASCADE, related_name="nominations", verbose_name=_("round")
-    )
+            Round, on_delete=CASCADE, related_name="nominations", verbose_name=_("round")
+            )
 
     email = EmailField(_("email address"), help_text=_("Email address of the nominee"))
     # Nominee personal data
     # title = CharField(_("title"), max_length=40, null=True, blank=True, choices=TITLES)
     title = ForeignKey(
-        Title,
-        null=True,
-        blank=True,
-        verbose_name=_("title"),
-        db_column="title",
-        on_delete=DO_NOTHING,
-    )
+            Title,
+            null=True,
+            blank=True,
+            verbose_name=_("title"),
+            db_column="title",
+            on_delete=DO_NOTHING,
+            )
     first_name = CharField(_("first name"), max_length=30)
     middle_names = CharField(
-        _("middle names"),
-        blank=True,
-        null=True,
-        max_length=280,
-        help_text=_("Comma separated list of middle names"),
-    )
+            _("middle names"),
+            blank=True,
+            null=True,
+            max_length=280,
+            help_text=_("Comma separated list of middle names"),
+            )
     last_name = CharField(_("last name"), max_length=150)
     org = ForeignKey(
-        Organisation,
-        null=True,
-        blank=True,
-        on_delete=CASCADE,
-        verbose_name=_("organisation"),
-        help_text=_("Organisation of the nominee"),
-    )
+            Organisation,
+            null=True,
+            blank=True,
+            on_delete=CASCADE,
+            verbose_name=_("organisation"),
+            help_text=_("Organisation of the nominee"),
+            )
 
     nominator = ForeignKey(User, on_delete=CASCADE, related_name="nominations")
     summary = TextField(blank=True, null=True)
@@ -5125,20 +5197,20 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
 
     user = ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        related_name="nominations_to_apply",
-        verbose_name=_("Nominee"),
-    )
+            User,
+            null=True,
+            blank=True,
+            on_delete=SET_NULL,
+            related_name="nominations_to_apply",
+            verbose_name=_("Nominee"),
+            )
     application = OneToOneField(
-        Application,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        related_name="nomination",
-        verbose_name=_("application"),
+            Application,
+            null=True,
+            blank=True,
+            on_delete=SET_NULL,
+            related_name="nomination",
+            verbose_name=_("application"),
     )
     cv = ForeignKey(
         CurriculumVitae,
@@ -5150,6 +5222,9 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     status = StateField(_("status"), null=True, blank=True, default=NOMINATION_STATUS.new)
+
+    def natural_key(self):
+        return (self.round.code, self.email)
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
@@ -5287,6 +5362,9 @@ class IdentityVerification(Model):
     user = ForeignKey(User, on_delete=CASCADE, related_name="identity_verifications")
     resolution = TextField(blank=True, null=True)
     state = FSMField(default="new", db_index=True)
+
+    def natural_key(self):
+        return (self.appication.number, self.user.username)
 
     @property
     def thread_index(self):
