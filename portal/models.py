@@ -298,15 +298,17 @@ class PdfFileMixin:
     def title_page(self):
         """Title page for composite export into PDF"""
         tp = {
-            "TITLES": [
-                f"{self.required_document}" f"{self.filename}",
-            ]
-            if hasattr(self, "required_document")
-            else [
-                f"{_('Attachment')} - {self.__class__.__name__}",
-                self,
-                f"({self.filename})",
-            ],
+            "TITLES": (
+                [
+                    f"{self.required_document}" f"{self.filename}",
+                ]
+                if hasattr(self, "required_document")
+                else [
+                    f"{_('Attachment')} - {self.__class__.__name__}",
+                    self,
+                    f"({self.filename})",
+                ]
+            ),
             _("File Name"): self.filename,
             _("Submitted At"): self.updated_at or self.created_at,
         }
@@ -642,7 +644,6 @@ class SocioEconomicObjective(Model):
 
     def natural_key(self):
         return self.code
-
 
     class Meta:
         db_table = "socio_economic_objective"
@@ -1283,8 +1284,7 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_"""
-            + get_language(),
+            ORDER BY description_""" + get_language(),
             [person.id],
         )
 
@@ -1579,7 +1579,6 @@ def photo_identity_help_text():
 
 
 class Keyword(TagBase):
-
     def natural_key(self):
         return self.name
 
@@ -2620,9 +2619,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         merger = PdfFileMerger(strict=False)
         merger.addMetadata(
             {
-                "/Title": f"{self}"
-                if self.site_id == 4
-                else f"{self.number}: {self.application_title or self.round.title}"
+                "/Title": (
+                    f"{self}"
+                    if self.site_id == 4
+                    else f"{self.number}: {self.application_title or self.round.title}"
+                )
             }
         )
         merger.addMetadata({"/Author": self.lead_with_email})
@@ -5468,65 +5469,65 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     all_objects = Manager()
 
     round = ForeignKey(
-            Round, on_delete=CASCADE, related_name="nominations", verbose_name=_("round")
-            )
+        Round, on_delete=CASCADE, related_name="nominations", verbose_name=_("round")
+    )
 
     email = EmailField(_("email address"), help_text=_("Email address of the nominee"))
     # Nominee personal data
     # title = CharField(_("title"), max_length=40, null=True, blank=True, choices=TITLES)
     title = ForeignKey(
-            Title,
-            null=True,
-            blank=True,
-            verbose_name=_("title"),
-            db_column="title",
-            on_delete=DO_NOTHING,
-            )
+        Title,
+        null=True,
+        blank=True,
+        verbose_name=_("title"),
+        db_column="title",
+        on_delete=DO_NOTHING,
+    )
     first_name = CharField(_("first name"), max_length=30)
     middle_names = CharField(
-            _("middle names"),
-            blank=True,
-            null=True,
-            max_length=280,
-            help_text=_("Comma separated list of middle names"),
-            )
+        _("middle names"),
+        blank=True,
+        null=True,
+        max_length=280,
+        help_text=_("Comma separated list of middle names"),
+    )
     last_name = CharField(_("last name"), max_length=150)
     org = ForeignKey(
-            Organisation,
-            null=True,
-            blank=True,
-            on_delete=CASCADE,
-            verbose_name=_("organisation"),
-            help_text=_("Organisation of the nominee"),
-            )
+        Organisation,
+        null=True,
+        blank=True,
+        on_delete=CASCADE,
+        verbose_name=_("organisation"),
+        help_text=_("Organisation of the nominee"),
+    )
 
     nominator = ForeignKey(User, on_delete=CASCADE, related_name="nominations")
     summary = TextField(blank=True, null=True)
     file = PrivateFileField(
-            null=True,
-            blank=True,
-            upload_to="nominations",
-            upload_subfolder=lambda instance: [hash_int(instance.nominator_id)],
-            verbose_name=_("Nominator form"),
-            help_text=_("Upload filled-in nominator form"),
-            )
+        null=True,
+        blank=True,
+        upload_to="nominations",
+        upload_subfolder=lambda instance: [hash_int(instance.nominator_id)],
+        verbose_name=_("Nominator form"),
+        help_text=_("Upload filled-in nominator form"),
+    )
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
 
     user = ForeignKey(
-            User,
-            null=True,
-            blank=True,
-            on_delete=SET_NULL,
-            related_name="nominations_to_apply",
-            verbose_name=_("Nominee"),
-            )
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        related_name="nominations_to_apply",
+        verbose_name=_("Nominee"),
+    )
     application = OneToOneField(
-            Application,
-            null=True,
-            blank=True,
-            on_delete=SET_NULL,
-            related_name="nomination",
-            verbose_name=_("application"),
+        Application,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        related_name="nomination",
+        verbose_name=_("application"),
     )
     cv = ForeignKey(
         CurriculumVitae,
@@ -5751,9 +5752,9 @@ class IdentityVerification(Model):
             recipients=[self.user.email],
             fail_silently=False,
             request=request,
-            reply_to=request.user.email
-            if request and request.user
-            else settings.DEFAULT_FROM_EMAIL,
+            reply_to=(
+                request.user.email if request and request.user else settings.DEFAULT_FROM_EMAIL
+            ),
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
@@ -5813,9 +5814,11 @@ class ScoreSheet(Model):
     file = PrivateFileField(
         upload_to="score-sheets",
         upload_subfolder=lambda instance: [
-            instance.round.title.lower().replace(" ", "-")
-            if instance.round.title
-            else hash_int(instance.round_id),
+            (
+                instance.round.title.lower().replace(" ", "-")
+                if instance.round.title
+                else hash_int(instance.round_id)
+            ),
         ],
         verbose_name=_("Score Sheet"),
         help_text=_("Upload filled-in for all the applications in bulk"),
