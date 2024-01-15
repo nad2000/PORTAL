@@ -23,7 +23,6 @@ from crispy_forms.layout import (
 from dal import autocomplete
 from django import forms
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.forms import FileField, HiddenInput, Widget, inlineformset_factory
 from django.forms.models import BaseInlineFormSet, modelformset_factory
 from django.forms.widgets import NullBooleanSelect, Select, TextInput
@@ -457,14 +456,14 @@ class ApplicationForm(forms.ModelForm):
     letter_of_support_file = FileField(
         required=False,
         widget=forms.ClearableFileInput(
-            attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
         ),
     )
     cv_file = FileField(
         required=False,
         label=_("Curriculum Vitae"),
         widget=forms.ClearableFileInput(
-            attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
         ),
     )
 
@@ -549,9 +548,11 @@ class ApplicationForm(forms.ModelForm):
 
         fields = [
             Fieldset(
-                _("Team representative")
-                if instance and instance.is_team_application
-                else _("Individual applicant"),
+                (
+                    _("Team representative")
+                    if instance and instance.is_team_application
+                    else _("Individual applicant")
+                ),
                 Field("title", css_class="form-group col-12 mb-0"),
                 Row(
                     # Column("title", css_class="form-group col-2 mb-0"),
@@ -908,14 +909,16 @@ class ApplicationForm(forms.ModelForm):
             elif round.required_referees and round.required_referees > 1:
                 referee_information_lines = [
                     (
-                        _("At least %s referees are required to support this application.")
-                        % apnumber(round.required_referees)
-                    )
-                    if round.is_flexible_number_of_referees
-                    else (
-                        _("%s referees are required to support this application.")
-                        % apnumber(round.required_referees)
-                    ).capitalize(),
+                        (
+                            _("At least %s referees are required to support this application.")
+                            % apnumber(round.required_referees)
+                        )
+                        if round.is_flexible_number_of_referees
+                        else (
+                            _("%s referees are required to support this application.")
+                            % apnumber(round.required_referees)
+                        ).capitalize()
+                    ),
                     _(
                         "The Selection Panel at its sole discretion, may request further "
                         "referees or make contact with outside parties."
@@ -1068,11 +1071,13 @@ class ApplicationForm(forms.ModelForm):
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
-            title=_(
-                "Your team leader must accept the Terms and Conditions before the submission can happen"
-            )
-            if submission_disabled
-            else _("Submit the application"),
+            title=(
+                _(
+                    "Your team leader must accept the Terms and Conditions before the submission can happen"
+                )
+                if submission_disabled
+                else _("Submit the application")
+            ),
             css_class="btn-outline-primary",
             disabled=submission_disabled,
         )
@@ -1089,16 +1094,13 @@ class ApplicationForm(forms.ModelForm):
                         title=_("Save draft application"),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Cancel")
-                    ),
+                        </a>""" % _("Cancel")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -1153,7 +1155,7 @@ class ApplicationForm(forms.ModelForm):
             ),
             # round=HiddenInput(),
             letter_of_support_file=forms.ClearableFileInput(
-                attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
         )
         labels = {"keywords": ""}
@@ -1202,6 +1204,7 @@ class ContractForm(forms.ModelForm):
         ("project_timeline", DOCUMENT_ROLES.PT),
         ("proposal_budget", DOCUMENT_ROLES.PB),
         ("award_budget", DOCUMENT_ROLES.AB),
+        ("ethics_statement", DOCUMENT_ROLES.E),
     )
     has_animal_use = forms.ChoiceField(
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
@@ -1234,7 +1237,7 @@ class ContractForm(forms.ModelForm):
     research_aims = FileField(
         required=False,
         widget=forms.ClearableFileInput(
-            attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"},
+            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"},
         ),
     )
 
@@ -1259,13 +1262,22 @@ class ContractForm(forms.ModelForm):
         ),
     )
 
+    ethics_statement = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"},
+        ),
+    )
+
     attachment = FileField(
         required=False,
         label="",
         widget=forms.ClearableFileInput(
             attrs={
-                "accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
-                "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                "accept": (
+                    ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                )
             }
         ),
     )
@@ -1318,11 +1330,15 @@ class ContractForm(forms.ModelForm):
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
-            title=_("Only P.I. can submit the contract")
-            if not is_pi
-            else _("Not all the parts/appendices of the contract were approved and/or accepted")
-            if submission_disabled
-            else _("Submit the contract"),
+            title=(
+                _("Only P.I. can submit the contract")
+                if not is_pi
+                else (
+                    _("Not all the parts/appendices of the contract were approved and/or accepted")
+                    if submission_disabled
+                    else _("Submit the contract")
+                )
+            ),
             css_class="btn-outline-primary",
             disabled=submission_disabled or not is_pi,
         )
@@ -1375,9 +1391,11 @@ class ContractForm(forms.ModelForm):
                         data_enabled_title=_("Approve research aims"),
                         data_disabled_title=_("Please upload research aims before approving it"),
                         data_document_role="AIMS",
-                        title=_("Approve research aims")
-                        if "AIMS" in parts
-                        else _("Please upload research aims before approving it"),
+                        title=(
+                            _("Approve research aims")
+                            if "AIMS" in parts
+                            else _("Please upload research aims before approving it")
+                        ),
                         css_class="btn-primary float-right",
                         # css_class="btn-outline-primary",
                         disabled=("AIMS" not in parts),
@@ -1397,9 +1415,11 @@ class ContractForm(forms.ModelForm):
                         data_disabled_title=_(
                             "Please upload project timeline before approving it"
                         ),
-                        title=_("Approve project timeline")
-                        if "PT" in parts
-                        else _("Please upload project timeline before approving it"),
+                        title=(
+                            _("Approve project timeline")
+                            if "PT" in parts
+                            else _("Please upload project timeline before approving it")
+                        ),
                         css_class="btn-primary float-right",
                         # css_class="btn-outline-primary",
                         disabled=("PT" not in parts),
@@ -1438,6 +1458,7 @@ class ContractForm(forms.ModelForm):
                         'click "Not Applicable" and state why in the comment.'
                     )
                 ),
+                Field("ethics_statement", label=_("Ethics Statement")),
                 InlineRadios("has_animal_use"),
                 InlineRadios("is_signatory_to_oa"),
                 InlineRadios("involves_childeren"),
@@ -1446,15 +1467,13 @@ class ContractForm(forms.ModelForm):
             ),
             Tab(
                 mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-                HTML(
-                    """{% load i18n %}<div class="alert alert-dark" role="alert">
+                HTML("""{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
                     You can distributed it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
-                    </div>"""
-                ),
+                    </div>"""),
                 Fieldset(
                     _("Budget Allocation"),
                     TableInlineFormset(
@@ -1522,16 +1541,13 @@ class ContractForm(forms.ModelForm):
                         title=_("Save draft contract"),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Cancel")
-                    ),
+                        </a>""" % _("Cancel")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -1614,7 +1630,7 @@ class ContractForm(forms.ModelForm):
             ),
             # round=HiddenInput(),
             letter_of_support_file=forms.ClearableFileInput(
-                attrs={"accept": "pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
         )
 
@@ -1939,11 +1955,15 @@ class NominationForm(forms.ModelForm):
             # "round",
             "nominator",
             Fieldset(
-                _(
-                    "Nominee - details of the person you are nominating to apply for the round of the scheme"
-                )
-                if site_id == 4
-                else _("Nominee - details of the person you are nominating to receive this award"),
+                (
+                    _(
+                        "Nominee - details of the person you are nominating to apply for the round of the scheme"
+                    )
+                    if site_id == 4
+                    else _(
+                        "Nominee - details of the person you are nominating to receive this award"
+                    )
+                ),
                 Field("title", css_class="form-group col-12 mb-0"),
                 Row(
                     # Column("title", css_class="form-group col-2 mb-0"),
@@ -1955,8 +1975,7 @@ class NominationForm(forms.ModelForm):
                 css_id="nominee",
             ),
             "org",
-            HTML(
-                """
+            HTML("""
             <div id="div_id_nominator" class="form-group">
             <label for="id_nominator" class=" requiredField">%s</label>
                 <div class="">
@@ -1965,9 +1984,7 @@ class NominationForm(forms.ModelForm):
                         disabled="" class="input form-control">
                 </div>
             </div>
-            """
-                % _("Nominator")
-            ),
+            """ % _("Nominator")),
         ]
         if r and r.nomination_template:
             help_text = _(
@@ -2003,11 +2020,15 @@ class NominationForm(forms.ModelForm):
                     css_class="btn-primary",
                     data_toggle="tooltip",
                     disabled=was_submitted or was_accepted,
-                    title=_("Nomination was already submitted")
-                    if was_submitted
-                    else _("Nomination was already accepted")
-                    if was_accepted
-                    else _("Save draft nomination"),
+                    title=(
+                        _("Nomination was already submitted")
+                        if was_submitted
+                        else (
+                            _("Nomination was already accepted")
+                            if was_accepted
+                            else _("Save draft nomination")
+                        )
+                    ),
                 ),
                 Button(
                     "submit_button",
@@ -2017,9 +2038,11 @@ class NominationForm(forms.ModelForm):
                     # data_target="#confirm-submit",
                     data_toggle="tooltip",
                     disabled=was_accepted,
-                    title=_("Nomination was already accepted")
-                    if was_accepted
-                    else _("Submit or re-submit the nomination"),
+                    title=(
+                        _("Nomination was already accepted")
+                        if was_accepted
+                        else _("Submit or re-submit the nomination")
+                    ),
                 ),
                 HTML(
                     """<a href="{{ view.get_close_url }}" class="btn btn-secondary">%s</a>"""
@@ -2114,9 +2137,11 @@ class TestimonialForm(forms.ModelForm):
                 ),
                 Submit(
                     "turn_down",
-                    _("I do not wish to provide a report")
-                    if site_id == 4
-                    else _("I do not wish to provide a testimonial"),
+                    (
+                        _("I do not wish to provide a report")
+                        if site_id == 4
+                        else _("I do not wish to provide a testimonial")
+                    ),
                     css_class="btn-outline-danger",
                 ),
                 HTML(
@@ -2188,17 +2213,14 @@ class IdentityVerificationForm(forms.ModelForm):
                     _("Request resubmission"),
                     css_class="btn-outline-danger",
                 ),
-                HTML(
-                    """
+                HTML("""
                     <a href="{{ view.get_success_url }}"
                     type="button"
                     role="button"
                     class="btn btn-secondary"
                     id="cancel">
                         %s
-                    </a>"""
-                    % _("Cancel")
-                ),
+                    </a>""" % _("Cancel")),
                 css_class="mb-4 float-right",
             ),
             Field(
@@ -2245,8 +2267,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelFor
                     message += "".join(
                         f"""<li>Review: <a href='{reverse("admin:portal_evaluation_change",
                             kwargs={"object_id": e.pk})}' target="_blank">
-                            {str(e)}</a></li>"""
-                        for e in evaluations
+                            {str(e)}</a></li>""" for e in evaluations
                     )
                 message += "</ul>"
             message += "<ul>"
@@ -2405,12 +2426,14 @@ class ScoreForm(forms.ModelForm):
             else:
                 fields.append(Field("comment"))
         self.fields["value"] = forms.TypedChoiceField(
-            choices=zip(
-                range(criterion.min_score, criterion.max_score + 1),
-                range(criterion.min_score, criterion.max_score + 1),
+            choices=(
+                zip(
+                    range(criterion.min_score, criterion.max_score + 1),
+                    range(criterion.min_score, criterion.max_score + 1),
+                )
+                if criterion
+                else zip(range(11), range(11))
             )
-            if criterion
-            else zip(range(11), range(11))
         )
         self.helper.layout = Layout(*fields)
 
