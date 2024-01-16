@@ -6170,6 +6170,26 @@ class ContractCommentAttachment(Model):
         verbose_name = _("attachment")
 
 
+class ContractEthicsStatement(PdfFileMixin, Model):
+    contract = OneToOneField("Contract", on_delete=CASCADE, related_name="ethics_statement")
+    file = PrivateFileField(
+        verbose_name=_("ethics statement"),
+        help_text=_("Please upload human or animal ethics statement."),
+        upload_to="contracts",
+        upload_subfolder=lambda instance: ["ethics_statement", hash_int(instance.comment_id)],
+        blank=True,
+        null=True,
+    )
+    not_relevant = BooleanField(default=False, verbose_name=_("Not Applicable"))
+    comment = TextField(_("Comment"), max_length=1000, null=True, blank=True)
+
+    def natural_key(self):
+        return (self.contract.number, self.file.name)
+
+    class Meta:
+        db_table = "contract_ethics_statement"
+
+
 class ContractMixin:
     STATES = Choices(
         (None, None),

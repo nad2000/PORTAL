@@ -1325,6 +1325,7 @@ class ContractForm(forms.ModelForm):
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
             or application.submitted_by == user
         )
+        is_ro = application and application.org.research_offices.filter(user=user).exists()
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!
             _("Submit"),
@@ -1342,6 +1343,69 @@ class ContractForm(forms.ModelForm):
             css_class="btn-outline-primary",
             disabled=submission_disabled or not is_pi,
         )
+        # if is_pi or is_ro:
+        #     pass
+        # else:
+        #     # romove compliance:
+        #     list(map(self.fields.pop, ["ethics_statement"]))
+        compliance_fields = (
+            [
+                HTML(
+                    """<div class="alert alert-dark" role="alert">%s</div>"""
+                    % _(
+                        "Please provide an ethic from. If this is not applicable to your application, "
+                        'click "Not Applicable" and state why in the comment.'
+                    )
+                ),
+            ]
+            if is_pi or is_ro
+            else []
+        )
+        disabled_compliance = not (is_pi or is_ro)
+        compliance_fields.extend(
+            [
+                Field(
+                    "ethics_statement", label=_("Ethics Statement"), disabled=disabled_compliance
+                ),
+                InlineRadios("has_animal_use", disabled=disabled_compliance),
+                InlineRadios("is_signatory_to_oa", disabled=disabled_compliance),
+                InlineRadios("involves_childeren", disabled=disabled_compliance),
+                InlineRadios("has_child_protection", disabled=disabled_compliance),
+            ]
+        )
+        if disabled_compliance:
+            # is_signatory_to_oa
+            # involves_childeren
+            # has_child_protection
+            compliance_fields.append(
+                Fieldset(
+                    None,
+                    Submit(
+                        "approve_compliance",
+                        _("Approve"),
+                        data_document_role="E",
+                        data_toggle="tooltip",
+                        data_enabled_title=_("Approve contract compliance"),
+                        data_disabled_title=_("The compliance has been already approved"),
+                        title=_("Approve contract compliance"),
+                        # title=(
+                        #     _("Approve research aims")
+                        #     if "AIMS" in parts
+                        #     else _("Please upload research aims before approving it")
+                        # ),
+                        css_class="btn-primary float-right",
+                        # css_class="btn-outline-primary",
+                        # disabled=("AIMS" not in parts),
+                        css_id="id_approve_compliance",
+                    ),
+                    css_id="id_approve_copliance",
+                )
+            )
+        else:
+            self.fields["has_animal_use"].help_text = gettext_lazy(
+                "Does the proposed research use animals for research or teaching? AAA"
+            )
+
         self.helper = FormHelper(self)
         tabs = [
             # Tab(
@@ -1451,18 +1515,7 @@ class ContractForm(forms.ModelForm):
             ),
             Tab(
                 _("Compliance"),
-                HTML(
-                    """<div class="alert alert-dark" role="alert">%s</div>"""
-                    % _(
-                        "Please provide an ethic from. If this is not applicable to your application, "
-                        'click "Not Applicable" and state why in the comment.'
-                    )
-                ),
-                Field("ethics_statement", label=_("Ethics Statement")),
-                InlineRadios("has_animal_use"),
-                InlineRadios("is_signatory_to_oa"),
-                InlineRadios("involves_childeren"),
-                InlineRadios("has_child_protection"),
+                *compliance_fields,
                 css_id="compliance",
             ),
             Tab(

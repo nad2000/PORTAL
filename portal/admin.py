@@ -83,8 +83,9 @@ class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
     def choices(self, changelist):
         for pk_val, val in self.lookup_choices:
             yield {
-                "selected": self.lookup_val == str(pk_val)
-                or (not self.lookup_val and pk_val == settings.SITE_ID),
+                "selected": self.lookup_val == str(pk_val) or (
+                    not self.lookup_val and pk_val == settings.SITE_ID
+                ),
                 "query_string": changelist.get_query_string(
                     {self.lookup_kwarg: pk_val}, [self.lookup_kwarg_isnull]
                 ),
@@ -1990,25 +1991,27 @@ class RoundAdmin(
                 },
             ),
             (
-                "Other Templates",
-                {
-                    "fields": [
-                        "referee_template",
-                    ]
-                },
-            )
-            if site_id == 4
-            else (
-                "Templates",
-                {
-                    "fields": [
-                        "score_sheet_template",
-                        "nomination_template",
-                        "application_template",
-                        "referee_template",
-                        "budget_template",
-                    ]
-                },
+                (
+                    "Other Templates",
+                    {
+                        "fields": [
+                            "referee_template",
+                        ]
+                    },
+                )
+                if site_id == 4
+                else (
+                    "Templates",
+                    {
+                        "fields": [
+                            "score_sheet_template",
+                            "nomination_template",
+                            "application_template",
+                            "referee_template",
+                            "budget_template",
+                        ]
+                    },
+                )
             ),
         ]
         return fieldsets
@@ -2166,6 +2169,19 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
             },
         ),
         (
+            "Compliance",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "ethics_statement_link",
+                    "has_animal_use",
+                    "is_signatory_to_oa",
+                    "involves_childeren",
+                    "has_child_protection",
+                ],
+            },
+        ),
+        (
             "Additional Information",
             {
                 "classes": ("collapse",),
@@ -2184,7 +2200,17 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
             },
         ),
     ]
-    readonly_fields = []
+    readonly_fields = ["ethics_statement_link"]
+
+    @admin.display(description="ethics statement")
+    def ethics_statement_link(self, obj):
+        if es := obj.parts.filter(document_type__role="E").last():
+            return mark_safe(
+                es.file
+                and f'<a href="{es.file.url}">{os.path.basename(es.file.name)}</a>'
+                or "-"
+            )
+        return "-"
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
