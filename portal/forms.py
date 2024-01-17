@@ -1207,7 +1207,9 @@ class ContractForm(forms.ModelForm):
         ("ethics_statement", DOCUMENT_ROLES.E),
     )
     not_applicable = forms.BooleanField(label=_("Not Applicable"), required=False)
-    not_applicable_comment = forms.CharField(label=_("Comment"), widget=forms.Textarea, required=False)
+    not_applicable_comment = forms.CharField(
+        label=_("Comment"), widget=forms.Textarea, required=False
+    )
     has_animal_use = forms.ChoiceField(
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
@@ -1302,7 +1304,7 @@ class ContractForm(forms.ModelForm):
                     initial[fn] = part.file
             if es := models.ContractEthicsStatement.where(contract=instance).last():
                 initial["not_applicable"] = es.not_relevant or False
-                initial["not_applicable_comment"] = es.comment or ''
+                initial["not_applicable_comment"] = es.comment or ""
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -1372,8 +1374,37 @@ class ContractForm(forms.ModelForm):
                 Field("ethics_statement", label=_("Ethics Statement")),
                 "not_applicable",
                 "not_applicable_comment",
+            ]
+        )
+        if not disabled_compliance:
+            compliance_fields.append(
+                HTML(
+                    '<p class="text-warning">%s</p>'
+                    % _(
+                        "Royal Society Te Apārangi and other institutions are signatories to teh ANZCCART "
+                        "Openness Agreement on Animal Research and Teaching in New Zealand ... TODO:..."
+                    )
+                )
+            )
+        compliance_fields.extend(
+            [
                 InlineRadios("has_animal_use"),
                 InlineRadios("is_signatory_to_oa"),
+            ]
+        )
+        if not disabled_compliance:
+            compliance_fields.append(
+                HTML(
+                    '<p class="text-warning">%s</p>'
+                    % _(
+                        "It is necessary for the Researcher to notify if children "
+                        "are involved in the research and therefor "
+                        "subject to Section 19 of the Vulnerable Children's Act 2014. All ... TODO:..."
+                    )
+                )
+            )
+        compliance_fields.extend(
+            [
                 InlineRadios("involves_childeren"),
                 InlineRadios("has_child_protection"),
             ]
@@ -1389,6 +1420,8 @@ class ContractForm(forms.ModelForm):
             self.fields["is_signatory_to_oa"].disabled = True
             self.fields["involves_childeren"].disabled = True
             self.fields["has_child_protection"].disabled = True
+            self.fields["not_applicable"].disabled = True
+            self.fields["not_applicable_comment"].disabled = True
             compliance_fields.append(
                 Fieldset(
                     None,
@@ -1414,9 +1447,14 @@ class ContractForm(forms.ModelForm):
                 )
             )
         else:
-            self.fields["has_animal_use"].help_text = gettext_lazy(
-                "Does the proposed research use animals for research or teaching? AAA"
-            )
+            pass
+            # self.fields["has_animal_use"].help_text = gettext_lazy(
+            #     "Does the proposed research use animals for research or teaching? AAA"
+            # )
+            # self.fields["has_animal_use"].disabled = True
+            # self.fields["is_signatory_to_oa"].disabled = True
+            # self.fields["involves_childeren"].disabled = True
+            # self.fields["has_child_protection"].disabled = True
 
         self.helper = FormHelper(self)
         tabs = [

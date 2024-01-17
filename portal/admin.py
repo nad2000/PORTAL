@@ -2231,6 +2231,13 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     #     view_on_site = False
     #     classes = ["collapse"]
 
+    class EthicsStatementInline(admin.StackedInline):
+        model = models.ContractEthicsStatement
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        # classes = ["collapse"]
+
     class PartInline(admin.TabularInline):
         model = models.Part
         # exclude = ["contract_number"]
@@ -2324,6 +2331,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         classes = ["collapse"]
 
     inlines = [
+        EthicsStatementInline,
         PartInline,
         ReportingScheduleEntryInline,
         AllocationInline,
