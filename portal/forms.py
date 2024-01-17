@@ -1206,6 +1206,8 @@ class ContractForm(forms.ModelForm):
         ("award_budget", DOCUMENT_ROLES.AB),
         ("ethics_statement", DOCUMENT_ROLES.E),
     )
+    not_applicable = forms.BooleanField(label=_("Not Applicable"), required=False)
+    not_applicable_comment = forms.CharField(label=_("Comment"), widget=forms.Textarea, required=False)
     has_animal_use = forms.ChoiceField(
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
@@ -1298,6 +1300,9 @@ class ContractForm(forms.ModelForm):
                 part = instance.parts.filter(document_type__role=dr).last()
                 if part:
                     initial[fn] = part.file
+            if es := models.ContractEthicsStatement.where(contract=instance).last():
+                initial["not_applicable"] = es.not_relevant or False
+                initial["not_applicable_comment"] = es.comment or ''
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -1364,19 +1369,26 @@ class ContractForm(forms.ModelForm):
         disabled_compliance = not (is_pi or is_ro)
         compliance_fields.extend(
             [
-                Field(
-                    "ethics_statement", label=_("Ethics Statement"), disabled=disabled_compliance
-                ),
-                InlineRadios("has_animal_use", disabled=disabled_compliance),
-                InlineRadios("is_signatory_to_oa", disabled=disabled_compliance),
-                InlineRadios("involves_childeren", disabled=disabled_compliance),
-                InlineRadios("has_child_protection", disabled=disabled_compliance),
+                Field("ethics_statement", label=_("Ethics Statement")),
+                "not_applicable",
+                "not_applicable_comment",
+                InlineRadios("has_animal_use"),
+                InlineRadios("is_signatory_to_oa"),
+                InlineRadios("involves_childeren"),
+                InlineRadios("has_child_protection"),
             ]
         )
+        if instance:
+            es = models.ContractEthicsStatement.where(contract=instance).last()
+            if es and es.not_relevant:
+                self.fields["not_applicable_comment"].required = True
+
         if disabled_compliance:
-            # is_signatory_to_oa
-            # involves_childeren
-            # has_child_protection
+            self.fields["ethics_statement"].disabled = True
+            self.fields["has_animal_use"].disabled = True
+            self.fields["is_signatory_to_oa"].disabled = True
+            self.fields["involves_childeren"].disabled = True
+            self.fields["has_child_protection"].disabled = True
             compliance_fields.append(
                 Fieldset(
                     None,
@@ -1634,6 +1646,20 @@ class ContractForm(forms.ModelForm):
                     models.Part.create(
                         contract=self.instance, required_part=required_part, file=file
                     )
+
+        if created or any(
+            (fn in self.changed_data)
+            for fn in ["not_applicable", "not_applicable_comment", "ethics_statement"]
+        ):
+            es_part = self.instance.parts.filter(document_type__role="E").last()
+            try:
+                es = self.instance.ethics_statement
+            except models.ContractEthicsStatement.DoesNotExist:
+                es = models.ContractEthicsStatement(contract=self.instance)
+            es.not_relevant = self.cleaned_data.get("not_applicable", False)
+            es.comment = self.cleaned_data.get("not_applicable_comment", None)
+            es.file = es_part and es_part.file
+            es.save()
         return res
 
     class Meta:
