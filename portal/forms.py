@@ -1409,7 +1409,7 @@ class ContractForm(forms.ModelForm):
                 InlineRadios("has_child_protection"),
             ]
         )
-        if instance:
+        if instance and instance.pk:
             es = models.ContractEthicsStatement.where(contract=instance).last()
             if es and es.not_relevant:
                 self.fields["not_applicable_comment"].required = True
