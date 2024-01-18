@@ -4232,6 +4232,24 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         db_table = "curriculum_vitae"
 
 
+class Currency(Model):
+    """ISO 4217 Currency Codes - https://datahub.io/core/currency-codes"""
+
+    code = FixedCharField(
+        max_length=3,
+        primary_key=True,
+        db_column="code",
+        help_text="3 digit alphabetic code for the currency",
+    )
+    currency = CharField(max_length=100, help_text="Country or region name")
+    numeric_code = PositiveSmallIntegerField(null=True, blank=True)
+    minor_unit = PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = "currency"
+        db_table_comment = "ISO 4217 Currency Codes - https://datahub.io/core/currency-codes"
+
+
 def default_scheme_code(title):
     title = title.lower()
     code = "".join(w[0] for w in title.split() if w).upper()
@@ -4508,6 +4526,11 @@ class Round(Model):
                 ]
             )
         ],
+    )
+
+    funding_amount = PositiveIntegerField(null=True, blank=True)
+    funding_currency = ForeignKey(
+        Currency, on_delete=SET_NULL, null=True, blank=True, db_column="currency", default="NZD"
     )
 
     def natural_key(self):

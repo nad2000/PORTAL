@@ -172,9 +172,7 @@ def add_education_level_data(apps, schema_editor):
 
     model.objects.using(db_alias).bulk_create(
         [
-            model(
-                code=c, name=get_name(v), name_en=get_name(v), name_mi=get_name(v, "mi")
-            )
+            model(code=c, name=get_name(v), name_en=get_name(v), name_mi=get_name(v, "mi"))
             for (c, v) in QUALIFICATION_LEVEL
         ],
         update_conflicts=True,
@@ -201,6 +199,25 @@ def add_document_type_data(apps, schema_editor):
         ignore_conflicts=True,
         update_fields=["name", "name_en", "name_mi"],
         unique_fields=["role"],
+    )
+
+
+def add_currency(apps, schema_editor):
+
+    model = apps.get_model("portal", "Currency")
+    db_alias = schema_editor.connection.alias
+
+    model.objects.using(db_alias).bulk_create(
+        [
+            model(code=c, currency=n, numeric_code=nc, minor_unit=mu)
+            for (c, n, nc, mu) in [
+                ("NZD", "New Zealand Dollar", 554, 2),
+                ("USD", "US Dollar", 840, 2),
+            ]
+        ],
+        update_conflicts=True,
+        update_fields=["currency", "numeric_code", "minor_unit"],
+        unique_fields=["code"],
     )
 
 
