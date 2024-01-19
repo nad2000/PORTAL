@@ -1299,7 +1299,7 @@ class ContractForm(forms.ModelForm):
 
         if instance := kwargs.get("instance"):
             for fn, dr in self.part_fields:
-                part = instance.parts.filter(document_type__role=dr).last()
+                part = instance.documents.filter(document_type__role=dr).last()
                 if part:
                     initial[fn] = part.file
             if es := models.ContractEthicsStatement.where(contract=instance).last():
@@ -1319,7 +1319,7 @@ class ContractForm(forms.ModelForm):
         # r = self.instance.application.round
         # parts = dict((v, v) for f, v in self.part_fields)
         parts = (
-            {p.document_type.role: p for p in instance.parts.prefetch_related("document_type")}
+            {p.document_type.role: p for p in instance.documents.prefetch_related("document_type")}
             if instance.pk
             else {}
         )
@@ -1608,6 +1608,14 @@ class ContractForm(forms.ModelForm):
                 ),
                 css_id="finances",
             ),
+            Tab(
+                mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
+                Div(
+                    DocumentInlineFormset("documents"),
+                    css_id="documents",
+                ),
+                css_id="appendices",
+            )
         ]
 
         if instance and instance.pk:
@@ -1666,7 +1674,7 @@ class ContractForm(forms.ModelForm):
         for fn, dr in self.part_fields:
             if created or fn in self.changed_data:
                 file = self.cleaned_data.get(fn, None)
-                part = self.instance.parts.filter(document_type__role=dr).last()
+                part = self.instance.documents.filter(document_type__role=dr).last()
                 if part:
                     if not file:
                         part.delete()
@@ -1689,7 +1697,7 @@ class ContractForm(forms.ModelForm):
             (fn in self.changed_data)
             for fn in ["not_applicable", "not_applicable_comment", "ethics_statement"]
         ):
-            es_part = self.instance.parts.filter(document_type__role="E").last()
+            es_part = self.instance.documents.filter(document_type__role="E").last()
             try:
                 es = self.instance.ethics_statement
             except models.ContractEthicsStatement.DoesNotExist:

@@ -3318,8 +3318,65 @@ class ContractViewMixin:
         ] = self.get_reporting_schedule_formset()
         self.personnel = context["personnel"] = self.get_personnel_formset()
         context["application"] = self.application
+        context["round"] = round = self.application.round
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
+
+        initial_documents = [
+            dict(
+                required_document=rd_id,
+            )
+            for rd_id, in (
+                round.required_parts.values_list("id")
+                .filter(~Q(id__in=self.object.documents.values("required_part_id")))
+                .order_by("ordering")
+                if (self.object and self.object.id)
+                else round.required_parts.order_by("ordering").values_list("id")
+            )
+        ]
+
+        fsc = forms.inlineformset_factory(
+            models.Contract,
+            models.Part,
+            extra=len(initial_documents),
+            can_delete=False,
+            exclude=[
+                "document_type",
+                "converted_file",
+            ],
+            widgets={
+                "required_document": HiddenInput(),
+                "page_count": HiddenInput(),
+                # "required_document": widgets.Select(attrs={"disabled": True}),
+                # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                "file": widgets.ClearableFileInput(
+                    attrs={
+                        "placeholder": _("Please upload a file ..."),
+                        "data-placeholder": _("Please upload a file ..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("The file is required. Please upload a file ..."),
+                        "oninput": "this.setCustomValidity('')",
+                    }
+                ),
+            },
+        )
+        if self.request.POST:
+            fs = fsc(
+                self.request.POST or None,
+                self.request.FILES or None,
+                instance=self.object,
+                initial=initial_documents,
+            )
+        else:
+            fs = fsc(instance=self.object, initial=initial_documents)
+        if initial_documents:
+            fs.extra = len(initial_documents)
+        context["documents"] = fs
+        context["required_documents"] = {
+            rd.id: rd for rd in round.required_parts.all().order_by("ordering")
+        }
+
         return context
 
     def form_valid(self, form):
@@ -3387,7 +3444,7 @@ class ContractViewMixin:
             document_action = form.data.get("doc_action")
             resolution = (form.data.get("resolution") or "").strip()
             if document_role in models.DOCUMENT_ROLES and (
-                d := i.parts.filter(required_part__document_type__role=document_role).last()
+                d := i.documents.filter(required_part__document_type__role=document_role).last()
             ):
                 previous_state = d.state
                 if document_action == "approve":

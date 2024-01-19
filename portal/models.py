@@ -6583,7 +6583,7 @@ class RequiredPart(TimeStampMixin, HelperMixin, OrderableModel):
 
 
 class Part(PartMixin, PdfFileMixin, Model):
-    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="parts")
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="documents")
     state = StateField(default="new", verbose_name=_("state"))
     document_type = ForeignKey(
         DocumentType, related_name="contract_parts", on_delete=CASCADE, null=True, blank=True
