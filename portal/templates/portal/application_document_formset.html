@@ -42,19 +42,33 @@
 
       {% for form in formset %}
 
+        <fieldset id="{{ form.prefix }}_part_fieldset">
         {% autoescape off %}
           {% if form_show_errors and not form.is_extra %}
             {% include "bootstrap4/errors.html" %}
           {% endif %}
         {% endautoescape %}
-        {% with rd_id=form.required_document.value %}
-          {#% with field_label=required_documents|get_item:rd_id form_show_labels=True %#}
-          {% with field_label=form.form_label form_show_labels=True %}
+        {% with rd_id=form.required_part.value %}
+          {#% with  form_show_labels=True %#}
+            {% with field_label=form.form_label form_show_labels=True document_type=required_documents|get_item:rd_id %}
             {% include 'bootstrap4/field.html' with field=form.file use_custom_control=True %}
-          {% endwith %}
-        {% endwith %}
         {% for field in form %}{% if field.name != "file" %}{{ field }}{% endif %}{% endfor %}
 
+        <input type="submit"
+              name="approve_part"
+              value="Approve"
+              class="btn btn-primary float-right"
+              id="id_{{ form.prefix }}_approve_part"
+              data-document-type="{{ document_type.pk }}"
+              data-document-role="{{ document_type.role }}"
+              data-enabled-title="Approve {{ document_type }}"
+              data-disabled-title="Please upload {{ document_type }} before approving it"
+              data-toggle="tooltip"
+              title="Approve {{ document_type }}"
+        >
+      </fieldset>
+
+      {% endwith %}{% endwith %}
       {% endfor %}
 
 

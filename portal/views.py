@@ -522,9 +522,11 @@ def confirm_subscription(request, token):
         subscription.save()
         messages.info(
             request,
-            _("Thank you for subscribing to our newsletter.")
-            if is_confirmed
-            else _("We will miss you"),
+            (
+                _("Thank you for subscribing to our newsletter.")
+                if is_confirmed
+                else _("We will miss you")
+            ),
         )
         return redirect("index")
     messages.info(request, _("Thank you for subscribing to our newsletter."))
@@ -2357,14 +2359,16 @@ class ApplicationView(LoginRequiredMixin):
                     a.save()
                     messages.info(
                         self.request,
-                        _(
-                            "Your application has been successfully submitted. "
-                            "The Research Office will be in touch if there is anything more needed. Good luck."
-                        )
-                        if site_id == 4
-                        else _(
-                            "Your application has been successfully submitted. "
-                            "The Prize secretariat will be in touch if there is anything more needed. Good luck."
+                        (
+                            _(
+                                "Your application has been successfully submitted. "
+                                "The Research Office will be in touch if there is anything more needed. Good luck."
+                            )
+                            if site_id == 4
+                            else _(
+                                "Your application has been successfully submitted. "
+                                "The Prize secretariat will be in touch if there is anything more needed. Good luck."
+                            )
                         ),
                     )
 
@@ -2425,11 +2429,13 @@ class ApplicationView(LoginRequiredMixin):
             ethics_statement_form = EthicsStatementForm(
                 self.request.POST or None,
                 self.request.FILES or None,
-                instance=self.object.ethics_statement
-                if self.object
-                and self.object.id
-                and models.EthicsStatement.where(application=self.object).exists()
-                else None,
+                instance=(
+                    self.object.ethics_statement
+                    if self.object
+                    and self.object.id
+                    and models.EthicsStatement.where(application=self.object).exists()
+                    else None
+                ),
                 prefix="et",
             )
             ethics_statement_form.helper = forms.FormHelper(ethics_statement_form)
@@ -2613,8 +2619,9 @@ class ApplicationView(LoginRequiredMixin):
                             "placeholder": _("Please upload a file ..."),
                             "data-placeholder": _("Please upload a file ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The file is required. Please upload a file ..."),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "The file is required. Please upload a file ..."
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         }
                     ),
@@ -2656,8 +2663,9 @@ class ApplicationView(LoginRequiredMixin):
                             "data-placeholder": _("Choose a field of research..."),
                             "placeholder": _("Choose a field of research..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Field of research is required"),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "Field of research is required"
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -2706,8 +2714,9 @@ class ApplicationView(LoginRequiredMixin):
                             "data-placeholder": _("Choose a ..."),
                             "placeholder": _("Choose a Socio-Economic Objective..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Socio-Economic Objective is required"),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "Socio-Economic Objective is required"
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -2747,7 +2756,9 @@ class ApplicationView(LoginRequiredMixin):
             user = self.request.user
             kwargs["initial"].update(
                 {
-                    "application_title": self.round.title,  # models.Round.get(self.kwargs["round"]).title,
+                    "application_title": (
+                        self.round.title
+                    ),  # models.Round.get(self.kwargs["round"]).title,
                     "email": user.email,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
@@ -2834,13 +2845,17 @@ class ApplicationCreate(ApplicationView, CreateView):
         r = (
             models.Round.get(kwargs["round"])
             if "round" in kwargs
-            else models.Nomination.get(kwargs["nomination"]).round
-            if "nomination" in kwargs
-            else models.Nomination.get(
-                self.request.GET.get("nomination") or self.request.POST.get("nomination")
-            ).round
-            if "nomination" in self.request.GET or "nomination" in self.request.POST
-            else getattr(form.instance, "round")
+            else (
+                models.Nomination.get(kwargs["nomination"]).round
+                if "nomination" in kwargs
+                else (
+                    models.Nomination.get(
+                        self.request.GET.get("nomination") or self.request.POST.get("nomination")
+                    ).round
+                    if "nomination" in self.request.GET or "nomination" in self.request.POST
+                    else getattr(form.instance, "round")
+                )
+            )
         )
         if r and (a := models.Application.where(round=r, submitted_by=self.request.user).last()):
             messages.error(
@@ -3076,7 +3091,7 @@ class ApplicationFilterSet(django_filters.FilterSet):
     year_filter = YearChoiceFilter(
         label=gettext_lazy("Year"),
         widget=django_filters.widgets.LinkWidget,
-        choices=[(v, v) for v in range(timezone.now().year, 2019, -1)]
+        choices=[(v, v) for v in range(timezone.now().year, 2019, -1)],
         # method="set_filter",
         # queryset=application_filter_years,
     )
@@ -3177,6 +3192,11 @@ class ContractDetail(DetailView):
                 "reporting_schedule",
             )
         )
+
+
+class PartForm(ModelForm):
+    approve = Submit("Submit", value="approve_part")
+    pass
 
 
 class ContractViewMixin:
@@ -3313,9 +3333,9 @@ class ContractViewMixin:
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         self.allocations = context["allocations"] = self.get_allocation_formset()
-        self.reporting_schedule = context[
-            "reporting_schedule"
-        ] = self.get_reporting_schedule_formset()
+        self.reporting_schedule = context["reporting_schedule"] = (
+            self.get_reporting_schedule_formset()
+        )
         self.personnel = context["personnel"] = self.get_personnel_formset()
         context["application"] = self.application
         context["round"] = round = self.application.round
@@ -3324,29 +3344,37 @@ class ContractViewMixin:
 
         initial_documents = [
             dict(
-                required_document=rd_id,
+                required_part=rp_id,
+                document_type=document_type,
             )
-            for rd_id, in (
-                round.required_parts.values_list("id")
+            for rp_id, document_type, in (
+                round.required_parts.values_list("id", "document_type")
                 .filter(~Q(id__in=self.object.documents.values("required_part_id")))
                 .order_by("ordering")
                 if (self.object and self.object.id)
-                else round.required_parts.order_by("ordering").values_list("id")
+                else round.required_parts.order_by("ordering").values_list("id", "document_type")
+            ).filter(
+                ~Q(document_type__role__in=["B", "AB", "PB"]),
+                # ~Q(required_part__document_type__role__in=["B", "AB", "PB"]),
             )
         ]
 
         fsc = forms.inlineformset_factory(
             models.Contract,
             models.Part,
+            form=PartForm,
             extra=len(initial_documents),
             can_delete=False,
             exclude=[
-                "document_type",
+                # "document_type",
                 "converted_file",
             ],
             widgets={
-                "required_document": HiddenInput(),
+                # "required_document": HiddenInput(),
+                "required_part": HiddenInput(),
+                "state": HiddenInput(),
                 "page_count": HiddenInput(),
+                "document_type": HiddenInput(),
                 # "required_document": widgets.Select(attrs={"disabled": True}),
                 # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
                 "file": widgets.ClearableFileInput(
@@ -3354,8 +3382,9 @@ class ContractViewMixin:
                         "placeholder": _("Please upload a file ..."),
                         "data-placeholder": _("Please upload a file ..."),
                         "data-required": 1,
-                        "oninvalid": "this.setCustomValidity('%s')"
-                        % _("The file is required. Please upload a file ..."),
+                        "oninvalid": "this.setCustomValidity('%s')" % _(
+                            "The file is required. Please upload a file ..."
+                        ),
                         "oninput": "this.setCustomValidity('')",
                     }
                 ),
@@ -3635,7 +3664,7 @@ class ApplicationList(
     LoginRequiredMixin,
     StateInPathMixin,
     ApplicationListMixin,
-    SingleTableView
+    SingleTableView,
     # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
 ):
     model = models.Application
@@ -3891,7 +3920,9 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                     self.success_url = reverse("home")
             elif request.session.get("wizard"):
                 if not request.session.get("wizard-views"):
-                    request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+                    request.session["wizard-views"] = (
+                        ProfileSectionFormSetView.section_views.copy()
+                    )
                 wizard_views = request.session.get("wizard-views", [])
                 if url_name in wizard_views:
                     del wizard_views[wizard_views.index(url_name)]
@@ -3991,8 +4022,9 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
                             "data-placeholder": _("Choose an identifier type or a new one..."),
                             "placeholder": _("Choose an identifier type or a new one ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Identifier type is required"),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "Identifier type is required"
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4012,8 +4044,9 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
                             "placeholder": _("Enter an identifier or a reference ..."),
                             "data-placeholder": _("Choose an identifier value ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Identifier value is required"),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "Identifier value is required"
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         }
                     ),
@@ -4067,8 +4100,9 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                             "data-placeholder": _("Choose an organisation ..."),
                             "placeholder": _("Choose an organisation ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Organisation is required"),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "Organisation is required"
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4154,8 +4188,9 @@ class ProfileProfessionalFormSetView(ProfileAffiliationsFormSetView):
                         attrs={
                             # "placeholder": _(""),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The organisation is required ..."),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "The organisation is required ..."
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4476,8 +4511,9 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                             "placeholder": _("Please upload a file ..."),
                             "data-placeholder": _("Please upload a file ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The file is required. Please upload a file ..."),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "The file is required. Please upload a file ..."
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         }
                     ),
@@ -4563,8 +4599,9 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
                         attrs={
                             "placeholder": _("The organisation that awarded the degree"),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The organisation is required ..."),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "The organisation is required ..."
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4646,8 +4683,9 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
                         attrs={
                             # "placeholder": _(""),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The award is required ..."),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "The award is required ..."
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4656,8 +4694,9 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
                         attrs={
                             "placeholder": _("The organisation that awarded the award"),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The organisation is required ..."),
+                            "oninvalid": "this.setCustomValidity('%s')" % _(
+                                "The organisation is required ..."
+                            ),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4892,13 +4931,17 @@ class NominationView(CreateUpdateView):
                 invitation, created = n.submit(request=self.request)
                 messages.info(
                     self.request,
-                    _("An invitation to submit an application has been sent to %s (your nominee).")
-                    % invitation.email
-                    if created
-                    else _(
-                        "An invitation to submit an application has been resent to %s (your nominee)."
-                    )
-                    % invitation.email,
+                    (
+                        _(
+                            "An invitation to submit an application has been sent to %s (your nominee)."
+                        )
+                        % invitation.email
+                        if created
+                        else _(
+                            "An invitation to submit an application has been resent to %s (your nominee)."
+                        )
+                        % invitation.email
+                    ),
                 )
                 n.save()
                 reset_cache(self.request)
@@ -5169,9 +5212,11 @@ class TestimonialView(CreateUpdateView):
                     __("Your Referee %s has opted out of Testimonial") % t.referee,
                     settings.DEFAULT_FROM_EMAIL,
                     recipients=[
-                        t.referee.application.submitted_by.email
-                        if t.referee.application.submitted_by
-                        else t.referee.application.email
+                        (
+                            t.referee.application.submitted_by.email
+                            if t.referee.application.submitted_by
+                            else t.referee.application.email
+                        )
                     ],
                     fail_silently=False,
                     request=self.request,
@@ -5378,9 +5423,11 @@ class TestimonialDetail(DetailView):
             else:
                 messages.info(
                     self.request,
-                    _("Please review the application details and submit referee report.")
-                    if t.site_id == 4
-                    else _("Please review the application details and submit testimonial."),
+                    (
+                        _("Please review the application details and submit referee report.")
+                        if t.site_id == 4
+                        else _("Please review the application details and submit testimonial.")
+                    ),
                 )
         return context
 
@@ -5566,9 +5613,11 @@ class RoundExportView(ExportView):
             reader = PdfReader(content)
             merger.append(
                 reader,
-                bookmark=f"{a}"
-                if a.site_id == 4
-                else f"{a.number}: {a.application_title or round.title}",
+                bookmark=(
+                    f"{a}"
+                    if a.site_id == 4
+                    else f"{a.number}: {a.application_title or round.title}"
+                ),
                 import_bookmarks=True,
             )
         merger.add_metadata({"/Keywords": ", ".join(numbers)})
@@ -5600,8 +5649,10 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         metadata.update(
             {
                 "/Author": testimonial.referee.full_name_with_email,
-                "/Subject": testimonial.application.application_title
-                or testimonial.application.round.title,
+                "/Subject": (
+                    testimonial.application.application_title
+                    or testimonial.application.round.title
+                ),
                 "/Number": testimonial.application.number,
             }
         )
@@ -6084,8 +6135,8 @@ class EvaluationMixin:
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
-        if (
-            application := models.Application.get(self.kwargs.get("application"))
+        if application := (
+            models.Application.get(self.kwargs.get("application"))
             if "application" in kwargs
             else self.object.application
         ):
