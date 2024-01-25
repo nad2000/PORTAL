@@ -3344,18 +3344,17 @@ class ContractViewMixin:
 
         initial_documents = [
             dict(
-                required_part=rp_id,
+                required_document=rd_id,
                 document_type=document_type,
             )
-            for rp_id, document_type, in (
-                round.required_parts.values_list("id", "document_type")
-                .filter(~Q(id__in=self.object.documents.values("required_part_id")))
+            for rd_id, document_type, in (
+                round.required_contract_documents.values_list("id", "document_type")
+                .filter(~Q(id__in=self.object.documents.values("required_document_id")))
                 .order_by("ordering")
                 if (self.object and self.object.id)
-                else round.required_parts.order_by("ordering").values_list("id", "document_type")
+                else round.required_contract_documents.order_by("ordering").values_list("id", "document_type")
             ).filter(
                 ~Q(document_type__role__in=["B", "AB", "PB"]),
-                # ~Q(required_part__document_type__role__in=["B", "AB", "PB"]),
             )
         ]
 
@@ -3371,7 +3370,7 @@ class ContractViewMixin:
             ],
             widgets={
                 # "required_document": HiddenInput(),
-                "required_part": HiddenInput(),
+                "required_document": HiddenInput(),
                 "state": HiddenInput(),
                 "page_count": HiddenInput(),
                 "document_type": HiddenInput(),
@@ -3403,7 +3402,7 @@ class ContractViewMixin:
             fs.extra = len(initial_documents)
         context["documents"] = fs
         context["required_documents"] = {
-            rd.id: rd for rd in round.required_parts.all().order_by("ordering")
+            rd.id: rd for rd in round.required_contract_documents.all().order_by("ordering")
         }
 
         return context
@@ -3473,7 +3472,7 @@ class ContractViewMixin:
             document_action = form.data.get("doc_action")
             resolution = (form.data.get("resolution") or "").strip()
             if document_role in models.DOCUMENT_ROLES and (
-                d := i.documents.filter(required_part__document_type__role=document_role).last()
+                d := i.documents.filter(required_documents__document_type__role=document_role).last()
             ):
                 previous_state = d.state
                 if document_action == "approve":

@@ -1431,7 +1431,9 @@ class ContractForm(forms.ModelForm):
                         data_document_role="E",
                         data_toggle="tooltip",
                         data_enabled_title=_("Approve contract compliance"),
-                        data_disabled_title=_("The compliance has been already approved or haven't been uploaded yet"),
+                        data_disabled_title=_(
+                            "The compliance has been already approved or haven't been uploaded yet"
+                        ),
                         title=_("Approve contract compliance"),
                         # title=(
                         #     _("Approve research aims")
@@ -1512,7 +1514,7 @@ class ContractForm(forms.ModelForm):
                         ),
                         css_class="btn-primary float-right",
                         # css_class="btn-outline-primary",
-                        disabled=("AIMS" not in parts and 'research_aims' not in self.initial),
+                        disabled=("AIMS" not in parts and "research_aims" not in self.initial),
                         css_id="id_approve_research_aims",
                     ),
                     css_id="research_aims_fieldset",
@@ -1536,7 +1538,7 @@ class ContractForm(forms.ModelForm):
                         ),
                         css_class="btn-primary float-right",
                         # css_class="btn-outline-primary",
-                        disabled=("PT" not in parts and 'project_timeline' not in self.initial),
+                        disabled=("PT" not in parts and "project_timeline" not in self.initial),
                     ),
                     css_id="project_timeline_fieldset",
                 ),
@@ -1615,7 +1617,7 @@ class ContractForm(forms.ModelForm):
                     css_id="documents",
                 ),
                 css_id="appendices",
-            )
+            ),
         ]
 
         if instance and instance.pk:
@@ -1684,13 +1686,17 @@ class ContractForm(forms.ModelForm):
                             content=file,
                         )
                 elif file:
-                    required_part = r.required_parts.filter(document_type__role=dr).last()
-                    if not required_part:
+                    required_document = r.required_contract_documents.filter(
+                        document_type__role=dr
+                    ).last()
+                    if not required_document:
                         dt = models.DocumentType.where(role=dr).last()
-                        required_part = models.RequiredContractDocument.create(round=r, document_type=dt)
+                        required_document = models.RequiredContractDocument.create(
+                            round=r, document_type=dt
+                        )
 
                     models.ContractDocument.create(
-                        contract=self.instance, required_part=required_part, file=file
+                        contract=self.instance, required_document=required_document, file=file
                     )
 
         if created or any(
