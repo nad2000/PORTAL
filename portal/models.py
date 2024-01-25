@@ -5084,7 +5084,9 @@ class ApplicationDocument(PdfFileMixin, Model):
     document_type = ForeignKey(
         DocumentType, related_name="application_documents", on_delete=CASCADE
     )
-    required_document = ForeignKey(RequiredDocument, on_delete=DO_NOTHING, related_name="documents")
+    required_document = ForeignKey(
+        RequiredDocument, on_delete=DO_NOTHING, related_name="documents"
+    )
     page_count = PositiveSmallIntegerField(null=True, blank=True)
     file = PrivateFileField(
         blank=True,
@@ -6560,8 +6562,6 @@ class ContractDocumentMixin:
         ("submitted", _("submitted")),
     )
 
-class PartMixin(ContractDocumentMixin):
-    pass
 
 class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_contract_documents")

@@ -14,8 +14,8 @@ class RequiredDocumentTranslationOptions(TranslationOptions):
     fields = ("title",)
 
 
-@register(models.RequiredPart)
-class RequiredPartTranslationOptions(TranslationOptions):
+@register(models.RequiredContractDocument)
+class RequiredContractDocumentTranslationOptions(TranslationOptions):
     fields = ("title",)
 
 

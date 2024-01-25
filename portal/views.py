@@ -3194,9 +3194,9 @@ class ContractDetail(DetailView):
         )
 
 
-class PartForm(ModelForm):
-    approve = Submit("Submit", value="approve_part")
-    pass
+# class PartForm(ModelForm):
+#     approve = Submit("Submit", value="approve_part")
+#     pass
 
 
 class ContractViewMixin:
@@ -3361,8 +3361,8 @@ class ContractViewMixin:
 
         fsc = forms.inlineformset_factory(
             models.Contract,
-            models.Part,
-            form=PartForm,
+            models.ContractDocument,
+            # form=PartForm,
             extra=len(initial_documents),
             can_delete=False,
             exclude=[

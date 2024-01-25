@@ -2073,11 +2073,11 @@ class RoundAdmin(
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.round_id})
 
-    class RequiredPartInline(
+    class RequiredContractDocumentInline(
         StaffPermsMixin, OrderableAdmin, modeltranslation.admin.TranslationTabularInline
     ):
         extra = 0
-        model = models.RequiredPart
+        model = models.RequiredContractDocument
         autocomplete_fields = ["document_type"]
         view_on_site = False
         ordering_field_hide_input = True
@@ -2091,7 +2091,7 @@ class RoundAdmin(
                 # self.CurriculumVitaeTemplateInline,
                 self.CriterionInline,
                 self.PanellistInline,
-                self.RequiredPartInline,
+                self.RequiredContractDocumentInline,
             ]
 
         return [
@@ -2099,7 +2099,7 @@ class RoundAdmin(
             self.CurriculumVitaeTemplateInline,
             self.CriterionInline,
             self.PanellistInline,
-            self.RequiredPartInline,
+            self.RequiredContractDocumentInline,
         ]
 
 
@@ -2206,9 +2206,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def ethics_statement_link(self, obj):
         if es := obj.parts.filter(document_type__role="E").last():
             return mark_safe(
-                es.file
-                and f'<a href="{es.file.url}">{os.path.basename(es.file.name)}</a>'
-                or "-"
+                es.file and f'<a href="{es.file.url}">{os.path.basename(es.file.name)}</a>' or "-"
             )
         return "-"
 
@@ -2238,8 +2236,8 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         view_on_site = False
         # classes = ["collapse"]
 
-    class PartInline(admin.TabularInline):
-        model = models.Part
+    class ContractDocumentInline(admin.TabularInline):
+        model = models.ContractDocument
         # exclude = ["contract_number"]
         extra = 0
         view_on_site = False
@@ -2332,7 +2330,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
     inlines = [
         EthicsStatementInline,
-        PartInline,
+        ContractDocumentInline,
         ReportingScheduleEntryInline,
         AllocationInline,
         ForInline,

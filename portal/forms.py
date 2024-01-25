@@ -1687,9 +1687,9 @@ class ContractForm(forms.ModelForm):
                     required_part = r.required_parts.filter(document_type__role=dr).last()
                     if not required_part:
                         dt = models.DocumentType.where(role=dr).last()
-                        required_part = models.RequiredPart.create(round=r, document_type=dt)
+                        required_part = models.RequiredContractDocument.create(round=r, document_type=dt)
 
-                    models.Part.create(
+                    models.ContractDocument.create(
                         contract=self.instance, required_part=required_part, file=file
                     )
 
