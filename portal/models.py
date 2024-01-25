@@ -16,7 +16,7 @@ from functools import lru_cache, partial, wraps
 from itertools import groupby
 from urllib.parse import urljoin, urlparse
 
-import odfdo as od
+# import odfdo as od
 import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
@@ -5084,7 +5084,7 @@ class ApplicationDocument(PdfFileMixin, Model):
     document_type = ForeignKey(
         DocumentType, related_name="application_documents", on_delete=CASCADE
     )
-    required_document = ForeignKey(RequiredDocument, on_delete=DO_NOTHING, related_name="+")
+    required_document = ForeignKey(RequiredDocument, on_delete=DO_NOTHING, related_name="documents")
     page_count = PositiveSmallIntegerField(null=True, blank=True)
     file = PrivateFileField(
         blank=True,
@@ -5946,7 +5946,7 @@ def clean_private_fils(dry_run=False):
             #         and not (
             #             ContractComment.where(attachment=filename).exists()
             #             or ContractCommentAttachment.where(attachment=filename).exists()
-            #             or Part.where(file=filename).exists()
+            #             or ContractDocument.where(file=filename).exists()
             #         )
             #     )
             # ):
@@ -6548,7 +6548,7 @@ simple_history.register(
 )
 
 
-class PartMixin:
+class ContractDocumentMixin:
     STATES = Choices(
         ("accepted", _("accepted")),
         ("approved", _("approved")),
@@ -6560,12 +6560,16 @@ class PartMixin:
         ("submitted", _("submitted")),
     )
 
+class PartMixin(ContractDocumentMixin):
+    pass
 
-class RequiredPart(TimeStampMixin, HelperMixin, OrderableModel):
-    round = ForeignKey(Round, on_delete=CASCADE, related_name="required_parts")
-    document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_parts")
+class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="required_contract_documents")
+    document_type = ForeignKey(
+        DocumentType, on_delete=CASCADE, related_name="required_contract_documents"
+    )
     title = CharField(
-        _("Title"), max_length=200, null=True, blank=True, help_text=_("Contract part title")
+        _("Title"), max_length=200, null=True, blank=True, help_text=_("Contract document title")
     )
     is_optional = BooleanField(default=False)
     # min_pages = PositiveSmallIntegerField(null=True, blank=True)
@@ -6579,16 +6583,18 @@ class RequiredPart(TimeStampMixin, HelperMixin, OrderableModel):
         return f"{dt}: {title}"
 
     class Meta(OrderableModel.Meta):
-        db_table = "required_part"
+        db_table = "required_contract_document"
 
 
-class Part(PartMixin, PdfFileMixin, Model):
+class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="documents")
     state = StateField(default="new", verbose_name=_("state"))
     document_type = ForeignKey(
-        DocumentType, related_name="contract_parts", on_delete=CASCADE, null=True, blank=True
+        DocumentType, related_name="contract_documents", on_delete=SET_NULL, null=True, blank=True
     )
-    required_part = ForeignKey(RequiredPart, on_delete=DO_NOTHING, related_name="+")
+    required_document = ForeignKey(
+        RequiredContractDocument, on_delete=DO_NOTHING, related_name="documents"
+    )
     page_count = PositiveSmallIntegerField(null=True, blank=True)
     file = PrivateFileField(
         blank=True,
@@ -6650,21 +6656,21 @@ class Part(PartMixin, PdfFileMixin, Model):
         if not self.file.name:
             return
         if not self.document_type_id:
-            self.document_type = self.required_part.document_type
+            self.document_type = self.required_document.document_type
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.document_type}: {os.path.basename(self.file.name)}"
 
     class Meta:
-        db_table = "contract_part"
+        db_table = "contract_document"
 
 
 simple_history.register(
-    Part,
+    ContractDocument,
     inherit=True,
-    table_name="contract_part_history",
-    bases=[PartMixin, PdfFileMixin, Model],
+    table_name="contract_document_history",
+    bases=[ContractDocumentMixin, PdfFileMixin, Model],
 )
 
 
