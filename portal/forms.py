@@ -1712,6 +1712,7 @@ class ContractForm(forms.ModelForm):
             es.comment = self.cleaned_data.get("not_applicable_comment", None)
             es.file = es_part and es_part.file
             es.save()
+
         return res
 
     class Meta:

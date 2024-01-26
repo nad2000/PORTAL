@@ -3325,18 +3325,8 @@ class ContractViewMixin:
             form_kwargs={"duration": duration},
         )
 
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        self.allocations = context["allocations"] = self.get_allocation_formset()
-        self.reporting_schedule = context["reporting_schedule"] = (
-            self.get_reporting_schedule_formset()
-        )
-        self.personnel = context["personnel"] = self.get_personnel_formset()
-        context["application"] = self.application
-        context["round"] = round = self.application.round
-        if self.object and self.object.pk:
-            context["needs_attention"] = ["research", "finances"]
-
+    def get_document_formset(self, *args, **kwargs):
+        round = self.application.round
         initial_documents = [
             dict(
                 required_document=rd_id,
@@ -3401,7 +3391,21 @@ class ContractViewMixin:
             fs = fsc(instance=self.object, initial=initial_documents)
         if initial_documents:
             fs.extra = len(initial_documents)
-        context["documents"] = fs
+        return fs
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        self.allocations = context["allocations"] = self.get_allocation_formset()
+        self.reporting_schedule = context["reporting_schedule"] = (
+            self.get_reporting_schedule_formset()
+        )
+        self.personnel = context["personnel"] = self.get_personnel_formset()
+        context["application"] = self.application
+        context["round"] = round = self.application.round
+        if self.object and self.object.pk:
+            context["needs_attention"] = ["research", "finances"]
+
+        self.documents = context["documents"] = self.get_document_formset()
         context["required_documents"] = {
             rd.id: rd for rd in round.required_contract_documents.all().order_by("ordering")
         }
@@ -3437,7 +3441,10 @@ class ContractViewMixin:
                 fs.instance = self.object
                 if fs.is_valid():
                     fs.save()
-                reset_cache(self.request)
+                fs = self.get_document_formset()
+                fs.instance = self.object
+                if fs.is_valid():
+                    fs.save()
         except Exception as ex:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
@@ -3459,7 +3466,7 @@ class ContractViewMixin:
                 else [ro.user for ro in a.org.research_offices.all()]
                 or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
             )
-            if self.request.POST.get("doc_role") or "post_comment" in self.request.POST
+            if self.request.POST.get("doc_role") or self.request.POST.get("doc_type") or "post_comment" in self.request.POST
             else []
         )
         recipient_list = ", ".join(
@@ -3470,6 +3477,7 @@ class ContractViewMixin:
         )
         if self.request.POST.get("doc_role"):
             document_role = form.data.get("doc_role")
+            document_type = form.data.get("doc_type")
             document_action = form.data.get("doc_action")
             resolution = (form.data.get("resolution") or "").strip()
             if document_role in models.DOCUMENT_ROLES and (
@@ -3507,6 +3515,8 @@ class ContractViewMixin:
                     respond_url += "#finances"
                 elif document_role in ["AIM", "PT"]:
                     respond_url += "#research"
+                elif document_role or document_type:
+                    respond_url += "#appendices"
 
                 if not document_action or document_action == "approve":
                     html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
