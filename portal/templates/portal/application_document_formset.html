@@ -1,4 +1,5 @@
-{% load crispy_forms_tags tags %}
+{% load i18n tags %}
+{% load crispy_forms_tags %}
 {% load crispy_forms_utils %}
 {% load crispy_forms_field %}
 
@@ -48,13 +49,23 @@
             {% include "bootstrap4/errors.html" %}
           {% endif %}
         {% endautoescape %}
-        {% with rd_id=form.required_part.value %}
-          {#% with  form_show_labels=True %#}
+        {% with rd_id=form.required_document.value %}
             {% with field_label=form.form_label form_show_labels=True document_type=required_documents|get_item:rd_id %}
             {% include 'bootstrap4/field.html' with field=form.file use_custom_control=True %}
         {% for field in form %}{% if field.name != "file" %}{{ field }}{% endif %}{% endfor %}
 
-        <input type="submit"
+        {% if form.state %}
+          {% if not form.file.value %}
+          <span
+              tabindex="0"
+              class="d-inline-block float-right"
+              data-toggle="tooltip"
+              {% if not form.file.value %}
+              title="{% blocktrans with document_type=document_type %}Please upload {{ document_type }} before approving it{% endblocktrans %}"
+              {% endif %}
+          >
+          {% endif %}
+            <input type="submit"
               name="approve_part"
               value="Approve"
               class="btn btn-primary float-right"
@@ -65,12 +76,13 @@
               data-disabled-title="Please upload {{ document_type }} before approving it"
               data-toggle="tooltip"
               title="Approve {{ document_type }}"
-        >
-      </fieldset>
+              {% if not form.file.value %}disabled style="pointer-events: none;"{% endif %}>
+          {% if not form.file.value %}</span>{% endif %}
+        {% endif %}
+        </fieldset>
 
       {% endwith %}{% endwith %}
       {% endfor %}
-
 
   {% include "bootstrap4/inputs.html" %}
 

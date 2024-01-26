@@ -3194,11 +3194,6 @@ class ContractDetail(DetailView):
         )
 
 
-# class PartForm(ModelForm):
-#     approve = Submit("Submit", value="approve_part")
-#     pass
-
-
 class ContractViewMixin:
     @cached_property
     def application(self):
@@ -3361,7 +3356,6 @@ class ContractViewMixin:
         fsc = forms.inlineformset_factory(
             models.Contract,
             models.ContractDocument,
-            # form=PartForm,
             extra=len(initial_documents),
             can_delete=False,
             exclude=[
@@ -3389,6 +3383,13 @@ class ContractViewMixin:
                 ),
             },
         )
+
+        # exclude budgets
+        class fsc(fsc):
+            def get_queryset(self):
+                qs = super().get_queryset()
+                return qs.filter(~Q(document_type__role__in=["B", "AB", "PB"]))
+
         if self.request.POST:
             fs = fsc(
                 self.request.POST or None,
