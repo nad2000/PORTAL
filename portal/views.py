@@ -3337,7 +3337,9 @@ class ContractViewMixin:
                 .filter(~Q(id__in=self.object.documents.values("required_document_id")))
                 .order_by("ordering")
                 if (self.object and self.object.id)
-                else round.required_contract_documents.order_by("ordering").values_list("id", "document_type")
+                else round.required_contract_documents.order_by("ordering").values_list(
+                    "id", "document_type"
+                )
             ).filter(
                 ~Q(document_type__role__in=["B", "AB", "PB"]),
             )
@@ -3466,7 +3468,9 @@ class ContractViewMixin:
                 else [ro.user for ro in a.org.research_offices.all()]
                 or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
             )
-            if self.request.POST.get("doc_role") or self.request.POST.get("doc_type") or "post_comment" in self.request.POST
+            if self.request.POST.get("doc_role")
+            or self.request.POST.get("doc_type")
+            or "post_comment" in self.request.POST
             else []
         )
         recipient_list = ", ".join(
@@ -3475,13 +3479,22 @@ class ContractViewMixin:
                 for r in (recipients if isinstance(recipients, (list, tuple)) else [recipients])
             ]
         )
-        if self.request.POST.get("doc_role"):
+        if self.request.POST.get("doc_role") or self.request.POST.get("doc_type"):
             document_role = form.data.get("doc_role")
             document_type = form.data.get("doc_type")
             document_action = form.data.get("doc_action")
             resolution = (form.data.get("resolution") or "").strip()
-            if document_role in models.DOCUMENT_ROLES and (
-                d := i.documents.filter(required_documents__document_type__role=document_role).last()
+            if (document_role in models.DOCUMENT_ROLES or document_type) and (
+                d := (
+                    i.documents.filter(required_document__document_type__role=document_role).last()
+                    if document_role
+                    else i.documents.filter(
+                        Q(document_type=document_type)
+                        | Q(required_document__document_type=document_type)
+                    )
+                    .order_by("id")
+                    .last()
+                )
             ):
                 previous_state = d.state
                 if document_action == "approve":
