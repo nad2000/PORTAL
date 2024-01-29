@@ -3327,6 +3327,7 @@ class ContractViewMixin:
 
     def get_document_formset(self, *args, **kwargs):
         round = self.application.round
+        exclued_document_rolels = [r for _, r in self.form_class.part_fields]
         initial_documents = [
             dict(
                 required_document=rd_id,
@@ -3341,7 +3342,7 @@ class ContractViewMixin:
                     "id", "document_type"
                 )
             ).filter(
-                ~Q(document_type__role__in=["B", "AB", "PB"]),
+                ~Q(document_type__role__in=exclued_document_rolels),
             )
         ]
 
@@ -3380,7 +3381,7 @@ class ContractViewMixin:
         class fsc(fsc):
             def get_queryset(self):
                 qs = super().get_queryset()
-                return qs.filter(~Q(document_type__role__in=["B", "AB", "PB"]))
+                return qs.filter(~Q(document_type__role__in=exclued_document_rolels))
 
         if self.request.POST:
             fs = fsc(
@@ -3397,13 +3398,20 @@ class ContractViewMixin:
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+        u = self.request.user
         self.allocations = context["allocations"] = self.get_allocation_formset()
         self.reporting_schedule = context["reporting_schedule"] = (
             self.get_reporting_schedule_formset()
         )
         self.personnel = context["personnel"] = self.get_personnel_formset()
-        context["application"] = self.application
-        context["round"] = round = self.application.round
+        a = self.application
+        context["application"] = a
+        context["round"] = round = a.round
+        context["is_pi"] = (a.submitted_by == u) or (
+            self.object
+            and self.object.pk
+            and self.object.members.filter(role="PI").exists()
+        )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
 

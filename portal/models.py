@@ -6696,11 +6696,11 @@ class ContractMember(PersonMixin, Model):
         help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
-    role = ForeignKey(
-        RoleType,
-        on_delete=SET_NULL,
-        related_name="contract_members",
-    )
+    # role = ForeignKey(
+    #     RoleType,
+    #     on_delete=SET_NULL,
+    #     related_name="contract_members",
+    # )
     last_name = CharField(max_length=150, null=True, blank=True)
     role = ForeignKey(
         RoleType,

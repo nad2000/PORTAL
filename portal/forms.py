@@ -293,15 +293,15 @@ class DocumentInlineFormset(TableInlineFormset):
                 # f.file.help_text = help_texts.get(rd_id)
                 f.fields["file"].help_text = help_texts.get(rd_id)
                 f.form_label = f"{required_documents.get(rd_id, _('Document'))}"
-
-        return render_to_string(
-            self.template,
+        context = context.flatten()
+        context.update(
             {
                 "formset": formset,
                 "form_id": self.form_id,
                 "required_documents": required_documents,
             },
         )
+        return render_to_string(self.template, context)
 
 
 class InlineSubform(LayoutObject):
@@ -1200,8 +1200,8 @@ class ModelSelect2NoPK(autocomplete.ModelSelect2):
 class ContractForm(forms.ModelForm):
     # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
     part_fields = (
-        ("research_aims", DOCUMENT_ROLES.AIMS),
-        ("project_timeline", DOCUMENT_ROLES.PT),
+        # ("research_aims", DOCUMENT_ROLES.AIMS),
+        # ("project_timeline", DOCUMENT_ROLES.PT),
         ("proposal_budget", DOCUMENT_ROLES.PB),
         ("award_budget", DOCUMENT_ROLES.AB),
         ("ethics_statement", DOCUMENT_ROLES.E),
@@ -1238,19 +1238,19 @@ class ContractForm(forms.ModelForm):
         label=gettext_lazy("If yes, does your institution have a child protection policy?"),
     )
 
-    research_aims = FileField(
-        required=False,
-        widget=forms.ClearableFileInput(
-            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"},
-        ),
-    )
+    # research_aims = FileField(
+    #     required=False,
+    #     widget=forms.ClearableFileInput(
+    #         attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"},
+    #     ),
+    # )
 
-    project_timeline = FileField(
-        required=False,
-        widget=forms.ClearableFileInput(
-            attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
-        ),
-    )
+    # project_timeline = FileField(
+    #     required=False,
+    #     widget=forms.ClearableFileInput(
+    #         attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+    #     ),
+    # )
 
     proposal_budget = FileField(
         required=False,
@@ -1497,51 +1497,51 @@ class ContractForm(forms.ModelForm):
             Tab(
                 _("Research"),
                 Field("project_title"),
-                Fieldset(
-                    None,
-                    Field("research_aims", label=""),
-                    Submit(
-                        "approve_research_aims",
-                        _("Approve"),
-                        data_toggle="tooltip",
-                        data_enabled_title=_("Approve research aims"),
-                        data_disabled_title=_("Please upload research aims before approving it"),
-                        data_document_role="AIMS",
-                        title=(
-                            _("Approve research aims")
-                            if "AIMS" in parts
-                            else _("Please upload research aims before approving it")
-                        ),
-                        css_class="btn-primary float-right",
-                        # css_class="btn-outline-primary",
-                        disabled=("AIMS" not in parts and "research_aims" not in self.initial),
-                        css_id="id_approve_research_aims",
-                    ),
-                    css_id="research_aims_fieldset",
-                ),
-                Fieldset(
-                    None,
-                    Field("project_timeline", label=""),
-                    Submit(
-                        "approve_project_timeline",
-                        _("Approve"),
-                        data_document_role="PT",
-                        data_toggle="tooltip",
-                        data_enabled_title=_("Submit the application"),
-                        data_disabled_title=_(
-                            "Please upload project timeline before approving it"
-                        ),
-                        title=(
-                            _("Approve project timeline")
-                            if "PT" in parts
-                            else _("Please upload project timeline before approving it")
-                        ),
-                        css_class="btn-primary float-right",
-                        # css_class="btn-outline-primary",
-                        disabled=("PT" not in parts and "project_timeline" not in self.initial),
-                    ),
-                    css_id="project_timeline_fieldset",
-                ),
+                # Fieldset(
+                #     None,
+                #     Field("research_aims", label=""),
+                #     Submit(
+                #         "approve_research_aims",
+                #         _("Approve"),
+                #         data_toggle="tooltip",
+                #         data_enabled_title=_("Approve research aims"),
+                #         data_disabled_title=_("Please upload research aims before approving it"),
+                #         data_document_role="AIMS",
+                #         title=(
+                #             _("Approve research aims")
+                #             if "AIMS" in parts
+                #             else _("Please upload research aims before approving it")
+                #         ),
+                #         css_class="btn-primary float-right",
+                #         # css_class="btn-outline-primary",
+                #         disabled=("AIMS" not in parts and "research_aims" not in self.initial),
+                #         css_id="id_approve_research_aims",
+                #     ),
+                #     css_id="research_aims_fieldset",
+                # ),
+                # Fieldset(
+                #     None,
+                #     Field("project_timeline", label=""),
+                #     Submit(
+                #         "approve_project_timeline",
+                #         _("Approve"),
+                #         data_document_role="PT",
+                #         data_toggle="tooltip",
+                #         data_enabled_title=_("Submit the application"),
+                #         data_disabled_title=_(
+                #             "Please upload project timeline before approving it"
+                #         ),
+                #         title=(
+                #             _("Approve project timeline")
+                #             if "PT" in parts
+                #             else _("Please upload project timeline before approving it")
+                #         ),
+                #         css_class="btn-primary float-right",
+                #         # css_class="btn-outline-primary",
+                #         disabled=("PT" not in parts and "project_timeline" not in self.initial),
+                #     ),
+                #     css_id="project_timeline_fieldset",
+                # ),
                 Field("abstract"),
                 Field("notes"),
                 css_id="research",
