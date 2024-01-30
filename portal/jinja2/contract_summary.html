@@ -93,9 +93,23 @@
 
     </thead>
     <tbody>
-      <tr>
+      {% for rd in c.get_required_documents().all() %}
+        {% for d in rd.documents.all() %}
+          <tr>
+            <td>{{ rd }}</td>
+            <td>{% if d.state == 'approved' or d.state == 'accepted' %}{{ _('Approved') }}{% else %}{{ _('WIP') }}{% endif %}</td>
+          <td>{% if d.state == 'accepted' %}{{ _('Approved') }}{% elif d.state == 'draft' %}{{ _('Awaiting Submission') }}{% else %}{{ _('To Review') }}{% endif %}</td>
+          </tr>
+        {% else %}
+          <td>{{ rd }}</td>
+          <td>-</td>
+          <td>-</td>
+        {% endfor %}
+      {% endfor %}
+      <!-- tr>
         <td>Aims</td><td>Approved</td><td>Approved</td>
-      </tr><tr>
+      </tr>
+      <tr>
         <td>Timeline</td><td>Approved</td><td>Approved</td>
       </tr><tr>
         <td>Budget</td><td>Approved</td><td>To Review</td>
@@ -103,7 +117,7 @@
         <td>Declaration</td><td>Approved</td><td>Approved</td>
       </tr><tr>
         <td>Compliance</td><td>Approved</td><td>Approved</td>
-      </tr>
+      </tr -->
     </tbody>
   </table>
 

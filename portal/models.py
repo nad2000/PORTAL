@@ -6439,6 +6439,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 return number
             suffix += 1
 
+    def get_required_documents(self):
+        """Returns the required documents with prefetched linked documents to the contract."""
+        return self.application.round.required_contract_documents.prefetch_related(
+            Prefetch("documents", queryset=ContractDocument.where(contract=self))
+        ).order_by("ordering")
+
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.html", "w") as ofile:
         with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:

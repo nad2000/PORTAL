@@ -72,6 +72,7 @@
               value="{% trans 'Request Correction' %}"
               class="btn btn-primary"
               id="id_{{ form.prefix }}_request_correction"
+              data-document-action="request_correction"
               data-document-type="{{ document_type.pk }}"
               data-document-role="{{ document_type.role }}"
               data-enabled-title="Request correction of {{ document_type }}"
@@ -96,6 +97,7 @@
               value={% if is_staff %}"{% trans 'Accept' %}"{% else %}"{% trans 'Approve' %}"{% endif %}
               class="btn btn-primary"
               id="id_{{ form.prefix }}_approve_part"
+              data-document-action="approve"
               data-document-type="{{ document_type.pk }}"
               data-document-role="{{ document_type.role }}"
               data-enabled-title="Approve {{ document_type }}"
