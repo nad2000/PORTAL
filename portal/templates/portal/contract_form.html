@@ -48,7 +48,7 @@
             <div id="div_id_postal_address" class="form-group">
               <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
               <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
-              <textarea autofocus name="resolution" id="id_resolution" rows="10" style="width: 100%;"></textarea>
+              <textarea autofocus name="resolution" id="id_resolution" rows="10" style="width: 100%;" spellcheck="true"></textarea>
             </div>
 
           </div>
@@ -206,6 +206,9 @@
           label.children().remove();
         }
       });
+      // $('#id_resolution_modal').on('shown.bs.modal', function () {$('#id_resolution').focus();});
+      // $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('input:visible:enabled:first', this).focus();});
+      $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('textarea:visible:enabled:first', this).focus();});
     });
   </script>
 {% endblock %}
