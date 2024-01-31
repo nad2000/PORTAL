@@ -584,19 +584,19 @@ You have a request to review a {{ site_name }} application to act on.
       <script>
         $(document).ready(function(){
                   $("time").each(function () {
-                            var el = $(this);
-                            var dt = moment.utc(el.attr("datetime")).local();
-                            el.html(dt.format(el.data("format") || "YYYY[&#8209;]MM[&#8209;]DD[&nbsp;]HH:mm"));
-                          });
+                    var el = $(this);
+                    var dt = moment.utc(el.attr("datetime")).local();
+                    el.html(dt.format(el.data("format") || "YYYY[&#8209;]MM[&#8209;]DD[&nbsp;]HH:mm"));
+                  });
                   $('[data-toggle="tooltip"]').tooltip();
                   $('[data-toggle="popover"][data-trigger!="manual"]').popover();
-          $('[data-toggle="popover"][data-trigger="manual"]').hover(function() {
-            $(this).popover('show');
-            $(document.getElementById($(this).attr("aria-describedby"))).click(function() {
-              $(this).popover('hide');
-            });
-          });
-                  $("#{{view_name}}").addClass("active");
+                  $('[data-toggle="popover"][data-trigger="manual"]').hover(function() {
+                    $(this).popover('show');
+                    $(document.getElementById($(this).attr("aria-describedby"))).click(function() {
+                      $(this).popover('hide');
+                    });
+                  });
+                  $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %}").addClass("active");
                 });
       </script>
     {% endcompress %}

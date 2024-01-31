@@ -287,22 +287,15 @@ class StateInPathMixin:
             state := self.request.GET.get("state")
             or self.request.path.split("/")[-1]
             or self.request.path.split("/")[-2]
-        ) and state in [
-            "new",
-            "draft",
-            "submitted",
-            "archived",
-            "approved",
-            "cancelled",
-            "accepted",
-            "funded",
-        ]:
+        ) and state in [s for s, _ in self.model.state.field.choices]:
             return state
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if state := self.state:
             context["state"] = state
+            context["object_state"] = state
+            context["model_name"] = self.model._meta.model_name
         return context
 
     def get_queryset(self, *args, **kwargs):
@@ -374,6 +367,15 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
         except AttributeError:
             return None
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["model_name"] = self.model._meta.model_name
+        if self.object and hasattr(self.object, "state") and self.object.state:
+            context["object_state"] = self.object.state
+
+        return context
+
     def get_success_url(self):
         try:
             return super().get_success_url()
@@ -398,6 +400,9 @@ class DetailView(LoginRequiredMixin, DetailView):
             "site",
         ]
         context["update_view_name"] = f"{self.model.__name__.lower()}-update"
+        if hasattr(self.object, "state"):
+            context["object_state"] = self.object.state
+            context["model_name"] = self.object._meta.model_name
         context["update_button_name"] = _("Edit")
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{self.model.__name__.lower()}-export"
@@ -2419,6 +2424,10 @@ class ApplicationView(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["model_name"] = self.model._meta.model_name
+        if self.object and self.object.state:
+            context["object_state"] = self.object.state
+
         round = self.round
         context["round"] = round
         latest_application = self.latest_application
@@ -5977,6 +5986,7 @@ class EvaluationListView(LoginRequiredMixin, StateInPathMixin, SingleTableView):
             if a := get_object_or_404(models.Application, pk=pk):
                 context["application"] = a
                 context["round"] = a.round
+                context["object_state"] = a.state
         return context
 
 

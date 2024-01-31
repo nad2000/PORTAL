@@ -1952,9 +1952,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         self.is_tac_accepted = True
 
     @fsm_log
-    @transition(
-        field=state, source=["new", "draft", "tac_accepted"], target="submitted"
-    )
+    @transition(field=state, source=["new", "draft", "tac_accepted"], target="submitted")
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
         round = self.round
@@ -2223,7 +2221,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return (self.site_id != 4 and self.state == "approved") or self.state == "accepted"
 
     @fsm_log
-    @transition(field=state, source=["approved", "accepted"], target="funded", conditions=[can_be_funded])
+    @transition(
+        field=state,
+        source=["approved", "accepted"],
+        target="funded",
+        conditions=[can_be_funded],
+        custom=dict(verbose="Mark application funded"),
+    )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
@@ -2490,9 +2494,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @classmethod
     def user_application_counts(cls, user, state=None, round=None):
-        return cls.user_applications(
-            user=user, state=state, round=round, select_related=False
-        ).values_list("state").annotate(total=Count("state")).order_by()
+        return (
+            cls.user_applications(user=user, state=state, round=round, select_related=False)
+            .values_list("state")
+            .annotate(total=Count("state"))
+            .order_by()
+        )
 
     @classmethod
     def user_draft_applications(cls, user):
