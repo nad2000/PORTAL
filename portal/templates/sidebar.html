@@ -109,6 +109,30 @@
               {% endif %}
             </li>
           {% endif %}
+          {% if application_funded_count %}
+            <li class="nav-item">
+              {% if application_funded_count > 0 %}
+                <a
+                    class="nav-link"
+                    id="applications-funded"
+                    href="{% url 'applications-with-state' state='funded' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+                    title="{% trans 'Funded applications' %}"
+                    data-toggle="tooltip"
+                >
+                    {% trans 'Funded' %}
+                    <span class="badge badge-primary">{{ application_funded_count }}</span>
+                </a>
+              {% else %}
+                <span class="nav-link"
+                    title="{% trans 'No funded applications' %}"
+                    data-toggle="tooltip"
+                >
+                  {% trans 'Funded' %}
+                  <span class="badge badge-primary">0</span>
+                </span>
+              {% endif %}
+            </li>
+          {% endif %}
         </ul>
       </div>
     {% endif %}

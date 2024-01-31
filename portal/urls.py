@@ -79,6 +79,7 @@ urlpatterns = [
                 # path("cancelled", views.ApplicationList.as_view(), name="applications-cancelled"),
                 path("<int:pk>", views.ApplicationDetail.as_view(), name="application"),
                 path("<number>", views.ApplicationDetail.as_view(), name="application-detail"),
+                path("<state>/", views.ApplicationList.as_view(), name="applications-with-state"),
                 path("", views.ApplicationList.as_view(), name="applications"),
                 path(
                     "<int:pk>/~export",

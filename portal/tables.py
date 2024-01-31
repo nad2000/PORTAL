@@ -3,6 +3,8 @@ from django.shortcuts import reverse
 from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+from django.conf import settings
+
 
 from . import models
 
@@ -22,7 +24,7 @@ class StateColumn(tables.Column):
     attrs = {"td": {"class": "align-middle text-center"}}
 
     def render(self, value, record):
-        state = getattr(record, "state", None) or getattr(record, "state", None) or value
+        state = getattr(record, "state", None) or value
         if not state:
             return mark_safe(
                 '<i class="far fa-question-circle text-dark text-center" aria-hidden="true"></i>'
@@ -83,6 +85,9 @@ class StateColumn(tables.Column):
         elif state == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
             title = _("The application was approved")
+        elif state == "funded":
+            css_classes = "fa fa-heart text-success text-center"
+            title = _("The application was funded")
         else:
             if isinstance(record, (models.Testimonial, models.Application)):
                 return mark_safe(
@@ -91,27 +96,38 @@ class StateColumn(tables.Column):
             css_classes = "fas fa-plus text-success text-center"
             title = _("The invitation was created")
 
+        if state_changed_at := getattr(record, "state_changed_at", None):
+            title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
+                state_changed_at.isoformat(), 
+                state_changed_at.strftime('%d-%m-%Y %H:%m'))}"""
+
         return mark_safe(
-            f'<i class="{css_classes}" aria-hidden="true" data-toggle="tooltip" title="{title}"></i>'
+            f'<i class="{css_classes}" aria-hidden="true" data-toggle="tooltip" data-html="true" title="{title}"></i>'
         )
 
 
 class NominationTable(tables.Table):
     round = tables.Column(
-        linkify=lambda table, record: record.get_absolute_url()
-        if record.state not in ["submitted", "accepted"]
-        else reverse("nomination-detail", args=[record.pk])
-        if record.user == table.request.user
-        or record.nominator == table.request.user
-        or record.email == table.request.user.email
-        else None
+        linkify=lambda table, record: (
+            record.get_absolute_url()
+            if record.state not in ["submitted", "accepted"]
+            else (
+                reverse("nomination-detail", args=[record.pk])
+                if record.user == table.request.user
+                or record.nominator == table.request.user
+                or record.email == table.request.user.email
+                else None
+            )
+        )
     )
     state = StateColumn()
     application = tables.Column(
         # accessor="referee.application.number",
-        linkify=lambda record: reverse("application", kwargs=dict(pk=record.application_id))
-        if record.application
-        else None,
+        linkify=lambda record: (
+            reverse("application", kwargs=dict(pk=record.application_id))
+            if record.application
+            else None
+        ),
     )
     first_name = tables.Column(verbose_name=_("Nominee First Name"))
     last_name = tables.Column(verbose_name=_("Nominee Last Name"))
@@ -185,17 +201,34 @@ def application_contract_link(table, record, value):
     return f'{reverse("contract-create")}?application_id={record.pk}'
 
 
+class ContractColumn(tables.LinkColumn):
+    pass
+
+    # def text_value(self, record, value):
+    #     if record.state == "funded" or record.contract:
+    #         return super().text_value(record, value)
+
+    # def value(self, record, value):
+    #     if record.state == "funded" or record.contract:
+    #         return super().value(record, value)
+
+    def render(self, record, value):
+        breakpoint()
+        if record.state == "funded" or record.contract:
+            return super().render(record, value)
+
+
 class ApplicationTable(tables.Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
     round = tables.Column(linkify=application_round_link)
     email = tables.Column(
-        linkify=lambda table, record, value: reverse(
-            "admin:users_user_change", kwargs={"object_id": record.submitted_by_id}
+        linkify=lambda table, record, value: (
+            reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
+            if (table.request.user.is_staff or table.request.user.is_superuser)
+            and record.submitted_by_id
+            else None
         )
-        if (table.request.user.is_staff or table.request.user.is_superuser)
-        and record.submitted_by_id
-        else None
     )
     export = tables.LinkColumn(
         "application-export",
@@ -211,25 +244,30 @@ class ApplicationTable(tables.Table):
             "td": {"style": "padding: 6px 0 0 16px;"},
         },
     )
-    latest_contract = tables.LinkColumn(
-        "application-contract",
-        args=[tables.A("pk")],
-        text=lambda record: gettext_lazy("Open") if record.contract else gettext_lazy("Create"),
-        attrs={
-            "a": {
-                "class": "btn btn-primary btn-sm",
-                "target": "_blank",
-                "data-toggle": "tooltip",
-                "title": gettext_lazy("Create or update a contract"),
+    latest_contract = tables.columns.linkcolumn.BaseLinkColumn(
+            text=lambda record: "" if record.state != "funded" or record.contract else gettext_lazy("Open") if record.contract else gettext_lazy("Create"),
+            linkify=lambda table, record, value: (
+                reverse("application-contract", args=[record.pk]) if record.state == "funded" or record.contract else None
+            ),
+            attrs={
+                "a": {
+                    "class": "btn btn-primary btn-sm",
+                    "target": "_blank",
+                    "data-toggle": "tooltip",
+                    "title": gettext_lazy("Create or update a contract"),
+                },
+                "td": {"style": "padding: 6px 0 0 16px;"},
             },
-            "td": {"style": "padding: 6px 0 0 16px;"},
-        },
     )
 
     def before_render(self, request):
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
             self.columns.hide("latest_contract")
+
+    # def render_latest_contract(self, record, value):
+    #     if record.state == "funded" or record.state == "archived" and record.contract:
+    #         return value
 
     def render_number(self, record, value):
         if (

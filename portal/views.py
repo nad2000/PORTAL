@@ -281,10 +281,12 @@ class AdminRequiredMixin(AccessMixin):
 
 
 class StateInPathMixin:
-    @property
+    @cached_property
     def state(self):
         if (
-            state := self.request.GET.get("state") or self.request.path.split("/")[-1]
+            state := self.request.GET.get("state")
+            or self.request.path.split("/")[-1]
+            or self.request.path.split("/")[-2]
         ) and state in [
             "new",
             "draft",
@@ -293,6 +295,7 @@ class StateInPathMixin:
             "approved",
             "cancelled",
             "accepted",
+            "funded",
         ]:
             return state
 
@@ -329,7 +332,7 @@ class StateInPathMixin:
             else:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
-                elif state == "accepted":
+                elif state in ["accepted", "funded"]:
                     queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
@@ -3408,9 +3411,7 @@ class ContractViewMixin:
         context["application"] = a
         context["round"] = round = a.round
         context["is_pi"] = (a.submitted_by == u) or (
-            self.object
-            and self.object.pk
-            and self.object.members.filter(role="PI").exists()
+            self.object and self.object.pk and self.object.members.filter(role="PI").exists()
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]

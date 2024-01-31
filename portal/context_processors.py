@@ -35,24 +35,33 @@ def portal_context(request):
             is_ro = models.ResearchOffice.where(user=u).exists()
             is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
-            application_draft_count = models.Application.user_application_count(
-                u, ["draft", "new"]
-            )
-            application_submitted_count = models.Application.user_application_count(
-                u,
-                ["submitted", "cancelled"]
-                if site_id == 4 and (is_staff or u.is_superuser)
-                else ["submitted", "approved", "cancelled"],
-            )
-            application_accepted_count = models.Application.user_application_count(u, ["accepted"])
+            counts = {s:c for s,c in models.Application.user_application_counts(u)}
+            # application_draft_count = models.Application.user_application_count(
+            #     u, ["draft", "new"]
+            # )
+            application_draft_count = counts.get("draft", 0) + counts.get("new", 0)
+            # application_submitted_count = models.Application.user_application_count(
+            #     u,
+            #     ["submitted", "cancelled"]
+            #     if site_id == 4 and (is_staff or u.is_superuser)
+            #     else ["submitted", "approved", "cancelled"],
+            # )
+            application_submitted_count = counts.get("submitted", 0) + counts.get("canceled", 0)
+            if (site_id != 4 or (not is_staff and not u.is_superuser)) and "approved" in counts:
+                application_submitted_count += counts["approved"]
+            application_accepted_count = counts.get("accepted", 0)
+            # application_accepted_count = models.Application.user_application_count(u, ["accepted"])
+            # application_funded_count = models.Application.user_application_count(u, ["funded"])
+            application_funded_count = counts.get("funded", 0)
             # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
-            application_count = application_draft_count + application_submitted_count + application_accepted_count
+            application_count = application_draft_count + application_submitted_count + application_accepted_count + application_funded_count
             stats = {
                 "is_staff": is_staff,
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_draft_count": application_draft_count,
                 "application_submitted_count": application_submitted_count,
                 "application_accepted_count": application_accepted_count,
+                "application_funded_count": application_funded_count,
                 "nomination_count": models.Nomination.user_nomination_count(u),
                 "nomination_draft_count": models.Nomination.user_nomination_count(u, "draft"),
                 "nomination_submitted_count": models.Nomination.user_nomination_count(

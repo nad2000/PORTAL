@@ -44,6 +44,7 @@ from django.db.models import (
     BooleanField,
     Case,
     CharField,
+    Count,
     DateField,
     DateTimeField,
     DecimalField,
@@ -1398,6 +1399,7 @@ APPLICATION_STATES = Choices(
     ("withdrawn", _("withdrawn")),
     ("approved", _("approved")),
     ("accepted", _("accepted")),
+    ("funded", _("funded")),
 )
 
 
@@ -1744,6 +1746,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     state = StateField(default="new", verbose_name=_("state"))
+    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")
     )
@@ -1950,7 +1953,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @fsm_log
     @transition(
-        field=state, source=["new", "draft", "submitted", "tac_accepted"], target="submitted"
+        field=state, source=["new", "draft", "tac_accepted"], target="submitted"
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
@@ -2216,6 +2219,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             % ", ".join(u.full_name_with_email for u in recipients),
         )
 
+    def can_be_funded(self):
+        return (self.site_id != 4 and self.state == "approved") or self.state == "accepted"
+
+    @fsm_log
+    @transition(field=state, source=["approved", "accepted"], target="funded", conditions=[can_be_funded])
+    def fund(self, request=None, by=None, description=None, *args, **kwargs):
+        pass
+
     @fsm_log
     @transition(field=state, source=["submitted", "draft"], target="draft")
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
@@ -2476,6 +2487,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return cls.user_applications(
             user=user, state=state, round=round, select_related=False
         ).count()
+
+    @classmethod
+    def user_application_counts(cls, user, state=None, round=None):
+        return cls.user_applications(
+            user=user, state=state, round=round, select_related=False
+        ).values_list("state").annotate(total=Count("state")).order_by()
 
     @classmethod
     def user_draft_applications(cls, user):
