@@ -519,7 +519,9 @@ class DocumentType(Model):
     name = CharField(_("Name"), max_length=200)
 
     def __str__(self):
-        return self.name
+        if self.name:
+            return self.name
+        return self.get_role_display()
 
     class Meta:
         db_table = "document_type"
@@ -6606,7 +6608,7 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
     # max_pages = PositiveSmallIntegerField(null=True, blank=True)
 
     def __str__(self):
-        dt = self.document_type.name
+        dt = str(self.document_type)
         title = self.title or dt
         if title == dt:
             return title

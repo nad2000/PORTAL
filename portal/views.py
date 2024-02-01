@@ -3339,24 +3339,54 @@ class ContractViewMixin:
 
     def get_document_formset(self, *args, **kwargs):
         round = self.application.round
-        exclued_document_rolels = [r for _, r in self.form_class.part_fields]
-        initial_documents = [
-            dict(
-                required_document=rd_id,
-                document_type=document_type,
-            )
-            for rd_id, document_type, in (
-                round.required_contract_documents.values_list("id", "document_type")
-                .filter(~Q(id__in=self.object.documents.values("required_document_id")))
-                .order_by("ordering")
-                if (self.object and self.object.id)
-                else round.required_contract_documents.order_by("ordering").values_list(
-                    "id", "document_type"
+        exclued_document_roles = [r for _, r in self.form_class.part_fields]
+
+        if not (self.object and self.object.id):
+            initial_documents = []
+            for d in self.application.documents.filter(
+                ~Q(document_type__role__in=exclued_document_roles)
+            ):
+                dt, dtr, df = d.document_type, d.document_type.role, d.file
+                role = dtr
+                if role in ["AF", "B"]:
+                    if role == "AF":
+                        role = "AIM"
+                    elif role == "B":
+                        role = "PB"
+
+                if role == dtr:
+                    rcd = round.required_contract_documents.filter(document_type=dt).last()
+                    if not rcd:
+                        rcd = round.required_contract_documents.create(document_type=dt)
+                else:
+                    rcd = round.required_contract_documents.filter(document_type__role=role).last()
+                    if not rcd:
+                        dt = models.DocumentType.where(role=role).last()
+                        if not dt:
+                            dt = models.DocumentType.create(role=role)
+                        rcd = round.required_contract_documents.create(document_type=dt)
+
+                initial_documents.append(
+                    dict(
+                        required_document=rcd,
+                        document_type=dt,
+                        file=df,
+                    )
                 )
-            ).filter(
-                ~Q(document_type__role__in=exclued_document_rolels),
-            )
-        ]
+        else:
+            initial_documents = [
+                dict(
+                    required_document=rd_id,
+                    document_type=document_type,
+                )
+                for rd_id, document_type, in (
+                    round.required_contract_documents.values_list("id", "document_type")
+                    .filter(~Q(id__in=self.object.documents.values("required_document_id")))
+                    .order_by("ordering")
+                ).filter(
+                    ~Q(document_type__role__in=exclued_document_roles),
+                )
+            ]
 
         fsc = forms.inlineformset_factory(
             models.Contract,
@@ -3393,7 +3423,7 @@ class ContractViewMixin:
         class fsc(fsc):
             def get_queryset(self):
                 qs = super().get_queryset()
-                return qs.filter(~Q(document_type__role__in=exclued_document_rolels))
+                return qs.filter(~Q(document_type__role__in=exclued_document_roles))
 
         if self.request.POST:
             fs = fsc(
@@ -3657,6 +3687,7 @@ class ContractCreate(ContractViewMixin, CreateView):
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         a = self.application
+
         initial["application"] = a
         initial["year"] = a.created_at.year
         initial["org"] = a.org
