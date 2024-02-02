@@ -98,7 +98,7 @@ class StateColumn(tables.Column):
 
         if state_changed_at := getattr(record, "state_changed_at", None):
             title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
-                state_changed_at.isoformat(), 
+                state_changed_at.isoformat(),
                 state_changed_at.strftime('%d-%m-%Y %H:%m'))}"""
 
         return mark_safe(
@@ -245,19 +245,25 @@ class ApplicationTable(tables.Table):
         },
     )
     latest_contract = tables.columns.linkcolumn.BaseLinkColumn(
-            text=lambda record: "" if record.state != "funded" or record.contract else gettext_lazy("Open") if record.contract else gettext_lazy("Create"),
-            linkify=lambda table, record, value: (
-                reverse("application-contract", args=[record.pk]) if record.state == "funded" or record.contract else None
-            ),
-            attrs={
-                "a": {
-                    "class": "btn btn-primary btn-sm",
-                    "target": "_blank",
-                    "data-toggle": "tooltip",
-                    "title": gettext_lazy("Create or update a contract"),
-                },
-                "td": {"style": "padding: 6px 0 0 16px;"},
+        text=lambda record: (
+            ""
+            if record.state != "funded"
+            else gettext_lazy("Open") if record.contract else gettext_lazy("Create")
+        ),
+        linkify=lambda table, record, value: (
+            reverse("application-contract", args=[record.pk])
+            if record.state == "funded" or record.contract
+            else None
+        ),
+        attrs={
+            "a": {
+                "class": "btn btn-primary btn-sm",
+                "target": "_blank",
+                "data-toggle": "tooltip",
+                "title": gettext_lazy("Create or update a contract"),
             },
+            "td": {"style": "padding: 6px 0 0 16px;"},
+        },
     )
 
     def before_render(self, request):

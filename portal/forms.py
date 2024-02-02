@@ -274,25 +274,29 @@ class DocumentInlineFormset(TableInlineFormset):
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
         formset = context[self.formset_name_in_context]
-
-        required_documents = context["required_documents"]
         round = context["round"]
-        ordering = dict(
-            round.required_documents.values_list("id", "ordering").order_by("ordering")
-        )
+        required_documents = context["required_documents"] or {
+            rd.pk: rd
+            for rd in (
+                round.required_documents
+                if form._meta.model is models.Application
+                else round.required_contract_documents
+            ).order_by("ordering")
+        }
+        ordering = {d.id: d.ordering for d in required_documents.values()}
         formset.forms.sort(key=lambda f: ordering.get(f.initial.get("required_document"), 0))
         help_texts = {
-            rd_id: make_help_text(
-                required_document=round.required_documents.filter(id=rd_id).first()
-            )
-            for rd_id in ordering.keys()
+            rd.pk: make_help_text(required_document=rd) for rd in required_documents.values()
         }
         for f in formset.forms:
             rd_id = f.initial.get("required_document", 0)
             if rd_id:
-                # f.file.help_text = help_texts.get(rd_id)
+                if not isinstance(rd_id, int):
+                    rd_id = rd_id.pk
                 f.fields["file"].help_text = help_texts.get(rd_id)
-                f.form_label = f"{required_documents.get(rd_id, _('Document'))}"
+                f.fields["file"].label = f.form_label = (
+                    f"{required_documents.get(rd_id, _('Document'))}"
+                )
         context = context.flatten()
         context.update(
             {

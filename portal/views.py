@@ -60,7 +60,7 @@ from django.forms import (
     modelformset_factory,
 )
 from django.forms import models as model_forms
-from django.forms import widgets
+from django.forms import widgets, fields
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
@@ -3341,8 +3341,8 @@ class ContractViewMixin:
         round = self.application.round
         exclued_document_roles = [r for _, r in self.form_class.part_fields]
 
+        initial = []
         if not (self.object and self.object.id):
-            initial_documents = []
             for d in self.application.documents.filter(
                 ~Q(document_type__role__in=exclued_document_roles)
             ):
@@ -3366,39 +3366,68 @@ class ContractViewMixin:
                             dt = models.DocumentType.create(role=role)
                         rcd = round.required_contract_documents.create(document_type=dt)
 
-                initial_documents.append(
+                initial.append(
                     dict(
+                        application_document=d.pk,
                         required_document=rcd,
-                        document_type=dt,
+                        document_type=rcd.document_type,
                         file=df,
                     )
                 )
-        else:
-            initial_documents = [
+        elif self.request.method != "POST":
+            initial = [
                 dict(
-                    required_document=rd_id,
-                    document_type=document_type,
+                    required_document=rd,
+                    document_type=rd.document_type,
                 )
-                for rd_id, document_type, in (
+                for rd in (
                     round.required_contract_documents.values_list("id", "document_type")
-                    .filter(~Q(id__in=self.object.documents.values("required_document_id")))
+                    .filter(
+                        ~Q(id__in=self.object.documents.values("required_document_id")),
+                        ~Q(document_type__role__in=exclued_document_roles),
+                    )
                     .order_by("ordering")
-                ).filter(
-                    ~Q(document_type__role__in=exclued_document_roles),
                 )
             ]
+
+        class ContractDocumentForm(ModelForm):
+
+            application_document = fields.Field(widget=HiddenInput())
+
+            def save(self, commit=True):
+                if (
+                    "application_document" in self.cleaned_data
+                    and not self.cleaned_data["file"]
+                    and (
+                        d := models.ApplicationDocument.get(
+                            self.cleaned_data["application_document"]
+                        )
+                    )
+                ):
+                    res = super().save(commit=False)
+                    res.file = d.file
+                    res.save()
+                    return res
+                elif "file" in self.changed_data:
+                    res = super().save(*args, **kwargs)
+                    return res
+                return self.instance
+
+        class Meta:
+            model = models.ContractDocument
+            exclude = ["converted_file"]
 
         fsc = forms.inlineformset_factory(
             models.Contract,
             models.ContractDocument,
-            extra=len(initial_documents),
+            form=ContractDocumentForm,
+            extra=len(initial),
             can_delete=False,
             exclude=[
-                # "document_type",
                 "converted_file",
             ],
             widgets={
-                # "required_document": HiddenInput(),
+                "application_document": HiddenInput(),
                 "required_document": HiddenInput(),
                 "state": HiddenInput(),
                 "page_count": HiddenInput(),
@@ -3423,6 +3452,7 @@ class ContractViewMixin:
         class fsc(fsc):
             def get_queryset(self):
                 qs = super().get_queryset()
+                # breakpoint()
                 return qs.filter(~Q(document_type__role__in=exclued_document_roles))
 
         if self.request.POST:
@@ -3430,12 +3460,12 @@ class ContractViewMixin:
                 self.request.POST or None,
                 self.request.FILES or None,
                 instance=self.object,
-                initial=initial_documents,
+                # initial=initial,
             )
         else:
-            fs = fsc(instance=self.object, initial=initial_documents)
-        if initial_documents:
-            fs.extra = len(initial_documents)
+            fs = fsc(instance=self.object, initial=initial)
+        if initial:
+            fs.extra = len(initial)
         return fs
 
     def get_context_data(self, *args, **kwargs):
