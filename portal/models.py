@@ -1944,7 +1944,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         super().save(*args, **kwargs)
 
     @fsm_log
-    @transition(field=state, source=["draft", "new", "tac_accepted"], target="draft")
+    @transition(
+        field=state,
+        source=["draft", "new", "tac_accepted"],
+        target="draft",
+        custom=dict(verbose="Save Draft"),
+    )
     def save_draft(self, *args, **kwargs):
         pass
 
@@ -6682,6 +6687,11 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         field=state, source=["new", "submitted", "approved", "released"], target="accepted"
     )
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(field=state, source=["*"], target="draft")
+    def save_draft(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
     def save(self, *args, **kwargs):

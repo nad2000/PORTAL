@@ -31,6 +31,7 @@
 
   <form method="post" enctype="multipart/form-data" id="contract-form">
 
+    <input type="hidden" name="required_doc" id="id_required_doc" value="">
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
     <input type="hidden" name="doc_action" id="id_doc_action" value="">
@@ -89,7 +90,9 @@
     var doc_role = null;
     var doc_type = null;
     var doc_action = null;
+    var required_doc = null;
     function confirmAction(val) {
+        $("#id_required_doc").val(required_doc);
         $("#id_doc_role").val(doc_role);
         $("#id_doc_type").val(doc_type);
         $("#id_doc_action").val(doc_action || "approve");
@@ -102,6 +105,7 @@
       doc_action = this.dataset["documentAction"];
       doc_role = this.dataset["documentRole"];
       doc_type = this.dataset["documentType"];
+      required_doc = this.dataset["requiredDocument"];
       $("#id_confirm_action").text(
         doc_action == "request_correction" ? "{% trans 'Request Correction' %}" : (
         doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : "{% trans 'Approve' %}")

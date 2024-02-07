@@ -3492,6 +3492,10 @@ class ContractViewMixin:
 
         return context
 
+    # def post(self, *args, **kwargs):
+    #     breakpoint()
+    #     return super().post(*args, **kwargs)
+
     def form_valid(self, form):
         a = self.application
         u = self.request.user
@@ -3557,21 +3561,34 @@ class ContractViewMixin:
                 for r in (recipients if isinstance(recipients, (list, tuple)) else [recipients])
             ]
         )
-        if self.request.POST.get("doc_role") or self.request.POST.get("doc_type"):
+        if (
+            self.request.POST.get("doc_role")
+            or self.request.POST.get("doc_type")
+            or self.request.POST.get("required_doc")
+        ):
             document_role = form.data.get("doc_role")
             document_type = form.data.get("doc_type")
             document_action = form.data.get("doc_action")
+            required_document = form.data.get("required_doc")
             resolution = (form.data.get("resolution") or "").strip()
-            if (document_role in models.DOCUMENT_ROLES or document_type) and (
+            if (document_role in models.DOCUMENT_ROLES or document_type or required_document) and (
                 d := (
-                    i.documents.filter(required_document__document_type__role=document_role).last()
-                    if document_role
-                    else i.documents.filter(
-                        Q(document_type=document_type)
-                        | Q(required_document__document_type=document_type)
+                    i.documents.filter(required_document=required_document).order_by("id").last()
+                    if required_document
+                    else (
+                        i.documents.filter(
+                            required_document__document_type__role=document_role
+                        ).last()
+                        if document_role
+                        else (
+                            i.documents.filter(
+                                Q(document_type=document_type)
+                                | Q(required_document__document_type=document_type)
+                            )
+                            .order_by("id")
+                            .last()
+                        )
                     )
-                    .order_by("id")
-                    .last()
                 )
             ):
                 previous_state = d.state
@@ -3589,7 +3606,7 @@ class ContractViewMixin:
                     else:
                         if d.state != "accepted":
                             d.accept(
-                                request=self.request, description=resolution or f"approved by {u}"
+                                request=self.request, description=resolution or f"accepted by {u}"
                             )
                             # d.save()
                         else:
@@ -3598,18 +3615,25 @@ class ContractViewMixin:
                             )
                     if d.state != previous_state:
                         messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
+                elif document_action == "request_correction":
+                    d.save_draft(
+                        request=self.request, description=resolution or f"requested corrections by {u}"
+                    )
+                if previous_state != d.state:
+                    d.save()
 
                 respond_url = self.request.build_absolute_uri(
                     reverse("contract-update", kwargs=dict(pk=i.pk))
                 )
                 if document_role in ["B", "PB", "AB"]:
                     respond_url += "#finances"
-                elif document_role in ["AIM", "PT"]:
-                    respond_url += "#research"
-                elif document_role or document_type:
+                # elif document_role in ["AIM", "PT"]:
+                #     respond_url += "#research"
+                elif document_role or document_type or required_document:
                     respond_url += "#appendices"
 
                 if not document_action or document_action == "approve":
+                    # TODO: notify about approvals after all documents got approved:
                     html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
                     html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
                     html_message += f":</p>{resolution}" if resolution else "."

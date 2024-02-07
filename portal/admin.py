@@ -742,6 +742,7 @@ class ApplicationAdmin(
     SimpleHistoryAdmin,
 ):
     # form = ApplicationForm
+    show_close_button = True
     save_on_top = True
     date_hierarchy = "created_at"
     list_display = [

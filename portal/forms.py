@@ -270,7 +270,7 @@ def make_help_text(document_type=None, templates=[], required_document=None):
 
 
 class DocumentInlineFormset(TableInlineFormset):
-    template = "portal/application_document_formset.html"
+    template = "portal/document_formset.html"
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
         formset = context[self.formset_name_in_context]
