@@ -56,66 +56,10 @@
 
         {% if form.state %}
           <div class="buttonHolder float-right">
-          {% if is_staff or user.is_superuser %}
-          {% if not form.file.value  %}
-          <span
-              tabindex="0"
-              class="d-inline-block"
-              data-toggle="tooltip"
-              {% if not form.file.value %}
-              title="{% blocktrans with required_document=required_document %}Please upload {{ required_document }} before requesting corrections{% endblocktrans %}"
-              {% endif %}
-          >
-          {% endif %}
-            <input type="submit"
-              name="request_correction"
-              value="{% trans 'Request Correction' %}"
-              class="btn btn-primary"
-              id="id_{{ form.prefix }}_request_correction"
-              data-document-action="request_correction"
-              data-document-type="{{ required_document.document_type.pk }}"
-              data-document-role="{{ required_document.document_type.role }}"
-              data-required-document="{{ rd_id }}"
-              data-enabled-title="Request correction of {{ required_document }}"
-              data-disabled-title="{% blocktrans with required_document=required_document %}Please upload {{ required_document }} before requestiong corrections{% endblocktrans %}"
-              data-toggle="tooltip"
-              title="{% blocktrans with required_document=required_document %}Request correction of {{ required_document }}{% endblocktrans %}"
-              {% if not form.file.value %}disabled style="pointer-events: none;"{% endif %}>
-          {% if not form.file.value %}</span>{% endif %}
-          {% endif %}
-          {% if not form.file.value %}
-          <span
-              tabindex="0"
-              class="d-inline-block"
-              data-toggle="tooltip"
-              {% if not form.file.value %}
-              title="{% blocktrans with required_document=required_document %}Please upload {{ required_document }} before approving it{% endblocktrans %}"
-              {% endif %}
-          >
-          {% endif %}
-            <input type="submit"
-              name="approve_part"
-              value={% if is_staff %}"{% trans 'Accept' %}"{% else %}"{% trans 'Approve' %}"{% endif %}
-              class="btn btn-primary"
-              id="id_{{ form.prefix }}_approve_part"
-              data-document-action="approve"
-              data-document-type="{{ required_document.document_type.pk }}"
-              data-document-role="{{ required_document.document_type.role }}"
-              data-required-document="{{ rd_id }}"
-              data-enabled-title="Approve {{ required_document }}"
-              data-disabled-title={% if is_staff %}"Please upload {{ required_document }} before approving it"{% else %}"Please upload {{ required_document }} before accepting it"{% endif %}
-              data-toggle="tooltip"
-              {% if is_staff %}
-              {% blocktrans with required_document=required_document %}
-              title="Accept {{ required_document }}"
-              {% endblocktrans %}
-              {% else %}
-              {% blocktrans with required_document=required_document %}
-              title="Approve {{ required_document }}"
-              {% endblocktrans %}
-              {% endif %}
-              {% if not form.file.value %}disabled style="pointer-events: none;"{% endif %}>
-          {% if not form.file.value %}</span>{% endif %}
+            {% if is_staff or user.is_superuser %}
+              {% document_action_button required_document=required_document form=form action="request_correction" %}
+            {% endif %}
+            {% document_action_button required_document=required_document form=form action="approve"  %}
           </div>
         {% endif %}
         </fieldset>

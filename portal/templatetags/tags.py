@@ -3,7 +3,7 @@ from urllib.parse import parse_qs
 from itertools import groupby
 from operator import itemgetter
 
-import jinja2
+# import jinja2
 from django import forms, template
 from django.db import models
 from django.forms.widgets import NullBooleanSelect
@@ -224,4 +224,44 @@ def contract_summary(context, *args, **kwargs):
     contract = object = context.get("object")
     # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
     output = get_template("contract_summary.html").render(locals())
+    return Markup(output)
+
+
+@register.simple_tag(takes_context=True)
+def document_action_button(context, *args, **kwargs):
+    request = context.get("request")
+    required_document = kwargs.get("required_document")
+    site = context.get("site")
+    object = context.get("object")
+    user = context.get("user")
+    form = context.get("form")
+    rd_id = context.get("rd_id") or required_document.pk
+
+    is_ro = context.get("is_ro")
+    action = kwargs.get("action") or context.get("action") or "approve"
+
+    if not (form.initial.get("file") or form.instance.file):
+        if action == "approve":
+            disabled_tooltip_text = _(f"Please upload { required_document } before  before approving it")
+        else:
+            disabled_tooltip_text = _(f"Please upload { required_document } before requesting corrections")
+    else:
+        state = form.instance.state
+        if not is_ro or state == "accepted":
+            disabled_tooltip_text = _(f"{ required_document } was already accepted")
+        elif state == "approved":
+            disabled_tooltip_text = _(f"{ required_document } was already approved")
+    if action == "approve": 
+        if is_ro:
+            enabled_tooltip_text = _(f"Approve { required_document }")
+            button_label = _("Approve")
+        else:
+            enabled_tooltip_text = _(f"Accept { required_document }")
+            button_label = _("Accept")
+    else:
+        enabled_tooltip_text = _(f"Request correction of { required_document }")
+        button_label = _("Request Correction")
+
+    # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
+    output = get_template("document_action_button.html").render(locals())
     return Markup(output)
