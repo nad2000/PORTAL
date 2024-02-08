@@ -70,7 +70,10 @@ class JSPath:
 
 class FSMTransitionMixin(FSMTransitionMixin):
     class Media:
-        css = {"all": ("//code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css",)}
+        # css = {"all": ("//code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css",)}
+        # css = {"all": ("//code.jquery.com/ui/1.13.2/themes/cupertino/jquery-ui.css",)}
+        # css = {"all": ("//code.jquery.com/ui/1.13.2/themes/redmond/jquery-ui.css",)}
+        css = {"all": ("//code.jquery.com/ui/1.13.2/themes/blitzer/jquery-ui.css",)}
         # js = ("//code.jquery.com/ui/1.10.4/jquery-ui.js",)
         js = (JSPath(),)
 

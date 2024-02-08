@@ -1,5 +1,6 @@
 {% extends 'fsm_admin/change_form.html' %}
 {% load fsm_admin %}
+
 {% block form_top %}
 <input type="hidden" id="id_button_name">
 {% endblock %}
@@ -8,8 +9,9 @@
 <script>
   django.jQuery(document).ready(function(){
       // if (!$) {$ = django.jQuery;}
-      django.jQuery('<div id="dialg" style="display: none"><textarea cols="26" rows="10" name="description" id="id_description"></textarea></div>').dialog({
-          autoOpen: false,
+      django.jQuery('<div id="dialg" style="display: none; width: 100%;"><textarea style="width: 96%;" cols="26" rows="10" name="description" id="id_description"></textarea></div>').dialog({
+        autoOpen: false,
+        modal: true,
         appendTo: "#{{ opts.model_name }}_form",
         buttons: [
           {
@@ -18,8 +20,9 @@
             click: function() {django.jQuery(this).dialog("close");}
           },
           {
-            text: "Commit",
+            text: "Commit Changes",
             icon: "ui-icon-check",
+            id: "id_commit_transition_button",
             click: function() {
               django.jQuery(this).dialog("close");
               // django.jQuery( "#id_description" ).val(django.jQuery("#id_resolution").val());
@@ -27,12 +30,14 @@
               django.jQuery(this).closest("form").submit();
             }
           },
-          ],
-          title: "Resolution",
-          position: {
-            my: "left center",
-            at: "left center"
-          }
+        ],
+        title: "Resolution or comments",
+        position: {
+          my: "center",
+          at: "center",
+        },
+        draggable: true,
+        width: 500
       });
       django.jQuery( "#opener" ).click(function() {
           django.jQuery( "#dialg" ).dialog( "open" );

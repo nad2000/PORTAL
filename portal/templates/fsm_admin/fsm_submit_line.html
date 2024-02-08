@@ -33,6 +33,8 @@
     ).click(function(e) {
         e.preventDefault();
         e.stopPropagation();
+        django.jQuery( "#id_commit_transition_button" ).html('<span class="ui-button-icon ui-icon ui-icon-check"></span><span class="ui-button-icon-space"> </span>' + django.jQuery(this).attr("value"));
+        django.jQuery( "#id_commit_transition_button" ).attr("title", django.jQuery(this).attr("value"));
         django.jQuery( "#dialg" ).dialog( "open" );
         django.jQuery( "#id_button_name" ).attr("name", django.jQuery(this).attr("name"));
         django.jQuery( "#id_button_name" ).val(django.jQuery(this).attr("name"));
