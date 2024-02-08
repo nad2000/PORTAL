@@ -6,7 +6,7 @@ import re
 import secrets
 import ssl
 import subprocess
-import sys
+# import sys
 import tempfile
 import time
 from collections import OrderedDict
@@ -6535,7 +6535,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         # b.append(t)
         # return d
 
-        # template = get_template("contract_schedule.html")
+        template = get_template("contract_schedule.html")
         template = get_template("contract_schedule.fodt")
         current_ts = timezone.now()
         contract = self
@@ -6678,13 +6678,13 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
     )
 
     @fsm_log
-    @transition(field=state, source=["submitted", "new", "released"], target="approved")
+    @transition(field=state, source=["submitted", "new", "released", "draft"], target="approved")
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
     @fsm_log
     @transition(
-        field=state, source=["new", "submitted", "approved", "released"], target="accepted"
+        field=state, source=["released", "approved"], target="accepted"
     )
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
         pass

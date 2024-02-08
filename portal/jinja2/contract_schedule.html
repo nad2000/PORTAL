@@ -5,8 +5,9 @@
 <html>
   <head>
     <style>
-<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-<title></title>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>{{ c }}</title>
 <meta name="generator" content="RFDA PORTAL"/>
 <meta name="author" content="{{ user.full_name_with_email }}"/>
 <meta name="created" content="{{ current_ts.isoformat() }}"/>
@@ -131,17 +132,17 @@ th, td {padding: 8px;}
         <tr>
           <td border="0" style="border: none; font-family: Arial; font-size: 6pt;">
             <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
-              <span lang="en-NZ" style="font-family: Arial; font-size: 6pt;">{{ c.fund.code }} {{ c.number }}</span>
+              <span lang="en-NZ" style="font-family: Arial; font-size: 6pt;"><small>{{ c.fund.code }} {{ c.number }}</small></span>
             </font>
           </td>
           <td border="0" style="border: none; font-family: Arial; font-size: 6pt;" align="center">
             <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
-              <span lang="en-NZ">Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ c.start_date.strftime("%d %B, %Y") }}</sdfield></span>
+              <span lang="en-NZ"><small>Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ c.start_date.strftime("%d %B, %Y") }}</sdfield></small></span>
             </font>
           </td>
           <td border="0" style="border: none; font-family: Arial; font-size: 6pt;" align="right">
             <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
-              Page <b><sdfield type=PAGE subtype=RANDOM format=PAGE>N</sdfield></b> of <b><sdfield type=DOCSTAT subtype=PAGE format=PAGE>NN</sdfield></b>
+              <small>Page <b><sdfield type=PAGE subtype=RANDOM format=PAGE>N</sdfield></b> of <b><sdfield type=DOCSTAT subtype=PAGE format=PAGE>NN</sdfield></b></small>
             </font>
           </td>
         </tr>

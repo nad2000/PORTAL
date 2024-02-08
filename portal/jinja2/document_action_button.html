@@ -5,7 +5,7 @@
     data-toggle="tooltip"
     title="{{ disabled_tooltip_text }}">
 {% endif %}
-<input 
+<input
     type="submit"
     name="{{ action }}"
     value="{{ button_label }}"
@@ -13,7 +13,7 @@
     id="id_{{ form.prefix }}_{{ action }}_part"
     data-document-action="{{ action }}"
     data-document-type="{{ required_document.document_type.pk }}"
-    data-document-role="{{ required_document.document_type.role }}"
+    data-document-role="{{ document_role or required_document.document_type.role }}"
     data-required-document="{{ rd_id }}"
     data-enabled-title="{{ enabled_tooltip_text }}"
     {% if disabled_tooltip_text %}data-disabled-title="{{ disabled_tooltip_text }}"{% endif %}

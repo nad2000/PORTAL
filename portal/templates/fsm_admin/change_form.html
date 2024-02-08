@@ -15,11 +15,6 @@
         appendTo: "#{{ opts.model_name }}_form",
         buttons: [
           {
-            text: "Cancel",
-            icon: "ui-icon-cancel",
-            click: function() {django.jQuery(this).dialog("close");}
-          },
-          {
             text: "Commit Changes",
             icon: "ui-icon-check",
             id: "id_commit_transition_button",
@@ -30,6 +25,11 @@
               django.jQuery(this).closest("form").submit();
             }
           },
+          {
+            text: "Cancel",
+            icon: "ui-icon-cancel",
+            click: function() {django.jQuery(this).dialog("close");}
+          }
         ],
         title: "Resolution or comments",
         position: {

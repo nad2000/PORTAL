@@ -228,25 +228,30 @@ def contract_summary(context, *args, **kwargs):
 
 
 @register.simple_tag(takes_context=True)
-def document_action_button(context, *args, **kwargs):
+def document_action_button(context, required_document=None, document=None, document_role=None, document_file_field="file", *args, **kwargs):
     request = context.get("request")
-    required_document = kwargs.get("required_document")
-    site = context.get("site")
+    # required_document = kwargs.get("required_document")
+    # site = context.get("site")
     object = context.get("object")
-    user = context.get("user")
+    if not required_document and document:
+        required_document = document.required_document
+    if not required_document and document_role and object.pk:
+        required_document = object.required_documents.filter(document_type__role=document_role).last()
+    # user = context.get("user")
     form = context.get("form")
     rd_id = context.get("rd_id") or required_document.pk
 
     is_ro = context.get("is_ro")
     action = kwargs.get("action") or context.get("action") or "approve"
 
-    if not (form.initial.get("file") or form.instance.file):
+    document_file = (form.initial.get(document_file_field) or (document and document.file) or form.instance.file)
+    if not document_file:
         if action == "approve":
             disabled_tooltip_text = _(f"Please upload { required_document } before  before approving it")
         else:
             disabled_tooltip_text = _(f"Please upload { required_document } before requesting corrections")
     else:
-        state = form.instance.state
+        state = (document and document.state) or form.instance.state
         if not is_ro or state == "accepted":
             disabled_tooltip_text = _(f"{ required_document } was already accepted")
         elif state == "approved":
