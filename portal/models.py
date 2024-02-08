@@ -14,6 +14,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from functools import lru_cache, partial, wraps
 from itertools import groupby
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 # import odfdo as od
@@ -6476,9 +6477,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
-    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
-        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.html", "w") as ofile:
-        with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
+    def get_schedule_part_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
+        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
+        outuput_filename = str(Path.home() / "PMSPP" / f"schedule_{self.number}.html")
+        with open(output_filename, "w") as ofile:
             d = self.get_schedule_part(request=request)
             ofile.write(d)
         cp = subprocess.run(
@@ -6488,8 +6490,32 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 "--convert-to",
                 "odt",
                 "--outdir",
-                "/home/rcir178/PMSPP/",
-                f"/home/rcir178/PMSPP/schedule_{self.number}.fodt",
+                Path.home() / "PMSPP/",
+                # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
+                Path.home() / "PMSPP" / f"schedule_{self.number}.html",
+            ],
+            capture_output=True,
+        )
+        if cp.returncode or (
+                (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()):
+            raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
+        return output_filename
+
+    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
+        with open(Path.home() / "PMSPP" / f"schedule_{self.number}.html", "w") as ofile:
+            d = self.get_schedule_part(request=request)
+            ofile.write(d)
+        cp = subprocess.run(
+            [
+                "loffice",
+                "--headless",
+                "--convert-to",
+                "odt",
+                "--outdir",
+                Path.home() / "PMSPP/",
+                # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
+                Path.home() / "PMSPP" / f"schedule_{self.number}.html",
             ],
             capture_output=True,
         )
@@ -6536,7 +6562,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         # return d
 
         template = get_template("contract_schedule.html")
-        template = get_template("contract_schedule.fodt")
+        # template = get_template("contract_schedule.fodt")
         current_ts = timezone.now()
         contract = self
         user = request.user
@@ -6556,8 +6582,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             "LEGALNAME": self.org.name,
             "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         }
-        with open("/home/rcir178/Documents/RDF contract template.odt", "rb") as infile, open(
-            "/home/rcir178/Documents/output.odt", "wb"
+        schedule_output_filename = self.get_schedule_part_odt(request=request)
+        with open(
+                Path.home() / 
+                "Documents" / 
+                "RDF contract template.odt", "rb") as infile, open(
+            Path.home() / 
+            "Documents" / 
+            "output.odt", "wb"
         ) as outfile:
             o = OOoPy(infile=infile, outfile=outfile)
             t = Transformer(
@@ -6566,7 +6598,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 Transforms.Editinfo(),
                 Transforms.Field_Replace(replace=fields),
                 Transforms.Fix_OOo_Tag(),
-                Transforms.Concatenate(f"/home/rcir178/PMSPP/schedule_{self.number}.odt"),
+                Transforms.Concatenate(schedule_output_filename),
                 Transforms.renumber_all(o.mimetype),
                 Transforms.set_meta(o.mimetype),
                 Transforms.Fix_OOo_Tag(),

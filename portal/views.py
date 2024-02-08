@@ -5692,8 +5692,10 @@ class ContractExportView(ExportView):
 
     def get(self, request, pk):
         c = self.model.get(pk)
-        c.to_pdf(request=request)
-        c.to_odt(request=request)
+        if request.GET.get("format") == "odt":
+            c.to_odt(request=request)
+        else:
+            c.to_pdf(request=request)
         return redirect("contract-detail", number=c.number)
 
 
