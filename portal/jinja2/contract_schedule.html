@@ -15,7 +15,7 @@
 <meta name="changed" content="{{ current_ts.isoformat() }}"/>
 <style type="text/css">
 /* @page { size: 21cm 29.7cm; margin: 2cm; } */
-@page { size: 21cm 29.7cm; margin-left: 2.54cm; margin-right: 2.54cm; margin-top: 1.19cm; margin-bottom: 1.19cm }
+/* @page { size: 21cm 29.7cm; margin-left: 2.54cm; margin-right: 2.54cm; margin-top: 1.19cm; margin-bottom: 1.19cm } */
 /* p { line-height: 115%; margin-bottom: 0.25cm; background: transparent } */
 p { line-height: 115%; text-align: left; orphans: 2; widows: 2; margin-bottom: 0.25cm; direction: ltr; background: transparent }
 p.western { font-family: "Arial", serif; so-language: en-NZ }
@@ -123,24 +123,24 @@ th, td {padding: 8px;}
 
       </li>
     </ol>
-    <div title="footer" style="font-size: 6pt; font-family: Arial">
+    <div title="footer" style="font-size: 6pt; font-family: Arial; width: 100%;">
       <font size="1" style="font-size: 6pt; font-family: Arial;" face="Arial">
-      <table border="0" style="border: none; font-size: 6pt; font-family: Arial;">
+      <table border="0" style="border: none; font-size: 6pt; font-family: Arial;" width="100%">
         <col align="left">
         <col align="center">
         <col align="right">
         <tr>
-          <td border="0" style="border: none; font-family: Arial; font-size: 6pt;">
+          <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: left;" align="left">
             <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
               <span lang="en-NZ" style="font-family: Arial; font-size: 6pt;"><small>{{ c.fund.code }} {{ c.number }}</small></span>
             </font>
           </td>
-          <td border="0" style="border: none; font-family: Arial; font-size: 6pt;" align="center">
+          <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: center;" align="center">
             <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
               <span lang="en-NZ"><small>Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ c.start_date.strftime("%d %B, %Y") }}</sdfield></small></span>
             </font>
           </td>
-          <td border="0" style="border: none; font-family: Arial; font-size: 6pt;" align="right">
+          <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: right;" align="right">
             <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
               <small>Page <b><sdfield type=PAGE subtype=RANDOM format=PAGE>N</sdfield></b> of <b><sdfield type=DOCSTAT subtype=PAGE format=PAGE>NN</sdfield></b></small>
             </font>

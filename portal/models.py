@@ -1194,7 +1194,7 @@ class Person(PersonMixin, Model):
                 else f"{u.name or u.username or u.email}'s profile"
             )
             if u
-            else f"Profile: ID={self.id}"
+            else self.code or f"Person: ID={self.id}"
         )
 
     def save(self, *args, **kwargs):
@@ -6479,8 +6479,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     def get_schedule_part_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
-        outuput_filename = str(Path.home() / "PMSPP" / f"schedule_{self.number}.html")
-        with open(output_filename, "w") as ofile:
+        output_path = Path.home() / "PMSPP" / f"schedule_{self.number}.html"
+        with open(output_path, "w") as ofile:
             d = self.get_schedule_part(request=request)
             ofile.write(d)
         cp = subprocess.run(
@@ -6492,14 +6492,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 "--outdir",
                 Path.home() / "PMSPP/",
                 # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
-                Path.home() / "PMSPP" / f"schedule_{self.number}.html",
+                # Path.home() / "PMSPP" / f"schedule_{self.number}.html",
+                output_path,
             ],
             capture_output=True,
+            env=dict(os.environ, PAPERSIZE="a4")
         )
         if cp.returncode or (
                 (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()):
             raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
-        return output_filename
+        return output_path.with_suffix(".odt")
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
@@ -6518,6 +6520,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 Path.home() / "PMSPP" / f"schedule_{self.number}.html",
             ],
             capture_output=True,
+            env=dict(os.environ, PAPERSIZE="a4")
         )
         if cp.returncode or (
             (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
@@ -6582,13 +6585,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             "LEGALNAME": self.org.name,
             "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         }
-        schedule_output_filename = self.get_schedule_part_odt(request=request)
+        schedule_output_path = self.get_schedule_part_odt(request=request)
         with open(
-                Path.home() / 
-                "Documents" / 
+                Path.home() /
+                "Documents" /
                 "RDF contract template.odt", "rb") as infile, open(
-            Path.home() / 
-            "Documents" / 
+            Path.home() /
+            "Documents" /
             "output.odt", "wb"
         ) as outfile:
             o = OOoPy(infile=infile, outfile=outfile)
@@ -6598,7 +6601,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 Transforms.Editinfo(),
                 Transforms.Field_Replace(replace=fields),
                 Transforms.Fix_OOo_Tag(),
-                Transforms.Concatenate(schedule_output_filename),
+                Transforms.Concatenate(schedule_output_path),
                 Transforms.renumber_all(o.mimetype),
                 Transforms.set_meta(o.mimetype),
                 Transforms.Fix_OOo_Tag(),

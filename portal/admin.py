@@ -676,8 +676,8 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
             return False
 
     filter_horizontal = ["ethnicities", "languages_spoken", "iwi_groups"]
-    search_fields = ["user__username", "user__email", "user__first_name", "user__last_name"]
-    list_display = ["user", "full_name_with_email", "created_at"]
+    search_fields = ["user__username", "code", "user__email", "user__first_name", "user__last_name"]
+    list_display = ["code", "user", "full_name_with_email", "created_at"]
     list_filter = ["created_at", "updated_at"]
 
     inlines = [
@@ -688,8 +688,16 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
         ProtectionPatternInline,
     ]
 
+    # def get_queryset(self, request):
+    #     breakpoint()
+    #     return (
+    #         super()
+    #         .get_queryset(request)
+    #         # .select_related("referee__application", "referee__application__round", "referee__user")
+    #     )
+
     def view_on_site(self, obj):
-        return reverse("profile-instance", kwargs={"pk": obj.id})
+        return reverse("profile-instance", kwargs={"pk": obj.pk})
 
 
 class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):

@@ -136,8 +136,9 @@ class PersonMixin:
         email = getattr(self, "email", None) or user and user.email
         if full_name := self.full_name:
             return f"{full_name} ({email})"
-        else:
+        elif email:
             return email
+        return getattr(self, "code", None)
 
     @cached_property
     def full_name_with_title(self):
@@ -170,8 +171,6 @@ class PersonMixin:
                 or user.emailaddress_set.last()
             )
         )
-        if not user or not email:
-            breakpoint()
 
         if full_name := self.full_name:
             return f'"{full_name}" <{email}>'
