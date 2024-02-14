@@ -6,6 +6,7 @@ import re
 import secrets
 import ssl
 import subprocess
+
 # import sys
 import tempfile
 import time
@@ -43,6 +44,7 @@ from django.db.models import (
     PROTECT,
     SET_NULL,
     BooleanField,
+    GeneratedField,
     Case,
     CharField,
     Count,
@@ -1949,18 +1951,28 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["draft", "new", "tac_accepted"],
         target="draft",
-        custom=dict(verbose="Save Draft"),
+        custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
     )
     def save_draft(self, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=state, source=["draft", "new", "tac_accepted"], target="draft")
+    @transition(
+        field=state,
+        source=["draft", "new", "tac_accepted"],
+        target="draft",
+        custom=dict(verbose="Accept TAC", button_name="Accept TAC"),
+    )
     def accept_tac(self, *args, **kwargs):
         self.is_tac_accepted = True
 
     @fsm_log
-    @transition(field=state, source=["new", "draft", "tac_accepted"], target="submitted")
+    @transition(
+        field=state,
+        source=["new", "draft", "tac_accepted"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="Submit"),
+    )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
         round = self.round
@@ -2109,7 +2121,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
     @fsm_log
-    @transition(field=state, source=["submitted"], target="approved")
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="approved",
+        custom=dict(verbose="Approve", button_name="Approve"),
+    )
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -2168,7 +2185,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @fsm_log
-    @transition(field=state, source=["approved"], target="accepted")
+    @transition(
+        field=state,
+        source=["approved"],
+        target="accepted",
+        custom=dict(verbose="Accept", button_name="Accept"),
+    )
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -2234,13 +2256,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         source=["approved", "accepted"],
         target="funded",
         conditions=[can_be_funded],
-        custom=dict(verbose="Mark application funded"),
+        custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=state, source=["submitted", "draft"], target="draft")
+    @transition(
+        field=state,
+        source=["submitted", "draft"],
+        target="draft",
+        custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
+    )
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -2302,7 +2329,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @fsm_log
-    @transition(field=state, source=["submitted", "draft"], target="cancelled")
+    @transition(
+        field=state,
+        source=["submitted", "draft"],
+        target="cancelled",
+        custom=dict(verbose="Cancel", button_name="Cancel"),
+    )
     def cancel(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -2358,7 +2390,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @fsm_log
-    @transition(field=state, source=["approved"], target="cancelled")
+    @transition(
+        field=state,
+        source=["approved"],
+        target="cancelled",
+        custom=dict(verbose="Invalidate", button_name="Invalidate"),
+    )
     def invalidate(self, request=None, by=None, description=None, *args, **kwargs):
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
@@ -4118,7 +4155,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         return self.referee.application
 
     @fsm_log
-    @transition(field=state, source=["new", "draft"], target="draft")
+    @transition(field=state, source=["new", "draft"], target="draft", custom=dict(admin=False))
     def save_draft(self, request=None, by=None, *args, **kwargs):
         pass
 
@@ -5238,7 +5275,7 @@ class Evaluation(EvaluationMixin, Model):
         )
 
     @fsm_log
-    @transition(field=state, source=["draft", "new"], target="draft")
+    @transition(field=state, source=["draft", "new"], target="draft", custom=dict(admin=False))
     def save_draft(self, *args, **kwargs):
         self.total_score = self.calc_evaluation_score()
 
@@ -5614,11 +5651,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             raise ValidationError(_("You cannot nominate yourself for this round."))
 
     @fsm_log
-    @transition(
-        field=state,
-        source=["new", "draft"],
-        target="draft",
-    )
+    @transition(field=state, source=["new", "draft"], target="draft", custom=dict(admin=False))
     def save_draft(self, *args, **kwargs):
         pass
 
@@ -5755,7 +5788,7 @@ class IdentityVerification(Model):
         return self.application and self.application.number
 
     @fsm_log
-    @transition(field=state, source="new", target="draft")
+    @transition(field=state, source="new", target="draft", custom=dict(admin=False))
     def save_draft(self, *args, **kwargs):
         pass
 
@@ -6477,7 +6510,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
-    def get_schedule_part_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
+    def get_schedule_part_odt(
+        self, request=None, user=None, add_headers=None, skip_excluded=False
+    ):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
         output_path = Path.home() / "PMSPP" / f"schedule_{self.number}.html"
         with open(output_path, "w") as ofile:
@@ -6496,10 +6531,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 output_path,
             ],
             capture_output=True,
-            env=dict(os.environ, PAPERSIZE="a4")
+            env=dict(os.environ, PAPERSIZE="a4"),
         )
         if cp.returncode or (
-                (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()):
+            (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
+        ):
             raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
         return output_path.with_suffix(".odt")
 
@@ -6520,7 +6556,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 Path.home() / "PMSPP" / f"schedule_{self.number}.html",
             ],
             capture_output=True,
-            env=dict(os.environ, PAPERSIZE="a4")
+            env=dict(os.environ, PAPERSIZE="a4"),
         )
         if cp.returncode or (
             (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
@@ -6586,13 +6622,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         }
         schedule_output_path = self.get_schedule_part_odt(request=request)
-        with open(
-                Path.home() /
-                "Documents" /
-                "RDF contract template.odt", "rb") as infile, open(
-            Path.home() /
-            "Documents" /
-            "output.odt", "wb"
+        with open(Path.home() / "Documents" / "RDF contract template.odt", "rb") as infile, open(
+            Path.home() / "Documents" / "output.odt", "wb"
         ) as outfile:
             o = OOoPy(infile=infile, outfile=outfile)
             t = Transformer(
@@ -6718,14 +6749,12 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         pass
 
     @fsm_log
-    @transition(
-        field=state, source=["released", "approved"], target="accepted"
-    )
+    @transition(field=state, source=["released", "approved"], target="accepted")
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 
     @fsm_log
-    @transition(field=state, source=["*"], target="draft")
+    @transition(field=state, source=["*"], target="draft", custom=dict(admin=False))
     def save_draft(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 

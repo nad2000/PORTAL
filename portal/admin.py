@@ -780,6 +780,7 @@ class ApplicationAdmin(
         "letter_of_support",
         # "number",
         "state",
+        "STATE",
         "main_applicant",
     ]
     search_fields = [
@@ -806,6 +807,11 @@ class ApplicationAdmin(
         return obj.state == "submitted" or obj.state == "archive"
 
     complete.boolean = True
+
+    @admin.display(description="State", empty_value="N/A")
+    def STATE(self, obj):
+        if obj.state:
+            return mark_safe(f"<b>{obj.state.upper()}</b>")
 
     def is_active_round(self, obj):
         return obj.round.scheme.current_round == obj.round
@@ -923,7 +929,7 @@ class ApplicationAdmin(
             None,
             {
                 "fields": [
-                    "state",
+                    "STATE",
                     ("number", "application_title_en", "application_title_mi"),
                     "is_bilingual",
                     "round",
@@ -990,7 +996,7 @@ class ApplicationAdmin(
                 None,
                 {
                     "fields": [
-                        "state",
+                        "STATE",
                         ("number", "application_title_en", "application_title_mi"),
                         "is_bilingual",
                         "round",
@@ -1051,7 +1057,7 @@ class ApplicationAdmin(
         )
 
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
-            fieldsets[0][1]["fields"][0] = ("nomination_url", "state")
+            fieldsets[0][1]["fields"][0] = ("nomination_url", "STATE")
         if obj.site_id == 4:
             fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
 
@@ -1878,6 +1884,16 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     # list_filter = ["created_at", "updated_at", "is_confirmed"]
     search_fields = ["name_en", "name_mi"]
     list_editable = ["role", "name_en", "name_mi"]
+    # date_hierarchy = "created_at"
+
+
+@admin.register(models.RoleType)
+class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["name", "name_en", "name_mi"]
+    search_fields = ["name_en", "name_mi"]
+    # list_editable = ["role", "name_en", "name_mi"]
     # date_hierarchy = "created_at"
 
 

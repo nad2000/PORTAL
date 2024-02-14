@@ -24,7 +24,7 @@ from simple_history.models import HistoricalRecords
 from common.models import HelperMixin, PersonMixin, Title
 
 
-class User(HelperMixin, AbstractUser, PersonMixin):
+class User(HelperMixin, PersonMixin, AbstractUser):
     # title = CharField(max_length=40, null=True, blank=True, choices=TITLES)
     title = ForeignKey(
         Title,
