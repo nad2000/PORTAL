@@ -676,7 +676,13 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
             return False
 
     filter_horizontal = ["ethnicities", "languages_spoken", "iwi_groups"]
-    search_fields = ["user__username", "code", "user__email", "user__first_name", "user__last_name"]
+    search_fields = [
+        "user__username",
+        "code",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+    ]
     list_display = ["code", "user", "full_name_with_email", "created_at"]
     list_filter = ["created_at", "updated_at"]
 
@@ -705,17 +711,37 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 
     parameter_name = "is_active_round"
 
+    def get_facet_counts(self, pk_attname, filtered_qs):
+
+        return {
+            "ACTIVE__c": models.Count(
+                pk_attname,
+                filter=Q(round__scheme__current_round__id=F("round_id")),
+            ),
+            "PREVIOUS__c": models.Count(
+                pk_attname,
+                filter=~Q(round__scheme__current_round__id=F("round_id")),
+            ),
+            "All__c": models.Count(pk_attname),
+        }
+
     def choices(self, changelist):
+
+        add_facets = changelist.add_facets
+        facet_counts = self.get_facet_queryset(changelist) if add_facets else None
+
         yield {
             "selected": self.value() == "ACTIVE" or self.value() is None,
             "query_string": changelist.get_query_string(remove=[self.parameter_name]),
-            "display": "ACTIVE",
+            "display": f"ACTIVE ({facet_counts['ACTIVE__c']})" if add_facets else "ACTIVE",
         }
         for lookup, title in self.lookup_choices:
+            v = self.value()
+            c = facet_counts and facet_counts.get(f"{lookup}__c", 0)
             yield {
-                "selected": self.value() == str(lookup),
+                "selected": v == str(lookup),
                 "query_string": changelist.get_query_string({self.parameter_name: lookup}),
-                "display": title,
+                "display": f"{title} ({c})" if add_facets else title,
             }
 
     def lookups(self, request, model_admin):
@@ -801,7 +827,7 @@ class ApplicationAdmin(
         "org",
     ]
     # summernote_fields = ["summary"]
-    exclude = ["summary", "Summary_en", "summary_mi", "is_bilingual_summary", "site"]
+    exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
 
     def complete(self, obj):
         return obj.state == "submitted" or obj.state == "archive"
