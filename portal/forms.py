@@ -1206,8 +1206,9 @@ class ContractForm(forms.ModelForm):
     part_fields = (
         # ("research_aims", DOCUMENT_ROLES.AIMS),
         # ("project_timeline", DOCUMENT_ROLES.PT),
-        ("proposal_budget", DOCUMENT_ROLES.PB),
-        ("award_budget", DOCUMENT_ROLES.AB),
+        # ("proposal_budget", DOCUMENT_ROLES.PB),
+        # ("award_budget", DOCUMENT_ROLES.AB),
+        ("budget", DOCUMENT_ROLES.B),
         ("ethics_statement", DOCUMENT_ROLES.E),
     )
     not_applicable = forms.BooleanField(label=_("Not Applicable"), required=False)
@@ -1256,14 +1257,21 @@ class ContractForm(forms.ModelForm):
     #     ),
     # )
 
-    proposal_budget = FileField(
-        required=False,
-        widget=forms.ClearableFileInput(
-            attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
-        ),
-    )
+    # proposal_budget = FileField(
+    #     required=False,
+    #     widget=forms.ClearableFileInput(
+    #         attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+    #     ),
+    # )
 
-    award_budget = FileField(
+    # award_budget = FileField(
+    #     required=False,
+    #     widget=forms.ClearableFileInput(
+    #         attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+    #     ),
+    # )
+
+    budget = FileField(
         required=False,
         widget=forms.ClearableFileInput(
             attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
@@ -1462,6 +1470,11 @@ class ContractForm(forms.ModelForm):
             # self.fields["involves_childeren"].disabled = True
             # self.fields["has_child_protection"].disabled = True
 
+        proposal_budget_file = (
+            pb.file
+            if application and (pb := application.documents.filter(document_type__role="B").last())
+            else initial.get("proposal_budget")
+        )
         self.helper = FormHelper(self)
         tabs = [
             # Tab(
@@ -1590,24 +1603,50 @@ class ContractForm(forms.ModelForm):
                     ),
                     css_id="allocations",
                 ),
-                Field("proposal_budget"),
+                # Field("proposal_budget"),
+                Fieldset(
+                    None, 
+                    HTML(f"""<div class="input-group mb-2">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">{_("Proposal Budget")}</span>
+                        </div>
+                        <div class="form-control d-flex h-auto">
+                            <span class="text-break" style="flex-grow:1;min-width:0">
+                            <a href="{proposal_budget_file.url}">
+                                {os.path.basename(proposal_budget_file.name)}
+                            </a>
+                            </span>
+                        </div>
+                    </div>"""),
+                    # Submit(
+                    #     "copy_proposal_budget",
+                    #     _("Copy"),
+                    #     css_class="btn-primary float-right",
+                    #     data_document_action="copy_proposal_budget",
+                    #     # data_document_role="PB",
+                    #     data_document_role="PB",
+                    # ),
+                ) if proposal_budget_file else None,
                 Fieldset(
                     None,
-                    Field("award_budget", label=""),
+                    # Field("award_budget", label=""),
+                    Field("budget", label=""),
                     ButtonHolder(
                         Submit(
                             "request_budget_correction",
                             _("Request Correction"),
                             css_class="btn-primary",
                             data_document_action="request_correction",
-                            data_document_role="PB",
+                            # data_document_role="PB",
+                            data_document_role="B",
                         ),
                         Submit(
                             "approve_budget",
                             _("Awaiting Approval"),
                             css_class="btn-secondary",
                             data_document_action="awaiting_approval",
-                            data_document_role="AB",
+                            # data_document_role="AB",
+                            data_document_role="B",
                         ),
                         css_class="float-right",
                     ),

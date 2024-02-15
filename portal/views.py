@@ -3301,13 +3301,21 @@ class ContractViewMixin:
             initial = []
         else:
             a = self.application
+            pi, _ = models.RoleType.objects.get_or_create(
+                code="PI",
+                defaults={
+                    "name": "Principal Investigator",
+                    "description": "Principal Investigator",
+                },
+            )
+
             initial = [
                 dict(
                     email=a.email or a.submitted_by.email,
                     first_name=a.first_name or a.submitted_by and a.submitted_by.first_name,
                     middle_names=a.middle_names,
                     last_name=a.last_name or a.submitted_by and a.submitted_by.last_name,
-                    role="PI",
+                    role=pi.code,
                     user=a.submitted_by,
                 ),
                 *[
@@ -3617,7 +3625,8 @@ class ContractViewMixin:
                         messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
                 elif document_action == "request_correction":
                     d.save_draft(
-                        request=self.request, description=resolution or f"requested corrections by {u}"
+                        request=self.request,
+                        description=resolution or f"requested corrections by {u}",
                     )
                 if previous_state != d.state:
                     d.save()
@@ -3755,7 +3764,7 @@ class ContractCreate(ContractViewMixin, CreateView):
         if project_timeline := a.documents.filter(document_type__role="PT").last():
             initial["project_timeline"] = project_timeline.file
         if proposal_budget := a.budget and a or a.documents.filter(document_type__role="B").last():
-            initial["proposal_budget"] = a.budget or proposal_budget.file
+            initial["budget"] = initial["proposal_budget"] = a.budget or proposal_budget.file
         return initial
 
         # u = self.request.user
