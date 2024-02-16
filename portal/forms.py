@@ -1211,9 +1211,18 @@ class ContractForm(forms.ModelForm):
         ("budget", DOCUMENT_ROLES.B),
         ("ethics_statement", DOCUMENT_ROLES.E),
     )
-    not_applicable = forms.BooleanField(label=_("Not Applicable"), required=False)
-    not_applicable_comment = forms.CharField(
-        label=_("Comment"), widget=forms.Textarea, required=False
+    # not_applicable = forms.BooleanField(label=_("Not Applicable"), required=False)
+    # not_applicable_comment = forms.CharField(
+    #     label=_("Comment"), widget=forms.Textarea, required=False
+    # )
+    requires_approval_comment = forms.CharField(
+        label=_("Comment"), widget=forms.Textarea, required=True
+    )
+    requires_approval = forms.ChoiceField(
+        choices=[(True, _("Yes")), (False, _("No"))],
+        widget=forms.RadioSelect,
+        required=True,
+        label=gettext_lazy("Does your research require ethical and regulatory approval?"),
     )
     has_animal_use = forms.ChoiceField(
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
@@ -1383,9 +1392,19 @@ class ContractForm(forms.ModelForm):
         disabled_compliance = not (is_pi or is_ro)
         compliance_fields.extend(
             [
-                Field("ethics_statement", label=_("Ethics Statement")),
-                "not_applicable",
-                "not_applicable_comment",
+                # Field("ethics_statement", label=_("Ethics Statement")),
+                Field(
+                    "requires_approval",
+                    data_toggle="toggle",
+                    template="portal/toggle.html",
+                    data_on=_("No"),
+                    data_off=_("Yes"),
+                    data_onstyle="success",
+                    data_offstyle="danger",
+                ),
+                # "not_applicable",
+                # "not_applicable_comment",
+                "requires_approval_comment",
             ]
         )
         if not disabled_compliance:

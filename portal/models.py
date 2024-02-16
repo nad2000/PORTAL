@@ -6377,6 +6377,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     abstract = TextField(blank=True, null=True)
     completed_on = DateField(blank=True, null=True)
 
+    requires_approval = BooleanField(
+        _("ethical and regulatory approval is required"),
+        # null=True,
+        # blank=True,
+        help_text=_("Does your research require ethical and regulatory approval?"),
+    )
+    requires_approval_comment = TextField(null=True, blank=True)
     has_animal_use = BooleanField(
         _("has animal use"),
         null=True,

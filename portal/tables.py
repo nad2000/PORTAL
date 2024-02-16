@@ -97,9 +97,10 @@ class StateColumn(tables.Column):
             title = _("The invitation was created")
 
         if state_changed_at := getattr(record, "state_changed_at", None):
-            title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
-                state_changed_at.isoformat(),
-                state_changed_at.strftime('%d-%m-%Y %H:%m'))}"""
+            # title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
+            #     state_changed_at.isoformat(),
+            #     state_changed_at.strftime('%d-%m-%Y %H:%m'))}"""
+            title += f""" {_("(the state updated at %s)") % state_changed_at.strftime('%d-%m-%Y %H:%m')}"""
 
         return mark_safe(
             f'<i class="{css_classes}" aria-hidden="true" data-toggle="tooltip" data-html="true" title="{title}"></i>'
