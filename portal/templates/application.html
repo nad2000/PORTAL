@@ -149,15 +149,15 @@
                                           });
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {
-                                if (!($(this).prop('checked'))) {
-                                  $("#members").hide();
-                                  $("#submitter legend").text("{% trans 'Individual applicant' %}");
-                                  $("a[href='#applicant']").text("{% trans 'Applicant' %}");
-                                } else {
-                                  $("#members").show()
-                                  $("#submitter legend").text("{% trans 'Team representative' %}");
-                                  $("a[href='#applicant']").text("{% trans 'Team' %}");
-                                };
+                                  if (!($(this).prop('checked'))) {
+                                    $("#members").hide();
+                                    $("#submitter legend").text("{% trans 'Individual applicant' %}");
+                                    $("a[href='#applicant']").text("{% trans 'Applicant' %}");
+                                  } else {
+                                    $("#members").show()
+                                    $("#submitter legend").text("{% trans 'Team representative' %}");
+                                    $("a[href='#applicant']").text("{% trans 'Team' %}");
+                                  };
                                 });
                                 $('#id_et-not_relevant').change(function() {
                                             if ($(this).is(':checked')) {

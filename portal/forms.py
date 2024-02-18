@@ -1397,13 +1397,35 @@ class ContractForm(forms.ModelForm):
                     "requires_approval",
                     data_toggle="toggle",
                     template="portal/toggle.html",
-                    data_on=_("No"),
-                    data_off=_("Yes"),
+                    data_on=_("Yes"),
+                    data_off=_("No"),
                     data_onstyle="success",
-                    data_offstyle="danger",
+                    data_offstyle="warning",
                 ),
                 # "not_applicable",
                 # "not_applicable_comment",
+                not disabled_compliance
+                and HTML(
+                    '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
+                    % (
+                        (
+                            _(
+                                "Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
+                                "(Please provide serial number, type of approval and date received)"
+                            )
+                            if instance.requires_approval
+                            else _(
+                                "Please provide brief reason why ethical or regulatory approval is not required."
+                            )
+                        )
+                        if instance and instance.pk
+                        else _(
+                            "If YES, please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
+                            "(Please provide serial number, type of approval and date received) "
+                            "if NOT, please provide brief reason why ethical or regulatory approval is not required."
+                        )
+                    )
+                ),
                 "requires_approval_comment",
             ]
         )
@@ -1622,10 +1644,11 @@ class ContractForm(forms.ModelForm):
                     ),
                     css_id="allocations",
                 ),
-                # Field("proposal_budget"),
-                Fieldset(
-                    None, 
-                    HTML(f"""<div class="input-group mb-2">
+                (
+                    # Field("proposal_budget"),
+                    Fieldset(
+                        None,
+                        HTML(f"""<div class="input-group mb-2">
                         <div class="input-group-prepend">
                             <span class="input-group-text">{_("Proposal Budget")}</span>
                         </div>
@@ -1637,15 +1660,18 @@ class ContractForm(forms.ModelForm):
                             </span>
                         </div>
                     </div>"""),
-                    # Submit(
-                    #     "copy_proposal_budget",
-                    #     _("Copy"),
-                    #     css_class="btn-primary float-right",
-                    #     data_document_action="copy_proposal_budget",
-                    #     # data_document_role="PB",
-                    #     data_document_role="PB",
-                    # ),
-                ) if proposal_budget_file else None,
+                        # Submit(
+                        #     "copy_proposal_budget",
+                        #     _("Copy"),
+                        #     css_class="btn-primary float-right",
+                        #     data_document_action="copy_proposal_budget",
+                        #     # data_document_role="PB",
+                        #     data_document_role="PB",
+                        # ),
+                    )
+                    if proposal_budget_file
+                    else None
+                ),
                 Fieldset(
                     None,
                     # Field("award_budget", label=""),

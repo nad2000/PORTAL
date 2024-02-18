@@ -8,6 +8,7 @@
 {% block css %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
+<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 <style>
 #div_id_title span.select2-selection--single {height: 42px;}
 </style>
@@ -85,6 +86,7 @@
 <!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
   <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
   <script src="{% static 'js/project.js' %}"></script>
   <script>
     var doc_role = null;
@@ -213,6 +215,15 @@
       // $('#id_resolution_modal').on('shown.bs.modal', function () {$('#id_resolution').focus();});
       // $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('input:visible:enabled:first', this).focus();});
       $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('textarea:visible:enabled:first', this).focus();});
+      $('#id_requires_approval').change(function() {
+        if (!($(this).prop('checked'))) {
+          $("#id_requires_approval_comment_help").text(
+            "{% trans 'Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. (Please provide serial number, type of approval and date received)' %}");
+        } else {
+          $("#id_requires_approval_comment_help").text(
+            "{% trans 'Please provide brief reason why ethical or regulatory approval is not required.' %}");
+        };
+      });
     });
   </script>
 {% endblock %}
