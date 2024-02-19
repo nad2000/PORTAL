@@ -6517,6 +6517,50 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
+    def get_cover_page(self, request=None, user=None, format="html"):
+
+        year = self.year or self.start_date.year
+        template = get_template("contract_cover_page.html")
+        # template = get_template("contract_schedule.fodt")
+        current_ts = timezone.now()
+        contract = self
+        user = request and request.user
+        return template.render(locals())
+
+        # pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
+        # fields = {
+        #     "START_DATE": self.start_date.strftime("%d %B, %Y"),
+        #     "END_DATE": self.end_date and self.end_date.strftime("%d %B, %Y"),
+        #     "PROJECT_TITLE": self.project_title,
+        #     # "TITLE": pi.title and pi.title.name or "",
+        #     "TITLE": "Dr.",
+        #     "FIRSTNAME": pi.first_name,
+        #     # "MIDDLE_INITIALS": pi.middle_name_initials,
+        #     "LASTNAME": pi.last_name,
+        #     "LEGALNAME": self.org.name,
+        #     "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
+        # }
+        # schedule_output_path = self.get_schedule_part_odt(request=request)
+        # with open(Path.home() / "Documents" / "RDF contract template.odt", "rb") as infile, open(
+        #     Path.home() / "Documents" / "output.odt", "wb"
+        # ) as outfile:
+        #     o = OOoPy(infile=infile, outfile=outfile)
+        #     t = Transformer(
+        #         o.mimetype,
+        #         Transforms.get_meta(o.mimetype),
+        #         Transforms.Editinfo(),
+        #         Transforms.Field_Replace(replace=fields),
+        #         Transforms.Fix_OOo_Tag(),
+        #         Transforms.Concatenate(schedule_output_path),
+        #         Transforms.renumber_all(o.mimetype),
+        #         Transforms.set_meta(o.mimetype),
+        #         Transforms.Fix_OOo_Tag(),
+        #         Transforms.Manifest_Append(),
+        #     )
+        #     t.transform(o)
+        #     o.close()
+
+
     def get_schedule_part_odt(
         self, request=None, user=None, add_headers=None, skip_excluded=False
     ):

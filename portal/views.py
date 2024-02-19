@@ -3504,6 +3504,10 @@ class ContractViewMixin:
     #     breakpoint()
     #     return super().post(*args, **kwargs)
 
+    def form_invalid(self, form):
+        breakpoint()
+        return super().form_invalid(form)
+
     def form_valid(self, form):
         a = self.application
         u = self.request.user
@@ -5574,8 +5578,11 @@ class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
     def get_metadata(self, pk):
         return {"/Title": f"{self.model.get(pk)}"}
 
+    def get_object_or_404(self, pk):
+        return get_object_or_404(self.model, pk=pk)
+
     def get_objects(self, pk):
-        return [self.model.get(id=pk)]
+        return [self.get_object_or_404(pk)]
 
     def get_attachments(self, pk):
         return []
@@ -5641,8 +5648,7 @@ class ApplicationExportView(ExportView):
         )
 
     def get_objects(self, pk):
-        app = self.model.get(id=pk)
-        objects = [app]
+        objects = super().get_objects(pk)
         testimonials = app.get_testimonials()
         objects.extend(testimonials)
         return objects
@@ -5700,7 +5706,14 @@ class ContractExportView(ExportView):
         return True
 
     def get(self, request, pk):
-        c = self.model.get(pk)
+        c = self.get_object_or_404(pk)
+        format = request.GET.get("format")
+        part = request.GET.get("part")
+        if part and "cover" in part.lower():
+            return HttpResponse(
+                c.get_cover_page(request=self.request, format=format or "html"), content_type="text/html; charset=utf-8"
+            )
+
         if request.GET.get("format") == "odt":
             c.to_odt(request=request)
         else:

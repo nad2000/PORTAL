@@ -144,9 +144,7 @@
                                             CANCEL  : 'Whakakore',
                                             CONFIRM : 'Whakaū'
                                           });
-                                bootbox.setDefaults({
-                                            locale: "{{ LANGUAGE_CODE }}"
-                                          });
+                                bootbox.setDefaults({locale: "{{ LANGUAGE_CODE }}"});
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {
                                   if (!($(this).prop('checked'))) {

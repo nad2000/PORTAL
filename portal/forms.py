@@ -1216,14 +1216,14 @@ class ContractForm(forms.ModelForm):
     #     label=_("Comment"), widget=forms.Textarea, required=False
     # )
     requires_approval_comment = forms.CharField(
-        label=_("Comment"), widget=forms.Textarea, required=True
+        label=_("Comment"), widget=forms.Textarea,
+        # required=True
     )
-    requires_approval = forms.ChoiceField(
-        choices=[(True, _("Yes")), (False, _("No"))],
-        widget=forms.RadioSelect,
-        required=True,
-        label=gettext_lazy("Does your research require ethical and regulatory approval?"),
-    )
+    # requires_approval = forms.ChoiceField(
+    #     choices=[(True, _("Yes")), (False, _("No"))],
+    #     # required=True,
+    #     label=gettext_lazy("Does your research require ethical and regulatory approval?"),
+    # )
     has_animal_use = forms.ChoiceField(
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
@@ -1323,9 +1323,9 @@ class ContractForm(forms.ModelForm):
                 part = instance.documents.filter(document_type__role=dr).last()
                 if part:
                     initial[fn] = part.file
-            if es := models.ContractEthicsStatement.where(contract=instance).last():
-                initial["not_applicable"] = es.not_relevant or False
-                initial["not_applicable_comment"] = es.comment or ""
+            # if es := models.ContractEthicsStatement.where(contract=instance).last():
+            #     initial["not_applicable"] = es.not_relevant or False
+            #     initial["not_applicable_comment"] = es.comment or ""
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -1462,10 +1462,10 @@ class ContractForm(forms.ModelForm):
                 InlineRadios("has_child_protection"),
             ]
         )
-        if instance and instance.pk:
-            es = models.ContractEthicsStatement.where(contract=instance).last()
-            if es and es.not_relevant:
-                self.fields["not_applicable_comment"].required = True
+        # if instance and instance.pk:
+        #     es = models.ContractEthicsStatement.where(contract=instance).last()
+        #     if es and es.not_relevant:
+        #         self.fields["not_applicable_comment"].required = True
 
         if disabled_compliance:
             self.fields["ethics_statement"].disabled = True
@@ -1473,8 +1473,10 @@ class ContractForm(forms.ModelForm):
             self.fields["is_signatory_to_oa"].disabled = True
             self.fields["involves_childeren"].disabled = True
             self.fields["has_child_protection"].disabled = True
-            self.fields["not_applicable"].disabled = True
-            self.fields["not_applicable_comment"].disabled = True
+            self.fields["requires_approval"].disabled = True
+            self.fields["requires_approval_comment"].disabled = True
+            # self.fields["not_applicable"].disabled = True
+            # self.fields["not_applicable_comment"].disabled = True
             compliance_fields.append(
                 Fieldset(
                     None,
