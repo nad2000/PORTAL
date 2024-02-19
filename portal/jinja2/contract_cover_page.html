@@ -1,0 +1,91 @@
+{%- set c=contract -%}
+{%- set a=c.application -%}
+{%- set application_number=a.number -%}
+{%- set fund=c.fund -%}
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>{{ c }}</title>
+<meta name="generator" content="RFDA PORTAL"/>
+<meta name="author" content="{{ user.full_name_with_email }}"/>
+<meta name="created" content="{{ current_ts.isoformat() }}"/>
+<meta name="changedby" content="{{ user.full_name_with_email }}"/>
+<meta name="changed" content="{{ current_ts.isoformat() }}"/>
+<style type="text/css">
+@page, @page WordSection1 { /* size: "A4"; */ size: 21cm 29.7cm; margin: 1cm 1cm 1cm 2cm }
+/* @page { size: 21cm 29.7cm; margin: 2cm; } */
+/* @page { size: 21cm 29.7cm; margin-left: 2.54cm; margin-right: 2.54cm; margin-top: 1.19cm; margin-bottom: 1.19cm } */
+/* p { line-height: 115%; margin-bottom: 0.25cm; background: transparent } */
+p { line-height: 115%; text-align: left; orphans: 2; widows: 2; margin-bottom: 0.25cm; direction: ltr; background: transparent }
+p.western { font-family: "Arial", serif; so-language: en-NZ }
+p.ctl { font-family: "Times New Roman"; font-size: 10pt }
+h1 { line-height: 120%; text-align: left; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent }
+h1.western { font-family: "Arial", serif; font-size: 12pt; so-language: en-NZ; font-weight: bold }
+h1.cjk { font-size: 12pt; font-weight: bold }
+h1.ctl { font-family: "Georgia-BoldItalic"; font-size: 26pt; font-style: italic; font-weight: bold }
+h2 { line-height: 100%; text-align: left; orphans: 2; widows: 2; margin-top: 0.2cm; margin-bottom: 0cm; direction: ltr; background: transparent }
+h2.western { font-family: "Arial", serif; so-language: en-AU; font-weight: bold }
+h2.cjk { font-weight: bold }
+h2.ctl { font-family: "Times New Roman"; font-size: 14pt }
+h3 { line-height: 100%; text-align: justify; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent }
+h3.western { font-family: "Arial", serif; so-language: en-NZ; font-weight: normal }
+h3.cjk { font-weight: normal }
+h3.ctl { font-family: "Times New Roman"; font-size: 12pt; so-language: en-US }
+h4 { line-height: 100%; text-align: left; orphans: 2; widows: 2; text-indent: -1.27cm; margin-left: 2.54cm; margin-bottom: 0.11cm; direction: ltr; background: transparent; page-break-after: avoid }
+h4.western { font-family: "Arial", serif; so-language: en-NZ }
+h4.ctl { font-family: "Times New Roman"; font-size: 10pt }
+a:link { color: #0000ff; text-decoration: underline }
+a.sdfendnotesym-western { font-family: "Arial", serif }
+p.MsoNormal, li.MsoNormal, div.MsoNormal {margin:0in; font-size:10.0pt; font-family:"Arial",sans-serif}
+.MsoChpDefault {font-size:10.0pt}
+.MsoPapDefault {margin-bottom:8.0pt; line-height:106%}
+div.WordSection1 {page:WordSection1}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {padding: 8px;}
+tr:nth-child(even) {background-color: #f2f2f2;}
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th {
+  text-align: center;
+  vertical-align: bottom;
+}
+</style>
+</head>
+
+<html>
+<head>
+<style></style>
+
+</head>
+
+<body lang="en-NZ" link="#0000ff" vlink="#800000" dir="ltr" style='word-wrap:break-word'>
+
+<div class=WordSection1>
+
+<p class=MsoNormal><b><span style='font-size:12.0pt'>DATED</span></b><span style='font-size:12.0pt'>{{ c and c.start_date.strftime("%d/%m/%Y") or year }}</span></p>
+
+<p class=MsoNormal align=center style='margin-top:2.5in;margin-right:0in; margin-bottom:60.0pt;margin-left:0in;text-align:center'><b><span
+ style='font-size:16.0pt'>AGREEMENT FOR FUNDING FOR {% if fund %}{{ fund.description|upper }}{% else %}
+   {% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}</span></b></p>
+
+<p class=MsoNormal align=center style='margin-top:120.0pt;text-align:center'><b><span
+style='font-size:12.0pt'>THE ROYAL SOCIETY OF NEW ZEALAND<br>
+And<br>{{ c.org.name }}</span></b></p>
+
+<p class=MsoNormal align=center style='margin-top:240.0pt;text-align:center'><b>Agreement number: {{ c.number }}</b></p>
+
+</div>
+
+</body>
+
+</html>
