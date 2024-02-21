@@ -5709,9 +5709,10 @@ class ContractExportView(ExportView):
         c = self.get_object_or_404(pk)
         format = request.GET.get("format")
         part = request.GET.get("part")
-        if part and "cover" in part.lower():
+        if part:
             return HttpResponse(
-                c.get_cover_page(request=self.request, format=format or "html"), content_type="text/html; charset=utf-8"
+                c.get_part(request=self.request, format=format or "html", part=part),
+                content_type="text/html; charset=utf-8",
             )
 
         if request.GET.get("format") == "odt":

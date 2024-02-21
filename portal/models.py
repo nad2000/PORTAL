@@ -6517,6 +6517,26 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
+    def get_part(self, request=None, user=None, format="html", part=None):
+        """Returns generated part of the contract text from a template"""
+
+        year = self.year or self.start_date.year
+        if part:
+            if "cover" in part:
+                template_name = "contracts/cover_page.html"
+            elif "background" in part:
+                template_name = "contracts/background.html"
+            elif "agreement" in part:
+                template_name = "contracts/agreement.html"
+            elif "schedule" in part:
+                template_name = "contracts/schedule.html"
+
+            template = get_template(template_name)
+            current_ts = timezone.now()
+            contract = self
+            user = request and request.user
+            return template.render(locals())
+
     def get_cover_page(self, request=None, user=None, format="html"):
 
         year = self.year or self.start_date.year

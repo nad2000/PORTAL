@@ -1,68 +1,71 @@
-{%- set c=contract -%}
-{%- set a=c.application -%}
-{%- set application_number=a.number -%}
-<!DOCTYPE html>
-<html>
-  <head>
-    <style>
-<meta charset="utf-8">
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>{{ c }}</title>
-<meta name="generator" content="RFDA PORTAL"/>
-<meta name="author" content="{{ user.full_name_with_email }}"/>
-<meta name="created" content="{{ current_ts.isoformat() }}"/>
-<meta name="changedby" content="{{ user.full_name_with_email }}"/>
-<meta name="changed" content="{{ current_ts.isoformat() }}"/>
-<style type="text/css">
-/* @page { size: 21cm 29.7cm; margin: 2cm; } */
-/* @page { size: 21cm 29.7cm; margin-left: 2.54cm; margin-right: 2.54cm; margin-top: 1.19cm; margin-bottom: 1.19cm } */
-/* p { line-height: 115%; margin-bottom: 0.25cm; background: transparent } */
-p { line-height: 115%; text-align: left; orphans: 2; widows: 2; margin-bottom: 0.25cm; direction: ltr; background: transparent }
-p.western { font-family: "Arial", serif; so-language: en-NZ }
-p.ctl { font-family: "Times New Roman"; font-size: 10pt }
-h1 { line-height: 120%; text-align: left; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent }
-h1.western { font-family: "Arial", serif; font-size: 12pt; so-language: en-NZ; font-weight: bold }
-h1.cjk { font-size: 12pt; font-weight: bold }
-h1.ctl { font-family: "Georgia-BoldItalic"; font-size: 26pt; font-style: italic; font-weight: bold }
-h2 { line-height: 100%; text-align: left; orphans: 2; widows: 2; margin-top: 0.2cm; margin-bottom: 0cm; direction: ltr; background: transparent }
-h2.western { font-family: "Arial", serif; so-language: en-AU; font-weight: bold }
-h2.cjk { font-weight: bold }
-h2.ctl { font-family: "Times New Roman"; font-size: 14pt }
-h3 { line-height: 100%; text-align: justify; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent }
-h3.western { font-family: "Arial", serif; so-language: en-NZ; font-weight: normal }
-h3.cjk { font-weight: normal }
-h3.ctl { font-family: "Times New Roman"; font-size: 12pt; so-language: en-US }
-h4 { line-height: 100%; text-align: left; orphans: 2; widows: 2; text-indent: -1.27cm; margin-left: 2.54cm; margin-bottom: 0.11cm; direction: ltr; background: transparent; page-break-after: avoid }
-h4.western { font-family: "Arial", serif; so-language: en-NZ }
-h4.ctl { font-family: "Times New Roman"; font-size: 10pt }
-a:link { color: #0000ff; text-decoration: underline }
-a.sdfootnotesym-western { font-family: "Arial", serif }
-a.sdendnotesym-western { font-family: "Arial", serif }
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-th, td {padding: 8px;}
-    tr:nth-child(even) {background-color: #f2f2f2;}
-    table, th, td {
-      border: 1px solid black;
-      border-collapse: collapse;
-    }
-    th {
-      text-align: center;
-      vertical-align: bottom;
-    }
-</style>
-  </head>
-  <body lang="en-NZ" link="#0000ff" vlink="#800000" dir="ltr">
-    <h1 class="western" style="page-break-before: always">SCHEDULE</h1>
-    <p>
-    Programme Contract Number: <strong>{{ c.number }}</strong>
-    </p>
+{% extends "contracts/base.html" %}
+{% block content %}
+  <a name="_Toc_schedule_240101001">
+  <h1 class="western" style="page-break-before: always">
+  SCHEDULE<br>
+ {% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
+  </h1>
+  </a>
+    <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
+
     <p>
     Programme Title: <strong>{{ c.project_title }}</strong>
     </p>
     <ol>
+
+      <li><h2>Key dates</h2>
+        <dl><dd>
+<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624
+ style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+ <tr>
+  <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+    <b>Start Date of Agreement</b></p>
+  </td>
+  <td width=340 valign=top style='width:255.15pt;border:solid windowtext 1.0pt;
+  border-left:none;padding:0in 5.4pt 0in 5.4pt'>
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+      <b>
+      {{ c.start_date.strftime("%d %B, %Y") }}
+      </b>
+    </p>
+  </td>
+ </tr>
+ <tr>
+  <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt;
+  border-top:none;padding:0in 5.4pt 0in 5.4pt'>
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+    <b>Date by which the Programme must start</b></p>
+  </td>
+  <td width=340 valign=top style='width:255.15pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>No later than
+  six months after the Start Date of the Agreement (unless otherwise agreed by
+  the parties)</p>
+  </td>
+ </tr>
+ <tr style='height:4.15pt'>
+  <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt;
+  border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+  <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Completion
+  Date </b></p>
+  </td>
+  <td width=340 valign=top style='width:255.15pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+    <b>
+      {% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") if c.end_data else '' }}{% else %}&nbsp;{% endif %}
+    </b>
+    </p>
+  </td>
+ </tr>
+</table>
+          </dd></dl>
+      </li>
+
       <li>Application Number: <strong>{{ a.number }}</strong></li>
       <li>Total approved funding and payment process:<br/>
         <dl><dd>
@@ -86,7 +89,7 @@ th, td {padding: 8px;}
           </dd></dl>
       </li>
       <li>Start Date: <strong>{{ c.start_date.strftime("%d %B, %Y") }}</strong></li>
-      <li>Competion Date: <strong>{{ c.start_date.strftime("%d %B, %Y") }}</strong></li>
+      <li>Competion Date: <strong>{% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") if c.end_data else '' }}{% else %}&nbsp;{% endif %}</strong></li>
       <li>Reporting dates:
 
         <table border="1" cellpadding="5" cellspacing="0" with="100%">
@@ -149,5 +152,4 @@ th, td {padding: 8px;}
       </table>
       </font>
     </div>
-  </body>
-</html>
+{% endblock %}
