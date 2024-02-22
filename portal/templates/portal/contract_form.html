@@ -218,10 +218,10 @@
       $('#id_requires_approval').change(function() {
         if (!($(this).prop('checked'))) {
           $("#id_requires_approval_comment_help").text(
-            "{% trans 'Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. (Please provide serial number, type of approval and date received)' %}");
+            "{% trans 'Please provide brief reason why ethical or regulatory approval is not required.' %}");
         } else {
           $("#id_requires_approval_comment_help").text(
-            "{% trans 'Please provide brief reason why ethical or regulatory approval is not required.' %}");
+            "{% trans 'Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. (Please provide serial number, type of approval and date received)' %}");
         };
       });
     });

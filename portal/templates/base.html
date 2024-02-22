@@ -19,7 +19,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     {#% if domain == "international.royalsociety.org.nz" %#}
-    {% if SITE_ID == 3 or SITE_ID == 4 %}
+    {% if SITE_ID == 3 or SITE_ID == 4 or SITE_ID == 5 %}
       <link rel="icon" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
       <link rel="SHORTCUT ICON" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
 	<link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/stlp.royalsociety.org.nz/favicons/RS/logoBandTransparentSquareNoWriting__ScaleWidthWzMyXQ.png' %}">
@@ -72,8 +72,8 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
       {#% if domain == "international.royalsociety.org.nz" %#}
-      {% if SITE_ID == 4 %}
-        <link href="{% static 'css/mpp.royalsociety.org.nz.css' %}" rel="stylesheet">
+      {% if SITE_ID == 4 or SITE_ID == 5 %}
+        <link href="{% static 'css/npp.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 3 %}
         <link href="{% static 'css/stlp.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 2 %}
@@ -170,13 +170,15 @@ table.table .asteriskField,.popover-header {color: gray;}
                           {% elif SITE_ID == 3 %}
                             data-toggle="tooltip" title="About Science Teaching Leadership Programme"
                           {% elif SITE_ID == 4 %}
-                            data-toggle="tooltip" title="About Ngā Puanga Pūtaiao Fellowships" {% endif %}
-                        >
+                            data-toggle="tooltip" title="About Ngā Puanga Pūtaiao Fellowships"
+                          {% elif SITE_ID == 5 %}
+                            data-toggle="tooltip" title="About The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships"
+                          {% endif %}>
                           <i class="fas fa-trophy"></i>
                           {% if SITE_ID == 1 %}
                             {% trans 'About the Prizes' %}
                           {% else %}
-                            {% trans 'About' %}
+                            {% trans 'About' %}{% if site_name %} {{ site_name }}{% endif %}
                           {% endif %}
                         </a>
                       </li>
