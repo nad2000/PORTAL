@@ -66,23 +66,38 @@
 
         <div class="footer-col footer-left col-sm-6">
           <div class="widget text-2 widget_text">
-            <div class="textwidget"><p>The Prime Minister’s Science Prizes is administered by the<br>
+          <div class="textwidget"><p>{% if SITE_ID == 1 %}The Prime Minister’s Science Prizes{% else %}{{ site_name }}{% endif %} is administered by the<br>
             <strong><a href="http://www.royalsociety.org.nz/">Royal Society Te Apārangi</a>.</strong></p>
             </div>
           </div>
           <div class="widget text-2 widget_text">
             <div class="textwidget"><p>{% trans 'Contact Us' %}:<br>
-            <strong><a href="https://www.pmscienceprizes.org.nz/contact-us/">https://www.pmscienceprizes.org.nz/contact-us/</a></strong></p>
+              <strong>
+                {% if SITE_ID == 1 %}
+                  <a href="https://www.pmscienceprizes.org.nz/contact-us/">https://www.pmscienceprizes.org.nz/contact-us/</a>
+                {% else %}
+                  <a href="https://www.royalsociety.org.nz/">https://www.royalsociety.org.nz</a>
+                {% endif %}
+              </strong></p>
             </div>
           </div>
         </div>
 
         <div class="footer-col footer-right col-sm-6">
           <div class="widget text-3 widget_text">
-            <div class="textwidget"><strong>The Prime Minister’s Science Prizes Secretariat</strong><br>
-              PO Box 598 |  Wellington 6001<br>
-              Tel: (04) 472 7421<br>
-              <a href="mailto:pmscienceprizes@royalsociety.org.nz">pmscienceprizes@royalsociety.org.nz</a>
+            <div class="textwidget">
+              {% if SITE_ID == 1 %}
+                <strong>The Prime Minister’s Science Prizes Secretariat</strong><br>
+                PO Box 598 | Wellington 6001<br>
+                Tel: (04) 472 7421<br>
+                <a href="mailto:pmscienceprizes@royalsociety.org.nz">pmscienceprizes@royalsociety.org.nz</a>
+              {% else %}
+                <strong>Royal Society Te Apārangi</strong><br>
+                11 Turnbull St<br>
+                Thorndon, Wellington 6011<br>
+                Aotearoa - New Zealand<br>
+                Tel: +64 4 472 7421
+              {% endif %}
             </div>
           </div>
         </div>
