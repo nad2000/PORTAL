@@ -154,7 +154,6 @@ class Migration(migrations.Migration):
                 (
                     "requires_approval",
                     models.BooleanField(
-                        default=True,
                         help_text="Does your research require ethical and regulatory approval?",
                         verbose_name="ethical and regulatory approval is required",
                     ),
@@ -732,7 +731,6 @@ class Migration(migrations.Migration):
                 (
                     "requires_approval",
                     models.BooleanField(
-                        default=True,
                         help_text="Does your research require ethical and regulatory approval?",
                         verbose_name="ethical and regulatory approval is required",
                     ),
@@ -1063,6 +1061,18 @@ class Migration(migrations.Migration):
                 ("code3", common.models.FixedCharField(blank=True, max_length=3, null=True)),
                 (
                     "description",
+                    models.TextField(
+                        blank=True, max_length=10000, null=True, verbose_name="description"
+                    ),
+                ),
+                (
+                    "description_en",
+                    models.TextField(
+                        blank=True, max_length=10000, null=True, verbose_name="description"
+                    ),
+                ),
+                (
+                    "description_mi",
                     models.TextField(
                         blank=True, max_length=10000, null=True, verbose_name="description"
                     ),
@@ -3947,6 +3957,20 @@ class Migration(migrations.Migration):
                 max_length=100,
                 no_check_for_status=True,
                 verbose_name="state",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalround",
+            name="guidelines",
+            field=models.CharField(
+                blank=True, max_length=400, null=True, verbose_name="guideline link URL"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="round",
+            name="guidelines",
+            field=models.CharField(
+                blank=True, max_length=400, null=True, verbose_name="guideline link URL"
             ),
         ),
     ]

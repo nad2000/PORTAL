@@ -1422,7 +1422,7 @@ class Fund(Model):
         _("Catalyst Cost Center"), null=True, blank=True
     )
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
-    history = HistoricalRecords(table_name="fund_history")
+    # history = HistoricalRecords(table_name="fund_history")
     objects = FundManager()
 
     def __str__(self):
@@ -4426,7 +4426,7 @@ class Round(Model):
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
-    guidelines = CharField(_("guideline link URL"), max_length=120, null=True, blank=True)
+    guidelines = CharField(_("guideline link URL"), max_length=400, null=True, blank=True)
     description = TextField(_("short description"), null=True, blank=True)
 
     has_title = BooleanField(_("can have a title"), default=False)

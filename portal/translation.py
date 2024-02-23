@@ -24,6 +24,9 @@ class FundTranslationOptions(TranslationOptions):
     fields = ("description",)
 
 
+simple_history.register(models.Fund, inherit=True, table_name="fund_history")
+
+
 @register(models.Title)
 class TitleTranslationOptions(TranslationOptions):
     fields = ("name",)
