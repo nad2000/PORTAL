@@ -1852,7 +1852,7 @@ class Migration(migrations.Migration):
                 to="portal.application",
             ),
         ),
-        migrations.AddField(
+        migrations.AlterField(
             model_name="historicalinvitation",
             name="state",
             field=portal.models.StateField(
