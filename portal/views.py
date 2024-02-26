@@ -4352,6 +4352,7 @@ class Unaccent(Func):
 
 
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return models.Title.objects.none()

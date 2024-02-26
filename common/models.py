@@ -301,12 +301,13 @@ class FixedCharField(models.Field):
 
 
 class Title(Model):
-    code = CharField(max_length=10, primary_key=True)
-    name = CharField(max_length=40)
+    code = CharField(max_length=10, primary_key=True, blank=False)
+    name = CharField(max_length=40, blank=False)
 
     def save(self, *args, **kwargs):
-        if self.code:
+        if not self.code or not self.cone.strip():
             self.code = self.name[:10].upper()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
