@@ -1,10 +1,27 @@
 {% extends "base.html" %}
 {% load static i18n cache django_bootstrap_breadcrumbs %}
-{% block title %}{% trans 'About the Prizes' %}{% endblock title %}
+{% block title %}
+{% if SITE_ID == 1 or not site_name %}
+  {% trans 'About the Prizes' %}
+{% elif not site_name %}
+  {% trans 'About the Protal' %}
+{% else %}
+  {% blocktrans with site_name=site_name %}
+    About {{ site_name }}
+  {% endblocktrans %}
+{% endif %}
+{% endblock title %}
 
 {% block breadcrumbs %}
   {{ block.super }}
-  {% breadcrumb "About the Prizes" "about" %}
+  {% if SITE_ID == 1 or not site_name %}
+    {% breadcrumb "About the Prizes" "about" %}
+  {% elif not site_name %}
+    {% breadcrumb "About the Portal" "about" %}
+  {% else %}
+    {% breadcrumb "About" "about" %}
+    {% breadcrumb site_name "about" %}
+  {% endif %}
 {% endblock %}
 
 {#% cache None about_content %#}
@@ -16,7 +33,7 @@
 
     <div class="col">
       <p>{% trans 'About has not yet been created.' %}</p>
-      
+
     {% if request.user.is_superuser or request.user.is_staff %}
       {% if perms.flatpages.change_flatpage %}
       <ul>
