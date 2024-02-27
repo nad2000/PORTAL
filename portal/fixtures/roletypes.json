@@ -1,0 +1,138 @@
+[
+  {
+    "model": "portal.roletype",
+    "pk": "AC",
+    "fields": {
+      "name": "Added collaborator",
+      "description": "For collaborators added during the course of the contract (not part of original proposal)"
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "AI",
+    "fields": {
+      "name": "Associate investigator",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "CC",
+    "fields": {
+      "name": "Cost Chair",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "CO",
+    "fields": {
+      "name": "Collaborator",
+      "description": "Collaborator which is part of original application"
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "CR",
+    "fields": {
+      "name": "Coordinator",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "DE",
+    "fields": {
+      "name": "Delegate",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "MT",
+    "fields": {
+      "name": "Mentor",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "NP",
+    "fields": {
+      "name": "New Zealand PI",
+      "description": "For New Zealand PI, if contract PI is an internation person"
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "OT",
+    "fields": {
+      "name": "Other",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "PD",
+    "fields": {
+      "name": "Postdoc",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "PG",
+    "fields": {
+      "name": "Postgraduate Student",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "PI",
+    "fields": {
+      "name": "Principal Investigator",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "RA",
+    "fields": {
+      "name": "Research assistant",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "SC",
+    "fields": {
+      "name": "Subcontractor",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "SP",
+    "fields": {
+      "name": "Sponsor",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "SU",
+    "fields": {
+      "name": "Supervisor",
+      "description": null
+    }
+  },
+  {
+    "model": "portal.roletype",
+    "pk": "WP",
+    "fields": {
+      "name": "Workshop Participant",
+      "description": null
+    }
+  }
+]

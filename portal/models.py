@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
-from functools import lru_cache, partial, wraps
+from functools import lru_cache, partial, wraps, cached_property
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -6489,6 +6489,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     @property
     def thread_topic(self):
         return f"{self._meta.model_name}:{self.number}"
+
+    @cached_property
+    def key_person(self):
+        return self.members.filter(role_id="PI").last()
+
+    @cached_property
+    def other_key_personnel(self):
+        return list(self.members.filter(~Q(role_id="PI")).all())
 
     @classmethod
     def new_number(cls, application, org=None, year=None):
