@@ -67,11 +67,29 @@
     <div class="col-sm-12 mb-4">
 
       <form method="post">{% csrf_token %}
-        <div class="box-gray">
-          {{ user_form |crispy }}
+        <ul class="nav nav-tabs">
+          <li class="nav-item"><a class="nav-link active" href="#personal" data-toggle="tab">{% trans 'Personal Data' %}</a></li>
+          <li class="nav-item"><a class="nav-link" href="#address" data-toggle="tab">{% trans 'Address' %}</a></li>
+        </ul>
+
+        <div class="tab-content card-body">
+
+          <div id="personal" class="tab-pane active">
+            <div class="box-gray">
+              {{ user_form |crispy }}
+            </div>
+            <hr />
+            {{ form|crispy }}
+          </div>
+
+          <div id="address" class="tab-pane">
+            <div class="box-gray">
+              {% crispy address_form %}
+            </div>
+          </div>
+
         </div>
-        <hr />
-        {{ form|crispy }}
+
         {% if progress %}
           <input type="submit" style="float:right" class="btn btn-primary float-right" value="{% trans 'Next' %} &raquo;">
         {% else %}

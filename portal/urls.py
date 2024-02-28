@@ -337,6 +337,11 @@ urlpatterns = [
                     views.TitleAutocomplete.as_view(model=models.Title, create_field="name"),
                     name="title-autocomplete",
                 ),
+                path(
+                    "country/",
+                    views.CountryAutocomplete.as_view(model=models.Country),
+                    name="country-autocomplete",
+                ),
             ]
         ),
     ),

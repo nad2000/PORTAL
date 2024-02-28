@@ -1002,6 +1002,21 @@ class ProfileView:
         if "user_form" not in kwargs:
             kwargs["user_form"] = self.get_user_form()
 
+        if "address_form" not in kwargs:
+            a = self.object.address if self.object and self.object.pk else None
+            kwargs["address_form"] = forms.AddressForm(
+                self.request.POST,
+                instance=self.object.address if self.object and self.object.pk else None,
+                initial=a
+                and {
+                    "address": a.address or "",
+                    "city": a.city or "",
+                    "postcode": a.postcode or "",
+                    "country": a.country,
+                },
+            )
+            kwargs["address_form"].helper.form_tag = False
+
         return super().get_context_data(**kwargs)
 
     def get_success_url(self):
@@ -1015,7 +1030,26 @@ class ProfileView:
             return self.form_invalid(form)
         form.save()
         reset_cache(self.request)
-        return super().post(request, *args, **kwargs)
+        res = super().post(request, *args, **kwargs)
+
+        a = self.object.address if self.object and self.object.pk else None
+        form = forms.AddressForm(
+            self.request.POST,
+            initial=a
+            and {
+                "address": a.address or "",
+                "city": a.city or "",
+                "postcode": a.postcode or "",
+                "country": a.country,
+            },
+        )
+        # instance=self.object.address if self.object and self.object.pk else None)
+        if not form.is_valid():
+            return self.form_invalid(form)
+        if form.changed_data:
+            a = form.save()
+
+        return res
 
 
 @login_required
@@ -2631,9 +2665,8 @@ class ApplicationView(LoginRequiredMixin):
                             "placeholder": _("Please upload a file ..."),
                             "data-placeholder": _("Please upload a file ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "The file is required. Please upload a file ..."
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The file is required. Please upload a file ..."),
                             "oninput": "this.setCustomValidity('')",
                         }
                     ),
@@ -2675,9 +2708,8 @@ class ApplicationView(LoginRequiredMixin):
                             "data-placeholder": _("Choose a field of research..."),
                             "placeholder": _("Choose a field of research..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "Field of research is required"
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Field of research is required"),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -2726,9 +2758,8 @@ class ApplicationView(LoginRequiredMixin):
                             "data-placeholder": _("Choose a ..."),
                             "placeholder": _("Choose a Socio-Economic Objective..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "Socio-Economic Objective is required"
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Socio-Economic Objective is required"),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -3447,9 +3478,8 @@ class ContractViewMixin:
                         "placeholder": _("Please upload a file ..."),
                         "data-placeholder": _("Please upload a file ..."),
                         "data-required": 1,
-                        "oninvalid": "this.setCustomValidity('%s')" % _(
-                            "The file is required. Please upload a file ..."
-                        ),
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("The file is required. Please upload a file ..."),
                         "oninput": "this.setCustomValidity('')",
                     }
                 ),
@@ -4161,9 +4191,8 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
                             "data-placeholder": _("Choose an identifier type or a new one..."),
                             "placeholder": _("Choose an identifier type or a new one ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "Identifier type is required"
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Identifier type is required"),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4183,9 +4212,8 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
                             "placeholder": _("Enter an identifier or a reference ..."),
                             "data-placeholder": _("Choose an identifier value ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "Identifier value is required"
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Identifier value is required"),
                             "oninput": "this.setCustomValidity('')",
                         }
                     ),
@@ -4239,9 +4267,8 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                             "data-placeholder": _("Choose an organisation ..."),
                             "placeholder": _("Choose an organisation ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "Organisation is required"
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Organisation is required"),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4327,9 +4354,8 @@ class ProfileProfessionalFormSetView(ProfileAffiliationsFormSetView):
                         attrs={
                             # "placeholder": _(""),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "The organisation is required ..."
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The organisation is required ..."),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4535,6 +4561,28 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return q
 
 
+class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return False  # request.user.is_authenticated
+
+    def get_result_label(self, result):
+        if isinstance(result, models.Country):
+            return result.name
+        return result[1]
+
+    def get_result_value(self, result):
+        if isinstance(result, models.Country):
+            return result.pk
+        return result[0]
+
+    def get_queryset(self):
+        q = models.Country.objects.values_list("code", "name")
+        if self.q:
+            q = q.filter(name__icontains=self.q)
+        return q.order_by("name")
+
+
 class AwardAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
@@ -4651,9 +4699,8 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                             "placeholder": _("Please upload a file ..."),
                             "data-placeholder": _("Please upload a file ..."),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "The file is required. Please upload a file ..."
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The file is required. Please upload a file ..."),
                             "oninput": "this.setCustomValidity('')",
                         }
                     ),
@@ -4739,9 +4786,8 @@ class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
                         attrs={
                             "placeholder": _("The organisation that awarded the degree"),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "The organisation is required ..."
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The organisation is required ..."),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4823,9 +4869,8 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
                         attrs={
                             # "placeholder": _(""),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "The award is required ..."
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The award is required ..."),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),
@@ -4834,9 +4879,8 @@ class ProfileRecognitionFormSetView(ProfileSectionFormSetView):
                         attrs={
                             "placeholder": _("The organisation that awarded the award"),
                             "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')" % _(
-                                "The organisation is required ..."
-                            ),
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The organisation is required ..."),
                             "oninput": "this.setCustomValidity('')",
                         },
                     ),

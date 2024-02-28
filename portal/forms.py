@@ -343,6 +343,41 @@ class UserForm(forms.ModelForm):
         }
 
 
+class AddressForm(forms.ModelForm):
+
+    address = forms.CharField(label=_("Address"), widget=forms.Textarea, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            "address",
+            Row(
+                Column("city", css_class="form-group col-4 mb-0"),
+                Column("postcode", css_class="form-group col-4 mb-0"),
+                Column("country", css_class="form-group col-4 mb-0"),
+            )
+            # Fieldset(
+            #     None,
+            #     Row(
+            #         Column("city", css_class="form-group col-4 mb-0"),
+            #         Column("postcode", css_class="form-group col-4 mb-0"),
+            #         Column("country", css_class="form-group col-4 mb-0"),
+            #     )
+            # ),
+        )
+
+    class Meta:
+        model = models.Address
+        fields = ["address", "postcode", "city", "country"]
+        widgets = {
+            "country": autocomplete.ModelSelect2(
+                "country-autocomplete",
+                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+            ),
+        }
+
+
 class ProfileForm(forms.ModelForm):
     def clean_is_accepted(self):
         """Allow only 'True'"""
@@ -1098,13 +1133,16 @@ class ApplicationForm(forms.ModelForm):
                         title=_("Save draft application"),
                     ),
                     submit_button,
-                    HTML("""<a href="{{ view.get_success_url }}"
+                    HTML(
+                        """<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>""" % _("Cancel")),
+                        </a>"""
+                        % _("Cancel")
+                    ),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -1216,7 +1254,8 @@ class ContractForm(forms.ModelForm):
     #     label=_("Comment"), widget=forms.Textarea, required=False
     # )
     requires_approval_comment = forms.CharField(
-        label=_("Comment"), widget=forms.Textarea,
+        label=_("Comment"),
+        widget=forms.Textarea,
         # required=True
     )
     # requires_approval = forms.ChoiceField(
@@ -1632,13 +1671,15 @@ class ContractForm(forms.ModelForm):
             ),
             Tab(
                 mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-                HTML("""{% load i18n %}<div class="alert alert-dark" role="alert">
+                HTML(
+                    """{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
                     You can distributed it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
-                    </div>"""),
+                    </div>"""
+                ),
                 Fieldset(
                     _("Budget Allocation"),
                     TableInlineFormset(
@@ -1650,7 +1691,8 @@ class ContractForm(forms.ModelForm):
                     # Field("proposal_budget"),
                     Fieldset(
                         None,
-                        HTML(f"""<div class="input-group mb-2">
+                        HTML(
+                            f"""<div class="input-group mb-2">
                         <div class="input-group-prepend">
                             <span class="input-group-text">{_("Proposal Budget")}</span>
                         </div>
@@ -1661,7 +1703,8 @@ class ContractForm(forms.ModelForm):
                             </a>
                             </span>
                         </div>
-                    </div>"""),
+                    </div>"""
+                        ),
                         # Submit(
                         #     "copy_proposal_budget",
                         #     _("Copy"),
@@ -1744,13 +1787,16 @@ class ContractForm(forms.ModelForm):
                         title=_("Save draft contract"),
                     ),
                     submit_button,
-                    HTML("""<a href="{{ view.get_success_url }}"
+                    HTML(
+                        """<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>""" % _("Cancel")),
+                        </a>"""
+                        % _("Cancel")
+                    ),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -2197,7 +2243,8 @@ class NominationForm(forms.ModelForm):
                 css_id="nominee",
             ),
             "org",
-            HTML("""
+            HTML(
+                """
             <div id="div_id_nominator" class="form-group">
             <label for="id_nominator" class=" requiredField">%s</label>
                 <div class="">
@@ -2206,7 +2253,9 @@ class NominationForm(forms.ModelForm):
                         disabled="" class="input form-control">
                 </div>
             </div>
-            """ % _("Nominator")),
+            """
+                % _("Nominator")
+            ),
         ]
         if r and r.nomination_template:
             help_text = _(
@@ -2435,14 +2484,17 @@ class IdentityVerificationForm(forms.ModelForm):
                     _("Request resubmission"),
                     css_class="btn-outline-danger",
                 ),
-                HTML("""
+                HTML(
+                    """
                     <a href="{{ view.get_success_url }}"
                     type="button"
                     role="button"
                     class="btn btn-secondary"
                     id="cancel">
                         %s
-                    </a>""" % _("Cancel")),
+                    </a>"""
+                    % _("Cancel")
+                ),
                 css_class="mb-4 float-right",
             ),
             Field(
@@ -2489,7 +2541,8 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelFor
                     message += "".join(
                         f"""<li>Review: <a href='{reverse("admin:portal_evaluation_change",
                             kwargs={"object_id": e.pk})}' target="_blank">
-                            {str(e)}</a></li>""" for e in evaluations
+                            {str(e)}</a></li>"""
+                        for e in evaluations
                     )
                 message += "</ul>"
             message += "<ul>"

@@ -448,6 +448,26 @@ class Country(Model):
         verbose_name_plural = _("countries")
 
 
+class Address(Model):
+
+    address = TextField(_("address"))
+    postcode = CharField(_("postcode"), max_length=12, null=True, blank=True)
+    city = CharField(_("city"), max_length=42, null=True, blank=True)
+    country = ForeignKey(
+        Country,
+        verbose_name=_("country"),
+        db_column="country",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="addresses",
+    )
+
+    class Meta:
+        db_table = "address"
+        verbose_name_plural = _("addresses")
+
+
 class Subscription(Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
@@ -889,16 +909,17 @@ class Organisation(Model):
     nzbn = CharField(max_length=13, blank=True, null=True)
     nz_ris_type = CharField(max_length=4, blank=True, null=True)
 
-    address = TextField(blank=True, null=True)
-    city = CharField(max_length=255, blank=True, null=True)
-    country = ForeignKey(
-        Country,
-        db_column="country",
-        on_delete=CASCADE,
-        blank=True,
-        null=True,
-        related_name="organisations",
-    )
+    # address = TextField(blank=True, null=True)
+    # city = CharField(max_length=255, blank=True, null=True)
+    # country = ForeignKey(
+    #     Country,
+    #     db_column="country",
+    #     on_delete=CASCADE,
+    #     blank=True,
+    #     null=True,
+    #     related_name="organisations",
+    # )
+    address = ForeignKey(Address, blank=True, null=True, related_name="organisations", on_delete=SET_NULL)
     website = CharField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
@@ -1092,7 +1113,7 @@ class Person(PersonMixin, Model):
     activity = FixedCharField(
         max_length=2, blank=True, null=True, choices=Choices("CE", "CO", "CP", "CU", "CW")
     )
-
+    address = ForeignKey(Address, blank=True, null=True, on_delete=SET_NULL, related_name="people")
     # source = models.ForeignKey(
     #     Source, on_delete=models.SET_NULL, blank=True, null=True, related_name="people"
     # )
@@ -1290,7 +1311,8 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_""" + get_language(),
+            ORDER BY description_"""
+            + get_language(),
             [person.id],
         )
 
@@ -1699,6 +1721,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         max_length=80,
         verbose_name=_("position"),
         help_text="position or role, e.g., student, postdoc, etc.",
+    )
+    address = ForeignKey(
+        Address, blank=True, null=True, on_delete=SET_NULL, related_name="applications"
     )
     postal_address = CharField(max_length=120, verbose_name=_("postal address"))
     city = CharField(max_length=80, verbose_name=_("city"))
@@ -6587,7 +6612,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         #     )
         #     t.transform(o)
         #     o.close()
-
 
     def get_schedule_part_odt(
         self, request=None, user=None, add_headers=None, skip_excluded=False
