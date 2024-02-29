@@ -230,14 +230,25 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     date_hierarchy = "created_at"
 
 
+@admin.register(models.Country)
+class CountryAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["code", "code3", "name"]
+    search_fields = ["name", "code", "code3"]
+    date_hierarchy = "created_at"
+    ordering = ["code", "code3"]
+
+
 @admin.register(models.Address)
-class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+class AddressAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
     view_on_site = False
     save_on_top = True
     list_display = ["address", "city", "country"]
     list_filter = [("country", admin.RelatedOnlyFieldListFilter)]
     search_fields = ["address", "city", "country__name"]
     date_hierarchy = "created_at"
+    autocomplete_fields = ["country"]
 
 
 @admin.register(models.Keyword)
