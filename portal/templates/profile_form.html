@@ -79,7 +79,7 @@
               {{ user_form |crispy }}
             </div>
             <hr />
-            {{ form|crispy }}
+            {% crispy form %}
           </div>
 
           <div id="address" class="tab-pane">
@@ -93,12 +93,14 @@
         {% if progress %}
           <input type="submit" style="float:right" class="btn btn-primary float-right" value="{% trans 'Next' %} &raquo;">
         {% else %}
-          {% if object.id %}
-            <input class="btn btn-primary" type="submit" name="update" value="{% trans 'Update' %}">
-          {% else %}
-            <input class="btn btn-primary" type="submit" name="save" value="{% trans 'Create' %}">
-          {% endif %}
-          <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+          <div class="buttonHolder mb-5 mt-3 float-right">
+            {% if object.id %}
+              <input class="btn btn-primary" type="submit" name="update" value="{% trans 'Update' %}">
+            {% else %}
+              <input class="btn btn-primary" type="submit" name="save" value="{% trans 'Create' %}">
+            {% endif %}
+            <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+          </div>
         {% endif %}
       </form>
 
@@ -114,5 +116,14 @@
   {{ form.media.js }}
   <!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
   <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
-
+  <script>
+    $(document).ready(function() {
+      // Keep track of the active tab
+      $(document.body).on("click", "a[data-toggle='tab']", function(event) {
+        location.hash = this.getAttribute("href");
+      });
+      // Jump to the last active tab:
+      if (location.hash) $('.nav a.nav-link[href="' + location.hash + '"]').tab('show');
+    });
+  </script>
 {% endblock %}

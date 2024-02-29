@@ -461,7 +461,22 @@ class Address(Model):
         null=True,
         blank=True,
         related_name="addresses",
+        default="NZ",
     )
+
+    history = HistoricalRecords(table_name="address_history")
+
+    @lru_cache(1)
+    def __str__(self):
+        address = self.address
+        if self.city and self.city not in address:
+            address = f"{address}\n{self.city}"
+        if self.postcode and self.postcode not in address:
+            address = f"{address} {self.postcode}"
+        if self.country and self.country_id != "NZ" and (n := self.country.name) and n not in address:
+            address = f"{address}\n{n}"
+
+        return address
 
     class Meta:
         db_table = "address"

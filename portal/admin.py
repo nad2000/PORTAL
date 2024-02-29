@@ -86,9 +86,8 @@ class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
     def choices(self, changelist):
         for pk_val, val in self.lookup_choices:
             yield {
-                "selected": self.lookup_val == str(pk_val) or (
-                    not self.lookup_val and pk_val == settings.SITE_ID
-                ),
+                "selected": self.lookup_val == str(pk_val)
+                or (not self.lookup_val and pk_val == settings.SITE_ID),
                 "query_string": changelist.get_query_string(
                     {self.lookup_kwarg: pk_val}, [self.lookup_kwarg_isnull]
                 ),
@@ -228,6 +227,16 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     list_display = ["email", "name"]
     list_filter = ["created_at", "updated_at", "is_confirmed"]
     search_fields = ["email"]
+    date_hierarchy = "created_at"
+
+
+@admin.register(models.Address)
+class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["address", "city", "country"]
+    list_filter = [("country", admin.RelatedOnlyFieldListFilter)]
+    search_fields = ["address", "city", "country__name"]
     date_hierarchy = "created_at"
 
 

@@ -347,16 +347,34 @@ class AddressForm(forms.ModelForm):
 
     address = forms.CharField(label=_("Address"), widget=forms.Textarea, required=False)
 
+    def save(self, commit=True):
+
+        if self.changed_data:
+            if self.errors:
+                raise ValueError(
+                    "The %s could not be %s because the data didn't validate."
+                    % (
+                        self.instance._meta.object_name,
+                        "created" if self.instance._state.adding else "changed",
+                    )
+                )
+            if self.changed_data and self.instance and self.instance.pk:
+                self.instance.pk = None
+            if commit:
+                self.instance.save()
+        return self.instance
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.helper.include_media = False
         self.helper.layout = Layout(
             "address",
             Row(
                 Column("city", css_class="form-group col-4 mb-0"),
                 Column("postcode", css_class="form-group col-4 mb-0"),
                 Column("country", css_class="form-group col-4 mb-0"),
-            )
+            ),
             # Fieldset(
             #     None,
             #     Row(
@@ -384,6 +402,19 @@ class ProfileForm(forms.ModelForm):
         if not self.cleaned_data["is_accepted"]:
             raise forms.ValidationError(_("Please read and consent to the Privacy Policy"))
         return True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.include_media = False
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(Column("date_of_birth"), Column("gender")),
+            Row(Column("ethnicities"), Column("iwi_groups")),
+            "primary_language_spoken",
+            Row(Column("education_level"), Column("employment_status")),
+            "is_accepted",
+        )
 
     class Meta:
         model = models.Person

@@ -1003,9 +1003,9 @@ class ProfileView:
             kwargs["user_form"] = self.get_user_form()
 
         if "address_form" not in kwargs:
-            a = self.object.address if self.object and self.object.pk else None
+            a = self.address
             kwargs["address_form"] = forms.AddressForm(
-                self.request.POST,
+                data=self.request.POST or None,
                 instance=self.object.address if self.object and self.object.pk else None,
                 initial=a
                 and {
@@ -1013,11 +1013,17 @@ class ProfileView:
                     "city": a.city or "",
                     "postcode": a.postcode or "",
                     "country": a.country,
-                },
+                }
+                or {"country": "NZ"},
             )
             kwargs["address_form"].helper.form_tag = False
 
         return super().get_context_data(**kwargs)
+
+    @cached_property
+    def address(self):
+        u = self.request.user
+        return self.object.address if self.object and self.object.pk else None or (u and u.person and u.person.address)
 
     def get_success_url(self):
         if not is_profile_completed(self.request):
@@ -1031,8 +1037,7 @@ class ProfileView:
         form.save()
         reset_cache(self.request)
         res = super().post(request, *args, **kwargs)
-
-        a = self.object.address if self.object and self.object.pk else None
+        a = self.address
         form = forms.AddressForm(
             self.request.POST,
             initial=a
@@ -1041,13 +1046,19 @@ class ProfileView:
                 "city": a.city or "",
                 "postcode": a.postcode or "",
                 "country": a.country,
-            },
+            }
+            or {"country": "NZ"},
         )
         # instance=self.object.address if self.object and self.object.pk else None)
-        if not form.is_valid():
-            return self.form_invalid(form)
         if form.changed_data:
-            a = form.save()
+            if form.data.get("address") and form.data.get("address").strip():
+                if not form.is_valid():
+                    return self.form_invalid(form)
+                a = form.save()
+                self.object.address = a
+            else:
+                self.object.address = None
+            self.object.save(update_fields=["address"])
 
         return res
 
