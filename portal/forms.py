@@ -361,7 +361,16 @@ class AddressForm(forms.ModelForm):
             if self.changed_data and self.instance and self.instance.pk:
                 self.instance.pk = None
             if commit:
-                self.instance.save()
+                if a := self._meta.model.where(
+                    address=self.instance.address,
+                    city=self.instance.city,
+                    postcode=self.instance.postcode,
+                    country=self.instance.country,
+                ).last():
+                    self.instance = a
+                else:
+                    self.instance.save()
+
         return self.instance
 
     def __init__(self, *args, **kwargs):
