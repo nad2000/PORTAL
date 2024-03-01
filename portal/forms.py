@@ -1629,6 +1629,7 @@ class ContractForm(forms.ModelForm):
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                         Field("start_date"),
                         Field("end_date"),
+                        HTML('<div class="box-gray">{% crispy address_form %}</div>'),
                     ]
                 ),
                 css_id="summary",

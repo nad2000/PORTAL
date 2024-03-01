@@ -1023,7 +1023,11 @@ class ProfileView:
     @cached_property
     def address(self):
         u = self.request.user
-        return self.object.address if self.object and self.object.pk else None or (u and u.person and u.person.address)
+        return (
+            self.object.address
+            if self.object and self.object.pk
+            else None or (u and u.person and u.person.address)
+        )
 
     def get_success_url(self):
         if not is_profile_completed(self.request):
@@ -3517,6 +3521,32 @@ class ContractViewMixin:
             fs.extra = len(initial)
         return fs
 
+    def get_address_form(self):
+        contract = self.object
+        application = self.application
+        applicant = application and application.submitted_by.person
+
+        a = None
+        if applicant:
+            a = applicant.address
+        if not a and contract:
+            a = contract.address
+        if not a and application:
+            a = applicant.address
+
+        return forms.AddressForm(
+            data=self.request.POST or None,
+            instance=a,
+            initial=a
+            and {
+                "address": a.address or "",
+                "city": a.city or "",
+                "postcode": a.postcode or "",
+                "country": a.country,
+            }
+            or {"country": "NZ"},
+        )
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
@@ -3538,6 +3568,8 @@ class ContractViewMixin:
         context["required_documents"] = {
             rd.id: rd for rd in round.required_contract_documents.all().order_by("ordering")
         }
+        if "address_form" not in kwargs:
+            kwargs["address_form"] = self.get_address_form()
 
         return context
 

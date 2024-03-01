@@ -6415,7 +6415,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     application = ForeignKey(
         Application, on_delete=CASCADE, blank=True, null=True, related_name="contracts"
     )
-
+    address = ForeignKey(
+        Address, blank=True, null=True, related_name="contracts", on_delete=RESTRICT
+    )
     submitted_by = ForeignKey(
         User, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("submitted by")
     )

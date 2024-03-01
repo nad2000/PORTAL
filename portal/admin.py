@@ -658,6 +658,7 @@ class PanelAdmin(admin.ModelAdmin):
 @admin.register(models.Person)
 class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
+    autocomplete_fields = ["address"]
 
     class ProfileCareerStageInline(admin.StackedInline):
         extra = 1
@@ -845,6 +846,7 @@ class ApplicationAdmin(
         "submitted_by",
         "cv",
         "org",
+        "address",
     ]
     # summernote_fields = ["summary"]
     exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
@@ -1563,7 +1565,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     search_fields = ["name", "code"]
     date_hierarchy = "created_at"
     resource_classes = [OrganisationResource, OrganisationWOIdentifierResource]
-
+    autocomplete_fields = ["address"]
     actions = ["merge_orgs"]
 
     class ResearchOfficeInline(StaffPermsMixin, admin.TabularInline):
