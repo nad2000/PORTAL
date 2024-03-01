@@ -42,6 +42,7 @@ from django.db.models import (
     CASCADE,
     DO_NOTHING,
     PROTECT,
+    RESTRICT,
     SET_NULL,
     BooleanField,
     GeneratedField,
@@ -457,7 +458,7 @@ class Address(Model):
         Country,
         verbose_name=_("country"),
         db_column="country",
-        on_delete=SET_NULL,
+        on_delete=PROTECT,
         null=True,
         blank=True,
         related_name="addresses",
@@ -473,7 +474,12 @@ class Address(Model):
             address = f"{address}\n{self.city}"
         if self.postcode and self.postcode not in address:
             address = f"{address} {self.postcode}"
-        if self.country and self.country_id != "NZ" and (n := self.country.name) and n not in address:
+        if (
+            self.country
+            and self.country_id != "NZ"
+            and (n := self.country.name)
+            and n not in address
+        ):
             address = f"{address}\n{n}"
 
         return address
@@ -934,7 +940,9 @@ class Organisation(Model):
     #     null=True,
     #     related_name="organisations",
     # )
-    address = ForeignKey(Address, blank=True, null=True, related_name="organisations", on_delete=SET_NULL)
+    address = ForeignKey(
+        Address, blank=True, null=True, related_name="organisations", on_delete=RESTRICT
+    )
     website = CharField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
@@ -1128,7 +1136,7 @@ class Person(PersonMixin, Model):
     activity = FixedCharField(
         max_length=2, blank=True, null=True, choices=Choices("CE", "CO", "CP", "CU", "CW")
     )
-    address = ForeignKey(Address, blank=True, null=True, on_delete=SET_NULL, related_name="people")
+    address = ForeignKey(Address, blank=True, null=True, on_delete=RESTRICT, related_name="people")
     # source = models.ForeignKey(
     #     Source, on_delete=models.SET_NULL, blank=True, null=True, related_name="people"
     # )
@@ -1623,6 +1631,7 @@ def photo_identity_help_text():
 
 
 class Keyword(TagBase):
+
     def natural_key(self):
         return self.name
 
@@ -1738,7 +1747,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text="position or role, e.g., student, postdoc, etc.",
     )
     address = ForeignKey(
-        Address, blank=True, null=True, on_delete=SET_NULL, related_name="applications"
+        Address, blank=True, null=True, on_delete=RESTRICT, related_name="applications"
     )
     postal_address = CharField(max_length=120, verbose_name=_("postal address"))
     city = CharField(max_length=80, verbose_name=_("city"))
@@ -3433,6 +3442,9 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     def __str__(self):
         return f"{self.role}: {self.person}"
 
+    def natural_key(self):
+        return (self.application.number, self.panellist.email)
+
     @property
     def mail_log_error(self):
         if ml := MailLog.where(invitation__panellist=self, error__isnull=False).last():
@@ -4185,7 +4197,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         editable=True,
         null=True,
         blank=True,
-        on_delete=PROTECT,
+        on_delete=RESTRICT,
         verbose_name=_("curriculum vitae"),
     )
     state = StateField(_("state"), default="new")
@@ -5668,11 +5680,14 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         editable=True,
         null=True,
         blank=True,
-        on_delete=PROTECT,
+        on_delete=RESTRICT,
         verbose_name=_("Curriculum Vitae"),
     )
 
     state = StateField(_("state"), null=True, blank=True, default="new")
+
+    def natural_key(self):
+        return (self.round.code, self.email)
 
     def natural_key(self):
         return (self.round.code, self.email)
