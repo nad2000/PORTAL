@@ -225,6 +225,21 @@ class TableInlineFormset(LayoutObject):
         return render_to_string(self.template, {"formset": formset, "form_id": self.form_id})
 
 
+class SubForm(LayoutObject):
+    template = "portal/subform.html"
+
+    def __init__(self, form_name_in_context, template=None, *args, **kwargs):
+        self.form_name_in_context = form_name_in_context
+        self.form_id = form_name_in_context
+        self.fields = []
+        if template:
+            self.template = template
+
+    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+        form = context[self.form_name_in_context]
+        return render_to_string(self.template, {"form": form})
+
+
 def make_help_text(document_type=None, templates=[], required_document=None):
     if required_document and not templates:
         if isinstance(required_document, int):
@@ -377,6 +392,7 @@ class AddressForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.include_media = False
+        self.helper.form_tag = False
         self.helper.layout = Layout(
             "address",
             Row(
@@ -1624,12 +1640,12 @@ class ContractForm(forms.ModelForm):
                         Field("start_date", type="hidden", css_class="hidden"),
                         Field("end_date", type="hidden", css_class="hidden"),
                     ]
-                    if self.instance and self.instance.id
+                    if self.instance and self.instance.id and not(user.is_superuser or user.is_staff)
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                         Field("start_date"),
                         Field("end_date"),
-                        HTML('<div class="box-gray">{% crispy address_form %}</div>'),
+                        SubForm("address_form"),
                     ]
                 ),
                 css_id="summary",
@@ -1895,6 +1911,7 @@ class ContractForm(forms.ModelForm):
     class Meta:
         model = models.Contract
         exclude = [
+            "address",
             "site",
             "fund",
             "host_number",

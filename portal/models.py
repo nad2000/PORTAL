@@ -484,6 +484,10 @@ class Address(Model):
 
         return address
 
+    @lru_cache(1)
+    def __html__(self):
+        return "<br>".join(self.__str__().split("\n")) or ""
+
     class Meta:
         db_table = "address"
         verbose_name_plural = _("addresses")

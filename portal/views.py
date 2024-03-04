@@ -3253,6 +3253,12 @@ class ContractDetail(DetailView):
 
 
 class ContractViewMixin:
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     @cached_property
     def application(self):
         if self.object and self.object.application_id:
@@ -3527,12 +3533,13 @@ class ContractViewMixin:
         applicant = application and application.submitted_by.person
 
         a = None
-        if applicant:
-            a = applicant.address
-        if not a and contract:
+        if contract and contract.address:
             a = contract.address
-        if not a and application:
-            a = applicant.address
+        if not (contract and contract.pk):
+            if not a and applicant:
+                a = applicant.address
+            if not a and application:
+                a = applicant.address
 
         return forms.AddressForm(
             data=self.request.POST or None,
@@ -3569,7 +3576,7 @@ class ContractViewMixin:
             rd.id: rd for rd in round.required_contract_documents.all().order_by("ordering")
         }
         if "address_form" not in kwargs:
-            kwargs["address_form"] = self.get_address_form()
+            context["address_form"] = self.get_address_form()
 
         return context
 
@@ -3577,9 +3584,9 @@ class ContractViewMixin:
     #     breakpoint()
     #     return super().post(*args, **kwargs)
 
-    def form_invalid(self, form):
-        breakpoint()
-        return super().form_invalid(form)
+    # def form_invalid(self, form):
+    #     breakpoint()
+    #     return super().form_invalid(form)
 
     def form_valid(self, form):
         a = self.application
@@ -3614,6 +3621,19 @@ class ContractViewMixin:
                 fs.instance = self.object
                 if fs.is_valid():
                     fs.save()
+                address_form = self.get_address_form()
+                # instance=self.object.address if self.object and self.object.pk else None)
+                if address_form.changed_data or not self.object.address:
+                    if address_form.data.get("address") and form.data.get("address").strip():
+                        if not address_form.is_valid():
+                            return self.form_invalid(form)
+                        address = address_form.save()
+                    else:
+                        address = None
+                    if self.object.address != address:
+                        self.object.address = address
+                        self.object.save(update_fields=["address"])
+
         except Exception as ex:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
@@ -3794,11 +3814,6 @@ class ContractCreate(ContractViewMixin, CreateView):
     model = models.Contract
     form_class = forms.ContractForm
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        return kwargs
-
     # def post(self, request, *args, **kwargs):
     #     form = self.get_user_form()
     #     if not form.is_valid():
@@ -3827,12 +3842,16 @@ class ContractCreate(ContractViewMixin, CreateView):
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         a = self.application
+        r = a.round
 
         initial["application"] = a
         initial["year"] = a.created_at.year
         initial["org"] = a.org
         initial["project_title"] = a.application_title or a.round.title
         initial["start_date"] = timezone.now()
+        if r.duration:
+            initial["end_date"] = timezone.now() + relativedelta(years=r.duration)
+
         initial["user"] = self.request.user
         initial["number"] = models.Contract.new_number(application=a)
         initial["fund"] = a.round.scheme.fund or models.Fund.last()

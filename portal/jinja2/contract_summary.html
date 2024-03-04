@@ -67,6 +67,18 @@
         </td>
       </tr>
 
+      {% if c.address %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Address') }}
+        </th>
+        <td>
+          {{ c.address|safe }}
+        </td>
+      </tr>
+      {% endif %}
+
+
     </tbody>
   </table>
 

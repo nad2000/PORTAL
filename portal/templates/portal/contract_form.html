@@ -10,7 +10,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
 <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 <style>
-#div_id_title span.select2-selection--single {height: 42px;}
+#div_id_title span.select2-selection--single {height: 39px;}
+#div_id_country span.select2-selection--single {height: 39px;}
 </style>
 {{ form.media.css }}
 {% endblock %}
@@ -223,6 +224,30 @@
           $("#id_requires_approval_comment_help").text(
             "{% trans 'Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. (Please provide serial number, type of approval and date received)' %}");
         };
+      });
+      // Focus on the first tab with invalid input:
+      $('#submit-id-save_draft,#submit-id-submit').click(function () {
+          $('input:invalid,textarea:invalid').each(function () {
+            // Find the tab-pane that this element is inside, and get the id
+            var $closest = $(this).closest('.tab-pane');
+            var id = $closest.attr('id');
+
+            // Find the link that corresponds to the pane and have it show
+            $('.nav a[href="#' + id + '"]').tab('show');
+
+            // Only want to do it once
+            return false;
+          });
+          /* if (this.form.checkValidity()) {
+                        $.blockUI({
+                          message: $('#wait-message'),
+                          css: {
+                                      backgroundColor: '#0000',
+                                      color: '#0fff',
+                                      border: '0px',
+                                    }
+                      });
+                    } */
       });
     });
   </script>
