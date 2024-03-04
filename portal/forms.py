@@ -1640,11 +1640,12 @@ class ContractForm(forms.ModelForm):
                         Field("start_date", type="hidden", css_class="hidden"),
                         Field("end_date", type="hidden", css_class="hidden"),
                     ]
-                    if self.instance and self.instance.id and not(user.is_superuser or user.is_staff)
+                    if self.instance
+                    and self.instance.id
+                    and not (user.is_superuser or user.is_staff)
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                        Field("start_date"),
-                        Field("end_date"),
+                        Row(Column("start_date"), Column("end_date")),
                         SubForm("address_form"),
                     ]
                 ),

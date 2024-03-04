@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load static i18n django_bootstrap_breadcrumbs %}
+{% load static i18n django_bootstrap_breadcrumbs tags %}
 
 {% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
 {% block sidebar %}{% include 'sidebar.html' with category="profile" %}{% endblock sidebar %}
@@ -112,9 +112,7 @@
           {% if object.address %}
           <tr>
             <th>{% trans 'Address' %}</th>
-            <td>
-              <pre>{{ object.address }}</pre>
-            </td>
+            <td>{{ object.address|html|safe }}</td>
           </tr>
         {% endif %}
 

@@ -2,6 +2,7 @@ import os
 from urllib.parse import parse_qs
 from itertools import groupby
 from operator import itemgetter
+from django.utils.safestring import mark_safe
 
 # import jinja2
 from django import forms, template
@@ -19,6 +20,15 @@ register = template.Library()
 @register.filter
 def index(indexable, i):
     return indexable[i]
+
+
+@register.filter(is_safe=True)
+def html(obj):
+    if not obj:
+        return ""
+    if hasattr(obj, "__html__"):
+        return mark_safe(obj.__html__())
+    return mark_safe(f"<pre>{obj}</pre>")
 
 
 @register.filter
@@ -228,7 +238,15 @@ def contract_summary(context, *args, **kwargs):
 
 
 @register.simple_tag(takes_context=True)
-def document_action_button(context, required_document=None, document=None, document_role=None, document_file_field="file", *args, **kwargs):
+def document_action_button(
+    context,
+    required_document=None,
+    document=None,
+    document_role=None,
+    document_file_field="file",
+    *args,
+    **kwargs,
+):
     request = context.get("request")
     # required_document = kwargs.get("required_document")
     # site = context.get("site")
@@ -236,7 +254,9 @@ def document_action_button(context, required_document=None, document=None, docum
     if not required_document and document:
         required_document = document.required_document
     if not required_document and document_role and object.pk:
-        required_document = object.required_documents.filter(document_type__role=document_role).last()
+        required_document = object.required_documents.filter(
+            document_type__role=document_role
+        ).last()
     # user = context.get("user")
     form = context.get("form")
     rd_id = context.get("rd_id") or required_document.pk
@@ -244,19 +264,25 @@ def document_action_button(context, required_document=None, document=None, docum
     is_ro = context.get("is_ro")
     action = kwargs.get("action") or context.get("action") or "approve"
 
-    document_file = (form.initial.get(document_file_field) or (document and document.file) or form.instance.file)
+    document_file = (
+        form.initial.get(document_file_field) or (document and document.file) or form.instance.file
+    )
     if not document_file:
         if action == "approve":
-            disabled_tooltip_text = _(f"Please upload { required_document } before  before approving it")
+            disabled_tooltip_text = _(
+                f"Please upload { required_document } before  before approving it"
+            )
         else:
-            disabled_tooltip_text = _(f"Please upload { required_document } before requesting corrections")
+            disabled_tooltip_text = _(
+                f"Please upload { required_document } before requesting corrections"
+            )
     else:
         state = (document and document.state) or form.instance.state
         if not is_ro or state == "accepted":
             disabled_tooltip_text = _(f"{ required_document } was already accepted")
         elif state == "approved":
             disabled_tooltip_text = _(f"{ required_document } was already approved")
-    if action == "approve": 
+    if action == "approve":
         if is_ro:
             enabled_tooltip_text = _(f"Approve { required_document }")
             button_label = _("Approve")
