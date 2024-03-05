@@ -799,6 +799,15 @@ class ApplicationAdmin(
     TranslationAdmin,
     SimpleHistoryAdmin,
 ):
+
+    history_list_display = ["changed_fields"]
+
+    def changed_fields(self, obj):
+        if obj.prev_record:
+            delta = obj.diff_against(obj.prev_record)
+            return delta.changed_fields
+        return ""
+
     # form = ApplicationForm
     show_close_button = True
     save_on_top = True

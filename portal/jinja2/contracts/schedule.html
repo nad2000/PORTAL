@@ -97,7 +97,7 @@
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ kp.role }}</p>
                   </td>
                   <td width="154" valign="top" style="width:115.35pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
-                    <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">&nbsp;</p>
+                    <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{% if kp.address %}{{ kp.address }}{% else %}&nbsp;{% endif %}</p>
                   </td>
                   <td width="108" valign="top" style="width:81.1pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ '%0.2f' % kp.total_fte|float }}</p>
@@ -152,7 +152,39 @@
     {% endif %}
 
 
+    <li>
+      <h3>Description of Programme</h3>
+      <dl><dd>
 
+        <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624 style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+          <tr>
+            <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Programme Title</b></p>
+            </td>
+            <td width=454 valign=top style='width:340.2pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.project_title or a.application_title }}</p>
+            </td>
+          </tr>
+          <tr style='height:4.15pt'>
+            <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Application Number</b></p>
+            </td>
+            <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><strong>{{ a.number }}</strong></p>
+            </td>
+          </tr>
+          <tr style='height:4.15pt'>
+            <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Overall aim of research</b></p>
+            </td>
+            <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.summary and c.summary.strip() %}{{ c.summary|safe }}{% else %}&nbsp;{% endif %}</p>
+            </td>
+          </tr>
+        </table>
+
+      </dd></dl>
+    </li>
 
     <li>Application Number: <strong>{{ a.number }}</strong></li>
     <li>Total approved funding and payment process:<br/>

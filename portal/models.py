@@ -1991,6 +1991,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ).prefetch_related("scores")
 
     def save(self, *args, **kwargs):
+
         if not self.application_title:
             self.application_title = self.round.title
         if not self.number:
@@ -6957,6 +6958,7 @@ class ContractMember(PersonMixin, Model):
     )
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    address = ForeignKey(Address, null=True, blank=True, on_delete=PROTECT)
     # state = StateField(null=True, blank=True, default="new")
     # state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     # authorized_at = MonitorField(
