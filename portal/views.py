@@ -3575,8 +3575,8 @@ class ContractViewMixin:
         context["required_documents"] = {
             rd.id: rd for rd in round.required_contract_documents.all().order_by("ordering")
         }
-        if "address_form" not in kwargs:
-            context["address_form"] = self.get_address_form()
+        # if "address_form" not in kwargs:
+        #     context["address_form"] = self.get_address_form()
 
         return context
 
@@ -3621,18 +3621,18 @@ class ContractViewMixin:
                 fs.instance = self.object
                 if fs.is_valid():
                     fs.save()
-                address_form = self.get_address_form()
-                # instance=self.object.address if self.object and self.object.pk else None)
-                if address_form.changed_data or not self.object.address:
-                    if address_form.data.get("address") and form.data.get("address").strip():
-                        if not address_form.is_valid():
-                            return self.form_invalid(form)
-                        address = address_form.save()
-                    else:
-                        address = None
-                    if self.object.address != address:
-                        self.object.address = address
-                        self.object.save(update_fields=["address"])
+                # address_form = self.get_address_form()
+                # # instance=self.object.address if self.object and self.object.pk else None)
+                # if address_form.changed_data or not self.object.address:
+                #     if address_form.data.get("address") and form.data.get("address").strip():
+                #         if not address_form.is_valid():
+                #             return self.form_invalid(form)
+                #         address = address_form.save()
+                #     else:
+                #         address = None
+                #     if self.object.address != address:
+                #         self.object.address = address
+                #         self.object.save(update_fields=["address"])
 
         except Exception as ex:
             capture_exception(ex)

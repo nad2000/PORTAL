@@ -236,6 +236,7 @@ class SubForm(LayoutObject):
             self.template = template
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+        breakpoint()
         form = context[self.form_name_in_context]
         return render_to_string(self.template, {"form": form})
 
@@ -1646,7 +1647,7 @@ class ContractForm(forms.ModelForm):
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                         Row(Column("start_date"), Column("end_date")),
-                        SubForm("address_form"),
+                        # SubForm("address_form"),
                     ]
                 ),
                 css_id="summary",

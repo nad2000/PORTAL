@@ -475,7 +475,7 @@ class Address(Model):
         if self.postcode and self.postcode not in address:
             address = f"{address} {self.postcode}"
         if (
-            self.country
+            self.country_id
             and self.country_id != "NZ"
             and (n := self.country.name)
             and n not in address
@@ -6541,6 +6541,18 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         return self.allocations.aggregate(Sum("allocation", default=0)).get(
             "allocation__sum", Decimal("0.00")
         )
+
+    @property
+    def reporting_schedule_by_years(self):
+
+        start_year = self.start_date and self.start_date.year or timezone.now().year
+        return [
+            (y, list(entries))
+            for y, entries in groupby(
+                self.reporting_schedule.order_by("period", "due_date").all(),
+                lambda r: start_year + r.period - 1,
+            )
+        ]
 
     @property
     def thread_index(self):

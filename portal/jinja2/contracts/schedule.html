@@ -178,13 +178,14 @@
               <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Overall aim of research</b></p>
             </td>
             <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.summary and c.summary.strip() %}{{ c.summary|safe }}{% else %}&nbsp;{% endif %}</p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.abstract and c.abstract.strip() %}{{ c.abstract|safe }}{% else %}&nbsp;{% endif %}</p>
             </td>
           </tr>
         </table>
 
       </dd></dl>
     </li>
+
 
     <li>Application Number: <strong>{{ a.number }}</strong></li>
     <li>Total approved funding and payment process:<br/>
@@ -219,15 +220,19 @@
 
     <table border="1" cellpadding="5" cellspacing="0" with="100%">
       <tr bgcolor="#d0d0d0">
+        <th><b>Year</b></th>
         <th><b>Report</b></th>
         <th><b>Due date</b></th>
       </tr>
-      {% for r in c.reporting_schedule.order_by("period", "due_date").all() %}
-        <tr>
-          <td>{{ r.get_type_display() }} Report (Year {{ r.period }})</td>
-          <td>{{ r.due_date.strftime("%d %B, %Y") }}</td>
-        </tr>
-      {% endfor %}
+        {% for y, entries in c.reporting_schedule_by_years %}
+          <tr>
+            <td cols="{{ entries.__len__() or 1 }}">{{ y }}</td>
+            {% for r in entries %}
+                <td>{{ r.get_type_display() }} Report (Year {{ r.period }})</td>
+                <td>{{ r.due_date.strftime("%d %B, %Y") }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
     </table>
 
   </li>
