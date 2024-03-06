@@ -97,7 +97,7 @@
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ kp.role }}</p>
                   </td>
                   <td width="154" valign="top" style="width:115.35pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
-                    <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{% if kp.address %}{{ kp.address }}{% else %}&nbsp;{% endif %}</p>
+                  <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{% if kp.address %}{{ kp.address }}{% else %}&nbsp;{% endif %}</p>
                   </td>
                   <td width="108" valign="top" style="width:81.1pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ '%0.2f' % kp.total_fte|float }}</p>
@@ -156,105 +156,186 @@
       <h3>Description of Programme</h3>
       <dl><dd>
 
-        <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624 style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
-          <tr>
-            <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
-              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Programme Title</b></p>
-            </td>
-            <td width=454 valign=top style='width:340.2pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt'>
-              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.project_title or a.application_title }}</p>
-            </td>
+          <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624 style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+            <tr>
+              <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
+                <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Programme Title</b></p>
+              </td>
+              <td width=454 valign=top style='width:340.2pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt'>
+                <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.project_title or a.application_title }}</p>
+              </td>
+            </tr>
+            <tr style='height:4.15pt'>
+              <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+                <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Application Number</b></p>
+              </td>
+              <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+                <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><strong>{{ a.number }}</strong></p>
+              </td>
+            </tr>
+            <tr style='height:4.15pt'>
+              <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+                <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Overall aim of research</b></p>
+              </td>
+              <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.abstract and c.abstract.strip() %}{{ c.abstract|safe }}{% else %}&nbsp;{% endif %}</p>
+              </td>
+            </tr>
+          </table>
+
+        </dd></dl>
+    </li>
+
+    <li>
+      <h3>Acknowledgement of Funding</h3>
+      <dl><dd>
+          <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>For the
+          purposes of clause 8.4 of Schedule 2, the phrase that must be used to
+          acknowledge the provision of funding and support from the New Zealand Government is
+        &quot;<i>Supported by the {% if c.fund %}{{ c.fund.description }}{% else %}{{ c.site.name }}
+          from Government funding{% endif %},
+          administered by the Royal Society Te Ap&#257;rangi&quot;</i>.
+          </p>
+
+        </dd></dl>
+    </li>
+
+    <li>
+      <h3>Reporting dates</h3>
+      <dl><dd>
+
+        <table border="1" cellpadding="5" cellspacing="0" with="100%">
+          <tr bgcolor="#d0d0d0">
+            <th><b>Year</b></th>
+            <th><b>Report</b></th>
+            <th><b>Due date</b></th>
           </tr>
-          <tr style='height:4.15pt'>
-            <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Application Number</b></p>
-            </td>
-            <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><strong>{{ a.number }}</strong></p>
-            </td>
-          </tr>
-          <tr style='height:4.15pt'>
-            <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Overall aim of research</b></p>
-            </td>
-            <td width=454 valign=top style='width:340.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.abstract and c.abstract.strip() %}{{ c.abstract|safe }}{% else %}&nbsp;{% endif %}</p>
-            </td>
-          </tr>
+          {% for y, entries in c.reporting_schedule_by_years %}
+            {% for r in entries %}
+              <tr>
+                {% if not loop.index0 %}
+                  <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
+                {% endif %}
+                <td>{{ r.get_type_display() }} Report (Year {{ r.period }})</td>
+                <td>{{ r.due_date and r.due_date.strftime("%d %B, %Y") or _("N/A") }}</td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
         </table>
 
       </dd></dl>
     </li>
 
+    <li>
+      <h3>Funding</h3>
+      <dl><dd>
+
+            <table border="1" cellpadding="7" cellspacing="0" with="100%">
+              <col width="96"/>
+              <col width="225"/>
+              <col width="197"/>
+              <tr bgcolor="#d0d0d0" valign="middle">
+                <th></th>
+                <th><b>Funding amount</b> (GST inclusive)</th>
+                <th><b>Date of payments</b></th>
+              </tr>
+              {% for a in c.allocations.all() %}
+                <tr valign="middle">
+                  <td>Year {{ a.period }}</td>
+                  <td style="text-align: right;">${{ a.allocation }}</td>
+                  <td>[Monthly, on the 2nd Business Day after the 20th of month]</td>
+                </tr>
+              {% endfor %}
+            </table>
+
+
+      </dd></dl>
+    </li>
+
+    <li>
+      <h3>Address for notices</h3>
+      <dl><dd>
+
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
+             style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+        <tr style='height:29.6pt'>
+          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt;
+          padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%;page-break-after:
+            avoid'><b>Party name</b></p>
+          </td>
+          <td width=360 valign=top style='width:270.2pt;border:solid windowtext 1.0pt;
+          border-left:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+            <b>Contact details</b></p>
+          </td>
+        </tr>
+        <tr style='height:29.6pt'>
+          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt;
+          border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>The Royal Society of New Zealand </p>
+          </td>
+          <td width=360 valign=top style='width:270.2pt;border-top:none;border-left:
+          none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+          padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Contact]</p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Phone number]</p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Address / email address] </p>
+          </td>
+        </tr>
+        <tr style='height:45.2pt'>
+          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt;
+          border-top:none;padding:0in 5.4pt 0in 5.4pt;height:45.2pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.org.name }}</p>
+          </td>
+          <td width=360 valign=top style='width:270.2pt;border-top:none;border-left:
+          none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+          padding:0in 5.4pt 0in 5.4pt;height:45.2pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.org.address or kp and kp.address or "N/A" }}</p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Phone number]</p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Address / email address]</p>
+          </td>
+        </tr>
+      </table>
+
+      </dd></dl>
+    </li>
+
+    {#
 
     <li>Application Number: <strong>{{ a.number }}</strong></li>
     <li>Total approved funding and payment process:<br/>
-      <dl><dd>
-          <table border="1" cellpadding="7" cellspacing="0" with="100%">
-            <col width="96"/>
-            <col width="225"/>
-            <col width="197"/>
-            <tr bgcolor="#d0d0d0" valign="middle">
-              <th></th>
-              <th><b>Funding amount</b> (GST inclusive)</th>
-              <th><b>Date of payments</b></th>
-            </tr>
-            {% for a in c.allocations.all() %}
-              <tr valign="middle">
-                <td>Year {{ a.period }}</td>
-                <td style="text-align: right;">${{ a.allocation }}</td>
-                <td>[Monthly, on the 2nd Business Day after the 20th of month]</td>
-              </tr>
-            {% endfor %}
-          </table>
-        </dd></dl>
+      <dl><dd></dd></dl>
     </li>
 
-
-
-
-
     <li>Start Date: <strong>{{ c.start_date.strftime("%d %B, %Y") }}</strong></li>
-  <li>Competion Date: <strong>{% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") if c.end_data else '' }}{% else %}&nbsp;{% endif %}</strong></li>
-  <li>Reporting dates:
+    <li>Completion Date: <strong>{% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") if c.end_data else '' }}{% else %}&nbsp;{% endif %}</strong></li>
+    <li>Reporting dates:
 
-    <table border="1" cellpadding="5" cellspacing="0" with="100%">
-      <tr bgcolor="#d0d0d0">
-        <th><b>Year</b></th>
-        <th><b>Report</b></th>
-        <th><b>Due date</b></th>
-      </tr>
-        {% for y, entries in c.reporting_schedule_by_years %}
+    </li>
+
+    <li>
+      Key Personnel and FTE totals:
+
+      <table border="1" cellpadding="5" cellspacing="0" with="100%">
+        <tr bgcolor="#d0d0d0">
+          <th><b>Name</b></th>
+          <th><b>Role</b></th>
+          <th><b>Time (%)</b></th>
+        </tr>
+        {% for m in c.members.all() %}
           <tr>
-            <td cols="{{ entries.__len__() or 1 }}">{{ y }}</td>
-            {% for r in entries %}
-                <td>{{ r.get_type_display() }} Report (Year {{ r.period }})</td>
-                <td>{{ r.due_date.strftime("%d %B, %Y") }}</td>
-            {% endfor %}
+            <td>{{ m.full_name_with_title }}</td>
+            <td>{{ m.role.name }}</td>
+            <td>{{ m.total_fte }}%</td>
           </tr>
         {% endfor %}
-    </table>
+      </table>
 
-  </li>
-  <li>
-    Key Personnel and FTE totals:
+    </li>
 
-    <table border="1" cellpadding="5" cellspacing="0" with="100%">
-      <tr bgcolor="#d0d0d0">
-        <th><b>Name</b></th>
-        <th><b>Role</b></th>
-        <th><b>Time (%)</b></th>
-      </tr>
-      {% for m in c.members.all() %}
-        <tr>
-          <td>{{ m.full_name_with_title }}</td>
-          <td>{{ m.role.name }}</td>
-          <td>{{ m.total_fte }}%</td>
-        </tr>
-      {% endfor %}
-    </table>
+   #}
 
-  </li>
   </ol>
   <div title="footer" style="font-size: 6pt; font-family: Arial; width: 100%;">
     <font size="1" style="font-size: 6pt; font-family: Arial;" face="Arial">
