@@ -1957,6 +1957,8 @@ class ApplicationView(LoginRequiredMixin):
                 ):
                     instance.converted_file.delete()
                     instance.converted_file = None
+                    if hasattr(instance, "page_count"):
+                        instance.page_count = None
 
                 if (
                     "cv_file" in form.changed_data
@@ -1967,6 +1969,8 @@ class ApplicationView(LoginRequiredMixin):
                 ):
                     instance.converted_file.delete()
                     instance.converted_file = None
+                    if hasattr(instance, "page_count"):
+                        instance.page_count = None
 
                 resp = super().form_valid(form)
 

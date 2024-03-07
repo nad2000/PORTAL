@@ -288,6 +288,12 @@ class PdfFileMixin:
     def pdf_file(self):
         if self.file:
             if self.file.name.lower().endswith(".pdf"):
+                if hasattr(self, "page_count") and not self.page_count:
+                    with open(self.file.name, "rb") as f:
+                        pdf_reader = PdfFileReader(f)
+                        self.page_count = pdf_reader.numPages
+                        self._change_reason = f"Updated page count to {self.page_count}"
+                        self.save(update_fields=["page_count"])
                 return self.file
             if not self.converted_file:
                 self.update_converted_file()
@@ -326,11 +332,26 @@ class PdfFileMixin:
         """The content is PDF."""
         return self.file.name and self.file.name.lower().endswith(".pdf")
 
+    def update_page_count(self, file):
+        if hasattr(self, "page_count"):
+            if isinstance(file, str):
+                with open(file, "rb") as f:
+                    pdf_reader = PdfFileReader(f)
+                    page_count = pdf_reader.numPages
+            else:
+                pdf_reader = PdfFileReader(file)
+                page_count = pdf_reader.numPages
+            if not self.page_count or pdf_reader != self.page_count:
+                self.page_count = page_count
+                return page_count
+
     def update_converted_file(self):
         """If the attached file is not PDF convert and update the PDF version."""
 
         if self.file.name and self.file.name.lower().endswith(".pdf") and self.converted_file:
             self.converted_file = None
+            if self.update_page_count(self.file.name):
+                self.save(update_fields=["file"])
             return
 
         elif self.file.name and not self.file.name.lower().endswith(".pdf"):
@@ -370,8 +391,16 @@ class PdfFileMixin:
             output_path = os.path.join(tempfile.gettempdir(), output_filename)
 
             with open(output_path, "rb") as of:
+
                 cf = ConvertedFile()
                 cf.file.save(output_filename, File(of))
+                of.seek(0)
+                pdf_reader = PdfFileReader(of)
+                page_count = pdf_reader.numPages
+                if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
+                    self.page_count = page_count
+                cf.page_count = pdf_reader.numPages
+                of.seek(0)
                 cf.save()
 
             self.converted_file = cf
@@ -1431,6 +1460,7 @@ class ConvertedFile(HelperMixin, Base):
     all_objects = Manager()
 
     file = PrivateFileField(upload_to="converted/%Y/%m/%d")
+    page_count = PositiveSmallIntegerField(_("number of pages"), null=True, blank=True)
 
     def natural_key(self):
         return self.file.name

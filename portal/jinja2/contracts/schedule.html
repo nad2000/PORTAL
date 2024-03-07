@@ -1,5 +1,6 @@
 {% extends "contracts/base.html" %}
 {% block content %}
+  {% set kp=c.key_person %}
   <a name="_Toc_schedule_240101001">
     <h1 class="western" style="page-break-before: always">
       SCHEDULE<br>
@@ -19,13 +20,11 @@
           <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624
                  style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
             <tr>
-              <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt;
-              padding:0in 5.4pt 0in 5.4pt'>
+              <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
                 <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
                 <b>Start Date of Agreement</b></p>
               </td>
-              <td width=340 valign=top style='width:255.15pt;border:solid windowtext 1.0pt;
-              border-left:none;padding:0in 5.4pt 0in 5.4pt'>
+              <td width=340 valign=top style='width:255.15pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt'>
                 <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
                 <b>
                   {{ c.start_date.strftime("%d %B, %Y") }}
@@ -34,28 +33,22 @@
               </td>
             </tr>
             <tr>
-              <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt;
-              border-top:none;padding:0in 5.4pt 0in 5.4pt'>
+              <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt'>
                 <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
                 <b>Date by which the Programme must start</b></p>
               </td>
-              <td width=340 valign=top style='width:255.15pt;border-top:none;border-left:
-              none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-              padding:0in 5.4pt 0in 5.4pt'>
+              <td width=340 valign=top style='width:255.15pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
                 <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>No later than
                 six months after the Start Date of the Agreement (unless otherwise agreed by
                 the parties)</p>
               </td>
             </tr>
             <tr style='height:4.15pt'>
-              <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt;
-              border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+              <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
                 <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Completion
                   Date </b></p>
               </td>
-              <td width=340 valign=top style='width:255.15pt;border-top:none;border-left:
-              none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-              padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
+              <td width=340 valign=top style='width:255.15pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
                 <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
                 <b>
                 {% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") if c.end_data else '' }}{% else %}&nbsp;{% endif %}
@@ -67,7 +60,6 @@
         </dd></dl>
     </li>
 
-    {% set kp=c.key_person %}
     {% if kp %}
       <li>
         <h3>Key Contact Person</h3>
@@ -259,38 +251,29 @@
       <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
              style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
         <tr style='height:29.6pt'>
-          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt;
-          padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
-            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%;page-break-after:
-            avoid'><b>Party name</b></p>
+          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%;page-break-after: avoid'><b>Party name</b></p>
           </td>
-          <td width=360 valign=top style='width:270.2pt;border:solid windowtext 1.0pt;
-          border-left:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+          <td width=360 valign=top style='width:270.2pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
             <b>Contact details</b></p>
           </td>
         </tr>
         <tr style='height:29.6pt'>
-          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt;
-          border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>The Royal Society of New Zealand </p>
           </td>
-          <td width=360 valign=top style='width:270.2pt;border-top:none;border-left:
-          none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-          padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+          <td width=360 valign=top style='width:270.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Contact]</p>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Phone number]</p>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Address / email address] </p>
           </td>
         </tr>
         <tr style='height:45.2pt'>
-          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt;
-          border-top:none;padding:0in 5.4pt 0in 5.4pt;height:45.2pt'>
+          <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:45.2pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.org.name }}</p>
           </td>
-          <td width=360 valign=top style='width:270.2pt;border-top:none;border-left:
-          none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
-          padding:0in 5.4pt 0in 5.4pt;height:45.2pt'>
+          <td width=360 valign=top style='width:270.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:45.2pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ c.org.address or kp and kp.address or "N/A" }}</p>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Phone number]</p>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Address / email address]</p>
@@ -300,6 +283,138 @@
 
       </dd></dl>
     </li>
+
+    <li>
+      <h3>Additional terms that apply in addition to the terms in Schedule 2 (if any)</h3>
+      <dl><dd>
+
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
+             style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause </b></p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Additional
+              term</b></p>
+          </td>
+        </tr>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>New clause 7.4</p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=Legal2 style='margin-left:0in;text-indent:0in'>The Host Organisation
+            must ensure that the Key Contact Person: </p>
+            <p class=Legal5 style='margin-left:63.8pt'>(a)<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </span>participates in hui organised by the Society relating to the Ng&#257;
+            Puanga P&#363;taiao Fellowships; and </p>
+            <p class=Legal5 style='margin-left:63.8pt'>(b)<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </span>if requested by the Society, presents their findings, and demonstrates
+            the impact of the research undertaken within the Programme in a forum
+            specified by the Society. </p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>&nbsp;</b></p>
+          </td>
+        </tr>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>New clause 7.5</p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=Legal2 style='margin-left:0in;text-indent:0in'>The Host Organisation
+            must ensure that, during the term of this Agreement, it continually provides
+            the support to the Key Contact Person as described in Appendix 4 of Schedule
+            1, and meets the commitments described in that Appendix.  </p>
+          </td>
+        </tr>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>New clause 6.3</p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+          padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=Legal2 style='margin-left:0in;text-indent:0in'>If a postgraduate
+            student is funded from the Funding, the Host Organisation must ensure that: </p>
+            <p class=Legal5 style='margin-left:37.15pt;text-indent:-35.4pt'>(a)<span
+               style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </span>the Key Contact Person is the primary supervisor of that postgraduate
+            student; and </p>
+            <p class=Legal5 style='margin-left:37.4pt;text-indent:-35.4pt'>(b)<span
+               style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </span>if the postgraduate student is a PhD student, the PhD student began
+            their studies within 12 months from the Commencement Date (unless agreed
+            otherwise in writing by the Society). </p>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>&nbsp;</p>
+          </td>
+        </tr>
+      </table>
+      </dd></dl>
+    </li>
+
+
+    <li>
+      <h3>Variations to terms in Schedule 2 (if any)</h3>
+      <dl><dd>
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
+             style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause
+              number</b></p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Amendment</b></p>
+          </td>
+        </tr>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>&nbsp;</p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>&nbsp;</p>
+          </td>
+        </tr>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>&nbsp;</p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>&nbsp;</p>
+          </td>
+        </tr>
+      </table>
+      </dd></dl>
+    </li>
+
+    <li>
+      <h3>Appendices attached to Schedule 1</h3>
+      <dl><dd>
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
+             style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+        <tr style='height:29.6pt'>
+          <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Appendix
+              number</b></p>
+          </td>
+          <td width=462 valign=top style='width:346.7pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Title</b></p>
+          </td>
+        </tr>
+        {% for a in c.documents.all().order_by("required_document__ordering") %}
+          <tr style='height:29.6pt'>
+            <td width=163 valign=top style='width:121.95pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ loop.index }}</p>
+            </td>
+            <td width=462 valign=top style='width:346.7pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+            padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ a.document_type }}</p>
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+      </dd></dl>
+    </li>
+
 
     {#
 
