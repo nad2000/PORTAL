@@ -606,8 +606,12 @@ class DocumentType(Model):
 
 class RoleType(Model):
     code = FixedCharField(primary_key=True, max_length=2)
+    role_code = PositiveSmallIntegerField(null=True, blank=True, help_text="SYS_ROLES.ROLECODE")
+    role_type = CharField(max_length=20, blank=True, null=True, help_text="SYS_ROLES.ROLETYPE")
+    role_name = CharField(max_length=255, blank=True, null=True, help_text="SYS_ROLES.ROLETYPE")
     name = CharField(max_length=255, blank=True, null=True)
     description = CharField(max_length=255, blank=True, null=True)
+
 
     def __str__(self):
         return f"{self.code}: {self.name}"
@@ -1318,6 +1322,15 @@ class Person(PersonMixin, Model):
 
     class Meta:
         db_table = "person"
+
+
+class PersonCode(Model):
+
+    person = ForeignKey(Person, on_delete=CASCADE, related_name="previous_codes")
+    code = CharField(max_length=8)
+
+    class Meta:
+        db_table = "person_code"
 
 
 class PersonProtectionPattern(Model):

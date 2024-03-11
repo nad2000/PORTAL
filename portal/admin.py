@@ -704,8 +704,12 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
         "user__first_name",
         "user__last_name",
     ]
-    list_display = ["code", "user", "full_name_with_email", "created_at"]
+    list_display = ["username", "code", "user", "full_name_with_email", "created_at"]
+    # list_display_links = ["username"]
     list_filter = ["created_at", "updated_at"]
+
+    def username(self, obj):
+        return obj.code or (obj.user and obj.user.username) or obj.full_name_with_email
 
     inlines = [
         ProfileCareerStageInline,
@@ -725,6 +729,17 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
 
     def view_on_site(self, obj):
         return reverse("profile-instance", kwargs={"pk": obj.pk})
+
+    def save_form(self, request, form, change):
+        if change and "code" in form.changed_data and (old_code := self.model.where(pk=form.instance.pk).values_list("code").first()[0]):
+            models.PersonCode.get_or_create(
+                person=form.instance,
+                code=old_code,
+            )
+        # if not created and self.code:
+        #     breakpoint()
+        #     pass
+        return super().save_form(request=request, form=form, change=change)
 
 
 class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
