@@ -619,7 +619,7 @@ class RoleType(Model):
     code = FixedCharField(primary_key=True, max_length=2)
     role_code = PositiveSmallIntegerField(null=True, blank=True, help_text="SYS_ROLES.ROLECODE")
     role_type = CharField(max_length=20, blank=True, null=True, help_text="SYS_ROLES.ROLETYPE")
-    role_name = CharField(max_length=255, blank=True, null=True, help_text="SYS_ROLES.ROLETYPE")
+    role_name = CharField(max_length=255, blank=True, null=True, help_text="SYS_ROLES.ROLENAME")
     name = CharField(max_length=255, blank=True, null=True)
     description = CharField(max_length=255, blank=True, null=True)
 
@@ -6671,7 +6671,35 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             current_ts = timezone.now()
             contract = self
             user = request and request.user
-            return template.render(locals())
+            content = template.render(locals())
+            if format in ["html", "htm"]:
+                return content
+            else:
+                hf = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+                hf.write(content.encode())
+                hf.close()
+                hf_path = Path(hf.name)
+
+                cp = subprocess.run(
+                    [
+                        "lowriter",
+                        "--headless",
+                        "--convert-to",
+                        format,
+                        "--outdir",
+                        tempfile.tempdir,
+                        # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
+                        # Path.home() / "PMSPP" / f"schedule_{self.number}.html",
+                        hf.name,
+                    ],
+                    capture_output=True,
+                    env=dict(os.environ, PAPERSIZE="a4"),
+                )
+                if cp.returncode or (
+                    (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
+                ):
+                    raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
+                return hf_path.with_suffix(f".{format}")
 
     def get_cover_page(self, request=None, user=None, format="html"):
 

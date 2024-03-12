@@ -1,11 +1,13 @@
 import io
-from datetime import timedelta
 import json
+import mimetypes
 import os
 import shutil
 import traceback
+from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote
+from wsgiref.util import FileWrapper
 
 import django.utils.translation
 import django_filters
@@ -57,11 +59,18 @@ from django.forms import (
     ModelForm,
     TextInput,
     ValidationError,
+    fields,
     modelformset_factory,
 )
 from django.forms import models as model_forms
-from django.forms import widgets, fields
-from django.http import FileResponse, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.forms import widgets
+from django.http import (
+    FileResponse,
+    HttpResponse,
+    HttpResponseRedirect,
+    JsonResponse,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
 from django.utils import timezone
@@ -5851,13 +5860,29 @@ class ContractExportView(ExportView):
 
     def get(self, request, pk):
         c = self.get_object_or_404(pk)
-        format = request.GET.get("format")
+        format = request.GET.get("format") or "html"
         part = request.GET.get("part")
         if part:
-            return HttpResponse(
-                c.get_part(request=self.request, format=format or "html", part=part),
-                content_type="text/html; charset=utf-8",
-            )
+            if not format or format in ["html", "htm"]:
+                return HttpResponse(
+                    c.get_part(request=self.request, format=format or "html", part=part),
+                    content_type="text/html; charset=utf-8",
+                )
+            else:
+                fn = c.get_part(request=self.request, format=format, part=part)
+                content_type, _ = mimetypes.guess_type(fn)
+                if settings.DEBUG:
+                    resp = StreamingHttpResponse(
+                        FileWrapper(open(fn, "rb")), content_type=content_type
+                    )
+                else:
+                    # works with nginx:
+                    resp = HttpResponse(content_type="application/force-download")
+                    resp["X-Sendfile"] = fn
+                    resp["X-Accel-Redirect"] = fn
+                resp["Content-Length"] = os.path.getsize(fn)
+                resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
+                return resp
 
         if request.GET.get("format") == "odt":
             c.to_odt(request=request)
