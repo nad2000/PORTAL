@@ -623,12 +623,12 @@ class RoleType(Model):
     name = CharField(max_length=255, blank=True, null=True)
     description = CharField(max_length=255, blank=True, null=True)
 
-
     def __str__(self):
         return f"{self.code}: {self.name}"
 
     class Meta:
         db_table = "role_type"
+        ordering = ["code"]
 
 
 class CareerStage(Model):
