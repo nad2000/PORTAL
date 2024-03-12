@@ -3462,7 +3462,7 @@ class ContractViewMixin:
 
         class ContractDocumentForm(ModelForm):
 
-            application_document = fields.Field(widget=HiddenInput())
+            application_document = fields.Field(widget=HiddenInput(), required=False)
 
             def save(self, commit=True):
                 if (
@@ -3630,7 +3630,34 @@ class ContractViewMixin:
                 fs = self.get_document_formset()
                 fs.instance = self.object
                 if fs.is_valid():
-                    fs.save()
+                    fs.save(commit=False)
+                    for f in fs.forms:
+                        if "file" in f.changed_data:
+                            if f.instance.file.name.lower().endswith(".pdf"):
+                                doc_file = f.instance.file.open()
+                                f.instance.update_page_count(doc_file)
+                                # f.instance.sarve(updated_fields=["page_count"])
+                            else:
+                                cf = f.instance.update_converted_file()
+                                # f.instance.save(updated_fields=["page_count", "converted_file"])
+                                if cf:
+                                    messages.success(
+                                        self.request,
+                                        _(
+                                            "%(document_type)s %(original)s was converted into PDF file. "
+                                            "Please review the converted document <a href='%(url)s'>%(name)s</a>."
+                                        )
+                                        % {
+                                            "document_type": f.instance.document_type
+                                            or f.instance.required_document
+                                            and f.instance.required_document.document_type,
+                                            "original": os.path.basename(f.instance.file.name),
+                                            "url": cf.file.url,
+                                            "name": os.path.basename(cf.file.name),
+                                        },
+                                    )
+                    fs.save(commit=True)
+
                 address_form = self.get_address_form()
                 # instance=self.object.address if self.object and self.object.pk else None)
                 if address_form.changed_data or not self.object.address:

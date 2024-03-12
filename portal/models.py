@@ -332,7 +332,20 @@ class PdfFileMixin:
         """The content is PDF."""
         return self.file.name and self.file.name.lower().endswith(".pdf")
 
-    def update_page_count(self, file):
+    def update_page_count(self, file=None):
+
+        if not file:
+            if self.file:
+                if self.file.name.lower().endswith(".pdf"):
+                    file = self.file.path
+                elif self.converted_file:
+                    file = self.converted_file.file.path
+                else:
+                    cf = self.update_converted_file()
+                    return cf.page_count
+            else:
+                return
+
         if hasattr(self, "page_count"):
             if isinstance(file, str):
                 with open(file, "rb") as f:
@@ -350,9 +363,7 @@ class PdfFileMixin:
 
         if self.file.name and self.file.name.lower().endswith(".pdf") and self.converted_file:
             self.converted_file = None
-            if self.update_page_count(self.file.name):
-                self.save(update_fields=["file"])
-            return
+            self.update_page_count(self.file.path)
 
         elif self.file.name and not self.file.name.lower().endswith(".pdf"):
             cp = subprocess.run(
