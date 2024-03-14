@@ -1266,6 +1266,9 @@ class ApplicationForm(forms.ModelForm):
 
 
 class ContractMemberForm(FTEMixin, forms.ModelForm):
+    # role =Field(queryset
+    role = forms.ModelChoiceField(queryset=models.RoleType.where(for_application=True))
+
     class Meta:
         model = models.ContractMember
         exclude = ["address"]
@@ -1963,7 +1966,9 @@ class ContractForm(forms.ModelForm):
 
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+
     readonly_fields = ["state"]
+    role = forms.ModelChoiceField(queryset=models.RoleType.where(for_application=True))
 
     def clean(self):
         cleaned_data = super().clean()
