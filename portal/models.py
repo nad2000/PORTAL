@@ -615,20 +615,22 @@ class DocumentType(Model):
         db_table = "document_type"
 
 
-class RoleType(Model):
+class RoleType(TimeStampMixin, HelperMixin, OrderableModel):
     code = FixedCharField(primary_key=True, max_length=2)
     role_code = PositiveSmallIntegerField(null=True, blank=True, help_text="SYS_ROLES.ROLECODE")
     role_type = CharField(max_length=20, blank=True, null=True, help_text="SYS_ROLES.ROLETYPE")
     role_name = CharField(max_length=255, blank=True, null=True, help_text="SYS_ROLES.ROLENAME")
     name = CharField(max_length=255, blank=True, null=True)
     description = CharField(max_length=255, blank=True, null=True)
+    for_application = BooleanField(_("Available for application stage"), default=True)
+    for_contracting = BooleanField(_("Available for contracting stage"), default=True)
 
     def __str__(self):
         return f"{self.code}: {self.name}"
 
-    class Meta:
+    class Meta(OrderableModel.Meta):
         db_table = "role_type"
-        ordering = ["code"]
+        # ordering = ["code"]
 
 
 class CareerStage(Model):
@@ -3036,7 +3038,17 @@ class Member(PersonMixin, MemberMixin, Model):
         help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
-    role = CharField(max_length=200, null=True, blank=True)
+    role_description = CharField(
+        _("legacy role"), max_length=200, null=True, blank=True, editable=False
+    )
+    role = ForeignKey(
+        RoleType,
+        on_delete=PROTECT,
+        related_name="application_personnel",
+        null=True,
+        blank=True,
+        db_column="role",
+    )
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
@@ -5157,6 +5169,21 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         db_table = "required_document"
 
 
+class ContractClause(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="contract_clauses")
+    type = FixedCharField(
+        _("Type"), max_length=1, choices=Choices(("A", _("Addition")), ("V", _("Variation")))
+    )
+    clause = CharField(_("Clause Number"), max_length=100)
+    term = TextField(_("Term"), max_length=2000)
+
+    def __str__(self):
+        return f"{self.get_type_display()}: {self.clause}"
+
+    class Meta(OrderableModel.Meta):
+        db_table = "contract_clause"
+
+
 class RoundDocumentTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="templates")
     document_type = ForeignKey(DocumentType, on_delete=CASCADE)
@@ -6653,8 +6680,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
-    def get_part(self, request=None, user=None, format="html", part=None):
-        """Returns generated part of the contract text from a template"""
+    def get_document(self, request=None, user=None, format="html", part=None, stand_alone=True):
+        """Returns generated part of the contract text from a template.
+
+        @stand_alone - generete a complete HTML document/part;"""
 
         year = self.year or self.start_date.year
         if part:
@@ -6672,34 +6701,40 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             contract = self
             user = request and request.user
             content = template.render(locals())
-            if format in ["html", "htm"]:
-                return content
-            else:
-                hf = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
-                hf.write(content.encode())
-                hf.close()
-                hf_path = Path(hf.name)
 
-                cp = subprocess.run(
-                    [
-                        "lowriter",
-                        "--headless",
-                        "--convert-to",
-                        format,
-                        "--outdir",
-                        tempfile.tempdir,
-                        # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
-                        # Path.home() / "PMSPP" / f"schedule_{self.number}.html",
-                        hf.name,
-                    ],
-                    capture_output=True,
-                    env=dict(os.environ, PAPERSIZE="a4"),
-                )
-                if cp.returncode or (
-                    (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
-                ):
-                    raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
-                return hf_path.with_suffix(f".{format}")
+        else:
+            output = io.StringIO()
+            for p in ["cover", "background", "agreement", "schedule"]:
+                pass
+
+        if not format or format in ["html", "htm"]:
+            return content
+
+        hf = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+        hf.write(content.encode())
+        hf.close()
+        hf_path = Path(hf.name)
+
+        cp = subprocess.run(
+            [
+                "lowriter",
+                "--headless",
+                "--convert-to",
+                format,
+                "--outdir",
+                tempfile.tempdir,
+                # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
+                # Path.home() / "PMSPP" / f"schedule_{self.number}.html",
+                hf.name,
+            ],
+            capture_output=True,
+            env=dict(os.environ, PAPERSIZE="a4"),
+        )
+        if cp.returncode or (
+            (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
+        ):
+            raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
+        return hf_path.with_suffix(f".{format}")
 
     def get_cover_page(self, request=None, user=None, format="html"):
 

@@ -731,7 +731,11 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
         return reverse("profile-instance", kwargs={"pk": obj.pk})
 
     def save_form(self, request, form, change):
-        if change and "code" in form.changed_data and (old_code := self.model.where(pk=form.instance.pk).values_list("code").first()[0]):
+        if (
+            change
+            and "code" in form.changed_data
+            and (old_code := self.model.where(pk=form.instance.pk).values_list("code").first()[0])
+        ):
             models.PersonCode.get_or_create(
                 person=form.instance,
                 code=old_code,
@@ -1960,13 +1964,17 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
 
 
 @admin.register(models.RoleType)
-class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
+class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["name", "name_en", "name_mi"]
+    list_display = ["name", "for_application", "for_contracting", "ordering"]
+    list_display_links = ["name"]
     search_fields = ["name_en", "name_mi"]
     # list_editable = ["role", "name_en", "name_mi"]
     # date_hierarchy = "created_at"
+    list_editable = ["ordering", "for_application", "for_contracting"]
+    ordering_field_hide_input = True
+    exclude = ["ordering"]
 
 
 @admin.register(models.Title)

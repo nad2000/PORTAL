@@ -5865,11 +5865,11 @@ class ContractExportView(ExportView):
         if part:
             if not format or format in ["html", "htm"]:
                 return HttpResponse(
-                    c.get_part(request=self.request, format=format or "html", part=part),
+                    c.get_document(request=self.request, format=format or "html", part=part),
                     content_type="text/html; charset=utf-8",
                 )
             else:
-                fn = c.get_part(request=self.request, format=format, part=part)
+                fn = c.get_document(request=self.request, format=format, part=part)
                 content_type, _ = mimetypes.guess_type(fn)
                 if settings.DEBUG:
                     resp = StreamingHttpResponse(
