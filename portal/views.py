@@ -5877,6 +5877,7 @@ class ContractExportView(ExportView):
                     )
                 else:
                     # works with nginx:
+                    # See: https://www.nginx.com/resources/wiki/start/topics/examples/xsendfile/
                     resp = HttpResponse(content_type="application/force-download")
                     resp["X-Sendfile"] = fn
                     resp["X-Accel-Redirect"] = fn
