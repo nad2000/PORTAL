@@ -1083,7 +1083,12 @@ class Affiliation(Model):
         verbose_name=_("organisation"),
         related_name="affiliations",
     )
-    type = CharField(_("type"), max_length=10, choices=AFFILIATION_TYPES)
+    type = CharField(
+        _("type"),
+        max_length=10,
+        choices=AFFILIATION_TYPES,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in AFFILIATION_TYPES),
+    )
     role = CharField(
         _("role"),
         max_length=512,
@@ -1171,10 +1176,18 @@ class Person(PersonMixin, Model):
     # is_ethnicities_completed = BooleanField(default=True)
     # CharField(max_length=20, null=True, blank=True, choices=ETHNICITIES)
     education_level = PositiveSmallIntegerField(
-        _("education level"), null=True, blank=True, choices=QUALIFICATION_LEVEL
+        _("education level"),
+        null=True,
+        blank=True,
+        choices=QUALIFICATION_LEVEL,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in QUALIFICATION_LEVEL),
     )
     employment_status = PositiveSmallIntegerField(
-        _("employment status"), null=True, blank=True, choices=EMPLOYMENT_STATUS
+        _("employment status"),
+        null=True,
+        blank=True,
+        choices=EMPLOYMENT_STATUS,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in EMPLOYMENT_STATUS),
     )
     # years since arrival in New Zealand
     primary_language_spoken = CharField(
