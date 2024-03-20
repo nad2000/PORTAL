@@ -4363,6 +4363,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
 class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
     model = models.Affiliation
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
+    exclude = ["email"]
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
@@ -4785,6 +4786,24 @@ class PanelAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if self.q:
             q = q.filter(Q(description__istartswith=self.q) | Q(code__istartswith=self.q))
         return q.order_by("code")
+
+
+class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        return False
+
+    def get_queryset(self):
+
+        q = super().get_queryset()
+        if org := self.forwarded.get("org"):
+            # select only people affiliated with the org
+            q = q.filter(affiliations__org=org).distinct()
+        if org_code := self.forwarded.get("org_code"):
+            # select only people affiliated with the org
+            q = q.filter(affiliations__org__code=org_code).distinct()
+        if affiliation_type := self.forwarded.get("affiliation_type"):
+            q = q.filter(affiliations__type=affiliation_type).distinct()
+        return q
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
@@ -5862,33 +5881,26 @@ class ContractExportView(ExportView):
         c = self.get_object_or_404(pk)
         format = request.GET.get("format") or "html"
         part = request.GET.get("part")
-        if part:
-            if not format or format in ["html", "htm"]:
-                return HttpResponse(
-                    c.get_document(request=self.request, format=format or "html", part=part),
-                    content_type="text/html; charset=utf-8",
+        if not format or format in ["html", "htm"]:
+            return HttpResponse(
+                c.get_document(request=self.request, format=format or "html", part=part),
+                content_type="text/html; charset=utf-8",
+            )
+        else:
+            fn = c.get_document(request=self.request, format=format, part=part)
+            content_type, _ = mimetypes.guess_type(fn)
+            if settings.DEBUG:
+                resp = StreamingHttpResponse(
+                    FileWrapper(open(fn, "rb")), content_type=content_type
                 )
             else:
-                fn = c.get_document(request=self.request, format=format, part=part)
-                content_type, _ = mimetypes.guess_type(fn)
-                if settings.DEBUG:
-                    resp = StreamingHttpResponse(
-                        FileWrapper(open(fn, "rb")), content_type=content_type
-                    )
-                else:
-                    # works with nginx:
-                    resp = HttpResponse(content_type="application/force-download")
-                    resp["X-Sendfile"] = fn
-                    resp["X-Accel-Redirect"] = fn
-                resp["Content-Length"] = os.path.getsize(fn)
-                resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
-                return resp
-
-        if request.GET.get("format") == "odt":
-            c.to_odt(request=request)
-        else:
-            c.to_pdf(request=request)
-        return redirect("contract-detail", number=c.number)
+                # works with nginx:
+                resp = HttpResponse(content_type="application/force-download")
+                resp["X-Sendfile"] = fn
+                resp["X-Accel-Redirect"] = fn
+            resp["Content-Length"] = os.path.getsize(fn)
+            resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
+            return resp
 
 
 class RoundExportView(ExportView):
@@ -7362,6 +7374,79 @@ def demo(request):
     # )
 
     return render(request, "demo.html", locals())
+
+
+# def send_notification(registration_ids=None, message_title="TEST TITLE", message_desc="You are welcome!"):
+#     fcm_api = ""
+#     url = "https://fcm.googleapis.com/fcm/send"
+
+#     headers = {
+#         "Content-Type":"application/json",
+#         "Authorization": 'key=fzVeTUir8hFXNE2tT-5117:APA91bHdLd1UFWqlATjOuz3YyHeBI8UonoudJkKoYfAz4sdxHIenxsXBkUXeuTomns-LJMz1B6-OTSBaW_I25zFi6d5l8Z9WTgT2tVcNVVSxwq00YnCtW4aMUBB8mQV7lUHD1NX22MgF'
+#     }
+
+#     payload = {
+#         "registration_ids" :registration_ids,
+#         "priority" : "high",
+#         "notification" : {
+#             "body" : message_desc,
+#             "title" : message_title,
+#             "image" : "https://i.ytimg.com/vi/m5WUPHRgdOA/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLDwz-yjKEdwxvKjwMANGk5BedCOXQ",
+#             "icon": "https://yt3.ggpht.com/ytc/AKedOLSMvoy4DeAVkMSAuiuaBdIGKC7a5Ib75bKzKO3jHg=s900-c-k-c0x00ffffff-no-rj",
+
+#         }
+#     }
+
+#     result = requests.post(url,  data=json.dumps(payload), headers=headers )
+#     print(result.json())
+
+
+# def FirebaseJS(request):
+#     return HttpResponse(
+#         """
+# importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+# importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
+# const firebaseConfig = {
+#     apiKey: "AIzaSyB_8gnIoL0HZ82UZiKQREJ17RRRtkM0bX4",
+#     authDomain: "pmspp-273112.firebaseapp.com",
+#     projectId: "pmspp-273112",
+#     storageBucket: "pmspp-273112.appspot.com",
+#     messagingSenderId: "505794998992",
+#     appId: "1:505794998992:web:54350149a523eef0c764d5",
+#     measurementId: "G-FHVXYJD580"
+# };
+# firebase.initializeApp(firebaseConfig);
+# const messaging = firebase.messaging();
+
+# messaging.onBackgroundMessage((payload) => {
+#   console.log(
+#     '[firebase-messaging-sw.js] Received background message ',
+#     payload
+#   );
+#   // Customize notification here
+#   const notificationTitle = 'Background Message Title';
+#   const notificationOptions = {
+#     body: 'Background Message body.',
+#     icon: '/firebase-logo.png'
+#   };
+
+#   self.registration.showNotification(notificationTitle, notificationOptions);
+# });
+
+# /*
+# messaging.setBackgroundMessageHandler(function (payload) {
+#     console.log(payload);
+#     const notification=JSON.parse(payload);
+#     const notificationOption={
+#         body:notification.body,
+#         icon:notification.icon
+#     };
+#     return self.registration.showNotification(payload.notification.title,notificationOption);
+# })
+# */
+# """,
+#         content_type="text/javascript",
+#     )
 
 
 # vim:set ft=python.django:

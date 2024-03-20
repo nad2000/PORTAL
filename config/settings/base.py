@@ -1,6 +1,7 @@
 """
 Base settings to build other settings files upon.
 """
+
 from pathlib import Path
 
 import environ
@@ -170,9 +171,9 @@ SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - o
 EXPLORER_CONNECTIONS = {"Default": "default"}
 EXPLORER_DEFAULT_CONNECTION = "default"
 EXPLORER_DATA_EXPORTERS = [
-    ('csv', 'explorer.exporters.CSVExporter'),
-    ('excel', 'explorer.exporters.ExcelExporter'),
-    ('json', 'explorer.exporters.JSONExporter')
+    ("csv", "explorer.exporters.CSVExporter"),
+    ("excel", "explorer.exporters.ExcelExporter"),
+    ("json", "explorer.exporters.JSONExporter"),
 ]
 # EXPLORER_CHARTS_ENABLED = True
 
@@ -461,9 +462,16 @@ SUMMERNOTE_THEME = "bs4"
 # SUMMERNOTE_CONFIG = {"iframe": False}
 SUMMERNOTE_CONFIG = {
     # "iframe": True,
-    # "summernote": {
-    #     "width": "100%",
-    # },
+    "summernote": {
+        # "width": "100%",
+        # "airMode": True,
+        "fontNames": ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Merriweather"],
+        "fontName": "Arial",
+        "fontSize": 10,
+        "addDefaultFonts": True,
+        "lang": None,
+    },
+    "js": ("/static/js/summernote_set_font.js",),
 }
 IMPORT_EXPORT_USE_TRANSACTIONS = True
 IMPORT_EXPORT_SKIP_ADMIN_LOG = True

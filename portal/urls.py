@@ -342,6 +342,12 @@ urlpatterns = [
                     views.CountryAutocomplete.as_view(model=models.Country),
                     name="country-autocomplete",
                 ),
+                path(
+                    "person/",
+                    views.PersonAutocomplete.as_view(model=models.Person),
+                    name="person-autocomplete",
+                ),
+
             ]
         ),
     ),
@@ -526,6 +532,7 @@ urlpatterns = [
     path("favicon.ico", views.favicon),
     path("webhooks/survey/", views.survey_webhook),
     path("demo/", views.demo),
+    # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
 
 if settings.SENTRY_DSN:

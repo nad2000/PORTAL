@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
-from functools import lru_cache, partial, wraps, cached_property
+from functools import cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -36,6 +36,7 @@ from django.core.validators import (
     FileExtensionValidator,
     MaxValueValidator,
     MinValueValidator,
+    RegexValidator,
 )
 from django.db import connection
 from django.db.models import (
@@ -45,7 +46,6 @@ from django.db.models import (
     RESTRICT,
     SET_NULL,
     BooleanField,
-    GeneratedField,
     Case,
     CharField,
     Count,
@@ -56,6 +56,7 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
+    GeneratedField,
     Manager,
     ManyToManyField,
     OneToOneField,
@@ -843,6 +844,13 @@ class PersonCareerStage(Model):
 
 ORCID_ID_REGEX = re.compile(r"^([X\d]{4}-?){3}[X\d]{4}$")
 
+phone_regex_validator = RegexValidator(
+    regex=r"^\+?1?\d{9,15}$",
+    message=_(
+        "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+    ),
+)
+
 
 def validate_orcid_id(value):
     """Sanitize and validate ORCID iD (both format and the check-sum)."""
@@ -993,6 +1001,24 @@ class Organisation(Model):
     address = ForeignKey(
         Address, blank=True, null=True, related_name="organisations", on_delete=RESTRICT
     )
+    contact_phone = CharField(
+        _("Contact phone number"),
+        validators=[phone_regex_validator],
+        max_length=24,
+        blank=True,
+        null=True,
+    )
+    email = EmailField(_("Contact email address"), blank=True, null=True)
+    signatory = ForeignKey(
+        "Person",
+        verbose_name=_("signatory"),
+        on_delete=PROTECT,
+        related_name="signatory_for",
+        blank=True,
+        null=True,
+        limit_choices_to={"affiliations__type": "EMP"},
+    )
+    # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     website = CharField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
@@ -1071,6 +1097,7 @@ class Affiliation(Model):
     start_date = DateField(_("start date"), null=True, blank=True)
     end_date = DateField(_("end date"), null=True, blank=True)
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+    email = EmailField(max_length=120, verbose_name=_("email address"), blank=True, null=True)
 
     history = HistoricalRecords(table_name="affiliation_history")
 
@@ -1281,17 +1308,15 @@ class Person(PersonMixin, Model):
     def protection_patterns(self):
         return ProtectionPatternPerson.get_data(self)
 
+    @lru_cache(1)
     def __str__(self):
-        u = self.user
-        return (
-            (
+        if u := self.user:
+            return (
                 f"{u.name} ({u.username})'s profile"
                 if u.name and u.username
                 else f"{u.name or u.username or u.email}'s profile"
             )
-            if u
-            else self.code or f"Person: ID={self.id}"
-        )
+        return self.code or self.full_name_with_title
 
     def save(self, *args, **kwargs):
         created = not self.id
@@ -6680,32 +6705,25 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
-    def get_document(self, request=None, user=None, format="html", part=None, stand_alone=True):
-        """Returns generated part of the contract text from a template.
-
-        @stand_alone - generete a complete HTML document/part;"""
+    def get_document(self, request=None, user=None, format="html", part=None):
+        """Returns generated part of the contract text from a template."""
 
         year = self.year or self.start_date.year
-        if part:
-            if "cover" in part:
-                template_name = "contracts/cover_page.html"
-            elif "background" in part:
-                template_name = "contracts/background.html"
-            elif "agreement" in part:
-                template_name = "contracts/agreement.html"
-            elif "schedule" in part:
-                template_name = "contracts/schedule.html"
+        current_ts = timezone.now()
+        contract = self
+        clauses = list(self.application.round.contract_clauses.all().order_by("type", "ordering"))
+        additional_clauses = [c for c in clauses if c.type == "A"]
+        ammended_clauses = [c for c in clauses if c.type == "V"]
 
-            template = get_template(template_name)
-            current_ts = timezone.now()
-            contract = self
-            user = request and request.user
-            content = template.render(locals())
-
+        if part in ["cover", "background", "agreement", "schedule"]:
+            template_name = "contracts/part.html"
         else:
-            output = io.StringIO()
-            for p in ["cover", "background", "agreement", "schedule"]:
-                pass
+            template_name = "contracts/document.html"
+
+        template = get_template(template_name)
+        user = request and request.user
+
+        content = template.render(locals())
 
         if not format or format in ["html", "htm"]:
             return content
