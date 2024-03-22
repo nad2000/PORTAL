@@ -5,6 +5,8 @@ from django.utils.html import html_safe
 from admin_ordering.admin import OrderableAdmin
 from allauth.socialaccount.admin import SocialAccountAdmin, SocialTokenAdmin
 from allauth.socialaccount.models import SocialAccount, SocialToken
+import djhacker
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.flatpages.admin import FlatPageAdmin
@@ -31,7 +33,20 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 from . import models
 from . import views
+from dal import autocomplete
+import dal
 
+djhacker.formfield(
+    models.Organisation.signatory,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="person-autocomplete",
+        forward=[
+            dal.forward.Const("EMP", "affiliation_type"),
+            dal.forward.Field("code", "org_code"),
+        ],
+    ),
+)
 
 admin.site.site_url = "/start"
 admin.site.site_header = _("Portal Administration")
@@ -660,6 +675,18 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
     autocomplete_fields = ["address"]
 
+    def get_search_results(self, request, queryset, search_term):
+        queryset, may_have_duplicates = super().get_search_results(
+            request,
+            queryset,
+            search_term,
+        )
+        model_name = request.GET.get("model_name")
+        if model_name == "organisation":
+            if request.GET.get("field_name") == "signatory":
+                return queryset.distinct(), False
+        return queryset, may_have_duplicates
+
     class ProfileCareerStageInline(admin.StackedInline):
         extra = 1
         model = models.PersonCareerStage
@@ -919,7 +946,7 @@ class ApplicationAdmin(
 
         def get_exclude(self, request, obj=None):
             exclude = super().get_exclude(request, obj)
-            if settings.SITE_ID == 4:
+            if settings.SITE_ID in [4, 5]:
                 exclude.extend(["survey_completed_at", "survey_url"])
             return exclude
 
@@ -1134,7 +1161,7 @@ class ApplicationAdmin(
 
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "STATE")
-        if obj.site_id == 4:
+        if obj.site_id in [4, 5]:
             fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
 
         return fieldsets
@@ -1596,6 +1623,40 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     autocomplete_fields = ["address"]
     actions = ["merge_orgs"]
 
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": [
+                    ("code", "name", "is_active"),
+                    ("identifier_type", "identifier"),
+                    ("legal_name", "alt_name"),
+                ],
+            },
+        ),
+        (
+            "Other Identifiers",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    ("grid", "ror", "gst"),
+                    ("nzbn", "nz_ris_type"),
+                ],
+            },
+        ),
+        (
+            "Contact Information",
+            {
+                # "classes": ("collapse",),
+                "fields": [
+                    ("address", "website"),
+                    ("email", "contact_phone"),
+                    "signatory",
+                ],
+            },
+        ),
+    ]
+
     class ResearchOfficeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.ResearchOffice
@@ -2015,7 +2076,7 @@ class RoundAdmin(
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
-        if (site_id := settings.SITE_ID) and site_id == 4:
+        if (site_id := settings.SITE_ID) and site_id in [4, 5]:
             exclude = exclude and exclude.copy() or []
             exclude.extend(
                 [
@@ -2071,7 +2132,11 @@ class RoundAdmin(
                             ]
                             if f not in exclude
                         ],
-                        ("required_referees", "is_flexible_number_of_referees"),
+                        (
+                            "required_referees",
+                            "is_flexible_number_of_referees",
+                            "required_submitted_testimonials",
+                        ),
                         "duration",
                     ]
                 },
@@ -2107,7 +2172,7 @@ class RoundAdmin(
                         ]
                     },
                 )
-                if site_id == 4
+                if site_id in [4, 5]
                 else (
                     "Templates",
                     {
@@ -2191,8 +2256,18 @@ class RoundAdmin(
         ordering_field_hide_input = True
         classes = ["collapse"]
 
+    class ContractClauseInline(
+        SummernoteModelAdminMixin, StaffPermsMixin, OrderableAdmin, admin.TabularInline
+    ):
+        extra = 0
+        model = models.ContractClause
+        # autocomplete_fields = ["document_type"]
+        view_on_site = False
+        ordering_field_hide_input = True
+        classes = ["collapse"]
+
     def get_inlines(self, request, obj):
-        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id == 4:
+        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [4, 5]:
             return [
                 self.RequiredDocumentInline,
                 self.TemplateInline,
@@ -2200,6 +2275,7 @@ class RoundAdmin(
                 self.CriterionInline,
                 self.PanellistInline,
                 self.RequiredContractDocumentInline,
+                self.ContractClauseInline,
             ]
 
         return [
@@ -2208,6 +2284,7 @@ class RoundAdmin(
             self.CriterionInline,
             self.PanellistInline,
             self.RequiredContractDocumentInline,
+            self.ContractClauseInline,
         ]
 
 

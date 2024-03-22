@@ -47,7 +47,7 @@ def portal_context(request):
             #     else ["submitted", "approved", "cancelled"],
             # )
             application_submitted_count = counts.get("submitted", 0) + counts.get("canceled", 0)
-            if (site_id != 4 or (not is_staff and not u.is_superuser)) and "approved" in counts:
+            if (site_id not in [4, 5] or (not is_staff and not u.is_superuser)) and "approved" in counts:
                 application_submitted_count += counts["approved"]
             application_accepted_count = counts.get("accepted", 0)
             # application_accepted_count = models.Application.user_application_count(u, ["accepted"])
@@ -79,7 +79,7 @@ def portal_context(request):
                 "score_sheet_count": score_sheet_count,
                 "is_ro": is_ro,
             }
-            if site_id == 4 and (is_staff or u.is_superuser):
+            if site_id in [4, 5] and (is_staff or u.is_superuser):
                 application_approved_count = models.Application.user_application_count(
                     u, "approved"
                 )

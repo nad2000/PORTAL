@@ -159,7 +159,7 @@ def handler413(request, *args, **argv):
 
 def favicon(request):
     site_id = settings.SITE_ID
-    if site_id == 3 or site_id == 4:
+    if site_id in [3, 4, 5]:
         return redirect(
             staticfiles_storage.url("images/stlp.royalsociety.org.nz/favicon.ico"),
             permanent=True,
@@ -339,7 +339,7 @@ class StateInPathMixin:
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
-                    if (site_id := settings.SITE_ID == 4) and (
+                    if (site_id := settings.SITE_ID) in [4, 5] and (
                         u.is_superuser or u.staff_of_sites.filter(id=site_id)
                     ):
                         if state == "submitted":
@@ -688,7 +688,7 @@ def index(request):
     ).exists()
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if request.user.is_approved:
-        if is_ro and site_id != 4 and request.resolver_match.view_name == "index0":
+        if is_ro and site_id not in [4, 5] and request.resolver_match.view_name == "index0":
             return render(request, "research_office_index.html", locals())
         outstanding_authorization_requests = models.Member.outstanding_requests(user)
         outstanding_testimonial_requests = models.Referee.outstanding_requests(user)
@@ -734,7 +734,7 @@ def index(request):
             if pa.previous_application_id
         ]
         if (
-            site_id == 4
+            site_id in [4, 5]
             and request.method == "POST"
             and (message := request.POST.get("message", "").strip())
             and (round_id := request.POST.get("round"))
@@ -1375,7 +1375,7 @@ def get_or_create_referee_invitation(referee, by=None):
     site = (referee.application and referee.application.site) or Site.objects.get_current()
 
     if (
-        settings.SITE_ID == 4
+        settings.SITE_ID in [4, 5]
         and referee.application.round.survey_id
         and not (referee.survey_token_id or referee.survey_token)
     ):
@@ -1639,7 +1639,7 @@ class ApplicationDetail(DetailView):
         is_owner = (
             a.submitted_by == u
             or a.members.filter(user=u, state="authorized").exists()
-            or (a.site_id == 4 and a.org.where(research_offices__user=u).exists())
+            or (a.site_id in [4, 5] and a.org.where(research_offices__user=u).exists())
         )
         if p := a.round.panellists.filter(user=u).first():
             context["is_panellist"] = True
@@ -1664,7 +1664,7 @@ class ApplicationDetail(DetailView):
             context["show_basic_details"] = not (
                 u.is_staff
                 or u.is_superuser
-                or (settings.SITE_ID != 4 and a.referees.filter(user=u).exists())
+                or (settings.SITE_ID not in [4, 5] and a.referees.filter(user=u).exists())
                 or models.ConflictOfInterest.where(
                     Q(has_conflict=False) | Q(has_conflict__isnull=False),
                     application=a,
@@ -1722,7 +1722,7 @@ class ApplicationView(LoginRequiredMixin):
                 r = a.round
                 if not (
                     a.is_applicant(u)
-                    or (a.site_id == 4 and a.org.where(research_offices__user=u).exists())
+                    or (a.site_id in [4, 5] and a.org.where(research_offices__user=u).exists())
                 ):
                     messages.error(
                         request, _("You do not have permissions to edit this application.")
@@ -2042,7 +2042,7 @@ class ApplicationView(LoginRequiredMixin):
                     referees.save()
                     if (
                         a.file
-                        or site_id == 4
+                        or site_id in [4, 5]
                         or (
                             has_required_documents
                             and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
@@ -2298,7 +2298,7 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("summary")
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
-                    if site_id != 4 and not (
+                    if site_id not in [4, 5] and not (
                         a.file
                         or (
                             has_required_documents
@@ -2353,7 +2353,7 @@ class ApplicationView(LoginRequiredMixin):
                         a.round.required_referees
                         and a.referees.filter(
                             ~Q(state__in=["bounced", "opted_out"])
-                            if site_id == 4
+                            if site_id in [4, 5]
                             else Q(state="testified")
                         ).count()
                         < a.round.required_referees
@@ -2362,7 +2362,7 @@ class ApplicationView(LoginRequiredMixin):
                             self.request,
                             (
                                 _("You need to nominate at least %d referee(s).")
-                                if site_id == 4
+                                if site_id in [4, 5]
                                 else _(
                                     "You need to procure reviews of your application from at least %d referees."
                                 )
@@ -2385,7 +2385,7 @@ class ApplicationView(LoginRequiredMixin):
                                 if not hasattr(form, "active_tab"):
                                     form.active_tab = "summary"
 
-                    if site_id == 4 and a.round.has_seos and a.application_seos.count() > 3:
+                    if site_id in [4, 5] and a.round.has_seos and a.application_seos.count() > 3:
                         form.add_error(
                             None,
                             _(
@@ -2434,7 +2434,7 @@ class ApplicationView(LoginRequiredMixin):
                                 "Your application has been successfully submitted. "
                                 "The Research Office will be in touch if there is anything more needed. Good luck."
                             )
-                            if site_id == 4
+                            if site_id in [4, 5]
                             else _(
                                 "Your application has been successfully submitted. "
                                 "The Prize secretariat will be in touch if there is anything more needed. Good luck."
@@ -2456,7 +2456,7 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
                     else:
                         if (
-                            site_id == 4
+                            site_id in [4, 5]
                             and a.round.has_fors
                             and a.fors.count() > 0
                             and (
@@ -4363,6 +4363,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
 class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
     model = models.Affiliation
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
+    exclude = ["email"]
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
@@ -4601,7 +4602,7 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
-        return not ("nominator" in self.forwarded and settings.SITE_ID == 4)
+        return not ("nominator" in self.forwarded and settings.SITE_ID in [4, 5])
         # return True  # request.user.is_authenticated
 
     def get_result_label(self, result):
@@ -4616,7 +4617,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         q = models.Organisation.objects.all()
-        if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID == 4:
+        if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID in [4, 5]:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:
             s = self.q.lower()
@@ -4785,6 +4786,24 @@ class PanelAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if self.q:
             q = q.filter(Q(description__istartswith=self.q) | Q(code__istartswith=self.q))
         return q.order_by("code")
+
+
+class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        return False
+
+    def get_queryset(self):
+
+        q = super().get_queryset()
+        if org := self.forwarded.get("org"):
+            # select only people affiliated with the org
+            q = q.filter(affiliations__org=org).distinct()
+        if org_code := self.forwarded.get("org_code"):
+            # select only people affiliated with the org
+            q = q.filter(affiliations__org__code=org_code).distinct()
+        if affiliation_type := self.forwarded.get("affiliation_type"):
+            q = q.filter(affiliations__type=affiliation_type).distinct()
+        return q
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
@@ -5180,7 +5199,7 @@ class NominationView(CreateUpdateView):
                 return redirect(self.request.get_full_path())
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-            if settings.SITE_ID != 4 and not n.file:
+            if settings.SITE_ID not in [4, 5] and not n.file:
                 messages.error(
                     self.request,
                     _(
@@ -5594,7 +5613,7 @@ class NominationDetail(DetailView):
         if self.can_start_applying:
             nominator = self.object.nominator
             button_label = (
-                _("Start Application") if settings.SITE_ID == 4 else _("Start Prize Application")
+                _("Start Application") if settings.SITE_ID in [4, 5] else _("Start Prize Application")
             )
             messages.info(
                 request,
@@ -5692,11 +5711,11 @@ class TestimonialDetail(DetailView):
         if t.state == "new":
             context["update_view_name"] = f"{self.model.__name__.lower()}-create"
             context["update_button_name"] = (
-                _("Add Referee Report") if t.site_id == 4 else _("Add Testimonial")
+                _("Add Referee Report") if t.site_id in [4, 5] else _("Add Testimonial")
             )
         else:
             context["update_button_name"] = (
-                _("Edit Referee Report") if t.site_id == 4 else _("Edit Testimonial")
+                _("Edit Referee Report") if t.site_id in [4, 5] else _("Edit Testimonial")
             )
         if not referee.has_testified:
             if r and r.survey_id:
@@ -5717,7 +5736,7 @@ class TestimonialDetail(DetailView):
                     self.request,
                     (
                         _("Please review the application details and submit referee report.")
-                        if t.site_id == 4
+                        if t.site_id in [4, 5]
                         else _("Please review the application details and submit testimonial.")
                     ),
                 )
@@ -5793,7 +5812,7 @@ class ApplicationExportView(ExportView):
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
-                    or (settings.SITE_ID != 4 and a.referees.all().filter(user=u).exists())
+                    or (settings.SITE_ID not in [4, 5] and a.referees.all().filter(user=u).exists())
                     or a.round.panellists.all().filter(user=u).exists()
                     or a.org.where(research_offices__user=u).exists()
                 )
@@ -5801,6 +5820,7 @@ class ApplicationExportView(ExportView):
         )
 
     def get_objects(self, pk):
+        app = self.model.get(id=pk)
         objects = super().get_objects(pk)
         testimonials = app.get_testimonials()
         objects.extend(testimonials)
@@ -5862,34 +5882,29 @@ class ContractExportView(ExportView):
         c = self.get_object_or_404(pk)
         format = request.GET.get("format") or "html"
         part = request.GET.get("part")
-        if part:
-            if not format or format in ["html", "htm"]:
-                return HttpResponse(
-                    c.get_document(request=self.request, format=format or "html", part=part),
-                    content_type="text/html; charset=utf-8",
+        if not format or format in ["html", "htm"]:
+            return HttpResponse(
+                c.get_document(request=self.request, format=format or "html", part=part),
+                content_type="text/html; charset=utf-8",
+            )
+        else:
+            fn = c.get_document(request=self.request, format=format, part=part)
+            content_type, _ = mimetypes.guess_type(fn)
+            if settings.DEBUG:
+                resp = StreamingHttpResponse(
+                    FileWrapper(open(fn, "rb")), content_type=content_type
                 )
             else:
-                fn = c.get_document(request=self.request, format=format, part=part)
-                content_type, _ = mimetypes.guess_type(fn)
-                if settings.DEBUG:
-                    resp = StreamingHttpResponse(
-                        FileWrapper(open(fn, "rb")), content_type=content_type
-                    )
-                else:
-                    # works with nginx:
-                    # See: https://www.nginx.com/resources/wiki/start/topics/examples/xsendfile/
-                    resp = HttpResponse(content_type="application/force-download")
-                    resp["X-Sendfile"] = fn
-                    resp["X-Accel-Redirect"] = fn
-                resp["Content-Length"] = os.path.getsize(fn)
+                # works with nginx:
+                resp = HttpResponse(content_type="application/force-download")
+                resp["X-Sendfile"] = fn
+                resp["X-Accel-Redirect"] = fn
+            resp["Content-Length"] = os.path.getsize(fn)
+            if part:
                 resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
-                return resp
-
-        if request.GET.get("format") == "odt":
-            c.to_odt(request=request)
-        else:
-            c.to_pdf(request=request)
-        return redirect("contract-detail", number=c.number)
+            else:
+                resp["Content-Disposition"] = f"attachment; filename={c.number}.{format}"
+            return resp
 
 
 class RoundExportView(ExportView):
@@ -5924,19 +5939,19 @@ class RoundExportView(ExportView):
         # for a in self.round.applications.all().order_by("number"):
         for a in (
             self.round.applications.filter(state="accepted")
-            if site_id == 4
+            if site_id in [4, 5]
             else self.round.applications.filter(state__in=["submitted", "approved"])
         ).order_by("number"):
             numbers.append(a.number)
             content = io.BytesIO()
-            a.to_pdf(request, skip_excluded=(site_id == 4)).write(content)
+            a.to_pdf(request, skip_excluded=(site_id in [4, 5])).write(content)
             content.seek(0)
             reader = PdfReader(content)
             merger.append(
                 reader,
                 bookmark=(
                     f"{a}"
-                    if a.site_id == 4
+                    if a.site_id in [4, 5]
                     else f"{a.number}: {a.application_title or round.title}"
                 ),
                 import_bookmarks=True,
@@ -7363,6 +7378,79 @@ def demo(request):
     # )
 
     return render(request, "demo.html", locals())
+
+
+# def send_notification(registration_ids=None, message_title="TEST TITLE", message_desc="You are welcome!"):
+#     fcm_api = ""
+#     url = "https://fcm.googleapis.com/fcm/send"
+
+#     headers = {
+#         "Content-Type":"application/json",
+#         "Authorization": 'key=fzVeTUir8hFXNE2tT-5117:APA91bHdLd1UFWqlATjOuz3YyHeBI8UonoudJkKoYfAz4sdxHIenxsXBkUXeuTomns-LJMz1B6-OTSBaW_I25zFi6d5l8Z9WTgT2tVcNVVSxwq00YnCtW4aMUBB8mQV7lUHD1NX22MgF'
+#     }
+
+#     payload = {
+#         "registration_ids" :registration_ids,
+#         "priority" : "high",
+#         "notification" : {
+#             "body" : message_desc,
+#             "title" : message_title,
+#             "image" : "https://i.ytimg.com/vi/m5WUPHRgdOA/hqdefault.jpg?sqp=-oaymwEXCOADEI4CSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLDwz-yjKEdwxvKjwMANGk5BedCOXQ",
+#             "icon": "https://yt3.ggpht.com/ytc/AKedOLSMvoy4DeAVkMSAuiuaBdIGKC7a5Ib75bKzKO3jHg=s900-c-k-c0x00ffffff-no-rj",
+
+#         }
+#     }
+
+#     result = requests.post(url,  data=json.dumps(payload), headers=headers )
+#     print(result.json())
+
+
+# def FirebaseJS(request):
+#     return HttpResponse(
+#         """
+# importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+# importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
+# const firebaseConfig = {
+#     apiKey: "AIzaSyB_8gnIoL0HZ82UZiKQREJ17RRRtkM0bX4",
+#     authDomain: "pmspp-273112.firebaseapp.com",
+#     projectId: "pmspp-273112",
+#     storageBucket: "pmspp-273112.appspot.com",
+#     messagingSenderId: "505794998992",
+#     appId: "1:505794998992:web:54350149a523eef0c764d5",
+#     measurementId: "G-FHVXYJD580"
+# };
+# firebase.initializeApp(firebaseConfig);
+# const messaging = firebase.messaging();
+
+# messaging.onBackgroundMessage((payload) => {
+#   console.log(
+#     '[firebase-messaging-sw.js] Received background message ',
+#     payload
+#   );
+#   // Customize notification here
+#   const notificationTitle = 'Background Message Title';
+#   const notificationOptions = {
+#     body: 'Background Message body.',
+#     icon: '/firebase-logo.png'
+#   };
+
+#   self.registration.showNotification(notificationTitle, notificationOptions);
+# });
+
+# /*
+# messaging.setBackgroundMessageHandler(function (payload) {
+#     console.log(payload);
+#     const notification=JSON.parse(payload);
+#     const notificationOption={
+#         body:notification.body,
+#         icon:notification.icon
+#     };
+#     return self.registration.showNotification(payload.notification.title,notificationOption);
+# })
+# */
+# """,
+#         content_type="text/javascript",
+#     )
 
 
 # vim:set ft=python.django:

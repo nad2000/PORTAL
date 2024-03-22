@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
-from functools import lru_cache, partial, wraps, cached_property
+from functools import cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -36,6 +36,7 @@ from django.core.validators import (
     FileExtensionValidator,
     MaxValueValidator,
     MinValueValidator,
+    RegexValidator,
 )
 from django.db import connection
 from django.db.models import (
@@ -45,7 +46,6 @@ from django.db.models import (
     RESTRICT,
     SET_NULL,
     BooleanField,
-    GeneratedField,
     Case,
     CharField,
     Count,
@@ -56,6 +56,7 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
+    GeneratedField,
     Manager,
     ManyToManyField,
     OneToOneField,
@@ -843,6 +844,13 @@ class PersonCareerStage(Model):
 
 ORCID_ID_REGEX = re.compile(r"^([X\d]{4}-?){3}[X\d]{4}$")
 
+phone_regex_validator = RegexValidator(
+    regex=r"^\+?1?\d{9,15}$",
+    message=_(
+        "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+    ),
+)
+
 
 def validate_orcid_id(value):
     """Sanitize and validate ORCID iD (both format and the check-sum)."""
@@ -993,6 +1001,24 @@ class Organisation(Model):
     address = ForeignKey(
         Address, blank=True, null=True, related_name="organisations", on_delete=RESTRICT
     )
+    contact_phone = CharField(
+        _("Contact phone number"),
+        validators=[phone_regex_validator],
+        max_length=24,
+        blank=True,
+        null=True,
+    )
+    email = EmailField(_("Contact email address"), blank=True, null=True)
+    signatory = ForeignKey(
+        "Person",
+        verbose_name=_("signatory"),
+        on_delete=PROTECT,
+        related_name="signatory_for",
+        blank=True,
+        null=True,
+        limit_choices_to={"affiliations__type": "EMP"},
+    )
+    # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     website = CharField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
@@ -1057,7 +1083,12 @@ class Affiliation(Model):
         verbose_name=_("organisation"),
         related_name="affiliations",
     )
-    type = CharField(_("type"), max_length=10, choices=AFFILIATION_TYPES)
+    type = CharField(
+        _("type"),
+        max_length=10,
+        choices=AFFILIATION_TYPES,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in AFFILIATION_TYPES),
+    )
     role = CharField(
         _("role"),
         max_length=512,
@@ -1071,6 +1102,7 @@ class Affiliation(Model):
     start_date = DateField(_("start date"), null=True, blank=True)
     end_date = DateField(_("end date"), null=True, blank=True)
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+    email = EmailField(max_length=120, verbose_name=_("email address"), blank=True, null=True)
 
     history = HistoricalRecords(table_name="affiliation_history")
 
@@ -1144,10 +1176,18 @@ class Person(PersonMixin, Model):
     # is_ethnicities_completed = BooleanField(default=True)
     # CharField(max_length=20, null=True, blank=True, choices=ETHNICITIES)
     education_level = PositiveSmallIntegerField(
-        _("education level"), null=True, blank=True, choices=QUALIFICATION_LEVEL
+        _("education level"),
+        null=True,
+        blank=True,
+        choices=QUALIFICATION_LEVEL,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in QUALIFICATION_LEVEL),
     )
     employment_status = PositiveSmallIntegerField(
-        _("employment status"), null=True, blank=True, choices=EMPLOYMENT_STATUS
+        _("employment status"),
+        null=True,
+        blank=True,
+        choices=EMPLOYMENT_STATUS,
+        db_comment="\n".join(f"{k}: {v}" for (k, v) in EMPLOYMENT_STATUS),
     )
     # years since arrival in New Zealand
     primary_language_spoken = CharField(
@@ -1281,17 +1321,15 @@ class Person(PersonMixin, Model):
     def protection_patterns(self):
         return ProtectionPatternPerson.get_data(self)
 
+    @lru_cache(1)
     def __str__(self):
-        u = self.user
-        return (
-            (
+        if u := self.user:
+            return (
                 f"{u.name} ({u.username})'s profile"
                 if u.name and u.username
                 else f"{u.name or u.username or u.email}'s profile"
             )
-            if u
-            else self.code or f"Person: ID={self.id}"
-        )
+        return self.code or self.full_name_with_title
 
     def save(self, *args, **kwargs):
         created = not self.id
@@ -1521,6 +1559,7 @@ class FundManager(Manager):
 class Fund(Model):
     code = FixedCharField(max_length=2, primary_key=True, db_column="code")
     code3 = FixedCharField(max_length=3, null=True, blank=True)
+    name = CharField(_("name"), max_length=200, null=True, blank=True)
     description = TextField(_("description"), max_length=10000, null=True, blank=True)
     cost_centre = PositiveSmallIntegerField(_("Cost Center"), null=True, blank=True)
     catalyst_cost_centre = PositiveSmallIntegerField(
@@ -2086,7 +2125,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
         round = self.round
-        site_id = settings.SITE_ID
+        site_id = self.site_id or settings.SITE_ID
         if round.budget_template and not (
             self.budget or self.documents.filter(~Q(file=""), document_type__role="B").exists()
         ):
@@ -2135,17 +2174,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if site_id == 4:
-            if (
-                self.round.required_referees
-                and self.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
-                < self.round.required_referees
-            ):
-                raise Exception(
-                    (_("You need to nominate at least %d referee(s)."))
-                    % self.round.required_referees,
-                )
-        else:
+        if round.required_submitted_testimonials:
             if self.referees.filter(
                 Q(testified_at__isnull=True)
                 | Q(user__isnull=True)
@@ -2167,6 +2196,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     _("You need to procure reviews of your application from at least %d referees.")
                     % round.required_referees
                 )
+        else:
+            if (
+                self.round.required_referees
+                and self.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
+                < self.round.required_referees
+            ):
+                raise Exception(
+                    (_("You need to nominate at least %d referee(s)."))
+                    % self.round.required_referees,
+                )
 
         if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
             raise Exception(
@@ -2179,7 +2218,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         nomination = Nomination.where(application=self).last()
         nominator = nomination and nomination.nominator
-        if site_id == 4 and nominator:
+        if (
+            nominator
+            and nominator.research_offices.filter(org=(self.org_id or nomination.org_id)).exists()
+        ):
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
             send_mail(
                 __("Application '%s' Submitted") % self,
@@ -3511,10 +3553,8 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         return (self.application.number, self.panellist.email)
 
     def __str__(self):
-        return f"{self.role}: {self.person}"
-
-    def natural_key(self):
-        return (self.application.number, self.panellist.email)
+        # return f"{self.role}: {self.person}"
+        return str(self.user or self.email)
 
     @property
     def mail_log_error(self):
@@ -3595,9 +3635,6 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
         pass
-
-    def __str__(self):
-        return str(self.user or self.email)
 
     @classmethod
     def outstanding_requests(cls, user):
@@ -4575,6 +4612,12 @@ class Round(Model):
         choices=Choices(0, 1, 2, 3, 4),
         help_text="Minimum of referees the application needs to nominate",
     )
+    required_submitted_testimonials = BooleanField(
+        _("required submitted testimonials"),
+        default=True,
+        help_text="required submitted testimonials before submitting the applications",
+    )
+
     is_flexible_number_of_referees = BooleanField(_("Flexible number of referees"), default=False)
     duration = PositiveSmallIntegerField(
         _("Duration"), help_text=_("Default contract duration"), null=True, blank=True
@@ -5775,9 +5818,6 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     def natural_key(self):
         return (self.round.code, self.email)
 
-    def natural_key(self):
-        return (self.round.code, self.email)
-
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
         user = self.nominator
@@ -5790,6 +5830,13 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             )
         ):
             raise ValidationError(_("You cannot nominate yourself for this round."))
+
+    @cached_property
+    def nominated_by_ro(self):
+        return ResearchOffice.where(
+            user=self.nominator_id,
+            org=(self.org_id or (self.application and self.application.org_id)),
+        ).exists()
 
     @fsm_log
     @transition(field=state, source=["new", "draft"], target="draft", custom=dict(admin=False))
@@ -6680,32 +6727,26 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
-    def get_document(self, request=None, user=None, format="html", part=None, stand_alone=True):
-        """Returns generated part of the contract text from a template.
-
-        @stand_alone - generete a complete HTML document/part;"""
+    def get_document(self, request=None, user=None, format="html", part=None):
+        """Returns generated part of the contract text from a template."""
 
         year = self.year or self.start_date.year
-        if part:
-            if "cover" in part:
-                template_name = "contracts/cover_page.html"
-            elif "background" in part:
-                template_name = "contracts/background.html"
-            elif "agreement" in part:
-                template_name = "contracts/agreement.html"
-            elif "schedule" in part:
-                template_name = "contracts/schedule.html"
+        current_ts = timezone.now()
+        contract = self
+        clauses = list(self.application.round.contract_clauses.all().order_by("type", "ordering"))
+        additional_clauses = [c for c in clauses if c.type == "A"]
+        ammended_clauses = [c for c in clauses if c.type == "V"]
+        agency = Organisation.where(code__in=["RSTA", "NZRS"]).last()
 
-            template = get_template(template_name)
-            current_ts = timezone.now()
-            contract = self
-            user = request and request.user
-            content = template.render(locals())
-
+        if part in ["cover", "background", "agreement", "schedule"]:
+            template_name = "contracts/part.html"
         else:
-            output = io.StringIO()
-            for p in ["cover", "background", "agreement", "schedule"]:
-                pass
+            template_name = "contracts/document.html"
+
+        template = get_template(template_name)
+        user = request and request.user
+
+        content = template.render(locals())
 
         if not format or format in ["html", "htm"]:
             return content
