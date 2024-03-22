@@ -261,7 +261,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="historicalround",
-            name="required_submitted_testimonial",
+            name="required_submitted_testimonials",
             field=models.BooleanField(
                 default=True,
                 help_text="required submitted testimonials before submitting the applications",
@@ -276,6 +276,16 @@ class Migration(migrations.Migration):
                 help_text="required submitted testimonials before submitting the applications",
                 verbose_name="required submitted testimonials",
             ),
+        ),
+        migrations.AddField(
+            model_name="historicalround",
+            name="contract_background",
+            field=models.TextField(blank=True, null=True, verbose_name="contract background"),
+        ),
+        migrations.AddField(
+            model_name="round",
+            name="contract_background",
+            field=models.TextField(blank=True, null=True, verbose_name="contract background"),
         ),
         migrations.RunPython(
             code=portal.migration_utils.update_round_required_submitted_testimonials,

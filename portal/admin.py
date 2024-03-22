@@ -2063,6 +2063,7 @@ class RoundAdmin(
         "description_mi",
         "tac_en",
         "tac_mi",
+        "contract_background",
     )
     save_on_top = True
     list_display = ["title", "scheme", "opens_on", "closes_at", "is_active"]
@@ -2158,6 +2159,7 @@ class RoundAdmin(
                 {
                     # "classes": ("collapse",),
                     "fields": [
+                        "contract_background",
                         "tac_en",
                         "tac_mi",
                     ],

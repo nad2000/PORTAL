@@ -4638,6 +4638,7 @@ class Round(Model):
     tac = TextField(
         _("T&C"), max_length=10000, null=True, blank=True, help_text=_("Terms and Conditions")
     )
+    contract_background = TextField(_("contract background"), null=True, blank=True)
 
     has_online_scoring = BooleanField(default=True)
     score_sheet_template = FileField(
