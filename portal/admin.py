@@ -946,7 +946,7 @@ class ApplicationAdmin(
 
         def get_exclude(self, request, obj=None):
             exclude = super().get_exclude(request, obj)
-            if settings.SITE_ID == 4:
+            if settings.SITE_ID in [4, 5]:
                 exclude.extend(["survey_completed_at", "survey_url"])
             return exclude
 
@@ -1161,7 +1161,7 @@ class ApplicationAdmin(
 
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "STATE")
-        if obj.site_id == 4:
+        if obj.site_id in [4, 5]:
             fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
 
         return fieldsets
@@ -2076,7 +2076,7 @@ class RoundAdmin(
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
-        if (site_id := settings.SITE_ID) and site_id == 4:
+        if (site_id := settings.SITE_ID) and site_id in [4, 5]:
             exclude = exclude and exclude.copy() or []
             exclude.extend(
                 [
@@ -2132,7 +2132,11 @@ class RoundAdmin(
                             ]
                             if f not in exclude
                         ],
-                        ("required_referees", "is_flexible_number_of_referees"),
+                        (
+                            "required_referees",
+                            "is_flexible_number_of_referees",
+                            "required_submitted_testimonials",
+                        ),
                         "duration",
                     ]
                 },
@@ -2168,7 +2172,7 @@ class RoundAdmin(
                         ]
                     },
                 )
-                if site_id == 4
+                if site_id in [4, 5]
                 else (
                     "Templates",
                     {
@@ -2263,7 +2267,7 @@ class RoundAdmin(
         classes = ["collapse"]
 
     def get_inlines(self, request, obj):
-        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id == 4:
+        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [4, 5]:
             return [
                 self.RequiredDocumentInline,
                 self.TemplateInline,

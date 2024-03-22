@@ -21,7 +21,7 @@ class RequiredContractDocumentTranslationOptions(TranslationOptions):
 
 @register(models.Fund)
 class FundTranslationOptions(TranslationOptions):
-    fields = ("description",)
+    fields = ("name", "description",)
 
 
 simple_history.register(models.Fund, inherit=True, table_name="fund_history")

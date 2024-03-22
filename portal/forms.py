@@ -597,7 +597,7 @@ class ApplicationForm(forms.ModelForm):
                 round.applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0
                 and not (self.cleaned_data.get("cv_file") or self.instance.cv)
-                and settings.SITE_ID != 4
+                and settings.SITE_ID not in [4, 5]
             ):
                 raise forms.ValidationError(
                     _("Need to attach a CV before submitting the application."),
@@ -631,7 +631,7 @@ class ApplicationForm(forms.ModelForm):
         user = initial.get("user")
         language = get_language()
         site_id = settings.SITE_ID
-        if site_id == 4:
+        if site_id in [4, 5]:
             self.fields["application_title"].label = _("Title of proposed research")
             self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
@@ -961,7 +961,7 @@ class ApplicationForm(forms.ModelForm):
                                 % guidelines,
                             )
                         )
-                        if site_id == 4
+                        if site_id in [4, 5]
                         else (
                             '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
                             % (
@@ -981,7 +981,7 @@ class ApplicationForm(forms.ModelForm):
                 ),
             )
         if round.has_referees:
-            if site_id == 4:
+            if site_id in [4, 5]:
                 referee_information_text = "\n".join(
                     f"<p>{line}</p>"
                     for line in [
@@ -1081,7 +1081,7 @@ class ApplicationForm(forms.ModelForm):
 
         if not instance.submitted_by or instance.submitted_by == user:
             if not (tac_text := round.tac):
-                if site_id == 4:
+                if site_id in [4, 5]:
                     tac_text = "\n".join(
                         f"<p>{l}</p>"
                         for l in [
@@ -1430,7 +1430,7 @@ class ContractForm(forms.ModelForm):
         instance = self.instance or instance
         application = instance.application or initial.get("application")
         site_id = settings.SITE_ID
-        if site_id == 4:
+        if site_id in [4, 5]:
             self.fields["project_title"].label = _("Title of proposed research project")
             # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
@@ -2291,7 +2291,7 @@ class NominationForm(forms.ModelForm):
                     _(
                         "Nominee - details of the person you are nominating to apply for the round of the scheme"
                     )
-                    if site_id == 4
+                    if site_id in [4, 5]
                     else _(
                         "Nominee - details of the person you are nominating to receive this award"
                     )
@@ -2441,7 +2441,7 @@ class TestimonialForm(forms.ModelForm):
             # Field("summary"),
             # Field("referee"),
         ]
-        if site_id == 4:
+        if site_id in [4, 5]:
             self.fields["file"].label = ""
         if round.referee_template:
             help_text = _(
@@ -2451,7 +2451,7 @@ class TestimonialForm(forms.ModelForm):
             self.fields["file"].help_text = help_text
         self.fields["file"].required = True
         fields = [
-            Fieldset(_("Referee Report") if site_id == 4 else _("Testimonial"), *fields),
+            Fieldset(_("Referee Report") if site_id in [4, 5] else _("Testimonial"), *fields),
         ]
 
         self.helper.layout = Layout(
@@ -2474,7 +2474,7 @@ class TestimonialForm(forms.ModelForm):
                     "turn_down",
                     (
                         _("I do not wish to provide a report")
-                        if site_id == 4
+                        if site_id in [4, 5]
                         else _("I do not wish to provide a testimonial")
                     ),
                     css_class="btn-outline-danger",

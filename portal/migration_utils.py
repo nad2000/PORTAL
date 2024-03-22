@@ -1,4 +1,5 @@
 from .models import DOCUMENT_ROLES, QUALIFICATION_LEVEL
+from django.conf import settings
 
 
 def disable_constraints(apps, schema_editor):
@@ -299,6 +300,79 @@ def add_currency(apps, schema_editor):
         update_fields=["currency", "numeric_code", "minor_unit"],
         unique_fields=["code"],
     )
+
+
+def update_round_required_submitted_testimonials(apps, schema_editor):
+    settings.SITE_ID = 4
+    db_alias = schema_editor.connection.alias
+    model = apps.get_model("portal", "Round")
+    model.objects.using(db_alias).filter(site_id=4).update(required_submitted_testimonials=False)
+
+
+def add_RSTA(apps, schema_editor):
+
+    # db_alias = schema_editor.connection.alias
+    Person = apps.get_model("portal", "Person")
+    Organisation = apps.get_model("portal", "Organisation")
+    Affiliation = apps.get_model("portal", "Affiliation")
+    Address = apps.get_model("portal", "Address")
+    Country = apps.get_model("portal", "Country")
+
+    nz, created = Country.get_or_create(
+        code="NZ",
+        defaults=dict(
+            code3="NZL",
+            name="New Zealand",
+            num=554.0,
+            itu="NZL",
+            fips="NZ",
+            ioc="NZL",
+            fifa="NZL",
+            ds="NZ",
+            wmo="NZ",
+            gaul=179.0,
+            marc="nz",
+            dial="64",
+            independent="Yes",
+        ),
+    )
+    p, created = Person.get_or_create(
+        code="AP2021NZ",
+        defaults=dict(
+            first_name="Paul", last_name="Atkins", email="paul.atkins@royalsociety.org.nz"
+        ),
+    )
+    if not created:
+        p.first_name = "Paul"
+        p.last_name = "Atkins"
+        p.email = "paul.atkins@royalsociety.org.nz"
+        p.save(update_fields=["email", "last_name", "first_name"])
+
+    a, created = Address.get_or_create(
+        address="11 Turnbull St\nThorndon",
+        postcode="6011",
+        city="Wellington",
+        country=nz,
+    )
+    o, created = Organisation.get_or_create(
+        code="RSTA",
+        defaults=dict(
+            name="Royal Society of New Zealand Te Apārangi",
+            signatory=p,
+            address=a,
+            email="enquiries@royalsociety.org.nz",
+            contact_phone="+64 4 472 7421",
+        ),
+    )
+    if not created:
+        o.name = "Royal Society of New Zealand Te Apārangi"
+        o.signatory = p
+        o.address = a
+        o.email = "enquiries@royalsociety.org.nz"
+        o.contact_phone = "+64 4 472 7421"
+        o.save(update_fields=["name", "signatory", "address", "email", "contact_phone"])
+
+    Affiliation.get_or_create(type="EMP", org=o, person=p, defaults=dict(start_date="2021-11-01"))
 
 
 def dummy(*args, **kwargs):
