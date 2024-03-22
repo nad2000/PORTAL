@@ -14,149 +14,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="historicalorganisation",
-            name="contact_phone",
-            field=models.CharField(
-                blank=True,
-                max_length=24,
-                null=True,
-                validators=[
-                    django.core.validators.RegexValidator(
-                        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
-                        regex="^\\+?1?\\d{9,15}$",
-                    )
-                ],
-                verbose_name="Contact phone number",
-            ),
-        ),
-        migrations.AddField(
-            model_name="historicalorganisation",
-            name="email",
-            field=common.models.EmailField(
-                blank=True, max_length=254, null=True, verbose_name="Contact email address"
-            ),
-        ),
-        migrations.AddField(
-            model_name="organisation",
-            name="contact_phone",
-            field=models.CharField(
-                blank=True,
-                max_length=24,
-                null=True,
-                validators=[
-                    django.core.validators.RegexValidator(
-                        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
-                        regex="^\\+?1?\\d{9,15}$",
-                    )
-                ],
-                verbose_name="Contact phone number",
-            ),
-        ),
-        migrations.AddField(
-            model_name="organisation",
-            name="email",
-            field=common.models.EmailField(
-                blank=True, max_length=254, null=True, verbose_name="Contact email address"
-            ),
-        ),
-        migrations.AddField(
-            model_name="affiliation",
-            name="email",
-            field=common.models.EmailField(
-                blank=True, max_length=120, null=True, verbose_name="email address"
-            ),
-        ),
-        migrations.AddField(
-            model_name="historicalaffiliation",
-            name="email",
-            field=common.models.EmailField(
-                blank=True, max_length=120, null=True, verbose_name="email address"
-            ),
-        ),
-        migrations.AddField(
-            model_name="historicalorganisation",
-            name="signatory",
-            field=models.ForeignKey(
-                blank=True,
-                db_constraint=False,
-                limit_choices_to={
-                    "affiliations__org": models.F("pk"),
-                    "affiliations__type": "EMP",
-                },
-                null=True,
-                on_delete=django.db.models.deletion.DO_NOTHING,
-                related_name="+",
-                to="portal.person",
-                verbose_name="signatory",
-            ),
-        ),
-        migrations.AddField(
-            model_name="organisation",
-            name="signatory",
-            field=models.ForeignKey(
-                blank=True,
-                limit_choices_to={
-                    "affiliations__org": models.F("pk"),
-                    "affiliations__type": "EMP",
-                },
-                null=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name="signatory_for",
-                to="portal.person",
-                verbose_name="signatory",
-            ),
-        ),
-        migrations.RunPython(
-            code=portal.migration_utils.add_RSTA,
-            reverse_code=portal.migration_utils.dummy,
-        ),
         migrations.AlterField(
-            model_name="affiliation",
-            name="type",
-            field=models.CharField(
-                choices=[
-                    ("EDU", "Education"),
-                    ("EMP", "Employment"),
-                    ("MEM", "Membership"),
-                    ("SER", "Service"),
-                ],
-                db_comment="EDU: Education\nEMP: Employment\nMEM: Membership\nSER: Service",
-                max_length=10,
-                verbose_name="type",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicalaffiliation",
-            name="type",
-            field=models.CharField(
-                choices=[
-                    ("EDU", "Education"),
-                    ("EMP", "Employment"),
-                    ("MEM", "Membership"),
-                    ("SER", "Service"),
-                ],
-                db_comment="EDU: Education\nEMP: Employment\nMEM: Membership\nSER: Service",
-                max_length=10,
-                verbose_name="type",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicalorganisation",
-            name="signatory",
-            field=models.ForeignKey(
-                blank=True,
-                db_constraint=False,
-                limit_choices_to={"affiliations__type": "EMP"},
-                null=True,
-                on_delete=django.db.models.deletion.DO_NOTHING,
-                related_name="+",
-                to="portal.person",
-                verbose_name="signatory",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicalperson",
+            model_name="person",
             name="education_level",
             field=models.PositiveSmallIntegerField(
                 blank=True,
@@ -184,7 +43,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterField(
-            model_name="historicalperson",
+            model_name="person",
             name="employment_status",
             field=models.PositiveSmallIntegerField(
                 blank=True,
@@ -202,20 +61,130 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterField(
+            model_name="affiliation",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("EDU", "Education"),
+                    ("EMP", "Employment"),
+                    ("MEM", "Membership"),
+                    ("SER", "Service"),
+                ],
+                db_comment="EDU: Education\nEMP: Employment\nMEM: Membership\nSER: Service",
+                max_length=10,
+                verbose_name="type",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalaffiliation",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("EDU", "Education"),
+                    ("EMP", "Employment"),
+                    ("MEM", "Membership"),
+                    ("SER", "Service"),
+                ],
+                db_comment="EDU: Education\nEMP: Employment\nMEM: Membership\nSER: Service",
+                max_length=10,
+                verbose_name="type",
+            ),
+        ),
+        migrations.AddField(
             model_name="organisation",
             name="signatory",
             field=models.ForeignKey(
                 blank=True,
-                limit_choices_to={"affiliations__type": "EMP"},
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="signatory_for",
                 to="portal.person",
                 verbose_name="signatory",
+                limit_choices_to={"affiliations__type": "EMP"},
             ),
         ),
+        migrations.AddField(
+            model_name="organisation",
+            name="contact_phone",
+            field=models.CharField(
+                blank=True,
+                max_length=24,
+                null=True,
+                validators=[
+                    django.core.validators.RegexValidator(
+                        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+                        regex="^\\+?1?\\d{9,15}$",
+                    )
+                ],
+                verbose_name="Contact phone number",
+            ),
+        ),
+        migrations.AddField(
+            model_name="organisation",
+            name="email",
+            field=common.models.EmailField(
+                blank=True, max_length=254, null=True, verbose_name="Contact email address"
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalorganisation",
+            name="contact_phone",
+            field=models.CharField(
+                blank=True,
+                max_length=24,
+                null=True,
+                validators=[
+                    django.core.validators.RegexValidator(
+                        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
+                        regex="^\\+?1?\\d{9,15}$",
+                    )
+                ],
+                verbose_name="Contact phone number",
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalorganisation",
+            name="email",
+            field=common.models.EmailField(
+                blank=True, max_length=254, null=True, verbose_name="Contact email address"
+            ),
+        ),
+        migrations.AddField(
+            model_name="affiliation",
+            name="email",
+            field=common.models.EmailField(
+                blank=True, max_length=120, null=True, verbose_name="email address"
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalaffiliation",
+            name="email",
+            field=common.models.EmailField(
+                blank=True, max_length=120, null=True, verbose_name="email address"
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalorganisation",
+            name="signatory",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                limit_choices_to={
+                    "affiliations__type": "EMP",
+                },
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.person",
+                verbose_name="signatory",
+            ),
+        ),
+        migrations.RunPython(
+            code=portal.migration_utils.add_RSTA,
+            reverse_code=portal.migration_utils.dummy,
+        ),
         migrations.AlterField(
-            model_name="person",
+            model_name="historicalperson",
             name="education_level",
             field=models.PositiveSmallIntegerField(
                 blank=True,
@@ -243,7 +212,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterField(
-            model_name="person",
+            model_name="historicalperson",
             name="employment_status",
             field=models.PositiveSmallIntegerField(
                 blank=True,

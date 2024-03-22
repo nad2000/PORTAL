@@ -371,6 +371,7 @@ def add_RSTA(apps, schema_editor):
         o.email = "enquiries@royalsociety.org.nz"
         o.contact_phone = "+64 4 472 7421"
         o.save(update_fields=["name", "signatory", "address", "email", "contact_phone"])
+        # o.save()
 
     Affiliation.get_or_create(type="EMP", org=o, person=p, defaults=dict(start_date="2021-11-01"))
 
