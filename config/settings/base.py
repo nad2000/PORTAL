@@ -107,12 +107,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # APPS
 # ------------------------------------------------------------------------------
-DJANGO_APPS = [
+
+# https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
+INSTALLED_APPS = [
+    "portal.apps.PortalConfig",
+    "users.apps.UsersConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.sites",
-    # "portal.apps.SitesConfig",
     "multisite",
     "django.contrib.messages",
     "django.contrib.staticfiles",
@@ -126,12 +129,12 @@ DJANGO_APPS = [
     # "django_admin_index",
     # "ordered_model",
     # "grappelli",
+    "admin_interface",
+    "colorfield",
     "django.contrib.admin",
     "django.forms",
     "django.contrib.flatpages",
     # "django_mail_admin",
-]
-THIRD_PARTY_APPS = [
     "captcha",
     "simple_history",
     # "background_task",
@@ -163,9 +166,6 @@ THIRD_PARTY_APPS = [
     "admin_ordering",
 ]
 
-# workaround for https://github.com/shestera/django-multisite/issues/9
-SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - ours is an object
-
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
 # EXPLORER_DEFAULT_CONNECTION = "readonly"
 EXPLORER_CONNECTIONS = {"Default": "default"}
@@ -176,14 +176,6 @@ EXPLORER_DATA_EXPORTERS = [
     ("json", "explorer.exporters.JSONExporter"),
 ]
 # EXPLORER_CHARTS_ENABLED = True
-
-LOCAL_APPS = [
-    "portal",
-    "users.apps.UsersConfig",
-    # Your stuff: custom apps go here
-]
-# https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------
@@ -286,13 +278,20 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
         "DIRS": [str(APPS_DIR / "templates")],
+        # "APP_DIRS": True,
         "OPTIONS": {
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
             # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
             "loaders": [
-                "multisite.template.loaders.filesystem.Loader",
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
+                (
+                    "django.template.loaders.cached.Loader",
+                    [
+                        "multisite.template.loaders.filesystem.Loader",
+                        "apptemplates.Loader",
+                        "django.template.loaders.app_directories.Loader",
+                        "django.template.loaders.filesystem.Loader",
+                    ],
+                )
             ],
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             "context_processors": [
@@ -308,6 +307,7 @@ TEMPLATES = [
                 # "django.template.context_processors.request",
                 "portal.context_processors.portal_context",
             ],
+            "debug": True,
         },
     },
     {
@@ -348,6 +348,10 @@ SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 # X_FRAME_OPTIONS = "DENY"
 X_FRAME_OPTIONS = "SAMEORIGIN"
+
+# workaround for https://github.com/shestera/django-multisite/issues/9
+# SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - ours is an object
+SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101"]
 
 # EMAIL
 # ------------------------------------------------------------------------------
@@ -468,8 +472,17 @@ SUMMERNOTE_CONFIG = {
         "fontNames": ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Merriweather"],
         "fontName": "Arial",
         "fontSize": 10,
-        "addDefaultFonts": True,
+        # "addDefaultFonts": True,
         "lang": None,
+        # "toolbar": [
+        #     # [groupName, [list of button]]
+        #     ["style", ["bold", "italic", "underline", "clear"]],
+        #     ["font", ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Merriweather"]],
+        #     ["fontsize", ["8", "10", "11", "12", "14", "16", "18", "24", "36"]],
+        #     # ['color', ['color']],
+        #     ["para", ["ul", "ol", "paragraph"]],
+        #     # ['height', ['height']]
+        # ],
     },
     "js": ("/static/js/summernote_set_font.js",),
 }

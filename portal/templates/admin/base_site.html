@@ -1,5 +1,6 @@
-{% extends "admin/base_site.html" %}
-{% load static i18n compress%}
+{% extends "admin_interface:admin/base_site.html" %}
+{#% extends "admin/base_site.html" %#}
+{% load static i18n %}
 
 {% block extrastyle %}
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
@@ -11,11 +12,14 @@
   {% endif %}
   <link href="{% static 'css/admin.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+  {{ bloc.super }}
 {% endblock %}
 
 {#% block title %}{{ title }} | {{ site_title|default:_('Portal Admin') }}{% endblock %#}
 
-{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Portal Admin') }}{% endblock %}
+{% block title %}
+  {% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Portal Admin') }}
+{% endblock %}
 {% block welcome-msg %}{% endblock %}
 
 {% block branding %}

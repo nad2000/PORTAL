@@ -59,6 +59,8 @@ html2text==2020.1.16
 PyPDF2>=2.1.1,<2.2.0
 pikepdf<=8.6.0
 djhacker<=0.3.0
+django-admin-interface<0.29.0
+django-apptemplates<=1.5
 
 django-bootstrap4<23.0.0
 django-filter<22.2

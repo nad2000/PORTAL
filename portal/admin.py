@@ -1006,7 +1006,7 @@ class ApplicationAdmin(
     def main_applicant(self, obj):
         if obj.submitted_by:
             return format_html(
-                '<a href="{0}" target="_blank">{1}</a>',
+                '<a href="{0}?_popup=1" target="_blank">{1}</a>',
                 reverse("admin:users_user_change", kwargs={"object_id": obj.submitted_by.pk}),
                 f"{obj.submitted_by.full_name_with_email} : {obj.submitted_by.username}",
             )
@@ -1015,7 +1015,7 @@ class ApplicationAdmin(
     def nomination_url(self, obj):
         if n := models.Nomination.where(application=obj).last():
             return format_html(
-                '<a href="{0}" target="_blank">{1}</a>',
+                '<a href="{0}?_popup=1" target="_blank">{1}</a>',
                 reverse("admin:portal_nomination_change", kwargs={"object_id": n.id}),
                 f"{n} by {n.nominator.full_name_with_email}",
             )
@@ -1337,7 +1337,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def invitation_link(self, obj):
         if obj.invitation:
             return mark_safe(
-                '<a href="{}" target="_blank">{}</a>'.format(
+                '<a href="{}?_popup=1" target="_blank">{}</a>'.format(
                     reverse("admin:portal_invitation_change", args=(obj.invitation.pk,)),
                     obj.invitation,
                 )
