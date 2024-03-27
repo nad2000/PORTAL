@@ -358,69 +358,6 @@ class UserForm(forms.ModelForm):
         }
 
 
-class AddressForm(forms.ModelForm):
-
-    address = forms.CharField(label=_("Address"), widget=forms.Textarea, required=False)
-
-    def save(self, commit=True):
-
-        if self.changed_data:
-            if self.errors:
-                raise ValueError(
-                    "The %s could not be %s because the data didn't validate."
-                    % (
-                        self.instance._meta.object_name,
-                        "created" if self.instance._state.adding else "changed",
-                    )
-                )
-            if self.changed_data and self.instance and self.instance.pk:
-                self.instance.pk = None
-            if commit:
-                if a := self._meta.model.where(
-                    address=self.instance.address,
-                    city=self.instance.city,
-                    postcode=self.instance.postcode,
-                    country=self.instance.country,
-                ).last():
-                    self.instance = a
-                else:
-                    self.instance.save()
-
-        return self.instance
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.include_media = False
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            "address",
-            Row(
-                Column("city", css_class="form-group col-4 mb-0"),
-                Column("postcode", css_class="form-group col-4 mb-0"),
-                Column("country", css_class="form-group col-4 mb-0"),
-            ),
-            # Fieldset(
-            #     None,
-            #     Row(
-            #         Column("city", css_class="form-group col-4 mb-0"),
-            #         Column("postcode", css_class="form-group col-4 mb-0"),
-            #         Column("country", css_class="form-group col-4 mb-0"),
-            #     )
-            # ),
-        )
-
-    class Meta:
-        model = models.Address
-        fields = ["address", "postcode", "city", "country"]
-        widgets = {
-            "country": autocomplete.ModelSelect2(
-                "country-autocomplete",
-                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
-            ),
-        }
-
-
 class ProfileForm(forms.ModelForm):
     def clean_is_accepted(self):
         """Allow only 'True'"""
@@ -1296,6 +1233,70 @@ class ModelSelect2NoPK(autocomplete.ModelSelect2):
                     ]
         else:
             super().filter_choices_to_render(selected_choices)
+
+
+class AddressForm(forms.ModelForm):
+
+    address = forms.CharField(label=_("Address"), widget=forms.Textarea, required=False)
+
+    def save(self, commit=True):
+
+        if self.changed_data:
+            if self.errors:
+                raise ValueError(
+                    "The %s could not be %s because the data didn't validate."
+                    % (
+                        self.instance._meta.object_name,
+                        "created" if self.instance._state.adding else "changed",
+                    )
+                )
+            if self.changed_data and self.instance and self.instance.pk:
+                self.instance.pk = None
+            if commit:
+                if a := self._meta.model.where(
+                    address=self.instance.address,
+                    city=self.instance.city,
+                    postcode=self.instance.postcode,
+                    country=self.instance.country,
+                ).last():
+                    self.instance = a
+                else:
+                    self.instance.save()
+
+        return self.instance
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.include_media = False
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            "address",
+            Row(
+                Column("city", css_class="form-group col-4 mb-0"),
+                Column("postcode", css_class="form-group col-4 mb-0"),
+                Column("country", css_class="form-group col-4 mb-0"),
+            ),
+        )
+
+    class Meta:
+        model = models.Address
+        fields = ["address", "postcode", "city", "country"]
+        widgets = {
+            "country": autocomplete.ModelSelect2(
+                "country-autocomplete",
+                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+            ),
+            "city": ModelSelect2NoPK(
+                "city-autocomplete",
+                forward=["country"],
+                # attrs={
+                #     "data-placeholder": _(
+                #         "Choose the organisation you can nominate a researcher for..."
+                #     )
+                # },
+            ),
+        }
 
 
 class ContractForm(forms.ModelForm):

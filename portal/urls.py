@@ -347,7 +347,11 @@ urlpatterns = [
                     views.PersonAutocomplete.as_view(model=models.Person),
                     name="person-autocomplete",
                 ),
-
+                path(
+                    "city/",
+                    views.CityAutocomplete.as_view(model=models.Address),
+                    name="city-autocomplete",
+                ),
             ]
         ),
     ),
