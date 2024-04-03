@@ -6157,7 +6157,7 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
                 "panellist": HiddenInput(),
                 "DELETE": Submit("submit", "DELETE"),
                 "round": HiddenInput(),
-                "state": forms.InvitationStatusInput(),
+                "state": forms.InvitationStateInput(),
             }
         )
         kwargs["widgets"] = widgets
