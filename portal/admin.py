@@ -48,6 +48,25 @@ djhacker.formfield(
     ),
 )
 
+
+# class QueryField(forms.ChoiceField):
+
+#     def __init__(self, *args, **kwargs):
+#         kwargs.pop("max_length", None)
+#         kwargs.pop("empty_value", None)
+#         super().__init__(*args, **kwargs)
+
+
+# djhacker.formfield(
+#     models.Address.city,
+#     QueryField,
+#     widget=autocomplete.ModelSelect2(
+#         url="city-autocomplete",
+#         forward=[dal.forward.Field("county", "county")],
+#     ),
+#     # queryset=models.Address.objects.none(),
+# )
+
 admin.site.site_url = "/start"
 admin.site.site_header = _("Portal Administration")
 admin.site.site_title = _("Portal Administration")

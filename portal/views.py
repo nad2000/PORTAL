@@ -106,7 +106,7 @@ from weasyprint import HTML
 
 from . import forms, models, tables
 from .forms import Submit
-from .models import Application, Person, PersonCareerStage, Subscription, User
+from .models import Address, Application, Person, PersonCareerStage, Subscription, User
 from .pyinfo import info
 from .utils import send_mail, vignere
 from .utils.orcid import OrcidHelper
@@ -4599,6 +4599,33 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
         return q.order_by("email").distinct()
 
 
+class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        # return False
+        return True
+
+    def get_result_label(self, result):
+        if isinstance(result, Address):
+            return result.city
+        return result
+
+    def get_result_value(self, result):
+        if isinstance(result, Address):
+            return result.city
+        return result
+
+    def create_object(self, text):
+        return text
+
+    def get_queryset(self):
+        q = Address.objects.all().values_list("city")
+        if  country := self.forwarded.get("country", "").strip():
+            q = q.filter(country=country)
+        if self.q:
+            q = q.filter(city__istartswith=self.q)
+        return q.order_by("city").distinct()
+
+
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
@@ -5613,7 +5640,9 @@ class NominationDetail(DetailView):
         if self.can_start_applying:
             nominator = self.object.nominator
             button_label = (
-                _("Start Application") if settings.SITE_ID in [4, 5] else _("Start Prize Application")
+                _("Start Application")
+                if settings.SITE_ID in [4, 5]
+                else _("Start Prize Application")
             )
             messages.info(
                 request,
@@ -5812,7 +5841,9 @@ class ApplicationExportView(ExportView):
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
-                    or (settings.SITE_ID not in [4, 5] and a.referees.all().filter(user=u).exists())
+                    or (
+                        settings.SITE_ID not in [4, 5] and a.referees.all().filter(user=u).exists()
+                    )
                     or a.round.panellists.all().filter(user=u).exists()
                     or a.org.where(research_offices__user=u).exists()
                 )
