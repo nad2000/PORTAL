@@ -1625,8 +1625,9 @@ def default_application_number(application, exclude_numbers=None):
     yy = application.round.opens_on.strftime("%y")
     prefix1 = f"{code}-{org_code}-{year}"
     prefix2 = f"{code}-{org_code}-{yy}"
-    last_number = (
-        Application.all_objects.filter(
+    last_number = None
+    if (
+        latest_application := Application.all_objects.filter(
             # round=application.round,
             Q(number__istartswith=prefix1) | Q(number__istartswith=prefix1),
             number__isnull=False,
@@ -1634,7 +1635,8 @@ def default_application_number(application, exclude_numbers=None):
         .order_by("-number")
         .values("number")
         .first()
-    ).get("number")
+    ):
+        last_number = latest_application.get("number")
     if last_number and last_number.endswith("-E"):
         last_number = last_number.removesuffix("-E")
     application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
@@ -4636,7 +4638,7 @@ class Round(Model):
     )
 
     tac = TextField(
-        _("T&C"), max_length=10000, null=True, blank=True, help_text=_("Terms and Conditions")
+        _("T&C"), max_length=100000, null=True, blank=True, help_text=_("Terms and Conditions")
     )
     contract_background = TextField(_("contract background"), null=True, blank=True)
 

@@ -10,6 +10,7 @@ from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 import django.utils.translation
+from django.core.exceptions import ObjectDoesNotExist
 import django_filters
 import django_tables2
 import tablib
@@ -1031,12 +1032,15 @@ class ProfileView:
 
     @cached_property
     def address(self):
-        u = self.request.user
-        return (
-            self.object.address
-            if self.object and self.object.pk
-            else None or (u and u.person and u.person.address)
-        )
+        try:
+            u = self.request.user
+            return (
+                self.object.address
+                if self.object and self.object.pk
+                else None or (u and u.person and u.person.address)
+            )
+        except ObjectDoesNotExist:
+            return None
 
     def get_success_url(self):
         if not is_profile_completed(self.request):
