@@ -25,7 +25,7 @@
        {% endif %}
          >
          <a class="btn btn-primary{% if object.state == "submitted" or object.state == "submitted" or object.state == "accepted" or object.referee.survey_completed_at  %} disabled{% endif %}"
-            href="{{ survey_url }}">{% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong></a>
+            href="{{ survey_url }}" target="_blank">{% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong></a>
     </div>
 
   {% endif %}
@@ -46,7 +46,7 @@
   {% endif %}
 
   {% if export_button_view_name %}
-    <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}">{% trans 'Export' %}</a>
+    <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}" target="_blank">{% trans 'Export' %}</a>
   {% endif %}
 
 </div>

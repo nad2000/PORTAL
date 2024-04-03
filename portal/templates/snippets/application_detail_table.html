@@ -7,11 +7,11 @@
         {% trans 'Application' %}</th>
       <td colspan="3">
         {% if u.is_superuser and not export %}
-          <a href="{% url 'admin:portal_application_change' object_id=a.id %}">
+          <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
           </a>
         {% else %}
-          <strong><a href="{% url 'application' pk=a.id %}">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
+          <strong><a href="{% url 'application' pk=a.id %}" target="_blank">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
         {% endif %}
       </td>
     </tr>
@@ -59,7 +59,7 @@
 
             {% endif %}
 
-            <p><a href="{{ a.presentation_url }}">{{ a.application_title|default:a.presentation_url }}</a>.</p>
+            <p><a href="{{ a.presentation_url }}" target="_blank">{{ a.application_title|default:a.presentation_url }}</a>.</p>
 
         </td>
       </tr>
@@ -91,7 +91,7 @@
             {% for m in a.members.all %}
               <li>
                 {% if u.is_staff or u.is_superuser %}
-                  <a href="{% url 'admin:portal_member_change' object_id=m.id %}"> {{ m | person_with_email }} </a>
+                  <a href="{% url 'admin:portal_member_change' object_id=m.id %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}
                   {{ m | person_with_email }}
                 {% endif %}
@@ -104,11 +104,99 @@
     {% endif %}
 
     <tr>
-      <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Organisation' %}</th>
+      <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">
+        {% if SITE_ID == 5 %}
+          {% trans 'Host Organisation' %}
+        {% else %}
+          {% trans 'Organisation' %}
+        {% endif %}
+      </th>
     <td>{% if a.org %}{{ a.org }}{% else %}{{ a.organisation|default:'' }}{% endif %}</td>
     <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Position' %}</th>
     <td>{{ a.position|default:'' }}</td>
     </tr>
+
+    {% if SITE_ID == 5 %}
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Project Title' %}</th>
+          <td colspan="3">
+            {% if a.application_title %}
+              {{ a.application_title }}
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Years of experience post PhD' %}</th>
+          <td colspan="3">
+            {% if a.research_experience_in_years %}
+              {{ a.research_experience_in_years }}
+              {% if a.research_experience_in_years > 1 %}
+                {% trans 'years' %}
+              {% else %}
+                {% trans 'year' %}
+              {% endif %}
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Narrative CV' %}</th>
+          <td colspan="3">
+            {% if documents.CV %}
+              <a href="{{ documents.CV.url }}" target="_blank">{{ documents.CV.name|basename }}</a>
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Host Suitablity' %}</th>
+          <td colspan="3">
+            {% if documents.HS %}
+              <a href="{{ documents.HS.url }}" target="_blank">{{ documents.HS.name|basename }}</a>
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
+          <td colspan="3">
+            {% if documents.B %}
+              <a href="{{ documents.B.url }}" target="_blank">{{ documents.B.name|basename }}</a>
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
+          </td>
+        </tr>
+
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Proposed research' %}</th>
+          <td colspan="3">
+            {% if documents.AF %}
+              <a href="{{ documents.AF.url }}" target="_blank">{{ documents.AF.name|basename }}</a>
+            {% else %}
+              {% trans 'N/A' %}
+            {% endif %}
+          </td>
+        </tr>
+
+    {% comment %}
+      {#% if a.%}
+      {% endif %}
+      {% if a.%}
+      {% endif %}
+      {% if a.%}
+      {% endif %#}
+    {% endcomment %}
+    {% endif %}
 
     <tr>
       <th class="table-dark" scope="row">{% trans 'Postal Address' %}</th>
@@ -162,9 +250,10 @@
             <td colspan="4">{{ a.summary|safe }}</td>
           </tr>
         {% endif %}
+
       {% endif %}
 
-      {% if a.site_id != 4 %}
+      {% if a.site_id != 4 and a.site_id != 5 %}
         <tr>
           <th class="table-dark" scope="row">
             {% trans 'Completed Application Form' %}

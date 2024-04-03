@@ -596,6 +596,7 @@ DOCUMENT_ROLES = Choices(
     ("CV", _("Curriculum Vitae")),
     ("E", _("Ethics Statement")),
     ("F", _("Form")),
+    ("HS", _("Host Suitablity")),
     ("PB", _("Proposal Budget")),
     ("PT", _("Project Timeline")),
 )
@@ -3006,6 +3007,21 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     def natural_key(self):
         return self.number
+
+    @cached_property
+    def documents_dict(self):
+        documents = {
+            d.document_type.role or d.required_document.document_type.role: d.pdf_file
+            for d in self.documents.filter(
+                Q(document_type__role__in=["CV", "HS", "B", "A"])
+                | Q(required_document__document_type__role__in=["CV", "HS", "B", "A"])
+            )
+        }
+        if "HS" not in documents and (
+            n := Nomination.where(application=self, file__isnull=False).last()
+        ):
+            documents["HS"] = n.pdf_file
+        return documents
 
     class Meta:
         db_table = "application"

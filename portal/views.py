@@ -1625,7 +1625,9 @@ class ApplicationDetail(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        a = self.object
+        a = context["application"] = self.object
+        if a and a.site_id == 5:
+            context["documents"] = a.documents_dict
         u = self.request.user
         if n := models.Nomination.where(application=a).last():
             context["nomination"] = n
@@ -4623,7 +4625,7 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         q = Address.objects.all().values_list("city")
-        if  country := self.forwarded.get("country", "").strip():
+        if country := self.forwarded.get("country", "").strip():
             q = q.filter(country=country)
         if self.q:
             q = q.filter(city__istartswith=self.q)
@@ -5582,7 +5584,10 @@ class TestimonialView(CreateUpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["application"] = self.application
+        a = context["application"] = self.application
+        if a and a.site_id == 5:
+            context["documents"] = a.documents_dict
+
         if not self.referee:
             messages.info(
                 self.request,
@@ -5735,6 +5740,9 @@ class TestimonialDetail(DetailView):
 
         if a:
             context["extra_object"] = a
+            context["application"] = a
+            if a.site_id == 5:
+                context["documents"] = a.documents_dict
 
         survey_url = (
             r and r.survey_id and reverse("survey-referee", kwargs={"referee_id": referee.id})
@@ -5750,6 +5758,7 @@ class TestimonialDetail(DetailView):
             context["update_button_name"] = (
                 _("Edit Referee Report") if t.site_id in [4, 5] else _("Edit Testimonial")
             )
+
         if not referee.has_testified:
             if r and r.survey_id:
                 site = models.Site.objects.get_current()
