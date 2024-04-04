@@ -12,8 +12,96 @@ class Migration(migrations.Migration):
     dependencies = [
         ("portal", "0043_convertedfile_page_count_personcode_and_more"),
     ]
+    atomic = False
 
     operations = [
+        migrations.AlterField(
+            model_name="documenttype",
+            name="role",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("AB", "Award Budget"),
+                    ("AF", "Application Form"),
+                    ("AIMS", "Research Aims"),
+                    ("B", "Budget"),
+                    ("CV", "Curriculum Vitae"),
+                    ("E", "Ethics Statement"),
+                    ("F", "Form"),
+                    ("HS", "Host Suitablity"),
+                    ("PB", "Proposal Budget"),
+                    ("PT", "Project Timeline"),
+                ],
+                max_length=10,
+                null=True,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalround",
+            name="tac",
+            field=models.TextField(
+                blank=True,
+                help_text="Terms and Conditions",
+                max_length=100000,
+                null=True,
+                verbose_name="T&C",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalround",
+            name="tac_en",
+            field=models.TextField(
+                blank=True,
+                help_text="Terms and Conditions",
+                max_length=100000,
+                null=True,
+                verbose_name="T&C",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalround",
+            name="tac_mi",
+            field=models.TextField(
+                blank=True,
+                help_text="Terms and Conditions",
+                max_length=100000,
+                null=True,
+                verbose_name="T&C",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="round",
+            name="tac",
+            field=models.TextField(
+                blank=True,
+                help_text="Terms and Conditions",
+                max_length=100000,
+                null=True,
+                verbose_name="T&C",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="round",
+            name="tac_en",
+            field=models.TextField(
+                blank=True,
+                help_text="Terms and Conditions",
+                max_length=100000,
+                null=True,
+                verbose_name="T&C",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="round",
+            name="tac_mi",
+            field=models.TextField(
+                blank=True,
+                help_text="Terms and Conditions",
+                max_length=100000,
+                null=True,
+                verbose_name="T&C",
+            ),
+        ),
         migrations.AlterField(
             model_name="person",
             name="education_level",
@@ -290,92 +378,5 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             code=portal.migration_utils.update_round_required_submitted_testimonials,
             reverse_code=portal.migration_utils.dummy,
-        ),
-        migrations.AlterField(
-            model_name="documenttype",
-            name="role",
-            field=models.CharField(
-                blank=True,
-                choices=[
-                    ("AB", "Award Budget"),
-                    ("AF", "Application Form"),
-                    ("AIMS", "Research Aims"),
-                    ("B", "Budget"),
-                    ("CV", "Curriculum Vitae"),
-                    ("E", "Ethics Statement"),
-                    ("F", "Form"),
-                    ("HS", "Host Suitablity"),
-                    ("PB", "Proposal Budget"),
-                    ("PT", "Project Timeline"),
-                ],
-                max_length=10,
-                null=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicalround",
-            name="tac",
-            field=models.TextField(
-                blank=True,
-                help_text="Terms and Conditions",
-                max_length=100000,
-                null=True,
-                verbose_name="T&C",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicalround",
-            name="tac_en",
-            field=models.TextField(
-                blank=True,
-                help_text="Terms and Conditions",
-                max_length=100000,
-                null=True,
-                verbose_name="T&C",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicalround",
-            name="tac_mi",
-            field=models.TextField(
-                blank=True,
-                help_text="Terms and Conditions",
-                max_length=100000,
-                null=True,
-                verbose_name="T&C",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="round",
-            name="tac",
-            field=models.TextField(
-                blank=True,
-                help_text="Terms and Conditions",
-                max_length=100000,
-                null=True,
-                verbose_name="T&C",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="round",
-            name="tac_en",
-            field=models.TextField(
-                blank=True,
-                help_text="Terms and Conditions",
-                max_length=100000,
-                null=True,
-                verbose_name="T&C",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="round",
-            name="tac_mi",
-            field=models.TextField(
-                blank=True,
-                help_text="Terms and Conditions",
-                max_length=100000,
-                null=True,
-                verbose_name="T&C",
-            ),
         ),
     ]
