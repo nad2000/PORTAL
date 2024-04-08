@@ -284,8 +284,7 @@ TEMPLATES = [
             # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
             "loaders": [
                 (
-                    # "django.template.loaders.cached.Loader",
-                    "portal.template.Loader",
+                    "django.template.loaders.cached.Loader",
                     [
                         "multisite.template.loaders.filesystem.Loader",
                         "apptemplates.Loader",
