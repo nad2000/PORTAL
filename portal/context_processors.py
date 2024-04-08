@@ -114,7 +114,8 @@ def portal_context(request):
                 stats["all_sites"] = [
                     dict(
                         site_id=a.site_id,
-                        domain=a.site.domain,
+                        domain=a.site.domain.encode().decode("idna") if a.site.domain.startswith("xn--") else a.site.domain,
+                        name=a.site.name,
                         url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}",
                         is_current=a.site_id == site_id,
                     )
