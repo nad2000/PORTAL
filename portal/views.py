@@ -854,20 +854,26 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.state in ["draft", "submitted", "sent", "bounced", "read"]:
+            if i.state in ["draft", "submitted", "sent", "bounced", "read", "accepted"]:
                 u = User.get(request.user.id)
-                if i.first_name and not u.first_name:
-                    u.first_name = i.first_name
-                if i.middle_names and not u.middle_names:
-                    u.middle_names = i.middle_names
-                if i.last_name and not u.last_name:
-                    u.last_name = i.last_name
-                if not u.name:
-                    u.name = u.full_name
-                u.is_approved = True
-                u.save()
+                if (
+                    (i.first_name and not u.first_name)
+                    or (i.middle_names and not u.middle_names)
+                    or (i.last_name and not u.last_name)
+                    or not u.is_approved
+                ):
+                    if i.first_name and not u.first_name:
+                        u.first_name = i.first_name
+                    if i.middle_names and not u.middle_names:
+                        u.middle_names = i.middle_names
+                    if i.last_name and not u.last_name:
+                        u.last_name = i.last_name
+                    if not u.name:
+                        u.name = u.full_name
+                    u.is_approved = True
+                    u.save()
 
-                if i.email and u.email != i.email:
+                if u.email != i.email:
                     ea, created = EmailAddress.objects.get_or_create(
                         email=i.email, defaults=dict(user=u, verified=True)
                     )
@@ -876,22 +882,17 @@ def check_profile(request, token=None):
                             request, _("there is already user with this email address: ") + i.email
                         )
 
-                i.accept(by=u, request=request)
-                i.save()
-                reset_cache(request)
+                if i.state == "accepted":
+                    messages.warning(
+                        request,
+                        _("The invitation has been already accepted."),
+                    )
+                    next_url = i.handler_url
+                else:
+                    i.accept(by=u, request=request)
+                    i.save()
+                    reset_cache(request)
 
-            elif i.state == "revoked":
-                messages.warning(
-                    request,
-                    _("The invitation has been revoked and is not any more valid."),
-                )
-            elif i.state == "accepted":
-                messages.warning(
-                    request,
-                    _("The invitation has been already accepted."),
-                )
-                next_url = i.handler_url
-            else:
                 if i.type == "A" and (n := i.nomination):
                     if not n.user:
                         n.user = u
@@ -909,7 +910,25 @@ def check_profile(request, token=None):
                     if t := models.Testimonial.where(referee=r).last():
                         next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
+                        messages.info(
+                            request,
+                            (
+                                _(
+                                    "Please review the application details and submit referee report."
+                                )
+                                if i.site_id in [4, 5]
+                                else _(
+                                    "Please review the application details and submit testimonial."
+                                )
+                            ),
+                        )
                         next_url = reverse("application", kwargs={"pk": a_id})
+
+            elif i.state == "revoked":
+                messages.warning(
+                    request,
+                    _("The invitation has been revoked and is not any more valid."),
+                )
 
         # if Person.where(user=request.user).exists() and request.user.person.is_completed:
         if Person.where(user=request.user).exists():
@@ -1123,14 +1142,21 @@ def profile_protection_patterns(request):
                     ).delete()
         else:
             models.PersonProtectionPattern.where(person=person).delete()
+
+        i = (
+            models.Invitation.user_inviations(request.user)
+            .filter(~Q(state__in=["bounced", "draft", "expired", "revoked"]))
+            .order_by("id")
+            .last()
+        )
         if "wizard" in request.session:
             del request.session["wizard"]
-            del request.session["wizard-views"]
+            if "wizard-views" in request.session:
+                del request.session["wizard-views"]
             request.session.modified = True
-            i = models.Invitation.user_inviations(request.user).filter(~Q(state="bounced")).last()
             url = (i and i.handler_url) or "index"
         else:
-            url = "profile"
+            url = (i and i.handler_url) or "profile"
 
         if not request.user.is_approved and not person.account_approval_message_sent_at:
             site = Site.objects.get_current()
@@ -1698,7 +1724,6 @@ class ApplicationView(LoginRequiredMixin):
     form_class = forms.ApplicationForm
 
     # def form_invalid(self, form):
-    #     breakpoint()
     #     return super().form_invalid(form)
 
     @property
@@ -1835,6 +1860,11 @@ class ApplicationView(LoginRequiredMixin):
                 .first()
             )
             latest_application = self.latest_application
+            if address := user.person.address:
+                initial["address"] = address
+                initial["postal_address"] = address.address
+                initial["city"] = address.city
+                initial["postcode"] = address.postcode
             if round.research_experience_in_years_required:
                 research_experience_in_years = (
                     latest_application
@@ -1887,9 +1917,16 @@ class ApplicationView(LoginRequiredMixin):
                 initial["position"] = latest_application.position
 
             if latest_application:
-                initial["postal_address"] = latest_application.postal_address
-                initial["city"] = latest_application.city
-                initial["postcode"] = latest_application.postcode
+                if not address:
+                    if latest_application_address := latest_application.address:
+                        initial["address"] = latest_application_address
+                        initial["postal_address"] = latest_application_address.address
+                        initial["city"] = latest_application_address.city
+                        initial["postcode"] = latest_application_address.postcode
+                    else:
+                        initial["postal_address"] = latest_application.postal_address
+                        initial["city"] = latest_application.city
+                        initial["postcode"] = latest_application.postcode
                 initial["daytime_phone"] = latest_application.daytime_phone
                 initial["mobile_phone"] = latest_application.mobile_phone
 
@@ -3536,7 +3573,6 @@ class ContractViewMixin:
         class fsc(fsc):
             def get_queryset(self):
                 qs = super().get_queryset()
-                # breakpoint()
                 return qs.filter(~Q(document_type__role__in=exclued_document_roles))
 
         if self.request.POST:
@@ -3606,11 +3642,9 @@ class ContractViewMixin:
         return context
 
     # def post(self, *args, **kwargs):
-    #     breakpoint()
     #     return super().post(*args, **kwargs)
 
     # def form_invalid(self, form):
-    #     breakpoint()
     #     return super().form_invalid(form)
 
     def form_valid(self, form):
@@ -4190,6 +4224,13 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             return reverse("profile-protection-patterns")
         return super().get_success_url()
 
+    def turn_off_wizard(self):
+        if self.request.session.get("wizard"):
+            del self.request.session["wizard"]
+        if self.request.session.get("wizard-views"):
+            del self.request.session["wizard-views"]
+        self.request.session.modified = True
+
     def formset_valid(self, formset):
         request = self.request
         url_name = request.resolver_match.url_name
@@ -4197,8 +4238,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             resp = super().formset_valid(formset)
             success_url = self.success_url
             if "complete" in request.POST:
-                del request.session["wizard"]
-                del request.session["wizard-views"]
+                self.turn_off_wizard()
                 if not success_url:
                     self.success_url = reverse("home")
             elif request.session.get("wizard"):
@@ -4210,8 +4250,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 if url_name in wizard_views:
                     del wizard_views[wizard_views.index(url_name)]
                     if not wizard_views:
-                        del request.session["wizard"]
-                        del request.session["wizard-views"]
+                        self.turn_off_wizard()
                     else:
                         request.session["wizard-views"] = wizard_views
         except ProtectedError as ex:

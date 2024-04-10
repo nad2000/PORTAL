@@ -78,7 +78,6 @@ YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type"
 class InvitationStateInput(Widget):
     # def __init__(self, attrs=None):
     #     super().__init__(attrs)
-    #     breakpoint()
     #     pass
 
     template_name = "invitation_state.html"
@@ -550,6 +549,15 @@ class ApplicationForm(forms.ModelForm):
         ):
             self.instance.letter_of_support = None
             los.delete()
+
+        if any(f in self.changed_data for f in ["postal_address", "city", "postcode"]):
+            address, _ = models.Address.get_or_create(
+                address=self.cleaned_data["postal_address"],
+                postcode=self.cleaned_data["postcode"],
+                city=self.cleaned_data["city"],
+                defaults={"country_id": "NZ"},
+            )
+            self.instance.address = address
 
         if (
             self.cleaned_data.get("cv_file") is False
@@ -1175,6 +1183,7 @@ class ApplicationForm(forms.ModelForm):
                 "title-autocomplete",
                 attrs={"data-placeholder": _("Choose your title or create a new one ...")},
             ),
+            postal_address=forms.Textarea(attrs={"rows": "3"}),
             # summary=SummernoteWidget(),
             daytime_phone=TelInput(),
             mobile_phone=TelInput(),
