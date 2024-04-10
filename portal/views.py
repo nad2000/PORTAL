@@ -4710,7 +4710,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .values("id__min")
                     )
                 )
-                .order_by("name", "id")
+                # .order_by("name", "id")
                 .values_list("id", "name")
             )
             q = q.union(
@@ -4725,9 +4725,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .values("org_id__min")
                     ),
                 )
-                .order_by("name", "org_id")
                 .values_list("org_id", "name")
-            )
+            ).order_by("name")
         else:
             q = (
                 q.filter(
@@ -4895,6 +4894,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                     "owner": HiddenInput(),
                     "file": widgets.ClearableFileInput(
                         attrs={
+                            "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
                             "placeholder": _("Please upload a file ..."),
                             "data-placeholder": _("Please upload a file ..."),
                             "data-required": 1,

@@ -341,7 +341,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
           {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
           data-toggle="tooltip"{% endif %}>{{ a }}</a>
 
-        {% if user.is_staff or user.is_superuser %}
+        {% if user.is_site_staff or user.is_superuser %}
         <a
             href="{% url 'application-export' pk=a.pk %}"
             style="padding-top: 1px; padding-bottom: 0px;"
@@ -579,14 +579,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {% endif %}
               {% endif %}
 
-              {% if request.user.is_staff %}
+              {% if request.user.is_site_staff %}
               <a href="{% url 'panellist-invite' round=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
                                                                                             > {% trans "Invite" %}
                                                                                             <b>{% trans "Panellist" %}</b>
               </a>
               {% endif %}
 
-              {% if request.user.is_staff %}
+              {% if request.user.is_site_staff %}
               <a href="{% url 'round-coi-list' round=round.id %}" class="btn btn-outline-primary" style="text-transform: uppercase;"
 
                                                                                                   > {% trans "Conflicts of" %}

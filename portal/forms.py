@@ -497,6 +497,17 @@ class ApplicationForm(forms.ModelForm):
             attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
         ),
     )
+    photo_identity = FileField(
+        required=False,
+        label=_("Photo Identity"),
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.jpg,.png,.jpeg"}),
+    )
+    file = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+        ),
+    )
 
     @cached_property
     def was_submitted(self):
@@ -2509,9 +2520,12 @@ class TestimonialForm(forms.ModelForm):
             "file",
         ]
 
-        # widgets = dict(
-        #     summary=SummernoteInplaceWidget(),
-        # )
+        widgets = dict(
+            # summary=SummernoteInplaceWidget(),
+            file=forms.ClearableFileInput(
+                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            )
+        )
 
 
 class IdentityVerificationForm(forms.ModelForm):

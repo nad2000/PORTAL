@@ -5983,7 +5983,7 @@ class IdentityVerification(Model):
 
     @property
     def thread_index(self):
-        if self.application_id and (n := Nomination.where(application=self.application_id)):
+        if self.application_id and (n := Nomination.where(application=self.application_id).last()):
             idx = n.id
         else:
             idx = self.application_id
@@ -6016,7 +6016,12 @@ class IdentityVerification(Model):
             )
             % dict(user=self.user, url=url),
             recipients=list(
-                User.where(staff_of_sites__id=settings.SITE_ID, is_staff=True)
+                User.where(
+                    ~Q(email=""),
+                    staff_of_sites__id=settings.SITE_ID,
+                    is_staff=True,
+                    email__isnull=False,
+                )
                 .distinct()
                 .values_list("name", "email")
             ),
