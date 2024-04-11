@@ -2128,7 +2128,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
         round = self.round
-        site_id = self.site_id or settings.SITE_ID
         if round.budget_template and not (
             self.budget or self.documents.filter(~Q(file=""), document_type__role="B").exists()
         ):
@@ -2184,20 +2183,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 | ~Q(testimonial__state="submitted"),
                 ~Q(state__in=["submitted", "opted_out", "testified"]),
             ).exists():
-                raise Exception(
+                raise ValidationError(
                     _(
                         "Not all nominated referees have responded which prevents your submission. "
                         "Please either contact your referees, or replace them with one that will respond."
-                    )
+                    ),
+                    "referees"
                 )
 
             if (
                 round.required_referees
                 and self.referees.filter(state="testified").count() < round.required_referees
             ):
-                raise Exception(
+                raise ValidationError(
                     _("You need to procure reviews of your application from at least %d referees.")
-                    % round.required_referees
+                    % round.required_referees,
+                    "referees"
                 )
         else:
             if (
@@ -2205,9 +2206,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 and self.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
                 < self.round.required_referees
             ):
-                raise Exception(
+                raise ValidationError(
                     (_("You need to nominate at least %d referee(s)."))
                     % self.round.required_referees,
+                    "referees"
                 )
 
         if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
@@ -3122,7 +3124,7 @@ class Member(PersonMixin, MemberMixin, Model):
 
     @property
     def thread_index(self):
-        if self.application_id and (n := Nomination.where(application=self.application_id)):
+        if self.application_id and (n := Nomination.where(application=self.application_id).last()):
             idx = n.id
         else:
             idx = self.application_id
@@ -3157,15 +3159,16 @@ class Member(PersonMixin, MemberMixin, Model):
         super().clean()
         if not (application := getattr(self, "application", None)):
             raise ValidationError(_("Missing application"))
-        member_id = getattr(self, "id", None)
-        q = application.members.filter(email=self.email)
-        if member_id:
-            q = q.filter(~Q(id=member_id))
-        if q.exists():
-            raise ValidationError(
-                _("Team member with the email address %(email)s was alrady added"),
-                params={"email": self.email},
-            )
+        if application.pk:
+            member_id = getattr(self, "id", None)
+            q = application.members.filter(email=self.email)
+            if member_id:
+                q = q.filter(~Q(id=member_id))
+            if q.exists():
+                raise ValidationError(
+                    _("Team member with the email address %(email)s was alrady added"),
+                    params={"email": self.email},
+                )
 
     @fsm_log
     @transition(field=state, source=["new", "sent"], target="accepted")

@@ -941,7 +941,10 @@ def check_profile(request, token=None):
 
             return redirect(next_url or "home")
         else:
-            messages.info(request, _("Please complete your profile or skip it."))
+            messages.info(
+                request,
+                _("Your profile is not completed yet. " "Please complete your profile."),
+            )
             # person.is_employments_completed = True
             # person.is_professional_bodies_completed = True
             # person.is_career_stages_completed = True
@@ -2124,6 +2127,7 @@ class ApplicationView(LoginRequiredMixin):
                                 #     url = self.continue_url("referees")
                                 url = self.continue_url("referees")
                                 raise ValidationError(_("Invalid referee form"))
+
                 except Exception as e:
                     capture_exception(e)
                     messages.error(self.request, str(e))
@@ -2519,6 +2523,12 @@ class ApplicationView(LoginRequiredMixin):
                                     "ANZSRC STEM codes (excluding clinical sciences)."
                                 ),
                             )
+
+            except ValidationError as e:
+                capture_exception(e)
+                for m in e.messages:
+                    messages.error(self.request, str(m))
+                return redirect(self.continue_url(getattr(e, "code", None)))
 
             except Exception as e:
                 capture_exception(e)
@@ -3001,6 +3011,17 @@ class ApplicationCreate(ApplicationView, CreateView):
                     if n.state != "accepted":
                         n.accept()
                     n.save(update_fields=["application_id", "state"])
+
+                u = a.submitted_by
+                p = u.person
+                if a.title:
+                    if not (p.title and p.title == a.title):
+                        p.title = a.title
+                        p.save(update_fields=["title"])
+                    if not (u.title and u.title == a.title):
+                        u.title = a.title
+                        u.save(update_fields=["title"])
+
         except Exception as ex:
             capture_exception(ex)
             return self.form_invalid(form)
@@ -4724,8 +4745,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .annotate(Min("org_id"))
                         .values("org_id__min")
                     ),
-                )
-                .values_list("org_id", "name")
+                ).values_list("org_id", "name")
             ).order_by("name")
         else:
             q = (

@@ -2042,6 +2042,14 @@ class MemberFormSet(
                 i.save()
             obj.delete()
 
+    def clean(self):
+        super().clean()
+        emails = [f.cleaned_data.get("email") for f in self.forms]
+        emails = [v.strip().lower() for v in emails if v and v.strip()]
+        for i, v in enumerate(emails[:-1]):
+            if v in emails[i + 1 :]:
+                raise forms.ValidationError(_("You have entered email address {v} twice."))
+
 
 class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
     readonly_fields = ["state"]
