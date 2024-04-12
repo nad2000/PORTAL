@@ -2188,7 +2188,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         "Not all nominated referees have responded which prevents your submission. "
                         "Please either contact your referees, or replace them with one that will respond."
                     ),
-                    "referees"
+                    "referees",
                 )
 
             if (
@@ -2198,7 +2198,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 raise ValidationError(
                     _("You need to procure reviews of your application from at least %d referees.")
                     % round.required_referees,
-                    "referees"
+                    "referees",
                 )
         else:
             if (
@@ -2209,7 +2209,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 raise ValidationError(
                     (_("You need to nominate at least %d referee(s)."))
                     % self.round.required_referees,
-                    "referees"
+                    "referees",
                 )
 
         if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
@@ -3234,6 +3234,8 @@ class Member(PersonMixin, MemberMixin, Model):
     def outstanding_requests(cls, user):
         return cls.objects.raw(
             "SELECT DISTINCT m.* FROM member AS m JOIN account_emailaddress AS ae ON ae.email = m.email "
+            "  JOIN application AS a ON a.id = m.application_id "
+            "  JOIN scheme AS s ON s.current_round_id = a.round_id "
             "WHERE (m.user_id=%s OR ae.user_id=%s) "
             "  AND NOT (m.state IS NULL OR m.state IN ('authorized', 'opted_out'))",
             [user.id, user.id],
@@ -3495,6 +3497,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
             "SELECT DISTINCT r.*, tm.id AS testimonial_id "
             "FROM referee AS r JOIN account_emailaddress AS ae ON "
             "ae.email = r.email LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
+            "  JOIN application AS a ON a.id = r.application_id "
+            "  JOIN scheme AS s ON s.current_round_id = a.round_id "
             "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')",
             [user.id, user.id],
         )
@@ -3884,6 +3888,30 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             | Q(email__in=user.emailaddress_set.values("email"))
         ).distinct()
 
+    @classmethod
+    def update_round(cls, dry_run=False):
+        objs = (
+            cls.all_objects.filter(round__isnull=True)
+            .annotate(
+                round_value=Coalesce(
+                    "application__round",
+                    "nomination__round",
+                    "member__application__round",
+                    "referee__application__round",
+                    "panellist__round",
+                )
+            )
+            .filter(round_value__isnull=False)
+        )  # .values("id", "round", "round_value")
+
+        if dry_run:
+            return objs.count()
+
+        for o in objs:
+            o.round_id = o.round_value
+
+        return cls.all_objects.bulk_update(objs, ["round"])
+
     @fsm_log
     @transition(
         field=state,
@@ -4269,6 +4297,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site_id = cls.get_current_site_id()
         return cls.objects.raw(
             "SELECT i.* FROM invitation AS i JOIN account_emailaddress AS ae ON ae.email = i.email "
+            "  JOIN scheme AS s ON s.current_round_id = i.round_id "
             "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked') AND i.site_id=%s "
             "UNION SELECT * FROM invitation WHERE email=%s AND state NOT IN ('accepted', 'expired', 'revoked') "
             "  AND site_id=%s",
@@ -4857,7 +4886,7 @@ class Round(Model):
                 if f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]:
                     continue
                 v = getattr(last_round, f)
-                if v and not getattr(self, f):
+                if v is not None and getattr(self, f) is None:
                     setattr(self, f, v)
 
             if not self.opens_on and last_round.opens_on:
@@ -4884,14 +4913,14 @@ class Round(Model):
         if self.title_mi == scheme.title_mi and self.opens_on:
             self.title_mi = f"{self.title_mi} {self.opens_on.year}"
 
-        if self.site_id == 4:
+        if self.site_id in [4, 5]:
             for f in [
                 "applicant_cv_required",
                 "direct_application_allowed",
                 "ethics_statement_required",
                 "letter_of_support_required",
             ]:
-                setattr(self, f, None)
+                setattr(self, f, False)
 
         return self
 
@@ -5008,14 +5037,14 @@ class Round(Model):
             if "site" not in kwargs:
                 kwargs["site"] = scheme.site
 
-            if self.site_id == 4 or settings.SITE_ID == 4:
+            if self.site_id in [4, 5] or settings.SITE_ID in [4, 5]:
                 for f in [
                     "applicant_cv_required",
                     "direct_application_allowed",
                     "ethics_statement_required",
                     "letter_of_support_required",
                 ]:
-                    setattr(self, f, None)
+                    setattr(self, f, False)
 
     def __str__(self):
         return self.title or self.scheme.title
