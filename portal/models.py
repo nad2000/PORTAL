@@ -2678,7 +2678,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             | Q(referees__user=user)
             | Q(nomination__user=user)
             | Q(submitted_by=user)
-            | Q(org__research_offices__user=user)
+            | Q(
+                Q(org__research_offices__user=user),
+                Q(
+                    Q(nomination__org=F("org"))
+                    | Q(nomination__nominator__research_offices__org=F("org"))
+                ),
+            )
         )
         if Panellist.where(user=user).exists():
             f = f | Q(
