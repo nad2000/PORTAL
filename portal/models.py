@@ -38,7 +38,7 @@ from django.core.validators import (
     MinValueValidator,
     RegexValidator,
 )
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import (
     CASCADE,
     DO_NOTHING,
@@ -607,6 +607,11 @@ class DocumentType(Model):
     # objects = CurrentSiteManager()
     role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     name = CharField(_("Name"), max_length=200)
+    format = CharField(
+        choices=Choices(("I", _("Image")), ("S", _("Spreadsheet")), ("T", _("Text"))),
+        default="T",
+        max_length=1,
+    )
 
     def __str__(self):
         if self.name:
@@ -4886,8 +4891,8 @@ class Round(Model):
                 if f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]:
                     continue
                 v = getattr(last_round, f)
-                if v is not None and getattr(self, f) is None:
-                    setattr(self, f, v)
+                setattr(self, f, v)
+                # if v is not None and getattr(self, f) is None:
 
             if not self.opens_on and last_round.opens_on:
                 self.opens_on = last_round.opens_on + relativedelta(years=1)
@@ -4931,8 +4936,25 @@ class Round(Model):
             nr.title = self.scheme.title
         if nr.title == self.scheme.title and nr.opens_on:
             nr.title = f"{nr.title} {nr.opens_on.year}"
-        nr.save()
-        return nr
+
+        with transaction.atomic():
+            nr.save()
+            for m in [
+                self.application_form_templates,
+                self.contract_clauses,
+                self.curriculum_vitae_templates,
+                self.required_contract_documents,
+                self.required_documents,
+                self.templates,
+            ]:
+                objs = [o for o in m.all()]
+                for o in objs:
+                    o.pk = None
+                    o.round = nr
+
+                m.field.model.objects.bulk_create(objs)
+
+            return nr
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

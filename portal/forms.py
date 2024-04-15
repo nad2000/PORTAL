@@ -305,12 +305,23 @@ class DocumentInlineFormset(TableInlineFormset):
         for f in formset.forms:
             rd_id = f.initial.get("required_document", 0)
             if rd_id:
+                rd = required_documents.get(rd_id, None)
                 if not isinstance(rd_id, int):
                     rd_id = rd_id.pk
                 f.fields["file"].help_text = help_texts.get(rd_id)
-                f.fields["file"].label = f.form_label = (
-                    f"{required_documents.get(rd_id, _('Document'))}"
-                )
+                f.fields["file"].label = f.form_label = f"{rd}" if rd else _("Document")
+                if rd:
+                    dtf = rd.document_type.format
+                    if dtf == "S":
+                        f.fields["file"].widget.attrs[
+                            "accept"
+                        ] = ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    elif dtf == "I":
+                        f.fields["file"].widget.attrs["accept"] = ".pdf,.jpg,.png,.jpeg"
+                    else:
+                        f.fields["file"].widget.attrs[
+                            "accept"
+                        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
         context = context.flatten()
         context.update(
             {
@@ -2445,6 +2456,9 @@ class NominationForm(forms.ModelForm):
                 attrs={"data-placeholder": _("Choose your title or create a new one ...")},
             ),
             nominator=HiddenInput(),
+            file=forms.ClearableFileInput(
+                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            ),
             # round=HiddenInput(),
             # summary=SummernoteInplaceWidget(),
         )

@@ -2034,12 +2034,12 @@ class IsActiveRoundListFilter(admin.SimpleListFilter):
 class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["name", "role", "name_en", "name_mi"]
+    list_display = ["name", "role", "name_en", "name_mi", "format"]
     # exclude = ["site"]
     # list_display = ["email", "name"]
     # list_filter = ["created_at", "updated_at", "is_confirmed"]
     search_fields = ["name_en", "name_mi"]
-    list_editable = ["role", "name_en", "name_mi"]
+    list_editable = ["role", "name_en", "name_mi", "format"]
     # date_hierarchy = "created_at"
 
 
