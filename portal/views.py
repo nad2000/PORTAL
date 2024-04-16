@@ -52,6 +52,7 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce
+from django.db.models.deletion import RestrictedError
 from django.forms import (
     DateInput,
     Form,
@@ -4938,7 +4939,18 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
         return defaults
 
     def formset_valid(self, formset):
-        resp = super().formset_valid(formset)
+
+        try:
+            resp = super().formset_valid(formset)
+        except RestrictedError:
+            if formset.deleted_forms:
+                form = formset.deleted_forms.pop()
+                form.instance.owner = None
+                form.instance.person = None
+                form.instance.save()
+                return redirect(self.request.get_full_path())
+            else:
+                raise
 
         if not formset.deleted_forms:
             cv = models.CurriculumVitae.where(owner=self.request.user).order_by("-id").first()
@@ -5290,6 +5302,39 @@ class NominationView(CreateUpdateView):
                 )
                 return redirect(self.request.get_full_path())
 
+        if (
+            self.request.method == "POST"
+            and self.round.nominator_cv_required
+            and "cv_file" in form.changed_data
+        ):
+            try:
+                if (
+                    self.round.nominator_cv_required
+                    and n.cv
+                    and "cv_file" in form.changed_data
+                    and (cv_cf := n.cv.update_converted_file())
+                ):
+                    n.cv.converted_file = cv_cf
+                    n.cv.save(update_fields=["converted_file"])
+                    messages.success(
+                        self.request,
+                        _(
+                            "Your CV was converted into PDF file. Please review "
+                            "the converted version <a href='%s'>%s</a>."
+                        )
+                        % (cv_cf.file.url, os.path.basename(cv_cf.file.name)),
+                    )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(
+                    self.request,
+                    _(
+                        "Failed to convert your CV into PDF. "
+                        "Please save your CV into PDF format and try to upload it again."
+                    ),
+                )
+                return redirect(self.request.get_full_path())
+
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
             if settings.SITE_ID not in [4, 5] and not n.file:
                 messages.error(
@@ -5313,22 +5358,23 @@ class NominationView(CreateUpdateView):
                 return resp
 
             if self.round.nominator_cv_required:
-                if (
-                    cv := models.CurriculumVitae.where(owner=self.request.user)
-                    .order_by("-id")
-                    .first()
-                ):
-                    n.cv = cv
-                else:
-                    next_url = reverse("nomination-update", kwargs={"pk": n.id})
-                    messages.error(
-                        self.request,
-                        _(
-                            "To complete the nomination, you must provide a CV, please add a current CV "
-                            "to your profile. Otherwise the Prize nomination cannot be considered."
-                        ),
-                    )
-                    return redirect(reverse("profile-cvs") + "?next=" + next_url)
+                if not n.cv:
+                    if (
+                        cv := models.CurriculumVitae.where(owner=self.request.user)
+                        .order_by("-id")
+                        .first()
+                    ):
+                        n.cv = cv
+                    else:
+                        next_url = reverse("nomination-update", kwargs={"pk": n.id})
+                        messages.error(
+                            self.request,
+                            _(
+                                "To complete the nomination, you must provide a CV, please add a current CV "
+                                "to your profile. Otherwise the Prize nomination cannot be considered."
+                            ),
+                        )
+                        return redirect(reverse("profile-cvs") + "?next=" + next_url)
 
             try:
                 invitation, created = n.submit(request=self.request)

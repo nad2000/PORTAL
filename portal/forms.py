@@ -2455,7 +2455,6 @@ class NominationForm(forms.ModelForm):
 
                 )
                 cv_file = self.cleaned_data["cv_file"]
-                breakpoint()
                 cv.file.save(cv_file.name, File(cv_file))
                 cv.save()
                 self.instance.cv = cv

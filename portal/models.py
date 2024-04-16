@@ -4459,8 +4459,10 @@ FILE_TYPE = Choices("CV")
 
 
 class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
-    person = ForeignKey(Person, on_delete=CASCADE, verbose_name=_("person"))
-    owner = ForeignKey(User, on_delete=CASCADE, verbose_name=_("owner"))
+    person = ForeignKey(
+        Person, on_delete=SET_NULL, verbose_name=_("person"), blank=True, null=True
+    )
+    owner = ForeignKey(User, on_delete=SET_NULL, verbose_name=_("owner"), blank=True, null=True)
     title = CharField(
         _("Title or name"),
         max_length=200,
