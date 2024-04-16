@@ -18,6 +18,12 @@ def enable_constraints(apps, schema_editor):
     #     schema_editor.execute("SET FOREIGN_KEY_CHECKS=1;")
 
 
+def set_document_type_format(apps, schema_editor):
+    DocumentType = apps.get_model("portal", "DocumentType")
+    db_alias = schema_editor.connection.alias
+    DocumentType.objects.using(db_alias).filter(name_en__icontains="budget").update(format="S")
+
+
 def add_title_data(apps, schema_editor):
     """
     Add to the migrations:

@@ -4470,7 +4470,7 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
     )
     file = PrivateFileField(
         upload_to="cv",
-        upload_subfolder=lambda instance: [hash_int(instance.person_id)],
+        upload_subfolder=lambda instance: [hash_int(instance.person_id or instance.owner_id)],
         verbose_name=_("file"),
         validators=[
             FileExtensionValidator(

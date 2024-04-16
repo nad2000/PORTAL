@@ -4,6 +4,7 @@ from functools import partial
 from crispy_forms.bootstrap import Tab, TabHolder, InlineRadios
 
 # from crispy_forms.bootstrap import Modal
+from django.core.files.base import File
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     Hidden,
@@ -2317,7 +2318,8 @@ class ProfileSectionFormSetHelper(FormHelper):
 class NominationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        r = kwargs["initial"].get("round") or self.instance.round
+        initial = getattr(self, "initial", None) or kwargs.get("initial")
+        r = initial and initial.get("round") or self.instance.round
         site_id = settings.SITE_ID
 
         self.helper = FormHelper(self)
@@ -2361,6 +2363,22 @@ class NominationForm(forms.ModelForm):
                 % _("Nominator")
             ),
         ]
+        nominator = initial and initial.get("nominator") or self.instance.nominator
+        if r.nominator_cv_required:
+
+            if nominator_cv := models.CurriculumVitae.last_user_cv(nominator):
+                initial["cv_file"] = nominator_cv.file
+
+            self.fields["cv_file"] = FileField(
+                label=_("Curriculum Vitae"),
+                required=False,
+                widget=forms.ClearableFileInput(
+                    attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+                ),
+                help_text=_("Please upload your (nominator) curriculum vitae"),
+            )
+            fields.append("cv_file")
+
         if r and r.nomination_template:
             help_text = _(
                 'You can download the nomination form template at <strong><a href="%s">%s</a></strong>'
@@ -2426,6 +2444,26 @@ class NominationForm(forms.ModelForm):
                 css_class="mb-4 float-right",
             ),
         )
+
+    def save(self, commit=True):
+        if self.instance.round.nominator_cv_required:
+            if "cv_file" in self.changed_data:
+                cv = models.CurriculumVitae(
+                    owner=self.instance.nominator,
+                    person=self.instance.nominator.person,
+                    title=_("Nominator CV"),
+
+                )
+                cv_file = self.cleaned_data["cv_file"]
+                breakpoint()
+                cv.file.save(cv_file.name, File(cv_file))
+                cv.save()
+                self.instance.cv = cv
+
+            elif not self.instance.cv:
+                self.instance.cv = models.CurriculumVitae.last_user_cv(self.instance.nominator)
+
+        return super().save(commit=commit)
 
     class Meta:
         model = models.Nomination
