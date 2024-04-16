@@ -560,7 +560,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-title="{% trans 'Contact your Research Office and request a nomination' %}"
                    {% endif %}
                    >
-                   <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and is_ro or SITE_ID == 5 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;" onclick="contact_ro({{round.id}}); return false;" {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
+                   <a href="#" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and is_ro or SITE_ID == 5 and is_ro %}disabled{% endif %}" style="text-transform: uppercase;" onclick="contact_ro({{round.id}}); return false;" {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
                    </a>
               </div>
               {% endif %}
