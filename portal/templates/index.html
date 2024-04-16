@@ -391,18 +391,25 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {{ record.description|safe }}
               {% endif %}
               {% if round %}
-              <p class="card-text mt-2">{% trans 'Application period' %}:
+              {% if round.closes_at or round.opens_on %}
+              <p class="card-text mt-2">
+              {% if not round.closes_at %}
+                {% trans 'Applications open on' %}
+              {% else %}
+                {% trans 'Application period' %}:
+              {% endif %}
               <strong
                   {% if not round.is_open %}
                   class="badge-danger"
+                  style="padding: 4px 6px 4px 6px;"
                   {% elif round.deadline_days > 0 and round.deadline_days < 5 %}
                   class="badge-warning"
+                  style="padding: 4px 6px 4px 6px;"
                   {% endif %}
                   {% if round.deadline_days > 0 and round.deadline_days < 5 %}
                   data-toggle="tooltip"
                   title="{% blocktrans with deadline_days=round.deadline_days closes_at=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_at }} by {{ closes_at }}{% endblocktrans %}"
-                  {% endif %}
-                  >
+                  {% endif %}>
                   {{ round.opens_on|date:"d-m-Y" }}
                   {% if round.closes_at %}
                   - {{ round.closes_at|date:"d-m-Y" }}
@@ -414,6 +421,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   {% endif %}
               </strong>
               </p>
+              {% endif %}
               {% endif %}
 
               {% if request.user.can_apply %}
