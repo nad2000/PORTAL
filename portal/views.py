@@ -898,7 +898,7 @@ def check_profile(request, token=None):
                 if i.type == "A" and (n := i.nomination):
                     if not n.user:
                         n.user = u
-                        n.save(updated_fields=["user"])
+                        n.save(update_fields=["user"])
                     if a := n.application:
                         if a.submitted_by == u:
                             next_url = reverse("application-update", kwargs={"pk": a.id})
@@ -3708,10 +3708,10 @@ class ContractViewMixin:
                             if f.instance.file.name.lower().endswith(".pdf"):
                                 doc_file = f.instance.file.open()
                                 f.instance.update_page_count(doc_file)
-                                # f.instance.sarve(updated_fields=["page_count"])
+                                # f.instance.sarve(update_fields=["page_count"])
                             else:
                                 cf = f.instance.update_converted_file()
-                                # f.instance.save(updated_fields=["page_count", "converted_file"])
+                                # f.instance.save(update_fields=["page_count", "converted_file"])
                                 if cf:
                                     messages.success(
                                         self.request,
@@ -4948,7 +4948,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                 form = formset.deleted_forms.pop()
                 form.instance.owner = None
                 form.instance.person = None
-                form.instance.save()
+                form.instance.save(update_fields=["owner", "person"])
                 return redirect(self.request.get_full_path())
             else:
                 raise
