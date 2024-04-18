@@ -2536,7 +2536,7 @@ class TestimonialForm(forms.ModelForm):
             )
 
             if referee and (cv := models.CurriculumVitae.last_user_cv(user)):
-                initial["cv_file"] = cv.file
+                self.initial["cv_file"] = cv.file
 
             self.fields["cv_file"] = FileField(
                 label=_("Curriculum Vitae"),

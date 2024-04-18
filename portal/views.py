@@ -685,7 +685,9 @@ def index(request):
         has_ro = models.ResearchOffice.where(
             Q(
                 org__in=Subquery(
-                    models.Affiliation.where(person__user=user, end_date__isnull=True).values("org_id")
+                    models.Affiliation.where(person__user=user, end_date__isnull=True).values(
+                        "org_id"
+                    )
                 )
             )
         ).exists()
@@ -5318,7 +5320,6 @@ class NominationView(CreateUpdateView):
                     and "cv_file" in form.changed_data
                     and (cv_cf := n.cv.update_converted_file())
                 ):
-                    n.cv.converted_file = cv_cf
                     n.cv.save(update_fields=["converted_file"])
                     messages.success(
                         self.request,
@@ -5543,6 +5544,37 @@ class TestimonialView(CreateUpdateView):
                 i.accept(self.request, by=u)
                 i.save(update_fields=["state"])
 
+        if (
+            self.request.method == "POST"
+            and t.application.round.referee_cv_required
+            and "cv_file" in form.changed_data
+        ):
+            try:
+                if (
+                    t.application.round.referee_cv_required
+                    and t.cv
+                    and (cv_cf := t.cv.update_converted_file())
+                ):
+                    t.cv.save(update_fields=["converted_file"])
+                    messages.success(
+                        self.request,
+                        _(
+                            "Your CV was converted into PDF file. Please review "
+                            "the converted version <a href='%s'>%s</a>."
+                        )
+                        % (cv_cf.file.url, os.path.basename(cv_cf.file.name)),
+                    )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(
+                    self.request,
+                    _(
+                        "Failed to convert your CV into PDF. "
+                        "Please save your CV into PDF format and try to upload it again."
+                    ),
+                )
+                return redirect(self.request.get_full_path())
+
         if t.state != "submitted":
             if self.request.method == "POST" and "file" in form.changed_data and t.file:
                 try:
@@ -5645,13 +5677,22 @@ class TestimonialView(CreateUpdateView):
                         reply_to=settings.DEFAULT_FROM_EMAIL,
                     )
 
-                messages.info(
-                    self.request,
-                    _(
-                        "Your referee report has been submitted. The Prize secretariat will be in touch "
-                        "if there is anything more needed. Thank you for your participation."
-                    ),
-                )
+                if t.site_id in (4, 5):
+                    messages.info(
+                        self.request,
+                        _(
+                            "Your referee report has been submitted. The Prize secretariat will be in touch "
+                            "if there is anything more needed. Thank you for your participation."
+                        ),
+                    )
+                else:
+                    messages.info(
+                        self.request,
+                        _(
+                            "Your testimonial has been submitted. The Prize secretariat will be in touch "
+                            "if there is anything more needed. Thank you for your participation."
+                        ),
+                    )
 
             elif "save_draft" in self.request.POST:
                 if t.state != "draft":
