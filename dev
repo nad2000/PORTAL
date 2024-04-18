@@ -4,7 +4,12 @@
 unset DATABASE_URL SENTRY_DSN FLASK_ENV
 export DEBUG=1
 export PYTHONPATH="$PWD"
+# tmux send-keys 'source ./venv/bin/activate ; export DEBUG=1 PYTHONPATH="$PWD"; ./manage.py runserver_plus 0.0.0.0:8080 --cert-file cert.crt --key-file cert.key' C-m \
+#     \; split-window -v -p 86 'source ./venv/bin/activate ; nvim -S .session.vim' \
+#     \; split-window -v -p 12 \; send-keys 'source ./venv/bin/activate' C-m \
+#     \; select-pane -U
+
 tmux send-keys 'source ./venv/bin/activate ; export DEBUG=1 PYTHONPATH="$PWD"; ./manage.py runserver_plus 0.0.0.0:8080 --cert-file cert.crt --key-file cert.key' C-m \
-    \; split-window -v -p 86 'source ./venv/bin/activate ; nvim -S .session.vim' \
-    \; split-window -v -p 12 \; send-keys 'source ./venv/bin/activate' C-m \
+    \; split-window -v -l 74% \; send-key 'source ./venv/bin/activate ; nvim -S .session.vim' C-m \
+    \; split-window -v -l 12% \; send-keys 'source ./venv/bin/activate' C-m \
     \; select-pane -U
