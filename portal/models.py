@@ -2668,7 +2668,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             q = q.filter(round=round)
 
         if not round and not ((user.is_staff or user.is_superuser) and include_inactive):
-            q = q.filter(round__in=Scheme.objects.all().values("current_round"))
+            q = q.filter(round=F("round__scheme__current_round"))
 
         if user.is_staff or user.is_superuser:
             return q
@@ -2708,7 +2708,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @classmethod
     def user_application_counts(cls, user, state=None, round=None):
         return (
-            cls.user_applications(user=user, state=state, round=round, select_related=False)
+            cls.where(
+                pk__in=cls.user_applications(
+                    user=user, state=state, round=round, select_related=False
+                ).values("pk")
+            )
             .values_list("state")
             .annotate(total=Count("state"))
             .order_by()
@@ -4371,9 +4375,13 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
     )
     state = StateField(_("state"), default="new")
 
-    @property
+    @cached_property
     def application(self):
         return self.referee.application
+
+    @cached_property
+    def round(self):
+        return self.application.round
 
     @fsm_log
     @transition(field=state, source=["new", "draft"], target="draft", custom=dict(admin=False))

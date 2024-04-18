@@ -1076,8 +1076,8 @@ class ProfileView:
         if not form.is_valid():
             return self.form_invalid(form)
         form.save()
-        reset_cache(self.request)
         res = super().post(request, *args, **kwargs)
+        reset_cache(self.request)
         a = self.address
         form = forms.AddressForm(
             self.request.POST,
@@ -1096,10 +1096,13 @@ class ProfileView:
                 if not form.is_valid():
                     return self.form_invalid(form)
                 a = form.save()
-                self.object.address = a
-            else:
+                if self.object:
+                    self.object.address = a
+            elif self.object:
                 self.object.address = None
-            self.object.save(update_fields=["address"])
+
+            if self.object:
+                self.object.save(update_fields=["address"])
 
         return res
 

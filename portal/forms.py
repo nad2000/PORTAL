@@ -534,6 +534,7 @@ class ApplicationForm(forms.ModelForm):
                 self.add_error(
                     "research_experience_in_years", _("Research experience in years required")
                 )
+        return cleaned_data
 
     def clean_letter_of_support_file(self):
         # super().clean()
@@ -574,12 +575,19 @@ class ApplicationForm(forms.ModelForm):
             los.delete()
 
         if any(f in self.changed_data for f in ["postal_address", "city", "postcode"]):
-            address, _ = models.Address.get_or_create(
+            address = models.Address.where(
                 address=self.cleaned_data["postal_address"],
                 postcode=self.cleaned_data["postcode"],
                 city=self.cleaned_data["city"],
-                defaults={"country_id": "NZ"},
-            )
+                country_id="NZ",
+            ).last()
+            if not address:
+                address = models.Address.create(
+                    address=self.cleaned_data["postal_address"],
+                    postcode=self.cleaned_data["postcode"],
+                    city=self.cleaned_data["city"],
+                    country="NZ",
+                )
             self.instance.address = address
 
         if (
@@ -2001,7 +2009,9 @@ class ContractForm(forms.ModelForm):
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
 
     readonly_fields = ["state"]
-    role = forms.ModelChoiceField(queryset=models.RoleType.where(for_application=True))
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(for_application=True), required=False
+    )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -2452,7 +2462,6 @@ class NominationForm(forms.ModelForm):
                     owner=self.instance.nominator,
                     person=self.instance.nominator.person,
                     title=_("Nominator CV"),
-
                 )
                 cv_file = self.cleaned_data["cv_file"]
                 cv.file.save(cv_file.name, File(cv_file))
@@ -2516,11 +2525,29 @@ class TestimonialForm(forms.ModelForm):
             or initial
             and initial["application"].round
         )
-        fields = [
-            Field("file", data_toggle="tooltip", title=self.fields["file"].help_text),
-            # Field("summary"),
-            # Field("referee"),
-        ]
+        referee = initial and initial.get("referee") or self.instance and self.instance.referee
+        fields = []
+        if round.referee_cv_required:
+            user = (
+                referee.user
+                or models.User.where(
+                    models.Q(email=referee.email) | models.Q(emailaddress__email=referee.email)
+                ).last()
+            )
+
+            if referee and (cv := models.CurriculumVitae.last_user_cv(user)):
+                initial["cv_file"] = cv.file
+
+            self.fields["cv_file"] = FileField(
+                label=_("Curriculum Vitae"),
+                required=False,
+                widget=forms.ClearableFileInput(
+                    attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+                ),
+                help_text=_("Please upload your (referee) curriculum vitae"),
+            )
+            fields.append("cv_file")
+        fields.append(Field("file", data_toggle="tooltip", title=self.fields["file"].help_text))
         if site_id in [4, 5]:
             self.fields["file"].label = ""
         if round.referee_template:
@@ -2530,9 +2557,9 @@ class TestimonialForm(forms.ModelForm):
             # fields.insert(0, HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
             self.fields["file"].help_text = help_text
         self.fields["file"].required = True
-        fields = [
-            Fieldset(_("Referee Report") if site_id in [4, 5] else _("Testimonial"), *fields),
-        ]
+        # fields = [
+        #     Fieldset(_("Referee Report") if site_id in [4, 5] else _("Testimonial"), *fields),
+        # ]
 
         self.helper.layout = Layout(
             *fields,
@@ -2566,6 +2593,37 @@ class TestimonialForm(forms.ModelForm):
                 css_class="mb-4 float-right",
             ),
         )
+
+    def save(self, commit=True):
+
+        if self.instance.round.referee_cv_required:
+            referee = (
+                self.initial
+                and self.initial.get("referee")
+                or self.instance
+                and self.instance.referee
+            )
+            user = (
+                referee.user
+                or models.User.where(
+                    models.Q(email=referee.email) | models.Q(emailaddress__email=referee.email)
+                ).last()
+            )
+
+            if "cv_file" in self.changed_data:
+                cv = models.CurriculumVitae(
+                    owner=user,
+                    person=user.person,
+                    title=_("Referee CV"),
+                )
+                cv_file = self.cleaned_data["cv_file"]
+                cv.file.save(cv_file.name, File(cv_file))
+                cv.save()
+                self.instance.cv = cv
+
+            elif not self.instance.cv:
+                self.instance.cv = models.CurriculumVitae.last_user_cv(user)
+        return super().save(commit=commit)
 
     def is_valid(self):
         if "turn_down" in self.data:
