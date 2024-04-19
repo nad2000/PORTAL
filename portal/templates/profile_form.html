@@ -7,6 +7,11 @@
 {% block css %}
   {{ block.super }}
   {{ form.media.css }}
+<style type="text/css" media="all">
+#div_id_city span.select2-selection.select2-selection--single.modelselect2nopk.form-control {
+  min-height: 38px;
+}
+</style>
 {% endblock %}
 
 {% block section %}

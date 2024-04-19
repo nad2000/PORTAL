@@ -4680,12 +4680,12 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_result_label(self, result):
         if isinstance(result, Address):
             return result.city
-        return result
+        return result or ""
 
     def get_result_value(self, result):
         if isinstance(result, Address):
             return result.city
-        return result
+        return result or ""
 
     def create_object(self, text):
         return text

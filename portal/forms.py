@@ -1313,9 +1313,9 @@ class AddressForm(forms.ModelForm):
         self.helper.layout = Layout(
             "address",
             Row(
-                Column("city", css_class="form-group col-4 mb-0"),
+                Column("city", css_class="form-group col-lg-4 mb-0"),
                 Column("postcode", css_class="form-group col-4 mb-0"),
-                Column("country", css_class="form-group col-4 mb-0"),
+                Column("country", css_class="form-group col-md-4 mb-0"),
             ),
         )
 
