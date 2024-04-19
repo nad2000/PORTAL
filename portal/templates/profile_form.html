@@ -124,6 +124,41 @@
       });
       // Jump to the last active tab:
       if (location.hash) $('.nav a.nav-link[href="' + location.hash + '"]').tab('show');
+        // Focus on the first tab with invalid input/error:
+        $("input[type='submit']").click(function () {
+            $('input:invalid,textarea:invalid').each(function () {
+              // Find the tab-pane that this element is inside, and get the id
+              var $closest = $(this).closest('.tab-pane');
+              var id = $closest.attr('id');
+
+              // Find the link that corresponds to the pane and have it show
+              $('.nav a[href="#' + id + '"]').tab('show');
+
+              // Only want to do it once
+              return false;
+            });
+            /* if (this.form.checkValidity()) {
+                          $.blockUI({
+                            message: $('#wait-message'),
+                            css: {
+                                        backgroundColor: '#0000',
+                                        color: '#0fff',
+                                        border: '0px',
+                                      }
+                        });
+                      } */
+        });
+        {% if form.errors %}
+          var field = $(".invalid-feedback").first();
+          if (field.length) {
+            var $closest = field.closest('.tab-pane');
+            var id = $closest.attr('id');
+            // Find the link that corresponds to the pane and have it show
+            $('.nav a[href="#' + id + '"]').tab('show');
+          }{% if form.active_tab %} else {
+            $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
+          }{% endif %}
+        {% endif %}
     });
   </script>
 {% endblock %}

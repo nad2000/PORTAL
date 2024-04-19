@@ -2718,6 +2718,15 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelFor
     readonly_fields = ["state"]
     confirm_deletion = True
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not (self.instance and self.instance.site_id or settings.SITE_ID) in (4, 5):
+            self.fields.pop("panel")
+            self.fields.pop("role")
+            self.fields.pop("is_active")
+            self.fields.pop("elected_on")
+            self.fields.pop("expires_on")
+
     @property
     def deletion_confirmation_message(self):
         if p := getattr(self, "instance"):
