@@ -4243,8 +4243,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 p.user = by
                 if p.state != "accepted":
                     p.accept(request)
-                    if commit:
-                        p.save()
+                if commit:
+                    p.save(update_fields=["state", "user"])
             else:
                 self.revoke()
 

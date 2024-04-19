@@ -294,11 +294,16 @@ class AdminRequiredMixin(AccessMixin):
 class StateInPathMixin:
     @cached_property
     def state(self):
-        if (
-            state := self.request.GET.get("state")
+        state = (
+            self.request.GET.get("state")
             or self.request.path.split("/")[-1]
             or self.request.path.split("/")[-2]
-        ) and state in [s for s, _ in self.model.state.field.choices]:
+        )
+        if state and state in (
+            [s for s, _ in self.model.state.field.choices]
+            if hasattr(self.model, "state")
+            else ["new", "draft", "submitted", "archived", "WIP"]
+        ):
             return state
 
     def get_context_data(self, **kwargs):
@@ -824,7 +829,7 @@ def check_profile(request, token=None):
 
         next_url = request.GET.get("next")
         # TODO: refactor and move to the model the invitation handling:
-        u = request.user
+        u = User.get(request.user.pk)
         if not token:
             if (
                 i := models.Invitation.where(
@@ -858,8 +863,7 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.state in ["draft", "submitted", "sent", "bounced", "read", "accepted"]:
-                u = User.get(request.user.id)
+            if i.state in ["new", "draft", "submitted", "sent", "bounced", "read", "accepted"]:
                 if (
                     (i.first_name and not u.first_name)
                     or (i.middle_names and not u.middle_names)
@@ -875,7 +879,7 @@ def check_profile(request, token=None):
                     if not u.name:
                         u.name = u.full_name
                     u.is_approved = True
-                    u.save()
+                    u.save(update_fields=["first_name", "last_name", "middle_names", "name", "is_approved"])
 
                 if u.email != i.email:
                     ea, created = EmailAddress.objects.get_or_create(
@@ -935,7 +939,7 @@ def check_profile(request, token=None):
                 )
 
         # if Person.where(user=request.user).exists() and request.user.person.is_completed:
-        if Person.where(user=request.user).exists():
+        if Person.where(user=u).exists():
             if token and (
                 i := models.Invitation.where(
                     token=token, type="P", panellist__isnull=False
@@ -958,7 +962,7 @@ def check_profile(request, token=None):
             # person.is_recognitions_completed = True
             return redirect(
                 reverse("profile-update")
-                if Person.where(user=request.user).exists()
+                if Person.where(user=u).exists()
                 else reverse("profile-create")
                 + "?next="
                 + (quote(next_url) if next_url else reverse("home"))

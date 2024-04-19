@@ -120,7 +120,7 @@ class PersonMixin:
         full_name = " ".join(s for s in [first_name, middle_names, last_name] if s)
         if hasattr(self, "title") and self.title:
             full_name = f"{self.title} {full_name}"
-        return full_name or user and user.username or self.email
+        return full_name.strip() or user and user.username or self.email
 
     def get_first_name(self):
         user = self.get_user()

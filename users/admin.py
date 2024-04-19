@@ -191,15 +191,15 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                             p = Person.where(user_id=u_id).first()
                             if p:
                                 if profile:
-                                    for cv in CurriculumVitae.where(profile=p):
-                                        cv.profile = profile
+                                    for cv in CurriculumVitae.where(person=p):
+                                        cv.person = profile
                                         cv._change_reason = (
                                             f"User {p.user} merged into {target} by {u}"
                                         )
                                         cv.save()
                                 else:
-                                    for cv in CurriculumVitae.where(profile=p):
-                                        cv.profile = profile
+                                    for cv in CurriculumVitae.where(person=p):
+                                        cv.person = profile
                                         cv._change_reason = (
                                             f"User {p.user} merged into {target} by {u}"
                                         )
@@ -260,10 +260,10 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                     )
                                     for o in to_delete:
                                         o._change_reason = (
-                                            f"User {o.profile.user} merged into {target} by {u}"
+                                            f"User {o.person.user} merged into {target} by {u}"
                                         )
                                         o.delete()
-                                    deleted = [f"{o.profile}" for o in to_delete]
+                                    deleted = [f"{o.person}" for o in to_delete]
 
                         for model, field, objects in (
                             (
