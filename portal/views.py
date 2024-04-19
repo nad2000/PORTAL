@@ -6248,7 +6248,22 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
         "state_changed_at",
     )
 
-    @property
+    def get_initial(self):
+        if (
+            (r := self.round)
+            and self.request.method == "GET"
+            and "copy" in self.request.GET
+            and (pr := models.Round.where(~Q(pk=r.pk), scheme=r.scheme).last())
+        ):
+            return [
+                dict(round=r.pk, **p)
+                for p in pr.panellists.filter(~Q(email__in=r.panellists.values("email")))
+                .values("email", "first_name", "middle_names", "last_name")
+                .order_by("email", "first_name")
+            ]
+        return super().get_initial()
+
+    @cached_property
     def round(self):
         return models.Round.get(self.kwargs["round"]) if "round" in self.kwargs else self.round
 
@@ -6324,6 +6339,15 @@ class PanellistView(AdminRequiredMixin, ModelFormSetView):
         )
         kwargs["widgets"] = widgets
         kwargs["can_delete"] = True
+        if (
+            (r := self.round)
+            and self.request.method == "GET"
+            and "copy" in self.request.GET
+            and (pr := models.Round.where(~Q(pk=r.pk), scheme=r.scheme).last())
+        ):
+            kwargs["extra"] = (
+                pr.panellists.filter(~Q(email__in=r.panellists.values("email"))).count() + 1
+            )
         return kwargs
 
     def get_defaults(self):
