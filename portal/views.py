@@ -879,7 +879,15 @@ def check_profile(request, token=None):
                     if not u.name:
                         u.name = u.full_name
                     u.is_approved = True
-                    u.save(update_fields=["first_name", "last_name", "middle_names", "name", "is_approved"])
+                    u.save(
+                        update_fields=[
+                            "first_name",
+                            "last_name",
+                            "middle_names",
+                            "name",
+                            "is_approved",
+                        ]
+                    )
 
                 if u.email != i.email:
                     ea, created = EmailAddress.objects.get_or_create(
@@ -6420,6 +6428,12 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
                 context["panellist"] = panellist
         if state := self.state:
             context["state"] = state
+        context["rounds"] = (
+            models.Round.current_rounds()
+            .order_by("title")
+            .values("id", "title")
+            .annotate(total_applications=Count("applications"))
+        )
         return context
 
     def get(self, request, *args, **kwargs):

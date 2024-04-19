@@ -30,6 +30,52 @@
 {% block sidebar %}{% include 'sidebar.html' with category="reviews" %}{% endblock sidebar %}
 
 {% block content %}
+
+  {% if rounds %}
+
+    <div style="display: inline-flex;">
+      <div class="dropdown show" style="margin: 1px;">
+
+        <a class="btn btn-outline-primary dropdown-toggle" href="#" role="button" id="active-round-menu-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          {{ round|title }}
+        </a>
+
+        <div class="dropdown-menu" aria-labelledby="active-round-menu-link">
+          {% for r in rounds %}
+            {% if r.id != round.id %}
+              <a class="dropdown-item" href="{% url view_name round_id=r.id %}">{{ r.title }}
+                <span class="badge badge-primary"> {{ r.total_applications }}</span>
+              </a>
+            {% else %}
+              <span class="dropdown-item active">{{ r.title }}
+                <span class="badge badge-primary"> {{ r.total_applications }}</span>
+              </span>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+      </div>
+
+      <!-- a class="btn btn-outline-primary" href="{% url 'round-summary' round=round.id %}" role="button">
+      {% if user.is_superuser or user.is_site_staff %}
+          {% trans "Show Detailed Report" %}</a -->
+
+        <a class="btn btn-outline-primary" href="{% url 'scores-list' round=round.id %}" role="button" style="margin: 1px;">
+          {% trans "Show Scores" %}</a>
+
+        <a
+            class="btn btn-outline-primary"
+            href="{% url 'round-application-export' pk=round.id %}"
+            trarget="_blank"
+            data-toggle="tooltip" title="{% trans 'Export all the applications of the round' %}"
+                                  role="button"
+                                  style="margin: 1px;">
+          {% trans "Export PDF" %}
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
   {% if round %}
     <h2>
       {{ round.title|default:round.scheme.title }}
