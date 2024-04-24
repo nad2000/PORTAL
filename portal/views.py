@@ -51,7 +51,7 @@ from django.db.models import (
     Sum,
     Value,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Trim
 from django.db.models.deletion import RestrictedError
 from django.forms import (
     DateInput,
@@ -708,6 +708,7 @@ def index(request):
             | Q(email=user.email)
             | Q(email__in=Subquery(user.emailaddress_set.values("email"))),
             state__in=["sent", "submitted"],
+            round__scheme__current_round=F("round"),
         )
         draft_applications = models.Application.user_draft_applications(user).filter(
             ~Q(round__panellists__user=user),
@@ -2571,6 +2572,19 @@ class ApplicationView(LoginRequiredMixin):
             EthicsStatementForm = model_forms.modelform_factory(
                 models.EthicsStatement,
                 exclude=["application"],
+                widgets={
+                    "file": widgets.ClearableFileInput(
+                        attrs={
+                            "placeholder": _("Please upload a file ..."),
+                            "data-placeholder": _("Please upload a file ..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The file is required. Please upload a file ..."),
+                            "oninput": "this.setCustomValidity('')",
+                            "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                        }
+                    )
+                },
             )
             ethics_statement_form = EthicsStatementForm(
                 self.request.POST or None,
@@ -4703,12 +4717,12 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return text
 
     def get_queryset(self):
-        q = Address.objects.all().values_list("city")
+        q = Address.objects.annotate(city_name=Trim("city")).values_list("city_name")
         if country := self.forwarded.get("country", "").strip():
             q = q.filter(country=country)
         if self.q:
-            q = q.filter(city__istartswith=self.q)
-        return q.order_by("city").distinct()
+            q = q.filter(city_name__istartswith=self.q)
+        return q.order_by("city_name").distinct()
 
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
