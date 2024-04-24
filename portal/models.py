@@ -2879,7 +2879,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     and not (self.submitted_by == u or self.members.all().filter(user=u).exists())
         # ):
         #     objects.extend(self.get_testimonials())
-        site = Site.objects.get_current()
+        site = self.site or Site.objects.get_current()
         domain = site.domain
         logo_url = logo_1_url = logo_2_url = None
 
