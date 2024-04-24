@@ -401,10 +401,10 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               <strong
                   {% if not round.is_open %}
                   class="badge-danger"
-                  style="padding: 4px 6px 4px 6px;"
+                  style="border-radius: 7px; padding: 4px 6px 4px 6px;"
                   {% elif round.deadline_days > 0 and round.deadline_days < 5 %}
                   class="badge-warning"
-                  style="padding: 4px 6px 4px 6px;"
+                  style="border-radius: 7px; padding: 4px 6px 4px 6px;"
                   {% endif %}
                   {% if round.deadline_days > 0 and round.deadline_days < 5 %}
                   data-toggle="tooltip"
