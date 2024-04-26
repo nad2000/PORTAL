@@ -39,6 +39,20 @@
               </span>
             {% endif %}
           </li>
+          {% if SITE_ID == 5 and application_in_review_count %}
+            <li class="nav-item">
+              <a
+                  class="nav-link"
+                  id="applications-approved"
+                  href="{% url 'applications-approved' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+                  title="{% trans 'Submitted for the referee reviewing' %}"
+                  data-toggle="tooltip"
+              >
+                  {% trans 'In Review' %}
+                  <span class="badge badge-primary">{{ application_in_review_count }}</span>
+              </a>
+            </li>
+          {% endif %}
           <li class="nav-item">
             {% if application_submitted_count > 0 %}
               <a

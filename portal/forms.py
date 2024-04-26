@@ -1137,9 +1137,10 @@ class ApplicationForm(forms.ModelForm):
             and instance.submitted_by
             and instance.submitted_by != user
         )
+        send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
         submit_button = Submit(
-            "submit",
-            _("Submit"),
+            "submit_to_referees" if send_out_to_referees else "submit",
+            _("Submit to referees") if send_out_to_referees else _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
             title=(
@@ -1147,7 +1148,11 @@ class ApplicationForm(forms.ModelForm):
                     "Your team leader must accept the Terms and Conditions before the submission can happen"
                 )
                 if submission_disabled
-                else _("Submit the application")
+                else (
+                    _("Submit the application to referees for reviewing it")
+                    if send_out_to_referees
+                    else _("Submit the application")
+                )
             ),
             css_class="btn-outline-primary",
             disabled=submission_disabled,

@@ -35,7 +35,7 @@ def portal_context(request):
             is_ro = models.ResearchOffice.where(user=u).exists()
             is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
-            counts = {s:c for s,c in models.Application.user_application_counts(u)}
+            counts = {s: c for s, c in models.Application.user_application_counts(u)}
             # application_draft_count = models.Application.user_application_count(
             #     u, ["draft", "new"]
             # )
@@ -47,14 +47,23 @@ def portal_context(request):
             #     else ["submitted", "approved", "cancelled"],
             # )
             application_submitted_count = counts.get("submitted", 0) + counts.get("canceled", 0)
-            if (site_id not in [4, 5] or (not is_staff and not u.is_superuser)) and "approved" in counts:
+            application_in_review_count = counts.get("in_review", 0)
+            if (
+                site_id not in [4, 5] or (not is_staff and not u.is_superuser)
+            ) and "approved" in counts:
                 application_submitted_count += counts["approved"]
             application_accepted_count = counts.get("accepted", 0)
             # application_accepted_count = models.Application.user_application_count(u, ["accepted"])
             # application_funded_count = models.Application.user_application_count(u, ["funded"])
             application_funded_count = counts.get("funded", 0)
             # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
-            application_count = application_draft_count + application_submitted_count + application_accepted_count + application_funded_count
+            application_count = (
+                application_draft_count
+                + application_submitted_count
+                + application_accepted_count
+                + application_funded_count
+                + application_in_review_count
+            )
             stats = {
                 "is_staff": is_staff,
                 "three_days_ago": timezone.now() - timedelta(days=3),
@@ -67,7 +76,9 @@ def portal_context(request):
                 "nomination_submitted_count": models.Nomination.user_nomination_count(
                     u, "submitted"
                 ),
-                "nomination_accepted_count": models.Nomination.user_nomination_count(u, "accepted"),
+                "nomination_accepted_count": models.Nomination.user_nomination_count(
+                    u, "accepted"
+                ),
                 "testimonial_count": models.Testimonial.user_testimonial_count(u),
                 "testimonial_draft_count": models.Testimonial.user_testimonial_count(u, "draft"),
                 "testimonial_submitted_count": models.Testimonial.user_testimonial_count(
@@ -79,6 +90,8 @@ def portal_context(request):
                 "score_sheet_count": score_sheet_count,
                 "is_ro": is_ro,
             }
+            if site_id == 5:
+                stats["application_in_review_count"] = application_in_review_count
             if site_id in [4, 5] and (is_staff or u.is_superuser):
                 application_approved_count = models.Application.user_application_count(
                     u, "approved"
@@ -114,21 +127,29 @@ def portal_context(request):
                 stats["all_sites"] = [
                     dict(
                         site_id=a.site_id,
-                        domain=a.site.domain.encode().decode("idna") if a.site.domain.startswith("xn--") else a.site.domain,
+                        domain=(
+                            a.site.domain.encode().decode("idna")
+                            if a.site.domain.startswith("xn--")
+                            else a.site.domain
+                        ),
                         name=a.site.name,
                         url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}",
                         is_current=a.site_id == site_id,
                     )
                     for a in Alias.objects.filter(
-                        Q(is_canonical=True)
-                        if is_canonical
-                        else (~Q(is_canonical=True) | Q(is_canonical__isnull=True)),
+                        (
+                            Q(is_canonical=True)
+                            if is_canonical
+                            else (~Q(is_canonical=True) | Q(is_canonical__isnull=True))
+                        ),
                         Q(
                             id__in=Subquery(
                                 Alias.objects.filter(
-                                    Q(is_canonical=True)
-                                    if is_canonical
-                                    else (~Q(is_canonical=True) | Q(is_canonical__isnull=True)),
+                                    (
+                                        Q(is_canonical=True)
+                                        if is_canonical
+                                        else (~Q(is_canonical=True) | Q(is_canonical__isnull=True))
+                                    ),
                                 )
                                 .values("site_id")
                                 .annotate(max_id=Max("id"))
