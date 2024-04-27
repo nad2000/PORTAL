@@ -43,8 +43,8 @@
             <li class="nav-item">
               <a
                   class="nav-link"
-                  id="applications-approved"
-                  href="{% url 'applications-approved' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+                  id="applications-in_review"
+                  href="{% url 'applications-in_review' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
                   title="{% trans 'Submitted for the referee reviewing' %}"
                   data-toggle="tooltip"
               >

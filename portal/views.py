@@ -302,7 +302,7 @@ class StateInPathMixin:
         if state and state in (
             [s for s, _ in self.model.state.field.choices]
             if hasattr(self.model, "state")
-            else ["new", "draft", "submitted", "archived", "WIP"]
+            else ["new", "draft", "submitted", "archived", "WIP", "in_review"]
         ):
             return state
 
@@ -341,7 +341,7 @@ class StateInPathMixin:
             else:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
-                elif state in ["accepted", "funded"]:
+                elif state in ["accepted", "funded", "in_review"]:
                     queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
@@ -2011,7 +2011,9 @@ class ApplicationView(LoginRequiredMixin):
                             or site_id == 4
                             or (
                                 has_required_documents
-                                and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
+                                and a.documents.filter(
+                                    ~Q(file=""), document_type__role="AF"
+                                ).exists()
                             )
                         ) and site_id != 5:
                             count = a.invite_referees(request=self.request)
@@ -2325,8 +2327,7 @@ class ApplicationView(LoginRequiredMixin):
                         if not url:
                             url = self.continue_url("id-verification")
 
-
-                    if "submit_to_referees" in self.request.POST:
+                    if site_id == 5 or "submit_to_referees" in self.request.POST:
                         if (
                             a.round.required_referees
                             and a.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
@@ -2416,7 +2417,7 @@ class ApplicationView(LoginRequiredMixin):
                     if url:
                         return redirect(url)
 
-                    if "submit_to_referees" in self.request.POST:
+                    if site_id == 5 or "submit_to_referees" in self.request.POST:
                         count = a.send_out_to_referees(request=self.request)
                         messages.info(
                             self.request,
@@ -5499,9 +5500,13 @@ class TestimonialView(CreateUpdateView):
         resp = super().form_valid(form)
 
         if r := t.referee:
-            for i in models.Invitation.where(~Q(state="accepted"), type="R", referee=r):
-                i.accept(self.request, by=u)
-                i.save(update_fields=["state"])
+            invitations = list(models.Invitation.where(~Q(state="accepted"), type="R", referee=r))
+            if invitations:
+                for i in invitations:
+                    i.accept(self.request, by=u, description="Testimonial submitted", commit=False)
+                models.Invitation.objects.bulk_update(
+                    invitations, fields=["state", "state_changed_at", "accepted_at"]
+                )
 
         if (
             self.request.method == "POST"
