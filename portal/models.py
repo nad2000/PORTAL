@@ -1015,6 +1015,12 @@ class Organisation(Model):
         null=True,
     )
     email = EmailField(_("Contact email address"), blank=True, null=True)
+    # ro_email = EmailField(
+    #     _("Research Office email address"),
+    #     blank=True,
+    #     null=True,
+    #     help_text="Research Office common email address",
+    # )
     signatory = ForeignKey(
         "Person",
         verbose_name=_("signatory"),
@@ -2047,6 +2053,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         default=0,
     )
+    panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
 
     @property
     def contract(self):
@@ -2271,15 +2278,26 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             nominator
             and nominator.research_offices.filter(org=(self.org_id or nomination.org_id)).exists()
         ):
-            url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
-            send_mail(
-                __("Application '%s' Submitted") % self,
-                html_message=__(
+            url = request.build_absolute_uri(
+                reverse("application-detail", kwargs={"number": a.number})
+            )
+            if self.site_id == 5:
+                html_message = (
+                    "<p>Kia ora %(nominator)s</p>"
+                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
+                    "%(title)s</a> and all the solicited referee reports were submitted.</p>"
+                    "<p>Please review and approve the submitted application.</p>"
+                )
+            else:
+                html_message = (
                     "<p>Kia ora %(nominator)s</p>"
                     '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
                     "%(title)s</a></p>"
-                    "<p>Please reveiw and approve the submitted application.</p>"
+                    "<p>Please review and approve the submitted application.</p>"
                 )
+            send_mail(
+                __("Application '%s' Submitted") % self,
+                html_message=html_message
                 % {
                     "nominator": nominator,
                     "url": url,
@@ -4858,6 +4876,7 @@ class Round(Model):
         verbose_name=_("Score Sheet Template"),
         validators=[FileExtensionValidator(allowed_extensions=["xls", "xlsx"])],
     )
+    can_specify_panel = BooleanField(default=False)
     # Categories
     has_fors = BooleanField(
         _("Has FoRs"), default=False, help_text=_("Has Field of Research Categories")
@@ -4876,7 +4895,13 @@ class Round(Model):
     @property
     def has_categories(self):
         return (
-            self.has_fors or self.has_seos or self.has_toas or self.has_vmts or self.has_keywords
+            self.has_fors
+            or self.has_seos
+            or self.has_toas
+            or self.has_vmts
+            or self.has_keywords
+            or self.can_specify_panel
+            or self.research_experience_in_years_required
         )
 
     nomination_template = FileField(

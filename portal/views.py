@@ -5600,52 +5600,57 @@ class TestimonialView(CreateUpdateView):
                     ).exists()
                     and not a.referees.filter(~Q(state="testified")).exists()
                 ):
-                    url = self.request.build_absolute_uri(
-                        reverse("application-update", kwargs={"pk": a.id})
-                    )
-                    recipients = [a.submitted_by, *a.members.all()]
-                    params = {
-                        "user_display": ", ".join(r.full_name for r in recipients),
-                        "number": a.number,
-                        "title": a.application_title or a.round.title,
-                        "url": url,
-                    }
-                    send_mail(
-                        __("All testimonials were completed"),
-                        __(
-                            "Tēnā koe %(user_display)s\n\n"
-                            "All invited referees have now responded.\n\n"
-                            "Please log into the portal to confirm that you have enough, "
-                            "and where relevant the correct types, of referees.\n\n"
-                            "If you do need to replace a referee, please do so and you'll "
-                            "receive a new notification whenever they reply.\n\n"
-                            "If all members have agreed, and you have the full compliment of referees, "
-                            "you may now submit your completed application %(number)s: %(title)s here: %(url)s"
+                    if t.site_id == 5 and a.state == "in_review":
+                        a.submit(request=self.request)
+                        a.save()
+                    else:
+                        url = self.request.build_absolute_uri(
+                            reverse("application-update", kwargs={"pk": a.id})
                         )
-                        % params,
-                        html_message=__(
-                            "<p>Tēnā koe %(user_display)s</p>"
-                            "<p>All invited referees have now responded.</p>"
-                            "<p>Please log into the portal to confirm that you have enough, "
-                            "and where relevant the correct types, of referees.</p>"
-                            "<p>If you do need to replace a referee, please do so and you'll "
-                            "receive a new notification whenever they reply.</p>"
-                            "<p>If all members have agreed, and you have the full compliment of referees, "
-                            'you may now submit your completed application <a href="%(url)s">%(number)s: '
-                            "%(title)s</a></p>"
+                        recipients = [a.submitted_by, *a.members.all()]
+                        params = {
+                            "user_display": ", ".join(r.full_name for r in recipients),
+                            "number": a.number,
+                            "title": a.application_title or a.round.title,
+                            "url": url,
+                        }
+                        send_mail(
+                            __("All testimonials were completed"),
+                            __(
+                                "Tēnā koe %(user_display)s\n\n"
+                                "All invited referees have now responded.\n\n"
+                                "Please log into the portal to confirm that you have enough, "
+                                "and where relevant the correct types, of referees.\n\n"
+                                "If you do need to replace a referee, please do so and you'll "
+                                "receive a new notification whenever they reply.\n\n"
+                                "If all members have agreed, and you have the full compliment of referees, "
+                                "you may now submit your completed application %(number)s: %(title)s here: %(url)s"
+                            )
+                            % params,
+                            html_message=__(
+                                "<p>Tēnā koe %(user_display)s</p>"
+                                "<p>All invited referees have now responded.</p>"
+                                "<p>Please log into the portal to confirm that you have enough, "
+                                "and where relevant the correct types, of referees.</p>"
+                                "<p>If you do need to replace a referee, please do so and you'll "
+                                "receive a new notification whenever they reply.</p>"
+                                "<p>If all members have agreed, and you have the full compliment of referees, "
+                                'you may now submit your completed application <a href="%(url)s">%(number)s: '
+                                "%(title)s</a></p>"
+                            )
+                            % params,
+                            recipients=recipients,
+                            fail_silently=False,
+                            request=self.request,
+                            reply_to=settings.DEFAULT_FROM_EMAIL,
                         )
-                        % params,
-                        recipients=recipients,
-                        fail_silently=False,
-                        request=self.request,
-                        reply_to=settings.DEFAULT_FROM_EMAIL,
-                    )
 
                 if t.site_id in (4, 5):
+                    # TODO: ????
                     messages.info(
                         self.request,
                         _(
-                            "Your referee report has been submitted. The Prize secretariat will be in touch "
+                            "Your referee report has been submitted. The fellowship secretariat will be in touch "
                             "if there is anything more needed. Thank you for your participation."
                         ),
                     )

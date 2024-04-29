@@ -2134,9 +2134,8 @@ class RoundAdmin(
                             f
                             for f in [
                                 "applicant_cv_required",
-                                "team_can_apply",
                                 "can_nominate",
-                                "notify_nominator",
+                                "can_specify_panel",
                                 "direct_application_allowed",
                                 "ethics_statement_required",
                                 "has_online_scoring",
@@ -2144,11 +2143,13 @@ class RoundAdmin(
                                 "has_title",
                                 "letter_of_support_required",
                                 "nominator_cv_required",
+                                "notify_nominator",
                                 "pid_required",
                                 "presentation_required",
                                 "referee_cv_required",
-                                "research_summary_required",
                                 "research_experience_in_years_required",
+                                "research_summary_required",
+                                "team_can_apply",
                             ]
                             if f not in exclude
                         ],
