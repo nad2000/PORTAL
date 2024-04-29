@@ -320,7 +320,7 @@ class EthnicityAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
         "level_one_description",
         "definition",
     ]
-    resource_class = EthnicityResource
+    resource_classes = [EthnicityResource]
     list_display = ["code", "description"]
     ordering = ["description"]
 
@@ -351,7 +351,7 @@ class EthnicityAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
 #         "description",
 #         "source",
 #     ]
-#     resource_class = SeoResource
+#     resource_classes = [SeoResource]
 
 
 class CodeResource(ModelResource):
@@ -374,7 +374,7 @@ class LanguageAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
 
     list_display = ["code", "description"]
     search_fields = ["description", "definition"]
-    resource_class = LanguageResource
+    resource_classes = [LanguageResource]
 
 
 @admin.register(models.Rcc)
@@ -405,7 +405,7 @@ class FieldOfStudyAdmin(ImportExportModelAdmin):
         return super().get_search_fields(request)
 
     search_fields = ["description", "definition", "^code"]
-    resource_class = FieldOfStudyResource
+    resource_classes = [FieldOfStudyResource]
     # list_display = ["code", "description", "definition", "version"]
     # list_filter = ["version", "two_digit_code"]
 
@@ -432,7 +432,7 @@ class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
         return super().get_search_fields(request)
 
     search_fields = ["description", "definition", "^code"]
-    resource_class = SocioEconomicObjectiveResource
+    resource_classes = [SocioEconomicObjectiveResource]
     # list_display = ["code", "description", "definition", "version"]
     # list_filter = ["version", "two_digit_code"]
 
@@ -471,7 +471,7 @@ class FieldOfResearchAdmin(ImportExportModelAdmin):
         return super().get_search_fields(request)
 
     search_fields = ["description", "definition", "^code"]
-    resource_class = FieldOfResearchResource
+    resource_classes = [FieldOfResearchResource]
     list_display = ["code", "description", "definition", "version", "is_stem"]
     list_filter = ["is_stem", "version", "two_digit_code"]
     actions = ["toggle_stem"]
@@ -487,7 +487,7 @@ class CareerStageAdmin(ExportActionMixin, ImportExportModelAdmin):
             model = models.CareerStage
 
     search_fields = ["description", "definition"]
-    resource_class = CareerStageResource
+    resource_classes = [CareerStageResource]
 
 
 @admin.register(models.PersonIdentifierType)
@@ -501,7 +501,7 @@ class PersonIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
 
     search_fields = ["description", "definition"]
     list_display = ["code", "description", "definition"]
-    resource_class = PersonIdentifierTypeResource
+    resource_classes = [PersonIdentifierTypeResource]
 
 
 @admin.register(models.IwiGroup)
@@ -514,7 +514,7 @@ class IwiGroupAdmin(ExportActionMixin, ImportExportModelAdmin):
             model = models.IwiGroup
 
     search_fields = ["description", "definition", "parent_description"]
-    resource_class = IwiGroupResource
+    resource_classs = [IwiGroupResource]
 
 
 @admin.register(models.ProtectionPattern)
@@ -528,7 +528,7 @@ class ProtectionPatternAdmin(ImportExportMixin, ExportActionMixin, TranslationAd
 
     search_fields = ["description", "pattern"]
     list_display = ["code", "description", "pattern"]
-    resource_class = ProtectionPatternResource
+    resource_classes = [ProtectionPatternResource]
     fieldsets = [
         (
             None,
@@ -563,7 +563,7 @@ class OrgIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
             model = models.OrgIdentifierType
 
     search_fields = ["description", "definition"]
-    resource_class = OrgIdentifierTypeResource
+    resource_classes = [OrgIdentifierTypeResource]
 
 
 @admin.register(models.ApplicationDecision)
@@ -576,7 +576,7 @@ class ApplicationDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
             model = models.ApplicationDecision
 
     searcah_fields = ["description", "definition"]
-    resource_class = ApplicationDecisionResource
+    resource_classes = [ApplicationDecisionResource]
 
 
 @admin.register(models.Qualification)
@@ -592,7 +592,7 @@ class QualificationDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
 
     search_fields = ["description", "definition"]
     list_display = ["code", "description", "definition"]
-    resource_class = QualificationDecisionResource
+    resource_classes = [QualificationDecisionResource]
 
 
 class FundResource(ModelResource):
@@ -611,14 +611,14 @@ class FundResource(ModelResource):
 #     list_display = ["code", "code3", "description", "site"]
 #     list_filter = ["site"]
 #     search_fields = ["code", "code", "description_en", "description_mi"]
-#     resource_class = FundResource
+#     resource_classes = [FundResource]
 
 
 @admin.register(models.Fund)
 class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, TranslationAdmin):
     show_close_button = True
     save_on_top = True
-    resource_class = FundResource
+    resource_classes = [FundResource]
     list_filter = ["site"]
 
     class PanelInline(admin.StackedInline):
@@ -650,18 +650,26 @@ class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, Translati
 
 
 class PanelResource(ModelResource):
+
     class Meta:
-        exclude = ["created_at", "updated_at", "id"]
+        model = models.Panel
         import_id_fields = ["code", "fund", "state"]
+        exclude = ("created_at", "updated_at", "id",)
+        # fields = [
+        #     "code",
+        #     "fund",
+        #     "description",
+        #     "state",
+        # ]
         skip_unchanged = True
         report_skipped = True
         raise_errors = False
-        model = models.Panel
+        name = "Export/Import Panels"
 
 
 @admin.register(models.Panel)
-class PanelAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, admin.ModelAdmin):
-    resource_class = PanelResource
+class PanelAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
+    resource_classes = [PanelResource]
     show_close_button = True
     list_display = ("code", "state", "description", "is_active", "fund")
     list_filter = (
@@ -1616,7 +1624,7 @@ class OrganisationResource(ModelResource):
         model = models.Organisation
         fields = ["code", "name", "identifier_type", "identifier"]
         import_id_fields = ["name"]
-        export_order = ["code", "name", "identifier_type", "identifier"]
+        export_order = ("code", "name", "identifier_type", "identifier")
         skip_unchanged = True
         report_skipped = True
         raise_errors = False
@@ -1631,10 +1639,10 @@ class OrganisationWOIdentifierResource(ModelResource):
             "name",
         ]
         import_id_fields = ["code"]
-        export_order = [
+        export_order = (
             "code",
             "name",
-        ]
+        )
         skip_unchanged = True
         report_skipped = True
         raise_errors = False
@@ -1963,7 +1971,7 @@ class SchemeAdmin(
 ):
     save_on_top = True
     list_display = ["title", "current_round"]
-    resource_class = SchemeResource
+    resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
 
