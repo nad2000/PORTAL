@@ -2859,9 +2859,7 @@ class ApplicationView(LoginRequiredMixin):
             user = self.request.user
             kwargs["initial"].update(
                 {
-                    "application_title": (
-                        self.round.title
-                    ),  # models.Round.get(self.kwargs["round"]).title,
+                    "application_title": ("" if settings.SITE_ID in [4, 5] else self.round.title),
                     "email": user.email,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
