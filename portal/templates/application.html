@@ -92,10 +92,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
         <script>
           function activateRefereeTab() {
-            document.getElementById("submit-id-save_draft").value = "{% trans 'Save and send new invitation(s)' %}";
-            document.getElementById("submit-id-save_draft").name = "send_invitations";
-            document.getElementById("submit-id-submit").hidden = true;
-            document.getElementById("cancel").hidden = true;
+            $("#submit-id-save_draft").val("{% trans 'Save and send new invitation(s)' %}");
+            $("#submit-id-save_draft").attr("name", "send_invitations");
+            $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").hide();
           };
           {% if round.has_toas %}
             function totalToaShares() {
@@ -274,10 +273,9 @@
                                    $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
                                 $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
                                 $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
-                                  document.getElementById("submit-id-save_draft").value = "{% trans 'Save' %}";
-                                  document.getElementById("submit-id-save_draft").name = "save_draft";
-                                  document.getElementById("submit-id-submit").hidden = false;
-                                  document.getElementById("cancel").hidden = false;
+                                  $("#submit-id-save_draft").val("{% trans 'Save' %}");
+                                  $("#submit-id-save_draft").attr("name", "save_draft");
+                                  $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").show();
                                 });
                                 $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
                                   if (e.target.hash.endsWith($(".tab-pane").last().attr('id'))) {
@@ -290,9 +288,9 @@
                                     /* document.getElementById("button-id-previous").disabled = true; */
                                     $("#button-id-previous").hide();
                                   } else $("#button-id-previous").show();
-                                })
+                                });
                                 $('#button-id-next').on('click', function (e) {
-                                  var active = $(".nav-link.active");
+                                  var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
                                   if (active.length > 0) {
                                               var nextTab = active.parent().next().children();
                                               if (nextTab.length > 0) {
@@ -302,7 +300,7 @@
                                             }
                                 });
                                 $('#button-id-previous').on('click', function (e) {
-                                  var active = $(".nav-link.active");
+                                  var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
                                   if (active.length > 0) {
                                               var prevTab = active.parent().prev().children();
                                               if (prevTab.length > 0) {

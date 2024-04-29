@@ -1548,6 +1548,7 @@ APPLICATION_STATES = Choices(
     ("new", _("new")),
     ("draft", _("draft")),
     ("tac_accepted", _("TAC accepted")),
+    ("in_review", _("in referee review")),
     ("submitted", _("submitted")),
     ("cancelled", _("cancelled")),
     ("withdrawn", _("withdrawn")),
@@ -2103,6 +2104,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
 
+    def invite_referees(self, request, by=None, referees=None):
+        """Send invitations to all referee."""
+        return Referee.invite_referees(request, application=self, by=None, referees=None)
+
     @fsm_log
     @transition(
         field=state,
@@ -2123,20 +2128,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def accept_tac(self, *args, **kwargs):
         self.is_tac_accepted = True
 
-    @fsm_log
-    @transition(
-        field=state,
-        source=["new", "draft", "tac_accepted"],
-        target="submitted",
-        custom=dict(verbose="Submit", button_name="Submit"),
-    )
-    def submit(self, *args, **kwargs):
+    def is_completed(self, skip_testimonials=False, *args, **kwargs):
+        """Verifies application completion"""
         request = kwargs.get("request")
         round = self.round
         if round.budget_template and not (
             self.budget or self.documents.filter(~Q(file=""), document_type__role="B").exists()
         ):
             raise Exception(_("You must upload a budget spreadsheet to complete your application"))
+
         if not self.is_tac_accepted:
             if request and request.user:
                 if self.submitted_by == request.user:
@@ -2149,6 +2149,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     raise Exception(
                         _("Your team lead has not yet accepted the Prize's Terms and Conditions")
                     )
+            else:
+                raise Exception(
+                    _(
+                        "The principal application must accept the Terms and Conditions to submit an application"
+                    )
+                )
 
         if (
             not self.file
@@ -2161,6 +2167,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "and/or uploaded application form"
                 )
             )
+
         if (
             round
             and round.pid_required
@@ -2182,29 +2189,33 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if round.required_submitted_testimonials:
-            if self.referees.filter(
-                Q(testified_at__isnull=True)
-                | Q(user__isnull=True)
-                | ~Q(testimonial__state="submitted"),
-                ~Q(state__in=["submitted", "opted_out", "testified"]),
-            ).exists():
-                raise ValidationError(
-                    _(
-                        "Not all nominated referees have responded which prevents your submission. "
-                        "Please either contact your referees, or replace them with one that will respond."
-                    ),
-                    "referees",
-                )
 
-            if (
-                round.required_referees
-                and self.referees.filter(state="testified").count() < round.required_referees
-            ):
-                raise ValidationError(
-                    _("You need to procure reviews of your application from at least %d referees.")
-                    % round.required_referees,
-                    "referees",
-                )
+            if not skip_testimonials:
+                if self.referees.filter(
+                    Q(testified_at__isnull=True)
+                    | Q(user__isnull=True)
+                    | ~Q(testimonial__state="submitted"),
+                    ~Q(state__in=["submitted", "opted_out", "testified"]),
+                ).exists():
+                    raise ValidationError(
+                        _(
+                            "Not all nominated referees have responded which prevents your submission. "
+                            "Please either contact your referees, or replace them with one that will respond."
+                        ),
+                        "referees",
+                    )
+
+                if (
+                    round.required_referees
+                    and self.referees.filter(state="testified").count() < round.required_referees
+                ):
+                    raise ValidationError(
+                        _(
+                            "You need to procure reviews of your application from at least %d referees."
+                        )
+                        % round.required_referees,
+                        "referees",
+                    )
         else:
             if (
                 self.round.required_referees
@@ -2225,6 +2236,34 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "Please either contact your team's members, or modify the team membership"
                 )
             )
+
+    # def can_be_funded(self):
+    #     return (self.site_id != 4 and self.state == "approved") or self.state == "accepted"
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "tac_accepted"],
+        target="in_review",
+        conditions=[lambda self: self.site_id == 5],
+        custom=dict(verbose="Submit To Referees", button_name="To Referees"),
+    )
+    def send_out_to_referees(self, *args, **kwargs):
+        self.is_completed(skip_testimonials=True, *args, **kwargs)
+        request = kwargs.get("request")
+        return self.invite_referees(request=request)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "tac_accepted", "in_review"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="Submit"),
+    )
+    def submit(self, *args, **kwargs):
+        self.is_completed(*args, **kwargs)
+        request = kwargs.get("request")
+        round = self.round
 
         nomination = Nomination.where(application=self).last()
         nominator = nomination and nomination.nominator
@@ -2879,7 +2918,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     and not (self.submitted_by == u or self.members.all().filter(user=u).exists())
         # ):
         #     objects.extend(self.get_testimonials())
-        site = Site.objects.get_current()
+        site = self.site or Site.objects.get_current()
         domain = site.domain
         logo_url = logo_1_url = logo_2_url = None
 
@@ -3352,6 +3391,54 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     _("Referee with the email address %(email)s was alrady added"),
                     params={"email": self.email},
                 )
+
+    @classmethod
+    def invite_referees(cls, request, application=None, by=None, referees=None):
+        """Send invitations to all referee."""
+        # members that don't have invitations
+        count = 0
+        # referees = list(models.Referee.where(application=application, invitation__isnull=True))
+        # referees = list(models.Referee.where(invitation__isnull=True))
+        # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
+        if not referees:
+            referees = list(
+                cls.where(
+                    ~Q(state__in=["testified", "accepted", "opted_out"]),
+                    ~Q(invitation__email=F("email")),
+                    application=application,
+                ).prefetch_related("application", "application__submitted_by")
+            )
+
+        for r in referees:
+            Invitation.get_or_create_referee_invitation(
+                r, by=r.application.submitted_by or by or request and request.user
+            )
+
+        # send 'yet unsent' invitations:
+        invitations = list(
+            (
+                Invitation.where(
+                    Q(sent_at__isnull=True),
+                    ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
+                    application=application,
+                    type="R",
+                )
+                if application
+                else Invitation.where(
+                    ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
+                    referee__in=Subquery(referees.values("id")),
+                )
+            ).prefetch_related("referee", "referee__user")
+        )
+        for i in invitations:
+            i.send(request, by=by or request and request.user)
+            i.save()
+            if i.referee:
+                i.referee.send()
+                i.referee.save()
+            count += 1
+
+        return count
 
     @fsm_log
     @transition(field=state, source=["*"], target="accepted")
@@ -3926,6 +4013,58 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             o.round_id = o.round_value
 
         return cls.all_objects.bulk_update(objs, ["round"])
+
+    @classmethod
+    def get_or_create_referee_invitation(cls, referee, by=None):
+        u = referee.user or User.objects.filter(email=referee.email).first()
+        if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
+            u = ea.user
+        if not referee.user and u:
+            referee.user = u
+            if not referee.first_name:
+                referee.first_name = u and u.first_name or ""
+            if not referee.last_name:
+                referee.last_name = u and u.last_name or ""
+            if not referee.middle_names:
+                referee.middle_names = u and u.middle_names or ""
+            referee.save(update_fields=["user", "first_name", "middle_names", "last_name"])
+        first_name = referee.first_name or u and u.first_name or ""
+        last_name = referee.last_name or u and u.last_name or ""
+        middle_names = referee.middle_names or u and u.middle_names or ""
+        site = (referee.application and referee.application.site) or Site.objects.get_current()
+
+        if (
+            settings.SITE_ID in [4, 5]
+            and referee.application.round.survey_id
+            and not (referee.survey_token_id or referee.survey_token)
+        ):
+            referee.add_to_survey()
+
+        if hasattr(referee, "invitation"):
+            i = referee.invitation
+            if referee.email != i.email:
+                i.revoke(by=by)
+                i.save()
+            else:
+                referee.satus = None
+                return (i, False)
+
+        i, created = cls.get_or_create(
+            type=INVITATION_TYPES.R,
+            referee=referee,
+            email=referee.email,
+            defaults=dict(
+                inviter=by,
+                application=referee.application,
+                first_name=first_name,
+                middle_names=middle_names,
+                last_name=last_name,
+                site=site,
+            ),
+        )
+        referee.invitation = i
+        referee.save()
+        return (i, created)
 
     @fsm_log
     @transition(

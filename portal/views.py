@@ -302,7 +302,7 @@ class StateInPathMixin:
         if state and state in (
             [s for s, _ in self.model.state.field.choices]
             if hasattr(self.model, "state")
-            else ["new", "draft", "submitted", "archived", "WIP"]
+            else ["new", "draft", "submitted", "archived", "WIP", "in_review"]
         ):
             return state
 
@@ -341,7 +341,7 @@ class StateInPathMixin:
             else:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
-                elif state in ["accepted", "funded"]:
+                elif state in ["accepted", "funded", "in_review"]:
                     queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
@@ -1325,54 +1325,6 @@ def invite_team_members(request, application):
     return count
 
 
-def invite_referee(request, application=None, by=None, referees=None):
-    """Send invitations to all referee."""
-    # members that don't have invitations
-    count = 0
-    # referees = list(models.Referee.where(application=application, invitation__isnull=True))
-    # referees = list(models.Referee.where(invitation__isnull=True))
-    # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
-    if not referees:
-        referees = list(
-            models.Referee.where(
-                ~Q(state__in=["testified", "accepted", "opted_out"]),
-                ~Q(invitation__email=F("email")),
-                application=application,
-            ).prefetch_related("application", "application__submitted_by")
-        )
-
-    for r in referees:
-        get_or_create_referee_invitation(
-            r, by=r.application.submitted_by or by or request and request.user
-        )
-
-    # send 'yet unsent' invitations:
-    invitations = list(
-        (
-            models.Invitation.where(
-                Q(sent_at__isnull=True),
-                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
-                application=application,
-                type="R",
-            )
-            if application
-            else models.Invitation.where(
-                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
-                referee__in=Subquery(referees.values("id")),
-            )
-        ).prefetch_related("referee", "referee__user")
-    )
-    for i in invitations:
-        i.send(request, by=by or request and request.user)
-        i.save()
-        if i.referee:
-            i.referee.send()
-            i.referee.save()
-        count += 1
-
-    return count
-
-
 def get_or_create_team_member_invitation(member):
     u = member.user or models.User.objects.filter(email=member.email).first()
     if not u and (ea := EmailAddress.objects.filter(email=member.email).first()):
@@ -1407,58 +1359,6 @@ def get_or_create_team_member_invitation(member):
                 site=site,
             ),
         )
-
-
-def get_or_create_referee_invitation(referee, by=None):
-    u = referee.user or models.User.objects.filter(email=referee.email).first()
-    if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
-        u = ea.user
-    if not referee.user and u:
-        referee.user = u
-        if not referee.first_name:
-            referee.first_name = u and u.first_name or ""
-        if not referee.last_name:
-            referee.last_name = u and u.last_name or ""
-        if not referee.middle_names:
-            referee.middle_names = u and u.middle_names or ""
-        referee.save(update_fields=["user", "first_name", "middle_names", "last_name"])
-    first_name = referee.first_name or u and u.first_name or ""
-    last_name = referee.last_name or u and u.last_name or ""
-    middle_names = referee.middle_names or u and u.middle_names or ""
-    site = (referee.application and referee.application.site) or Site.objects.get_current()
-
-    if (
-        settings.SITE_ID in [4, 5]
-        and referee.application.round.survey_id
-        and not (referee.survey_token_id or referee.survey_token)
-    ):
-        referee.add_to_survey()
-
-    if hasattr(referee, "invitation"):
-        i = referee.invitation
-        if referee.email != i.email:
-            i.revoke(by=by)
-            i.save()
-        else:
-            referee.satus = None
-            return (i, False)
-
-    i, created = models.Invitation.get_or_create(
-        type=models.INVITATION_TYPES.R,
-        referee=referee,
-        email=referee.email,
-        defaults=dict(
-            inviter=by,
-            application=referee.application,
-            first_name=first_name,
-            middle_names=middle_names,
-            last_name=last_name,
-            site=site,
-        ),
-    )
-    referee.invitation = i
-    referee.save()
-    return (i, created)
 
 
 def invite_panellist(request, round):
@@ -1796,7 +1696,7 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     return redirect("application", pk=pk)
 
-                if a.state and a.state not in ["new", "draft"]:
+                if a.state and a.state not in ["new", "draft", "in_review"]:
                     messages.error(
                         request,
                         _(
@@ -2091,7 +1991,7 @@ class ApplicationView(LoginRequiredMixin):
                         return self.form_invalid(form)
 
                 try:
-                    if not referees.instance or not referees.instance.id:
+                    if not referees.instance or not referees.instance.pk:
                         referees.instance = a
                     if referees.is_valid():
                         # referees.instance = a
@@ -2105,32 +2005,43 @@ class ApplicationView(LoginRequiredMixin):
                         #             i.revoke(self.request)
                         #             i.save()
 
-                    referees.save()
-                    if (
-                        a.file
-                        or site_id in [4, 5]
-                        or (
-                            has_required_documents
-                            and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
-                        )
-                    ):
-                        count = invite_referee(self.request, a)
-                        if count > 0:
-                            messages.success(
-                                self.request,
-                                _("%d referee invitation(s) sent.") % count,
+                        referees.save()
+                        if (
+                            a.file
+                            or site_id == 4
+                            or (
+                                has_required_documents
+                                and a.documents.filter(
+                                    ~Q(file=""), document_type__role="AF"
+                                ).exists()
                             )
-                    elif a.referees.count():
-                        messages.info(
-                            self.request,
-                            _(
-                                "The invitation(s) to referee(s) will be sent after "
-                                "you upload the application form."
-                            ),
-                        )
+                        ) and site_id != 5:
+                            count = a.invite_referees(request=self.request)
+                            if count > 0:
+                                messages.success(
+                                    self.request,
+                                    _("%d referee invitation(s) sent.") % count,
+                                )
+                        elif a.referees.count():
+                            if site_id == 5:
+                                messages.info(
+                                    self.request,
+                                    _(
+                                        "The invitation(s) to referee(s) will be sent after "
+                                        "you upload the application form and submit it for reviewing to the referees."
+                                    ),
+                                )
+                            else:
+                                messages.info(
+                                    self.request,
+                                    _(
+                                        "The invitation(s) to referee(s) will be sent after "
+                                        "you upload the application form."
+                                    ),
+                                )
 
-                        if has_deleted:
-                            return redirect(url)
+                            if has_deleted:
+                                return redirect(url)
                     else:
                         for f in referees.forms:
                             if not f.is_valid():
@@ -2282,7 +2193,7 @@ class ApplicationView(LoginRequiredMixin):
         else:
             url = None
             try:
-                if "submit" in self.request.POST:
+                if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
                     if self.round.applicant_cv_required:
                         if not a.submitted_by or not (
                             models.CurriculumVitae.where(owner=a.submitted_by).exists()
@@ -2416,28 +2327,42 @@ class ApplicationView(LoginRequiredMixin):
                         if not url:
                             url = self.continue_url("id-verification")
 
-                    if (
-                        a.round.required_referees
-                        and a.referees.filter(
-                            ~Q(state__in=["bounced", "opted_out"])
-                            if site_id in [4, 5]
-                            else Q(state="testified")
-                        ).count()
-                        < a.round.required_referees
-                    ):
-                        messages.error(
-                            self.request,
-                            (
+                    if site_id == 5 or "submit_to_referees" in self.request.POST:
+                        if (
+                            a.round.required_referees
+                            and a.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
+                            < a.round.required_referees
+                        ):
+                            messages.error(
+                                self.request,
                                 _("You need to nominate at least %d referee(s).")
-                                if site_id in [4, 5]
-                                else _(
-                                    "You need to procure reviews of your application from at least %d referees."
-                                )
+                                % a.round.required_referees,
                             )
-                            % a.round.required_referees,
-                        )
-                        if not url:
-                            url = self.continue_url("referees")
+                            if not url:
+                                url = self.continue_url("referees")
+                    else:
+                        if (
+                            a.round.required_referees
+                            and a.referees.filter(
+                                ~Q(state__in=["bounced", "opted_out"])
+                                if site_id in [4, 5]
+                                else Q(state="testified")
+                            ).count()
+                            < a.round.required_referees
+                        ):
+                            messages.error(
+                                self.request,
+                                (
+                                    _("You need to nominate at least %d referee(s).")
+                                    if site_id in [4, 5]
+                                    else _(
+                                        "You need to procure reviews of your application from at least %d referees."
+                                    )
+                                )
+                                % a.round.required_referees,
+                            )
+                            if not url:
+                                url = self.continue_url("referees")
 
                     if has_required_documents:
                         for rd in a.round.required_documents.filter(is_optional=False):
@@ -2492,22 +2417,31 @@ class ApplicationView(LoginRequiredMixin):
                     if url:
                         return redirect(url)
 
-                    a.submit(request=self.request)
-                    a.save()
-                    messages.info(
-                        self.request,
-                        (
+                    if site_id == 5 or "submit_to_referees" in self.request.POST:
+                        count = a.send_out_to_referees(request=self.request)
+                        messages.info(
+                            self.request,
                             _(
-                                "Your application has been successfully submitted. "
-                                "The Research Office will be in touch if there is anything more needed. Good luck."
-                            )
-                            if site_id in [4, 5]
-                            else _(
-                                "Your application has been successfully submitted. "
-                                "The Prize secretariat will be in touch if there is anything more needed. Good luck."
-                            )
-                        ),
-                    )
+                                f"Your application has been successfully submitted to {count} referee(s) to review it."
+                            ),
+                        )
+                    else:
+                        a.submit(request=self.request)
+                        messages.info(
+                            self.request,
+                            (
+                                _(
+                                    "Your application has been successfully submitted. "
+                                    "The Research Office will be in touch if there is anything more needed. Good luck."
+                                )
+                                if site_id in [4, 5]
+                                else _(
+                                    "Your application has been successfully submitted. "
+                                    "The Prize secretariat will be in touch if there is anything more needed. Good luck."
+                                )
+                            ),
+                        )
+                    a.save()
 
                 elif (
                     self.request.method == "POST"
@@ -5566,9 +5500,13 @@ class TestimonialView(CreateUpdateView):
         resp = super().form_valid(form)
 
         if r := t.referee:
-            for i in models.Invitation.where(~Q(state="accepted"), type="R", referee=r):
-                i.accept(self.request, by=u)
-                i.save(update_fields=["state"])
+            invitations = list(models.Invitation.where(~Q(state="accepted"), type="R", referee=r))
+            if invitations:
+                for i in invitations:
+                    i.accept(self.request, by=u, description="Testimonial submitted", commit=False)
+                models.Invitation.objects.bulk_update(
+                    invitations, fields=["state", "state_changed_at", "accepted_at"]
+                )
 
         if (
             self.request.method == "POST"

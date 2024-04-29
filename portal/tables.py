@@ -52,6 +52,9 @@ class StateColumn(tables.Column):
                 else:
                     title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
+        elif state == "in_review":
+            css_classes = "fas fa-question text-success text-center"
+            title = _("The application was submitted and sent out to the referees for the reviewing")
         elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
