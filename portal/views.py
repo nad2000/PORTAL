@@ -1753,6 +1753,7 @@ class ApplicationView(LoginRequiredMixin):
         initial = super().get_initial()
         initial["round"] = self.round.id
         round = self.round
+        nomination = self.nomination
 
         if (
             round.letter_of_support_required
@@ -1772,7 +1773,6 @@ class ApplicationView(LoginRequiredMixin):
         ):
             initial["cv_file"] = self.object.cv.file
 
-        initial["round"] = round.id
         if not (self.object and self.object.id):
             initial["user"] = user
             initial["email"] = user.email
@@ -1830,7 +1830,15 @@ class ApplicationView(LoginRequiredMixin):
                 if research_experience_in_years:
                     initial["research_experience_in_years"] = research_experience_in_years
 
-            if current_affiliation:
+            if nomination:
+                initial["org"] = nomination.org
+                initial["position"] = (
+                    current_affiliation
+                    and current_affiliation.role
+                    or latest_application
+                    and latest_application.position
+                )
+            elif current_affiliation:
                 initial["org"] = current_affiliation.org
                 initial["position"] = (
                     current_affiliation.role or latest_application and latest_application.position
@@ -1887,6 +1895,10 @@ class ApplicationView(LoginRequiredMixin):
     def nomination(self):
         if "nomination" in self.kwargs:
             return models.Nomination.get(self.kwargs["nomination"])
+        elif n := models.Nomination.where(
+            user=self.request.user, round=self.round, state="accepted"
+        ).last():
+            return n
 
     def form_valid(self, form):
         instance = form.instance
@@ -5477,6 +5489,7 @@ class TestimonialView(CreateUpdateView):
         t = form.instance
         u = self.request.user
         reset_cache(self.request)
+        site_id = settings.SITE_ID
 
         if not t.id:
             a = self.application
@@ -5545,9 +5558,16 @@ class TestimonialView(CreateUpdateView):
                     if cf := t.update_converted_file():
                         messages.success(
                             self.request,
-                            _(
-                                "Your testimonial form was converted into PDF file. "
-                                "Please review the converted testimonial form version <a href='%s'>%s</a>."
+                            (
+                                _(
+                                    "Your referee report form was converted into PDF file. "
+                                    "Please review the converted referee report form version <a href='%s'>%s</a>."
+                                )
+                                if site_id in [4, 5]
+                                else _(
+                                    "Your testimonial form was converted into PDF file. "
+                                    "Please review the converted testimonial form version <a href='%s'>%s</a>."
+                                )
                             )
                             % (cf.file.url, os.path.basename(cf.file.name)),
                         )

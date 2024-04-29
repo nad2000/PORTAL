@@ -782,7 +782,11 @@ class ApplicationForm(forms.ModelForm):
         if round.has_categories:
             category_fields = []
             if round.research_experience_in_years_required and round.can_specify_panel:
-                breakpoint()
+                self.fields["panel"].queryset = (
+                    self.fields["panel"]
+                    .queryset.filter(fund__site_id=site_id, state="active")
+                    .order_by("code", "-id")
+                )
                 category_fields = [
                     Row(
                         Column("research_experience_in_years"),

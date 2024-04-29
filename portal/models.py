@@ -2164,7 +2164,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
 
         if (
-            not self.file
+            self.round.research_summary_required
+            and not self.file
             and not self.summary
             and not self.documents.filter(~Q(file=""), document_type__role="AF").exists()
         ):
@@ -2279,7 +2280,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             and nominator.research_offices.filter(org=(self.org_id or nomination.org_id)).exists()
         ):
             url = request.build_absolute_uri(
-                reverse("application-detail", kwargs={"number": a.number})
+                reverse("application-detail", kwargs={"number": self.number})
             )
             if self.site_id == 5:
                 html_message = (
@@ -6509,7 +6510,7 @@ PANEL_STATES = Choices(
 
 class PanelManager(Manager):
     def get_by_natural_key(self, code, fund, state, *args, **kwargs):
-        return self.get(code=code, fund=fund, state=state)
+        return self.filter(code=code, fund=fund, state=state, **kwargs).last()
 
 
 class PanelMixin:
@@ -6535,7 +6536,7 @@ class Panel(PanelMixin, Model):
         return self.state and self.state == "active"
 
     def natural_key(self):
-        return (self.code, self.fund_id)
+        return (self.code, self.fund_id, self.state)
 
     def __str__(self):
         return f"{self.code}: {self.description}"
