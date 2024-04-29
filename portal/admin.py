@@ -649,8 +649,19 @@ class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, Translati
     inlines = [PanelInline]
 
 
+class PanelResource(ModelResource):
+    class Meta:
+        exclude = ["created_at", "updated_at", "id"]
+        import_id_fields = ["code", "fund", "state"]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+        model = models.Panel
+
+
 @admin.register(models.Panel)
-class PanelAdmin(admin.ModelAdmin):
+class PanelAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, admin.ModelAdmin):
+    resource_class = PanelResource
     show_close_button = True
     list_display = ("code", "state", "description", "is_active", "fund")
     list_filter = (
