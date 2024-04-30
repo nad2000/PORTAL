@@ -2020,20 +2020,21 @@ class ApplicationView(LoginRequiredMixin):
                         referees.save()
                         if (
                             a.file
-                            or site_id == 4
+                            or site_id in [4, 5]
                             or (
                                 has_required_documents
                                 and a.documents.filter(
                                     ~Q(file=""), document_type__role="AF"
                                 ).exists()
                             )
-                        ) and site_id != 5:
-                            count = a.invite_referees(request=self.request)
-                            if count > 0:
-                                messages.success(
-                                    self.request,
-                                    _("%d referee invitation(s) sent.") % count,
-                                )
+                        ):
+                            if site_id != 5 or "submit_to_referees" in self.request.POST:
+                                count = a.invite_referees(request=self.request)
+                                if count > 0:
+                                    messages.success(
+                                        self.request,
+                                        _("%d referee invitation(s) sent.") % count,
+                                    )
                         elif a.referees.count():
                             if site_id == 5:
                                 messages.info(
@@ -2430,7 +2431,7 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
 
                     if site_id == 5 or "submit_to_referees" in self.request.POST:
-                        count = a.send_out_to_referees(request=self.request)
+                        count = a.send_out_to_referees(request=self.request) or a.referees.count()
                         messages.info(
                             self.request,
                             _(

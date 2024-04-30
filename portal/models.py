@@ -1642,7 +1642,7 @@ def default_application_number(application, exclude_numbers=None):
     if (
         latest_application := Application.all_objects.filter(
             # round=application.round,
-            Q(number__istartswith=prefix1) | Q(number__istartswith=prefix1),
+            Q(number__istartswith=prefix1) | Q(number__istartswith=prefix2),
             number__isnull=False,
         )
         .order_by("-number")
@@ -1652,7 +1652,7 @@ def default_application_number(application, exclude_numbers=None):
         last_number = latest_application.get("number")
     if last_number and last_number.endswith("-E"):
         last_number = last_number.removesuffix("-E")
-    application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
+    application_number = int(last_number.split("-")[-1]) + 1 if last_number else 1
     while True:
         number = f"{code}-{org_code}-{year}-{application_number:03}"
         if not exclude_numbers or number not in exclude_numbers:

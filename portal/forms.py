@@ -1155,8 +1155,10 @@ class ApplicationForm(forms.ModelForm):
         send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
         submit_button = Submit(
             "submit_to_referees" if send_out_to_referees else "submit",
-            _("Submit to referees") if send_out_to_referees else _("Submit"),
+            # _("Submit to referees") if send_out_to_referees else _("Submit"),
+            _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+            css_id="submit-id-submit",
             data_toggle="tooltip",
             title=(
                 _(

@@ -91,11 +91,13 @@
         <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
         <script>
-          function activateRefereeTab() {
-            $("#submit-id-save_draft").val("{% trans 'Save and send new invitation(s)' %}");
-            $("#submit-id-save_draft").attr("name", "send_invitations");
-            $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").hide();
-          };
+          {% if SITE_ID != 5 %}
+            function activateRefereeTab() {
+              $("#submit-id-save_draft").val("{% trans 'Save and send new invitation(s)' %}");
+              $("#submit-id-save_draft").attr("name", "send_invitations");
+              $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").hide();
+            };
+          {% endif %}
           {% if round.has_toas %}
             function totalToaShares() {
               var sum = 0;
@@ -248,18 +250,18 @@
                                   location.hash = this.getAttribute("href");
                                 });
                                 {% if form.errors.letter_of_support_file %}
-                                    $('.nav a[href="#summary"]').tab('show');
+                                  $('.nav a[href="#summary"]').tab('show');
                                 {% elif "verification" in request.GET %}
-                                    $('.nav a[href="#id-verification"]').tab('show');
+                                  $('.nav a[href="#id-verification"]').tab('show');
                                 {% elif "referees" in request.GET %}
-                                    $('.nav a[href="#referees"]').tab('show'); activateRefereeTab();
+                                  $('.nav a[href="#referees"]').tab('show');{% if SITE_ID != 5 %} activateRefereeTab();{% endif %}
                                 {% elif "summary" in request.GET %}
-                                    $('.nav a[href="#summary"]').tab('show');
+                                  $('.nav a[href="#summary"]').tab('show');
                                 {% else %}
                                   // Jump to the last active tab:
                                   if (location.hash) {
                                       if (location.hash != "#members") $('.nav a[href="' + location.hash + '"]').tab('show');
-                                      if (location.hash == "#referees") activateRefereeTab();
+                                      {% if SITE_ID != 5 %}if (location.hash == "#referees") activateRefereeTab();{% endif %}
                                   };
                                   if (!location.hash || location.hash == "#applicant") {
                                     // document.getElementById("button-id-previous").disabled = true;
@@ -271,12 +273,14 @@
                                 {% endif %}
                                 /* $("#div_id_title").parent().css("min-width", "4rem");
                                    $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
-                                $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
-                                $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
-                                  $("#submit-id-save_draft").val("{% trans 'Save' %}");
-                                  $("#submit-id-save_draft").attr("name", "save_draft");
-                                  $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").show();
-                                });
+                                {% if SITE_ID != 5 %}
+                                  $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
+                                  $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
+                                    $("#submit-id-save_draft").val("{% trans 'Save' %}");
+                                    $("#submit-id-save_draft").attr("name", "save_draft");
+                                    $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").show();
+                                  });
+                                {% endif %}
                                 $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
                                   if (e.target.hash.endsWith($(".tab-pane").last().attr('id'))) {
                                     /* document.getElementById("button-id-next").disabled = true; */
