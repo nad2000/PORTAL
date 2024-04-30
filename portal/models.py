@@ -3239,7 +3239,7 @@ class Member(PersonMixin, MemberMixin, Model):
                 q = q.filter(~Q(id=member_id))
             if q.exists():
                 raise ValidationError(
-                    _("Team member with the email address %(email)s was alrady added"),
+                    _("Team member with the email address %(email)s was already added"),
                     params={"email": self.email},
                 )
 
@@ -3407,7 +3407,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 q = q.filter(~Q(id=referee_id))
             if q.exists():
                 raise ValidationError(
-                    _("Referee with the email address %(email)s was alrady added"),
+                    _("Referee with the email address %(email)s was already added"),
                     params={"email": self.email},
                 )
 
@@ -7429,7 +7429,7 @@ class ContractMember(PersonMixin, Model):
             q = q.filter(~Q(id=member_id))
         if q.exists():
             raise ValidationError(
-                _("Team member with the email address %(email)s was alrady added"),
+                _("Team member with the email address %(email)s was already added"),
                 params={"email": self.email},
             )
 

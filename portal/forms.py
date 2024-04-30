@@ -2048,7 +2048,7 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.M
                 q = q.filter(~models.Q(id=member.id))
             if q.exists():
                 raise forms.ValidationError(
-                    _("Team member with the email address %(email)s was alrady added"),
+                    _("Team member with the email address %(email)s was already added"),
                     params={"email": email},
                 )
         return cleaned_data
@@ -2158,7 +2158,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm)
                 q = q.filter(~models.Q(id=referee.id))
             if q.exists():
                 raise forms.ValidationError(
-                    _("Referee with the email address %(email)s was alrady added"),
+                    _("Referee with the email address %(email)s was already added"),
                     params={"email": email},
                 )
         return cleaned_data
