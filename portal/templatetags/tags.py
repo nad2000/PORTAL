@@ -23,6 +23,11 @@ def index(indexable, i):
 
 
 @register.filter(is_safe=True)
+def eq_value(value1, value2):
+    return str(value1 or "").strip() == str(value2 or "").strip()
+
+
+@register.filter(is_safe=True)
 def html(obj):
     if not obj:
         return ""

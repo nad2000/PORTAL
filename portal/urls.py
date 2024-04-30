@@ -408,6 +408,8 @@ urlpatterns = [
                 path(
                     "<int:round>/~create", views.NominationView.as_view(), name="nomination-create"
                 ),
+                path("~create", views.NominationView.as_view(), name="nomination-new"),
+                path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
                 path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
                 path("<int:pk>", views.NominationDetail.as_view(), name="nomination-detail"),
                 path("draft", views.NominationList.as_view(), name="nominations-draft"),

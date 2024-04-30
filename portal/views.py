@@ -5232,12 +5232,14 @@ class NominationView(CreateUpdateView):
     @cached_property
     def round(self):
         return (
-            models.Round.get(self.kwargs["round"]) if "round" in self.kwargs else self.object.round
+            models.Round.get(self.kwargs.get("round") or self.request.GET.get("round"))
+            if "round" in self.kwargs or "round" in self.request.GET
+            else self.object and self.object.round or None
         )
 
     def get_initial(self):
         initial = super().get_initial()
-        initial["round"] = self.round.id
+        initial["round"] = self.round.id if self.round else None
         return initial
 
     def form_valid(self, form):
@@ -5252,6 +5254,7 @@ class NominationView(CreateUpdateView):
                 n.site = Site.objects.get_current()
 
         resp = super().form_valid(form)
+
         if self.request.method == "POST":
             reset_cache(self.request)
 
@@ -5369,6 +5372,8 @@ class NominationView(CreateUpdateView):
                 )
                 n.save()
                 reset_cache(self.request)
+                if return_url := self.request.GET.get("return_url"):
+                    return redirect(f"{return_url}?selected_round={self.round.pk}")
                 return redirect("index")
             except Exception as ex:
                 capture_exception(ex)
@@ -5409,7 +5414,7 @@ class NominationView(CreateUpdateView):
                 kwargs["initial"]["org"] = ro.org
 
         kwargs["initial"]["round"] = self.round
-        kwargs["initial"]["round_id"] = self.round.id
+        kwargs["initial"]["round_id"] = self.round.id if self.round else None
         kwargs["initial"]["nominator"] = self.request.user
         return kwargs
 
@@ -5423,10 +5428,16 @@ class NominationView(CreateUpdateView):
 
     def get_close_url(self):
         referer = self.request.META.get("HTTP_REFERER")
-        return self.request.GET.get("next") or (
-            referer
-            if referer and not referer.endswith(self.request.path)
-            else reverse("nominations")
+        if "return_url" in self.request.GET:
+            return f"{self.request.GET.get('return_url')}?selected_round={self.round.pk}"
+        return (
+            self.request.GET.get("next")
+            or self.request.GET.get("return_url")
+            or (
+                referer
+                if referer and not referer.endswith(self.request.path)
+                else reverse("nominations")
+            )
         )
 
 
@@ -5737,6 +5748,13 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
     model = models.Nomination
     table_class = tables.NominationTable
     template_name = "nominations.html"
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if self.request.user.research_offices.exists():
+            context["all_rounds"] = models.Round.where(scheme__current_round=F("pk"))
+            self.has_actions = True
+        return context
 
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
