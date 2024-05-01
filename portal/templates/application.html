@@ -249,7 +249,9 @@
                                 $(document.body).on("click", "a[data-toggle='tab']", function(event) {
                                   location.hash = this.getAttribute("href");
                                 });
-                                {% if form.errors.letter_of_support_file %}
+                                {% if object.state == "in_review" %}
+                                  $('.nav a[href="#referees"]').tab('show');
+                                {% elif form.errors.letter_of_support_file %}
                                   $('.nav a[href="#summary"]').tab('show');
                                 {% elif "verification" in request.GET %}
                                   $('.nav a[href="#id-verification"]').tab('show');
@@ -324,8 +326,13 @@
                 $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
               }{% endif %}
             {% endif %}
-
-            });
+            {% if object.state == "in_review" %}
+              $("#applicant,#categories,#summary,#id-verification,#ethics-statement,#tac").find("input,textarea,button,select").prop({
+                readonly: true,
+                disabled: true
+              });
+            {% endif %}
+          });
         </script>
       {% endblock %}
 {# vim:set ft=htmldjango: #}

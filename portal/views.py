@@ -1641,6 +1641,13 @@ class ApplicationDetail(DetailView):
         return context
 
 
+class ItemFormSetView(ModelFormSetView):
+
+    model = models.Referee
+    # fields = ['name', 'sku', 'price']
+    # template_name = 'item_formset.html'
+
+
 class ApplicationView(LoginRequiredMixin):
     model = Application
     template_name = "application.html"
@@ -1900,8 +1907,19 @@ class ApplicationView(LoginRequiredMixin):
         ).last():
             return n
 
+    # def post(self, request, *args, **kwargs):
+    #     # self.object = self.get_object()
+    #     # if self.object and self.object.state == "in_review":
+    #     #     context = self.get_context_data()
+    #     #     referees = context["referees"]
+    #     #     user = self.request.user
+    #     #     reset_cache(self.request)
+    #     #     url = self.request.path_info
+    #     return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         instance = form.instance
+        current_state = instance and instance.state
         # if not instance.pk:
         #     resp = super().form_valid(form)
 
@@ -1916,7 +1934,7 @@ class ApplicationView(LoginRequiredMixin):
 
         try:
             with transaction.atomic():
-                instance = form.instance
+                # if instance and instance.state != "in_review":
                 if not instance.organisation and instance.org:
                     instance.organisation = instance.org.name
                 if not instance.email:
@@ -1964,7 +1982,7 @@ class ApplicationView(LoginRequiredMixin):
                 has_deleted = False
                 a = self.object
 
-                if a.is_team_application:
+                if a.is_team_application and current_state != "in_review":
                     members = context["members"]
                     has_deleted = bool(members.deleted_forms)
                     if has_deleted:
@@ -1994,7 +2012,11 @@ class ApplicationView(LoginRequiredMixin):
                 #     identity_verification_form.instance.application = a
                 #     if identity_verification_form.is_valid():
 
-                if has_required_documents and (documents := context.get("documents")):
+                if (
+                    has_required_documents
+                    and current_state != "in_review"
+                    and (documents := context.get("documents"))
+                ):
                     if not documents.instance or not documents.instance.id:
                         documents.instance = a
                     if documents.is_valid():
@@ -2077,7 +2099,11 @@ class ApplicationView(LoginRequiredMixin):
                     messages.error(self.request, str(e))
                     return self.form_invalid(form)
 
-                if "photo_identity" in form.changed_data and instance.photo_identity:
+                if (
+                    current_state != "in_review"
+                    and "photo_identity" in form.changed_data
+                    and instance.photo_identity
+                ):
                     iv, created = models.IdentityVerification.get_or_create(
                         application=instance,
                         user=self.request.user,
@@ -2093,12 +2119,14 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     iv.save()
 
-                if ethics_statement_form := context.get("ethics_statement"):
+                if current_state != "in_review" and (
+                    ethics_statement_form := context.get("ethics_statement")
+                ):
                     ethics_statement_form.instance.application = a
                     if ethics_statement_form.is_valid():
                         ethics_statement_form.save()
 
-                if round.has_fors:
+                if current_state != "in_review" and round.has_fors:
                     fors = context["fors"]
                     if not fors.instance or not fors.instance.id:
                         fors.instance = a
@@ -2113,7 +2141,7 @@ class ApplicationView(LoginRequiredMixin):
 
                         return self.form_invalid(form)
 
-                if round.has_seos:
+                if current_state != "in_review" and round.has_seos:
                     seos = context["seos"]
                     if not seos.instance or not seos.instance.id:
                         seos.instance = a
@@ -2127,7 +2155,7 @@ class ApplicationView(LoginRequiredMixin):
                                     messages.error(self.request, f.errors["__all__"])
                         return self.form_invalid(form)
 
-                if "file" in form.changed_data and instance.file:
+                if current_state != "in_review" and "file" in form.changed_data and instance.file:
                     try:
                         if cf := instance.update_converted_file():
                             messages.success(
@@ -2154,7 +2182,8 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
 
                 if (
-                    "letter_of_support_file" in form.changed_data
+                    current_state != "in_review"
+                    and "letter_of_support_file" in form.changed_data
                     and instance.letter_of_support
                     and instance.letter_of_support.file
                     and form.cleaned_data["letter_of_support_file"].content_type
@@ -2207,7 +2236,7 @@ class ApplicationView(LoginRequiredMixin):
             url = None
             try:
                 if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
-                    if self.round.applicant_cv_required:
+                    if current_state != "in_review" and self.round.applicant_cv_required:
                         if not a.submitted_by or not (
                             models.CurriculumVitae.where(owner=a.submitted_by).exists()
                             or a.documents.filter(~Q(file=""), document_type__role="CV").exists()
@@ -2247,10 +2276,14 @@ class ApplicationView(LoginRequiredMixin):
                         ):
                             a.cv = cv
 
-                    if self.round.ethics_statement_required and not (
-                        a.ethics_statement
-                        or (a.ethics_statement.not_relevant and a.ethics_statement.comment)
-                        or a.ethics_statement.file
+                    if (
+                        current_state != "in_review"
+                        and self.round.ethics_statement_required
+                        and not (
+                            a.ethics_statement
+                            or (a.ethics_statement.not_relevant and a.ethics_statement.comment)
+                            or a.ethics_statement.file
+                        )
                     ):
                         messages.error(
                             self.request,
@@ -2263,7 +2296,7 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("ethics-statement")
                         # url = url or (self.request.path_info.split("?")[0] + "#ethics-statement")
 
-                    if not a.is_tac_accepted:
+                    if current_state != "in_review" and not a.is_tac_accepted:
                         if a.submitted_by == user:
                             messages.error(
                                 self.request,
@@ -2275,9 +2308,13 @@ class ApplicationView(LoginRequiredMixin):
                                 url = self.continue_url("tac")
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
-                    if a.round.budget_template and not (
-                        a.budget
-                        or a.documents.filter(~Q(file=""), document_type__role="B").exists()
+                    if (
+                        current_state != "in_review"
+                        and a.round.budget_template
+                        and not (
+                            a.budget
+                            or a.documents.filter(~Q(file=""), document_type__role="B").exists()
+                        )
                     ):
                         messages.error(
                             self.request,
@@ -2289,14 +2326,18 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("summary")
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
-                    if site_id not in [4, 5] and not (
-                        a.file
-                        or (
-                            has_required_documents
-                            and models.ApplicationDocument.where(
-                                Q(document_type__role="AF")
-                                | Q(required_document__document_type__role="AF")
-                            ).exists()
+                    if (
+                        current_state != "in_review"
+                        and site_id not in [4, 5]
+                        and not (
+                            a.file
+                            or (
+                                has_required_documents
+                                and models.ApplicationDocument.where(
+                                    Q(document_type__role="AF")
+                                    | Q(required_document__document_type__role="AF")
+                                ).exists()
+                            )
                         )
                     ):
                         messages.error(
@@ -2310,7 +2351,8 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
                     if (
-                        a.round
+                        current_state != "in_review"
+                        and a.round
                         and a.round.pid_required
                         and a.submitted_by.needs_identity_verification
                         and not (
@@ -2377,7 +2419,7 @@ class ApplicationView(LoginRequiredMixin):
                             if not url:
                                 url = self.continue_url("referees")
 
-                    if has_required_documents:
+                    if current_state != "in_review" and has_required_documents:
                         for rd in a.round.required_documents.filter(is_optional=False):
                             if not a.documents.filter(~Q(file=""), required_document=rd).exists():
                                 form.add_error(
@@ -2390,7 +2432,12 @@ class ApplicationView(LoginRequiredMixin):
                                 if not hasattr(form, "active_tab"):
                                     form.active_tab = "summary"
 
-                    if site_id in [4, 5] and a.round.has_seos and a.application_seos.count() > 3:
+                    if (
+                        current_state != "in_review"
+                        and site_id in [4, 5]
+                        and a.round.has_seos
+                        and a.application_seos.count() > 3
+                    ):
                         form.add_error(
                             None,
                             _(
@@ -2461,14 +2508,14 @@ class ApplicationView(LoginRequiredMixin):
                     or "save_draft" in self.request.POST
                     or "send_invitations" in self.request.POST
                 ):
-                    if not a.state or a.state != "new":
+                    if not current_state or current_state == "new":
                         a.save_draft(request=self.request)
-                    a.save()
+                        a.save()
                     if "send_invitations" in self.request.POST:
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         url = self.continue_url("referees")
                         return redirect(url)
-                    else:
+                    elif current_state != "in_review":
                         if (
                             site_id in [4, 5]
                             and a.round.has_fors
@@ -2789,7 +2836,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST:
+            if self.request.POST and self.object.state != "in_review":
                 fs = fsc(self.request.POST, instance=self.object)
             elif not (self.object and self.object.id):
                 fs = fsc(instance=self.object, initial=initial_fors)
@@ -2837,7 +2884,11 @@ class ApplicationView(LoginRequiredMixin):
                 if latest_application and not (self.object and self.object.id)
                 else []
             )
-            fs = fsc(self.request.POST or None, instance=self.object, initial=initial_seos)
+            fs = fsc(
+                self.object.state != "in_review" and self.request.POST or None,
+                instance=self.object,
+                initial=initial_seos,
+            )
             fs.extra = len(initial_seos) or 1
             context["seos"] = fs
         return context
@@ -2845,6 +2896,13 @@ class ApplicationView(LoginRequiredMixin):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
+
+        if self.object and self.object.state == "in_review":
+            if "data" in kwargs:
+                del kwargs["data"]
+            if "files" in kwargs:
+                del kwargs["files"]
+
         kwargs["initial"]["user"] = self.request.user
 
         if self.object and self.object.id:

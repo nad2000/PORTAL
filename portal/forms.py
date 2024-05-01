@@ -488,6 +488,7 @@ def apnumber(value):
 
 
 class ApplicationForm(forms.ModelForm):
+
     @property
     def round(self):
         return (
@@ -566,6 +567,10 @@ class ApplicationForm(forms.ModelForm):
         return self.cleaned_data.get("cv_file")
 
     def save(self, *args, **kwargs):
+
+        # if self.instance and self.instance.state == "in_review":
+        #     return self.instance
+
         if (
             self.cleaned_data.get("letter_of_support_file") is False
             and self.instance
@@ -607,6 +612,7 @@ class ApplicationForm(forms.ModelForm):
         user = initial.get("user")
         language = get_language()
         site_id = settings.SITE_ID
+
         if site_id in [4, 5]:
             self.fields["application_title"].label = _("Title of proposed research")
             self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
@@ -1161,14 +1167,18 @@ class ApplicationForm(forms.ModelForm):
             css_id="submit-id-submit",
             data_toggle="tooltip",
             title=(
-                _(
-                    "Your team leader must accept the Terms and Conditions before the submission can happen"
-                )
-                if submission_disabled
+                _("Save the referee list and invited new ones if any new has been added")
+                if instance.state == "in_review"
                 else (
-                    _("Submit the application to referees for reviewing it")
-                    if send_out_to_referees
-                    else _("Submit the application")
+                    _(
+                        "Your team leader must accept the Terms and Conditions before the submission can happen"
+                    )
+                    if submission_disabled
+                    else (
+                        _("Submit the application to referees for reviewing it")
+                        if send_out_to_referees
+                        else _("Submit the application")
+                    )
                 )
             ),
             css_class="btn-outline-primary",
@@ -1184,7 +1194,13 @@ class ApplicationForm(forms.ModelForm):
                         _("Save"),
                         css_class="btn-primary",
                         data_toggle="tooltip",
-                        title=_("Save draft application"),
+                        title=(
+                            _(
+                                "Save the referee list and invited new ones if any new has been added"
+                            )
+                            if instance.state == "in_review"
+                            else _("Save draft application")
+                        ),
                     ),
                     submit_button,
                     HTML(
