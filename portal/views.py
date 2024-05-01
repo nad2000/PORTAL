@@ -2782,8 +2782,8 @@ class ApplicationView(LoginRequiredMixin):
             )
             if self.request.POST:
                 fs = fsc(
-                    self.request.POST or None,
-                    self.request.FILES or None,
+                    self.object.state != "in_review" and self.request.POST or None,
+                    self.object.state != "in_review" and self.request.FILES or None,
                     instance=self.object,
                     initial=initial_documents,
                 )
