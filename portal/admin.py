@@ -785,7 +785,6 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     ]
 
     # def get_queryset(self, request):
-    #     breakpoint()
     #     return (
     #         super()
     #         .get_queryset(request)
@@ -806,7 +805,6 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
                 code=old_code,
             )
         # if not created and self.code:
-        #     breakpoint()
         #     pass
         return super().save_form(request=request, form=form, change=change)
 
@@ -952,7 +950,8 @@ class ApplicationAdmin(
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
         if obj.state:
-            return mark_safe(f"<b>{obj.state.upper()}</b>")
+            sca = obj.state_changed_at.strftime('%d-%m-%Y %H:%m')
+            return mark_safe(f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})""")
 
     def is_active_round(self, obj):
         return obj.round.scheme.current_round == obj.round

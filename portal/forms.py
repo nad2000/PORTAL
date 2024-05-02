@@ -527,6 +527,10 @@ class ApplicationForm(forms.ModelForm):
         return "submit" in self.data
 
     def clean(self):
+        if self.instance and self.instance.state == "in_review":
+            self.cleaned_data = {}
+            self.changed_data = []
+
         cleaned_data = super().clean()
         if self.was_submitted and (round := self.round):
             if round.research_experience_in_years_required and not (
@@ -566,10 +570,16 @@ class ApplicationForm(forms.ModelForm):
 
         return self.cleaned_data.get("cv_file")
 
+    def is_valid(self):
+        is_valid = super().is_valid()
+        if self.instance and self.instance.state == "in_review":
+            return True
+        return is_valid
+
     def save(self, *args, **kwargs):
 
-        # if self.instance and self.instance.state == "in_review":
-        #     return self.instance
+        if self.instance and self.instance.state == "in_review":
+            return self.instance
 
         if (
             self.cleaned_data.get("letter_of_support_file") is False

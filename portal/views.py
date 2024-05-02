@@ -715,7 +715,7 @@ def index(request):
             round__in=models.Scheme.objects.values("current_round"),
         )
         current_applications = models.Application.user_applications(
-            user, ["submitted", "review", "accepted"]
+            user, ["submitted", "in_review", "accepted", "approved"]
         ).filter(
             ~Q(round__panellists__user=user),
             round__in=models.Scheme.objects.values("current_round"),
@@ -1572,9 +1572,12 @@ class ApplicationDetail(DetailView):
 
         return redirect(request.path)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
         a = context["application"] = self.object
+        if a.state == "in_review":
+            context["update_button_name"] = _("Edit referee list")
         if a and a.site_id == 5:
             context["documents"] = a.documents_dict
         u = self.request.user
@@ -1907,16 +1910,6 @@ class ApplicationView(LoginRequiredMixin):
         ).last():
             return n
 
-    # def post(self, request, *args, **kwargs):
-    #     # self.object = self.get_object()
-    #     # if self.object and self.object.state == "in_review":
-    #     #     context = self.get_context_data()
-    #     #     referees = context["referees"]
-    #     #     user = self.request.user
-    #     #     reset_cache(self.request)
-    #     #     url = self.request.path_info
-    #     return super().post(request, *args, **kwargs)
-
     def form_valid(self, form):
         instance = form.instance
         current_state = instance and instance.state
@@ -2050,7 +2043,11 @@ class ApplicationView(LoginRequiredMixin):
                                 ).exists()
                             )
                         ):
-                            if site_id != 5 or "submit_to_referees" in self.request.POST:
+                            if (
+                                site_id != 5
+                                or current_state == "in_review"
+                                or "submit_to_referees" in self.request.POST
+                            ):
                                 count = a.invite_referees(request=self.request)
                                 if count > 0:
                                     messages.success(
@@ -2477,7 +2474,11 @@ class ApplicationView(LoginRequiredMixin):
                     if url:
                         return redirect(url)
 
-                    if site_id == 5 or "submit_to_referees" in self.request.POST:
+                    if (
+                        site_id == 5
+                        or current_state == "in_review"
+                        or "submit_to_referees" in self.request.POST
+                    ):
                         count = a.send_out_to_referees(request=self.request) or a.referees.count()
                         messages.info(
                             self.request,
@@ -2497,7 +2498,8 @@ class ApplicationView(LoginRequiredMixin):
                                 if site_id in [4, 5]
                                 else _(
                                     "Your application has been successfully submitted. "
-                                    "The Prize secretariat will be in touch if there is anything more needed. Good luck."
+                                    "The Prize secretariat will be in touch if there is anything more needed. "
+                                    "Good luck."
                                 )
                             ),
                         )
@@ -4047,6 +4049,11 @@ class ApplicationList(
     template_name = "table.html"
     # filterset_class = ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
+
+    def get_table_kwargs(self):
+        if not (self.request.user.is_superuser or self.request.user.is_site_staff):
+            return {"exclude": ("contract",)}
+        return super().get_table_kwargs()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

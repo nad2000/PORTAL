@@ -2251,7 +2251,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["new", "draft", "tac_accepted"],
+        source=["new", "draft", "tac_accepted", "in_review"],
         target="in_review",
         conditions=[lambda self: self.site_id == 5],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
@@ -2277,7 +2277,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         nominator = nomination and nomination.nominator
         if (
             nominator
-            and nominator.research_offices.filter(org=(self.org_id or nomination.org_id)).exists()
+            and nominator.research_offices.filter(
+                Q(Q(org=self.org_id) | Q(org=nomination.org_id))
+                if self.org_id and nomination.org_id
+                else Q(org=(self.org_id or nomination.org_id))
+            ).exists()
         ):
             url = request.build_absolute_uri(
                 reverse("application-detail", kwargs={"number": self.number})
@@ -2515,7 +2519,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
-            "title": self.title or self.round.title,
+            "title": self.application_title or self.round.title,
             "url": url,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
