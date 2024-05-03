@@ -134,7 +134,7 @@ for the addressee and may be confidential. If you are not the intended recipient
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
 </tr></tbody></table></body></html>
 """,
-    "tāwhia.royalsociety.org.nz": """
+    "xn--twhia-fwa.royalsociety.org.nz": """
 <br>To learn more about %(site_name)s administered by the Royal Society Te Apārangi
 <a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/puanga'>click here</a>.<br>
 <br>Ngā mihi nui,</p><br>
