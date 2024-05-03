@@ -97,7 +97,7 @@ font-family:"Helvetica",sans-serif;color:black'>
 <img border='0'
   style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
   src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
-  alt='Catalyst Fund Logo Alternative'>
+  alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right;">
 <img border='0'
@@ -145,7 +145,7 @@ font-family:"Helvetica",sans-serif;color:black'>
 <img border='0'
   style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
   src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
-  alt='Catalyst Fund Logo Alternative'>
+  alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right;">
 <img border='0'
