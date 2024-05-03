@@ -2519,7 +2519,7 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
                     elif current_state != "in_review":
                         if (
-                            site_id in [4, 5]
+                            site_id == 4
                             and a.round.has_fors
                             and a.fors.count() > 0
                             and (
