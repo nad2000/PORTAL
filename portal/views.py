@@ -2555,6 +2555,7 @@ class ApplicationView(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        is_in_review  = self.object and self.object.state == "in_review"
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
@@ -2783,9 +2784,10 @@ class ApplicationView(LoginRequiredMixin):
                 },
             )
             if self.request.POST:
+
                 fs = fsc(
-                    self.object.state != "in_review" and self.request.POST or None,
-                    self.object.state != "in_review" and self.request.FILES or None,
+                    not is_in_review and self.request.POST or None,
+                    not is_in_review and self.request.FILES or None,
                     instance=self.object,
                     initial=initial_documents,
                 )
@@ -2838,7 +2840,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST and self.object.state != "in_review":
+            if self.request.POST and not is_in_review:
                 fs = fsc(self.request.POST, instance=self.object)
             elif not (self.object and self.object.id):
                 fs = fsc(instance=self.object, initial=initial_fors)
@@ -2887,7 +2889,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             fs = fsc(
-                self.object.state != "in_review" and self.request.POST or None,
+                not is_in_review and self.request.POST or None,
                 instance=self.object,
                 initial=initial_seos,
             )
@@ -2898,8 +2900,9 @@ class ApplicationView(LoginRequiredMixin):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
+        is_in_review  = self.object and self.object.state == "in_review"
 
-        if self.object and self.object.state == "in_review":
+        if is_in_review:
             if "data" in kwargs:
                 del kwargs["data"]
             if "files" in kwargs:
