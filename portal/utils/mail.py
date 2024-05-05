@@ -216,6 +216,8 @@ def send_mail(
         domain = request and request.get_host() or site.domain
     if ":" in domain:
         domain = domain.split(":")[0]
+    if domain and domain.startswith("xn--"):
+        domain = domain.encode().decode("idna")
     root = f"https://{domain}"
     if recipients and isinstance(recipients, (list, tuple)):
         recipients = [

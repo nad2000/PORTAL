@@ -1136,6 +1136,7 @@ def disable_profile_protection_patterns(request):
 @login_required
 @shoud_be_onboarded
 def profile_protection_patterns(request):
+    site_id = settings.SITE_ID
     person = request.person
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
@@ -1186,7 +1187,7 @@ def profile_protection_patterns(request):
             person.account_approval_message_sent_at = timezone.now()
             person.save(update_fields=["account_approval_message_sent_at"])
             contact_email = models.site_contact_email(site.id)
-            if site.domain == "portal.pmscienceprizes.org.nz":
+            if site_id == 1:
                 send_mail(
                     recipients=[request.user.full_email_address],
                     subject="Account Approval request submitted",
@@ -1925,6 +1926,30 @@ class ApplicationView(LoginRequiredMixin):
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
 
+        if referees and referees.is_valid():
+            referee_emails = sorted(
+                [
+                    f.cleaned_data.get("email")
+                    for f in referees.forms
+                    if f.cleaned_data.get("email") and f.cleaned_data.get("email").strip()
+                ]
+            )
+            duplicate_referee_emails = [
+                e for e in set(referee_emails) if referee_emails.count(e) > 1
+            ]
+            if duplicate_referee_emails:
+                duplicate_referee_emails = ", ".join(duplicate_referee_emails)
+                messages.error(
+                    self.request,
+                    _(
+                        "Referee email list is not unique. "
+                        f"There are duplicate entry/entries: {duplicate_referee_emails}. "
+                        "Please remove duplicates and amend the list."
+                    ),
+                )
+                form.active_tab = "referees"
+                return self.form_invalid(form)
+
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -2555,7 +2580,7 @@ class ApplicationView(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        is_in_review  = self.object and self.object.state == "in_review"
+        is_in_review = self.object and self.object.state == "in_review"
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
@@ -2783,13 +2808,13 @@ class ApplicationView(LoginRequiredMixin):
                     ),
                 },
             )
+            breakpoint()
             if self.request.POST:
-
                 fs = fsc(
                     not is_in_review and self.request.POST or None,
                     not is_in_review and self.request.FILES or None,
                     instance=self.object,
-                    initial=initial_documents,
+                    # initial=initial_documents,
                 )
             else:
                 fs = fsc(instance=self.object, initial=initial_documents)
@@ -2900,7 +2925,7 @@ class ApplicationView(LoginRequiredMixin):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
-        is_in_review  = self.object and self.object.state == "in_review"
+        is_in_review = self.object and self.object.state == "in_review"
 
         if is_in_review:
             if "data" in kwargs:
