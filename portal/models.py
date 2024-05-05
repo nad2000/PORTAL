@@ -2286,6 +2286,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             url = request.build_absolute_uri(
                 reverse("application-detail", kwargs={"number": self.number})
             )
+            if url.startswith("https://xn--"):
+                url = url.encode().decode("idna")
             if self.site_id == 5:
                 html_message = (
                     "<p>Kia ora %(nominator)s</p>"
@@ -2323,6 +2325,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
         elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
+            if url.startswith("https://xn--"):
+                url = url.encode().decode("idna")
             send_mail(
                 __("Application '%s' Submitted") % self,
                 html_message=__(
@@ -2360,6 +2364,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # approved by the R.O.
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        if url.startswith("https://xn--"):
+            url = url.encode().decode("idna")
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:
                 resolution = f'The Research Office approved has apprved the application "{self}"'
@@ -2428,6 +2434,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        if url.startswith("https://xn--"):
+            url = url.encode().decode("idna")
         if not resolution:
             resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
         subject = f'Application "{self}" was ACCEPTED'
@@ -2515,6 +2523,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        if url.startswith("https://xn--"):
+            url = url.encode().decode("idna")
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2576,6 +2586,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        if url.startswith("https://xn--"):
+            url = url.encode().decode("idna")
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2636,6 +2648,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        if url.startswith("https://xn--"):
+            url = url.encode().decode("idna")
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -4151,6 +4165,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             url = request.build_absolute_uri(url)
         else:
             url = f"https://{urljoin(site.domain, url)}"
+        if url.startswith("https://xn--"):
+            url = url.encode().decode("idna")
         self.url = url
 
         # TODO: handle the rest of types
@@ -4186,6 +4202,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else:
                     survey_url = f"https://{urljoin(site.domain, survey_url)}"
                 survey_url = f"{survey_url}?token={self.token}"
+                if survey_url.startswith("https://xn--"):
+                    survey_url = survey_url.encode().decode("idna")
 
             body = (
                 (
