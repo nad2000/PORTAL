@@ -223,6 +223,14 @@ LANGUAGES = Choices(
 )
 
 
+def domain_to_macrons(url):
+    if url.startswith("https://xn--"):
+        p1, p2 = url.split("xn--")
+        p2 = f"xn--{p2}".encode().decode("idna")
+        return f"{p1}{p2}"
+    return url
+
+
 def fsm_log(func=None, allow_inline=False):
     # Combines fsm_log_by and fsm_log_description with defaulting
     # to the request user usnigng simple_history context
@@ -2286,8 +2294,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             url = request.build_absolute_uri(
                 reverse("application-detail", kwargs={"number": self.number})
             )
-            if url.startswith("https://xn--"):
-                url = url.encode().decode("idna")
+            url = domain_to_macrons(url)
             if self.site_id == 5:
                 html_message = (
                     "<p>Kia ora %(nominator)s</p>"
@@ -2325,8 +2332,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
         elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
-            if url.startswith("https://xn--"):
-                url = url.encode().decode("idna")
+            url = domain_to_macrons(url)
             send_mail(
                 __("Application '%s' Submitted") % self,
                 html_message=__(
@@ -2364,8 +2370,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # approved by the R.O.
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
-        if url.startswith("https://xn--"):
-            url = url.encode().decode("idna")
+        url = domain_to_macrons(url)
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:
                 resolution = f'The Research Office approved has apprved the application "{self}"'
@@ -2434,8 +2439,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
-        if url.startswith("https://xn--"):
-            url = url.encode().decode("idna")
+        url = domain_to_macrons(url)
         if not resolution:
             resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
         subject = f'Application "{self}" was ACCEPTED'
@@ -2523,8 +2527,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
-        if url.startswith("https://xn--"):
-            url = url.encode().decode("idna")
+        url = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2586,8 +2589,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
-        if url.startswith("https://xn--"):
-            url = url.encode().decode("idna")
+        url = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2648,8 +2650,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
-        if url.startswith("https://xn--"):
-            url = url.encode().decode("idna")
+        url = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2974,7 +2975,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             if request:
                 summary_url = request.build_absolute_uri(url)
             else:
-                summary_url = f"https://{urljoin(domain, url)}"
+                summary_url = urljoin(f"https://{domain}", url)
             html = HTML(summary_url)
         else:
             if domain == "international.royalsociety.org.nz":
@@ -4164,9 +4165,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             # url = request.build_absolute_uri(url)
             url = request.build_absolute_uri(url)
         else:
-            url = f"https://{urljoin(site.domain, url)}"
-        if url.startswith("https://xn--"):
-            url = url.encode().decode("idna")
+            url = urljoin(f"https://{site.domain}", url)
+        url = domain_to_macrons(url)
         self.url = url
 
         # TODO: handle the rest of types
@@ -4200,10 +4200,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 if request:
                     survey_url = request.build_absolute_uri(survey_url)
                 else:
-                    survey_url = f"https://{urljoin(site.domain, survey_url)}"
+                    survey_url = urljoin(f"https://{site.domain}", survey_url)
                 survey_url = f"{survey_url}?token={self.token}"
-                if survey_url.startswith("https://xn--"):
-                    survey_url = survey_url.encode().decode("idna")
+                survey_url = domain_to_macrons(survey_url)
 
             body = (
                 (
@@ -4438,7 +4437,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 pr = urlparse(self.url)
                 url = urljoin(f"{pr.scheme}://{pr.netloc}", url)
             else:
-                url = f"https://{urljoin(Site.objects.get_current().domain, url)}"
+                url = urljoin(f"https://{Site.objects.get_current().domain}", url)
             return url
 
         body = (
