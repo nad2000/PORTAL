@@ -2808,7 +2808,6 @@ class ApplicationView(LoginRequiredMixin):
                     ),
                 },
             )
-            breakpoint()
             if self.request.POST:
                 fs = fsc(
                     not is_in_review and self.request.POST or None,

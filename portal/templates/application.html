@@ -135,9 +135,21 @@
               });
               updateTotalSoaShares();
             {% endif %}
-                      $("#submit-id-save_draft,#submit-id-submit").click(function() {
+                      $("#submit-id-save_draft,#submit-id-submit").click(function(e) {
                         formset_set_inputs(prefix="members");
                         formset_set_inputs(prefix="referees");
+                        if (!is_email_list_unique(
+                              prefix="members",
+                              message_template=email => `{% trans 'One or more team memeber email address entered twice: ${email}. Please amend the list.' %}`)) {
+                          e.preventDefault();  // need for a link
+                          return false;
+                        };
+                        if (!is_email_list_unique(
+                              prefix="referees",
+                              message_template=email => `{% trans 'One or more referee email address entered twice: ${email}. Please amend the list.' %}`)) {
+                          e.preventDefault();  // need for a link
+                          return false;
+                        };
                         return true;
                       });
                                 bootbox.addLocale('mi', {
@@ -326,7 +338,7 @@
                 $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
               }{% endif %}
             {% endif %}
-            {% if object.state == "in_review" %}
+            {% if object and object.state == "in_review" %}
               $("#applicant,#categories,#summary,#id-verification,#ethics-statement,#tac").find("input,textarea,button,select").prop({
                 readonly: true,
                 disabled: true

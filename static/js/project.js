@@ -32,6 +32,25 @@ function formset_add_a_row(btn, prefix="form") {
   return false;
 };
 
+function is_email_list_unique(prefix="referees", message_template=email => `The email address entered twice: ${email}`) {
+  var emails=$("#"+prefix+"_form_set input[type='email'][name$='-email'][name^='referees-']").not("[name*='__prefix__']").map(function () {if (this.value.trim() != '') return this.value;}).get().sort();
+  if (emails.length) for (i in emails) if (emails.slice(parseInt(i)+1).includes(emails[i])) {
+    if (prefix=="referees") $('.nav a[href="#referees"]').tab('show'); else if (prefix=="members") $('.nav a[href="#applicant"]').tab('show');
+    var message=message_template(emails[i]);
+    var msg_el = $("#messages");
+    if (msg_el.length) {
+      msg_el.append(
+        $('<div class="alert alert-danger">'
+          +message
+          +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+      )
+      var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
+    } else bootbox.alert(message);
+    return false;
+  }
+  return true;
+}
+
 function formset_set_inputs(prefix="form") {
   $("#"+prefix+"_form_set tr").not("[id]").each(function() {
       $tr = $(this);
