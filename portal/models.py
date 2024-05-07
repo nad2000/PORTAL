@@ -3518,7 +3518,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     limesurvey_status = resp.get("state")
                     raise Exception(
                         _(
-                            "Failed to add the referee: %s. Please constact a portal administration."
+                            "Failed to add the referee: %s. Please contact a portal administration."
                         )
                         % limesurvey_status
                     )
@@ -3575,7 +3575,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         if status == message:
                             # raise LimeSurveyError(method, status)
                             capture_message(
-                                f"Failed to invite surevey participant - referee {self}: {status}",
+                                f"Failed to invite survey participant - referee {self}: {status}",
                                 level="error",
                             )
                             break
@@ -4123,12 +4123,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = Site.objects.get_current()
         site_name = site.name
 
-        subject = __("The invitation sent from %(site_name)s portal was revoked") % {
+        subject = "The invitation sent from %(site_name)s portal was revoked" % {
             "site_name": site_name
         }
-        html_body = __(
+        html_body = (
             "<p>Tēnā koe,</p>"
-            "<p>The invitation previouly sent from %(site_name)s portal was revoked.</p>"
+            "<p>The invitation previously sent from %(site_name)s portal was revoked.</p>"
         ) % {"site_name": site_name}
 
         send_mail(
@@ -5402,7 +5402,7 @@ class Round(Model):
         return Application.objects.raw(
             """
             WITH summary AS (
-                SELECt a.id, count(r.id) AS referee_count,
+                SELECT a.id, count(r.id) AS referee_count,
                     sum(CASE WHEN r.state='testified'
                     -- OR has_testifed
                     THEN 1 ELSE 0 END) AS submitted_reference_count
@@ -5411,7 +5411,7 @@ class Round(Model):
                 WHERE a.round_id=%s AND a.site_id=%s
                 GROUP BY a.id
             ), member_summary AS (
-                SELECt a.id, count(m.id) AS member_count,
+                SELECT a.id, count(m.id) AS member_count,
                     sum(CASE WHEN m.state='authorized' THEN 1 ELSE 0 END) AS member_authorized_count
                 FROM application AS a
                     LEFT JOIN member AS m ON m.application_id=a.id

@@ -1926,30 +1926,6 @@ class ApplicationView(LoginRequiredMixin):
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
 
-        if referees and referees.is_valid():
-            referee_emails = sorted(
-                [
-                    f.cleaned_data.get("email")
-                    for f in referees.forms
-                    if f.cleaned_data.get("email") and f.cleaned_data.get("email").strip()
-                ]
-            )
-            duplicate_referee_emails = [
-                e for e in set(referee_emails) if referee_emails.count(e) > 1
-            ]
-            if duplicate_referee_emails:
-                duplicate_referee_emails = ", ".join(duplicate_referee_emails)
-                messages.error(
-                    self.request,
-                    _(
-                        "Referee email list is not unique. "
-                        f"There are duplicate entry/entries: {duplicate_referee_emails}. "
-                        "Please remove duplicates and amend the list."
-                    ),
-                )
-                form.active_tab = "referees"
-                return self.form_invalid(form)
-
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -1999,6 +1975,7 @@ class ApplicationView(LoginRequiredMixin):
 
                 has_deleted = False
                 a = self.object
+                update_url = a and a.pk and reverse("application-update", kwargs=dict(pk=a.pk))
 
                 if a.is_team_application and current_state != "in_review":
                     members = context["members"]
@@ -2024,7 +2001,7 @@ class ApplicationView(LoginRequiredMixin):
                                 raise ValidationError(_("Invalid member form"))
 
                     if has_deleted:
-                        return redirect(url)
+                        return redirect(f"{update_url or url}#applicant")
 
                 # if identity_verification_form := context.get("identity_verification"):
                 #     identity_verification_form.instance.application = a
@@ -2040,6 +2017,8 @@ class ApplicationView(LoginRequiredMixin):
                     if documents.is_valid():
                         documents.save()
                     else:
+                        if update_url:
+                            return redirect(f"{update_url}#documents")
                         return self.form_invalid(form)
 
                 try:
@@ -2116,9 +2095,37 @@ class ApplicationView(LoginRequiredMixin):
                                 url = self.continue_url("referees")
                                 raise ValidationError(_("Invalid referee form"))
 
+                    if referees and referees.is_valid():
+                        referee_emails = sorted(
+                            [
+                                f.cleaned_data.get("email")
+                                for f in referees.forms
+                                if f.cleaned_data.get("email") and f.cleaned_data.get("email").strip()
+                            ]
+                        )
+                        duplicate_referee_emails = [
+                            e for e in set(referee_emails) if referee_emails.count(e) > 1
+                        ]
+                        if duplicate_referee_emails:
+                            duplicate_referee_emails = ", ".join(duplicate_referee_emails)
+                            messages.error(
+                                self.request,
+                                _(
+                                    "Referee email list is not unique. "
+                                    f"There are duplicate entry/entries: {duplicate_referee_emails}. "
+                                    "Please remove duplicates and amend the list."
+                                ),
+                            )
+                            if update_url:
+                                return redirect(f"{update_url}#referees")
+                            form.active_tab = "referees"
+                            return  self.form_invalid(form)
+
                 except Exception as e:
                     capture_exception(e)
                     messages.error(self.request, str(e))
+                    if update_url:
+                        return redirect(update_url)
                     return self.form_invalid(form)
 
                 if (
@@ -2161,6 +2168,8 @@ class ApplicationView(LoginRequiredMixin):
                                 if "__all__" in f.errors:
                                     messages.error(self.request, f.errors["__all__"])
 
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
                 if current_state != "in_review" and round.has_seos:
@@ -2175,6 +2184,8 @@ class ApplicationView(LoginRequiredMixin):
                                 # form.errors.update(f.errors)
                                 if "__all__" in f.errors:
                                     messages.error(self.request, f.errors["__all__"])
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
                 if current_state != "in_review" and "file" in form.changed_data and instance.file:
@@ -2250,6 +2261,8 @@ class ApplicationView(LoginRequiredMixin):
                     messages.error(self.request, ex)
             capture_exception(ex)
             # return redirect(url)
+            if update_url:
+                return redirect(update_url)
             return self.form_invalid(form)
 
         if has_deleted:  # keep editing
