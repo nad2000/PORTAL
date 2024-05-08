@@ -27,6 +27,12 @@ def eq_value(value1, value2):
     return str(value1 or "").strip() == str(value2 or "").strip()
 
 
+@register.filter()
+def is_data_required(field):
+    if field.field.widget.attrs and (av := field.field.widget.attrs.get("data-required")):
+        return av == 1 or av == "1"
+
+
 @register.filter(is_safe=True)
 def html(obj):
     if not obj:

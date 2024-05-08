@@ -36,7 +36,8 @@
       $("#submit-id-submit").on("click", function(e) {
         var total = totalShares_{{ formset.prefix }}();
         if (total==100) return;
-        e.preventDefault();  // need for a link
+        var has_invalid_fields = $("input:invalid,textarea:invalid").length;
+        if (!has_invalid_fields) e.preventDefault();  // need for a link
         var tab_pane = $("#{{ formset.prefix }}_table").parents(".tab-pane");
         if (tab_pane) {
           var id=tab_pane.attr("id");
@@ -53,7 +54,7 @@
           )
           var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
         } else bootbox.alert(message);
-        return false;
+        if (!has_invalid_fields) return false;
       });
   });
 </script>

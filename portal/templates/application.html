@@ -106,7 +106,7 @@
               });
               return sum;
             };
-            function updateTotalSoaShares() {
+            function updateTotalToaShares() {
               var total = totalToaShares();
               $("#id_application_toa_total_share").text(total);
               if (total !=100) $("#id_application_toa_total_share").css({"color": "red", 'font-weight': "bold"});
@@ -115,26 +115,56 @@
           {% endif %}
           $(document).ready(function() {
             {% if round.has_toas %}
-              $("#id_toas_row input[name^='toa_']").keyup(updateTotalSoaShares);
-              $("#submit-id-submit").on("click", function(e) {
-                var total = totalToaShares();
-                if (total==100) return;
-                e.preventDefault();  // need for a link
-                $('.nav a[href="#categories"]').tab('show');
-                var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
-                var msg_el = $("#messages");
-                if (msg_el.length) {
-                  msg_el.append(
-                    $('<div class="alert alert-danger">'
-                      +message
-                      +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
-                  )
-                  var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
-                } else bootbox.alert(message);
-                return false;
-              });
-              updateTotalSoaShares();
+              $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
+              updateTotalToaShares();
             {% endif %}
+                      {% if object.state != "in_review" %}
+                        $("#submit-id-submit").click(function(e) {
+                          $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
+                            var $t = $(this);
+                            $t.attr({
+                              "required": $t.attr("data-required")
+                            }); // .removeAttr('required');
+                          });
+                          // type='file' requires a different appraoch
+                          $("input[data-required='1']").not("[name*='__prefix__']").filter("[type='file']").each(function() {
+                            var $t = $(this);
+                            if (!$t.closest("div.form-group").find("span > a").length) {
+                              $t.attr({
+                                "required": $t.attr("data-required")
+                              }); // .removeAttr('required');
+                            }
+                          });
+                          {% if round.has_toas %}
+                            var total = totalToaShares();
+                            if (total!=100) {
+                              var has_invalid_fields = $("input:invalid,textarea:invalid").length;
+                              if (!has_invalid_fields) e.preventDefault();  // need for a link
+                              $('.nav a[href="#categories"]').tab('show');
+                              var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
+                              var msg_el = $("#messages");
+                              if (msg_el.length) {
+                                msg_el.append(
+                                  $('<div class="alert alert-danger">'
+                                    +message
+                                    +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+                                )
+                                var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
+                              } else bootbox.alert(message);
+                              if (!has_invalid_fields) return false;
+                            }
+                          {% endif %}
+                        });
+                        $("#submit-id-save_draft").click(function(e) {
+                          $("input[data-required][required]").each(function() {
+                            this.required = false;
+                            this.invalid = false;
+                            this.removeAttribute("required");
+                            $(this).removeAttr('required');
+                          });
+                          if (!$("input:invalid[required]").length) $("#submit-id-save_draft").attr("formnovalidate","formnovalidate");
+                        });
+                      {% endif %}
                       $("#submit-id-save_draft,#submit-id-submit").click(function(e) {
                         formset_set_inputs(prefix="members");
                         formset_set_inputs(prefix="referees");
@@ -153,10 +183,10 @@
                         return true;
                       });
                                 bootbox.addLocale('mi', {
-                                            OK      : 'Pai',
-                                            CANCEL  : 'Whakakore',
-                                            CONFIRM : 'Whakaū'
-                                          });
+                                  OK      : 'Pai',
+                                  CANCEL  : 'Whakakore',
+                                  CONFIRM : 'Whakaū'
+                                });
                                 bootbox.setDefaults({locale: "{{ LANGUAGE_CODE }}"});
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {

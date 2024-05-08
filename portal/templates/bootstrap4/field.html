@@ -42,7 +42,7 @@
     <{% if tag %}{{ tag }}{% else %}div{% endif %} id="div_{{ field.auto_id }}" class="{% if not field|is_checkbox %}form-group{% if 'form-horizontal' in form_class %} row{% endif %}{% else %}{%if use_custom_control%}custom-control custom-checkbox{% else %}form-check{% endif %}{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %}"{% if field.help_text and not form_show_labels and not field.value %} data-toggle="tooltip" data-html="true" title="{{ field.help_text|safe }}"{% endif %}>
         {% if field.label and not field|is_checkbox and form_show_labels %}
         <label for="{{ field.id_for_label }}" class="{% if 'form-horizontal' in form_class %}col-form-label {% endif %}{{ label_class }}{% if field.field.required %} requiredField{% endif %}"{% if field.help_text or flat_attrs.help_text %}data-toggle="tooltip" data-html="true" title="{% if help_text %}{{ help_text|safe }}{% elif flat_attrs.help_text %}{{ flat_attrs.help_text|safe }}{% else %}{{ field.help_text }}{% endif %}"{% endif %}>
-            {% if field_label %}{{ field_label|safe }}{% else %}{{ field.label|safe }}{% endif %}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+        {% if field_label %}{{ field_label|safe }}{% else %}{{ field.label|safe }}{% endif %}{% if field.field.required %}<span class="asteriskField">*</span>{% elif field|is_data_required %}<span class="greyAsteriskField">*</span>{% endif %}
             </label>
         {% endif %}
 
@@ -62,7 +62,7 @@
                     {% crispy_field field 'class' 'form-check-input' %}
                 {% endif %}
                 <label for="{{ field.id_for_label }}" class="{%if use_custom_control%}custom-control-label{% else %}form-check-label{% endif %}{% if field.field.required %} requiredField{% endif %}">
-                    {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+                    {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% elif field|is_data_required %}<span class="greyAsteriskField">*</span>{% endif %}
                 </label>
                 {% if not tag and tag != 'td' %}
                   {% include 'bootstrap4/layout/help_text_and_errors.html' %}

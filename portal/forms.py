@@ -507,18 +507,50 @@ class ApplicationForm(forms.ModelForm):
         required=False,
         label=_("Curriculum Vitae"),
         widget=forms.ClearableFileInput(
-            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _("Need to attach a CV before submitting the application."),
+                "oninput": "this.setCustomValidity('')",
+            }
         ),
     )
     photo_identity = FileField(
         required=False,
         label=_("Photo Identity"),
-        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.jpg,.png,.jpeg"}),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.jpg,.png,.jpeg",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _(
+                    "Your identity has not been verified. Please upload a scan of a document proving your identity."
+                ),
+                "oninput": "this.setCustomValidity('')",
+            }
+        ),
     )
     file = FileField(
         required=False,
         widget=forms.ClearableFileInput(
-            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')" % _("Application form is required"),
+                "oninput": "this.setCustomValidity('')",
+            }
+        ),
+    )
+    budget = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')" % _("Budget is required"),
+                "oninput": "this.setCustomValidity('')",
+            }
         ),
     )
 
@@ -1158,7 +1190,15 @@ class ApplicationForm(forms.ModelForm):
                 Tab(
                     _("Terms and Conditions"),
                     HTML(f'<div class="alert alert-dark" role="alert">{tac_text}</div>'),
-                    Field("is_tac_accepted"),
+                    Field(
+                        "is_tac_accepted",
+                        data_required=1,
+                        oninput="this.setCustomValidity('')",
+                        oninvalid="this.setCustomValidity('%s')"
+                        % _(
+                            "You have to accept the Terms and Conditions before submitting the application"
+                        ),
+                    ),
                     css_id="tac",
                 ),
             )
