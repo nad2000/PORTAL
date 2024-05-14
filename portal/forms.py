@@ -2460,7 +2460,17 @@ class NominationForm(forms.ModelForm):
             """
                 % _("Nominator")
             ),
+            Field(
+                "contact_phone",
+                pattern=r"\+?[0-9- ]+",
+                placeholder="e.g., +64 4 472 7421",
+            )
         ]
+        if site_id == 5:
+            self.fields["contact_phone"].help_text = _("The Research Office contact phone number")
+        else:
+            self.fields["contact_phone"].help_text = _("Your (nominator) contact phone number")
+
         nominator = initial and initial.get("nominator") or self.instance.nominator
         if r.nominator_cv_required:
 
@@ -2566,6 +2576,7 @@ class NominationForm(forms.ModelForm):
         fields = [
             # "round",
             "nominator",
+            "contact_phone",
             "title",
             "first_name",
             "middle_names",

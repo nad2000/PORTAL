@@ -791,12 +791,14 @@ def index(request):
                     if is_ajax:
                         return JsonResponse({"message": message, "status": "info"}, status=200)
                     messages.info(request, message)
-
+        if current_applications.count() == 0:
+            return redirect("about")
     else:
         messages.info(
             request,
             _("Your profile has not been approved, Admin is looking into your request"),
         )
+
     return render(request, "index.html", locals())
 
 
@@ -2100,7 +2102,8 @@ class ApplicationView(LoginRequiredMixin):
                             [
                                 f.cleaned_data.get("email")
                                 for f in referees.forms
-                                if f.cleaned_data.get("email") and f.cleaned_data.get("email").strip()
+                                if f.cleaned_data.get("email")
+                                and f.cleaned_data.get("email").strip()
                             ]
                         )
                         duplicate_referee_emails = [
@@ -2119,7 +2122,7 @@ class ApplicationView(LoginRequiredMixin):
                             if update_url:
                                 return redirect(f"{update_url}#referees")
                             form.active_tab = "referees"
-                            return  self.form_invalid(form)
+                            return self.form_invalid(form)
 
                 except Exception as e:
                     capture_exception(e)
@@ -5346,6 +5349,22 @@ class NominationView(CreateUpdateView):
     def get_initial(self):
         initial = super().get_initial()
         initial["round"] = self.round.id if self.round else None
+        if (
+            latest := self.request.user.nominations.filter(
+                ~Q(contact_phone__isnull=True), ~Q(contact_phone="")
+            )
+            .order_by("pk")
+            .last()
+        ):
+            initial["contact_phone"] = latest.contact_phone
+        elif (
+            ro := self.request.user.research_offices.filter(
+                ~Q(org__contact_phone__isnull=True), ~Q(org__contact_phone="")
+            )
+            .order_by("pk")
+            .last()
+        ):
+            initial["contact_phone"] = ro.org.contact_phone
         return initial
 
     def form_valid(self, form):
@@ -5952,18 +5971,16 @@ class NominationDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["category"] = "nominations"
+        context["exclude"] = [
+            "id",
+            "created_at",
+            "updated_at",
+            "site",
+        ]
         if self.can_start_applying:
             context["start_applying"] = reverse(
                 "nomination-application-create", kwargs=dict(nomination=self.object.id)
             )
-        #     if self.object.members.filter(
-        #         user=self.request.user, has_authorized__isnull=True
-        #     ).exists():
-        #         messages.info(
-        #             self.request,
-        #             _("Please review the application and authorize your team representative."),
-        #         )
-        #         context["form"] = AuthorizationForm()
         return context
 
 
