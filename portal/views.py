@@ -5358,7 +5358,7 @@ class NominationView(CreateUpdateView):
         ):
             initial["contact_phone"] = latest.contact_phone
         elif (
-            ro := self.request.user.research_officers.filter(
+            ro := self.request.user.research_offices.filter(
                 ~Q(org__contact_phone__isnull=True), ~Q(org__contact_phone="")
             )
             .order_by("pk")
@@ -5971,18 +5971,16 @@ class NominationDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["category"] = "nominations"
+        context["exclude"] = [
+            "id",
+            "created_at",
+            "updated_at",
+            "site",
+        ]
         if self.can_start_applying:
             context["start_applying"] = reverse(
                 "nomination-application-create", kwargs=dict(nomination=self.object.id)
             )
-        #     if self.object.members.filter(
-        #         user=self.request.user, has_authorized__isnull=True
-        #     ).exists():
-        #         messages.info(
-        #             self.request,
-        #             _("Please review the application and authorize your team representative."),
-        #         )
-        #         context["form"] = AuthorizationForm()
         return context
 
 
