@@ -733,7 +733,7 @@ def index(request):
                 is_active=True,
                 registered_on_id=site_id,
             ).order_by("-last_login")
-        schemes = models.SchemeApplication.get_data(user)
+        schemes = list(models.SchemeApplication.get_data(user))
         previous_applications = [
             dict(
                 id=pa.previous_application_id,
@@ -791,7 +791,7 @@ def index(request):
                     if is_ajax:
                         return JsonResponse({"message": message, "status": "info"}, status=200)
                     messages.info(request, message)
-        if current_applications.count() == 0:
+        if len(schemes) == 0 and current_applications.count() == 0:
             return redirect("about")
     else:
         messages.info(
