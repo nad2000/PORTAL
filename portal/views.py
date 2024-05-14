@@ -1582,7 +1582,7 @@ class ApplicationDetail(DetailView):
         if a.state == "in_review":
             context["update_button_name"] = _("Edit referee list")
         if a and a.site_id == 5:
-            context["documents"] = a.documents_dict
+            context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
         if n := models.Nomination.where(application=a).last():
             context["nomination"] = n
@@ -5859,7 +5859,7 @@ class TestimonialView(CreateUpdateView):
         context = super().get_context_data(**kwargs)
         a = context["application"] = self.application
         if a and a.site_id == 5:
-            context["documents"] = a.documents_dict
+            context["documents"] = a.user_documents_dict(self.request.user)
 
         if not self.referee:
             messages.info(

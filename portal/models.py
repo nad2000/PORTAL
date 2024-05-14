@@ -3102,6 +3102,30 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def natural_key(self):
         return self.number
 
+    @lru_cache(1)
+    def user_documents_dict(self, user=None):
+        if self.submitted_by_id == user.pk or self.members.filter(user=user).exists():
+            return self.documents_dict
+
+        documents = self.documents.filter(
+            Q(document_type__role__in=["CV", "HS", "B", "A"])
+            | Q(required_document__document_type__role__in=["CV", "HS", "B", "A"])
+        )
+        if self.referees.filter(user=user).exists():
+            documents = documents.filter(required_document__referees_can_access=True)
+        elif self.round.panellists(user=user).exists():
+            documents = documents.filter(required_document__panellists_can_access=True)
+
+        documents = {
+            d.document_type.role or d.required_document.document_type.role: d.pdf_file
+            for d in documents
+        }
+        if "HS" not in documents and (
+            n := Nomination.where(application=self, file__isnull=False).last()
+        ):
+            documents["HS"] = n.pdf_file
+        return documents
+
     @cached_property
     def documents_dict(self):
         documents = {
@@ -5470,6 +5494,8 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         _("Title"), max_length=200, null=True, blank=True, help_text=_("Title (e.g. Dr, Professor")
     )
     is_optional = BooleanField(default=False)
+    referees_can_access = BooleanField(default=True)
+    panellists_can_access = BooleanField(default=True)
     exclude = BooleanField(default=False, help_text=_("Exclude from the final export"))
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
