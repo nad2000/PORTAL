@@ -3517,9 +3517,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 if not isinstance(resp, list):
                     limesurvey_status = resp.get("state")
                     raise Exception(
-                        _(
-                            "Failed to add the referee: %s. Please contact a portal administration."
-                        )
+                        _("Failed to add the referee: %s. Please contact a portal administration.")
                         % limesurvey_status
                     )
 
@@ -6050,8 +6048,14 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("organisation"),
         help_text=_("Organisation of the nominee"),
     )
-
     nominator = ForeignKey(User, on_delete=CASCADE, related_name="nominations")
+    contact_phone = CharField(
+        _("Contact phone number"),
+        validators=[phone_regex_validator],
+        max_length=24,
+        blank=True,
+        null=True,
+    )
     summary = TextField(blank=True, null=True)
     file = PrivateFileField(
         null=True,
