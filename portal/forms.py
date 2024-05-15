@@ -633,7 +633,7 @@ class ApplicationForm(forms.ModelForm):
                     address=self.cleaned_data["postal_address"],
                     postcode=self.cleaned_data["postcode"],
                     city=self.cleaned_data["city"],
-                    country="NZ",
+                    country_id="NZ",
                 )
             self.instance.address = address
 
