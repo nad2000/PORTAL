@@ -1927,6 +1927,7 @@ class ApplicationView(LoginRequiredMixin):
         round = self.round
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
+        update_url = None
 
         try:
             with transaction.atomic():
