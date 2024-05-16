@@ -2929,7 +2929,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if self.site_id == 4:
+        if self.site_id == 4 or not (
+            self.site_id == 5 and self.nomination and self.nomination.nominator == user
+        ):
             add_testimonials(attachments)
 
         ssl._create_default_https_context = ssl._create_unverified_context
@@ -3108,12 +3110,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             return self.documents_dict
 
         documents = self.documents.filter(
-            Q(document_type__role__in=["CV", "HS", "B", "A"])
-            | Q(required_document__document_type__role__in=["CV", "HS", "B", "A"])
+            Q(document_type__role__in=["CV", "HS", "B", "A", "AF"])
+            | Q(required_document__document_type__role__in=["CV", "HS", "B", "A", "AF"])
         )
         if self.referees.filter(user=user).exists():
             documents = documents.filter(required_document__referees_can_access=True)
-        elif self.round.panellists(user=user).exists():
+        elif self.round.panellists.filter(user=user).exists():
             documents = documents.filter(required_document__panellists_can_access=True)
 
         documents = {
@@ -3710,7 +3712,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
-    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="panellists")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
 
     panel = ForeignKey(

@@ -144,58 +144,60 @@
           </td>
         </tr>
 
-        <tr>
-          <th class="table-dark" scope="row">{% trans 'Narrative CV' %}</th>
-          <td colspan="3">
-            {% if documents.CV %}
-              <a href="{{ documents.CV.url }}" target="_blank">{{ documents.CV.name|basename }}</a>
-            {% else %}
-              {% trans 'N/A' %}
-            {% endif %}
-          </td>
-        </tr>
+        {% if documents.CV or referee and referee.user != user %}
+          <tr>
+            <th class="table-dark" scope="row">{% trans 'Narrative CV' %}</th>
+            <td colspan="3">
+              {% if documents.CV %}
+                <a href="{{ documents.CV.url }}" target="_blank">{{ documents.CV.name|basename }}</a>
+              {% else %}
+                {% trans 'N/A' %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
 
-        <tr>
-          <th class="table-dark" scope="row">{% trans 'Host Suitablity' %}</th>
-          <td colspan="3">
-            {% if documents.HS %}
-              <a href="{{ documents.HS.url }}" target="_blank">{{ documents.HS.name|basename }}</a>
-            {% else %}
-              {% trans 'N/A' %}
-            {% endif %}
-          </td>
-        </tr>
+        {% if documents.HS or referee and referee.user != user %}
+          <tr>
+            <th class="table-dark" scope="row">{% trans 'Host Suitablity' %}</th>
+            <td colspan="3">
+              {% if documents.HS %}
+                <a href="{{ documents.HS.url }}" target="_blank">{{ documents.HS.name|basename }}</a>
+              {% else %}
+                {% trans 'N/A' %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
 
-        <tr>
-          <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
-          <td colspan="3">
-            {% if documents.B %}
-              <a href="{{ documents.B.url }}" target="_blank">{{ documents.B.name|basename }}</a>
-            {% else %}
-              {% trans 'N/A' %}
-            {% endif %}
-          </td>
-        </tr>
+        {% if documents.B or referee and referee.user != user %}
+          <tr>
+            <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
+            <td colspan="3">
+              {% if documents.B %}
+                <a href="{{ documents.B.url }}" target="_blank">{{ documents.B.name|basename }}</a>
+              {% else %}
+                {% trans 'N/A' %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
 
-        <tr>
-          <th class="table-dark" scope="row">{% trans 'Proposed research' %}</th>
-          <td colspan="3">
-            {% if documents.AF %}
-              <a href="{{ documents.AF.url }}" target="_blank">{{ documents.AF.name|basename }}</a>
-            {% else %}
-              {% trans 'N/A' %}
-            {% endif %}
-          </td>
-        </tr>
+        {% if documents.AF or documents.A or referee and referee.user != user %}
+          <tr>
+            <th class="table-dark" scope="row">{% trans 'Proposed research' %}</th>
+            <td colspan="3">
+              {% if documents.AF %}
+                <a href="{{ documents.AF.url }}" target="_blank">{{ documents.AF.name|basename }}</a>
+              {% elif documents.A %}
+                <a href="{{ documents.A.url }}" target="_blank">{{ documents.A.name|basename }}</a>
+              {% else %}
+                {% trans 'N/A' %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
 
-    {% comment %}
-      {#% if a.%}
-      {% endif %}
-      {% if a.%}
-      {% endif %}
-      {% if a.%}
-      {% endif %#}
-    {% endcomment %}
     {% endif %}
 
     <tr>
@@ -344,7 +346,7 @@
 
     {% endif %}
 
-    {% if r.has_referees and  a.referees.all.count and a|can_see_referees:u %}
+    {% if SITE_ID != 5 or not is_ro %}{% if r.has_referees and  a.referees.all.count and a|can_see_referees:u %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Referees' %}</th>
         <td colspan="3">
@@ -363,7 +365,7 @@
           </ul>
         </td>
       </tr>
-    {% endif %}
+    {% endif %}{% endif %}
 
     {% if a.round.has_seos and a.application_seos.count > 0 %}
       <tr>
