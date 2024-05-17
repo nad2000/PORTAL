@@ -368,14 +368,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       {% with round=record.scheme.current_round scheme=record.scheme count=record.count application=record.application is_panellist=record.is_panellist has_submitted=record.has_submitted %}
       <div class="row">
         <div class="col mb-3">
-          <div class="card">
-            <h5 class="card-header"{% if round.colour %}style="background-color: {{ round.colour }}; color: white;"{% endif %}>
+          <div class="card"{% if round.colour %} style="border-top-color: {{ round.colour }}; border-right-color: {{ round.colour }}; border-bottom-color: {{ round.colour }}; border-left-color: {{ round.colour }};"{% endif %}>
+            <h5 class="card-header"{% if round.colour %} style="background-color: {{ round.colour }}; color: white;"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}
               </b>
             </h5>
-            <div class="card-body">
+            <div class="card-body"{#% if round.colour %} style="background-color: {{ round.colour|color_variant:3.9 }}; color: white;"{% endif %#}>
               {% if record.description|collapsible %}
               <div class="partialcollapse">
                 <div class="collapse mb-1" id="round-description-{{ round.id }}" aria-expanded="false">
@@ -443,6 +443,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                               data-target="#id_required_documents_modal"
                                               data-round-id="{{ round.id }}"
                                               data-round-title="{{ round.title }}"
+                                              data-round-bg-color="{{ round.colour }}"
                                               {% else %}
                                               disabled
                                               {% endif %}
