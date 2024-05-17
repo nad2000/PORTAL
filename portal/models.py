@@ -4850,7 +4850,7 @@ def round_template_path(instance, filename):
     return f"rounds/{title}/{filename}"
 
 
-class Round(Model):
+class Round(OrderableModel):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
@@ -5488,7 +5488,7 @@ class Round(Model):
             site = self.site or Site.objects.get_current()
             return f"https://{site.domain}/limesurvey/admin/remotecontrol"
 
-    class Meta:
+    class Meta(OrderableModel.Meta):
         db_table = "round"
 
 
@@ -5997,7 +5997,7 @@ class SchemeApplication(Model):
             ) AS pa ON pa.scheme_id = r.scheme_id AND la.id IS NULL
             WHERE
               s.site_id = %s
-            ORDER BY 2;""",
+            ORDER BY r.ordering;""",
             [
                 user.id,
                 site_id,

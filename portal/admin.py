@@ -2099,6 +2099,7 @@ class RoundAdmin(
     ExportActionMixin,
     ImportExportMixin,
     StaffPermsMixin,
+    OrderableAdmin,
     TranslationAdmin,
 ):
     summernote_fields = (
@@ -2109,7 +2110,9 @@ class RoundAdmin(
         "contract_background",
     )
     save_on_top = True
-    list_display = ["coloured_title", "scheme", "opens_on", "closes_at", "is_active"]
+    list_display = ["coloured_title", "scheme", "opens_on", "closes_at", "is_active", "ordering"]
+    list_editable = ["ordering"]
+    ordering_field_hide_input = True
     list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
     date_hierarchy = "opens_on"
     exclude = [
