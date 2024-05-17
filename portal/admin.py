@@ -654,7 +654,11 @@ class PanelResource(ModelResource):
     class Meta:
         model = models.Panel
         import_id_fields = ["code", "fund", "state"]
-        exclude = ("created_at", "updated_at", "id",)
+        exclude = (
+            "created_at",
+            "updated_at",
+            "id",
+        )
         # fields = [
         #     "code",
         #     "fund",
@@ -950,8 +954,10 @@ class ApplicationAdmin(
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
         if obj.state:
-            sca = obj.state_changed_at.strftime('%d-%m-%Y %H:%m')
-            return mark_safe(f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})""")
+            sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+            return mark_safe(
+                f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
+            )
 
     def is_active_round(self, obj):
         return obj.round.scheme.current_round == obj.round
@@ -2103,7 +2109,7 @@ class RoundAdmin(
         "contract_background",
     )
     save_on_top = True
-    list_display = ["title", "scheme", "opens_on", "closes_at", "is_active"]
+    list_display = ["coloured_title", "scheme", "opens_on", "closes_at", "is_active"]
     list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
     date_hierarchy = "opens_on"
     exclude = [
@@ -2240,6 +2246,16 @@ class RoundAdmin(
         return obj.is_active
 
     is_active.boolean = True
+
+    @admin.display(description=_("tittle"), ordering="title")
+    def coloured_title(self, obj):
+        if obj.colour:
+            return format_html(
+                '<span style="background-color: {}; color: white;">{}</span>',
+                obj.colour,
+                obj.title,
+            )
+        return obj.title
 
     def view_on_site(self, obj):
         return f"{reverse('applications')}?round={obj.id}"
