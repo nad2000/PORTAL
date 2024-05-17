@@ -369,7 +369,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       <div class="row">
         <div class="col mb-3">
           <div class="card">
-            <h5 class="card-header">
+            <h5 class="card-header"{% if round.colour %}style="background-color: {{ round.colour }}; color: white;"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}
@@ -444,7 +444,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                               data-round-id="{{ round.id }}"
                                               data-round-title="{{ round.title }}"
                                               {% else %}
-                                              disabled 
+                                              disabled
                                               {% endif %}
                                               style="text-transform: uppercase;">
                           {% blocktrans %}Required <b>Documents</b>{% endblocktrans %}

@@ -72,7 +72,9 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
       {#% if domain == "international.royalsociety.org.nz" %#}
-      {% if SITE_ID == 4 or SITE_ID == 5 %}
+      {% if SITE_ID == 5 %}
+        <link href="{% static 'css/tawhia.royalsociety.org.nz.css' %}" rel="stylesheet">
+      {% elif SITE_ID == 4 %}
         <link href="{% static 'css/npp.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 3 %}
         <link href="{% static 'css/stlp.royalsociety.org.nz.css' %}" rel="stylesheet">

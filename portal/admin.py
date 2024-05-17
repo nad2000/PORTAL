@@ -2135,7 +2135,7 @@ class RoundAdmin(
                 {
                     "fields": [
                         "scheme",
-                        ("title_en", "title_mi"),
+                        ("title_en", "title_mi", "colour"),
                         ("opens_on", "closes_at"),
                         "description_en",
                         "description_mi",

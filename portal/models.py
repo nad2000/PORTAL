@@ -96,6 +96,7 @@ from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from taggit.models import TagBase
 from weasyprint import HTML
+from colorfield.fields import ColorField
 
 from common.models import (
     Base,
@@ -4856,6 +4857,8 @@ class Round(Model):
 
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
+    colour = ColorField(null=True, blank=True, help_text="Colour used for text hearders and back-grounds")
+
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
