@@ -5843,6 +5843,7 @@ class Score(Model):
 
 
 class SchemeApplication(Model):
+    ordering = PositiveIntegerField(_("ordering"), null=True, blank=True)
     title = CharField(max_length=100, null=True, blank=True)
     scheme = ForeignKey(
         Scheme,
@@ -5928,6 +5929,7 @@ class SchemeApplication(Model):
             f"""
             SELECT DISTINCT
                 s.id,
+                r.ordering,
                 COALESCE(
                     NULLIF(r.title_{lang},''),
                     NULLIF(r.title_en,''),
