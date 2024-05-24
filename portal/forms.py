@@ -2906,6 +2906,15 @@ class PanellistFormSetHelper(FormHelper):
                 css_class="btn-primary",
             )
         )
+        self.add_input(
+            Submit(
+                "copy",
+                _("Copy"),
+                css_class="btn-secondary",
+                data_toggle="tooltip",
+                title=_("Copy from the previous round"),
+            ),
+        )
         self.add_input(Submit("cancel", _("Cancel"), css_class="btn-danger"))
 
 

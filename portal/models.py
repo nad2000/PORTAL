@@ -4850,7 +4850,7 @@ def round_template_path(instance, filename):
     return f"rounds/{title}/{filename}"
 
 
-class Round(OrderableModel):
+class Round(TimeStampMixin, HelperMixin, OrderableModel):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
