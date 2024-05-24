@@ -14,22 +14,6 @@ class Migration(migrations.Migration):
             name="round",
             options={"ordering": ["ordering"]},
         ),
-        migrations.RemoveField(
-            model_name="historicalround",
-            name="created_at",
-        ),
-        migrations.RemoveField(
-            model_name="historicalround",
-            name="updated_at",
-        ),
-        migrations.RemoveField(
-            model_name="round",
-            name="created_at",
-        ),
-        migrations.RemoveField(
-            model_name="round",
-            name="updated_at",
-        ),
         migrations.AddField(
             model_name="historicalround",
             name="ordering",
