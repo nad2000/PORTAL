@@ -29,7 +29,11 @@
 
   {% if start_applying %}
     <a class="btn btn-primary" href="{{ start_applying }}">
-      {% trans 'Start Prize Application' %}
+      {% if SITE_ID == 4 or SITE_ID == 5 %}
+        {% trans 'Start Application' %}
+      {% else %}
+        {% trans 'Start Prize Application' %}
+      {% endif %}
     </a>
   {% endif %}
 

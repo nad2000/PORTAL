@@ -368,14 +368,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       {% with round=record.scheme.current_round scheme=record.scheme count=record.count application=record.application is_panellist=record.is_panellist has_submitted=record.has_submitted %}
       <div class="row">
         <div class="col mb-3">
-          <div class="card">
-            <h5 class="card-header">
+          <div class="card"{% if round.colour %} style="border-top-color: {{ round.colour }}; border-right-color: {{ round.colour }}; border-bottom-color: {{ round.colour }}; border-left-color: {{ round.colour }};"{% endif %}>
+            <h5 class="card-header"{% if round.colour %} style="background-color: {{ round.colour }}; color: white;"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}
               </b>
             </h5>
-            <div class="card-body">
+            <div class="card-body"{#% if round.colour %} style="background-color: {{ round.colour|color_variant:3.9 }}; color: white;"{% endif %#}>
               {% if record.description|collapsible %}
               <div class="partialcollapse">
                 <div class="collapse mb-1" id="round-description-{{ round.id }}" aria-expanded="false">
@@ -401,10 +401,10 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               <strong
                   {% if not round.is_open %}
                   class="badge-danger"
-                  style="padding: 4px 6px 4px 6px;"
+                  style="border-radius: 7px; padding: 4px 6px 4px 6px;"
                   {% elif round.deadline_days > 0 and round.deadline_days < 5 %}
                   class="badge-warning"
-                  style="padding: 4px 6px 4px 6px;"
+                  style="border-radius: 7px; padding: 4px 6px 4px 6px;"
                   {% endif %}
                   {% if round.deadline_days > 0 and round.deadline_days < 5 %}
                   data-toggle="tooltip"
@@ -431,17 +431,28 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                 </a>
                 {% endif %}
                 {% if SITE_ID == 4 or SITE_ID == 5 %}
-                  <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="{% trans 'Required documents and templates' %}">
-
-                    <button type="button" class="btn btn-outline-primary"
-                                          data-toggle="modal"
-                                          data-target="#id_required_documents_modal"
-                                          data-round-id="{{ round.id }}"
-                                          data-round-title="{{ round.title }}"
-                                          style="text-transform: uppercase;">
-                      {% blocktrans %}Required <b>Documents</b>{% endblocktrans %}
-                    </button>
-                  </span>
+                  <div class="tooltip-wrapper{% if not round.is_open %} disabled{% endif %}"
+                   {% if not round.is_open %}
+                   disabled
+                   {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on|date:'o-m-d'}}"{% endif %}
+                   {% else %}data-title="{% trans 'Required documents and templates' %}"
+                   {% endif %}>
+                        <button type="button" class="btn btn-outline-primary{% if not round.is_open %} disabled{% endif %}"
+                                              {% if round.is_open %}
+                                              data-toggle="modal"
+                                              data-target="#id_required_documents_modal"
+                                              data-round-id="{{ round.id }}"
+                                              data-round-title="{{ round.title }}"
+                                              data-round-bg-color="{{ round.colour }}"
+                                              {% else %}
+                                              disabled
+                                              {% endif %}
+                                              style="text-transform: uppercase;">
+                          {% blocktrans %}Required <b>Documents</b>{% endblocktrans %}
+                        </button>
+                      <!-- span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="{% trans 'Required documents and templates' %}">
+                      </span -->
+                  </div>
                 {% endif %}
               {% else %}
               <button type="button" class="btn btn-outline-primary"
@@ -516,7 +527,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-new-url="{% url 'application-create' round=round.id %}"
                    data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
                    {% endif %}
-                   >
+                >
                    {% trans "Apply" %} <b>{% trans "Now" %}</b>
                 </a>
               </div>

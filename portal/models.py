@@ -96,6 +96,7 @@ from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from taggit.models import TagBase
 from weasyprint import HTML
+from colorfield.fields import ColorField
 
 from common.models import (
     Base,
@@ -221,6 +222,14 @@ LANGUAGES = Choices(
     "Vietnamese",
     "Yue Chinese (Cantonese)",
 )
+
+
+def domain_to_macrons(url):
+    if url.startswith("https://xn--"):
+        p1, p2 = url.split("xn--")
+        p2 = f"xn--{p2}".encode().decode("idna")
+        return f"{p1}{p2}"
+    return url
 
 
 def fsm_log(func=None, allow_inline=False):
@@ -1015,6 +1024,12 @@ class Organisation(Model):
         null=True,
     )
     email = EmailField(_("Contact email address"), blank=True, null=True)
+    # ro_email = EmailField(
+    #     _("Research Office email address"),
+    #     blank=True,
+    #     null=True,
+    #     help_text="Research Office common email address",
+    # )
     signatory = ForeignKey(
         "Person",
         verbose_name=_("signatory"),
@@ -1548,6 +1563,7 @@ APPLICATION_STATES = Choices(
     ("new", _("new")),
     ("draft", _("draft")),
     ("tac_accepted", _("TAC accepted")),
+    ("in_review", _("in referee review")),
     ("submitted", _("submitted")),
     ("cancelled", _("cancelled")),
     ("withdrawn", _("withdrawn")),
@@ -1635,7 +1651,7 @@ def default_application_number(application, exclude_numbers=None):
     if (
         latest_application := Application.all_objects.filter(
             # round=application.round,
-            Q(number__istartswith=prefix1) | Q(number__istartswith=prefix1),
+            Q(number__istartswith=prefix1) | Q(number__istartswith=prefix2),
             number__isnull=False,
         )
         .order_by("-number")
@@ -1645,7 +1661,7 @@ def default_application_number(application, exclude_numbers=None):
         last_number = latest_application.get("number")
     if last_number and last_number.endswith("-E"):
         last_number = last_number.removesuffix("-E")
-    application_number = int(last_number["number"].split("-")[-1]) + 1 if last_number else 1
+    application_number = int(last_number.split("-")[-1]) + 1 if last_number else 1
     while True:
         number = f"{code}-{org_code}-{year}-{application_number:03}"
         if not exclude_numbers or number not in exclude_numbers:
@@ -2046,6 +2062,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         default=0,
     )
+    panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
 
     @property
     def contract(self):
@@ -2103,6 +2120,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
 
+    def invite_referees(self, request, by=None, referees=None):
+        """Send invitations to all referee."""
+        return Referee.invite_referees(request, application=self, by=None, referees=None)
+
     @fsm_log
     @transition(
         field=state,
@@ -2123,20 +2144,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def accept_tac(self, *args, **kwargs):
         self.is_tac_accepted = True
 
-    @fsm_log
-    @transition(
-        field=state,
-        source=["new", "draft", "tac_accepted"],
-        target="submitted",
-        custom=dict(verbose="Submit", button_name="Submit"),
-    )
-    def submit(self, *args, **kwargs):
+    def is_completed(self, skip_testimonials=False, *args, **kwargs):
+        """Verifies application completion"""
         request = kwargs.get("request")
         round = self.round
         if round.budget_template and not (
             self.budget or self.documents.filter(~Q(file=""), document_type__role="B").exists()
         ):
             raise Exception(_("You must upload a budget spreadsheet to complete your application"))
+
         if not self.is_tac_accepted:
             if request and request.user:
                 if self.submitted_by == request.user:
@@ -2149,9 +2165,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     raise Exception(
                         _("Your team lead has not yet accepted the Prize's Terms and Conditions")
                     )
+            else:
+                raise Exception(
+                    _(
+                        "The principal application must accept the Terms and Conditions to submit an application"
+                    )
+                )
 
         if (
-            not self.file
+            self.round.research_summary_required
+            and not self.file
             and not self.summary
             and not self.documents.filter(~Q(file=""), document_type__role="AF").exists()
         ):
@@ -2161,6 +2184,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "and/or uploaded application form"
                 )
             )
+
         if (
             round
             and round.pid_required
@@ -2182,29 +2206,33 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if round.required_submitted_testimonials:
-            if self.referees.filter(
-                Q(testified_at__isnull=True)
-                | Q(user__isnull=True)
-                | ~Q(testimonial__state="submitted"),
-                ~Q(state__in=["submitted", "opted_out", "testified"]),
-            ).exists():
-                raise ValidationError(
-                    _(
-                        "Not all nominated referees have responded which prevents your submission. "
-                        "Please either contact your referees, or replace them with one that will respond."
-                    ),
-                    "referees",
-                )
 
-            if (
-                round.required_referees
-                and self.referees.filter(state="testified").count() < round.required_referees
-            ):
-                raise ValidationError(
-                    _("You need to procure reviews of your application from at least %d referees.")
-                    % round.required_referees,
-                    "referees",
-                )
+            if not skip_testimonials:
+                if self.referees.filter(
+                    Q(testified_at__isnull=True)
+                    | Q(user__isnull=True)
+                    | ~Q(testimonial__state="submitted"),
+                    ~Q(state__in=["submitted", "opted_out", "testified"]),
+                ).exists():
+                    raise ValidationError(
+                        _(
+                            "Not all nominated referees have responded which prevents your submission. "
+                            "Please either contact your referees, or replace them with one that will respond."
+                        ),
+                        "referees",
+                    )
+
+                if (
+                    round.required_referees
+                    and self.referees.filter(state="testified").count() < round.required_referees
+                ):
+                    raise ValidationError(
+                        _(
+                            "You need to procure reviews of your application from at least %d referees."
+                        )
+                        % round.required_referees,
+                        "referees",
+                    )
         else:
             if (
                 self.round.required_referees
@@ -2226,21 +2254,65 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+    # def can_be_funded(self):
+    #     return (self.site_id != 4 and self.state == "approved") or self.state == "accepted"
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "tac_accepted", "in_review"],
+        target="in_review",
+        conditions=[lambda self: self.site_id == 5],
+        custom=dict(verbose="Submit To Referees", button_name="To Referees"),
+    )
+    def send_out_to_referees(self, *args, **kwargs):
+        self.is_completed(skip_testimonials=True, *args, **kwargs)
+        request = kwargs.get("request")
+        return self.invite_referees(request=request)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "tac_accepted", "in_review"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="Submit"),
+    )
+    def submit(self, *args, **kwargs):
+        self.is_completed(*args, **kwargs)
+        request = kwargs.get("request")
+        round = self.round
+
         nomination = Nomination.where(application=self).last()
         nominator = nomination and nomination.nominator
         if (
             nominator
-            and nominator.research_offices.filter(org=(self.org_id or nomination.org_id)).exists()
+            and nominator.research_offices.filter(
+                Q(Q(org=self.org_id) | Q(org=nomination.org_id))
+                if self.org_id and nomination.org_id
+                else Q(org=(self.org_id or nomination.org_id))
+            ).exists()
         ):
-            url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
-            send_mail(
-                __("Application '%s' Submitted") % self,
-                html_message=__(
+            url = request.build_absolute_uri(
+                reverse("application-detail", kwargs={"number": self.number})
+            )
+            url = domain_to_macrons(url)
+            if self.site_id == 5:
+                html_message = (
+                    "<p>Kia ora %(nominator)s</p>"
+                    '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
+                    "%(title)s</a> and all the solicited referee reports were submitted.</p>"
+                    "<p>Please review and approve the submitted application.</p>"
+                )
+            else:
+                html_message = (
                     "<p>Kia ora %(nominator)s</p>"
                     '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
                     "%(title)s</a></p>"
-                    "<p>Please reveiw and approve the submitted application.</p>"
+                    "<p>Please review and approve the submitted application.</p>"
                 )
+            send_mail(
+                __("Application '%s' Submitted") % self,
+                html_message=html_message
                 % {
                     "nominator": nominator,
                     "url": url,
@@ -2261,6 +2333,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
         elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
+            url = domain_to_macrons(url)
             send_mail(
                 __("Application '%s' Submitted") % self,
                 html_message=__(
@@ -2298,6 +2371,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # approved by the R.O.
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        url = domain_to_macrons(url)
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:
                 resolution = f'The Research Office approved has apprved the application "{self}"'
@@ -2366,6 +2440,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        url = domain_to_macrons(url)
         if not resolution:
             resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
         subject = f'Application "{self}" was ACCEPTED'
@@ -2453,11 +2528,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        url = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
-            "title": self.title or self.round.title,
+            "title": self.application_title or self.round.title,
             "url": url,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
@@ -2514,6 +2590,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        url = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2574,6 +2651,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        url = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
@@ -2852,7 +2930,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if self.site_id == 4:
+        if self.site_id == 4 or not (
+            self.site_id == 5 and self.nomination and self.nomination.nominator == user
+        ):
             add_testimonials(attachments)
 
         ssl._create_default_https_context = ssl._create_unverified_context
@@ -2879,7 +2959,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     and not (self.submitted_by == u or self.members.all().filter(user=u).exists())
         # ):
         #     objects.extend(self.get_testimonials())
-        site = Site.objects.get_current()
+        site = self.site or Site.objects.get_current()
         domain = site.domain
         logo_url = logo_1_url = logo_2_url = None
 
@@ -2898,7 +2978,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             if request:
                 summary_url = request.build_absolute_uri(url)
             else:
-                summary_url = f"https://{urljoin(domain, url)}"
+                summary_url = urljoin(f"https://{domain}", url)
             html = HTML(summary_url)
         else:
             if domain == "international.royalsociety.org.nz":
@@ -3024,6 +3104,30 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     def natural_key(self):
         return self.number
+
+    @lru_cache(1)
+    def user_documents_dict(self, user=None):
+        if self.submitted_by_id == user.pk or self.members.filter(user=user).exists():
+            return self.documents_dict
+
+        documents = self.documents.filter(
+            Q(document_type__role__in=["CV", "HS", "B", "A", "AF"])
+            | Q(required_document__document_type__role__in=["CV", "HS", "B", "A", "AF"])
+        )
+        if self.referees.filter(user=user).exists():
+            documents = documents.filter(required_document__referees_can_access=True)
+        elif self.round.panellists.filter(user=user).exists():
+            documents = documents.filter(required_document__panellists_can_access=True)
+
+        documents = {
+            d.document_type.role or d.required_document.document_type.role: d.pdf_file
+            for d in documents
+        }
+        if "HS" not in documents and (
+            n := Nomination.where(application=self, file__isnull=False).last()
+        ):
+            documents["HS"] = n.pdf_file
+        return documents
 
     @cached_property
     def documents_dict(self):
@@ -3181,7 +3285,7 @@ class Member(PersonMixin, MemberMixin, Model):
                 q = q.filter(~Q(id=member_id))
             if q.exists():
                 raise ValidationError(
-                    _("Team member with the email address %(email)s was alrady added"),
+                    _("Team member with the email address %(email)s was already added"),
                     params={"email": self.email},
                 )
 
@@ -3349,9 +3453,57 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 q = q.filter(~Q(id=referee_id))
             if q.exists():
                 raise ValidationError(
-                    _("Referee with the email address %(email)s was alrady added"),
+                    _("Referee with the email address %(email)s was already added"),
                     params={"email": self.email},
                 )
+
+    @classmethod
+    def invite_referees(cls, request, application=None, by=None, referees=None):
+        """Send invitations to all referee."""
+        # members that don't have invitations
+        count = 0
+        # referees = list(models.Referee.where(application=application, invitation__isnull=True))
+        # referees = list(models.Referee.where(invitation__isnull=True))
+        # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
+        if not referees:
+            referees = list(
+                cls.where(
+                    ~Q(state__in=["testified", "accepted", "opted_out"]),
+                    ~Q(invitation__email=F("email")),
+                    application=application,
+                ).prefetch_related("application", "application__submitted_by")
+            )
+
+        for r in referees:
+            Invitation.get_or_create_referee_invitation(
+                r, by=r.application.submitted_by or by or request and request.user
+            )
+
+        # send 'yet unsent' invitations:
+        invitations = list(
+            (
+                Invitation.where(
+                    Q(sent_at__isnull=True),
+                    ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
+                    application=application,
+                    type="R",
+                )
+                if application
+                else Invitation.where(
+                    ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
+                    referee__in=Subquery(referees.values("id")),
+                )
+            ).prefetch_related("referee", "referee__user")
+        )
+        for i in invitations:
+            i.send(request, by=by or request and request.user)
+            i.save()
+            if i.referee:
+                i.referee.send()
+                i.referee.save()
+            count += 1
+
+        return count
 
     @fsm_log
     @transition(field=state, source=["*"], target="accepted")
@@ -3392,9 +3544,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 if not isinstance(resp, list):
                     limesurvey_status = resp.get("state")
                     raise Exception(
-                        _(
-                            "Failed to add the referee: %s. Please constact a portal administration."
-                        )
+                        _("Failed to add the referee: %s. Please contact a portal administration.")
                         % limesurvey_status
                     )
 
@@ -3450,7 +3600,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         if status == message:
                             # raise LimeSurveyError(method, status)
                             capture_message(
-                                f"Failed to invite surevey participant - referee {self}: {status}",
+                                f"Failed to invite survey participant - referee {self}: {status}",
                                 level="error",
                             )
                             break
@@ -3563,7 +3713,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
-    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="panellists")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
 
     panel = ForeignKey(
@@ -3927,6 +4077,58 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
         return cls.all_objects.bulk_update(objs, ["round"])
 
+    @classmethod
+    def get_or_create_referee_invitation(cls, referee, by=None):
+        u = referee.user or User.objects.filter(email=referee.email).first()
+        if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
+            u = ea.user
+        if not referee.user and u:
+            referee.user = u
+            if not referee.first_name:
+                referee.first_name = u and u.first_name or ""
+            if not referee.last_name:
+                referee.last_name = u and u.last_name or ""
+            if not referee.middle_names:
+                referee.middle_names = u and u.middle_names or ""
+            referee.save(update_fields=["user", "first_name", "middle_names", "last_name"])
+        first_name = referee.first_name or u and u.first_name or ""
+        last_name = referee.last_name or u and u.last_name or ""
+        middle_names = referee.middle_names or u and u.middle_names or ""
+        site = (referee.application and referee.application.site) or Site.objects.get_current()
+
+        if (
+            settings.SITE_ID in [4, 5]
+            and referee.application.round.survey_id
+            and not (referee.survey_token_id or referee.survey_token)
+        ):
+            referee.add_to_survey()
+
+        if hasattr(referee, "invitation"):
+            i = referee.invitation
+            if referee.email != i.email:
+                i.revoke(by=by)
+                i.save()
+            else:
+                referee.satus = None
+                return (i, False)
+
+        i, created = cls.get_or_create(
+            type=INVITATION_TYPES.R,
+            referee=referee,
+            email=referee.email,
+            defaults=dict(
+                inviter=by,
+                application=referee.application,
+                first_name=first_name,
+                middle_names=middle_names,
+                last_name=last_name,
+                site=site,
+            ),
+        )
+        referee.invitation = i
+        referee.save()
+        return (i, created)
+
     @fsm_log
     @transition(
         field=state,
@@ -3946,12 +4148,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = Site.objects.get_current()
         site_name = site.name
 
-        subject = __("The invitation sent from %(site_name)s portal was revoked") % {
+        subject = "The invitation sent from %(site_name)s portal was revoked" % {
             "site_name": site_name
         }
-        html_body = __(
+        html_body = (
             "<p>Tēnā koe,</p>"
-            "<p>The invitation previouly sent from %(site_name)s portal was revoked.</p>"
+            "<p>The invitation previously sent from %(site_name)s portal was revoked.</p>"
         ) % {"site_name": site_name}
 
         send_mail(
@@ -3988,7 +4190,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             # url = request.build_absolute_uri(url)
             url = request.build_absolute_uri(url)
         else:
-            url = f"https://{urljoin(site.domain, url)}"
+            url = urljoin(f"https://{site.domain}", url)
+        url = domain_to_macrons(url)
         self.url = url
 
         # TODO: handle the rest of types
@@ -4022,8 +4225,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 if request:
                     survey_url = request.build_absolute_uri(survey_url)
                 else:
-                    survey_url = f"https://{urljoin(site.domain, survey_url)}"
+                    survey_url = urljoin(f"https://{site.domain}", survey_url)
                 survey_url = f"{survey_url}?token={self.token}"
+                survey_url = domain_to_macrons(survey_url)
 
             body = (
                 (
@@ -4258,7 +4462,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 pr = urlparse(self.url)
                 url = urljoin(f"{pr.scheme}://{pr.netloc}", url)
             else:
-                url = f"https://{urljoin(Site.objects.get_current().domain, url)}"
+                url = urljoin(f"https://{Site.objects.get_current().domain}", url)
             return url
 
         body = (
@@ -4646,13 +4850,15 @@ def round_template_path(instance, filename):
     return f"rounds/{title}/{filename}"
 
 
-class Round(Model):
+class Round(OrderableModel):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
 
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
+    colour = ColorField(null=True, blank=True, help_text="Colour used for text hearders and back-grounds")
+
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
@@ -4719,6 +4925,7 @@ class Round(Model):
         verbose_name=_("Score Sheet Template"),
         validators=[FileExtensionValidator(allowed_extensions=["xls", "xlsx"])],
     )
+    can_specify_panel = BooleanField(default=False)
     # Categories
     has_fors = BooleanField(
         _("Has FoRs"), default=False, help_text=_("Has Field of Research Categories")
@@ -4737,7 +4944,13 @@ class Round(Model):
     @property
     def has_categories(self):
         return (
-            self.has_fors or self.has_seos or self.has_toas or self.has_vmts or self.has_keywords
+            self.has_fors
+            or self.has_seos
+            or self.has_toas
+            or self.has_vmts
+            or self.has_keywords
+            or self.can_specify_panel
+            or self.research_experience_in_years_required
         )
 
     nomination_template = FileField(
@@ -5216,7 +5429,7 @@ class Round(Model):
         return Application.objects.raw(
             """
             WITH summary AS (
-                SELECt a.id, count(r.id) AS referee_count,
+                SELECT a.id, count(r.id) AS referee_count,
                     sum(CASE WHEN r.state='testified'
                     -- OR has_testifed
                     THEN 1 ELSE 0 END) AS submitted_reference_count
@@ -5225,7 +5438,7 @@ class Round(Model):
                 WHERE a.round_id=%s AND a.site_id=%s
                 GROUP BY a.id
             ), member_summary AS (
-                SELECt a.id, count(m.id) AS member_count,
+                SELECT a.id, count(m.id) AS member_count,
                     sum(CASE WHEN m.state='authorized' THEN 1 ELSE 0 END) AS member_authorized_count
                 FROM application AS a
                     LEFT JOIN member AS m ON m.application_id=a.id
@@ -5275,7 +5488,7 @@ class Round(Model):
             site = self.site or Site.objects.get_current()
             return f"https://{site.domain}/limesurvey/admin/remotecontrol"
 
-    class Meta:
+    class Meta(OrderableModel.Meta):
         db_table = "round"
 
 
@@ -5286,6 +5499,8 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         _("Title"), max_length=200, null=True, blank=True, help_text=_("Title (e.g. Dr, Professor")
     )
     is_optional = BooleanField(default=False)
+    referees_can_access = BooleanField(default=True)
+    panellists_can_access = BooleanField(default=True)
     exclude = BooleanField(default=False, help_text=_("Exclude from the final export"))
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
@@ -5628,6 +5843,7 @@ class Score(Model):
 
 
 class SchemeApplication(Model):
+    ordering = PositiveIntegerField(_("ordering"), null=True, blank=True)
     title = CharField(max_length=100, null=True, blank=True)
     scheme = ForeignKey(
         Scheme,
@@ -5713,6 +5929,7 @@ class SchemeApplication(Model):
             f"""
             SELECT DISTINCT
                 s.id,
+                r.ordering,
                 COALESCE(
                     NULLIF(r.title_{lang},''),
                     NULLIF(r.title_en,''),
@@ -5782,7 +5999,7 @@ class SchemeApplication(Model):
             ) AS pa ON pa.scheme_id = r.scheme_id AND la.id IS NULL
             WHERE
               s.site_id = %s
-            ORDER BY 2;""",
+            ORDER BY r.ordering;""",
             [
                 user.id,
                 site_id,
@@ -5864,8 +6081,14 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("organisation"),
         help_text=_("Organisation of the nominee"),
     )
-
     nominator = ForeignKey(User, on_delete=CASCADE, related_name="nominations")
+    contact_phone = CharField(
+        _("Contact phone number"),
+        validators=[phone_regex_validator],
+        max_length=24,
+        blank=True,
+        null=True,
+    )
     summary = TextField(blank=True, null=True)
     file = PrivateFileField(
         null=True,
@@ -6345,7 +6568,7 @@ PANEL_STATES = Choices(
 
 class PanelManager(Manager):
     def get_by_natural_key(self, code, fund, state, *args, **kwargs):
-        return self.get(code=code, fund=fund, state=state)
+        return self.filter(code=code, fund=fund, state=state, **kwargs).last()
 
 
 class PanelMixin:
@@ -6371,7 +6594,7 @@ class Panel(PanelMixin, Model):
         return self.state and self.state == "active"
 
     def natural_key(self):
-        return (self.code, self.fund_id)
+        return (self.code, self.fund_id, self.state)
 
     def __str__(self):
         return f"{self.code}: {self.description}"
@@ -7264,7 +7487,7 @@ class ContractMember(PersonMixin, Model):
             q = q.filter(~Q(id=member_id))
         if q.exists():
             raise ValidationError(
-                _("Team member with the email address %(email)s was alrady added"),
+                _("Team member with the email address %(email)s was already added"),
                 params={"email": self.email},
             )
 

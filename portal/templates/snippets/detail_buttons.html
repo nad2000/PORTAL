@@ -3,7 +3,7 @@
 
   {% if start_applying %}
     <a class="btn btn-primary" href="{{ start_applying }}">
-      {% if SITE_ID == 4 %}
+      {% if SITE_ID == 4 or SITE_ID == 5 %}
         {% trans 'Start Application' %}
       {% else %}
         {% trans 'Start Prize Application' %}

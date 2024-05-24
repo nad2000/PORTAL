@@ -70,17 +70,18 @@
       </div>
         {% endif %}
 
-
         {% if export_button_view_name %}
         <div class="tooltip-wrapper{% if show_basic_details %} disabled{% endif %}"
-             {% if show_basic_details %}
-             disabled
-             data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
-             {% else %}
-             data-title="{% trans 'Export the application into a consolidated PDF file' %}"
-             {% endif %}
-             >
-             <a class="btn btn-primary{% if show_basic_details %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}">{% trans 'Export' %}</a>
+          {% if show_basic_details %}
+          disabled
+          data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
+          {% else %}
+          data-title="{% trans 'Export the application into a consolidated PDF file' %}"
+          {% endif %}
+        >
+          <a class="btn btn-primary{% if show_basic_details %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}" target="_blank">
+            {% trans 'Export' %}
+          </a>
         </div>
         {% endif %}
 

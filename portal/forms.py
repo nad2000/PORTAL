@@ -488,6 +488,7 @@ def apnumber(value):
 
 
 class ApplicationForm(forms.ModelForm):
+
     @property
     def round(self):
         return (
@@ -506,18 +507,50 @@ class ApplicationForm(forms.ModelForm):
         required=False,
         label=_("Curriculum Vitae"),
         widget=forms.ClearableFileInput(
-            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _("Need to attach a CV before submitting the application."),
+                "oninput": "this.setCustomValidity('')",
+            }
         ),
     )
     photo_identity = FileField(
         required=False,
         label=_("Photo Identity"),
-        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.jpg,.png,.jpeg"}),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.jpg,.png,.jpeg",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _(
+                    "Your identity has not been verified. Please upload a scan of a document proving your identity."
+                ),
+                "oninput": "this.setCustomValidity('')",
+            }
+        ),
     )
     file = FileField(
         required=False,
         widget=forms.ClearableFileInput(
-            attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')" % _("Application form is required"),
+                "oninput": "this.setCustomValidity('')",
+            }
+        ),
+    )
+    budget = FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')" % _("Budget is required"),
+                "oninput": "this.setCustomValidity('')",
+            }
         ),
     )
 
@@ -526,6 +559,10 @@ class ApplicationForm(forms.ModelForm):
         return "submit" in self.data
 
     def clean(self):
+        if self.instance and self.instance.state == "in_review":
+            self.cleaned_data = {}
+            self.changed_data = []
+
         cleaned_data = super().clean()
         if self.was_submitted and (round := self.round):
             if round.research_experience_in_years_required and not (
@@ -565,7 +602,17 @@ class ApplicationForm(forms.ModelForm):
 
         return self.cleaned_data.get("cv_file")
 
+    def is_valid(self):
+        is_valid = super().is_valid()
+        if self.instance and self.instance.state == "in_review":
+            return True
+        return is_valid
+
     def save(self, *args, **kwargs):
+
+        if self.instance and self.instance.state == "in_review":
+            return self.instance
+
         if (
             self.cleaned_data.get("letter_of_support_file") is False
             and self.instance
@@ -586,7 +633,7 @@ class ApplicationForm(forms.ModelForm):
                     address=self.cleaned_data["postal_address"],
                     postcode=self.cleaned_data["postcode"],
                     city=self.cleaned_data["city"],
-                    country="NZ",
+                    country_id="NZ",
                 )
             self.instance.address = address
 
@@ -607,6 +654,7 @@ class ApplicationForm(forms.ModelForm):
         user = initial.get("user")
         language = get_language()
         site_id = settings.SITE_ID
+
         if site_id in [4, 5]:
             self.fields["application_title"].label = _("Title of proposed research")
             self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
@@ -781,8 +829,23 @@ class ApplicationForm(forms.ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if round.research_experience_in_years_required:
+            if round.research_experience_in_years_required and round.can_specify_panel:
+                self.fields["panel"].queryset = (
+                    self.fields["panel"]
+                    .queryset.filter(fund__site_id=site_id, state="active")
+                    .order_by("code", "-id")
+                )
+                category_fields = [
+                    Row(
+                        Column("research_experience_in_years"),
+                        Column("panel"),
+                    )
+                ]
+            elif round.research_experience_in_years_required:
                 category_fields = [Field("research_experience_in_years")]
+            elif round.can_specify_panel:
+                category_fields = [Field("panel")]
+
             if round.has_toas:
                 category_fields.append(
                     Fieldset(
@@ -1127,7 +1190,15 @@ class ApplicationForm(forms.ModelForm):
                 Tab(
                     _("Terms and Conditions"),
                     HTML(f'<div class="alert alert-dark" role="alert">{tac_text}</div>'),
-                    Field("is_tac_accepted"),
+                    Field(
+                        "is_tac_accepted",
+                        data_required=1,
+                        oninput="this.setCustomValidity('')",
+                        oninvalid="this.setCustomValidity('%s')"
+                        % _(
+                            "You have to accept the Terms and Conditions before submitting the application"
+                        ),
+                    ),
                     css_id="tac",
                 ),
             )
@@ -1137,17 +1208,28 @@ class ApplicationForm(forms.ModelForm):
             and instance.submitted_by
             and instance.submitted_by != user
         )
+        send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
         submit_button = Submit(
-            "submit",
+            "submit_to_referees" if send_out_to_referees else "submit",
+            # _("Submit to referees") if send_out_to_referees else _("Submit"),
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+            css_id="submit-id-submit",
             data_toggle="tooltip",
             title=(
-                _(
-                    "Your team leader must accept the Terms and Conditions before the submission can happen"
+                _("Save the referee list and invited new ones if any new has been added")
+                if instance.state == "in_review"
+                else (
+                    _(
+                        "Your team leader must accept the Terms and Conditions before the submission can happen"
+                    )
+                    if submission_disabled
+                    else (
+                        _("Submit the application to referees for reviewing it")
+                        if send_out_to_referees
+                        else _("Submit the application")
+                    )
                 )
-                if submission_disabled
-                else _("Submit the application")
             ),
             css_class="btn-outline-primary",
             disabled=submission_disabled,
@@ -1162,7 +1244,13 @@ class ApplicationForm(forms.ModelForm):
                         _("Save"),
                         css_class="btn-primary",
                         data_toggle="tooltip",
-                        title=_("Save draft application"),
+                        title=(
+                            _(
+                                "Save the referee list and invited new ones if any new has been added"
+                            )
+                            if instance.state == "in_review"
+                            else _("Save draft application")
+                        ),
                     ),
                     submit_button,
                     HTML(
@@ -2028,7 +2116,7 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.M
                 q = q.filter(~models.Q(id=member.id))
             if q.exists():
                 raise forms.ValidationError(
-                    _("Team member with the email address %(email)s was alrady added"),
+                    _("Team member with the email address %(email)s was already added"),
                     params={"email": email},
                 )
         return cleaned_data
@@ -2138,7 +2226,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm)
                 q = q.filter(~models.Q(id=referee.id))
             if q.exists():
                 raise forms.ValidationError(
-                    _("Referee with the email address %(email)s was alrady added"),
+                    _("Referee with the email address %(email)s was already added"),
                     params={"email": email},
                 )
         return cleaned_data
@@ -2372,7 +2460,17 @@ class NominationForm(forms.ModelForm):
             """
                 % _("Nominator")
             ),
+            Field(
+                "contact_phone",
+                pattern=r"\+?[0-9- ]+",
+                placeholder="e.g., +64 4 472 7421",
+            )
         ]
+        if site_id == 5:
+            self.fields["contact_phone"].help_text = _("The Research Office contact phone number")
+        else:
+            self.fields["contact_phone"].help_text = _("Your (nominator) contact phone number")
+
         nominator = initial and initial.get("nominator") or self.instance.nominator
         if r.nominator_cv_required:
 
@@ -2478,6 +2576,7 @@ class NominationForm(forms.ModelForm):
         fields = [
             # "round",
             "nominator",
+            "contact_phone",
             "title",
             "first_name",
             "middle_names",

@@ -1,590 +1,585 @@
 [
 {
   "model": "portal.panel",
-  "pk": 1,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "36-",
     "description": "Transferred from PGSF",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 2,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "ALS",
     "description": "Agricultural and Life Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 3,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "AML",
     "description": "Agriculture, Medical, Life Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 4,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "B&B",
     "description": "Biochemical and Biomedical",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 5,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "BMS",
     "description": "Biomedical Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 6,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "CMP",
     "description": "Cellular, Molecular and Physiological Biology",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 7,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "COR",
     "description": "CoRE Panel",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 8,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "EBE",
     "description": "Ecology, Biodiversity and Ecosystems",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 9,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "ECP",
     "description": "Economics, Commerce and Policy Studies",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 10,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "EEB",
     "description": "Ecology, Evolution and Behaviour",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 11,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "EHB",
     "description": "Economics and Human and Behavioural Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 12,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "ESA",
     "description": "Earth Sciences and Astronomy",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 13,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "ESO",
     "description": "Education and Social Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 14,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "GBF",
     "description": "Genetics, Biological and Food Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 15,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "GBS",
     "description": "Genetics, Biotechnology and Biological Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 16,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "HMT",
     "description": "Health Management",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 17,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "HUM",
     "description": "Humanities",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 18,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "LFS",
     "description": "Life Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 19,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "MDS",
     "description": "Medical Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 20,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "MED",
     "description": "Medical Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 21,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "MIS",
     "description": "Mathematical and Information Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 22,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "PEM",
     "description": "Physical Sciences, Engineering and Mathematics",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 23,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "PSE",
     "description": "Physical Sciences and Engineering",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 24,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "PSM",
     "description": "Physical Sciences and Mathematics",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 25,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "SEP",
     "description": "Social Sciences, Economics and Policy",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 26,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "SOC",
     "description": "Social Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 27,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "EIS",
     "description": "Engineering and Interdisciplinary Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 28,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "PCB",
     "description": "Physics, Chemistry and Biochemistry",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 29,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "HSS",
     "description": "Humanities and the Social Sciences",
-    "fund": [
-      "RD"
-    ]
+    "fund": "RD"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 30,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "LFS",
     "description": "Life Sciences",
-    "fund": [
-      "RD"
-    ]
+    "fund": "RD"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 31,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "PEM",
     "description": "Physical Sciences, Engineering and Mathematics",
-    "fund": [
-      "RD"
-    ]
+    "fund": "RD"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 32,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "RFT",
     "description": "Trustees of the Rutherford Foundation",
-    "fund": [
-      "RF"
-    ]
+    "fund": "RF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 33,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "EST",
     "description": "Engineering Sciences and Technology",
-    "fund": [
-      "JC"
-    ]
+    "fund": "JC"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 34,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "HSC",
     "description": "Health Sciences",
-    "fund": [
-      "JC"
-    ]
+    "fund": "JC"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 35,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "SOC",
     "description": "Social Sciences",
-    "fund": [
-      "JC"
-    ]
+    "fund": "JC"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 36,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "PES",
     "description": "Physical  and Earth Science, Engineering, Maths (was PEM until 2013)",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 37,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "MHS",
     "description": "Medical and Health Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 38,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "EME",
     "description": "Earth, Marine and Environmental Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 39,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "SEE",
     "description": "Social, Economic and Environmental Policy (was SEP until 2013)",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 41,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "BIO",
     "description": "Biological Sciences",
-    "fund": [
-      "JC"
-    ]
+    "fund": "JC"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 42,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "PSC",
     "description": "Physical Sciences",
-    "fund": [
-      "JC"
-    ]
+    "fund": "JC"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 43,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "REL",
     "description": "Research of Relevance to the Peoples of New Zealand and/or the South-west Pacific",
-    "fund": [
-      "JC"
-    ]
+    "fund": "JC"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 44,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "MFC",
     "description": "Marsden Fund Council",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 45,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "archived",
     "code": "HBS",
     "description": "Humanities, Behavioural and Social Sciences",
-    "fund": [
-      "MF"
-    ]
+    "fund": "MF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 46,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "RFP",
     "description": "Rutherford Foundation Selection Panel",
-    "fund": [
-      "RF"
-    ]
+    "fund": "RF"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 47,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "CHL",
     "description": "Culture, Heritage and Language",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 48,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "BHS",
     "description": "Biological and Health Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 49,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "EME",
     "description": "Ecology, Marine and Environmental Sciences",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
   }
 },
 {
   "model": "portal.panel",
-  "pk": 50,
   "fields": {
+    "created_at": null,
+    "updated_at": null,
     "state": "active",
     "code": "ACC",
     "description": "Advisory Committee - CoREs",
-    "fund": [
-      "CO"
-    ]
+    "fund": "CO"
+  }
+},
+{
+  "model": "portal.panel",
+  "fields": {
+    "created_at": "2024-04-24T03:59:10.740Z",
+    "updated_at": "2024-04-24T04:01:18.273Z",
+    "state": "active",
+    "code": "HSS",
+    "description": "Humanities and the Social Sciences",
+    "fund": "TM"
+  }
+},
+{
+  "model": "portal.panel",
+  "fields": {
+    "created_at": "2024-04-24T03:59:33.835Z",
+    "updated_at": "2024-04-24T04:01:09.674Z",
+    "state": "active",
+    "code": "LFS",
+    "description": "Life Sciences",
+    "fund": "TM"
+  }
+},
+{
+  "model": "portal.panel",
+  "fields": {
+    "created_at": "2024-04-24T04:00:00.132Z",
+    "updated_at": "2024-04-24T04:00:47.772Z",
+    "state": "active",
+    "code": "PEM",
+    "description": "Physical Sciences, Engineering and Mathematics",
+    "fund": "TM"
+  }
+},
+{
+  "model": "portal.panel",
+  "fields": {
+    "created_at": "2024-04-24T04:00:24.262Z",
+    "updated_at": "2024-04-24T04:00:38.810Z",
+    "state": "active",
+    "code": "IKA",
+    "description": "Indigenous Knowledge and Approaches",
+    "fund": "TM"
   }
 }
 ]

@@ -52,6 +52,9 @@ class StateColumn(tables.Column):
                 else:
                     title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
+        elif state == "in_review":
+            css_classes = "fas fa-question text-success text-center"
+            title = _("The application was submitted and sent out to the referees for the reviewing")
         elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
@@ -214,7 +217,6 @@ class ContractColumn(tables.LinkColumn):
     #         return super().value(record, value)
 
     def render(self, record, value):
-        breakpoint()
         if record.state == "funded" or record.contract:
             return super().render(record, value)
 
@@ -242,10 +244,10 @@ class ApplicationTable(tables.Table):
                 "data-toggle": "tooltip",
                 "title": gettext_lazy("Export the application into a consolidated PDF file"),
             },
-            "td": {"style": "padding: 6px 0 0 16px;"},
+            "td": {"class": "text-center"},
         },
     )
-    latest_contract = tables.columns.linkcolumn.BaseLinkColumn(
+    contract = tables.columns.linkcolumn.BaseLinkColumn(
         text=lambda record: (
             ""
             if record.state != "funded"
@@ -263,14 +265,14 @@ class ApplicationTable(tables.Table):
                 "data-toggle": "tooltip",
                 "title": gettext_lazy("Create or update a contract"),
             },
-            "td": {"style": "padding: 6px 0 0 16px;"},
+            "td": {"class": "text-center"},
         },
     )
 
     def before_render(self, request):
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
-            self.columns.hide("latest_contract")
+            self.columns.hide("contract")
 
     # def render_latest_contract(self, record, value):
     #     if record.state == "funded" or record.state == "archived" and record.contract:
@@ -315,7 +317,7 @@ class ApplicationTable(tables.Table):
             "first_name",
             "last_name",
             "export",
-            "latest_contract",
+            "contract",
         )
 
 

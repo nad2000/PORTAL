@@ -91,12 +91,13 @@
         <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
         <script>
-          function activateRefereeTab() {
-            document.getElementById("submit-id-save_draft").value = "{% trans 'Save and send new invitation(s)' %}";
-            document.getElementById("submit-id-save_draft").name = "send_invitations";
-            document.getElementById("submit-id-submit").hidden = true;
-            document.getElementById("cancel").hidden = true;
-          };
+          {% if SITE_ID != 5 %}
+            function activateRefereeTab() {
+              $("#submit-id-save_draft").val("{% trans 'Save and send new invitation(s)' %}");
+              $("#submit-id-save_draft").attr("name", "send_invitations");
+              $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").hide();
+            };
+          {% endif %}
           {% if round.has_toas %}
             function totalToaShares() {
               var sum = 0;
@@ -105,7 +106,7 @@
               });
               return sum;
             };
-            function updateTotalSoaShares() {
+            function updateTotalToaShares() {
               var total = totalToaShares();
               $("#id_application_toa_total_share").text(total);
               if (total !=100) $("#id_application_toa_total_share").css({"color": "red", 'font-weight': "bold"});
@@ -114,36 +115,78 @@
           {% endif %}
           $(document).ready(function() {
             {% if round.has_toas %}
-              $("#id_toas_row input[name^='toa_']").keyup(updateTotalSoaShares);
-              $("#submit-id-submit").on("click", function(e) {
-                var total = totalToaShares();
-                if (total==100) return;
-                e.preventDefault();  // need for a link
-                $('.nav a[href="#categories"]').tab('show');
-                var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
-                var msg_el = $("#messages");
-                if (msg_el.length) {
-                  msg_el.append(
-                    $('<div class="alert alert-danger">'
-                      +message
-                      +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
-                  )
-                  var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
-                } else bootbox.alert(message);
-                return false;
-              });
-              updateTotalSoaShares();
+              $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
+              updateTotalToaShares();
             {% endif %}
-                      $("#submit-id-save_draft,#submit-id-submit").click(function() {
+                      {% if object.state != "in_review" %}
+                        $("#submit-id-submit").click(function(e) {
+                          $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
+                            var $t = $(this);
+                            $t.attr({
+                              "required": $t.attr("data-required")
+                            }); // .removeAttr('required');
+                          });
+                          // type='file' requires a different appraoch
+                          $("input[data-required='1']").not("[name*='__prefix__']").filter("[type='file']").each(function() {
+                            var $t = $(this);
+                            if (!$t.closest("div.form-group").find("span > a").length) {
+                              $t.attr({
+                                "required": $t.attr("data-required")
+                              }); // .removeAttr('required');
+                            }
+                          });
+                          {% if round.has_toas %}
+                            var total = totalToaShares();
+                            if (total!=100) {
+                              var has_invalid_fields = $("input:invalid,textarea:invalid").length;
+                              if (!has_invalid_fields) e.preventDefault();  // need for a link
+                              $('.nav a[href="#categories"]').tab('show');
+                              var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
+                              var msg_el = $("#messages");
+                              if (msg_el.length) {
+                                msg_el.append(
+                                  $('<div class="alert alert-danger">'
+                                    +message
+                                    +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+                                )
+                                var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
+                              } else bootbox.alert(message);
+                              if (!has_invalid_fields) return false;
+                            }
+                          {% endif %}
+                        });
+                        $("#submit-id-save_draft").click(function(e) {
+                          $("input[data-required][required]").each(function() {
+                            this.required = false;
+                            this.invalid = false;
+                            this.removeAttribute("required");
+                            $(this).removeAttr('required');
+                          });
+                          if (!$("input:invalid[required]").length) $("#submit-id-save_draft").attr("formnovalidate","formnovalidate");
+                        });
+                      {% endif %}
+                      $("#submit-id-save_draft,#submit-id-submit").click(function(e) {
                         formset_set_inputs(prefix="members");
                         formset_set_inputs(prefix="referees");
+                        if (!is_email_list_unique(
+                              prefix="members",
+                              message_template=email => `{% trans 'One or more team memeber email address entered twice: ${email}. Please amend the list.' %}`)) {
+                          e.preventDefault();  // need for a link
+                          return false;
+                        };
+                        if (!is_email_list_unique(
+                              prefix="referees",
+                              message_template=email => `{% trans 'One or more referee email address entered twice: ${email}. Please amend the list.' %}`)) {
+                          e.preventDefault();  // need for a link
+                          return false;
+                        };
                         return true;
                       });
                                 bootbox.addLocale('mi', {
-                                            OK      : 'Pai',
-                                            CANCEL  : 'Whakakore',
-                                            CONFIRM : 'Whakaū'
-                                          });
+                                  OK      : 'Pai',
+                                  CANCEL  : 'Whakakore',
+                                  CONFIRM : 'Whakaū'
+                                });
                                 bootbox.setDefaults({locale: "{{ LANGUAGE_CODE }}"});
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {
@@ -248,19 +291,21 @@
                                 $(document.body).on("click", "a[data-toggle='tab']", function(event) {
                                   location.hash = this.getAttribute("href");
                                 });
-                                {% if form.errors.letter_of_support_file %}
-                                    $('.nav a[href="#summary"]').tab('show');
+                                {% if object.state == "in_review" %}
+                                  $('.nav a[href="#referees"]').tab('show');
+                                {% elif form.errors.letter_of_support_file %}
+                                  $('.nav a[href="#summary"]').tab('show');
                                 {% elif "verification" in request.GET %}
-                                    $('.nav a[href="#id-verification"]').tab('show');
+                                  $('.nav a[href="#id-verification"]').tab('show');
                                 {% elif "referees" in request.GET %}
-                                    $('.nav a[href="#referees"]').tab('show'); activateRefereeTab();
+                                  $('.nav a[href="#referees"]').tab('show');{% if SITE_ID != 5 %} activateRefereeTab();{% endif %}
                                 {% elif "summary" in request.GET %}
-                                    $('.nav a[href="#summary"]').tab('show');
+                                  $('.nav a[href="#summary"]').tab('show');
                                 {% else %}
                                   // Jump to the last active tab:
                                   if (location.hash) {
                                       if (location.hash != "#members") $('.nav a[href="' + location.hash + '"]').tab('show');
-                                      if (location.hash == "#referees") activateRefereeTab();
+                                      {% if SITE_ID != 5 %}if (location.hash == "#referees") activateRefereeTab();{% endif %}
                                   };
                                   if (!location.hash || location.hash == "#applicant") {
                                     // document.getElementById("button-id-previous").disabled = true;
@@ -272,13 +317,14 @@
                                 {% endif %}
                                 /* $("#div_id_title").parent().css("min-width", "4rem");
                                    $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
-                                $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
-                                $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
-                                  document.getElementById("submit-id-save_draft").value = "{% trans 'Save' %}";
-                                  document.getElementById("submit-id-save_draft").name = "save_draft";
-                                  document.getElementById("submit-id-submit").hidden = false;
-                                  document.getElementById("cancel").hidden = false;
-                                });
+                                {% if SITE_ID != 5 %}
+                                  $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
+                                  $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
+                                    $("#submit-id-save_draft").val("{% trans 'Save' %}");
+                                    $("#submit-id-save_draft").attr("name", "save_draft");
+                                    $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").show();
+                                  });
+                                {% endif %}
                                 $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
                                   if (e.target.hash.endsWith($(".tab-pane").last().attr('id'))) {
                                     /* document.getElementById("button-id-next").disabled = true; */
@@ -290,9 +336,9 @@
                                     /* document.getElementById("button-id-previous").disabled = true; */
                                     $("#button-id-previous").hide();
                                   } else $("#button-id-previous").show();
-                                })
+                                });
                                 $('#button-id-next').on('click', function (e) {
-                                  var active = $(".nav-link.active");
+                                  var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
                                   if (active.length > 0) {
                                               var nextTab = active.parent().next().children();
                                               if (nextTab.length > 0) {
@@ -302,7 +348,7 @@
                                             }
                                 });
                                 $('#button-id-previous').on('click', function (e) {
-                                  var active = $(".nav-link.active");
+                                  var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
                                   if (active.length > 0) {
                                               var prevTab = active.parent().prev().children();
                                               if (prevTab.length > 0) {
@@ -322,8 +368,14 @@
                 $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
               }{% endif %}
             {% endif %}
-
-            });
+            {% if object and object.state == "in_review" %}
+              $("#applicant,#categories,#summary,#id-verification,#ethics-statement,#tac").find("input,textarea,button,select").prop({
+                readonly: true,
+                disabled: true
+              });
+              $("#id_summary,#id_summary_en,#id_summary_mi").summernote("disable");
+            {% endif %}
+          });
         </script>
       {% endblock %}
 {# vim:set ft=htmldjango: #}

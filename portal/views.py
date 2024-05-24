@@ -51,7 +51,7 @@ from django.db.models import (
     Sum,
     Value,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Trim
 from django.db.models.deletion import RestrictedError
 from django.forms import (
     DateInput,
@@ -302,7 +302,7 @@ class StateInPathMixin:
         if state and state in (
             [s for s, _ in self.model.state.field.choices]
             if hasattr(self.model, "state")
-            else ["new", "draft", "submitted", "archived", "WIP"]
+            else ["new", "draft", "submitted", "archived", "WIP", "in_review"]
         ):
             return state
 
@@ -341,7 +341,7 @@ class StateInPathMixin:
             else:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
-                elif state in ["accepted", "funded"]:
+                elif state in ["accepted", "funded", "in_review"]:
                     queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
@@ -708,13 +708,14 @@ def index(request):
             | Q(email=user.email)
             | Q(email__in=Subquery(user.emailaddress_set.values("email"))),
             state__in=["sent", "submitted"],
+            round__scheme__current_round=F("round"),
         )
         draft_applications = models.Application.user_draft_applications(user).filter(
             ~Q(round__panellists__user=user),
             round__in=models.Scheme.objects.values("current_round"),
         )
         current_applications = models.Application.user_applications(
-            user, ["submitted", "review", "accepted"]
+            user, ["submitted", "in_review", "accepted", "approved"]
         ).filter(
             ~Q(round__panellists__user=user),
             round__in=models.Scheme.objects.values("current_round"),
@@ -732,7 +733,7 @@ def index(request):
                 is_active=True,
                 registered_on_id=site_id,
             ).order_by("-last_login")
-        schemes = models.SchemeApplication.get_data(user)
+        schemes = list(models.SchemeApplication.get_data(user))
         previous_applications = [
             dict(
                 id=pa.previous_application_id,
@@ -790,12 +791,14 @@ def index(request):
                     if is_ajax:
                         return JsonResponse({"message": message, "status": "info"}, status=200)
                     messages.info(request, message)
-
+        if len(schemes) == 0 and current_applications.count() == 0:
+            return redirect("about")
     else:
         messages.info(
             request,
             _("Your profile has not been approved, Admin is looking into your request"),
         )
+
     return render(request, "index.html", locals())
 
 
@@ -1135,6 +1138,7 @@ def disable_profile_protection_patterns(request):
 @login_required
 @shoud_be_onboarded
 def profile_protection_patterns(request):
+    site_id = settings.SITE_ID
     person = request.person
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
@@ -1185,7 +1189,7 @@ def profile_protection_patterns(request):
             person.account_approval_message_sent_at = timezone.now()
             person.save(update_fields=["account_approval_message_sent_at"])
             contact_email = models.site_contact_email(site.id)
-            if site.domain == "portal.pmscienceprizes.org.nz":
+            if site_id == 1:
                 send_mail(
                     recipients=[request.user.full_email_address],
                     subject="Account Approval request submitted",
@@ -1324,54 +1328,6 @@ def invite_team_members(request, application):
     return count
 
 
-def invite_referee(request, application=None, by=None, referees=None):
-    """Send invitations to all referee."""
-    # members that don't have invitations
-    count = 0
-    # referees = list(models.Referee.where(application=application, invitation__isnull=True))
-    # referees = list(models.Referee.where(invitation__isnull=True))
-    # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
-    if not referees:
-        referees = list(
-            models.Referee.where(
-                ~Q(state__in=["testified", "accepted", "opted_out"]),
-                ~Q(invitation__email=F("email")),
-                application=application,
-            ).prefetch_related("application", "application__submitted_by")
-        )
-
-    for r in referees:
-        get_or_create_referee_invitation(
-            r, by=r.application.submitted_by or by or request and request.user
-        )
-
-    # send 'yet unsent' invitations:
-    invitations = list(
-        (
-            models.Invitation.where(
-                Q(sent_at__isnull=True),
-                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
-                application=application,
-                type="R",
-            )
-            if application
-            else models.Invitation.where(
-                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
-                referee__in=Subquery(referees.values("id")),
-            )
-        ).prefetch_related("referee", "referee__user")
-    )
-    for i in invitations:
-        i.send(request, by=by or request and request.user)
-        i.save()
-        if i.referee:
-            i.referee.send()
-            i.referee.save()
-        count += 1
-
-    return count
-
-
 def get_or_create_team_member_invitation(member):
     u = member.user or models.User.objects.filter(email=member.email).first()
     if not u and (ea := EmailAddress.objects.filter(email=member.email).first()):
@@ -1406,58 +1362,6 @@ def get_or_create_team_member_invitation(member):
                 site=site,
             ),
         )
-
-
-def get_or_create_referee_invitation(referee, by=None):
-    u = referee.user or models.User.objects.filter(email=referee.email).first()
-    if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
-        u = ea.user
-    if not referee.user and u:
-        referee.user = u
-        if not referee.first_name:
-            referee.first_name = u and u.first_name or ""
-        if not referee.last_name:
-            referee.last_name = u and u.last_name or ""
-        if not referee.middle_names:
-            referee.middle_names = u and u.middle_names or ""
-        referee.save(update_fields=["user", "first_name", "middle_names", "last_name"])
-    first_name = referee.first_name or u and u.first_name or ""
-    last_name = referee.last_name or u and u.last_name or ""
-    middle_names = referee.middle_names or u and u.middle_names or ""
-    site = (referee.application and referee.application.site) or Site.objects.get_current()
-
-    if (
-        settings.SITE_ID in [4, 5]
-        and referee.application.round.survey_id
-        and not (referee.survey_token_id or referee.survey_token)
-    ):
-        referee.add_to_survey()
-
-    if hasattr(referee, "invitation"):
-        i = referee.invitation
-        if referee.email != i.email:
-            i.revoke(by=by)
-            i.save()
-        else:
-            referee.satus = None
-            return (i, False)
-
-    i, created = models.Invitation.get_or_create(
-        type=models.INVITATION_TYPES.R,
-        referee=referee,
-        email=referee.email,
-        defaults=dict(
-            inviter=by,
-            application=referee.application,
-            first_name=first_name,
-            middle_names=middle_names,
-            last_name=last_name,
-            site=site,
-        ),
-    )
-    referee.invitation = i
-    referee.save()
-    return (i, created)
 
 
 def invite_panellist(request, round):
@@ -1671,11 +1575,14 @@ class ApplicationDetail(DetailView):
 
         return redirect(request.path)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
         a = context["application"] = self.object
+        if a.state == "in_review":
+            context["update_button_name"] = _("Edit referee list")
         if a and a.site_id == 5:
-            context["documents"] = a.documents_dict
+            context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
         if n := models.Nomination.where(application=a).last():
             context["nomination"] = n
@@ -1740,6 +1647,13 @@ class ApplicationDetail(DetailView):
         return context
 
 
+class ItemFormSetView(ModelFormSetView):
+
+    model = models.Referee
+    # fields = ['name', 'sku', 'price']
+    # template_name = 'item_formset.html'
+
+
 class ApplicationView(LoginRequiredMixin):
     model = Application
     template_name = "application.html"
@@ -1795,7 +1709,7 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     return redirect("application", pk=pk)
 
-                if a.state and a.state not in ["new", "draft"]:
+                if a.state and a.state not in ["new", "draft", "in_review"]:
                     messages.error(
                         request,
                         _(
@@ -1852,6 +1766,7 @@ class ApplicationView(LoginRequiredMixin):
         initial = super().get_initial()
         initial["round"] = self.round.id
         round = self.round
+        nomination = self.nomination
 
         if (
             round.letter_of_support_required
@@ -1871,7 +1786,6 @@ class ApplicationView(LoginRequiredMixin):
         ):
             initial["cv_file"] = self.object.cv.file
 
-        initial["round"] = round.id
         if not (self.object and self.object.id):
             initial["user"] = user
             initial["email"] = user.email
@@ -1929,7 +1843,15 @@ class ApplicationView(LoginRequiredMixin):
                 if research_experience_in_years:
                     initial["research_experience_in_years"] = research_experience_in_years
 
-            if current_affiliation:
+            if nomination:
+                initial["org"] = nomination.org
+                initial["position"] = (
+                    current_affiliation
+                    and current_affiliation.role
+                    or latest_application
+                    and latest_application.position
+                )
+            elif current_affiliation:
                 initial["org"] = current_affiliation.org
                 initial["position"] = (
                     current_affiliation.role or latest_application and latest_application.position
@@ -1986,9 +1908,14 @@ class ApplicationView(LoginRequiredMixin):
     def nomination(self):
         if "nomination" in self.kwargs:
             return models.Nomination.get(self.kwargs["nomination"])
+        elif n := models.Nomination.where(
+            user=self.request.user, round=self.round, state="accepted"
+        ).last():
+            return n
 
     def form_valid(self, form):
         instance = form.instance
+        current_state = instance and instance.state
         # if not instance.pk:
         #     resp = super().form_valid(form)
 
@@ -2000,10 +1927,11 @@ class ApplicationView(LoginRequiredMixin):
         round = self.round
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
+        update_url = None
 
         try:
             with transaction.atomic():
-                instance = form.instance
+                # if instance and instance.state != "in_review":
                 if not instance.organisation and instance.org:
                     instance.organisation = instance.org.name
                 if not instance.email:
@@ -2050,8 +1978,9 @@ class ApplicationView(LoginRequiredMixin):
 
                 has_deleted = False
                 a = self.object
+                update_url = a and a.pk and reverse("application-update", kwargs=dict(pk=a.pk))
 
-                if a.is_team_application:
+                if a.is_team_application and current_state != "in_review":
                     members = context["members"]
                     has_deleted = bool(members.deleted_forms)
                     if has_deleted:
@@ -2075,22 +2004,28 @@ class ApplicationView(LoginRequiredMixin):
                                 raise ValidationError(_("Invalid member form"))
 
                     if has_deleted:
-                        return redirect(url)
+                        return redirect(f"{update_url or url}#applicant")
 
                 # if identity_verification_form := context.get("identity_verification"):
                 #     identity_verification_form.instance.application = a
                 #     if identity_verification_form.is_valid():
 
-                if has_required_documents and (documents := context.get("documents")):
+                if (
+                    has_required_documents
+                    and current_state != "in_review"
+                    and (documents := context.get("documents"))
+                ):
                     if not documents.instance or not documents.instance.id:
                         documents.instance = a
                     if documents.is_valid():
                         documents.save()
                     else:
+                        if update_url:
+                            return redirect(f"{update_url}#documents")
                         return self.form_invalid(form)
 
                 try:
-                    if not referees.instance or not referees.instance.id:
+                    if not referees.instance or not referees.instance.pk:
                         referees.instance = a
                     if referees.is_valid():
                         # referees.instance = a
@@ -2104,32 +2039,48 @@ class ApplicationView(LoginRequiredMixin):
                         #             i.revoke(self.request)
                         #             i.save()
 
-                    referees.save()
-                    if (
-                        a.file
-                        or site_id in [4, 5]
-                        or (
-                            has_required_documents
-                            and a.documents.filter(~Q(file=""), document_type__role="AF").exists()
-                        )
-                    ):
-                        count = invite_referee(self.request, a)
-                        if count > 0:
-                            messages.success(
-                                self.request,
-                                _("%d referee invitation(s) sent.") % count,
+                        referees.save()
+                        if (
+                            a.file
+                            or site_id in [4, 5]
+                            or (
+                                has_required_documents
+                                and a.documents.filter(
+                                    ~Q(file=""), document_type__role="AF"
+                                ).exists()
                             )
-                    elif a.referees.count():
-                        messages.info(
-                            self.request,
-                            _(
-                                "The invitation(s) to referee(s) will be sent after "
-                                "you upload the application form."
-                            ),
-                        )
+                        ):
+                            if (
+                                site_id != 5
+                                or current_state == "in_review"
+                                or "submit_to_referees" in self.request.POST
+                            ):
+                                count = a.invite_referees(request=self.request)
+                                if count > 0:
+                                    messages.success(
+                                        self.request,
+                                        _("%d referee invitation(s) sent.") % count,
+                                    )
+                        elif a.referees.count():
+                            if site_id == 5:
+                                messages.info(
+                                    self.request,
+                                    _(
+                                        "The invitation(s) to referee(s) will be sent after "
+                                        "you upload the application form and submit it for reviewing to the referees."
+                                    ),
+                                )
+                            else:
+                                messages.info(
+                                    self.request,
+                                    _(
+                                        "The invitation(s) to referee(s) will be sent after "
+                                        "you upload the application form."
+                                    ),
+                                )
 
-                        if has_deleted:
-                            return redirect(url)
+                            if has_deleted:
+                                return redirect(url)
                     else:
                         for f in referees.forms:
                             if not f.is_valid():
@@ -2147,12 +2098,45 @@ class ApplicationView(LoginRequiredMixin):
                                 url = self.continue_url("referees")
                                 raise ValidationError(_("Invalid referee form"))
 
+                    if referees and referees.is_valid():
+                        referee_emails = sorted(
+                            [
+                                f.cleaned_data.get("email")
+                                for f in referees.forms
+                                if f.cleaned_data.get("email")
+                                and f.cleaned_data.get("email").strip()
+                            ]
+                        )
+                        duplicate_referee_emails = [
+                            e for e in set(referee_emails) if referee_emails.count(e) > 1
+                        ]
+                        if duplicate_referee_emails:
+                            duplicate_referee_emails = ", ".join(duplicate_referee_emails)
+                            messages.error(
+                                self.request,
+                                _(
+                                    "Referee email list is not unique. "
+                                    f"There are duplicate entry/entries: {duplicate_referee_emails}. "
+                                    "Please remove duplicates and amend the list."
+                                ),
+                            )
+                            if update_url:
+                                return redirect(f"{update_url}#referees")
+                            form.active_tab = "referees"
+                            return self.form_invalid(form)
+
                 except Exception as e:
                     capture_exception(e)
                     messages.error(self.request, str(e))
+                    if update_url:
+                        return redirect(update_url)
                     return self.form_invalid(form)
 
-                if "photo_identity" in form.changed_data and instance.photo_identity:
+                if (
+                    current_state != "in_review"
+                    and "photo_identity" in form.changed_data
+                    and instance.photo_identity
+                ):
                     iv, created = models.IdentityVerification.get_or_create(
                         application=instance,
                         user=self.request.user,
@@ -2168,12 +2152,14 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     iv.save()
 
-                if ethics_statement_form := context.get("ethics_statement"):
+                if current_state != "in_review" and (
+                    ethics_statement_form := context.get("ethics_statement")
+                ):
                     ethics_statement_form.instance.application = a
                     if ethics_statement_form.is_valid():
                         ethics_statement_form.save()
 
-                if round.has_fors:
+                if current_state != "in_review" and round.has_fors:
                     fors = context["fors"]
                     if not fors.instance or not fors.instance.id:
                         fors.instance = a
@@ -2186,9 +2172,11 @@ class ApplicationView(LoginRequiredMixin):
                                 if "__all__" in f.errors:
                                     messages.error(self.request, f.errors["__all__"])
 
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
-                if round.has_seos:
+                if current_state != "in_review" and round.has_seos:
                     seos = context["seos"]
                     if not seos.instance or not seos.instance.id:
                         seos.instance = a
@@ -2200,9 +2188,11 @@ class ApplicationView(LoginRequiredMixin):
                                 # form.errors.update(f.errors)
                                 if "__all__" in f.errors:
                                     messages.error(self.request, f.errors["__all__"])
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
-                if "file" in form.changed_data and instance.file:
+                if current_state != "in_review" and "file" in form.changed_data and instance.file:
                     try:
                         if cf := instance.update_converted_file():
                             messages.success(
@@ -2229,7 +2219,8 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
 
                 if (
-                    "letter_of_support_file" in form.changed_data
+                    current_state != "in_review"
+                    and "letter_of_support_file" in form.changed_data
                     and instance.letter_of_support
                     and instance.letter_of_support.file
                     and form.cleaned_data["letter_of_support_file"].content_type
@@ -2274,6 +2265,8 @@ class ApplicationView(LoginRequiredMixin):
                     messages.error(self.request, ex)
             capture_exception(ex)
             # return redirect(url)
+            if update_url:
+                return redirect(update_url)
             return self.form_invalid(form)
 
         if has_deleted:  # keep editing
@@ -2281,8 +2274,8 @@ class ApplicationView(LoginRequiredMixin):
         else:
             url = None
             try:
-                if "submit" in self.request.POST:
-                    if self.round.applicant_cv_required:
+                if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
+                    if current_state != "in_review" and self.round.applicant_cv_required:
                         if not a.submitted_by or not (
                             models.CurriculumVitae.where(owner=a.submitted_by).exists()
                             or a.documents.filter(~Q(file=""), document_type__role="CV").exists()
@@ -2322,10 +2315,14 @@ class ApplicationView(LoginRequiredMixin):
                         ):
                             a.cv = cv
 
-                    if self.round.ethics_statement_required and not (
-                        a.ethics_statement
-                        or (a.ethics_statement.not_relevant and a.ethics_statement.comment)
-                        or a.ethics_statement.file
+                    if (
+                        current_state != "in_review"
+                        and self.round.ethics_statement_required
+                        and not (
+                            a.ethics_statement
+                            or (a.ethics_statement.not_relevant and a.ethics_statement.comment)
+                            or a.ethics_statement.file
+                        )
                     ):
                         messages.error(
                             self.request,
@@ -2338,7 +2335,7 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("ethics-statement")
                         # url = url or (self.request.path_info.split("?")[0] + "#ethics-statement")
 
-                    if not a.is_tac_accepted:
+                    if current_state != "in_review" and not a.is_tac_accepted:
                         if a.submitted_by == user:
                             messages.error(
                                 self.request,
@@ -2350,9 +2347,13 @@ class ApplicationView(LoginRequiredMixin):
                                 url = self.continue_url("tac")
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
-                    if a.round.budget_template and not (
-                        a.budget
-                        or a.documents.filter(~Q(file=""), document_type__role="B").exists()
+                    if (
+                        current_state != "in_review"
+                        and a.round.budget_template
+                        and not (
+                            a.budget
+                            or a.documents.filter(~Q(file=""), document_type__role="B").exists()
+                        )
                     ):
                         messages.error(
                             self.request,
@@ -2364,14 +2365,18 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("summary")
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
-                    if site_id not in [4, 5] and not (
-                        a.file
-                        or (
-                            has_required_documents
-                            and models.ApplicationDocument.where(
-                                Q(document_type__role="AF")
-                                | Q(required_document__document_type__role="AF")
-                            ).exists()
+                    if (
+                        current_state != "in_review"
+                        and site_id not in [4, 5]
+                        and not (
+                            a.file
+                            or (
+                                has_required_documents
+                                and models.ApplicationDocument.where(
+                                    Q(document_type__role="AF")
+                                    | Q(required_document__document_type__role="AF")
+                                ).exists()
+                            )
                         )
                     ):
                         messages.error(
@@ -2385,7 +2390,8 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
                     if (
-                        a.round
+                        current_state != "in_review"
+                        and a.round
                         and a.round.pid_required
                         and a.submitted_by.needs_identity_verification
                         and not (
@@ -2415,30 +2421,44 @@ class ApplicationView(LoginRequiredMixin):
                         if not url:
                             url = self.continue_url("id-verification")
 
-                    if (
-                        a.round.required_referees
-                        and a.referees.filter(
-                            ~Q(state__in=["bounced", "opted_out"])
-                            if site_id in [4, 5]
-                            else Q(state="testified")
-                        ).count()
-                        < a.round.required_referees
-                    ):
-                        messages.error(
-                            self.request,
-                            (
+                    if site_id == 5 or "submit_to_referees" in self.request.POST:
+                        if (
+                            a.round.required_referees
+                            and a.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
+                            < a.round.required_referees
+                        ):
+                            messages.error(
+                                self.request,
                                 _("You need to nominate at least %d referee(s).")
-                                if site_id in [4, 5]
-                                else _(
-                                    "You need to procure reviews of your application from at least %d referees."
-                                )
+                                % a.round.required_referees,
                             )
-                            % a.round.required_referees,
-                        )
-                        if not url:
-                            url = self.continue_url("referees")
+                            if not url:
+                                url = self.continue_url("referees")
+                    else:
+                        if (
+                            a.round.required_referees
+                            and a.referees.filter(
+                                ~Q(state__in=["bounced", "opted_out"])
+                                if site_id in [4, 5]
+                                else Q(state="testified")
+                            ).count()
+                            < a.round.required_referees
+                        ):
+                            messages.error(
+                                self.request,
+                                (
+                                    _("You need to nominate at least %d referee(s).")
+                                    if site_id in [4, 5]
+                                    else _(
+                                        "You need to procure reviews of your application from at least %d referees."
+                                    )
+                                )
+                                % a.round.required_referees,
+                            )
+                            if not url:
+                                url = self.continue_url("referees")
 
-                    if has_required_documents:
+                    if current_state != "in_review" and has_required_documents:
                         for rd in a.round.required_documents.filter(is_optional=False):
                             if not a.documents.filter(~Q(file=""), required_document=rd).exists():
                                 form.add_error(
@@ -2451,7 +2471,12 @@ class ApplicationView(LoginRequiredMixin):
                                 if not hasattr(form, "active_tab"):
                                     form.active_tab = "summary"
 
-                    if site_id in [4, 5] and a.round.has_seos and a.application_seos.count() > 3:
+                    if (
+                        current_state != "in_review"
+                        and site_id in [4, 5]
+                        and a.round.has_seos
+                        and a.application_seos.count() > 3
+                    ):
                         form.add_error(
                             None,
                             _(
@@ -2491,38 +2516,52 @@ class ApplicationView(LoginRequiredMixin):
                     if url:
                         return redirect(url)
 
-                    a.submit(request=self.request)
-                    a.save()
-                    messages.info(
-                        self.request,
-                        (
+                    if (
+                        site_id == 5
+                        or current_state == "in_review"
+                        or "submit_to_referees" in self.request.POST
+                    ):
+                        count = a.send_out_to_referees(request=self.request) or a.referees.count()
+                        messages.info(
+                            self.request,
                             _(
-                                "Your application has been successfully submitted. "
-                                "The Research Office will be in touch if there is anything more needed. Good luck."
-                            )
-                            if site_id in [4, 5]
-                            else _(
-                                "Your application has been successfully submitted. "
-                                "The Prize secretariat will be in touch if there is anything more needed. Good luck."
-                            )
-                        ),
-                    )
+                                f"Your application has been successfully submitted to {count} referee(s) to review it."
+                            ),
+                        )
+                    else:
+                        a.submit(request=self.request)
+                        messages.info(
+                            self.request,
+                            (
+                                _(
+                                    "Your application has been successfully submitted. "
+                                    "The Research Office will be in touch if there is anything more needed. Good luck."
+                                )
+                                if site_id in [4, 5]
+                                else _(
+                                    "Your application has been successfully submitted. "
+                                    "The Prize secretariat will be in touch if there is anything more needed. "
+                                    "Good luck."
+                                )
+                            ),
+                        )
+                    a.save()
 
                 elif (
                     self.request.method == "POST"
                     or "save_draft" in self.request.POST
                     or "send_invitations" in self.request.POST
                 ):
-                    if not a.state or a.state != "new":
+                    if not current_state or current_state == "new":
                         a.save_draft(request=self.request)
-                    a.save()
+                        a.save()
                     if "send_invitations" in self.request.POST:
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         url = self.continue_url("referees")
                         return redirect(url)
-                    else:
+                    elif current_state != "in_review":
                         if (
-                            site_id in [4, 5]
+                            site_id == 4
                             and a.round.has_fors
                             and a.fors.count() > 0
                             and (
@@ -2558,6 +2597,7 @@ class ApplicationView(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        is_in_review = self.object and self.object.state == "in_review"
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
@@ -2571,6 +2611,19 @@ class ApplicationView(LoginRequiredMixin):
             EthicsStatementForm = model_forms.modelform_factory(
                 models.EthicsStatement,
                 exclude=["application"],
+                widgets={
+                    "file": widgets.ClearableFileInput(
+                        attrs={
+                            "placeholder": _("Please upload a file ..."),
+                            "data-placeholder": _("Please upload a file ..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("The file is required. Please upload a file ..."),
+                            "oninput": "this.setCustomValidity('')",
+                            "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                        }
+                    )
+                },
             )
             ethics_statement_form = EthicsStatementForm(
                 self.request.POST or None,
@@ -2774,10 +2827,10 @@ class ApplicationView(LoginRequiredMixin):
             )
             if self.request.POST:
                 fs = fsc(
-                    self.request.POST or None,
-                    self.request.FILES or None,
+                    not is_in_review and self.request.POST or None,
+                    not is_in_review and self.request.FILES or None,
                     instance=self.object,
-                    initial=initial_documents,
+                    # initial=initial_documents,
                 )
             else:
                 fs = fsc(instance=self.object, initial=initial_documents)
@@ -2828,7 +2881,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST:
+            if self.request.POST and not is_in_review:
                 fs = fsc(self.request.POST, instance=self.object)
             elif not (self.object and self.object.id):
                 fs = fsc(instance=self.object, initial=initial_fors)
@@ -2876,7 +2929,11 @@ class ApplicationView(LoginRequiredMixin):
                 if latest_application and not (self.object and self.object.id)
                 else []
             )
-            fs = fsc(self.request.POST or None, instance=self.object, initial=initial_seos)
+            fs = fsc(
+                not is_in_review and self.request.POST or None,
+                instance=self.object,
+                initial=initial_seos,
+            )
             fs.extra = len(initial_seos) or 1
             context["seos"] = fs
         return context
@@ -2884,6 +2941,14 @@ class ApplicationView(LoginRequiredMixin):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
+        is_in_review = self.object and self.object.state == "in_review"
+
+        if is_in_review:
+            if "data" in kwargs:
+                del kwargs["data"]
+            if "files" in kwargs:
+                del kwargs["files"]
+
         kwargs["initial"]["user"] = self.request.user
 
         if self.object and self.object.id:
@@ -2899,9 +2964,7 @@ class ApplicationView(LoginRequiredMixin):
             user = self.request.user
             kwargs["initial"].update(
                 {
-                    "application_title": (
-                        self.round.title
-                    ),  # models.Round.get(self.kwargs["round"]).title,
+                    "application_title": ("" if settings.SITE_ID in [4, 5] else self.round.title),
                     "email": user.email,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
@@ -4031,6 +4094,11 @@ class ApplicationList(
     # filterset_class = ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
+    def get_table_kwargs(self):
+        if not (self.request.user.is_superuser or self.request.user.is_site_staff):
+            return {"exclude": ("contract",)}
+        return super().get_table_kwargs()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # u = self.request.user
@@ -4703,12 +4771,12 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return text
 
     def get_queryset(self):
-        q = Address.objects.all().values_list("city")
+        q = Address.objects.annotate(city_name=Trim("city")).values_list("city_name")
         if country := self.forwarded.get("country", "").strip():
             q = q.filter(country=country)
         if self.q:
-            q = q.filter(city__istartswith=self.q)
-        return q.order_by("city").distinct()
+            q = q.filter(city_name__istartswith=self.q)
+        return q.order_by("city_name").distinct()
 
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -5274,12 +5342,30 @@ class NominationView(CreateUpdateView):
     @cached_property
     def round(self):
         return (
-            models.Round.get(self.kwargs["round"]) if "round" in self.kwargs else self.object.round
+            models.Round.get(self.kwargs.get("round") or self.request.GET.get("round"))
+            if "round" in self.kwargs or "round" in self.request.GET
+            else self.object and self.object.round or None
         )
 
     def get_initial(self):
         initial = super().get_initial()
-        initial["round"] = self.round.id
+        initial["round"] = self.round.id if self.round else None
+        if (
+            latest := self.request.user.nominations.filter(
+                ~Q(contact_phone__isnull=True), ~Q(contact_phone="")
+            )
+            .order_by("pk")
+            .last()
+        ):
+            initial["contact_phone"] = latest.contact_phone
+        elif (
+            ro := self.request.user.research_offices.filter(
+                ~Q(org__contact_phone__isnull=True), ~Q(org__contact_phone="")
+            )
+            .order_by("pk")
+            .last()
+        ):
+            initial["contact_phone"] = ro.org.contact_phone
         return initial
 
     def form_valid(self, form):
@@ -5294,6 +5380,7 @@ class NominationView(CreateUpdateView):
                 n.site = Site.objects.get_current()
 
         resp = super().form_valid(form)
+
         if self.request.method == "POST":
             reset_cache(self.request)
 
@@ -5411,6 +5498,8 @@ class NominationView(CreateUpdateView):
                 )
                 n.save()
                 reset_cache(self.request)
+                if return_url := self.request.GET.get("return_url"):
+                    return redirect(f"{return_url}?selected_round={self.round.pk}")
                 return redirect("index")
             except Exception as ex:
                 capture_exception(ex)
@@ -5451,7 +5540,7 @@ class NominationView(CreateUpdateView):
                 kwargs["initial"]["org"] = ro.org
 
         kwargs["initial"]["round"] = self.round
-        kwargs["initial"]["round_id"] = self.round.id
+        kwargs["initial"]["round_id"] = self.round.id if self.round else None
         kwargs["initial"]["nominator"] = self.request.user
         return kwargs
 
@@ -5465,10 +5554,16 @@ class NominationView(CreateUpdateView):
 
     def get_close_url(self):
         referer = self.request.META.get("HTTP_REFERER")
-        return self.request.GET.get("next") or (
-            referer
-            if referer and not referer.endswith(self.request.path)
-            else reverse("nominations")
+        if "return_url" in self.request.GET:
+            return f"{self.request.GET.get('return_url')}?selected_round={self.round.pk}"
+        return (
+            self.request.GET.get("next")
+            or self.request.GET.get("return_url")
+            or (
+                referer
+                if referer and not referer.endswith(self.request.path)
+                else reverse("nominations")
+            )
         )
 
 
@@ -5529,6 +5624,7 @@ class TestimonialView(CreateUpdateView):
         t = form.instance
         u = self.request.user
         reset_cache(self.request)
+        site_id = settings.SITE_ID
 
         if not t.id:
             a = self.application
@@ -5552,9 +5648,13 @@ class TestimonialView(CreateUpdateView):
         resp = super().form_valid(form)
 
         if r := t.referee:
-            for i in models.Invitation.where(~Q(state="accepted"), type="R", referee=r):
-                i.accept(self.request, by=u)
-                i.save(update_fields=["state"])
+            invitations = list(models.Invitation.where(~Q(state="accepted"), type="R", referee=r))
+            if invitations:
+                for i in invitations:
+                    i.accept(self.request, by=u, description="Testimonial submitted", commit=False)
+                models.Invitation.objects.bulk_update(
+                    invitations, fields=["state", "state_changed_at", "accepted_at"]
+                )
 
         if (
             self.request.method == "POST"
@@ -5593,9 +5693,16 @@ class TestimonialView(CreateUpdateView):
                     if cf := t.update_converted_file():
                         messages.success(
                             self.request,
-                            _(
-                                "Your testimonial form was converted into PDF file. "
-                                "Please review the converted testimonial form version <a href='%s'>%s</a>."
+                            (
+                                _(
+                                    "Your referee report form was converted into PDF file. "
+                                    "Please review the converted referee report form version <a href='%s'>%s</a>."
+                                )
+                                if site_id in [4, 5]
+                                else _(
+                                    "Your testimonial form was converted into PDF file. "
+                                    "Please review the converted testimonial form version <a href='%s'>%s</a>."
+                                )
                             )
                             % (cf.file.url, os.path.basename(cf.file.name)),
                         )
@@ -5648,52 +5755,57 @@ class TestimonialView(CreateUpdateView):
                     ).exists()
                     and not a.referees.filter(~Q(state="testified")).exists()
                 ):
-                    url = self.request.build_absolute_uri(
-                        reverse("application-update", kwargs={"pk": a.id})
-                    )
-                    recipients = [a.submitted_by, *a.members.all()]
-                    params = {
-                        "user_display": ", ".join(r.full_name for r in recipients),
-                        "number": a.number,
-                        "title": a.application_title or a.round.title,
-                        "url": url,
-                    }
-                    send_mail(
-                        __("All testimonials were completed"),
-                        __(
-                            "Tēnā koe %(user_display)s\n\n"
-                            "All invited referees have now responded.\n\n"
-                            "Please log into the portal to confirm that you have enough, "
-                            "and where relevant the correct types, of referees.\n\n"
-                            "If you do need to replace a referee, please do so and you'll "
-                            "receive a new notification whenever they reply.\n\n"
-                            "If all members have agreed, and you have the full compliment of referees, "
-                            "you may now submit your completed application %(number)s: %(title)s here: %(url)s"
+                    if t.site_id == 5 and a.state == "in_review":
+                        a.submit(request=self.request)
+                        a.save()
+                    else:
+                        url = self.request.build_absolute_uri(
+                            reverse("application-update", kwargs={"pk": a.id})
                         )
-                        % params,
-                        html_message=__(
-                            "<p>Tēnā koe %(user_display)s</p>"
-                            "<p>All invited referees have now responded.</p>"
-                            "<p>Please log into the portal to confirm that you have enough, "
-                            "and where relevant the correct types, of referees.</p>"
-                            "<p>If you do need to replace a referee, please do so and you'll "
-                            "receive a new notification whenever they reply.</p>"
-                            "<p>If all members have agreed, and you have the full compliment of referees, "
-                            'you may now submit your completed application <a href="%(url)s">%(number)s: '
-                            "%(title)s</a></p>"
+                        recipients = [a.submitted_by, *a.members.all()]
+                        params = {
+                            "user_display": ", ".join(r.full_name for r in recipients),
+                            "number": a.number,
+                            "title": a.application_title or a.round.title,
+                            "url": url,
+                        }
+                        send_mail(
+                            __("All testimonials were completed"),
+                            __(
+                                "Tēnā koe %(user_display)s\n\n"
+                                "All invited referees have now responded.\n\n"
+                                "Please log into the portal to confirm that you have enough, "
+                                "and where relevant the correct types, of referees.\n\n"
+                                "If you do need to replace a referee, please do so and you'll "
+                                "receive a new notification whenever they reply.\n\n"
+                                "If all members have agreed, and you have the full compliment of referees, "
+                                "you may now submit your completed application %(number)s: %(title)s here: %(url)s"
+                            )
+                            % params,
+                            html_message=__(
+                                "<p>Tēnā koe %(user_display)s</p>"
+                                "<p>All invited referees have now responded.</p>"
+                                "<p>Please log into the portal to confirm that you have enough, "
+                                "and where relevant the correct types, of referees.</p>"
+                                "<p>If you do need to replace a referee, please do so and you'll "
+                                "receive a new notification whenever they reply.</p>"
+                                "<p>If all members have agreed, and you have the full compliment of referees, "
+                                'you may now submit your completed application <a href="%(url)s">%(number)s: '
+                                "%(title)s</a></p>"
+                            )
+                            % params,
+                            recipients=recipients,
+                            fail_silently=False,
+                            request=self.request,
+                            reply_to=settings.DEFAULT_FROM_EMAIL,
                         )
-                        % params,
-                        recipients=recipients,
-                        fail_silently=False,
-                        request=self.request,
-                        reply_to=settings.DEFAULT_FROM_EMAIL,
-                    )
 
                 if t.site_id in (4, 5):
+                    # TODO: ????
                     messages.info(
                         self.request,
                         _(
-                            "Your referee report has been submitted. The Prize secretariat will be in touch "
+                            "Your referee report has been submitted. The fellowship secretariat will be in touch "
                             "if there is anything more needed. Thank you for your participation."
                         ),
                     )
@@ -5748,7 +5860,7 @@ class TestimonialView(CreateUpdateView):
         context = super().get_context_data(**kwargs)
         a = context["application"] = self.application
         if a and a.site_id == 5:
-            context["documents"] = a.documents_dict
+            context["documents"] = a.user_documents_dict(self.request.user)
 
         if not self.referee:
             messages.info(
@@ -5762,6 +5874,13 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
     model = models.Nomination
     table_class = tables.NominationTable
     template_name = "nominations.html"
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if self.request.user.research_offices.exists():
+            context["all_rounds"] = models.Round.where(scheme__current_round=F("pk"))
+            self.has_actions = True
+        return context
 
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
@@ -5853,18 +5972,16 @@ class NominationDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["category"] = "nominations"
+        context["exclude"] = [
+            "id",
+            "created_at",
+            "updated_at",
+            "site",
+        ]
         if self.can_start_applying:
             context["start_applying"] = reverse(
                 "nomination-application-create", kwargs=dict(nomination=self.object.id)
             )
-        #     if self.object.members.filter(
-        #         user=self.request.user, has_authorized__isnull=True
-        #     ).exists():
-        #         messages.info(
-        #             self.request,
-        #             _("Please review the application and authorize your team representative."),
-        #         )
-        #         context["form"] = AuthorizationForm()
         return context
 
 

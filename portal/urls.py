@@ -76,6 +76,7 @@ urlpatterns = [
                 path("submitted", views.ApplicationList.as_view(), name="applications-submitted"),
                 path("approved", views.ApplicationList.as_view(), name="applications-approved"),
                 path("accepted", views.ApplicationList.as_view(), name="applications-accepted"),
+                path("in_review", views.ApplicationList.as_view(), name="applications-in_review"),
                 # path("cancelled", views.ApplicationList.as_view(), name="applications-cancelled"),
                 path("<int:pk>", views.ApplicationDetail.as_view(), name="application"),
                 path("<number>", views.ApplicationDetail.as_view(), name="application-detail"),
@@ -407,6 +408,8 @@ urlpatterns = [
                 path(
                     "<int:round>/~create", views.NominationView.as_view(), name="nomination-create"
                 ),
+                path("~create", views.NominationView.as_view(), name="nomination-new"),
+                path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
                 path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
                 path("<int:pk>", views.NominationDetail.as_view(), name="nomination-detail"),
                 path("draft", views.NominationList.as_view(), name="nominations-draft"),

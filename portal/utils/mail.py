@@ -97,7 +97,55 @@ font-family:"Helvetica",sans-serif;color:black'>
 <img border='0'
   style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
   src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
-  alt='Catalyst Fund Logo Alternative'>
+  alt='Ministry of Business, Innovation & Employment Logo Alternative'>
+</td>
+<td style="text-align: right;">
+<img border='0'
+  style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/RS_logo.png"
+  alt='Royal Society Te Apārangi'>
+</td>
+</tr></table>
+</span><br>
+<br>
+<br>
+%(site_name)s</p>
+<table border='0' cellspacing='0' cellpadding='0' style=
+'border-collapse:collapse'>
+<tbody><tr><td style='padding:0cm 0cm 0cm 0cm'>
+<p style='line-height:115%%'><b><span style='font-size:8.5pt;
+line-height:115%%;color:black'>Waea telephone &nbsp;</span></b><span
+style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5756<br>
+<b><style='font-size:8.5pt;line-height:115%%;color:black'>Īmēra email</span></b><span
+style='font-size:8.5pt;line-height:115%%'>&nbsp;</span><span
+style='font-size:8.5pt;line-height:115%%;color:black;background:white'>
+<a href='mailto:International.Applications@royalsociety.org.nz'>
+<span style='color:black'>puanga@royalsociety.org.nz</span></a></span></p>
+<p><b><span style='font-size:8.5pt;color:black'>Royal Society Te Apārangi</span>
+</b><span style='font-size:8.5pt;color:black'><br>
+11 Turnbull Street, Thorndon, Wellington 6011<br>
+PO Box 598, Wellington 6140, New Zealand<br>
+<a href='http://royalsociety.org.nz/' ><b><span style='color:black'>ROYALSOCIETY.ORG.NZ</span>
+</b></a></span></p><br>
+<p><i><span style='font-size:8.0pt;color:black'>Please consider the environment before
+printing this email. The information contained in this email message is intended only
+for the addressee and may be confidential. If you are not the intended recipient, please
+ notify us immediately.</span></i></p>
+</td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
+</tr></tbody></table></body></html>
+""",
+    "xn--twhia-fwa.royalsociety.org.nz": """
+<br>To learn more about %(site_name)s administered by the Royal Society Te Apārangi
+<a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/puanga'>click here</a>.<br>
+<br>Ngā mihi nui,</p><br>
+<p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
+font-family:"Helvetica",sans-serif;color:black'>
+<table border="0"><tr>
+<td style="text-align: left;">
+<img border='0'
+  style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
+  alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right;">
 <img border='0'
@@ -168,14 +216,20 @@ def send_mail(
         domain = request and request.get_host() or site.domain
     if ":" in domain:
         domain = domain.split(":")[0]
+    if domain and domain.startswith("xn--"):
+        domain = domain.encode().decode("idna")
     root = f"https://{domain}"
     if recipients and isinstance(recipients, (list, tuple)):
         recipients = [
-            r.lower()
-            if isinstance(r, str)
-            else f"{r[0]} <{r[1].lower()}>"
-            if isinstance(r, (tuple, list))
-            else r.full_email_address
+            (
+                r.lower()
+                if isinstance(r, str)
+                else (
+                    f"{r[0]} <{r[1].lower()}>"
+                    if isinstance(r, (tuple, list))
+                    else r.full_email_address
+                )
+            )
             for r in recipients
         ]
     if recipients and isinstance(recipients, str):
@@ -198,9 +252,11 @@ def send_mail(
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
                 "domain": domain,
                 "site_name": site.name,
-                "logo_url": f"{urljoin(root, 'static/images/alt_logo.jpg')}"
-                if site.domain == "portal.pmscienceprizes.org.nz"
-                else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}",
+                "logo_url": (
+                    f"{urljoin(root, 'static/images/alt_logo.jpg')}"
+                    if site.domain == "portal.pmscienceprizes.org.nz"
+                    else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                ),
             }
         html_message = f"<html><body>{html_message}\n{html_footer}"
 
@@ -250,7 +306,9 @@ def send_mail(
     if attachments:
         for a in attachments:
             msg.attach(
-                a.name, a.file.getvalue(), getattr(a, "content_type", None) or mimetypes.guess_type(a.name)[0]
+                a.name,
+                a.file.getvalue(),
+                getattr(a, "content_type", None) or mimetypes.guess_type(a.name)[0],
             )
     if not reply_to and invitation and (inviter := invitation.inviter):
         reply_to = inviter.full_email_address
@@ -294,9 +352,7 @@ def mail_admins(subject, message, fail_silently=False, connection=None, html_mes
     if not all(isinstance(a, (list, tuple)) and len(a) == 2 for a in settings.ADMINS):
         raise ValueError("The ADMINS setting must be a list of 2-tuples.")
     recipients = set([f'"{a[0]}" <{a[1]}>' for a in settings.ADMINS])
-    recipients.update(
-        [u.full_email_address for u in models.User.where(is_superuser=True).all()]
-    )
+    recipients.update([u.full_email_address for u in models.User.where(is_superuser=True).all()])
 
     send_mail(
         subject=subject,
