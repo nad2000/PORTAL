@@ -5999,7 +5999,7 @@ class SchemeApplication(Model):
             ) AS pa ON pa.scheme_id = r.scheme_id AND la.id IS NULL
             WHERE
               s.site_id = %s
-            ORDER BY r.ordering;""",
+            ORDER BY r.ordering, 3;""",
             [
                 user.id,
                 site_id,
