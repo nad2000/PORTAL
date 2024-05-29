@@ -141,15 +141,15 @@ for the addressee and may be confidential. If you are not the intended recipient
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'>
 <table border="0"><tr>
-<td style="text-align: left;">
+<td style="text-align: left; width: 50%%;">
 <img border='0'
-  style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
   src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
   alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
-<td style="text-align: right;">
+<td style="text-align: right; width: 50%%;">
 <img border='0'
-  style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
   src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/RS_logo.png"
   alt='Royal Society Te Apārangi'>
 </td>
