@@ -119,7 +119,7 @@ style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5756<br>
 <b><style='font-size:8.5pt;line-height:115%%;color:black'>Īmēra email</span></b><span
 style='font-size:8.5pt;line-height:115%%'>&nbsp;</span><span
 style='font-size:8.5pt;line-height:115%%;color:black;background:white'>
-<a href='mailto:International.Applications@royalsociety.org.nz'>
+<a href='mailto:puanga@royalsociety.org.nz'>
 <span style='color:black'>puanga@royalsociety.org.nz</span></a></span></p>
 <p><b><span style='font-size:8.5pt;color:black'>Royal Society Te Apārangi</span>
 </b><span style='font-size:8.5pt;color:black'><br>
@@ -136,7 +136,7 @@ for the addressee and may be confidential. If you are not the intended recipient
 """,
     "xn--twhia-fwa.royalsociety.org.nz": """
 <br>To learn more about %(site_name)s administered by the Royal Society Te Apārangi
-<a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/puanga'>click here</a>.<br>
+<a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/tawhia-te-mana/'>click here</a>.<br>
 <br>Ngā mihi nui,</p><br>
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'>
@@ -163,12 +163,12 @@ font-family:"Helvetica",sans-serif;color:black'>
 <tbody><tr><td style='padding:0cm 0cm 0cm 0cm'>
 <p style='line-height:115%%'><b><span style='font-size:8.5pt;
 line-height:115%%;color:black'>Waea telephone &nbsp;</span></b><span
-style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5756<br>
+style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5764<br>
 <b><style='font-size:8.5pt;line-height:115%%;color:black'>Īmēra email</span></b><span
 style='font-size:8.5pt;line-height:115%%'>&nbsp;</span><span
 style='font-size:8.5pt;line-height:115%%;color:black;background:white'>
-<a href='mailto:International.Applications@royalsociety.org.nz'>
-<span style='color:black'>puanga@royalsociety.org.nz</span></a></span></p>
+<a href='mailto:tawhia@royalsociety.org.nz'>
+<span style='color:black'>tawhia@royalsociety.org.nz</span></a></span></p>
 <p><b><span style='font-size:8.5pt;color:black'>Royal Society Te Apārangi</span>
 </b><span style='font-size:8.5pt;color:black'><br>
 11 Turnbull Street, Thorndon, Wellington 6011<br>
