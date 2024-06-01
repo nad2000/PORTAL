@@ -302,7 +302,7 @@ class FixedCharField(models.Field):
 
 class Title(Model):
     code = CharField(max_length=10, primary_key=True, blank=False)
-    name = CharField(max_length=40, blank=False)
+    name = CharField(max_length=200, blank=False)
 
     def save(self, *args, **kwargs):
         if not self.code or not self.cone.strip():
