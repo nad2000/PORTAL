@@ -1024,7 +1024,7 @@ class Organisation(Model):
         null=True,
     )
     email = EmailField(_("Contact email address"), blank=True, null=True)
-    ro_email = EmailField(_("Research office email address"), blank=True, null=True)
+    ro_email = EmailField(_("RO email address"), help_text=_("Research office email address"), blank=True, null=True)
     # ro_email = EmailField(
     #     _("Research Office email address"),
     #     blank=True,

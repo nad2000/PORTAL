@@ -1695,6 +1695,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                     ("address", "website"),
                     ("email", "contact_phone"),
                     "signatory",
+                    "ro_email",
                 ],
             },
         ),
