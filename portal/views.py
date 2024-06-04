@@ -687,15 +687,23 @@ def index(request):
     user = request.user
     is_ro = models.ResearchOffice.where(user=user).exists()
     if site_id in [4, 5]:
-        has_ro = models.ResearchOffice.where(
-            Q(
-                org__in=Subquery(
-                    models.Affiliation.where(person__user=user, end_date__isnull=True).values(
-                        "org_id"
+        has_ro = (
+            models.ResearchOffice.where(
+                Q(
+                    org__in=Subquery(
+                        models.Affiliation.where(person__user=user, end_date__isnull=True).values(
+                            "org_id"
+                        )
                     )
                 )
-            )
-        ).exists()
+            ).exists()
+            or models.Organisation.where(
+                ~Q(ro_email=""),
+                ro_email__isnull=False,
+                affiliations__person__user=user,
+                affiliations__end_date__isnull=True,
+            ).exists()
+        )
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if request.user.is_approved:
         if is_ro and site_id not in [4, 5] and request.resolver_match.view_name == "index0":
