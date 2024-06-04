@@ -765,7 +765,7 @@ def index(request):
                 for ro in User.where(
                     research_offices__org__in=Subquery(
                         models.Affiliation.where(
-                            Q(org__ro_email__isnull=True) | Q(org_ro_email=""),
+                            Q(org__ro_email__isnull=True) | Q(org__ro_email=""),
                             person__user=user,
                             end_date__isnull=True,
                         ).values("org_id")
