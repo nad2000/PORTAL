@@ -752,16 +752,30 @@ def index(request):
             and (request_round := models.Round.where(id=round_id).first())
         ):
             is_ajax = not request.META.get("HTTP_ACCEPT", "").startswith("text/html")
-            research_officers = User.where(
-                research_offices__org__in=Subquery(
-                    models.Affiliation.where(person__user=user, end_date__isnull=True).values(
-                        "org_id"
+            research_officers = list(
+                User.where(
+                    research_offices__org__in=Subquery(
+                        models.Affiliation.where(person__user=user, end_date__isnull=True).values(
+                            "org_id"
+                        )
                     )
-                )
+                ).distinct()
             )
-            if research_officers.count() > 0:
+            ro_emails = [
+                (_("Research Office"), email)
+                for email, in models.Organisation.where(
+                    ~Q(ro_email=""),
+                    ro_email__isnull=False,
+                    affiliations__person__user=user,
+                    affiliations__end_date__isnull=True,
+                )
+                .distinct()
+                .values_list("ro_email")
+                if email and email.strip() != ""
+            ]
+            if ro_emails or research_officers.count() > 0:
                 try:
-                    recipients = [
+                    recipients = ro_emails or [
                         (ro.full_name or _("Research Office"), ro.email)
                         for ro in research_officers
                     ]
@@ -5065,8 +5079,7 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
 
                         if "testimonials" in next_url or "reviews" in next_url:
                             message_text = f"""{message_text}.<br/>
-                                    {_('''Now you can complete the submission of your referee report/testimonial.
-                                    <br/>Please click on the <strong>Submit</strong> button.''')}"""
+                                    {_('''Now you can complete the submission of your referee report/testimonial. <br/>Please click on the <strong>Submit</strong> button.''')}"""
                         messages.info(self.request, message_text)
 
                     return redirect(next_url)
