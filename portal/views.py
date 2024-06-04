@@ -760,33 +760,34 @@ def index(request):
             and (request_round := models.Round.where(id=round_id).first())
         ):
             is_ajax = not request.META.get("HTTP_ACCEPT", "").startswith("text/html")
-            research_officers = list(
-                User.where(
+            ro_emails = [
+                (ro.full_name or _("Research Office"), ro.email)
+                for ro in User.where(
                     research_offices__org__in=Subquery(
-                        models.Affiliation.where(person__user=user, end_date__isnull=True).values(
-                            "org_id"
-                        )
+                        models.Affiliation.where(
+                            Q(org__ro_email__isnull=True) | Q(org_ro_email=""),
+                            person__user=user,
+                            end_date__isnull=True,
+                        ).values("org_id")
                     )
                 ).distinct()
-            )
-            ro_emails = [
-                (_("Research Office"), email)
-                for email, in models.Organisation.where(
-                    ~Q(ro_email=""),
-                    ro_email__isnull=False,
-                    affiliations__person__user=user,
-                    affiliations__end_date__isnull=True,
-                )
-                .distinct()
-                .values_list("ro_email")
-                if email and email.strip() != ""
             ]
-            if ro_emails or research_officers.count() > 0:
+            ro_emails.extend(
+                [
+                    (_("Research Office"), email)
+                    for email, in models.Organisation.where(
+                        ~Q(ro_email=""),
+                        ro_email__isnull=False,
+                        affiliations__person__user=user,
+                        affiliations__end_date__isnull=True,
+                    )
+                    .distinct()
+                    .values_list("ro_email")
+                    if email and email.strip() != ""
+                ]
+            )
+            if ro_emails:
                 try:
-                    recipients = ro_emails or [
-                        (ro.full_name or _("Research Office"), ro.email)
-                        for ro in research_officers
-                    ]
                     url = request.build_absolute_uri(
                         reverse("nomination-create", kwargs={"round": request_round.id})
                     )
@@ -799,7 +800,7 @@ def index(request):
                             f'<p>You can submit the nomination at <a href="{url}">Nominate for {request_round}</a>.</p>'
                         ),
                         reply_to=user.full_email_address,
-                        recipients=recipients,
+                        recipients=ro_emails,
                         cc=[user.full_email_address],
                         request=request,
                     )
