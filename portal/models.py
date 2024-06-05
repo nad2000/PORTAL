@@ -2989,7 +2989,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 if os.path.exists(logo_path):
                     logo_url = f"file://{logo_path}"
 
-            elif self.site_id == 4:
+            elif self.site_id in [4, 5]:
                 logo_path = os.path.join(settings.STATIC_ROOT, f"images/{domain}/MBIE_logo.jpg")
                 if os.path.exists(logo_path):
                     logo_1_url = f"file://{logo_path}"
