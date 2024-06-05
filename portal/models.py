@@ -2943,7 +2943,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             {
                 "/Title": (
                     f"{self}"
-                    if self.site_id == 4
+                    if self.site_id in [4, 5]
                     else f"{self.number}: {self.application_title or self.round.title}"
                 )
             }
@@ -2990,11 +2990,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     logo_url = f"file://{logo_path}"
 
             elif self.site_id in [4, 5]:
-                logo_path = os.path.join(settings.STATIC_ROOT, f"images/{domain}/MBIE_logo.jpg")
+                logo_path = os.path.join(settings.STATIC_ROOT, f"images/MBIE_logo.jpg")
                 if os.path.exists(logo_path):
                     logo_1_url = f"file://{logo_path}"
 
-                logo_path = os.path.join(settings.STATIC_ROOT, f"images/{domain}/RS_logo.png")
+                logo_path = os.path.join(settings.STATIC_ROOT, f"images/RS_logo.png")
                 if os.path.exists(logo_path):
                     logo_2_url = f"file://{logo_path}"
 

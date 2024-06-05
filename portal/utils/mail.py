@@ -96,13 +96,13 @@ font-family:"Helvetica",sans-serif;color:black'>
 <td style="text-align: left;">
 <img border='0'
   style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
-  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
+  src="https://%(domain)s/static/images/MBIE_logo.jpg"
   alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right;">
 <img border='0'
   style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
-  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/RS_logo.png"
+  src="https://%(domain)s/static/images/RS_logo.png"
   alt='Royal Society Te Apārangi'>
 </td>
 </tr></table>
@@ -144,13 +144,13 @@ font-family:"Helvetica",sans-serif;color:black'>
 <td style="text-align: left; width: 50%%;">
 <img border='0'
   style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
-  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/MBIE_logo.jpg"
+  src="https://%(domain)s/static/images/MBIE_logo.jpg"
   alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right; width: 50%%;">
 <img border='0'
   style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
-  src="https://%(domain)s/static/images/puanga.royalsociety.org.nz/RS_logo.png"
+  src="https://%(domain)s/static/images/RS_logo.png"
   alt='Royal Society Te Apārangi'>
 </td>
 </tr></table>
