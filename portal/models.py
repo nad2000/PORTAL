@@ -299,7 +299,7 @@ class PdfFileMixin:
         if self.file:
             if self.file.name.lower().endswith(".pdf"):
                 if hasattr(self, "page_count") and not self.page_count:
-                    with open(self.file.name, "rb") as f:
+                    with open(self.file.path, "rb") as f:
                         pdf_reader = PdfFileReader(f)
                         self.page_count = pdf_reader.numPages
                         self._change_reason = f"Updated page count to {self.page_count}"
