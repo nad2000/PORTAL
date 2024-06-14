@@ -3012,6 +3012,7 @@ class ApplicationCreate(ApplicationView, CreateView):
     # template_name = "application.html"
     # form_class = forms.ApplicationForm
 
+    @method_decorator(shoud_be_onboarded)
     def get(self, request, *args, **kwargs):
         r = (
             models.Round.get(kwargs["round"])
