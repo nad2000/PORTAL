@@ -276,7 +276,6 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                             ).exists()
                                         ]
                                     elif model.__name__ == "Person_iwi_groups":
-                                        breakpoint()
                                         objects = [
                                             o
                                             for o in objects
