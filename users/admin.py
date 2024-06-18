@@ -275,14 +275,14 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                                 code=o.language.code
                                             ).exists()
                                         ]
-                                    elif model.__name__ == "Person_iwi_groups":
-                                        objects = [
-                                            o
-                                            for o in objects
-                                            if not profile.iwi_groups.filter(
-                                                code=o.iwi_group.code
-                                            ).exists()
-                                        ]
+                                    # elif model.__name__ == "Person_iwi_groups":
+                                    #     objects = [
+                                    #         o
+                                    #         for o in objects
+                                    #         if not profile.iwi_groups.filter(
+                                    #             code=o.iwi_group.code
+                                    #         ).exists()
+                                    #     ]
                                     # elif model.__name__.startswith("Person_"):
                                     #     breakpoint()
                                     if objects:
