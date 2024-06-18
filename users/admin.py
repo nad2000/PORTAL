@@ -233,8 +233,10 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                     for rel in get_candidate_relations_to_delete(Person._meta)
                                     if not issubclass(
                                         rel.related_model,
-                                        HistoricalChanges,
-                                        ProtectionPatternPerson,
+                                        (
+                                            HistoricalChanges,
+                                            ProtectionPatternPerson,
+                                        ),
                                     )
                                 )
                             ):
