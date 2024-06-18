@@ -18,7 +18,10 @@ from portal.models import (
     CurriculumVitae,
     Person,
     ResearchOffice,
+    PersonProtectionPattern,
+    ProtectionPatternPerson,
 )
+
 
 from .forms import UserChangeForm, UserCreationForm
 
@@ -228,7 +231,11 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                 for (model, field) in (
                                     (rel.related_model, rel.remote_field.name)
                                     for rel in get_candidate_relations_to_delete(Person._meta)
-                                    if not issubclass(rel.related_model, HistoricalChanges)
+                                    if not issubclass(
+                                        rel.related_model,
+                                        HistoricalChanges,
+                                        ProtectionPatternPerson,
+                                    )
                                 )
                             ):
                                 if hasattr(model, "history"):
@@ -242,14 +249,52 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                         ).filter(**{f"{field}__in": profile_ids}),
                                     )
                                 else:
-                                    getattr(
-                                        model, "all_objects", model._default_manager
-                                    ).bulk_update(objects, [field])
+                                    if model is PersonProtectionPattern:
+                                        objects = [
+                                            o
+                                            for o in objects
+                                            if not profile.person_protection_patterns.filter(
+                                                protection_pattern=o.protection_pattern
+                                            ).exists()
+                                        ]
+                                    elif model.__name__ == "Person_ethnicities":
+                                        objects = [
+                                            o
+                                            for o in objects
+                                            if not profile.ethnicities.filter(
+                                                code=o.ethnicity.code
+                                            ).exists()
+                                        ]
+                                    elif model.__name__ == "Person_languages_spoken":
+                                        objects = [
+                                            o
+                                            for o in objects
+                                            if not profile.languages_spoken.filter(
+                                                code=o.language.code
+                                            ).exists()
+                                        ]
+                                    elif model.__name__ == "Person_iwi_groups":
+                                        objects = [
+                                            o
+                                            for o in objects
+                                            if not profile.iwi_groups.filter(
+                                                code=o.iwi_group.code
+                                            ).exists()
+                                        ]
+                                    # elif model.__name__.startswith("Person_"):
+                                    #     breakpoint()
+                                    if objects:
+                                        getattr(
+                                            model, "all_objects", model._default_manager
+                                        ).bulk_update(objects, [field])
                             else:
                                 for model, field in (
                                     (rel.related_model, rel.remote_field.name)
                                     for rel in get_candidate_relations_to_delete(Person._meta)
-                                    if not issubclass(rel.related_model, HistoricalChanges)
+                                    if not issubclass(
+                                        rel.related_model,
+                                        (HistoricalChanges, ProtectionPatternPerson),
+                                    )
                                 ):
                                     to_delete = list(
                                         (
@@ -264,6 +309,10 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                         )
                                         o.delete()
                                     deleted = [f"{o.person}" for o in to_delete]
+
+                        for o in Person.where(user_id__in=object_ids):
+                            o._change_reason = f"User {o} merged into {target} by {u}"
+                            o.delete()
 
                         for model, field, objects in (
                             (
