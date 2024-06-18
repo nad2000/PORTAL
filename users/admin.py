@@ -275,14 +275,15 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                                 code=o.language.code
                                             ).exists()
                                         ]
-                                    # elif model.__name__ == "Person_iwi_groups":
-                                    #     objects = [
-                                    #         o
-                                    #         for o in objects
-                                    #         if not profile.iwi_groups.filter(
-                                    #             code=o.iwi_group.code
-                                    #         ).exists()
-                                    #     ]
+                                    elif model.__name__ == "Person_iwi_groups":
+                                        breakpoint()
+                                        objects = [
+                                            o
+                                            for o in objects
+                                            if not profile.iwi_groups.filter(
+                                                code=o.iwigroup.code
+                                            ).exists()
+                                        ]
                                     # elif model.__name__.startswith("Person_"):
                                     #     breakpoint()
                                     if objects:
@@ -355,10 +356,10 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                     objects, [field]
                                 )
 
+                        deleted.extend([f"{o}" for o in users])
                         for o in users:
                             o._change_reason = f"User {o} merged into {target} by {u}"
                             o.delete()
-                        deleted.extend([f"{o}" for o in users])
                 except Exception as ex:
                     capture_exception(ex)
                     errors.append(ex)
