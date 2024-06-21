@@ -7565,8 +7565,8 @@ def application_exported_view(request, number, lang=None):
             f"{settings.STATIC_URL}images/{domain}/alt_logo_small.png"
         )
     elif self.site_id in [4, 5]:
-        logo_1_url = f"{settings.STATIC_URL}images/MBIE_logo.jpg"
-        logo_2_url = f"{settings.STATIC_URL}images/RS_logo.jpg"
+        logo_1_url = request.build_absolute_uri(f"{settings.STATIC_URL}images/MBIE_logo.jpg")
+        logo_2_url = request.build_absolute_uri(f"{settings.STATIC_URL}images/RS_logo.jpg")
 
     objects = application.get_testimonials()
 
