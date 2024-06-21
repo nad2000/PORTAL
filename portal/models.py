@@ -2980,7 +2980,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 summary_url = request.build_absolute_uri(url)
             else:
                 summary_url = urljoin(f"https://{domain}", url)
-            breakpoint()
             html = HTML(summary_url)
         else:
             if domain == "international.royalsociety.org.nz":
