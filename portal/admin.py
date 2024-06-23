@@ -1734,11 +1734,24 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 
                 try:
                     with transaction.atomic():
+
                         org_applications = list(
                             models.Application.all_objects.filter(
                                 ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
-                                org_id__in=org_ids,
+                                Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
                             ).order_by("number")
+                        )
+
+                        nominations = list(models.Nomination.all_objects.filter(org__in=orgs))
+                        for n in nominations:
+                            n._change_reason = f"Organisation {n.org} merged into {target} by {u}"
+                            n.org = target
+                        bulk_update_with_history(
+                            nominations,
+                            models.Nomination,
+                            ["org"],
+                            default_user=u,
+                            manager=models.Nomination.all_objects,
                         )
 
                         if org_applications:
@@ -1752,7 +1765,10 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                                 )
                             new_numbers = []
                             for a in org_applications:
-                                a.org = target
+
+                                if a.org in orgs:
+                                    a.org = target
+
                                 a.number = models.default_application_number(
                                     a, exclude_numbers=new_numbers
                                 )
@@ -1803,6 +1819,8 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                                 if not issubclass(rel.related_model, HistoricalChanges)
                             )
                         ):
+                            if model is models.Nomination:
+                                continue
                             bulk_update_with_history(
                                 objects,
                                 model,
