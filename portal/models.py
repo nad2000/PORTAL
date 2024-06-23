@@ -1024,7 +1024,9 @@ class Organisation(Model):
         null=True,
     )
     email = EmailField(_("Contact email address"), blank=True, null=True)
-    ro_email = EmailField(_("RO email address"), help_text=_("Research office email address"), blank=True, null=True)
+    ro_email = EmailField(
+        _("RO email address"), help_text=_("Research office email address"), blank=True, null=True
+    )
     # ro_email = EmailField(
     #     _("Research Office email address"),
     #     blank=True,
@@ -1643,7 +1645,10 @@ class LetterOfSupport(PdfFileMixin, Model):
 
 def default_application_number(application, exclude_numbers=None):
     code = application.round.scheme.code
-    org_code = application.org.get_code()
+    if (n := Nomination.where(application=application).last()) and n.org:
+        org_code = n.org.get_code()
+    else:
+        org_code = application.org.get_code()
     year = application.round.opens_on.strftime("%y")
     yy = application.round.opens_on.strftime("%y")
     prefix1 = f"{code}-{org_code}-{year}"
@@ -4858,7 +4863,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
-    colour = ColorField(null=True, blank=True, help_text="Colour used for text hearders and back-grounds")
+    colour = ColorField(
+        null=True, blank=True, help_text="Colour used for text hearders and back-grounds"
+    )
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
@@ -7025,7 +7032,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         fund = scheme.fund
         prefix = fund and (fund.code3 or fund.code) or scheme.code
         if not org:
-            org = application.org
+            if (n := Nomination.where(application=application).last()) and n.org:
+                org = n.org
+            else:
+                org = application.org
         yy = year and f"{year:02d}" or application.created_at.strftime("%y")
         c = (
             cls.all_objects.filter(number__startswith=f"{prefix}-{org.code}{yy}")
