@@ -6553,6 +6553,9 @@ class ResearchOffice(Model):
 
     history = HistoricalRecords(table_name="research_office_history")
 
+    def __str__(self):
+        return f"{self.org}: {self.user}"
+
     class Meta:
         db_table = "research_office"
 

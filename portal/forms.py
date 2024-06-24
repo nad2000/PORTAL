@@ -2416,9 +2416,26 @@ class ProfileSectionFormSetHelper(FormHelper):
 class NominationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        initial = getattr(self, "initial", None) or kwargs.get("initial")
+        initial = getattr(self, "initial", None) or kwargs.get("initial") or dict()
         r = initial and initial.get("round") or self.instance.round
         site_id = settings.SITE_ID
+        nominator = initial and initial.get("nominator") or self.instance.nominator
+        if nominator and (
+            is_single_org_ro := (site_id in [4, 5] and nominator.research_offices.count() == 1)
+        ):
+            ro_org = models.Organisation.where(research_offices__user=nominator).last()
+            initial["org"] = ro_org
+        elif site_id in [4, 5]:
+            initial["org"] = models.Organisation.where(research_offices__user=nominator).last()
+        else:
+            initial["org"] = (
+                models.Organisation.where(
+                    affiliations__person__user=nominator, affiliations__end_date__isnull=True
+                )
+                .distinct()
+                .order_by("affiliations__start_date")
+                .last()
+            )
 
         self.helper = FormHelper(self)
         self.helper.include_media = False
@@ -2464,14 +2481,13 @@ class NominationForm(forms.ModelForm):
                 "contact_phone",
                 pattern=r"\+?[0-9- ]+",
                 placeholder="e.g., +64 4 472 7421",
-            )
+            ),
         ]
         if site_id == 5:
             self.fields["contact_phone"].help_text = _("The Research Office contact phone number")
         else:
             self.fields["contact_phone"].help_text = _("Your (nominator) contact phone number")
 
-        nominator = initial and initial.get("nominator") or self.instance.nominator
         if r.nominator_cv_required:
 
             if nominator_cv := models.CurriculumVitae.last_user_cv(nominator):
@@ -2552,6 +2568,11 @@ class NominationForm(forms.ModelForm):
                 css_class="mb-4 float-right",
             ),
         )
+        
+        if is_single_org_ro:
+            self.fields["org"].disabled = True
+            self.fields["org"].widget.attrs["readonly"] = "true"
+            self.fields["org"].widget.attrs["disabled"] = "true"
 
     def save(self, commit=True):
         if self.instance.round.nominator_cv_required:
