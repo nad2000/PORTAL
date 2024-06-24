@@ -144,6 +144,13 @@ class AccountAdapter(DefaultAccountAdapter):
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     invitation = None
 
+    def list_apps(self, request, provider=None, client_id=None):
+        apps = super().list_apps(request, provider, client_id)
+        if apps and len(apps) > 1:
+            site_id = settings.SITE_ID
+            apps = [app for app in apps if app.sites.filter(pk=site_id).exists()]
+        return apps
+
     def pre_social_login(self, request, sociallogin):
         user = sociallogin.user
         if user.id or not user.email:
