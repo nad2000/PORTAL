@@ -1643,9 +1643,12 @@ class LetterOfSupport(PdfFileMixin, Model):
         db_table = "letter_of_support"
 
 
-def default_application_number(application, exclude_numbers=None):
+def default_application_number(application, exclude_numbers=None, nomination=None):
     code = application.round.scheme.code
-    if (n := Nomination.where(application=application).last()) and n.org:
+    if (
+        n := nomination
+        or (application and application.pk and Nomination.where(application=application).last())
+    ) and n.org:
         org_code = n.org.get_code()
     else:
         org_code = application.org.get_code()

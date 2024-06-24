@@ -3106,12 +3106,15 @@ class ApplicationCreate(ApplicationView, CreateView):
                 a.submitted_by = self.request.user
                 a.round = self.round
                 a.scheme = a.round.scheme
-                resp = super().form_valid(form)
-                a.save()
                 n = (
                     self.nomination
                     or self.round.user_nominations(self.request.user).order_by("-id").first()
                 )
+                if a and not a.number:
+                    a.number = models.default_application_number(a, nomination=n)
+
+                resp = super().form_valid(form)
+                a.save()
                 if n and not n.application:
                     n.application = self.object
                     if n.state != "accepted":
@@ -7569,7 +7572,6 @@ def application_exported_view(request, number, lang=None):
         # logo_2 = request.build_absolute_uri(f"{settings.STATIC_URL}images/RS_logo.png")
         logo_1 = f"{settings.STATIC_URL}images/MBIE_logo.jpg"
         logo_2 = f"{settings.STATIC_URL}images/RS_logo.png"
-
 
     objects = application.get_testimonials()
 
