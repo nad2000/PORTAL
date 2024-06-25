@@ -7611,6 +7611,271 @@ simple_history.register(
 )
 
 
+class ReportKeyword(Model):
+    report = ForeignKey("Report", on_delete=CASCADE)
+    keyword = ForeignKey(Keyword, on_delete=CASCADE)
+
+    class Meta:
+        db_table = "report_keyword"
+
+
+class ReportFor(Model):
+    report = ForeignKey("Report", on_delete=CASCADE, related_name="report_fors")
+    code = ForeignKey(FieldOfResearch, db_column="code", on_delete=CASCADE, verbose_name="FoR")
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        # auto_created = True
+        db_table = "report_for"
+        unique_together = (("report", "code"),)
+        verbose_name = _("report FoR")
+        verbose_name_plural = _("report FoRs")
+
+
+class ReportSeo(Model):
+    report = ForeignKey("Report", on_delete=CASCADE, related_name="report_seos")
+    code = ForeignKey(
+        SocioEconomicObjective, on_delete=CASCADE, db_column="code", verbose_name="SEO"
+    )
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def __str__(self):
+        return self.code_id
+
+    class Meta:
+        # auto_created = True
+        db_table = "report_seo"
+        unique_together = (("report", "code"),)
+        verbose_name = _("report SEO")
+        verbose_name_plural = _("report SEOs")
+
+
+class ReportMixin:
+    STATES = Choices(
+        ("accepted", _("accepted")),
+        ("acknowledged", _("acknowledged")),
+        ("approved", _("approved")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("draft")),
+        ("new", _("new")),
+        ("submitted", _("submitted")),
+        ("reported", _("reported")),
+        # ("withdrawn", _("withdrawn")),
+    )
+
+
+class Report(ReportMixin, Model):
+    schedule_entry = OneToOneField(
+        ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
+    )
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="reports")
+    # number = models.CharField(unique=True, max_length=255)
+    # report_id = models.CharField(unique=True, max_length=255, blank=True, null=True)
+    period = PositiveSmallIntegerField(_("period"))
+    type = FixedCharField(
+        max_length=1,
+        choices=Choices(
+            ("A", _("Annual")),
+            ("E", _("Exchange")),
+            ("F", _("Final")),
+            ("I", _("Interim")),
+            ("L", _("Follow up")),
+        ),
+        help_text=_("Reporting Type"),
+    )
+    state = StateField(default="new", verbose_name=_("state"))
+
+    reported_at = MonitorField(
+        monitor="state", when=["reported", "submitted"], null=True, blank=True, default=None
+    )
+    assessor = ForeignKey(User, on_delete=SET_NULL, blank=True, null=True)
+    assessed_at = MonitorField(
+        monitor="state", when=["assessed"], null=True, blank=True, default=None
+    )
+
+    # exported = models.BooleanField(blank=True, null=True)
+    # exported_date = models.DateField(blank=True, null=True)
+
+    # email_acknowledgement = models.CharField(max_length=255, blank=True, null=True)
+    # is_confidential = models.BooleanField(default=False, blank=True, null=True)
+    # is_highlighted = models.BooleanField(default=False, blank=True, null=True)
+    # notes = models.TextField(blank=True, null=True)
+    # notes2 = models.TextField(blank=True, null=True)
+    # duration = models.IntegerField(blank=True, null=True)
+
+    fors = ManyToManyField(
+        FieldOfResearch,
+        blank=True,
+        through=ReportFor,
+        related_name="reports",
+        verbose_name="FoRs",
+    )
+    seos = ManyToManyField(
+        SocioEconomicObjective,
+        blank=True,
+        through=ReportSeo,
+        related_name="reports",
+        verbose_name="SEOs",
+    )
+    keywords = ManyToManyField(
+        Keyword,
+        verbose_name=_("Keywords"),
+        through=ReportKeyword,
+        blank=True,
+        related_name="reports",
+    )
+    vm_ecs = PositiveSmallIntegerField(
+        "Indigenous Innovation",
+        help_text=_(
+            "Contributing to Economic Growth through Distinctive R&D. New Zealand needs "
+            "its businesses and for-profit enterprises to perform at an optimum level and "
+            "contribute to economic growth. This theme concerns the development of distinctive "
+            "products, processes, systems and services from Māori knowledge, resources and people. "
+            "Of particular interest are products that may be distinctive in the international marketplace."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_ens = PositiveSmallIntegerField(
+        "Taiao",
+        help_text=_(
+            "Achieving Environmental Sustainability through Iwi and Hapū relationships with land "
+            "and sea. Like all communities, Māori communities aspire to live in sustainable communities "
+            "dwelling in healthy environments. Much general environmental research is relevant to Māori. "
+            "Distinctive environmental research arising in Māori communities relates to the expression of "
+            "iwi and hapū knowledge, culture and experience – including Kaitiakitanga - in New Zealand land and seascapes."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_hsw = PositiveSmallIntegerField(
+        "Hauora/Oranga",
+        help_text=_(
+            "Improving Māori Health and Social Well-being. Distinctive challenges to Māori health "
+            "and social well-being continue to arise within Māori communities disadvantaging them "
+            "in relation to the general population. Research is needed to meet these ongoing needs."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_ink = PositiveSmallIntegerField(
+        "Mātauranga",
+        help_text=_(
+            "Exploring Indigenous Knowledge and RS&T. This exploratory theme aims to develop a body "
+            "of knowledge, as a contribution to RS&T, at the interface between indigenous knowledge "
+            "including mātauranga Māori – and research, science and technology."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+
+    toa_basic = PositiveSmallIntegerField(
+        _("Basic"),
+        help_text=_("Pure basic research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_experimental = PositiveSmallIntegerField(
+        _("Experimental"),
+        help_text=_("Experimental development"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_applied = PositiveSmallIntegerField(
+        _("Applied"),
+        help_text=_("Applied research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_strategic = PositiveSmallIntegerField(
+        _("Strategic"),
+        help_text=_("Strategic basic research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+
+    def save(self, *args, **kwargs):
+        if se := self.schedule_entry:
+            if not self.contract:
+                self.contract = se.contract
+            if not self.period:
+                self.period = se.period
+            if not self.type:
+                self.type = se.type
+        super().save(*args, **kwargs)
+
+    class Meta:
+        db_table = "report"
+        unique_together = (("contract", "period", "type"),)
+
+
+simple_history.register(
+    Report,
+    inherit=True,
+    table_name="report_history",
+    bases=[ReportMixin, Model],
+)
+
+
+# class ReportedEffortMixin:
+#     STATES = Choices(
+#         ("accepted", _("accepted")),
+#         ("acknowledged", _("acknowledged")),
+#         ("approved", _("approved")),
+#         ("archived", _("archived")),
+#         ("cancelled", _("cancelled")),
+#         ("draft", _("draft")),
+#         ("new", _("new")),
+#         ("submitted", _("submitted")),
+#         ("reported", _("reported")),
+#         # ("withdrawn", _("withdrawn")),
+#     )
+
+
+# class ReportedEffort(Model):
+#     planned_effort = OneToOneField(
+#         ContractMemberEffort, on_delete=CASCADE, related_name="reported_efforts"
+#     )
+#     # member = ForeignKey(, on_delete=CASCADE, related_name="reported_efforts")
+#     fte = DecimalField(
+#         _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
+#     )
+#     state = StateField(default="new", verbose_name=_("state"))
+
+#     def save(self, *args, **kwargs):
+#         if se := self.schedule_entry:
+#             if not self.contract:
+#                 self.contract = se.contract
+#             if not self.period:
+#                 self.period = se.period
+#             if not self.type:
+#                 self.type = se.type
+#         super().save(*args, **kwargs)
+
+#     class Meta:
+#         db_table = "reported_effort"
+
+
+# simple_history.register(
+#     ReportedEffort,
+#     inherit=True,
+#     table_name="reported_effort_history",
+#     bases=[ReportedEffortMixin, Model],
+# )
+
+
 dummy_for_translations = (
     _("Browse"),
     _("Currently"),

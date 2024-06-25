@@ -15,14 +15,22 @@ class Migration(migrations.Migration):
             model_name="historicalorganisation",
             name="ro_email",
             field=common.models.EmailField(
-                blank=True, max_length=254, null=True, verbose_name="Research office email address"
+                blank=True,
+                max_length=254,
+                null=True,
+                verbose_name="Research office email address",
+                verbose_name="RO email address",
             ),
         ),
         migrations.AddField(
             model_name="organisation",
             name="ro_email",
             field=common.models.EmailField(
-                blank=True, max_length=254, null=True, verbose_name="Research office email address"
+                blank=True,
+                max_length=254,
+                null=True,
+                verbose_name="Research office email address",
+                verbose_name="RO email address",
             ),
         ),
     ]
