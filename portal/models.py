@@ -7598,6 +7598,9 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     # notes2 = models.TextField(blank=True, null=True)
     # duration = models.IntegerField(blank=True, null=True)
 
+    def __str__(self):
+        return f"{self.period}:{self.type}:{self.contract}"
+
     class Meta:
         db_table = "reporting_schedule_entry"
         unique_together = (("contract", "period", "type", "due_date"),)
@@ -7815,6 +7818,9 @@ class Report(ReportMixin, Model):
             if not self.type:
                 self.type = se.type
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.period}:{self.type}:{self.contract}"
 
     class Meta:
         db_table = "report"

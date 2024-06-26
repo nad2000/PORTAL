@@ -7719,6 +7719,45 @@ class MemberFTEForm(ModelForm):
 # )
 
 
+class ReportList(LoginRequiredMixin, SingleTableView):
+    table_class = tables.ReportTable
+    model = models.Report
+    template_name = "table.html"
+    # extra_context = {"category": "applications"}
+
+    # def get_queryset(self, *args, **kwargs):
+    #     queryset = super().get_queryset(*args, **kwargs)
+    #     u = self.request.user
+    #     if not (u.is_superuser or u.is_staff):
+    #         queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
+    #     return queryset
+
+
+class ReportDetail(DetailView):
+    template_name = "portal/report_detail.html"
+    model = models.Report
+    slug_field = "number"
+    slug_url_kwarg = "number"
+
+    # def get_queryset(self):
+    #     return (
+    #         super()
+    #         .get_queryset()
+    #         .prefetch_related(
+    #             Prefetch(
+    #                 "allocations", queryset=models.Allocation.objects.all().order_by("period")
+    #             ),
+    #             Prefetch(
+    #                 "reporting_schedule",
+    #                 queryset=models.ReportingScheduleEntry.objects.all().order_by(
+    #                     "period", "due_date"
+    #                 ),
+    #             ),
+    #         )
+    #     )
+
+
+
 def demo(request):
     a = Application.get(1683)
     duration = 3

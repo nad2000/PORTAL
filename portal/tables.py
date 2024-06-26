@@ -54,7 +54,9 @@ class StateColumn(tables.Column):
                     css_classes = "far fa-plus-square text-success text-center"
         elif state == "in_review":
             css_classes = "fas fa-question text-success text-center"
-            title = _("The application was submitted and sent out to the referees for the reviewing")
+            title = _(
+                "The application was submitted and sent out to the referees for the reviewing"
+            )
         elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
@@ -716,6 +718,46 @@ class ContractTable(tables.Table):
             "state",
             "number",
             "application",
+            # "contract_pi",
+        )
+
+
+class ReportTable(tables.Table):
+    # application = tables.Column(
+    #     linkify=lambda value, record: reverse(
+    #         "application-detail", kwargs=dict(number=record.application.number)
+    #     )
+    # )
+    contract = tables.Column(
+        linkify=lambda value, record: reverse(
+            "contract-detail", kwargs=dict(number=record.contract.number)
+        )
+    )
+    # number = tables.Column(
+    #         # linkify=lambda value, record: reverse("report-detail", kwargs=dict(number=record.number))
+    # )
+    state = StateColumn()
+
+    # def render_number(self, value, record, *args, **kwargs):
+    #     return 'abc'
+
+    def render_id(self, value, record, *args, **kwargs):
+        # breakpoint()
+        # c = record.contract
+        return format_html(
+            '<a href="{}">{}</a>',
+            reverse("report", kwargs={"pk": record.pk}),
+            f"{record.contract}:{record.period}:{record.type}",
+        )
+
+    class Meta:
+        model = models.Contract
+        fields = (
+            "id",
+            "state",
+            # "number",
+            # "application",
+            "contract",
             # "contract_pi",
         )
 

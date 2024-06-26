@@ -2609,4 +2609,248 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     ]
 
 
+@admin.register(models.Report)
+class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+    save_on_top = True
+    show_close_button = True
+
+    list_display = (
+        # "number",
+        # "category",
+        # "fund",
+        "contract",
+        "type",
+        # "application",
+        "state",
+    )
+
+    list_filter = ["state", "type"]
+    # list_filter = (
+    #     ("state", admin.RelatedOnlyFieldListFilter),
+    #     ("type", admin.RelatedOnlyFieldListFilter),
+    # )
+    search_fields = ["number", "contract__project_title", "contract__number"]
+    autocomplete_fields = [
+        "assessor",
+        # "principal",
+        # "coordinator",
+        # "fund",
+        # "panels",
+        # "application",
+        # "source",
+        # "supervisor",
+        "fors",
+        # "rccs",
+        # "seos",
+        # "seo_keywords",
+    ]
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": [
+                    (
+                        "state",
+                        "type",
+                        "contract",
+                        "period",
+                    ),
+                    "schedule_entry",
+                    "assessor",
+                    # ("number", "refcode", "year"),
+                    # "project_title",
+                    # "host_contact_email",
+                    # ("source", "source_code"),
+                    # ("org", "contract"),
+                    # ("proposal", "proposal_number"),
+                    # ("principal", "principal_code"),
+                    # ("coordinator", "coordinator_code"),
+                    # ("supervisor", "supervisor_code"),
+                    # ("start_date", "end_date", "duration"),
+                    # "category",
+                    # ("fund", "fund_code"),
+                    # "fund",
+                    # ("fin_received", "fin_supp"),
+                    # "code",
+                ],
+            },
+        ),
+        # (
+        #     "Compliance",
+        #     {
+        #         "classes": ("collapse",),
+        #         "fields": [
+        #             "ethics_statement_link",
+        #             "has_animal_use",
+        #             "is_signatory_to_oa",
+        #             "involves_childeren",
+        #             "has_child_protection",
+        #         ],
+        #     },
+        # ),
+        # (
+        #     "Additional Information",
+        #     {
+        #         "classes": ("collapse",),
+        #         "fields": [
+        #             # "panel_code",
+        #             "panel",
+        #             # ("total_amount", "actual_amount", "currency"),
+        #             "url",
+        #             "abstract",
+        #             "notes",
+        #             # "mf_round_yr",
+        #             # "seo_list",
+        #             # "keyword_list",
+        #             # "seo_keyword_list",
+        #         ],
+        #     },
+        # ),
+    ]
+    # readonly_fields = ["ethics_statement_link"]
+
+    # @admin.display(description="ethics statement")
+    # def ethics_statement_link(self, obj):
+    #     if es := obj.parts.filter(document_type__role="E").last():
+    #         return mark_safe(
+    #             es.file and f'<a href="{es.file.url}">{os.path.basename(es.file.name)}</a>' or "-"
+    #         )
+    #     return "-"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("contract")
+
+    # class TeamInline(admin.StackedInline):
+    #     model = models.ContractTeam
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["person", "country"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class ReportingInline(admin.StackedInline):
+    #     model = models.ContractReporting
+    #     exclude = ["contract_number"]
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class EthicsStatementInline(admin.StackedInline):
+    #     model = models.ContractEthicsStatement
+    #     # exclude = ["contract_number"]
+    #     extra = 0
+    #     view_on_site = False
+    #     # classes = ["collapse"]
+
+    # class ContractDocumentInline(admin.TabularInline):
+    #     model = models.ContractDocument
+    #     # exclude = ["contract_number"]
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class ReportingScheduleEntryInline(admin.TabularInline):
+    #     model = models.ReportingScheduleEntry
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class CommentInline(admin.TabularInline):
+    #     model = models.ContractComment
+    #     extra = 0
+    #     can_delete = False
+    #     view_on_site = False
+    #     fields = ["created_at", "submitted_by", "html_comment", "attachment_link"]
+    #     readonly_fields = ["created_at", "html_comment", "submitted_by", "attachment_link"]
+    #     classes = ["collapse"]
+
+    #     def has_change_permission(self, request, obj):
+    #         return False
+
+    #     def has_add_permission(self, request, obj):
+    #         return False
+
+    #     @admin.display(description=_("comment"))
+    #     def html_comment(self, obj):
+    #         return mark_safe(obj.comment or "-")
+
+    #     @admin.display(description=_("attachment"))
+    #     def attachment_link(self, obj):
+    #         return mark_safe(
+    #             obj.attachment
+    #             and f'<a href="{obj.attachment.url}">{os.path.basename(obj.attachment.name)}</a>'
+    #             or "-"
+    #         )
+
+    # class PanelAllocationInline(admin.StackedInline):
+    # class PanelAllocationInline(admin.StackedInline):
+    #     model = models.ContractPanelAllocation
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["panel"]
+    #     classes = ["collapse"]
+
+    # class VisitInline(admin.StackedInline):
+    #     model = models.ContractVisit
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    # class ExchangeInline(admin.StackedInline):
+    #     model = models.ContractExchange
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["country"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class EventInline(admin.StackedInline):
+    #     model = models.ContractEvent
+    #     extra = 0
+    #     view_on_site = False
+    #     autocomplete_fields = ["from_country", "to_country"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class LogInline(admin.TabularInline):
+    #     model = models.ContractLog
+    #     extra = 0
+    #     view_on_site = False
+    #     # autocomplete_fields = ["from_country", "to_country"]
+    #     readonly_fields = ["contract_number", "logged_by", "logged_on"]
+    #     exclude = ["contract_number"]
+    #     classes = ["collapse"]
+
+    # class AllocationInline(admin.TabularInline):
+    #     model = models.Allocation
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    class ForInline(admin.TabularInline):
+        model = models.ReportFor
+        extra = 0
+        view_on_site = False
+        autocomplete_fields = ["code"]
+        classes = ["collapse"]
+
+    inlines = [
+        # EthicsStatementInline,
+        # ContractDocumentInline,
+        # ReportingScheduleEntryInline,
+        # AllocationInline,
+        ForInline,
+        # TeamInline,
+        # AllocationInline,
+        # ReportingInline,
+        # VisitInline,
+        # ExchangeInline,
+        # EventInline,
+        # LogInline,
+        # CommentInline,
+        StateLogInline,
+    ]
+
+
 # vim:set ft=python.django:
