@@ -997,7 +997,7 @@ class Organisation(Model):
 
     legal_name = CharField(max_length=255, blank=True, null=True)
     alt_name = CharField(max_length=100, blank=True, null=True)
-    grid = CharField(max_length=15, blank=True, null=True)
+    grid = CharField(max_length=30, blank=True, null=True)
     ror = CharField(max_length=25, blank=True, null=True)
     gst = CharField(max_length=11, blank=True, null=True)
     nzbn = CharField(max_length=13, blank=True, null=True)
@@ -1043,6 +1043,7 @@ class Organisation(Model):
         limit_choices_to={"affiliations__type": "EMP"},
     )
     # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
+    notes = TextField(blank=True, null=True)
     website = CharField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
