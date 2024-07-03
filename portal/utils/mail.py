@@ -208,7 +208,6 @@ def send_mail(
     thread_index=None,
     site=None,
 ):
-    breakpoint()
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
     if not request and from_email and "@" in from_email:
