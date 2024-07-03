@@ -3509,8 +3509,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
             i.send(request, by=by or request and request.user)
             i.save()
             if i.referee:
-                i.referee.send()
-                i.referee.save()
+                if i.site_id != 5:
+                    i.referee.send()
+                    i.referee.save()
             count += 1
 
         return count
