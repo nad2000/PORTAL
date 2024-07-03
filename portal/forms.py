@@ -312,6 +312,8 @@ class DocumentInlineFormset(TableInlineFormset):
                 f.fields["file"].help_text = help_texts.get(rd_id)
                 f.fields["file"].label = f.form_label = f"{rd}" if rd else _("Document")
                 if rd:
+                    if rd.is_optional:
+                        f.fields["file"].widget.attrs["data-required"] = 0
                     dtf = rd.document_type.format
                     if dtf == "S":
                         f.fields["file"].widget.attrs[

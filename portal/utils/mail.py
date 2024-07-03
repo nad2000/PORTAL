@@ -208,14 +208,15 @@ def send_mail(
     thread_index=None,
     site=None,
 ):
+    breakpoint()
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
     if not request and from_email and "@" in from_email:
         domain = from_email.split("@")[1]
     else:
         domain = request and request.get_host() or site.domain
-    if ":" in domain:
-        domain = domain.split(":")[0]
+    # if ":" in domain:
+    #     domain = domain.split(":")[0]
     if domain and domain.startswith("xn--"):
         domain = domain.encode().decode("idna")
     root = f"https://{domain}"
