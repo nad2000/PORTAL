@@ -358,12 +358,12 @@ SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101"]
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
-# https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
+# # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_HOST_USER = "nad2000@gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_HOST_USER = "nad2000@gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
 EMAIL_SUBJECT_PREFIX = env(
     "DJANGO_EMAIL_SUBJECT_PREFIX", default="[Prime Minister's Science Prizes]"
 )

@@ -2090,7 +2090,7 @@ class ApplicationView(LoginRequiredMixin):
                                     self.request,
                                     _(
                                         "The invitation(s) to referee(s) will be sent after "
-                                        "you upload the application form and submit it for reviewing to the referees."
+                                        "you upload the application form and submit it for reviewing to your research office."
                                     ),
                                 )
                             else:

@@ -40,15 +40,12 @@ from django.core.validators import (
 )
 from django.db import connection, transaction
 from django.db.models import (
-    CASCADE,
-    DO_NOTHING,
-    PROTECT,
-    RESTRICT,
-    SET_NULL,
     BooleanField,
+    CASCADE,
     Case,
     CharField,
     Count,
+    DO_NOTHING,
     DateField,
     DateTimeField,
     DecimalField,
@@ -57,13 +54,17 @@ from django.db.models import (
     FloatField,
     ForeignKey,
     GeneratedField,
+    IntegerField,
     Manager,
     ManyToManyField,
     OneToOneField,
+    PROTECT,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     Prefetch,
     Q,
+    RESTRICT,
+    SET_NULL,
     SmallIntegerField,
     Subquery,
     Sum,
@@ -7882,6 +7883,80 @@ simple_history.register(
 #     table_name="reported_effort_history",
 #     bases=[ReportedEffortMixin, Model],
 # )
+
+
+class PublicationType(Model):
+    code = CharField(max_length=10, primary_key=True)
+    code_2 = CharField(unique=True, max_length=2, null=True, blank=True)
+    description = CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = "publication_type"
+
+
+class PublicationStatus(Model):
+    # type = CharField(max_length=2)
+    # type = ForeignKey(PublicationType, on_delete=DO_NOTHING)
+    code = CharField(max_length=3, db_index=True)
+    description = CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.type.code}/{self.code}: {self.description}"
+
+    class Meta:
+        verbose_name_plural = _("publication statuses")
+        db_table = "publication_status"
+        # unique_together = (("type", "code"),)
+
+
+class Publication(Model):
+    # pid = IntegerField(primary_key=True)
+    doi = CharField(
+        max_length=400, blank=True, null=True, help_text=_("Digital Object Identifier (DOI)")
+    )
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="publications")
+    rsnz_ref = IntegerField(blank=True, null=True)
+
+    # contract = ForeignKey(Contract, on_delete=CASCADE, blank=True, null=True)
+    # contract_number = CharField(max_length=40, blank=True, null=True)
+
+    # pstatus = CharField(max_length=3, blank=True, null=True)
+    # ptype = CharField(max_length=2, blank=True, null=True)
+    type = ForeignKey(PublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="type")
+    status = ForeignKey(
+        PublicationStatus, on_delete=DO_NOTHING, blank=True, null=True, db_column="status"
+    )
+    status_date = DateField(blank=True, null=True)
+    title = CharField(max_length=1000, blank=True, null=True)
+    title2 = CharField(max_length=1000, blank=True, null=True)
+    host = CharField(max_length=100, blank=True, null=True)
+    journal = CharField(max_length=100, blank=True, null=True)
+    publisher = CharField(max_length=100, blank=True, null=True)
+    editor = CharField(max_length=100, blank=True, null=True)
+    location = CharField(max_length=60, blank=True, null=True)
+    url = CharField(max_length=150, blank=True, null=True)
+    volume = CharField(max_length=10, blank=True, null=True)
+    year_ref = IntegerField(blank=True, null=True)
+    page_ref = CharField(max_length=14, blank=True, null=True)
+    host_ref = CharField(max_length=10, blank=True, null=True)
+    citations = IntegerField(blank=True, null=True)
+    citations_date = DateField(blank=True, null=True)
+    abstract = TextField(blank=True, null=True)
+    uid = CharField(max_length=9, blank=True, null=True)
+    updated_at = DateTimeField(blank=True, null=True)
+    impact_factor = IntegerField(blank=True, null=True)
+    impact_year = IntegerField(blank=True, null=True)
+    xcr = FloatField(blank=True, null=True)
+    isi_loc = CharField(max_length=50, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.report.number}: {self.title}"
+
+    class Meta:
+        db_table = "publication"
 
 
 dummy_for_translations = (
