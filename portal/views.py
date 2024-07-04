@@ -2543,7 +2543,7 @@ class ApplicationView(LoginRequiredMixin):
                         site_id == 5
                         or current_state == "in_review"
                         or "submit_to_referees" in self.request.POST
-                    ):
+                    ) and "submit" not in self.request.POST:
                         count = a.send_out_to_referees(request=self.request) or a.referees.count()
                         messages.info(
                             self.request,

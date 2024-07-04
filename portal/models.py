@@ -2271,7 +2271,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["new", "draft", "tac_accepted", "in_review"],
+        source=["tac_accepted", "submitted"],
         target="in_review",
         conditions=[lambda self: self.site_id == 5],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
@@ -2284,7 +2284,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["new", "draft", "tac_accepted", "in_review"],
+        source=["new", "draft", "tac_accepted"],
         target="submitted",
         custom=dict(verbose="Submit", button_name="Submit"),
     )
@@ -2369,7 +2369,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted"],
+        source=["submitted", "in_review"],
         target="approved",
         custom=dict(verbose="Approve", button_name="Approve"),
     )
@@ -2393,6 +2393,19 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             subject = f'The application "{self}" was APPROVED'
         if not getattr(self, "_change_reason", None):
             self._change_reason = resolution
+
+        if self.site_id == 5:
+            count = (
+                self.send_out_to_referees(request=self.request)
+                or self.referees.filter(state__in=["sent"]).count()
+            )
+            if count and request:
+                messages.info(
+                    request,
+                    _(
+                        f"The application '{self}' has been successfully submitted to {count} referee(s) to review it."
+                    ),
+                )
 
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
@@ -2425,16 +2438,17 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
-        messages.success(
-            request,
-            "Successfully sent notificatio to %s"
-            % ", ".join(u.full_name_with_email for u in recipients),
-        )
+        if request:
+            messages.success(
+                request,
+                "Successfully sent notificatio to %s"
+                % ", ".join(u.full_name_with_email for u in recipients),
+            )
 
     @fsm_log
     @transition(
         field=state,
-        source=["approved"],
+        source=["approved", "in_review"],
         target="accepted",
         custom=dict(verbose="Accept", button_name="Accept"),
     )
@@ -4617,6 +4631,8 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
             if description := kwargs.get("description"):
                 self.referee._change_reason = description
             self.referee.save()
+        if self.site_id == 5:
+            pass
 
     @classmethod
     def user_testimonials(cls, user, state=None, round=None):
@@ -5127,8 +5143,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 q = q.filter(~Q(id=self.id))
             last_round = q.order_by("-id").first()
 
+        scheme = self.scheme or last_round.scheme
         if last_round:
-            scheme = self.scheme or last_round.scheme
 
             for f in [f.name for f in self._meta.fields]:
                 if f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]:
@@ -5147,6 +5163,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             title = scheme.title_en
             if self.opens_on:
                 title = f"{title} {self.opens_on.year}"
+            else:
+                title = f"{title} {timezone.now().year}"
             self.title_en = title
 
         if self.title_en == scheme.title_en and self.opens_on:
@@ -5156,6 +5174,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             title = scheme.title_mi
             if self.opens_on:
                 title = f"{title} {self.opens_on.year}"
+            else:
+                title = f"{title} {timezone.now().year}"
             self.title_mi = title
 
         if self.title_mi == scheme.title_mi and self.opens_on:

@@ -1210,9 +1210,10 @@ class ApplicationForm(forms.ModelForm):
             and instance.submitted_by
             and instance.submitted_by != user
         )
-        send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
+        # send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
         submit_button = Submit(
-            "submit_to_referees" if send_out_to_referees else "submit",
+            "submit",
+            # "submit_to_referees" if send_out_to_referees else "submit",
             # _("Submit to referees") if send_out_to_referees else _("Submit"),
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
@@ -1227,10 +1228,15 @@ class ApplicationForm(forms.ModelForm):
                     )
                     if submission_disabled
                     else (
-                        _("Submit the application to referees for reviewing it")
-                        if send_out_to_referees
-                        else _("Submit the application")
+                        ("Submit the application to the Research Office")
+                        if site_id in [4, 5]
+                        else ("Submit the application")
                     )
+                    # else (
+                    #     _("Submit the application to referees for reviewing it")
+                    #     if send_out_to_referees
+                    #     else _("Submit the application")
+                    # )
                 )
             ),
             css_class="btn-outline-primary",
@@ -3148,7 +3154,7 @@ class ReportForm(forms.ModelForm):
             kwargs["initial"] = initial
         user = kwargs.pop("user", None) or initial.get("user")
 
-        if instance:= kwargs.get("instance"):
+        if instance := kwargs.get("instance"):
             pass
             # for fn, dr in self.part_fields:
             #     part = instance.documents.filter(document_type__role=dr).last()
@@ -3646,7 +3652,6 @@ class ReportForm(forms.ModelForm):
                 attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
         )
-
 
 
 # vim:set ft=python.django:
