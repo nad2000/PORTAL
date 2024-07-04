@@ -31,16 +31,22 @@
   {% endif %}
 
   {% if update_view_name %}
-    <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.state == "submitted" or object.state == "accepted" %} disabled{% endif %}"
-         {% if object.state == "submitted" or object.state == "submitted" %}
+      <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" and not is_ro or object.state == "accepted" %} disabled{% endif %}"
+         {% if object.state == "submitted" and not is_ro %}
            disabled
-         data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
-       {% elif object.state == "accepted" %}
+           data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
+         {% elif object.state == "accepted" %}
            disabled
-         title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
+             {% if SITE_ID == 1 %}
+             title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
+             {% elif SITE_ID == 7 %}
+             title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmspaceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
+             {% endif %}
+         {% elif object.state == "submitted" and is_ro %}
+           data-title="{% trans 'Update the entry and re-submit.' %}"
        {% endif %}
          >
-         <a class="btn btn-primary{% if object.state == "submitted" or object.state == "submitted" or object.state == "accepted" %} disabled{% endif %}"
+         <a class="btn btn-primary{% if object.state == "submitted" and not is_ro or object.state == "accepted" %} disabled{% endif %}"
             href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
     </div>
   {% endif %}
