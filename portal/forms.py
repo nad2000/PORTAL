@@ -2428,6 +2428,7 @@ class NominationForm(forms.ModelForm):
         r = initial and initial.get("round") or self.instance.round
         site_id = settings.SITE_ID
         nominator = initial and initial.get("nominator") or self.instance.nominator
+        org_id = initial.get("org")
         if nominator and (
             is_single_org_ro := (site_id in [4, 5] and nominator.research_offices.count() == 1)
         ):
@@ -2444,6 +2445,8 @@ class NominationForm(forms.ModelForm):
                 .order_by("affiliations__start_date")
                 .last()
             )
+        if not initial.get("org") and org_id:
+            initial["org"] = org_id
 
         self.helper = FormHelper(self)
         self.helper.include_media = False

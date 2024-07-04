@@ -376,19 +376,21 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               </b>
             </h5>
             <div class="card-body"{#% if round.colour %} style="background-color: {{ round.colour|color_variant:3.9 }}; color: white;"{% endif %#}>
-              {% if record.description|collapsible %}
-              <div class="partialcollapse">
-                <div class="collapse mb-1" id="round-description-{{ round.id }}" aria-expanded="false">
-                  {{ record.description|safe }}
+              {% if record.description %}
+                {% if record.description|collapsible %}
+                <div class="partialcollapse">
+                  <div class="collapse mb-1" id="round-description-{{ round.id }}" aria-expanded="false">
+                    {{ record.description|safe }}
+                  </div>
+                  <a role="button"
+                     class="collapsed"
+                     data-toggle="collapse"
+                     href="#round-description-{{ round.id }}"
+                     ></a>
                 </div>
-                <a role="button"
-                   class="collapsed"
-                   data-toggle="collapse"
-                   href="#round-description-{{ round.id }}"
-                   ></a>
-              </div>
-              {% else %}
-              {{ record.description|safe }}
+                {% else %}
+                {{ record.description|safe }}
+                {% endif %}
               {% endif %}
               {% if round %}
               {% if round.closes_at or round.opens_on %}
@@ -546,7 +548,11 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
                    {% endif %}
                    {% else %}
-                   data-title="{% trans 'Nominate other person to apply ...' %}"
+                     {% if SITE_ID == 7 or SITE_ID == 1 %}
+                       data-title="{% trans 'Nominate other person to apply for the prize' %}"
+                     {% else %}
+                       data-title="{% trans 'Nominate other person to apply ...' %}"
+                     {% endif %}
                    {% endif %}
                    >
                    <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"

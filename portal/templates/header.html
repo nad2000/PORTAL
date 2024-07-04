@@ -1,10 +1,13 @@
-{% load static %}
+{% load static i18n %}
 <header class="header">
 
   <a href="{% url 'home' %}" style="margin-left: 24px;">
     <!-- img id="logo"
          src="https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1.png" alt="The Prime Minister's Science Prizes" srcset="https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1@1x.png  1x, https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1@2x.png  2x, https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1@3x.png  3x, https://www.pmscienceprizes.org.nz/wp-content/uploads/2019/03/PM-SCIENCE-LOGO_HORIZONTAL_FINAL_7466-1-1@4x.png 4x" -->
-    <img id="logo"
-         src="{% static 'images/pmprize-logo.jpg' %}" alt="The Prime Minister's Science Prizes">
+    {% if SITE_ID == 7 %}
+      <img id="logo" src="{% static 'images/pmspace-logo.png' %}" alt="{% trans 'The Prime Minister\'s Space Prizes' %}">
+    {% else %}
+      <img id="logo" src="{% static 'images/pmprize-logo.jpg' %}" alt="{% trans 'The Prime Minister\'s Science Prizes' %}">
+    {% endif %}
   </a>
 </header>

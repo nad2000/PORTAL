@@ -5159,6 +5159,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             if not self.closes_at and last_round.closes_at:
                 self.closes_at = last_round.closes_at + relativedelta(years=1)
 
+        if not self.opens_on:
+            self.opens_on = timezone.now()
+
         if not self.title_en:
             title = scheme.title_en
             if self.opens_on:

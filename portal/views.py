@@ -1883,6 +1883,13 @@ class ApplicationView(LoginRequiredMixin):
                 initial["org"] = latest_application.org
                 initial["position"] = latest_application.position
 
+            if not address and (org := initial.get("org")):
+                if (address := org.address):
+                    initial["address"] = address
+                    initial["postal_address"] = address.address
+                    initial["city"] = address.city
+                    initial["postcode"] = address.postcode
+
             if latest_application:
                 if not address:
                     if latest_application_address := latest_application.address:
@@ -5376,6 +5383,7 @@ class NominationView(CreateUpdateView):
     def get_initial(self):
         initial = super().get_initial()
         initial["round"] = self.round.id if self.round else None
+        org = None
         if (
             latest := self.request.user.nominations.filter(
                 ~Q(contact_phone__isnull=True), ~Q(contact_phone="")
@@ -5384,6 +5392,7 @@ class NominationView(CreateUpdateView):
             .last()
         ):
             initial["contact_phone"] = latest.contact_phone
+            org = latest.org
         elif (
             ro := self.request.user.research_offices.filter(
                 ~Q(org__contact_phone__isnull=True), ~Q(org__contact_phone="")
@@ -5392,6 +5401,28 @@ class NominationView(CreateUpdateView):
             .last()
         ):
             initial["contact_phone"] = ro.org.contact_phone
+            org = ro.org
+
+        if not org:
+            org = (
+                self.request.user.person.affiliations.filter(end_date__isnull=True)
+                .order_by("-start_date", "-id")
+                .first()
+            )
+
+        if not org:
+            a = (
+                models.Application.all_objects.filter(
+                    submitted_by=self.request.user, org__isnull=False
+                )
+                .order_by("-id")
+                .first()
+            )
+            if a:
+                org = a.org
+        if org:
+            initial["org"] = org.pk
+
         return initial
 
     def form_valid(self, form):
@@ -7755,7 +7786,6 @@ class ReportDetail(DetailView):
     #             ),
     #         )
     #     )
-
 
 
 def demo(request):
