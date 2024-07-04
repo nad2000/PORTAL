@@ -51,6 +51,41 @@ for the addressee and may be confidential. If you are not the intended recipient
 # TODO:
 DEFAULT_SITE_HTML_FOOTER = {
     "portal.pmscienceprizes.org.nz": DEFAULT_HTML_FOOTER,
+    "portal.pmspaceprizes.org.nz": """
+<br>To learn more about the Prime Minister’s Space Prizes
+<a href='https://pmspaceprizes.org.nz/'>click here</a>.<br>
+<br>Ngā mihi nui,</p><br>
+<p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
+font-family:"Helvetica",sans-serif;color:black'><img border='0' width='298'
+height='96' style='width:3.1041in;height:1.0in' src='%(logo_url)s'
+alt='PM’s Space Prizes Logo Alternative'></span><br>
+<br>
+Ngā Kaiwhakahaere o Te Puiaki Pūtaiao a Te Pirimia<br>
+Prime Minister’s Space Prize Secretariat</p>
+<table border='0' cellspacing='0' cellpadding='0' style=
+'border-collapse:collapse'>
+<tbody><tr><td style='padding:0cm 0cm 0cm 0cm'>
+<p style='line-height:115%%'><b><span style='font-size:8.5pt;
+line-height:115%%;color:black'>Waea telephone &nbsp;</span></b><span
+style='font-size:8.5pt;line-height:115%%;color:black'>+64 4 470 5762<br>
+<b><style='font-size:8.5pt;line-height:115%%;color:black'>Īmēra email</span></b><span
+style='font-size:8.5pt;line-height:115%%'>&nbsp;</span><span
+style='font-size:8.5pt;line-height:115%%;color:black;background:white'>
+<a href='mailto:pmspaceprizes@royalsociety.org.nz'>
+<span style='color:black'>pmspaceprizes@royalsociety.org.nz</span></a></span></p>
+<p><b><span style='font-size:8.5pt;color:black'>C/- Royal Society Te Apārangi</span>
+</b><span style='font-size:8.5pt;color:black'><br>
+11 Turnbull Street, Thorndon, Wellington 6011<br>
+PO Box 598, Wellington 6140, New Zealand<br>
+<a href='http://royalsociety.org.nz/' ><b><span style='color:black'>ROYALSOCIETY.ORG.NZ</span>
+</b></a></span></p><br>
+<p><i><span style='font-size:8.0pt;color:black'>Please consider the environment before
+printing this email. The information contained in this email message is intended only
+for the addressee and may be confidential. If you are not the intended recipient, please
+ notify us immediately.</span></i></p>
+</td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
+</tr></tbody></table></body></html>
+""",
     "international.royalsociety.org.nz": """
 <br>To learn more about the Catalyst Fund administered by the Royal Society Te Apārangi
 <a href='https://www.royalsociety.org.nz/what-we-do/funds-and-opportunities/catalyst-fund/'>click here</a>.<br>
@@ -255,7 +290,11 @@ def send_mail(
                 "logo_url": (
                     f"{urljoin(root, 'static/images/alt_logo.jpg')}"
                     if site.domain == "portal.pmscienceprizes.org.nz"
-                    else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                    else (
+                        f"{urljoin(root, 'static/images/pmspace-logo.jpg')}"
+                        if site.pk == 7
+                        else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                    )
                 ),
             }
         html_message = f"<html><body>{html_message}\n{html_footer}"
