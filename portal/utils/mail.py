@@ -60,7 +60,6 @@ font-family:"Helvetica",sans-serif;color:black'><img border='0' width='298'
 height='96' style='width:3.1041in;height:1.0in' src='%(logo_url)s'
 alt='PM’s Space Prizes Logo Alternative'></span><br>
 <br>
-Ngā Kaiwhakahaere o Te Puiaki Pūtaiao a Te Pirimia<br>
 Prime Minister’s Space Prize Secretariat</p>
 <table border='0' cellspacing='0' cellpadding='0' style=
 'border-collapse:collapse'>
