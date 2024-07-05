@@ -86,6 +86,23 @@ class Model(TimeStampMixin, HelperMixin, Base):
     # TODO: figure out how to make generic table naming:
     # history = HistoricalRecords(inherit=True)
 
+    def get_full_detail_url(self, request=None):
+        url = None
+        model_name_slug = self._meta.db_table.replace("_", "-")
+        try:
+            url = reverse(f"{model_name_slug}-detail", args=[str(self.number)])
+        except:
+            try:
+                url = reverse(f"{model_name_slug}-detail", args=[str(self.code)])
+            except:
+                url = reverse(model_name_slug, args=[str(self.pk)])
+        if not url:
+            if request:
+                return request.build_absolute_uri(url)
+            else:
+                site = Site.objects.get_current()
+                return f"https://{site.domain}{url}"
+
     def get_absolute_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
         try:

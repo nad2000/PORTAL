@@ -26,7 +26,7 @@ from django import forms
 from django.conf import settings
 from django.forms import FileField, HiddenInput, Widget, inlineformset_factory
 from django.forms.models import BaseInlineFormSet, modelformset_factory
-from django.forms.widgets import NullBooleanSelect, Select, TextInput
+from django.forms.widgets import NullBooleanSelect, Select, TextInput, NumberInput
 from django.shortcuts import reverse
 from django.template.loader import render_to_string
 from django.utils.functional import cached_property
@@ -1328,6 +1328,15 @@ class ApplicationForm(forms.ModelForm):
             letter_of_support_file=forms.ClearableFileInput(
                 attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
             ),
+            research_experience_in_years=NumberInput(
+                attrs={
+                    "placeholder": _("Research experience in years"),
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _("Research experience in years is required"),
+                    "oninput": "this.setCustomValidity('')",
+                }
+            ),
         )
         labels = {"keywords": ""}
         help_texts = {
@@ -2474,7 +2483,10 @@ class NominationForm(forms.ModelForm):
                 "email",
                 css_id="nominee",
             ),
-            "org",
+            Row(
+                Column("org", css_class="col-9"),
+                Column("position", css_class="col-3"),
+            ),
             HTML(
                 """
             <div id="div_id_nominator" class="form-group">
@@ -2615,6 +2627,7 @@ class NominationForm(forms.ModelForm):
             "last_name",
             "email",
             "org",
+            "position",
             # "summary",
             "file",
         ]
@@ -3149,512 +3162,512 @@ class ScoreSheetForm(forms.ModelForm):
         )
 
 
-class ReportForm(forms.ModelForm):
+# class ReportForm(forms.ModelForm):
 
-    def __init__(self, *args, **kwargs):
-        initial = kwargs.get("initial", {})
-        if initial:
-            kwargs["initial"] = initial
-        user = kwargs.pop("user", None) or initial.get("user")
+#     def __init__(self, *args, **kwargs):
+#         initial = kwargs.get("initial", {})
+#         if initial:
+#             kwargs["initial"] = initial
+#         user = kwargs.pop("user", None) or initial.get("user")
 
-        if instance := kwargs.get("instance"):
-            pass
-            # for fn, dr in self.part_fields:
-            #     part = instance.documents.filter(document_type__role=dr).last()
-            #     if part:
-            #         initial[fn] = part.file
-            # if es := models.ContractEthicsStatement.where(contract=instance).last():
-            #     initial["not_applicable"] = es.not_relevant or False
-            #     initial["not_applicable_comment"] = es.comment or ""
+#         if instance := kwargs.get("instance"):
+#             pass
+#             # for fn, dr in self.part_fields:
+#             #     part = instance.documents.filter(document_type__role=dr).last()
+#             #     if part:
+#             #         initial[fn] = part.file
+#             # if es := models.ContractEthicsStatement.where(contract=instance).last():
+#             #     initial["not_applicable"] = es.not_relevant or False
+#             #     initial["not_applicable_comment"] = es.comment or ""
 
-        super().__init__(*args, **kwargs)
-        # language = get_language()
-        instance = self.instance or instance
-        # application = instance.application or initial.get("application")
-        # site_id = settings.SITE_ID
-        # if site_id in [4, 5]:
-        #     self.fields["project_title"].label = _("Title of proposed research project")
-        #     # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
-        #     # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
+#         super().__init__(*args, **kwargs)
+#         # language = get_language()
+#         instance = self.instance or instance
+#         # application = instance.application or initial.get("application")
+#         # site_id = settings.SITE_ID
+#         # if site_id in [4, 5]:
+#         #     self.fields["project_title"].label = _("Title of proposed research project")
+#         #     # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
+#         #     # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
 
-        # # r = self.instance.application.round
-        # # parts = dict((v, v) for f, v in self.part_fields)
-        # parts = (
-        #     {p.document_type.role: p for p in instance.documents.prefetch_related("document_type")}
-        #     if instance.pk
-        #     else {}
-        # )
+#         # # r = self.instance.application.round
+#         # # parts = dict((v, v) for f, v in self.part_fields)
+#         # parts = (
+#         #     {p.document_type.role: p for p in instance.documents.prefetch_related("document_type")}
+#         #     if instance.pk
+#         #     else {}
+#         # )
 
-        # submission_disabled = not instance or (
-        #     instance.submitted_by and instance.submitted_by != user
-        # )
-        # is_pi = instance and (
-        #     instance.submitted_by == user
-        #     or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
-        #     or application.submitted_by == user
-        # )
-        # is_ro = application and application.org.research_offices.filter(user=user).exists()
-        # submit_button = Submit(
-        #     "submit_contract",  # NB! Never call a button 'submit'!
-        #     _("Submit"),
-        #     # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
-        #     data_toggle="tooltip",
-        #     title=(
-        #         _("Only P.I. can submit the contract")
-        #         if not is_pi
-        #         else (
-        #             _("Not all the parts/appendices of the contract were approved and/or accepted")
-        #             if submission_disabled
-        #             else _("Submit the contract")
-        #         )
-        #     ),
-        #     css_class="btn-outline-primary",
-        #     disabled=submission_disabled or not is_pi,
-        # )
-        # # if is_pi or is_ro:
-        # #     pass
-        # # else:
-        # #     # romove compliance:
-        # #     list(map(self.fields.pop, ["ethics_statement"]))
-        # compliance_fields = (
-        #     [
-        #         HTML(
-        #             """<div class="alert alert-dark" role="alert">%s</div>"""
-        #             % _(
-        #                 "Please provide an ethic from. If this is not applicable to your application, "
-        #                 'click "Not Applicable" and state why in the comment.'
-        #             )
-        #         ),
-        #     ]
-        #     if is_pi or is_ro
-        #     else []
-        # )
-        # disabled_compliance = not (is_pi or is_ro)
-        # compliance_fields.extend(
-        #     [
-        #         # Field("ethics_statement", label=_("Ethics Statement")),
-        #         Field(
-        #             "requires_approval",
-        #             data_toggle="toggle",
-        #             template="portal/toggle.html",
-        #             data_on=_("Yes"),
-        #             data_off=_("No"),
-        #             data_onstyle="success",
-        #             data_offstyle="warning",
-        #         ),
-        #         # "not_applicable",
-        #         # "not_applicable_comment",
-        #         not disabled_compliance
-        #         and HTML(
-        #             '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
-        #             % (
-        #                 (
-        #                     _(
-        #                         "Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
-        #                         "(Please provide serial number, type of approval and date received)"
-        #                     )
-        #                     if instance.requires_approval
-        #                     else _(
-        #                         "Please provide brief reason why ethical or regulatory approval is not required."
-        #                     )
-        #                 )
-        #                 if instance and instance.pk
-        #                 else _(
-        #                     "If YES, please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
-        #                     "(Please provide serial number, type of approval and date received) "
-        #                     "if NOT, please provide brief reason why ethical or regulatory approval is not required."
-        #                 )
-        #             )
-        #         ),
-        #         "requires_approval_comment",
-        #     ]
-        # )
-        # if not disabled_compliance:
-        #     compliance_fields.append(
-        #         HTML(
-        #             '<p class="text-warning">%s</p>'
-        #             % _(
-        #                 "Royal Society Te Apārangi and other institutions are signatories to teh ANZCCART "
-        #                 "Openness Agreement on Animal Research and Teaching in New Zealand ... TODO:..."
-        #             )
-        #         )
-        #     )
-        # compliance_fields.extend(
-        #     [
-        #         InlineRadios("has_animal_use"),
-        #         InlineRadios("is_signatory_to_oa"),
-        #     ]
-        # )
-        # if not disabled_compliance:
-        #     compliance_fields.append(
-        #         HTML(
-        #             '<p class="text-warning">%s</p>'
-        #             % _(
-        #                 "It is necessary for the Researcher to notify if children "
-        #                 "are involved in the research and therefor "
-        #                 "subject to Section 19 of the Vulnerable Children's Act 2014. All ... TODO:..."
-        #             )
-        #         )
-        #     )
-        # compliance_fields.extend(
-        #     [
-        #         InlineRadios("involves_childeren"),
-        #         InlineRadios("has_child_protection"),
-        #     ]
-        # )
-        # # if instance and instance.pk:
-        # #     es = models.ContractEthicsStatement.where(contract=instance).last()
-        # #     if es and es.not_relevant:
-        # #         self.fields["not_applicable_comment"].required = True
+#         # submission_disabled = not instance or (
+#         #     instance.submitted_by and instance.submitted_by != user
+#         # )
+#         # is_pi = instance and (
+#         #     instance.submitted_by == user
+#         #     or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
+#         #     or application.submitted_by == user
+#         # )
+#         # is_ro = application and application.org.research_offices.filter(user=user).exists()
+#         # submit_button = Submit(
+#         #     "submit_contract",  # NB! Never call a button 'submit'!
+#         #     _("Submit"),
+#         #     # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+#         #     data_toggle="tooltip",
+#         #     title=(
+#         #         _("Only P.I. can submit the contract")
+#         #         if not is_pi
+#         #         else (
+#         #             _("Not all the parts/appendices of the contract were approved and/or accepted")
+#         #             if submission_disabled
+#         #             else _("Submit the contract")
+#         #         )
+#         #     ),
+#         #     css_class="btn-outline-primary",
+#         #     disabled=submission_disabled or not is_pi,
+#         # )
+#         # # if is_pi or is_ro:
+#         # #     pass
+#         # # else:
+#         # #     # romove compliance:
+#         # #     list(map(self.fields.pop, ["ethics_statement"]))
+#         # compliance_fields = (
+#         #     [
+#         #         HTML(
+#         #             """<div class="alert alert-dark" role="alert">%s</div>"""
+#         #             % _(
+#         #                 "Please provide an ethic from. If this is not applicable to your application, "
+#         #                 'click "Not Applicable" and state why in the comment.'
+#         #             )
+#         #         ),
+#         #     ]
+#         #     if is_pi or is_ro
+#         #     else []
+#         # )
+#         # disabled_compliance = not (is_pi or is_ro)
+#         # compliance_fields.extend(
+#         #     [
+#         #         # Field("ethics_statement", label=_("Ethics Statement")),
+#         #         Field(
+#         #             "requires_approval",
+#         #             data_toggle="toggle",
+#         #             template="portal/toggle.html",
+#         #             data_on=_("Yes"),
+#         #             data_off=_("No"),
+#         #             data_onstyle="success",
+#         #             data_offstyle="warning",
+#         #         ),
+#         #         # "not_applicable",
+#         #         # "not_applicable_comment",
+#         #         not disabled_compliance
+#         #         and HTML(
+#         #             '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
+#         #             % (
+#         #                 (
+#         #                     _(
+#         #                         "Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
+#         #                         "(Please provide serial number, type of approval and date received)"
+#         #                     )
+#         #                     if instance.requires_approval
+#         #                     else _(
+#         #                         "Please provide brief reason why ethical or regulatory approval is not required."
+#         #                     )
+#         #                 )
+#         #                 if instance and instance.pk
+#         #                 else _(
+#         #                     "If YES, please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
+#         #                     "(Please provide serial number, type of approval and date received) "
+#         #                     "if NOT, please provide brief reason why ethical or regulatory approval is not required."
+#         #                 )
+#         #             )
+#         #         ),
+#         #         "requires_approval_comment",
+#         #     ]
+#         # )
+#         # if not disabled_compliance:
+#         #     compliance_fields.append(
+#         #         HTML(
+#         #             '<p class="text-warning">%s</p>'
+#         #             % _(
+#         #                 "Royal Society Te Apārangi and other institutions are signatories to teh ANZCCART "
+#         #                 "Openness Agreement on Animal Research and Teaching in New Zealand ... TODO:..."
+#         #             )
+#         #         )
+#         #     )
+#         # compliance_fields.extend(
+#         #     [
+#         #         InlineRadios("has_animal_use"),
+#         #         InlineRadios("is_signatory_to_oa"),
+#         #     ]
+#         # )
+#         # if not disabled_compliance:
+#         #     compliance_fields.append(
+#         #         HTML(
+#         #             '<p class="text-warning">%s</p>'
+#         #             % _(
+#         #                 "It is necessary for the Researcher to notify if children "
+#         #                 "are involved in the research and therefor "
+#         #                 "subject to Section 19 of the Vulnerable Children's Act 2014. All ... TODO:..."
+#         #             )
+#         #         )
+#         #     )
+#         # compliance_fields.extend(
+#         #     [
+#         #         InlineRadios("involves_childeren"),
+#         #         InlineRadios("has_child_protection"),
+#         #     ]
+#         # )
+#         # # if instance and instance.pk:
+#         # #     es = models.ContractEthicsStatement.where(contract=instance).last()
+#         # #     if es and es.not_relevant:
+#         # #         self.fields["not_applicable_comment"].required = True
 
-        # if disabled_compliance:
-        #     self.fields["ethics_statement"].disabled = True
-        #     self.fields["has_animal_use"].disabled = True
-        #     self.fields["is_signatory_to_oa"].disabled = True
-        #     self.fields["involves_childeren"].disabled = True
-        #     self.fields["has_child_protection"].disabled = True
-        #     self.fields["requires_approval"].disabled = True
-        #     self.fields["requires_approval_comment"].disabled = True
-        #     # self.fields["not_applicable"].disabled = True
-        #     # self.fields["not_applicable_comment"].disabled = True
-        #     compliance_fields.append(
-        #         Fieldset(
-        #             None,
-        #             Submit(
-        #                 "approve_compliance",
-        #                 _("Approve"),
-        #                 data_document_role="E",
-        #                 data_toggle="tooltip",
-        #                 data_enabled_title=_("Approve contract compliance"),
-        #                 data_disabled_title=_(
-        #                     "The compliance has been already approved or haven't been uploaded yet"
-        #                 ),
-        #                 title=_("Approve contract compliance"),
-        #                 # title=(
-        #                 #     _("Approve research aims")
-        #                 #     if "AIMS" in parts
-        #                 #     else _("Please upload research aims before approving it")
-        #                 # ),
-        #                 css_class="btn-primary float-right",
-        #                 # css_class="btn-outline-primary",
-        #                 disabled=("E" not in parts and "ethics_statement" not in self.initial),
-        #                 css_id="id_approve_compliance",
-        #             ),
-        #             css_id="id_approve_copliance",
-        #         )
-        #     )
-        # else:
-        #     pass
-        #     # self.fields["has_animal_use"].help_text = gettext_lazy(
-        #     #     "Does the proposed research use animals for research or teaching? AAA"
-        #     # )
-        #     # self.fields["has_animal_use"].disabled = True
-        #     # self.fields["is_signatory_to_oa"].disabled = True
-        #     # self.fields["involves_childeren"].disabled = True
-        #     # self.fields["has_child_protection"].disabled = True
+#         # if disabled_compliance:
+#         #     self.fields["ethics_statement"].disabled = True
+#         #     self.fields["has_animal_use"].disabled = True
+#         #     self.fields["is_signatory_to_oa"].disabled = True
+#         #     self.fields["involves_childeren"].disabled = True
+#         #     self.fields["has_child_protection"].disabled = True
+#         #     self.fields["requires_approval"].disabled = True
+#         #     self.fields["requires_approval_comment"].disabled = True
+#         #     # self.fields["not_applicable"].disabled = True
+#         #     # self.fields["not_applicable_comment"].disabled = True
+#         #     compliance_fields.append(
+#         #         Fieldset(
+#         #             None,
+#         #             Submit(
+#         #                 "approve_compliance",
+#         #                 _("Approve"),
+#         #                 data_document_role="E",
+#         #                 data_toggle="tooltip",
+#         #                 data_enabled_title=_("Approve contract compliance"),
+#         #                 data_disabled_title=_(
+#         #                     "The compliance has been already approved or haven't been uploaded yet"
+#         #                 ),
+#         #                 title=_("Approve contract compliance"),
+#         #                 # title=(
+#         #                 #     _("Approve research aims")
+#         #                 #     if "AIMS" in parts
+#         #                 #     else _("Please upload research aims before approving it")
+#         #                 # ),
+#         #                 css_class="btn-primary float-right",
+#         #                 # css_class="btn-outline-primary",
+#         #                 disabled=("E" not in parts and "ethics_statement" not in self.initial),
+#         #                 css_id="id_approve_compliance",
+#         #             ),
+#         #             css_id="id_approve_copliance",
+#         #         )
+#         #     )
+#         # else:
+#         #     pass
+#         #     # self.fields["has_animal_use"].help_text = gettext_lazy(
+#         #     #     "Does the proposed research use animals for research or teaching? AAA"
+#         #     # )
+#         #     # self.fields["has_animal_use"].disabled = True
+#         #     # self.fields["is_signatory_to_oa"].disabled = True
+#         #     # self.fields["involves_childeren"].disabled = True
+#         #     # self.fields["has_child_protection"].disabled = True
 
-        # self.helper = FormHelper(self)
-        # tabs = [
-        #     # Tab(
-        #     #     "Playgroud",
-        #     #     Modal(
-        #     #         # email.help_text was set during the initalization of the django form field
-        #     #         Field("email", placeholder="Email", wrapper_class="mb-0"),
-        #     #         Button(
-        #     #             "submit",
-        #     #             "Send Reset Email",
-        #     #             id="email_reset",
-        #     #             css_class="btn-primary mt-3",
-        #     #             onClick="someJavasciptFunction()",  # used to submit the form
-        #     #         ),
-        #     #         css_id="my_modal_id",
-        #     #         title="This is my modal",
-        #     #         title_class="w-100 text-center",
-        #     #     ),
-        #     # ),
-        #     Tab(
-        #         mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
-        #         *(
-        #             [
-        #                 HTML("{% load tags %}{% contract_summary %}"),
-        #                 Field("start_date", type="hidden", css_class="hidden"),
-        #                 Field("end_date", type="hidden", css_class="hidden"),
-        #             ]
-        #             if self.instance
-        #             and self.instance.id
-        #             and not (user.is_superuser or user.is_staff)
-        #             else [
-        #                 HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-        #                 Row(Column("start_date"), Column("end_date")),
-        #                 SubForm("address_form"),
-        #             ]
-        #         ),
-        #         css_id="summary",
-        #     ),
-        #     Tab(
-        #         _("Research"),
-        #         Field("project_title"),
-        #         Field("abstract"),
-        #         Field("notes"),
-        #         css_id="research",
-        #     ),
-        #     Tab(
-        #         _("Personnel"),
-        #         TableInlineFormset("personnel"),
-        #         css_id="personnel",
-        #     ),
-        #     Tab(
-        #         _("Proposal"),
-        #         HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
-        #         css_id="proposal",
-        #     ),
-        #     Tab(
-        #         _("Reporting"),
-        #         Fieldset(
-        #             _("Reporting Schedule"),
-        #             TableInlineFormset("reporting_schedule"),
-        #             css_id="reporting_schedule",
-        #         ),
-        #         css_id="reporting",
-        #     ),
-        #     Tab(
-        #         _("Compliance"),
-        #         *compliance_fields,
-        #         css_id="compliance",
-        #     ),
-        #     Tab(
-        #         mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-        #         HTML(
-        #             """{% load i18n %}<div class="alert alert-dark" role="alert">
-        #             {% blocktrans %}
-        #             Funding has been allocated over the award period.
-        #             You can distributed it differently, but may not exceed
-        #             the total award. All amounts are exclusive of GST.
-        #             {% endblocktrans %}
-        #             </div>"""
-        #         ),
-        #         Fieldset(
-        #             _("Budget Allocation"),
-        #             TableInlineFormset(
-        #                 "allocations", template="portal/allocations_table_inline_formset.html"
-        #             ),
-        #             css_id="allocations",
-        #         ),
-        #         (
-        #             # Field("proposal_budget"),
-        #             Fieldset(
-        #                 None,
-        #                 HTML(
-        #                     f"""<div class="input-group mb-2">
-        #                 <div class="input-group-prepend">
-        #                     <span class="input-group-text">{_("Proposal Budget")}</span>
-        #                 </div>
-        #                 <div class="form-control d-flex h-auto">
-        #                     <span class="text-break" style="flex-grow:1;min-width:0">
-        #                     <a href="{proposal_budget_file.url}">
-        #                         {os.path.basename(proposal_budget_file.name)}
-        #                     </a>
-        #                     </span>
-        #                 </div>
-        #             </div>"""
-        #                 ),
-        #                 # Submit(
-        #                 #     "copy_proposal_budget",
-        #                 #     _("Copy"),
-        #                 #     css_class="btn-primary float-right",
-        #                 #     data_document_action="copy_proposal_budget",
-        #                 #     # data_document_role="PB",
-        #                 #     data_document_role="PB",
-        #                 # ),
-        #             )
-        #             if proposal_budget_file
-        #             else None
-        #         ),
-        #         Fieldset(
-        #             None,
-        #             # Field("award_budget", label=""),
-        #             Field("budget", label=""),
-        #             ButtonHolder(
-        #                 Submit(
-        #                     "request_budget_correction",
-        #                     _("Request Correction"),
-        #                     css_class="btn-primary",
-        #                     data_document_action="request_correction",
-        #                     # data_document_role="PB",
-        #                     data_document_role="B",
-        #                 ),
-        #                 Submit(
-        #                     "approve_budget",
-        #                     _("Awaiting Approval"),
-        #                     css_class="btn-secondary",
-        #                     data_document_action="awaiting_approval",
-        #                     # data_document_role="AB",
-        #                     data_document_role="B",
-        #                 ),
-        #                 css_class="float-right",
-        #             ),
-        #         ),
-        #         css_id="finances",
-        #     ),
-        #     Tab(
-        #         mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
-        #         Div(
-        #             DocumentInlineFormset("documents"),
-        #             css_id="documents",
-        #         ),
-        #         css_id="appendices",
-        #     ),
-        # ]
+#         # self.helper = FormHelper(self)
+#         # tabs = [
+#         #     # Tab(
+#         #     #     "Playgroud",
+#         #     #     Modal(
+#         #     #         # email.help_text was set during the initalization of the django form field
+#         #     #         Field("email", placeholder="Email", wrapper_class="mb-0"),
+#         #     #         Button(
+#         #     #             "submit",
+#         #     #             "Send Reset Email",
+#         #     #             id="email_reset",
+#         #     #             css_class="btn-primary mt-3",
+#         #     #             onClick="someJavasciptFunction()",  # used to submit the form
+#         #     #         ),
+#         #     #         css_id="my_modal_id",
+#         #     #         title="This is my modal",
+#         #     #         title_class="w-100 text-center",
+#         #     #     ),
+#         #     # ),
+#         #     Tab(
+#         #         mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
+#         #         *(
+#         #             [
+#         #                 HTML("{% load tags %}{% contract_summary %}"),
+#         #                 Field("start_date", type="hidden", css_class="hidden"),
+#         #                 Field("end_date", type="hidden", css_class="hidden"),
+#         #             ]
+#         #             if self.instance
+#         #             and self.instance.id
+#         #             and not (user.is_superuser or user.is_staff)
+#         #             else [
+#         #                 HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+#         #                 Row(Column("start_date"), Column("end_date")),
+#         #                 SubForm("address_form"),
+#         #             ]
+#         #         ),
+#         #         css_id="summary",
+#         #     ),
+#         #     Tab(
+#         #         _("Research"),
+#         #         Field("project_title"),
+#         #         Field("abstract"),
+#         #         Field("notes"),
+#         #         css_id="research",
+#         #     ),
+#         #     Tab(
+#         #         _("Personnel"),
+#         #         TableInlineFormset("personnel"),
+#         #         css_id="personnel",
+#         #     ),
+#         #     Tab(
+#         #         _("Proposal"),
+#         #         HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+#         #         css_id="proposal",
+#         #     ),
+#         #     Tab(
+#         #         _("Reporting"),
+#         #         Fieldset(
+#         #             _("Reporting Schedule"),
+#         #             TableInlineFormset("reporting_schedule"),
+#         #             css_id="reporting_schedule",
+#         #         ),
+#         #         css_id="reporting",
+#         #     ),
+#         #     Tab(
+#         #         _("Compliance"),
+#         #         *compliance_fields,
+#         #         css_id="compliance",
+#         #     ),
+#         #     Tab(
+#         #         mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
+#         #         HTML(
+#         #             """{% load i18n %}<div class="alert alert-dark" role="alert">
+#         #             {% blocktrans %}
+#         #             Funding has been allocated over the award period.
+#         #             You can distributed it differently, but may not exceed
+#         #             the total award. All amounts are exclusive of GST.
+#         #             {% endblocktrans %}
+#         #             </div>"""
+#         #         ),
+#         #         Fieldset(
+#         #             _("Budget Allocation"),
+#         #             TableInlineFormset(
+#         #                 "allocations", template="portal/allocations_table_inline_formset.html"
+#         #             ),
+#         #             css_id="allocations",
+#         #         ),
+#         #         (
+#         #             # Field("proposal_budget"),
+#         #             Fieldset(
+#         #                 None,
+#         #                 HTML(
+#         #                     f"""<div class="input-group mb-2">
+#         #                 <div class="input-group-prepend">
+#         #                     <span class="input-group-text">{_("Proposal Budget")}</span>
+#         #                 </div>
+#         #                 <div class="form-control d-flex h-auto">
+#         #                     <span class="text-break" style="flex-grow:1;min-width:0">
+#         #                     <a href="{proposal_budget_file.url}">
+#         #                         {os.path.basename(proposal_budget_file.name)}
+#         #                     </a>
+#         #                     </span>
+#         #                 </div>
+#         #             </div>"""
+#         #                 ),
+#         #                 # Submit(
+#         #                 #     "copy_proposal_budget",
+#         #                 #     _("Copy"),
+#         #                 #     css_class="btn-primary float-right",
+#         #                 #     data_document_action="copy_proposal_budget",
+#         #                 #     # data_document_role="PB",
+#         #                 #     data_document_role="PB",
+#         #                 # ),
+#         #             )
+#         #             if proposal_budget_file
+#         #             else None
+#         #         ),
+#         #         Fieldset(
+#         #             None,
+#         #             # Field("award_budget", label=""),
+#         #             Field("budget", label=""),
+#         #             ButtonHolder(
+#         #                 Submit(
+#         #                     "request_budget_correction",
+#         #                     _("Request Correction"),
+#         #                     css_class="btn-primary",
+#         #                     data_document_action="request_correction",
+#         #                     # data_document_role="PB",
+#         #                     data_document_role="B",
+#         #                 ),
+#         #                 Submit(
+#         #                     "approve_budget",
+#         #                     _("Awaiting Approval"),
+#         #                     css_class="btn-secondary",
+#         #                     data_document_action="awaiting_approval",
+#         #                     # data_document_role="AB",
+#         #                     data_document_role="B",
+#         #                 ),
+#         #                 css_class="float-right",
+#         #             ),
+#         #         ),
+#         #         css_id="finances",
+#         #     ),
+#         #     Tab(
+#         #         mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
+#         #         Div(
+#         #             DocumentInlineFormset("documents"),
+#         #             css_id="documents",
+#         #         ),
+#         #         css_id="appendices",
+#         #     ),
+#         # ]
 
-        # if instance and instance.pk:
-        #     tabs.append(
-        #         Tab(
-        #             mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
-        #             Field("host_contact_email"),
-        #             Field("comment"),
-        #             Fieldset(
-        #                 None,
-        #                 Field("attachment"),
-        #                 Submit(
-        #                     "post_comment",
-        #                     _("Post Comment"),
-        #                     css_class="btn-primary float-right",
-        #                 ),
-        #             ),
-        #             HTML(
-        #                 '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
-        #             ),
-        #             css_id="correspondence",
-        #         )
-        #     )
-        # self.helper.layout = Layout(
-        #     TabHolder(*tabs),
-        #     ButtonHolder(
-        #         Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
-        #         Div(
-        #             Submit(
-        #                 "save_draft",
-        #                 _("Save"),
-        #                 css_class="btn-primary",
-        #                 data_toggle="tooltip",
-        #                 title=_("Save draft contract"),
-        #             ),
-        #             submit_button,
-        #             HTML(
-        #                 """<a href="{{ view.get_success_url }}"
-        #                 type="button"
-        #                 role="button"
-        #                 class="btn btn-secondary"
-        #                 id="cancel">
-        #                     %s
-        #                 </a>"""
-        #                 % _("Cancel")
-        #             ),
-        #             Button("next", _("Next") + " »", css_class="btn-primary"),
-        #             css_class="float-right",
-        #         ),
-        #         css_class="mb-5",
-        #     ),
-        # )
-        # self.helper.include_media = False
+#         # if instance and instance.pk:
+#         #     tabs.append(
+#         #         Tab(
+#         #             mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
+#         #             Field("host_contact_email"),
+#         #             Field("comment"),
+#         #             Fieldset(
+#         #                 None,
+#         #                 Field("attachment"),
+#         #                 Submit(
+#         #                     "post_comment",
+#         #                     _("Post Comment"),
+#         #                     css_class="btn-primary float-right",
+#         #                 ),
+#         #             ),
+#         #             HTML(
+#         #                 '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
+#         #             ),
+#         #             css_id="correspondence",
+#         #         )
+#         #     )
+#         # self.helper.layout = Layout(
+#         #     TabHolder(*tabs),
+#         #     ButtonHolder(
+#         #         Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
+#         #         Div(
+#         #             Submit(
+#         #                 "save_draft",
+#         #                 _("Save"),
+#         #                 css_class="btn-primary",
+#         #                 data_toggle="tooltip",
+#         #                 title=_("Save draft contract"),
+#         #             ),
+#         #             submit_button,
+#         #             HTML(
+#         #                 """<a href="{{ view.get_success_url }}"
+#         #                 type="button"
+#         #                 role="button"
+#         #                 class="btn btn-secondary"
+#         #                 id="cancel">
+#         #                     %s
+#         #                 </a>"""
+#         #                 % _("Cancel")
+#         #             ),
+#         #             Button("next", _("Next") + " »", css_class="btn-primary"),
+#         #             css_class="float-right",
+#         #         ),
+#         #         css_class="mb-5",
+#         #     ),
+#         # )
+#         # self.helper.include_media = False
 
-    # def save(self, *args, **kwargs):
-    #     created = not self.instance.pk
-    #     res = super().save(*args, **kwargs)
-    #     r = self.instance.application.round
-    #     for fn, dr in self.part_fields:
-    #         if created or fn in self.changed_data:
-    #             file = self.cleaned_data.get(fn, None)
-    #             part = self.instance.documents.filter(document_type__role=dr).last()
-    #             if part:
-    #                 if not file:
-    #                     part.delete()
-    #                 else:
-    #                     part.file.save(
-    #                         name=file.name,
-    #                         content=file,
-    #                     )
-    #             elif file:
-    #                 required_document = r.required_contract_documents.filter(
-    #                     document_type__role=dr
-    #                 ).last()
-    #                 if not required_document:
-    #                     dt = models.DocumentType.where(role=dr).last()
-    #                     required_document = models.RequiredContractDocument.create(
-    #                         round=r, document_type=dt
-    #                     )
+#     # def save(self, *args, **kwargs):
+#     #     created = not self.instance.pk
+#     #     res = super().save(*args, **kwargs)
+#     #     r = self.instance.application.round
+#     #     for fn, dr in self.part_fields:
+#     #         if created or fn in self.changed_data:
+#     #             file = self.cleaned_data.get(fn, None)
+#     #             part = self.instance.documents.filter(document_type__role=dr).last()
+#     #             if part:
+#     #                 if not file:
+#     #                     part.delete()
+#     #                 else:
+#     #                     part.file.save(
+#     #                         name=file.name,
+#     #                         content=file,
+#     #                     )
+#     #             elif file:
+#     #                 required_document = r.required_contract_documents.filter(
+#     #                     document_type__role=dr
+#     #                 ).last()
+#     #                 if not required_document:
+#     #                     dt = models.DocumentType.where(role=dr).last()
+#     #                     required_document = models.RequiredContractDocument.create(
+#     #                         round=r, document_type=dt
+#     #                     )
 
-    #                 models.ContractDocument.create(
-    #                     contract=self.instance, required_document=required_document, file=file
-    #                 )
+#     #                 models.ContractDocument.create(
+#     #                     contract=self.instance, required_document=required_document, file=file
+#     #                 )
 
-    #     if created or any(
-    #         (fn in self.changed_data)
-    #         for fn in ["not_applicable", "not_applicable_comment", "ethics_statement"]
-    #     ):
-    #         es_part = self.instance.documents.filter(document_type__role="E").last()
-    #         try:
-    #             es = self.instance.ethics_statement
-    #         except models.ContractEthicsStatement.DoesNotExist:
-    #             es = models.ContractEthicsStatement(contract=self.instance)
-    #         es.not_relevant = self.cleaned_data.get("not_applicable", False)
-    #         es.comment = self.cleaned_data.get("not_applicable_comment", None)
-    #         es.file = es_part and es_part.file
-    #         es.save()
+#     #     if created or any(
+#     #         (fn in self.changed_data)
+#     #         for fn in ["not_applicable", "not_applicable_comment", "ethics_statement"]
+#     #     ):
+#     #         es_part = self.instance.documents.filter(document_type__role="E").last()
+#     #         try:
+#     #             es = self.instance.ethics_statement
+#     #         except models.ContractEthicsStatement.DoesNotExist:
+#     #             es = models.ContractEthicsStatement(contract=self.instance)
+#     #         es.not_relevant = self.cleaned_data.get("not_applicable", False)
+#     #         es.comment = self.cleaned_data.get("not_applicable_comment", None)
+#     #         es.file = es_part and es_part.file
+#     #         es.save()
 
-    #     return res
+#     #     return res
 
-    class Meta:
-        model = models.Report
-        exclude = [
-            "address",
-            "site",
-            "fund",
-            "host_number",
-            "org",
-            "application",
-            "number",
-            "submitted_by",
-            "rccs",
-            "fors",
-            "seos",
-            "keywords",
-            "state",
-        ]
-        widgets = dict(
-            start_date=DateInput(),
-            end_date=DateInput(),
-            keywords=autocomplete.ModelSelect2Multiple(
-                url="keyword-autocomplete",
-                attrs={
-                    "data-placeholder": _("Choose a keyword or create a new one ..."),
-                },
-            ),
-            host_contact_email=ModelSelect2NoPK(
-                url="org-email-autocomplete",
-                attrs={
-                    "data-placeholder": _("Select an email addrss or create a new one ..."),
-                },
-            ),
-            panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
-            panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
-            # summary=SummernoteWidget(),
-            daytime_phone=TelInput(),
-            mobile_phone=TelInput(),
-            # file=FileInput(),
-            abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary_en=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary_mi=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            ethics_statement__comment=SummernoteInplaceWidget(
-                attrs={"summernote": {"width": "100%"}}
-            ),
-            # round=HiddenInput(),
-            letter_of_support_file=forms.ClearableFileInput(
-                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
-            ),
-        )
+#     class Meta:
+#         model = models.Report
+#         exclude = [
+#             "address",
+#             "site",
+#             "fund",
+#             "host_number",
+#             "org",
+#             "application",
+#             "number",
+#             "submitted_by",
+#             "rccs",
+#             "fors",
+#             "seos",
+#             "keywords",
+#             "state",
+#         ]
+#         widgets = dict(
+#             start_date=DateInput(),
+#             end_date=DateInput(),
+#             keywords=autocomplete.ModelSelect2Multiple(
+#                 url="keyword-autocomplete",
+#                 attrs={
+#                     "data-placeholder": _("Choose a keyword or create a new one ..."),
+#                 },
+#             ),
+#             host_contact_email=ModelSelect2NoPK(
+#                 url="org-email-autocomplete",
+#                 attrs={
+#                     "data-placeholder": _("Select an email addrss or create a new one ..."),
+#                 },
+#             ),
+#             panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
+#             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
+#             # summary=SummernoteWidget(),
+#             daytime_phone=TelInput(),
+#             mobile_phone=TelInput(),
+#             # file=FileInput(),
+#             abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+#             notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+#             summary=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+#             summary_en=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+#             summary_mi=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+#             ethics_statement__comment=SummernoteInplaceWidget(
+#                 attrs={"summernote": {"width": "100%"}}
+#             ),
+#             # round=HiddenInput(),
+#             letter_of_support_file=forms.ClearableFileInput(
+#                 attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+#             ),
+#         )
 
 
 # vim:set ft=python.django:

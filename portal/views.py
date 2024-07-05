@@ -833,6 +833,8 @@ def index(request):
 
 
 def check_profile(request, token=None):
+    if token and "<" in token:
+        token = token.strip('<>')
     try:
         if not request.user.is_authenticated:
             invitation = models.Invitation.where(token=token).first()
@@ -1587,14 +1589,30 @@ class ApplicationDetail(DetailView):
                     ),
                 )
             elif action == "approve":
-                self.object.approve(request)
-                self.object.save()
-                messages.info(
-                    self.request,
-                    _(
-                        "The application was approved. The applcant(s) and adminstrator(s) were notified."
-                    ),
-                )
+                a = self.object
+                a.approve(request)
+                a.save()
+
+                if a.site_id == 5:
+                    url = a.get_full_detail_url(request=request)
+                    count = (
+                        a.send_out_to_referees(request=request)
+                        or a.referees.filter(state__in=["sent"]).count()
+                    )
+                    if count and request:
+                        messages.info(
+                            self.request,
+                            _(
+                                f'The application <a href="{url}">{a}</a> has been successfully submitted to {count} referee(s) to review it.'
+                            ),
+                        )
+                else:
+                    messages.info(
+                        self.request,
+                        _(
+                            "The application was approved. The applicant(s) and adminstrator(s) were notified."
+                        ),
+                    )
 
         return redirect(request.path)
 
@@ -7750,42 +7768,42 @@ class MemberFTEForm(ModelForm):
 # )
 
 
-class ReportList(LoginRequiredMixin, SingleTableView):
-    table_class = tables.ReportTable
-    model = models.Report
-    template_name = "table.html"
-    # extra_context = {"category": "applications"}
+# class ReportList(LoginRequiredMixin, SingleTableView):
+#     table_class = tables.ReportTable
+#     model = models.Report
+#     template_name = "table.html"
+#     # extra_context = {"category": "applications"}
 
-    # def get_queryset(self, *args, **kwargs):
-    #     queryset = super().get_queryset(*args, **kwargs)
-    #     u = self.request.user
-    #     if not (u.is_superuser or u.is_staff):
-    #         queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
-    #     return queryset
+#     # def get_queryset(self, *args, **kwargs):
+#     #     queryset = super().get_queryset(*args, **kwargs)
+#     #     u = self.request.user
+#     #     if not (u.is_superuser or u.is_staff):
+#     #         queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
+#     #     return queryset
 
 
-class ReportDetail(DetailView):
-    template_name = "portal/report_detail.html"
-    model = models.Report
-    slug_field = "number"
-    slug_url_kwarg = "number"
+# class ReportDetail(DetailView):
+#     template_name = "portal/report_detail.html"
+#     model = models.Report
+#     slug_field = "number"
+#     slug_url_kwarg = "number"
 
-    # def get_queryset(self):
-    #     return (
-    #         super()
-    #         .get_queryset()
-    #         .prefetch_related(
-    #             Prefetch(
-    #                 "allocations", queryset=models.Allocation.objects.all().order_by("period")
-    #             ),
-    #             Prefetch(
-    #                 "reporting_schedule",
-    #                 queryset=models.ReportingScheduleEntry.objects.all().order_by(
-    #                     "period", "due_date"
-    #                 ),
-    #             ),
-    #         )
-    #     )
+#     # def get_queryset(self):
+#     #     return (
+#     #         super()
+#     #         .get_queryset()
+#     #         .prefetch_related(
+#     #             Prefetch(
+#     #                 "allocations", queryset=models.Allocation.objects.all().order_by("period")
+#     #             ),
+#     #             Prefetch(
+#     #                 "reporting_schedule",
+#     #                 queryset=models.ReportingScheduleEntry.objects.all().order_by(
+#     #                     "period", "due_date"
+#     #                 ),
+#     #             ),
+#     #         )
+#     #     )
 
 
 def demo(request):
