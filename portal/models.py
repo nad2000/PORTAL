@@ -2233,17 +2233,27 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         "referees",
                     )
 
-                if (
-                    round.required_referees
-                    and self.referees.filter(state="testified").count() < round.required_referees
-                ):
-                    raise ValidationError(
-                        _(
-                            "You need to procure reviews of your application from at least %d referees."
+                min_referees = (
+                    (round.required_referees or 1)
+                    if round.required_submitted_testimonials
+                    else round.required_referees
+                )
+                if min_referees and self.referees.filter(state="testified").count() < min_referees:
+                    if min_referees == 1:
+                        raise ValidationError(
+                            _(
+                                "You need to procure reviews of your application from at least one referee."
+                            ),
+                            "referees",
                         )
-                        % round.required_referees,
-                        "referees",
-                    )
+                    else:
+                        raise ValidationError(
+                            _(
+                                "You need to procure reviews of your application from at least %d referees."
+                            )
+                            % min_referees,
+                            "referees",
+                        )
         else:
             if (
                 self.round.required_referees
