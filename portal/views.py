@@ -7612,17 +7612,18 @@ def application_exported_view(request, number, lang=None):
     round = application.round
     site = Site.objects.get_current()
     domain = site.domain
+    site_id = site.pk
 
     logo = None
-    if domain == "international.royalsociety.org.nz":
-        logo = request.build_absolute_uri(
-            f"{settings.STATIC_URL}images/{domain}/alt_logo_small.png"
-        )
-    elif site.pk in [4, 5]:
+    if site_id == 2:
+        logo = f"{settings.STATIC_URL}images/{domain}/alt_logo_small.png"
+    elif site_id in [4, 5]:
         # logo_1 = request.build_absolute_uri(f"{settings.STATIC_URL}images/MBIE_logo.jpg")
         # logo_2 = request.build_absolute_uri(f"{settings.STATIC_URL}images/RS_logo.png")
         logo_1 = f"{settings.STATIC_URL}images/MBIE_logo.jpg"
         logo_2 = f"{settings.STATIC_URL}images/RS_logo.png"
+    elif site_id == 7:
+        logo = f"{settings.STATIC_URL}images/pmspace-logo_small.jpg"
 
     objects = application.get_testimonials()
 

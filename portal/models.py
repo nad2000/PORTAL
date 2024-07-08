@@ -6,6 +6,7 @@ import re
 import secrets
 import ssl
 import subprocess
+
 # import sys
 import tempfile
 import time
@@ -30,6 +31,7 @@ from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.contrib.sites.managers import CurrentSiteManager
 from django.contrib.sites.models import Site
+from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.core.files.base import File
 from django.core.validators import (
@@ -2970,12 +2972,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # merger.addMetadata({"/Keywords": self.round.title})
 
         objects = []
-        # if (
-        #     request
-        #     and (u := request.user)
-        #     and not (self.submitted_by == u or self.members.all().filter(user=u).exists())
-        # ):
-        #     objects.extend(self.get_testimonials())
         site = self.site or Site.objects.get_current()
         domain = site.domain
         logo_url = logo_1_url = logo_2_url = None
@@ -2998,21 +2994,20 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 summary_url = urljoin(f"https://{domain}", url)
             html = HTML(summary_url)
         else:
-            if domain == "international.royalsociety.org.nz":
-                logo_path = os.path.join(
-                    settings.STATIC_ROOT, f"images/{domain}/alt_logo_small.png"
-                )
-                if os.path.exists(logo_path):
+            if self.site_id == 2:
+                if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
                     logo_url = f"file://{logo_path}"
 
             elif self.site_id in [4, 5]:
-                logo_path = os.path.join(settings.STATIC_ROOT, f"images/MBIE_logo.jpg")
-                if os.path.exists(logo_path):
+                if logo_path := finders.find("images/MBIE_logo.jpg"):
                     logo_1_url = f"file://{logo_path}"
 
-                logo_path = os.path.join(settings.STATIC_ROOT, f"images/RS_logo.png")
-                if os.path.exists(logo_path):
+                if logo_path := finders.find("images/RS_logo.png"):
                     logo_2_url = f"file://{logo_path}"
+
+            elif self.site_id == 7:
+                if logo_path := finders.find("images/pmspace-logo_small.jpg"):
+                    logo_url = f"file://{logo_path}"
 
             template = get_template("application-export.html")
             context = {
