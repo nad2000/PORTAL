@@ -705,7 +705,7 @@ def index(request):
             ).exists()
         )
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
-    if request.user.is_approved:
+    if user.is_approved:
         if is_ro and site_id not in [4, 5] and request.resolver_match.view_name == "index0":
             return render(request, "research_office_index.html", locals())
         outstanding_authorization_requests = models.Member.outstanding_requests(user)
@@ -718,16 +718,17 @@ def index(request):
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
-        draft_applications = models.Application.user_draft_applications(user).filter(
-            ~Q(round__panellists__user=user),
-            round__in=models.Scheme.objects.values("current_round"),
-        )
-        current_applications = models.Application.user_applications(
-            user, ["submitted", "in_review", "accepted", "approved"]
-        ).filter(
-            ~Q(round__panellists__user=user),
-            round__in=models.Scheme.objects.values("current_round"),
-        )
+        if site_id not in [4, 5, 7] or not (user.is_superuser or user.is_site_staff):
+            draft_applications = models.Application.user_draft_applications(user).filter(
+                ~Q(round__panellists__user=user),
+                round__in=models.Scheme.objects.values("current_round"),
+            )
+            current_applications = models.Application.user_applications(
+                user, ["submitted", "in_review", "accepted", "approved"]
+            ).filter(
+                ~Q(round__panellists__user=user),
+                round__in=models.Scheme.objects.values("current_round"),
+            )
         if user.is_staff or user.is_superuser:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
@@ -814,7 +815,7 @@ def index(request):
                     if is_ajax:
                         return JsonResponse({"message": message, "status": "info"}, status=200)
                     messages.info(request, message)
-        if len(schemes) == 0 and current_applications.count() == 0:
+        if len(schemes) == 0:
             return redirect("about")
     else:
         messages.info(
