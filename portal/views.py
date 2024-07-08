@@ -833,8 +833,8 @@ def index(request):
 
 
 def check_profile(request, token=None):
-    if token and "<" in token:
-        token = token.strip('<>')
+    if token and any(token.endswith(c) for c in "<>'\""):
+        token = token.strip("<>'\"")
     try:
         if not request.user.is_authenticated:
             invitation = models.Invitation.where(token=token).first()
@@ -1891,6 +1891,8 @@ class ApplicationView(LoginRequiredMixin):
                     and current_affiliation.role
                     or latest_application
                     and latest_application.position
+                    or nomination
+                    and nomination.position
                 )
             elif current_affiliation:
                 initial["org"] = current_affiliation.org
@@ -1902,7 +1904,7 @@ class ApplicationView(LoginRequiredMixin):
                 initial["position"] = latest_application.position
 
             if not address and (org := initial.get("org")):
-                if (address := org.address):
+                if address := org.address:
                     initial["address"] = address
                     initial["postal_address"] = address.address
                     initial["city"] = address.city

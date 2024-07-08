@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.core import checks, validators
 from django.db import connection, connections, models, router
 from django.db.models import CharField, DateTimeField
@@ -30,6 +31,14 @@ TITLES = Choices(
     ("DR", "Dr"),
     ("PROF", "Prof"),
 )
+
+
+def domain_to_macrons(url):
+    if url.startswith("https://xn--"):
+        p1, p2 = url.split("xn--")
+        p2 = f"xn--{p2}".encode().decode("idna")
+        return f"{p1}{p2}"
+    return url
 
 
 class TimeStampMixin(Base):
@@ -96,12 +105,13 @@ class Model(TimeStampMixin, HelperMixin, Base):
                 url = reverse(f"{model_name_slug}-detail", args=[str(self.code)])
             except:
                 url = reverse(model_name_slug, args=[str(self.pk)])
-        if not url:
+        if url:
             if request:
-                return request.build_absolute_uri(url)
+                url = request.build_absolute_uri(url)
             else:
                 site = Site.objects.get_current()
-                return f"https://{site.domain}{url}"
+                url = f"https://{site.domain}{url}"
+            return domain_to_macrons(url)
 
     def get_absolute_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")

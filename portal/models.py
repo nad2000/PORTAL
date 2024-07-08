@@ -6,7 +6,6 @@ import re
 import secrets
 import ssl
 import subprocess
-
 # import sys
 import tempfile
 import time
@@ -23,6 +22,7 @@ import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
+from colorfield.fields import ColorField
 from dateutil.relativedelta import relativedelta
 from django.apps import apps
 from django.conf import settings
@@ -40,12 +40,15 @@ from django.core.validators import (
 )
 from django.db import connection, transaction
 from django.db.models import (
-    BooleanField,
     CASCADE,
+    DO_NOTHING,
+    PROTECT,
+    RESTRICT,
+    SET_NULL,
+    BooleanField,
     Case,
     CharField,
     Count,
-    DO_NOTHING,
     DateField,
     DateTimeField,
     DecimalField,
@@ -58,13 +61,10 @@ from django.db.models import (
     Manager,
     ManyToManyField,
     OneToOneField,
-    PROTECT,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     Prefetch,
     Q,
-    RESTRICT,
-    SET_NULL,
     SmallIntegerField,
     Subquery,
     Sum,
@@ -97,7 +97,6 @@ from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from taggit.models import TagBase
 from weasyprint import HTML
-from colorfield.fields import ColorField
 
 from common.models import (
     Base,
@@ -108,6 +107,7 @@ from common.models import (
     PersonMixin,
     TimeStampMixin,
     Title,
+    domain_to_macrons,
 )
 
 from .utils import send_mail, vignere
@@ -223,14 +223,6 @@ LANGUAGES = Choices(
     "Vietnamese",
     "Yue Chinese (Cantonese)",
 )
-
-
-def domain_to_macrons(url):
-    if url.startswith("https://xn--"):
-        p1, p2 = url.split("xn--")
-        p2 = f"xn--{p2}".encode().decode("idna")
-        return f"{p1}{p2}"
-    return url
 
 
 def fsm_log(func=None, allow_inline=False):
@@ -2356,6 +2348,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
             url = domain_to_macrons(url)
+            url = self.get_full_detail_url(request=request)
             send_mail(
                 __("Application '%s' Submitted") % self,
                 html_message=__(
