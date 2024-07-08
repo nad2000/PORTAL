@@ -379,9 +379,14 @@ def send_mail(
             html_message=html_message,
         )
     if not resp:
-        raise Exception(
-            f"Failed to email the message: {resp.error}. Please contact a Hub administrator!"
-        )
+        if isinstance(resp, int):
+            raise Exception(
+                f"Failed to email the message; error code: {resp}. Please contact a Hub administrator!"
+            )
+        else:
+            raise Exception(
+                f"Failed to email the message: {resp.error}. Please contact a Hub administrator!"
+            )
     return resp
 
 
