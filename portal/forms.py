@@ -2526,26 +2526,27 @@ class NominationForm(forms.ModelForm):
             )
             fields.append("cv_file")
 
-        if r and r.nomination_template:
-            help_text = _(
-                'You can download the nomination form template at <strong><a href="%s">%s</a></strong>'
-            ) % (r.nomination_template.url, os.path.basename(r.nomination_template.name))
-            fields.append(
-                HTML(
-                    '<div class="alert alert-dark" role="alert">%s</div>'
-                    % (
-                        _(
-                            'Please download the <strong><a href="%s">%s</a></strong>, '
-                            "complete then upload below."
+        if r.nomination_form_required or r.nomination_form_required is None:
+            if r and r.nomination_template:
+                help_text = _(
+                    'You can download the nomination form template at <strong><a href="%s">%s</a></strong>'
+                ) % (r.nomination_template.url, os.path.basename(r.nomination_template.name))
+                fields.append(
+                    HTML(
+                        '<div class="alert alert-dark" role="alert">%s</div>'
+                        % (
+                            _(
+                                'Please download the <strong><a href="%s">%s</a></strong>, '
+                                "complete then upload below."
+                            )
+                            % (r.nomination_template.url, os.path.basename(r.nomination_template.name))
                         )
-                        % (r.nomination_template.url, os.path.basename(r.nomination_template.name))
                     )
                 )
-            )
-            fields.append(Field("file", label=help_text, help_text=help_text))
-            self.fields["file"].help_text = help_text
-        else:
-            fields.append("file")
+                fields.append(Field("file", label=help_text, help_text=help_text))
+                self.fields["file"].help_text = help_text
+            else:
+                fields.append("file")
 
         # fields.append("summary")
         was_submitted = self.instance and self.instance.id and self.instance.state == "submitted"

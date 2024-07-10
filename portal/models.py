@@ -4896,6 +4896,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("Applicant/Team representative CV required"), default=True
     )
     nominator_cv_required = BooleanField(_("Nominator CV required"), default=True)
+    nomination_form_required = BooleanField(_("Nomination form required"), default=True)
 
     has_referees = BooleanField(_("can invite referees"), default=True)
     required_referees = PositiveSmallIntegerField(
@@ -5230,6 +5231,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 "direct_application_allowed",
                 "ethics_statement_required",
                 "guidelines",
+                "nomination_form_required",
                 "nominator_cv_required",
                 "pid_required",
                 "presentation_required",

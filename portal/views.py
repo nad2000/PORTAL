@@ -5518,13 +5518,14 @@ class NominationView(CreateUpdateView):
                 return redirect(self.request.get_full_path())
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-            if settings.SITE_ID not in [4, 5] and not n.file:
+            if settings.SITE_ID not in [4, 5] and self.round.nomination_form_required and not n.file:
                 messages.error(
                     self.request,
                     _(
                         "Missing the nomination form. Please attach a nomination form and re-submit"
                     ),
                 )
+                # return self.form_invalid(form)
                 return resp
 
             if n.state == "accepted":

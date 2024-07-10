@@ -2188,6 +2188,7 @@ class RoundAdmin(
                                 "has_referees",
                                 "has_title",
                                 "letter_of_support_required",
+                                "nomination_form_required",
                                 "nominator_cv_required",
                                 "notify_nominator",
                                 "pid_required",
