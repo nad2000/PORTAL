@@ -1885,6 +1885,16 @@ class ApplicationView(LoginRequiredMixin):
                 if research_experience_in_years:
                     initial["research_experience_in_years"] = research_experience_in_years
 
+            initial.update(
+                {
+                    "title": user.title or nomination and nomination.title,
+                    # "email": user.email or nomination and nomination.email,
+                    "first_name": user.first_name or nomination and nomination.first_name,
+                    "last_name": user.last_name or nomination and nomination.last_name,
+                    "middle_names": user.middle_names or nomination and nomination.middle_names,
+                }
+            )
+
             if nomination:
                 initial["org"] = nomination.org
                 initial["position"] = (
@@ -1959,9 +1969,17 @@ class ApplicationView(LoginRequiredMixin):
     def nomination(self):
         if "nomination" in self.kwargs:
             return models.Nomination.get(self.kwargs["nomination"])
-        elif n := models.Nomination.where(
-            user=self.request.user, round=self.round, state="accepted"
-        ).last():
+        elif (
+            n := models.Nomination.where(
+                user=self.request.user, round=self.round, state="accepted"
+            ).last()
+            or models.Nomination.where(
+                email__in=self.request.user.emailaddress_set.values("email"),
+                round__scheme__current_round=F("round"),
+            )
+            .order_by("-id")
+            .first()
+        ):
             return n
 
     def form_valid(self, form):
@@ -3016,11 +3034,11 @@ class ApplicationView(LoginRequiredMixin):
             kwargs["initial"].update(
                 {
                     "application_title": ("" if settings.SITE_ID in [4, 5] else self.round.title),
-                    "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                    "middle_names": user.middle_names,
-                    "title": user.title,
+                    # "email": user.email,
+                    # "first_name": user.first_name,
+                    # "last_name": user.last_name,
+                    # "middle_names": user.middle_names,
+                    # "title": user.title,
                 }
             )
             if "nomination" in self.kwargs and self.nomination and self.nomination.org:
@@ -3042,6 +3060,14 @@ class ApplicationCreate(ApplicationView, CreateView):
 
     @method_decorator(shoud_be_onboarded)
     def get(self, request, *args, **kwargs):
+        n = (
+            models.Nomination.where(
+                email__in=self.request.user.email_addresses,
+                round__scheme__current_round=F("round"),
+            )
+            .order_by("-id")
+            .first()
+        )
         r = (
             models.Round.get(kwargs["round"])
             if "round" in kwargs
@@ -3063,9 +3089,9 @@ class ApplicationCreate(ApplicationView, CreateView):
             )
             return redirect(reverse("application-update", kwargs=dict(pk=a.id)))
 
-        if nomination_id := request.GET.get("nomination"):
-            if n := models.Nomination.where(id=nomination_id).exists():
-                if u.email != n.email or not u.emailaddress_set.filter(email=n.email).exists():
+        if nomination_id := request.GET.get("nomination") or n and n.pk:
+            if nom := models.Nomination.get(nomination_id):
+                if u.email != nom.email and not u.emailaddress_set.filter(email=nom.email).exists():
                     messages.error(
                         self.request,
                         _(
@@ -3143,11 +3169,20 @@ class ApplicationCreate(ApplicationView, CreateView):
 
                 resp = super().form_valid(form)
                 a.save()
-                if n and not n.application:
+                if n and not (n.application and n.user):
                     n.application = self.object
                     if n.state != "accepted":
                         n.accept()
-                    n.save(update_fields=["application_id", "state"])
+                    if not n.user:
+                        n.user = self.request.user
+                    n.save(update_fields=["application_id", "state", "user"])
+                if (
+                    n
+                    and (i := models.Invitation.where(type="A", nomination=n).first())
+                    and (i.state in ["sent", "new"] or not i.user)
+                ):
+                    i.accept(request=self.request, by=self.request.user)
+                    i.save()
 
                 u = a.submitted_by
                 p = u.person
@@ -3158,6 +3193,15 @@ class ApplicationCreate(ApplicationView, CreateView):
                     if not (u.title and u.title == a.title):
                         u.title = a.title
                         u.save(update_fields=["title"])
+
+                if u and not (u.first_name and u.last_name and u.middle_names):
+                    if not u.first_name and a.first_name:
+                        u.first_name = a.first_name
+                    if not u.last_name and a.last_name:
+                        u.last_name = a.last_name
+                    if not u.middle_names and a.middle_names:
+                        u.middle_names = a.middle_names
+                    u.save()
 
         except Exception as ex:
             capture_exception(ex)
@@ -5518,7 +5562,11 @@ class NominationView(CreateUpdateView):
                 return redirect(self.request.get_full_path())
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-            if settings.SITE_ID not in [4, 5] and self.round.nomination_form_required and not n.file:
+            if (
+                settings.SITE_ID not in [4, 5]
+                and self.round.nomination_form_required
+                and not n.file
+            ):
                 messages.error(
                     self.request,
                     _(
@@ -6002,7 +6050,10 @@ class NominationDetail(DetailView):
 
     @property
     def can_start_applying(self):
-        return self.object.user == self.request.user and not self.object.application
+        u = self.request.user
+        return (
+            self.object.user == u or u.emailaddress_set.filter(email=self.object.email).exists()
+        ) and not self.object.application
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()

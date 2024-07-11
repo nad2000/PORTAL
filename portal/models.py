@@ -4438,8 +4438,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             if commit:
                 m.save()
         elif self.type == INVITATION_TYPES.A:
-            if self.nomination:
-                n = self.nomination
+            if (n := self.nomination) and (n.state != "accepted" or not u.user):
                 n.user = by
                 if commit:
                     n.save()
