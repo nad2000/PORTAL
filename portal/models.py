@@ -2283,7 +2283,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def send_out_to_referees(self, *args, **kwargs):
         self.is_completed(skip_testimonials=True, *args, **kwargs)
         request = kwargs.get("request")
-        return self.invite_referees(request=request)
+        return self.invite_referees(
+            request=request,
+            dispatch_invitations=(
+                self.site != 5 or (self.site_id == 5 and self.round.closes_at <= timezone.now())
+            ),
+        )
 
     @fsm_log
     @transition(
@@ -3470,7 +3475,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 )
 
     @classmethod
-    def invite_referees(cls, request, application=None, by=None, referees=None):
+    def invite_referees(
+        cls, request, application=None, by=None, referees=None, dispatch_invitations=True
+    ):
         """Send invitations to all referee."""
         # members that don't have invitations
         count = 0
@@ -3511,7 +3518,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             i.send(request, by=by or request and request.user)
             i.save()
             if i.referee:
-                if i.site_id != 5:
+                if dispatch_invitations:
                     i.referee.send()
                     i.referee.save()
             count += 1
@@ -6466,6 +6473,32 @@ class ScoreSheet(Model):
 
     class Meta:
         db_table = "score_sheet"
+
+
+def invite_referees_after_round_closes(site_id=None, rounds=None, by=None, applications=None):
+    """
+    Invite referees to review the accepted applications
+    after the round closes.
+    """
+    if site_id:
+        settings.SITE_ID = site_id
+    if not applications:
+        applications = Application.where(
+            round__scheme__current_round=F("round"),
+            round__closes_at__lte=timezone.now(),
+            state="approved",
+        )
+    if rounds:
+        applications = applications.filter(round__in=rounds.values("pk"))
+    breakpoint()
+    count = 0
+    for a in applications:
+        if not by:
+            ah = a.history.filter(state="submitted").order_by("-history_id").first()
+            by = ah and ah.history_user or by
+        count += a.send_out_to_referees(by=by)
+        a.save()
+    return count
 
 
 def clean_private_fils(dry_run=False):

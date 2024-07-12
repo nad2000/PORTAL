@@ -2138,7 +2138,7 @@ class RoundAdmin(
         "site",
     ]
     search_fields = ["title"]
-    actions = ["create_new_round"]
+    actions = ["create_new_round", "invite_referees"]
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
@@ -2264,6 +2264,19 @@ class RoundAdmin(
             nr = r.clone()
             r.scheme.current_round = nr
             r.scheme.save(update_fields=["current_round"])
+
+    @admin.action(description="Invite referees")
+    def invite_referees(self, request, queryset):
+        invitation_count = models.invite_referees_after_round_closes(
+            rounds=queryset, by=request.user
+        )
+        messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if settings.SITE_ID != 5 and "invite_referees" in actions:
+            del actions["invite_referees"]
+        return actions
 
     def is_active(self, obj):
         return obj.is_active
