@@ -2341,11 +2341,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "title": self.application_title or round.title,
                 },
                 recipients=[nominator.full_email_address],
-                cc=[
-                    ro.user.full_email_address
-                    for ro in ResearchOffice.where(org=self.org)
-                    if ro.user != nominator
-                ],
+                # cc=[
+                #     ro.user.full_email_address
+                #     for ro in ResearchOffice.where(org=self.org)
+                #     if ro.user != nominator
+                # ],
                 fail_silently=False,
                 request=request,
                 reply_to=settings.DEFAULT_FROM_EMAIL,
