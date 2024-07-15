@@ -3179,7 +3179,7 @@ class ApplicationCreate(ApplicationView, CreateView):
                 if (
                     n
                     and (i := models.Invitation.where(type="A", nomination=n).first())
-                    and (i.state in ["sent", "new"] or not i.user)
+                    and i.state in ["sent", "new", "bounced", "draft", "submitted", "read"]
                 ):
                     i.accept(request=self.request, by=self.request.user)
                     i.save()
