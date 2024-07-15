@@ -2957,7 +2957,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ssl._create_default_https_context = ssl._create_unverified_context
 
         merger = PdfMerger(strict=False)
-        merger.addMetadata(
+        merger.add_metadata(
             {
                 "/Title": (
                     f"{self}"
@@ -2966,10 +2966,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             }
         )
-        merger.addMetadata({"/Author": self.lead_with_email})
-        merger.addMetadata({"/Subject": self.round.title})
-        merger.addMetadata({"/Number": self.number})
-        # merger.addMetadata({"/Keywords": self.round.title})
+        merger.add_metadata({"/Author": self.lead_with_email})
+        merger.add_metadata({"/Subject": self.round.title})
+        merger.add_metadata({"/Number": self.number})
+        # merger.add_metadata({"/Keywords": self.round.title})
 
         objects = []
         site = self.site or Site.objects.get_current()
@@ -3027,11 +3027,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         pdf_stream = io.BytesIO(pdf_object)
         merger.append(
             pdf_stream,
-            bookmark=(self.application_title or self.round.title),
-            import_bookmarks=True,
+            outline_item=(self.application_title or self.round.title),
+            import_outline=True,
         )
         for title, a, *rest in attachments:
-            # merger.append(PdfReader(a, "rb"), bookmark=title, import_bookmarks=True)
+            # merger.append(PdfReader(a, "rb"), outline_item=title, import_outline=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
                 template = get_template("application-export-attachment-title-page.html")
                 html = HTML(
@@ -3055,11 +3055,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 pdf_stream = io.BytesIO(pdf_object)
                 merger.append(
                     pdf_stream,
-                    # bookmark=(self.application_title or self.round.title),
-                    import_bookmarks=True,
+                    # outline_item=(self.application_title or self.round.title),
+                    import_outline=True,
                 )
 
-            # merger.append(a, bookmark=title, import_bookmarks=True)
+            # merger.append(a, outline_item=title, import_outline=True)
             try:
                 try:
                     reader = PdfReader(a, "rb")
@@ -3076,22 +3076,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
                     pdf.save(decrypted, normalize_content=True)
                     reader = PdfReader(decrypted, "rb")
-                    # merger.append(decrypted, bookmark=title, import_bookmarks=import_bookmarks)
-                    # merger.append(PdfReader(a, "rb"), bookmark=title, import_bookmarks=True)
+                    # merger.append(decrypted, outline_item=title, import_outline=import_outline)
+                    # merger.append(PdfReader(a, "rb"), outline_item=title, import_outline=True)
 
                 # test if book marks can be imported
                 try:
-                    reader.outlines
-                    import_bookmarks = True
+                    reader.outline
+                    import_outline = True
                 except PdfReadError as ex:
                     if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
                         "Multiple definitions in dictionary at "
                     ):
-                        import_bookmarks = False
+                        import_outline = False
                     else:
                         raise
 
-                merger.append(reader, bookmark=title, import_bookmarks=import_bookmarks)
+                merger.append(reader, outline_item=title, import_outline=import_outline)
             except PdfReadError:
                 capture_message(f"Failed to merge file {a}")
                 raise
