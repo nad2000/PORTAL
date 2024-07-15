@@ -910,6 +910,7 @@ class ApplicationAdmin(
     list_filter = [
         IsActiveRoundApplicationListFilter,
         ("round", admin.RelatedOnlyFieldListFilter),
+        ("org", admin.RelatedOnlyFieldListFilter),
         "state",
         "created_at",
         "updated_at",
