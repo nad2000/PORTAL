@@ -95,7 +95,7 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from private_storage.views import PrivateStorageDetailView
-from PyPDF2 import PdfFileMerger, PdfReader
+from PyPDF2 import PdfMerger, PdfReader
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -6218,7 +6218,7 @@ class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
             objects = self.get_objects(pk)
             template = get_template(self.template)
             attachments = self.get_attachments(pk)
-            merger = PdfFileMerger()
+            merger = PdfMerger()
             merger.add_metadata(self.get_metadata(pk))
 
             html = HTML(string=template.render({"objects": objects}))
@@ -6383,8 +6383,8 @@ class RoundExportView(ExportView):
         round = self.round
         site_id = settings.SITE_ID
 
-        # merger = PdfFileMerger()
-        merger = PdfFileMerger(strict=False)
+        # merger = PdfMerger()
+        merger = PdfMerger(strict=False)
         merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
         merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 

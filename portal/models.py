@@ -93,7 +93,7 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
-from PyPDF2 import PdfFileMerger, PdfFileReader
+from PyPDF2 import PdfMerger, PdfReader
 from PyPDF2.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
@@ -295,8 +295,8 @@ class PdfFileMixin:
             if self.file.name.lower().endswith(".pdf"):
                 if hasattr(self, "page_count") and not self.page_count:
                     with open(self.file.path, "rb") as f:
-                        pdf_reader = PdfFileReader(f)
-                        self.page_count = pdf_reader.numPages
+                        pdf_reader = PdfReader(f)
+                        self.page_count = len(pdf_reader.pages)
                         self._change_reason = f"Updated page count to {self.page_count}"
                         self.save(update_fields=["page_count"])
                 return self.file
@@ -354,11 +354,11 @@ class PdfFileMixin:
         if hasattr(self, "page_count"):
             if isinstance(file, str):
                 with open(file, "rb") as f:
-                    pdf_reader = PdfFileReader(f)
-                    page_count = pdf_reader.numPages
+                    pdf_reader = PdfReader(f)
+                    page_count = len(pdf_reader.pages)
             else:
-                pdf_reader = PdfFileReader(file)
-                page_count = pdf_reader.numPages
+                pdf_reader = PdfReader(file)
+                page_count = len(pdf_reader.pages)
             if not self.page_count or pdf_reader != self.page_count:
                 self.page_count = page_count
                 return page_count
@@ -411,11 +411,11 @@ class PdfFileMixin:
                 cf = ConvertedFile()
                 cf.file.save(output_filename, File(of))
                 of.seek(0)
-                pdf_reader = PdfFileReader(of)
-                page_count = pdf_reader.numPages
+                pdf_reader = PdfReader(of)
+                page_count = len(pdf_reader.pages)
                 if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
                     self.page_count = page_count
-                cf.page_count = pdf_reader.numPages
+                cf.page_count = len(pdf_reader.pages)
                 of.seek(0)
                 cf.save()
 
@@ -2836,7 +2836,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
-        """Create PDF file for export and return PdfFileMerger"""
+        """Create PDF file for export and return PdfMerger"""
 
         r = self.round
         if not user and request:
@@ -2956,7 +2956,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         ssl._create_default_https_context = ssl._create_unverified_context
 
-        merger = PdfFileMerger(strict=False)
+        merger = PdfMerger(strict=False)
         merger.addMetadata(
             {
                 "/Title": (
@@ -3031,7 +3031,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             import_bookmarks=True,
         )
         for title, a, *rest in attachments:
-            # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
+            # merger.append(PdfReader(a, "rb"), bookmark=title, import_bookmarks=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
                 template = get_template("application-export-attachment-title-page.html")
                 html = HTML(
@@ -3062,22 +3062,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # merger.append(a, bookmark=title, import_bookmarks=True)
             try:
                 try:
-                    reader = PdfFileReader(a, "rb")
+                    reader = PdfReader(a, "rb")
                 except PdfReadError as ex:
                     if "'%PDF-' expected" in ex.args[0]:
                         pdf = pikepdf.Pdf.open(a)
                         mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
                         pdf.save(mended, normalize_content=True)
-                        reader = PdfFileReader(mended, "rb")
+                        reader = PdfReader(mended, "rb")
                     else:
                         raise
                 if reader.is_encrypted:
                     pdf = pikepdf.Pdf.open(a)
                     decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
                     pdf.save(decrypted, normalize_content=True)
-                    reader = PdfFileReader(decrypted, "rb")
+                    reader = PdfReader(decrypted, "rb")
                     # merger.append(decrypted, bookmark=title, import_bookmarks=import_bookmarks)
-                    # merger.append(PdfFileReader(a, "rb"), bookmark=title, import_bookmarks=True)
+                    # merger.append(PdfReader(a, "rb"), bookmark=title, import_bookmarks=True)
 
                 # test if book marks can be imported
                 try:
@@ -3101,7 +3101,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             html = HTML(
                 string=template.render({"page_count": len(merger.pages), "application": self})
             )
-            header_file = PdfFileReader(io.BytesIO(html.write_pdf(presentational_hints=True)))
+            header_file = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)))
             for dp, hp in zip(merger.pages, header_file.pages):
                 dp.pagedata.mergePage(hp)
 
