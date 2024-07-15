@@ -2520,11 +2520,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "draft"],
+        source=["submitted", "cancelled", "approved", "accepted"],
         target="draft",
         custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
     )
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
+        previous_state, = self.__class__.where(pk=self.pk).values_list("state").first()
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
             resolution = resolution.strip()
@@ -2538,6 +2539,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "The Research Office approved has requested reviewing and "
                 f'resubmission of your application "{self}"'
             )
+        elif previous_state == "cancelled":
+            if not resolution:
+                resolution = (
+                    "Your application cancellation was reverted. " 
+                    f'{by.full_email_address} requested reviewing and resubmission of your application "{self}".'
+                )
+            subject = f'The application "{self}" requires your attention'
         else:
             if not resolution:
                 resolution = f'{by.full_email_address} requested reviewing and resubmission of your application "{self}".'
