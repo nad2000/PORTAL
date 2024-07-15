@@ -491,6 +491,8 @@ def apnumber(value):
 
 class ApplicationForm(forms.ModelForm):
 
+    nomination = None
+
     @property
     def round(self):
         return (
@@ -651,9 +653,13 @@ class ApplicationForm(forms.ModelForm):
         return super().save(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
+        nomination = kwargs.pop("nomination", None)
         super().__init__(*args, **kwargs)
         initial = kwargs.get("initial", {})
         user = initial.get("user")
+        if not nomination:
+            nomination = initial.get("nomination")
+        self.nomination = nomination
         language = get_language()
         site_id = settings.SITE_ID
 
@@ -711,6 +717,11 @@ class ApplicationForm(forms.ModelForm):
         ]
         if instance.submitted_by and not instance.submitted_by == user:
             fields.append(Field("is_tac_accepted", type="hidden"))
+
+        if nomination and nomination.org:
+            self.fields["org"].disabled = True
+            self.fields["org"].widget.attrs["readonly"] = "true"
+            self.fields["org"].widget.attrs["disabled"] = "true"
 
         round = (
             models.Round.get(self.initial["round"]) if "round" in self.initial else instance.round

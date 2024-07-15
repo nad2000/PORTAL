@@ -3029,6 +3029,9 @@ class ApplicationView(LoginRequiredMixin):
         elif "round" in self.kwargs:
             kwargs["initial"]["round"] = self.kwargs["round"]
 
+        if n := self.nomination:
+            kwargs["nomination"] = n
+
         if self.request.method == "GET" and "initial" in kwargs:
             user = self.request.user
             kwargs["initial"].update(
@@ -3091,7 +3094,10 @@ class ApplicationCreate(ApplicationView, CreateView):
 
         if nomination_id := request.GET.get("nomination") or n and n.pk:
             if nom := models.Nomination.get(nomination_id):
-                if u.email != nom.email and not u.emailaddress_set.filter(email=nom.email).exists():
+                if (
+                    u.email != nom.email
+                    and not u.emailaddress_set.filter(email=nom.email).exists()
+                ):
                     messages.error(
                         self.request,
                         _(
