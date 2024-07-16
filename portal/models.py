@@ -58,7 +58,6 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
-    GeneratedField,
     IntegerField,
     Manager,
     ManyToManyField,
@@ -88,7 +87,7 @@ from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
-from odfdo import Column, Document, Header, List, ListItem, Paragraph, Table
+# from odfdo import Column, Document, Header, List, ListItem, Paragraph, Table
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
@@ -2125,9 +2124,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
 
-    def invite_referees(self, request, by=None, referees=None):
+    def invite_referees(self, request, by=None, referees=None, *args, **kwargs):
         """Send invitations to all referee."""
-        return Referee.invite_referees(request, application=self, by=None, referees=None)
+        return Referee.invite_referees(
+            request, application=self, by=by, referees=referees, *args, **kwargs
+        )
 
     @fsm_log
     @transition(
@@ -2281,14 +2282,20 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
     )
     def send_out_to_referees(self, *args, **kwargs):
-        self.is_completed(skip_testimonials=True, *args, **kwargs)
-        request = kwargs.get("request")
-        return self.invite_referees(
-            request=request,
-            dispatch_invitations=(
-                self.site != 5 or (self.site_id == 5 and self.round.closes_at <= timezone.now())
-            ),
-        )
+        try:
+            request = kwargs.get("request")
+            self.is_completed(skip_testimonials=(self.site_id == 5), *args, **kwargs)
+            return self.invite_referees(
+                request=request,
+                dispatch_invitations=(
+                    self.site_id != 5
+                    or (self.site_id == 5 and self.round.closes_at <= timezone.now())
+                ),
+            )
+        except Exception as ex:
+            if request:
+                messages.error(request, f"{ex}")
+            return 0
 
     @fsm_log
     @transition(
@@ -2530,7 +2537,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
     )
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
-        previous_state, = self.__class__.where(pk=self.pk).values_list("state").first()
+        (previous_state,) = self.__class__.where(pk=self.pk).values_list("state").first()
         resolution = kwargs.get("reason") or kwargs.get("resolution") or description
         if resolution and isinstance(description, str):
             resolution = resolution.strip()
@@ -2547,7 +2554,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         elif previous_state == "cancelled":
             if not resolution:
                 resolution = (
-                    "Your application cancellation was reverted. " 
+                    "Your application cancellation was reverted. "
                     f'{by.full_email_address} requested reviewing and resubmission of your application "{self}".'
                 )
             subject = f'The application "{self}" requires your attention'
@@ -6483,29 +6490,39 @@ class ScoreSheet(Model):
         db_table = "score_sheet"
 
 
-def invite_referees_after_round_closes(site_id=None, rounds=None, by=None, applications=None):
+def invite_referees(
+    site_id=None, request=None, rounds=None, by=None, applications=None, after_round_closes=None
+):
     """
     Invite referees to review the accepted applications
     after the round closes.
     """
     if site_id:
         settings.SITE_ID = site_id
+    else:
+        site_id = int(settings.SITE_ID)
+    if not applications and rounds:
+        applications = Application.where(round__in=rounds.values_list("pk"))
     if not applications:
-        applications = Application.where(
-            round__scheme__current_round=F("round"),
-            round__closes_at__lte=timezone.now(),
-            state="approved",
-        )
+        applications = Application.where(round__scheme__current_round=F("round"))
+    if site_id in [5]:
+        applications = applications.filter(state="approved")
+    if after_round_closes:
+        applications = applications.filter(round__closes_at__lte=timezone.now())
     if rounds:
         applications = applications.filter(round__in=rounds.values("pk"))
-    breakpoint()
     count = 0
     for a in applications:
+        state = a.state
         if not by:
             ah = a.history.filter(state="submitted").order_by("-history_id").first()
             by = ah and ah.history_user or by
-        count += a.send_out_to_referees(by=by)
-        a.save()
+        if site_id in [5]:
+            count += a.send_out_to_referees(by=by, request=request)
+        else:
+            count += a.invite_referees(by=by, request=request)
+        if a.state != state:
+            a.save()
     return count
 
 
