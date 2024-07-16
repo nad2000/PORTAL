@@ -1213,7 +1213,20 @@ class ApplicationAdmin(
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
 
-    actions = ["send_identity_verification_reminder", "request_resubmission"]
+    @admin.action(description="Invite referees")
+    def invite_referees(self, request, queryset):
+        invitation_count = models.invite_referees(
+            applications=queryset, by=request.user, after_round_closes=True
+        )
+        messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
+
+    actions = ["send_identity_verification_reminder", "request_resubmission", "invite_referees"]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if settings.SITE_ID != 5 and "invite_referees" in actions:
+            del actions["invite_referees"]
+        return actions
 
     # def save_formset(self, request, form, formset, change):
     #     super().save_formset(request, form, formset, change)
@@ -1399,8 +1412,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
     @admin.action(description="Send the referee invitations")
     def send_invitations(self, request, queryset):
-        count = views.invite_referee(request, by=request.user, referees=queryset)
-
+        count = models.Referee.invite_referees(request, by=request.user, referees=queryset)
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
 
 
@@ -2268,8 +2280,8 @@ class RoundAdmin(
 
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
-        invitation_count = models.invite_referees_after_round_closes(
-            rounds=queryset, by=request.user
+        invitation_count = models.invite_referees(
+            rounds=queryset, by=request.user, after_round_closes=True, request=request
         )
         messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
 
