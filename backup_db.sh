@@ -6,7 +6,7 @@ PATH=/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/aws/bin:$HOME/.local/bin
 OUTPUT=pmspp_${TS_LABEL}.sql.xz
 
 sudo bash -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
-find ./archive -mtime +2 -name pmspp_\*.sql.xz -exec rm -f {} \;
+find ./archive -mmin +200 -name pmspp_\*.sql.xz -exec rm -f {} \;
 pg_dump -U postgres pmspp | xz -z -3 -c - >./backup/${OUTPUT}
 mv ./backup/${OUTPUT} ./archive/
 
