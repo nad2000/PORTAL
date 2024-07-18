@@ -31,7 +31,7 @@
   {% endif %}
 
   {% if update_view_name %}
-      <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" and not is_ro or object.state == "accepted" %} disabled{% endif %}"
+      <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" and not is_ro or object.state == "accepted" or reviewing_disabled %} disabled{% endif %}"
          {% if object.state == "submitted" and not is_ro %}
            disabled
            data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
@@ -42,11 +42,14 @@
              {% elif SITE_ID == 7 %}
              title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmspaceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
              {% endif %}
+         {% elif reviewing_disabled %}
+           disabled
+           data-title="{% trans 'The application reviewing will be open after the application submission is closed.' %}"
          {% elif object.state == "submitted" and is_ro %}
            data-title="{% trans 'Update the entry and re-submit.' %}"
        {% endif %}
          >
-         <a class="btn btn-primary{% if object.state == "submitted" and not is_ro or object.state == "accepted" %} disabled{% endif %}"
+         <a class="btn btn-primary{% if object.state == "submitted" and not is_ro or object.state == "accepted" or reviewing_disabled %} disabled{% endif %}"
             href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
     </div>
   {% endif %}

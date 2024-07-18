@@ -6255,14 +6255,33 @@ class TestimonialDetail(DetailView):
                     % site.name,
                 )
             else:
-                messages.info(
-                    self.request,
-                    (
-                        _("Please review the application details and submit referee report.")
-                        if t.site_id in [4, 5]
-                        else _("Please review the application details and submit testimonial.")
-                    ),
-                )
+                closes_at = r.closes_at
+                if r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                    messages.info(
+                        self.request,
+                        (
+                            _("Please review the application details and submit referee report.")
+                            if t.site_id in [4, 5]
+                            else _("Please review the application details and submit testimonial.")
+                        ),
+                    )
+                else:
+                    context["reviewing_disabled"] = True
+                    closes_at_date = closes_at and closes_at.date().isoformat()
+                    messages.warning(
+                        self.request,
+                        (
+                            _(
+                                "The application reviewing will be open after the application "
+                                f"submission is closed (on <b>{closes_at_date}</b>)."
+                            )
+                            if closes_at_date
+                            else _(
+                                "The application reviewing will be open after the application submission is closed."
+                            )
+                        ),
+                    )
+
         return context
 
 
