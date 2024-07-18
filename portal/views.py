@@ -10,7 +10,6 @@ from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 import django.utils.translation
-from django.core.exceptions import ObjectDoesNotExist
 import django_filters
 import django_tables2
 import tablib
@@ -34,7 +33,7 @@ from django.contrib.flatpages.views import flatpage
 from django.contrib.sites.models import Site
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db import connection, transaction
 from django.db.models import (
     Count,
@@ -51,8 +50,8 @@ from django.db.models import (
     Sum,
     Value,
 )
-from django.db.models.functions import Coalesce, Trim
 from django.db.models.deletion import RestrictedError
+from django.db.models.functions import Coalesce, Trim
 from django.forms import (
     DateInput,
     Form,
@@ -68,6 +67,7 @@ from django.forms import models as model_forms
 from django.forms import widgets
 from django.http import (
     FileResponse,
+    Http404,
     HttpResponse,
     HttpResponseRedirect,
     JsonResponse,
@@ -117,7 +117,7 @@ from .utils.orcid import OrcidHelper
 
 
 def __(s):
-    """Temporarily disabale 'gettex'"""
+    """Temporarily disable 'gettex'"""
     return s
 
 
@@ -1510,11 +1510,32 @@ class ApplicationDetail(DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
+        if hasattr(self, "object"):
+            a = getattr(self, "object", None)
+        else:
+            a = self.get_object()
+            self.object = a
         if u.is_authenticated and not (u.is_superuser or u.is_staff):
-            self.object = a = self.get_object()
             if not a.user_can_view(u):
                 messages.error(request, _("You do not have permissions to view this application."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
+        if a and "number" in kwargs and a.number != kwargs["number"]:
+            url = request.build_absolute_uri(
+                reverse("application-detail", kwargs={"number": a.number})
+            )
+            messages.warning(
+                request,
+                _(
+                    "Application number <b>%(old_number)s</b>  has been changed to <b>%(number)s</b>. "
+                    'Please further use <a href="%(url)s">%(url)s</a> to access the application.'
+                )
+                % {
+                    "old_number": kwargs["number"],
+                    "number": a.number,
+                    "url": url,
+                },
+            )
+            return redirect(url)
         return super().dispatch(request, *args, **kwargs)
 
     def get_member(self):
@@ -1524,22 +1545,40 @@ class ApplicationDetail(DetailView):
             Q(user=user) | Q(email=user.email) | Q(email__in=user.emailaddress_set.values("email"))
         ).last()
 
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if pk is not None:
+            queryset = queryset.filter(pk=pk)
+
+        if slug is not None and (pk is None or self.query_pk_and_slug):
+            slug_field = self.get_slug_field()
+            queryset = queryset.filter(**{slug_field: slug})
+
+        # If none of those are defined, it's an error.
+        if pk is None and slug is None:
+            raise AttributeError(
+                "Generic detail view %s must be called with either an object "
+                "pk or a slug in the URLconf." % self.__class__.__name__
+            )
+
+        try:
+            # Get the single item from the filtered queryset
+            obj = queryset.last()
+            if not obj and slug:
+                an = get_object_or_404(models.ApplicationNumber, **{slug_field: slug})
+                obj = an.application
+        except queryset.model.DoesNotExist:
+            raise Http404(
+                _("No %(verbose_name)s found matching the query")
+                % {"verbose_name": queryset.model._meta.verbose_name}
+            )
+        return obj
+
     def get(self, request, *args, **kwargs):
-        if not self.object:
-            self.object = self.get_object()
-        if not self.object and "number" in kwargs:
-            an = get_object_or_404(models.ApplicationNumber, number=kwargs["number"])
-            if an and (a := an.application):
-                url = self.request.build_absolute_uri(
-                    reverse("application-detail", kwargs={"number": a.number})
-                )
-                messages.warning(request, _(
-                    "Application number has been changed to {number}. "
-                    "Please further use {url} to access the application.") % {
-                        "number": a.number,
-                        "url": url,
-                    })
-                return redirect(url)
         resp = super().get(request, *args, **kwargs)
 
         if (a := self.object) and (r := a.round) and r.survey_id:
@@ -1593,7 +1632,7 @@ class ApplicationDetail(DetailView):
                 self.object.save()
                 messages.info(
                     self.request,
-                    _("The application was cancelled. The applcant(s) were notified."),
+                    _("The application was cancelled. The applicant(s) were notified."),
                 )
             elif action == "request_resubmission":
                 self.object.request_resubmission(request)
@@ -1601,7 +1640,7 @@ class ApplicationDetail(DetailView):
                 messages.info(
                     self.request,
                     _(
-                        "The request to review and resubmit the application was sent to the applcant(s)."
+                        "The request to review and resubmit the application was sent to the applicant(s)."
                     ),
                 )
             elif action == "approve":
@@ -1616,17 +1655,29 @@ class ApplicationDetail(DetailView):
                         or a.referees.filter(state__in=["sent"]).count()
                     )
                     if count and request:
-                        messages.info(
-                            self.request,
-                            _(
-                                f'The application <a href="{url}">{a}</a> has been successfully submitted to {count} referee(s) to review it.'
-                            ),
-                        )
+
+                        closes_at = a.round.closes_at
+                        if a.site_id != 5 or closes_at and closes_at <= timezone.now():
+                            messages.info(
+                                self.request,
+                                _(
+                                    f'The application <a href="{url}">{a}</a> '
+                                    "has been successfully submitted to {count} referee(s) to review it."
+                                ),
+                            )
+                        else:
+                            messages.info(
+                                self.request,
+                                _(
+                                    f"{count} referee invitation(s) were created. "
+                                    "The dispatch of the invitation(s) will be deferred until the round closes."
+                                ),
+                            )
                 else:
                     messages.info(
                         self.request,
                         _(
-                            "The application was approved. The applicant(s) and adminstrator(s) were notified."
+                            "The application was approved. The applicant(s) and administrator(s) were notified."
                         ),
                     )
 

@@ -87,6 +87,7 @@ from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
+
 # from odfdo import Column, Document, Header, List, ListItem, Paragraph, Table
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
@@ -2289,7 +2290,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 request=request,
                 dispatch_invitations=(
                     self.site_id != 5
-                    or (self.site_id == 5 and self.round.closes_at and self.round.closes_at <= timezone.now())
+                    or (
+                        self.site_id == 5
+                        and self.round.closes_at
+                        and self.round.closes_at <= timezone.now()
+                    )
                 ),
             )
         except Exception as ex:
@@ -2387,7 +2392,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "in_review"],
+        source=["submitted"],
         target="approved",
         custom=dict(verbose="Approve", button_name="Approve"),
     )
@@ -3530,16 +3535,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 )
             ).prefetch_related("referee", "referee__user")
         )
-        for i in invitations:
-            i.send(request, by=by or request and request.user)
-            i.save()
-            if i.referee:
-                if dispatch_invitations:
+        if dispatch_invitations:
+            for i in invitations:
+                i.send(request, by=by or request and request.user)
+                i.save()
+                if i.referee:
                     i.referee.send()
                     i.referee.save()
-            count += 1
-
-        return count
+                count += 1
+            return count
+        return len(invitations)
 
     @fsm_log
     @transition(field=state, source=["*"], target="accepted")
