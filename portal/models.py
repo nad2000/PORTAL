@@ -2289,7 +2289,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 request=request,
                 dispatch_invitations=(
                     self.site_id != 5
-                    or (self.site_id == 5 and self.round.closes_at <= timezone.now())
+                    or (self.site_id == 5 and self.round.closes_at and self.round.closes_at <= timezone.now())
                 ),
             )
         except Exception as ex:
@@ -2994,7 +2994,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         objects = []
         site = self.site or Site.objects.get_current()
         domain = site.domain
+
         logo_url = logo_1_url = logo_2_url = None
+        if self.site_id == 2:
+            if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
+                logo_url = f"file://{logo_path}"
+
+        elif self.site_id in [4, 5]:
+            if logo_path := finders.find("images/MBIE_logo.jpg"):
+                logo_1_url = f"file://{logo_path}"
+
+            if logo_path := finders.find("images/RS_logo.png"):
+                logo_2_url = f"file://{logo_path}"
+
+        elif self.site_id == 7:
+            if logo_path := finders.find("images/pmspace-logo_small.jpg"):
+                logo_url = f"file://{logo_path}"
 
         if (
             self.round.research_summary_required
@@ -3014,20 +3029,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 summary_url = urljoin(f"https://{domain}", url)
             html = HTML(summary_url)
         else:
-            if self.site_id == 2:
-                if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
-                    logo_url = f"file://{logo_path}"
-
-            elif self.site_id in [4, 5]:
-                if logo_path := finders.find("images/MBIE_logo.jpg"):
-                    logo_1_url = f"file://{logo_path}"
-
-                if logo_path := finders.find("images/RS_logo.png"):
-                    logo_2_url = f"file://{logo_path}"
-
-            elif self.site_id == 7:
-                if logo_path := finders.find("images/pmspace-logo_small.jpg"):
-                    logo_url = f"file://{logo_path}"
 
             template = get_template("application-export.html")
             context = {

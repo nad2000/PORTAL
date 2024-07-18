@@ -1511,7 +1511,7 @@ class ApplicationDetail(DetailView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
         if u.is_authenticated and not (u.is_superuser or u.is_staff):
-            a = self.get_object()
+            self.object = a = self.get_object()
             if not a.user_can_view(u):
                 messages.error(request, _("You do not have permissions to view this application."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
@@ -1525,6 +1525,21 @@ class ApplicationDetail(DetailView):
         ).last()
 
     def get(self, request, *args, **kwargs):
+        if not self.object:
+            self.object = self.get_object()
+        if not self.object and "number" in kwargs:
+            an = get_object_or_404(models.ApplicationNumber, number=kwargs["number"])
+            if an and (a := an.application):
+                url = self.request.build_absolute_uri(
+                    reverse("application-detail", kwargs={"number": a.number})
+                )
+                messages.warning(request, _(
+                    "Application number has been changed to {number}. "
+                    "Please further use {url} to access the application.") % {
+                        "number": a.number,
+                        "url": url,
+                    })
+                return redirect(url)
         resp = super().get(request, *args, **kwargs)
 
         if (a := self.object) and (r := a.round) and r.survey_id:
