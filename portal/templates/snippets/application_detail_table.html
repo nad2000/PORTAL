@@ -131,9 +131,9 @@
         <tr>
           <th class="table-dark" scope="row">{% trans 'Years of experience post PhD' %}</th>
           <td colspan="3">
-            {% if a.research_experience_in_years %}
+            {% if a.research_experience_in_years is not None %}
               {{ a.research_experience_in_years }}
-              {% if a.research_experience_in_years > 1 %}
+              {% if a.research_experience_in_years == 0 or a.research_experience_in_years > 1 %}
                 {% trans 'years' %}
               {% else %}
                 {% trans 'year' %}
@@ -315,7 +315,7 @@
       <tr>
         <th class="table-dark" scope="row">{% trans 'Research Experience in Years' %}</th>
         <td colspan="3">
-          {% if a.research_experience_in_years %}{{ a.research_experience_in_years }}{% else %}{% trans 'N/A' %}{% endif %}
+          {% if a.research_experience_in_years  is not None %}{{ a.research_experience_in_years }}{% else %}{% trans 'N/A' %}{% endif %}
         </td>
       </tr>
     {% endif %}

@@ -569,8 +569,9 @@ class ApplicationForm(forms.ModelForm):
 
         cleaned_data = super().clean()
         if self.was_submitted and (round := self.round):
-            if round.research_experience_in_years_required and not (
-                cleaned_data.get("research_experience_in_years")
+            if (
+                round.research_experience_in_years_required
+                and cleaned_data.get("research_experience_in_years", None) is None
             ):
                 self.add_error(
                     "research_experience_in_years", _("Research experience in years required")
@@ -2550,7 +2551,10 @@ class NominationForm(forms.ModelForm):
                                 'Please download the <strong><a href="%s">%s</a></strong>, '
                                 "complete then upload below."
                             )
-                            % (r.nomination_template.url, os.path.basename(r.nomination_template.name))
+                            % (
+                                r.nomination_template.url,
+                                os.path.basename(r.nomination_template.name),
+                            )
                         )
                     )
                 )

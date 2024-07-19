@@ -120,21 +120,26 @@ def field_value(value, name, *args, **kwargs):
     try:
         v = getattr(value, name)
     except AttributeError:
-        return ""
+        return _("N/A")
     if v:
         if isinstance(v, m.User):
             return v.full_name_with_email
         if name in ["state", "status"]:
             return f"<{v.upper()}>"
+    if isinstance(v, bool):
+        return _("yes") if v else _("no")
     f = value._meta.get_field(name)
     if isinstance(f, models.BooleanField):
         return _("yes") if v else _("no")
-    return v or _("N/A")
+    return _("N/A") if v is None or v == "" else v
 
 
 @register.filter()
 def field_is_empty(value, name):
-    return not (value and hasattr(value, name) and getattr(value, name))
+    if not value or not hasattr(value, name):
+        return True
+    v = getattr(value, name)
+    return v is None or v == ""
 
 
 @register.filter()
