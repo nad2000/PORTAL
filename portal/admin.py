@@ -925,6 +925,7 @@ class ApplicationAdmin(
         "state",
         "STATE",
         "main_applicant",
+        "previous_numbers",
     ]
     search_fields = [
         "number",
@@ -959,6 +960,15 @@ class ApplicationAdmin(
             return mark_safe(
                 f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
             )
+
+    @admin.display(description="Previous Numbers")
+    def previous_numbers(self, obj, *args, **kwargs):
+        return mark_safe(
+            ", ".join(
+                f'<b style="color:red;">{n}</b>'
+                for n, in obj.numbers.values_list("number").order_by("number")
+            )
+        )
 
     def is_active_round(self, obj):
         return obj.round.scheme.current_round == obj.round
@@ -1203,6 +1213,8 @@ class ApplicationAdmin(
             ),
         )
 
+        if obj and obj.numbers.exists():
+            fieldsets[0][1]["fields"].insert(2, "previous_numbers")
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "STATE")
         if obj.site_id in [4, 5]:
