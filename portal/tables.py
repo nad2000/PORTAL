@@ -1,10 +1,10 @@
 import django_tables2 as tables
+from django.conf import settings
 from django.shortcuts import reverse
+from django.utils import formats, timezone
 from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
-from django.conf import settings
-
 
 from . import models
 
@@ -284,24 +284,26 @@ class ApplicationTable(tables.Table):
         if (
             record.state in ["draft", "new"]
             and (deadline_days := record.deadline_days)
-            and record.deadline_days < 5
+            and record.deadline_days < 6
         ):
             r = record.round
+            closes_at = timezone.localtime(r.closes_at)
             return format_html(
                 """<span
                     data-toggle="tooltip"
                     title="%s"
                 >
-                    <i class="fas fa-exclamation-circle text-danger"
+                    <i class="fas fa-exclamation-circle %s"
                     ></i> %s
                 </span>"""
                 % (
                     _("The round is closing in %s day(s) on %s by %s")
                     % (
                         deadline_days,
-                        r.closes_at.strftime("%d-%m-%Y"),
-                        r.closes_at.strftime("%I:%M %P"),
+                        formats.date_format(closes_at, "d-m-Y"),
+                        formats.date_format(closes_at, "P"),
                     ),
+                    "text-danger" if record.deadline_days < 4 else "text-warning",
                     value,
                 )
             )
@@ -478,22 +480,24 @@ class RoundApplicationTable(tables.Table):
                     value,
                 )
             )
-        if (r := record.round) and (deadline_days := r.deadline_days) and deadline_days < 5:
+        if (r := record.round) and (deadline_days := r.deadline_days) and deadline_days < 6:
+            closes_at = timezone.localtime(r.closes_at)
             return format_html(
                 """<span
                     data-toggle="tooltip"
                     title="%s"
                 >
-                    <i class="fas fa-exclamation-circle text-danger"
+                    <i class="fas fa-exclamation-circle %s"
                     ></i> %s
                 </span>"""
                 % (
                     _("The round is closing in %(days)s day(s) on %(date)s by %(time)s")
                     % {
                         "days": deadline_days,
-                        "date": r.closes_at.strftime("%d-%m-%Y"),
-                        "time": r.closes_at.strftime("%I:%M %P"),
+                        "date": formats.date_format(closes_at, "d-m-Y"),
+                        "time": formats.date_format(closes_at, "P"),
                     },
+                    "text-danger" if deadline_days < 4 else "text-warning",
                     value,
                 )
             )
@@ -704,6 +708,8 @@ class ContractTable(tables.Table):
     #                 _("The round is closing in %s day(s) on %s by %s")
     #                 % (
     #                     deadline_days,
+    #                   # formats.date_format(r.closes_at, "d-m-Y"),
+    #                   # formats.date_format(r.closes_at, "P"),
     #                     r.closes_at.strftime("%d-%m-%Y"),
     #                     r.closes_at.strftime("%I:%M %P"),
     #                 ),
