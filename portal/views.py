@@ -6377,9 +6377,9 @@ class ExportView(UserPassesTestMixin, DetailView):
             merger.append(pdf_stream)
             for a in attachments:
                 if isinstance(a, (tuple, list)):
-                    merger.append(a[1], bookmark=a[0], import_bookmarks=True)
+                    merger.append(a[1], outline_item=a[0], import_outline=True)
                 else:
-                    merger.append(a, import_bookmarks=True)
+                    merger.append(a, import_outline=True)
             pdf_content = io.BytesIO()
             merger.write(pdf_content)
             pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
@@ -6542,12 +6542,12 @@ class RoundExportView(ExportView):
             reader = PdfReader(content)
             merger.append(
                 reader,
-                bookmark=(
+                outline_item=(
                     f"{a}"
                     if a.site_id in [4, 5]
                     else f"{a.number}: {a.application_title or round.title}"
                 ),
-                import_bookmarks=True,
+                import_outline=True,
             )
         merger.add_metadata({"/Keywords": ", ".join(numbers)})
 
