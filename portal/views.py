@@ -2650,7 +2650,7 @@ class ApplicationView(LoginRequiredMixin):
 
                     if (
                         current_state != "in_review"
-                        and site_id in [4, 5]
+                        and site_id == 4
                         and a.round.has_seos
                         and a.application_seos.count() > 3
                     ):
@@ -2658,6 +2658,22 @@ class ApplicationView(LoginRequiredMixin):
                             None,
                             _(
                                 "Please enter up to THREE SEO codes from the drop-down "
+                                "field, using codes that are as specific as possible."
+                            ),
+                        )
+                        if not hasattr(form, "active_tab"):
+                            form.active_tab = "categories"
+
+                    if (
+                        current_state != "in_review"
+                        and site_id == 5
+                        and a.round.has_seos
+                        and a.application_seos.count() > 5
+                    ):
+                        form.add_error(
+                            None,
+                            _(
+                                "Please enter up to FIVE SEO codes from the drop-down "
                                 "field, using codes that are as specific as possible."
                             ),
                         )
