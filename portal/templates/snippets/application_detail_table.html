@@ -449,6 +449,14 @@
           </td>
         </tr>
       {% endif %}
+      {% if a.vm_rationale %}
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Vision Rationale' %}</th>
+          <td colspan="3">
+            {{ a.vm_rationale_html|safe }}
+          </td>
+        </tr>
+      {% endif %}
     {% endif %}
 
     {% if a.round.has_keywords and a.keywords.count > 0 %}

@@ -2037,7 +2037,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         default=0,
     )
     is_vm_na = BooleanField(_("Vision Mātauranga N/A"), default=False)
-    vm_rationane = TextField(_("Rationale"), null=True, blank=True)
+    vm_rationale = TextField(_("Rationale"), null=True, blank=True)
 
     toa_basic = PositiveSmallIntegerField(
         _("Basic"),
@@ -3166,6 +3166,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             documents["HS"] = n.pdf_file
         return documents
+
+    @cached_property
+    def vm_rationale_html(self):
+        (
+            "\r\r".join(f"<p>{l}</p>" for l in self.vm_rationale.split("\r") if l.strip())
+            if self.vm_rationale
+            else ""
+        )
 
     @cached_property
     def documents_dict(self):
