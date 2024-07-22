@@ -2975,7 +2975,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if self.site_id == 4 or not (
-            self.site_id == 5 and self.nomination and self.nomination.nominator == user
+            self.site_id == 5
+            and (nomination := Nomination.where(application=self).last())
+            and nomination.nominator == user
         ):
             add_testimonials(attachments)
 
@@ -3169,11 +3171,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @cached_property
     def vm_rationale_html(self):
-        (
-            "\r\r".join(f"<p>{l}</p>" for l in self.vm_rationale.split("\r") if l.strip())
-            if self.vm_rationale
-            else ""
-        )
+        if not self.vm_rationale:
+            return ""
+        if "\r\n" in self.vm_rationale:
+            lines = self.vm_rationale.split("\r\n\r\n")
+        elif "\r\r" in self.vm_rationale:
+            lines = self.vm_rationale.split("\r\r")
+        else:
+            lines = self.vm_rationale.split("\n\n")
+        return "\r\r".join(f"<p>{l}</p>" for l in lines if l.strip())
 
     @cached_property
     def documents_dict(self):
