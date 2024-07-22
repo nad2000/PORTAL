@@ -1502,11 +1502,53 @@ class AuthorizationForm(Form):
     #     return True
 
 
-class ApplicationDetail(DetailView):
-    model = Application
-    template_name = "application_detail.html"
+class SingleApplicationMixin:
+
     slug_field = "number"
     slug_url_kwarg = "number"
+
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if pk is not None:
+            queryset = queryset.filter(pk=pk)
+
+        if slug is not None and (pk is None or self.query_pk_and_slug):
+            slug_field = self.get_slug_field()
+            queryset = queryset.filter(**{slug_field: slug})
+
+        # If none of those are defined, it's an error.
+        if pk is None and slug is None:
+            raise AttributeError(
+                "Generic detail view %s must be called with either an object "
+                "pk or a slug in the URLconf." % self.__class__.__name__
+            )
+
+        try:
+            # Get the single item from the filtered queryset
+            obj = queryset.last()
+            if not obj and slug:
+                an = get_object_or_404(models.ApplicationNumber, **{slug_field: slug})
+                obj = an.application
+        except queryset.model.DoesNotExist:
+            raise Http404(
+                _("No %(verbose_name)s found matching the query")
+                % {"verbose_name": queryset.model._meta.verbose_name}
+            )
+        if not obj:
+            raise Http404(
+                _("No %(verbose_name)s found matching the query")
+                % {"verbose_name": queryset.model._meta.verbose_name}
+            )
+        return obj
+
+
+class ApplicationDetail(SingleApplicationMixin, DetailView):
+    model = Application
+    template_name = "application_detail.html"
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
@@ -1544,39 +1586,6 @@ class ApplicationDetail(DetailView):
         return self.object.members.filter(
             Q(user=user) | Q(email=user.email) | Q(email__in=user.emailaddress_set.values("email"))
         ).last()
-
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.get_queryset()
-
-        pk = self.kwargs.get(self.pk_url_kwarg)
-        slug = self.kwargs.get(self.slug_url_kwarg)
-        if pk is not None:
-            queryset = queryset.filter(pk=pk)
-
-        if slug is not None and (pk is None or self.query_pk_and_slug):
-            slug_field = self.get_slug_field()
-            queryset = queryset.filter(**{slug_field: slug})
-
-        # If none of those are defined, it's an error.
-        if pk is None and slug is None:
-            raise AttributeError(
-                "Generic detail view %s must be called with either an object "
-                "pk or a slug in the URLconf." % self.__class__.__name__
-            )
-
-        try:
-            # Get the single item from the filtered queryset
-            obj = queryset.last()
-            if not obj and slug:
-                an = get_object_or_404(models.ApplicationNumber, **{slug_field: slug})
-                obj = an.application
-        except queryset.model.DoesNotExist:
-            raise Http404(
-                _("No %(verbose_name)s found matching the query")
-                % {"verbose_name": queryset.model._meta.verbose_name}
-            )
-        return obj
 
     def get(self, request, *args, **kwargs):
         resp = super().get(request, *args, **kwargs)
@@ -1754,9 +1763,13 @@ class ApplicationDetail(DetailView):
                         messages.info(
                             self.request,
                             (
-                                _("Please review the application details and submit referee report.")
+                                _(
+                                    "Please review the application details and submit referee report."
+                                )
                                 if t.site_id in [4, 5]
-                                else _("Please review the application details and submit testimonial.")
+                                else _(
+                                    "Please review the application details and submit testimonial."
+                                )
                             ),
                         )
                     else:
@@ -1775,7 +1788,6 @@ class ApplicationDetail(DetailView):
                                 )
                             ),
                         )
-
 
             if referee := a.referees.filter(
                 Q(user=u) | Q(email__in=u.emailaddress_set.values("email"))
@@ -6315,7 +6327,7 @@ class TestimonialDetail(DetailView):
         return context
 
 
-class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
+class ExportView(UserPassesTestMixin, DetailView):
     model = None
     template = "pdf_export_template.html"
 
@@ -6366,7 +6378,7 @@ class ExportView(LoginRequiredMixin, UserPassesTestMixin, View):
             return redirect(self.request.META.get("HTTP_REFERER"))
 
 
-class ApplicationExportView(ExportView):
+class ApplicationExportView(SingleApplicationMixin, ExportView):
     """Application PDF export view"""
 
     model = models.Application
@@ -6380,7 +6392,8 @@ class ApplicationExportView(ExportView):
             or u.is_superuser
             or (
                 "pk" in self.kwargs
-                and (a := get_object_or_404(models.Application, pk=self.kwargs["pk"]))
+                # and (a := get_object_or_404(models.Application, pk=self.kwargs["pk"]))
+                and (a := self.get_object())
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
@@ -6393,14 +6406,14 @@ class ApplicationExportView(ExportView):
             )
         )
 
-    def get_objects(self, pk):
+    def get_objects(self, pk=None, number=None):
         app = self.model.get(id=pk)
         objects = super().get_objects(pk)
         testimonials = app.get_testimonials()
         objects.extend(testimonials)
         return objects
 
-    def get_attachments(self, pk):
+    def get_attachments(self, pk=None, number=None):
         attachments = []
         app = self.model.get(id=pk)
         if app.file:
@@ -6420,26 +6433,16 @@ class ApplicationExportView(ExportView):
     def get_filename(self, pk):
         return self.model.get(id=pk).number
 
-    def get(self, request, pk):
-        a = get_object_or_404(models.Application, pk=pk)
-
-        # try:
-
+    def get(self, request, pk=None, number=None):
+        # a = get_object_or_404(models.Application, pk=pk)
+        a = self.get_object()
         pdf_content = io.BytesIO()
         a.to_pdf(request).write(pdf_content)
         # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
         pdf_content.seek(0)
         pdf_response = FileResponse(pdf_content, content_type="application/pdf")
-        # pdf_response["Content-Disposition"] = f"attachment; filename={a.number}.pdf"
         pdf_response["Content-Disposition"] = f"inline; filename={a.number}.pdf"
         return pdf_response
-
-        # except Exception as ex:
-        #     messages.warning(
-        #         self.request,
-        #         _(f"Error while converting to pdf. Please contact Administrator: {ex}"),
-        #     )
-        #     return redirect(self.request.META.get("HTTP_REFERER"))
 
 
 class ContractExportView(ExportView):

@@ -88,6 +88,11 @@ urlpatterns = [
                     name="application-export",
                 ),
                 path(
+                    "<number>/~export",
+                    views.ApplicationExportView.as_view(),
+                    name="application-export-with-slug",
+                ),
+                path(
                     "<number>/exported-view",
                     views.application_exported_view,
                     name="application-exported-view",
