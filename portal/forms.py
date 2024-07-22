@@ -914,8 +914,8 @@ class ApplicationForm(forms.ModelForm):
                         ),
                         Div(
                             Row(Column("is_vm_na")),
-                            Row(Column("vm_rationane")),
-                            # Row(Column("rationane_vm_na"), css_id="id_vm_na"),
+                            Row(Column("vm_rationale")),
+                            # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
                             # HTML(
                             #     """<script>
                             # $(document).ready(function() {
