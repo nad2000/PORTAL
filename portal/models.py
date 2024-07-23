@@ -3617,7 +3617,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                                 f"Failed to sync with LimeSurveyt of {self}", resp, properties
                             )
 
-    def invite_to_survey(self, api=None):
+    def invite_to_survey(self, api=None, request=None):
         if survey_id := self.application.round.survey_id:
             if not api:
                 api = self.survey_api
@@ -3657,6 +3657,11 @@ class Referee(RefereeMixin, PersonMixin, Model):
                                 f"Failed to invite survey participant - referee {self}: {status}",
                                 level="error",
                             )
+                            if request:
+                                messages.error(
+                                    request,
+                                    f"Failed to invite survey participant - referee {self}: {status}",
+                                )
                             break
                     else:
                         self.survey_invitation_sent_at = datetime.now()

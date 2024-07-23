@@ -1420,11 +1420,23 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
 
-    actions = ["send_invitations"]
+    actions = ["send_invitations", "invite_to_survey"]
 
     @admin.action(description="Send the referee invitations")
     def send_invitations(self, request, queryset):
         count = models.Referee.invite_referees(request, by=request.user, referees=queryset)
+        messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
+
+    @admin.action(description="Send invitations to the referees for the survey")
+    def invite_to_survey(self, request, queryset):
+        count = 0
+        for r in queryset:
+            if (
+                not (r.survey_token_id and r.survey_token and r.survey_invitation_sent_at)
+                and not r.survey_completed_at
+            ):
+                r.invite_to_survey(request=request)
+                count += 1
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
 
 
