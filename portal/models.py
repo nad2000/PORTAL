@@ -446,7 +446,7 @@ class StateField(FSMFieldMixin, StatusField):
 def hash_int(
     value,
 ):
-    return hashlib.shake_256(bytes(value)).hexdigest(5)
+    return hashlib.shake_256(value.to_bytes(8)).hexdigest(5)
 
 
 User = get_user_model()
@@ -3592,17 +3592,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
                     hashlib.shake_256(
-                        bytes(int(time.time()) if settings.DEBUG else self.id)
+                        (int(time.time()) if settings.DEBUG else self.pk).to_bytes(8)
                     ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
                 if not isinstance(resp, list):
-                    limesurvey_status = resp.get("state")
+                    limesurvey_status = resp.get("status")
                     raise Exception(
                         _("Failed to add the referee: %s. Please contact a portal administration.")
                         % limesurvey_status
                     )
-
                 for r in resp:
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
