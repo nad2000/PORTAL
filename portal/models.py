@@ -2613,6 +2613,88 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
+        source=["approved", "accepted"],
+        target="submitted",
+        conditions=[lambda self: self.site_id == 5],
+        custom=dict(verbose="Request reassessment and release the application back to the R.O. for further assessment and editing", button_name="Request reassessment"),
+    )
+    def request_reassesment(self, request=None, by=None, description=None, *args, **kwargs):
+        (previous_state,) = self.__class__.where(pk=self.pk).values_list("state").first()
+        resolution = kwargs.get("reason") or kwargs.get("resolution") or description
+        if resolution and isinstance(description, str):
+            resolution = resolution.strip()
+        if ResearchOffice.where(user=by, org=self.org).exists():
+            if not resolution:
+                resolution = (
+                    "RSTA has requested reassessment and "
+                    f'resubmission of the application "{self}"'
+                )
+            subject = (
+                "RSTA has requested reassessment and "
+                f'resubmission of the application "{self}"'
+            )
+        elif previous_state == "cancelled":
+            if not resolution:
+                resolution = (
+                    "Your application cancellation was reverted. "
+                    f'{by.full_email_address} requested reassessment and resubmission of the application "{self}".'
+                )
+            subject = f'The application "{self}" requires your attention'
+        else:
+            if not resolution:
+                resolution = f'{by.full_email_address} requested reassessment and resubmission of your application "{self}".'
+            subject = f'The application "{self}" requires your attention'
+        if not getattr(self, "_change_reason", None):
+            self._change_reason = resolution
+
+        if (n := Nomination.where(application=self).last()) and n.nominator.is_active:
+            recipients = [n]
+        elif self.org.ro_email:
+            recipients = [self.org.ro_email]
+        else:
+            recipients = [ro.user for ro in self.org.research_offices.all()]
+        url = request.build_absolute_uri(reverse("application-detail", kwargs={"number": self.number}))
+        url = domain_to_macrons(url)
+        params = {
+            "user_display": ", ".join(r if isinstance(r, str) else r.full_name for r in recipients),
+            "number": self.number,
+            "user": by and by.full_name_with_email,
+            "title": self.application_title or self.round.title,
+            "url": url,
+            "resolution": resolution or "Requested for reviewing and re-drafting.",
+        }
+        send_mail(
+            subject,
+            __(
+                "Kia ora %(user_display)s\n\n"
+                "Please reassess and amend the application %(number)s: %(title)s here %(url)s.\n\n"
+                "Resolution:\n"
+                "===========\n\n%(resolution)s\n\n"
+            )
+            % params,
+            html_message=__(
+                "<p>Kia ora %(user_display)s</p>"
+                '<p>Please reassess and amend the application <a href="%(url)s">%(number)s: %(title)s</a></p>'
+                "<h3>Resolution</h3>\n"
+                "<pre>%(resolution)s</pre>\n\n"
+            )
+            % params,
+            recipients=[r if isinstance(r, str) else r.full_email_address for r in recipients],
+            fail_silently=False,
+            request=request,
+            reply_to=by.email,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+        messages.success(
+            request,
+            "Successfully sent notification to review applicant to %s"
+            % ", ".join(u if isinstance(u, str) else u.full_name_with_email for u in recipients),
+        )
+
+    @fsm_log
+    @transition(
+        field=state,
         source=["submitted", "draft"],
         target="cancelled",
         custom=dict(verbose="Cancel", button_name="Cancel"),
