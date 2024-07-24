@@ -2796,10 +2796,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             return q
 
         f = (
-            Q(members__user=user, members__state="authorized")
+            Q(submitted_by=user)
+            | Q(members__user=user, members__state="authorized")
             | Q(referees__user=user)
+            | Q(nomination__nominator=user)
             | Q(nomination__user=user)
-            | Q(submitted_by=user)
             | Q(
                 Q(org__research_offices__user=user),
                 Q(
