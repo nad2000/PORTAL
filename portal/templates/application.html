@@ -118,7 +118,7 @@
               $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
               updateTotalToaShares();
             {% endif %}
-                      {% if object.state != "in_review" %}
+                      {% if not update_only_referees %}
                         $("#submit-id-submit").click(function(e) {
                           $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
                             var $t = $(this);
@@ -202,12 +202,19 @@
                                 });
                                 $('#id_et-not_relevant').change(function() {
                                             if ($(this).is(':checked')) {
-                                                        document.getElementById("id_et-comment").setAttribute("required", "true");
-                                                        $("label[for='id_et-comment']").append('<span class="asteriskField">*</span>');
-                                                      } else {
-                                                                  document.getElementById("id_et-comment").removeAttribute("required");
-                                                                  $("label[for='id_et-comment']").children().remove();
-                                                                }
+                                              document.getElementById("id_et-comment").setAttribute("required", "true");
+                                              document.getElementById("id_et-comment").setAttribute(
+                                                          "oninvalid", 
+                                                          "this.setCustomValidity('{% trans 'If not relevant, please comment. For example, the work in this application did not involve people or animals.' %}')"
+                                                        );
+                                              document.getElementById("id_et-comment").setAttribute("oninput", "this.setCustomValidity('')");
+                                              $("label[for='id_et-comment']").append('<span class="asteriskField">*</span>');
+                                            } else {
+                                              document.getElementById("id_et-comment").removeAttribute("required");
+                                              document.getElementById("id_et-comment").removeAttribute("oninput");
+                                              document.getElementById("id_et-comment").removeAttribute("oninvalid");
+                                              $("label[for='id_et-comment']").children().remove();
+                                            }
                                           });
                                 {% if not form.is_bilingual.value %}
                                   $("#div_id_summary_en").hide();
@@ -291,7 +298,7 @@
                                 $(document.body).on("click", "a[data-toggle='tab']", function(event) {
                                   location.hash = this.getAttribute("href");
                                 });
-                                {% if object.state == "in_review" %}
+                                {% if update_only_referees %}
                                   $('.nav a[href="#referees"]').tab('show');
                                 {% elif form.errors.letter_of_support_file %}
                                   $('.nav a[href="#summary"]').tab('show');
@@ -368,7 +375,7 @@
                 $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
               }{% endif %}
             {% endif %}
-            {% if object and object.state == "in_review" %}
+            {% if update_only_referees  %}
               $("#applicant,#categories,#summary,#id-verification,#ethics-statement,#tac").find("input,textarea,button,select").prop({
                 readonly: true,
                 disabled: true

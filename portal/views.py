@@ -1,3 +1,4 @@
+import functools
 import io
 import json
 import mimetypes
@@ -1812,6 +1813,25 @@ class ApplicationView(LoginRequiredMixin):
     # def form_invalid(self, form):
     #     return super().form_invalid(form)
 
+    @functools.cache
+    def update_only_referees(self, application=None, user=None):
+        if not application:
+            application = self.object
+        if not user:
+            user = self.request.user
+        return bool(
+            application
+            and application.state in ["submitted", "is_in_review"]
+            and not (
+                user.is_superuser
+                or user.is_site_staff
+                or self.site_id in [4, 5]
+                and application.org
+                and application.org.research_offices.filter(user=user).exists()
+                or models.Nomination.where(appication=application, nominator=user).exists()
+            )
+        )
+
     @property
     def previous_application(self):
         user = self.request.user
@@ -2091,7 +2111,7 @@ class ApplicationView(LoginRequiredMixin):
             return n
 
     def form_valid(self, form):
-        instance = form.instance
+        instance = form.instance or self.object
         current_state = instance and instance.state
         # if not instance.pk:
         #     resp = super().form_valid(form)
@@ -2105,7 +2125,7 @@ class ApplicationView(LoginRequiredMixin):
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
         update_url = None
-
+        update_only_referees = self.update_only_referees(application=instance, user=user)
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -2157,7 +2177,7 @@ class ApplicationView(LoginRequiredMixin):
                 a = self.object
                 update_url = a and a.pk and reverse("application-update", kwargs=dict(pk=a.pk))
 
-                if a.is_team_application and current_state != "in_review":
+                if a.is_team_application and not update_only_referees:
                     members = context["members"]
                     has_deleted = bool(members.deleted_forms)
                     if has_deleted:
@@ -2189,7 +2209,7 @@ class ApplicationView(LoginRequiredMixin):
 
                 if (
                     has_required_documents
-                    and current_state != "in_review"
+                    and not update_only_referees
                     and (documents := context.get("documents"))
                 ):
                     if not documents.instance or not documents.instance.id:
@@ -2229,7 +2249,7 @@ class ApplicationView(LoginRequiredMixin):
                         ):
                             if (
                                 site_id != 5
-                                or current_state == "in_review"
+                                or not update_only_referees
                                 or "submit_to_referees" in self.request.POST
                             ):
                                 count = a.invite_referees(request=self.request)
@@ -2310,7 +2330,7 @@ class ApplicationView(LoginRequiredMixin):
                     return self.form_invalid(form)
 
                 if (
-                    current_state != "in_review"
+                    not update_only_referees
                     and "photo_identity" in form.changed_data
                     and instance.photo_identity
                 ):
@@ -2329,14 +2349,14 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     iv.save()
 
-                if current_state != "in_review" and (
+                if not update_only_referees and (
                     ethics_statement_form := context.get("ethics_statement")
                 ):
                     ethics_statement_form.instance.application = a
                     if ethics_statement_form.is_valid():
                         ethics_statement_form.save()
 
-                if current_state != "in_review" and round.has_fors:
+                if not update_only_referees and round.has_fors:
                     fors = context["fors"]
                     if not fors.instance or not fors.instance.id:
                         fors.instance = a
@@ -2353,7 +2373,7 @@ class ApplicationView(LoginRequiredMixin):
                             return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
-                if current_state != "in_review" and round.has_seos:
+                if not update_only_referees and round.has_seos:
                     seos = context["seos"]
                     if not seos.instance or not seos.instance.id:
                         seos.instance = a
@@ -2369,7 +2389,7 @@ class ApplicationView(LoginRequiredMixin):
                             return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
-                if current_state != "in_review" and "file" in form.changed_data and instance.file:
+                if not update_only_referees and "file" in form.changed_data and instance.file:
                     try:
                         if cf := instance.update_converted_file():
                             messages.success(
@@ -2396,7 +2416,7 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
 
                 if (
-                    current_state != "in_review"
+                    not update_only_referees
                     and "letter_of_support_file" in form.changed_data
                     and instance.letter_of_support
                     and instance.letter_of_support.file
@@ -2452,7 +2472,7 @@ class ApplicationView(LoginRequiredMixin):
             url = None
             try:
                 if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
-                    if current_state != "in_review" and self.round.applicant_cv_required:
+                    if not update_only_referees and self.round.applicant_cv_required:
                         if not a.submitted_by or not (
                             models.CurriculumVitae.where(owner=a.submitted_by).exists()
                             or a.documents.filter(~Q(file=""), document_type__role="CV").exists()
@@ -2493,7 +2513,7 @@ class ApplicationView(LoginRequiredMixin):
                             a.cv = cv
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and self.round.ethics_statement_required
                         and not (
                             a.ethics_statement
@@ -2512,7 +2532,7 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("ethics-statement")
                         # url = url or (self.request.path_info.split("?")[0] + "#ethics-statement")
 
-                    if current_state != "in_review" and not a.is_tac_accepted:
+                    if not update_only_referees and not a.is_tac_accepted:
                         if a.submitted_by == user:
                             messages.error(
                                 self.request,
@@ -2525,7 +2545,7 @@ class ApplicationView(LoginRequiredMixin):
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and a.round.budget_template
                         and not (
                             a.budget
@@ -2543,7 +2563,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and site_id not in [4, 5]
                         and not (
                             a.file
@@ -2567,7 +2587,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and a.round
                         and a.round.pid_required
                         and a.submitted_by.needs_identity_verification
@@ -2635,7 +2655,7 @@ class ApplicationView(LoginRequiredMixin):
                             if not url:
                                 url = self.continue_url("referees")
 
-                    if current_state != "in_review" and has_required_documents:
+                    if not update_only_referees and has_required_documents:
                         for rd in a.round.required_documents.filter(is_optional=False):
                             if not a.documents.filter(~Q(file=""), required_document=rd).exists():
                                 form.add_error(
@@ -2649,7 +2669,7 @@ class ApplicationView(LoginRequiredMixin):
                                     form.active_tab = "summary"
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and site_id == 4
                         and a.round.has_seos
                         and a.application_seos.count() > 3
@@ -2665,7 +2685,7 @@ class ApplicationView(LoginRequiredMixin):
                             form.active_tab = "categories"
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and site_id == 5
                         and a.round.has_seos
                         and a.application_seos.count() > 5
@@ -2711,7 +2731,7 @@ class ApplicationView(LoginRequiredMixin):
 
                     if (
                         site_id == 5
-                        or current_state == "in_review"
+                        or update_only_referees
                         or "submit_to_referees" in self.request.POST
                     ) and "submit" not in self.request.POST:
                         count = a.send_out_to_referees(request=self.request) or a.referees.count()
@@ -2752,7 +2772,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         url = self.continue_url("referees")
                         return redirect(url)
-                    elif current_state != "in_review":
+                    elif not update_only_referees:
                         if (
                             site_id == 4
                             and a.round.has_fors
@@ -2790,7 +2810,8 @@ class ApplicationView(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        is_in_review = self.object and self.object.state == "in_review"
+        update_only_referees = self.update_only_referees()
+        context["update_only_referees"] = update_only_referees
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
@@ -3020,8 +3041,8 @@ class ApplicationView(LoginRequiredMixin):
             )
             if self.request.POST:
                 fs = fsc(
-                    not is_in_review and self.request.POST or None,
-                    not is_in_review and self.request.FILES or None,
+                    not update_only_referees and self.request.POST or None,
+                    not update_only_referees and self.request.FILES or None,
                     instance=self.object,
                     # initial=initial_documents,
                 )
@@ -3074,7 +3095,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST and not is_in_review:
+            if self.request.POST and not update_only_referees:
                 fs = fsc(self.request.POST, instance=self.object)
             elif not (self.object and self.object.id):
                 fs = fsc(instance=self.object, initial=initial_fors)
@@ -3123,7 +3144,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             fs = fsc(
-                not is_in_review and self.request.POST or None,
+                not update_only_referees and self.request.POST or None,
                 instance=self.object,
                 initial=initial_seos,
             )
@@ -3134,9 +3155,10 @@ class ApplicationView(LoginRequiredMixin):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
-        is_in_review = self.object and self.object.state == "in_review"
+        update_only_referees = self.update_only_referees()
 
-        if is_in_review:
+        if update_only_referees:
+            kwargs["update_only_referees"] = True
             if "data" in kwargs:
                 del kwargs["data"]
             if "files" in kwargs:

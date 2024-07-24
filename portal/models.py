@@ -446,7 +446,7 @@ class StateField(FSMFieldMixin, StatusField):
 def hash_int(
     value,
 ):
-    return hashlib.shake_256(value.to_bytes(8)).hexdigest(5)
+    return hashlib.shake_256(f"{value}".encode()).hexdigest(5)
 
 
 User = get_user_model()
@@ -3565,8 +3565,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     def accept(self, *args, **kwargs):
         pass
 
-    @property
-    @lru_cache(1)
+    @cached_property
     def survey_api(self):
         api_url = self.application.round.survey_api_url
         api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
@@ -3592,7 +3591,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
                     hashlib.shake_256(
-                        (int(time.time()) if settings.DEBUG else self.pk).to_bytes(8)
+                        f"{(int(time.time()) if settings.DEBUG else self.pk)}".encode()
                     ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
@@ -5539,19 +5538,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     def current_rounds(cls):
         return cls.where(id=F("scheme__current_round__id"))
 
-    @property
-    @lru_cache(1)
+    @cached_property
     def survey_server_url(self):
-        if "LIMESURVEY_SERVER_URL" in dir(settings):
+        if settings.DEBUG and "LIMESURVEY_SERVER_URL" in dir(settings):
             return settings.LIMESURVEY_SERVER_URL
         else:
             site = self.site or Site.objects.get_current()
             return f"https://{site.domain}/limesurvey"
 
-    @property
-    @lru_cache(1)
+    @cached_property
     def survey_api_url(self):
-        if "LIMESURVEY_API_URL" in dir(settings):
+        if settings.DEBUG and "LIMESURVEY_API_URL" in dir(settings):
             return settings.LIMESURVEY_API_URL
         elif server_url := self.survey_server_url:
             return f"{server_url}/admin/remotecontrol"

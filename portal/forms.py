@@ -563,7 +563,7 @@ class ApplicationForm(forms.ModelForm):
         return "submit" in self.data
 
     def clean(self):
-        if self.instance and self.instance.state == "in_review":
+        if self.instance and self.update_only_referees:
             self.cleaned_data = {}
             self.changed_data = []
 
@@ -609,13 +609,13 @@ class ApplicationForm(forms.ModelForm):
 
     def is_valid(self):
         is_valid = super().is_valid()
-        if self.instance and self.instance.state == "in_review":
+        if self.instance and self.update_only_referees:
             return True
         return is_valid
 
     def save(self, *args, **kwargs):
 
-        if self.instance and self.instance.state == "in_review":
+        if self.instance and self.update_only_referees:
             return self.instance
 
         if (
@@ -655,6 +655,7 @@ class ApplicationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         nomination = kwargs.pop("nomination", None)
+        self.update_only_referees = update_only_referees = kwargs.pop("update_only_referees", False)
         super().__init__(*args, **kwargs)
         initial = kwargs.get("initial", {})
         user = initial.get("user")
@@ -1233,7 +1234,7 @@ class ApplicationForm(forms.ModelForm):
             data_toggle="tooltip",
             title=(
                 _("Save the referee list and invited new ones if any new has been added")
-                if instance.state == "in_review"
+                if update_only_referees
                 else (
                     _(
                         "Your team leader must accept the Terms and Conditions before the submission can happen"
@@ -1268,7 +1269,7 @@ class ApplicationForm(forms.ModelForm):
                             _(
                                 "Save the referee list and invited new ones if any new has been added"
                             )
-                            if instance.state == "in_review"
+                            if update_only_referees
                             else _("Save draft application")
                         ),
                     ),
