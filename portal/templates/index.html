@@ -408,9 +408,13 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   class="badge-warning"
                   style="border-radius: 7px; padding: 4px 6px 4px 6px;"
                   {% endif %}
-                  {% if round.deadline_days > 0 and round.deadline_days < 5 %}
+                  {% if round.deadline_seconds > 0 and round.deadline_days < 5 %}
                   data-toggle="tooltip"
+                  {% with  deadline_days=round.deadline_days deadline_hours=round.deadline_hours deadline_minutes=round.deadline_minutes closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}
                   title="{% blocktrans with deadline_days=round.deadline_days closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+                  title="{% blocktrans with deadline_days=round.deadline_days closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+                  title="{% blocktrans with deadline_days=round.deadline_days closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+                  {% endwith %}
                   {% endif %}>
                   {{ round.opens_on|date:"d-m-Y" }}
                   {% if round.closes_at %}

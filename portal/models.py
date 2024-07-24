@@ -5471,13 +5471,28 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         return self.user_nominations(user).exists()
 
-    @property
-    def deadline_days(self):
+    @cached_property
+    def deadline_seconds(self):
         if closes_at := self.closes_at:
             now = datetime.now(tz=closes_at.tzinfo)
             if closes_at >= now:
                 ts = closes_at - now
-                return round(ts.total_seconds() / 86400)
+                return ts.total_seconds()
+
+    @cached_property
+    def deadline_days(self):
+        if ds := self.deadline_seconds:
+            return round(ds / 86400)
+
+    @cached_property
+    def deadline_hours(self):
+        if ds := self.deadline_seconds:
+            return round(ds / 3600)
+
+    @cached_property
+    def deadline_minutes(self):
+        if ds := self.deadline_seconds:
+            return round(ds / 60)
 
     @property
     def is_open(self):
