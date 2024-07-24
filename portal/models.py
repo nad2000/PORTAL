@@ -2648,7 +2648,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self._change_reason = resolution
 
         if (n := Nomination.where(application=self).last()) and n.nominator.is_active:
-            recipients = [n]
+            recipients = [n.nominator]
         elif self.org.ro_email:
             recipients = [self.org.ro_email]
         else:
