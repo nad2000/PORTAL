@@ -5494,13 +5494,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         if ds := self.deadline_seconds:
             return round(ds / 60)
 
-    @property
+    @cached_property
     def is_open(self):
         return self.opens_on <= date.today() and (
             self.closes_at is None or self.closes_at >= datetime.now(tz=self.closes_at.tzinfo)
         )
 
-    @property
+    @cached_property
     def has_closed(self):
         return self.closes_at and self.closes_at < datetime.now(tz=self.closes_at.tzinfo)
 
