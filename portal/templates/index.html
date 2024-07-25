@@ -401,26 +401,34 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                 {% trans 'Application period' %}:
               {% endif %}
               <strong
-                  {% if not round.is_open %}
+              {% with is_open=round.is_open deadline_days=round.deadline_days deadline_hours=round.deadline_hours deadline_minutes=round.deadline_minutes closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}
+                  {% if is_open and deadline_minutes < 4320  %}
                   class="badge-danger"
                   style="border-radius: 7px; padding: 4px 6px 4px 6px;"
-                  {% elif round.deadline_days > 0 and round.deadline_days < 5 %}
+                  {% elif is_open and deadline_days < 7 %}
                   class="badge-warning"
                   style="border-radius: 7px; padding: 4px 6px 4px 6px;"
                   {% endif %}
-                  {% if round.deadline_days > 0 and round.deadline_days < 5 %}
+                  {% if is_open and deadline_minutes < 10080 %}
                   data-toggle="tooltip"
-                  title="{% blocktrans with deadline_days=round.deadline_days closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
+                  {% if deadline_days %}
+                  title="{% blocktrans with deadline_days=deadline_days closes_on=closes_on closes_at=closes_at %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} at {{ closes_at }}{% endblocktrans %}"
+                  {% elif deadline_hours %}
+                  title="{% blocktrans with deadline_hours=deadline_hours closes_on=closes_on closes_at=closes_at %}The round is closing in {{ deadline_hours }} hours(s) on {{ closes_on }} at {{ closes_at }}{% endblocktrans %}"
+                  {% else %}
+                  title="{% blocktrans with deadline_minutes=deadline_minutes closes_on=closes_on closes_at=closes_at %}The round is closing in {{ deadline_minutes }} minutes(s) on {{ closes_on }} at {{ closes_at }}{% endblocktrans %}"
+                  {% endif %}
                   {% endif %}>
                   {{ round.opens_on|date:"d-m-Y" }}
                   {% if round.closes_at %}
                   - {{ round.closes_at|date:"d-m-Y" }}
                   {% if round.closes_at.hour or round.closes_at.minute %}
-                  {% blocktrans  with round.closes_at|time:"P" as closes_at %}
+                  {% blocktrans with round.closes_at|time:"P" as closes_at %}
                   at {{ closes_at }}
                   {% endblocktrans %}
                   {% endif %}
                   {% endif %}
+              {% endwith %}
               </strong>
               </p>
               {% endif %}
