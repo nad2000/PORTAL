@@ -2105,6 +2105,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             or (self.referees.filter(Q(user=user) | Q(email=user.email)).exists())
             or (self.round.panellists.filter(Q(user=user) | Q(email=user.email)).exists())
             or (self.org.research_offices.filter(user=user).exists())
+            or self.members.all()
+            .filter(Q(email__in=user.emailaddress_set.values_list("email")))
+            .exists()
         )
 
     def get_score_entries(self, user=None, panellist=None):
@@ -2277,7 +2280,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["tac_accepted", "submitted", "approved"],
+        source=["tac_accepted", "submitted", "approved", "in_review"],
         target="in_review",
         conditions=[lambda self: self.site_id == 5],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
@@ -2305,8 +2308,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["new", "draft", "tac_accepted"],
+        source=["new", "draft", "tac_accepted", "submitted"],
         target="submitted",
+        conditions=[lambda self: self.site_id == 5 or self.state != "submitted"],
         custom=dict(verbose="Submit", button_name="Submit"),
     )
     def submit(self, *args, **kwargs):
@@ -2613,10 +2617,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["approved", "accepted"],
+        source=["approved", "accepted", "in_review"],
         target="submitted",
         conditions=[lambda self: self.site_id == 5],
-        custom=dict(verbose="Request reassessment and release the application back to the R.O. for further assessment and editing", button_name="Request reassessment"),
+        custom=dict(
+            verbose="Request reassessment and release the application back to the R.O. for further assessment and editing",
+            button_name="Request reassessment",
+        ),
     )
     def request_reassesment(self, request=None, by=None, description=None, *args, **kwargs):
         (previous_state,) = self.__class__.where(pk=self.pk).values_list("state").first()
@@ -2630,8 +2637,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     f'resubmission of the application "{self}"'
                 )
             subject = (
-                "RSTA has requested reassessment and "
-                f'resubmission of the application "{self}"'
+                "RSTA has requested reassessment and " f'resubmission of the application "{self}"'
             )
         elif previous_state == "cancelled":
             if not resolution:
@@ -2653,10 +2659,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             recipients = [self.org.ro_email]
         else:
             recipients = [ro.user for ro in self.org.research_offices.all()]
-        url = request.build_absolute_uri(reverse("application-detail", kwargs={"number": self.number}))
+        url = request.build_absolute_uri(
+            reverse("application-detail", kwargs={"number": self.number})
+        )
         url = domain_to_macrons(url)
         params = {
-            "user_display": ", ".join(r if isinstance(r, str) else r.full_name for r in recipients),
+            "user_display": ", ".join(
+                r if isinstance(r, str) else r.full_name for r in recipients
+            ),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.application_title or self.round.title,
@@ -5085,6 +5095,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("Has VMTs"), default=False, help_text=_("Has Vision Mātauranga Theme Categories")
     )
     has_keywords = BooleanField(_("Has keywords"), default=False, help_text=_("Has Keywords"))
+
+    @property
+    def previous_round(self):
+        return self._meta.model.where(scheme=self.scheme).order_by("-id").first()
 
     @property
     def has_categories(self):

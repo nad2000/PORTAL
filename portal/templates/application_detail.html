@@ -46,25 +46,29 @@
        >{% trans 'Re-enter' %}
     </a>
       {% else %}
-      <div class="tooltip-wrapper{% if a.state == 'submitted'%} disabled{% endif %}"
-           {% if was_submitted %}
-           disabled
-           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
-           {% elif not is_owner %}
+      <div class="tooltip-wrapper{% if not can_update %} disabled{% endif %}"
+           {% if not is_owner %}
            disabled
            data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
+           {% elif not can_update %}
+           disabled
+           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
            {% comment %}
            {% elif not a.round.is_open %}
            disabled
            data-title="{% trans 'The application period has closed. You can no longer modify this application.' %}"
               class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
            {% endcomment %}
+           {% elif is_owner and not is_ro and a.state == "submitted" or is_owner and not is_ro and a.state == "in_review" %}
+           data-title="{% trans 'Modify the referee list' %}"
            {% elif not a.org|is_ro:u %}
            data-title="{% trans 'Modify your application and continue application process' %}"
+           {% else %}
+           data-title="{% trans 'Modify the application and continue application process' %}"
            {% endif %}
            >
            <a href="{% url update_view_name pk=a.pk %}"
-              class="btn btn-primary{% if not is_owner or was_submitted %} disabled{% endif %}"
+              class="btn btn-primary{% if not is_owner or not can_update %} disabled{% endif %}"
               >{% trans update_button_name %}
            </a>
       </div>

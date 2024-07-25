@@ -1301,7 +1301,10 @@ class ProfileCreate(ProfileView, CreateView):
         initial = super().get_initial()
         u = self.request.user
         n = (
-            models.Nomination.where(user=self.request.user, state="submitted")
+            models.Nomination.where(
+                Q(user=self.request.user) | Q(email__in=u.emailaddress_set.values("email")),
+                state__in=["submitted", "sent", "bounced"],
+            )
             .order_by("-id")
             .first()
         )
@@ -1697,8 +1700,6 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         context = super().get_context_data(*args, **kwargs)
 
         a = context["application"] = self.object
-        if a.state == "in_review":
-            context["update_button_name"] = _("Edit referee list")
         if a and a.site_id == 5:
             context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
@@ -1715,11 +1716,16 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 _("Please review the application and authorize your team representative."),
             )
             context["form"] = AuthorizationForm()
-        is_owner = (
-            a.submitted_by == u
-            or a.members.filter(user=u, state="authorized").exists()
-            or (a.site_id in [4, 5] and a.org.where(research_offices__user=u).exists())
+        is_ro = a.site_id in [4, 5] and (
+            n
+            and (n.nominator == u or n.org.where(research_offices__user=u).exists())
+            or a.org.where(research_offices__user=u).exists()
         )
+        is_owner = (
+            a.submitted_by == u or a.members.filter(user=u, state="authorized").exists() or is_ro
+        )
+        if a.site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
+            context["update_button_name"] = _("Edit referee list")
         if p := a.round.panellists.filter(user=u).first():
             context["is_panellist"] = True
             coi = p.conflict_of_interests.filter(Q(application=a)).last()
@@ -1739,6 +1745,15 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             context["current_round"] = current_round
 
         context["was_submitted"] = a.state in ["submitted", "approved", "cancelled"]
+        context["can_update"] = (
+            (a.site_id != 5 and a.state not in ["submitted", "approved", "cancelled"])
+            or (a.site_id == 5 and is_ro and a.state in ["submitted", "new", "draft", "in_review"])
+            or (
+                a.site_id == 5
+                and is_owner
+                and a.state in ["new", "submitted", "draft", "in_review"]
+            )
+        )
         if not is_owner:
             context["show_basic_details"] = not (
                 u.is_staff
@@ -1810,6 +1825,15 @@ class ApplicationView(LoginRequiredMixin):
     template_name = "application.html"
     form_class = forms.ApplicationForm
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if self.update_only_referees():
+            messages.info(
+                request,
+                _("You can only modify the referee list."),
+            )
+        return response
+
     # def form_invalid(self, form):
     #     return super().form_invalid(form)
 
@@ -1821,33 +1845,45 @@ class ApplicationView(LoginRequiredMixin):
             user = self.request.user
         return bool(
             application
-            and application.state in ["submitted", "is_in_review"]
+            and application.pk
+            and application.state in ["submitted", "in_review"]
             and not (
                 user.is_superuser
                 or user.is_site_staff
-                or self.site_id in [4, 5]
+                or application.site_id in [4, 5]
                 and application.org
                 and application.org.research_offices.filter(user=user).exists()
-                or models.Nomination.where(appication=application, nominator=user).exists()
+                or models.Nomination.where(application=application, nominator=user).exists()
             )
         )
 
-    @property
+    @cached_property
     def previous_application(self):
         user = self.request.user
         if "previous" in self.request.GET:
-            pa = models.Application.where(id=int(self.request.GET.get("previous"))).first()
+            pa = models.Application.all_objects.filter(
+                pk=int(self.request.GET.get("previous"))
+            ).first()
             if pa and (pa.submitted_by == user or user in pa.members.all()):
                 return pa
             raise PermissionDenied(
                 _("You do not have permission to access the source application.")
             )
 
-    @property
+    @cached_property
     def latest_application(self):
+        if pa := self.previous_application:
+            return pa
+        if (r := self.round) and (
+            pa := self.model.where(submitted_by=self.request.user, round__scheme=r.scheme)
+            .order_by("-id")
+            .first()
+        ):
+            return pa
         return (
-            self.previous_application
-            or models.Application.where(submitted_by=self.request.user).order_by("-id").first()
+            models.Application.all_objects.filter(submitted_by=self.request.user)
+            .order_by("-id")
+            .first()
         )
 
     def dispatch(self, request, *args, **kwargs):
@@ -1879,7 +1915,18 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     return redirect("application", pk=pk)
 
-                if a.state and a.state not in ["new", "draft", "in_review"]:
+                if a.state and (
+                    a.site_id != 5
+                    and (
+                        a.state not in ["new", "draft", "in_review"]
+                        or (
+                            a.state not in ["new", "draft", "in_review", "submited"]
+                            and not models.Nomination.where(
+                                Q(org__research_offices__user=u) | Q(nominator=u), application=a
+                            ).exists()
+                        )
+                    )
+                ):
                     messages.error(
                         request,
                         _(
@@ -1887,7 +1934,7 @@ class ApplicationView(LoginRequiredMixin):
                             "You cannot modify a submitted application."
                         ),
                     )
-                    return redirect("application", pk=pk)
+                    return redirect("application-detail", number=a.number)
                 if not r.is_open and r.closes_at > (timezone.now() + timedelta(days=1)):
                     messages.error(
                         request,
@@ -1896,7 +1943,7 @@ class ApplicationView(LoginRequiredMixin):
                             "You cannot longer modify this application."
                         ),
                     )
-                    return redirect("application", pk=pk)
+                    return redirect("application-detail", number=a.number)
                 if r.survey_id:
                     referee = (
                         a.referees.filter(
@@ -2013,36 +2060,59 @@ class ApplicationView(LoginRequiredMixin):
                 if research_experience_in_years:
                     initial["research_experience_in_years"] = research_experience_in_years
 
+            application_with_title = (
+                self.model.all_objects.filter(submitted_by=user, title__isnull=False)
+                .order_by("-pk")
+                .first()
+            )
             initial.update(
                 {
-                    "title": user.title or nomination and nomination.title,
+                    "title": user.title
+                    or nomination
+                    and nomination.title
+                    or application_with_title
+                    and application_with_title.title,
                     # "email": user.email or nomination and nomination.email,
-                    "first_name": user.first_name or nomination and nomination.first_name,
-                    "last_name": user.last_name or nomination and nomination.last_name,
-                    "middle_names": user.middle_names or nomination and nomination.middle_names,
+                    "first_name": user.first_name
+                    or nomination
+                    and nomination.first_name
+                    or application_with_title
+                    and application_with_title.first_name,
+                    "last_name": user.last_name
+                    or nomination
+                    and nomination.last_name
+                    or application_with_title
+                    and application_with_title.last_name,
+                    "middle_names": user.middle_names
+                    or nomination
+                    and nomination.middle_names
+                    or application_with_title
+                    and application_with_title.middle_names,
                 }
             )
 
-            if nomination:
-                initial["org"] = nomination.org
-                initial["position"] = (
-                    current_affiliation
-                    and current_affiliation.role
-                    or latest_application
-                    and latest_application.position
-                    or nomination
-                    and nomination.position
-                )
-            elif current_affiliation:
-                initial["org"] = current_affiliation.org
-                initial["position"] = (
-                    current_affiliation.role or latest_application and latest_application.position
-                )
-            elif latest_application:
-                initial["org"] = latest_application.org
-                initial["position"] = latest_application.position
+            if org := (
+                initial.get("org")
+                or nomination
+                and nomination.org
+                or current_affiliation
+                and current_affiliation.org
+                or latest_application
+                and latest_application.org
+            ):
+                initial["org"] = org
 
-            if not address and (org := initial.get("org")):
+            if (
+                position := current_affiliation
+                and current_affiliation.role
+                or nomination
+                and nomination.position
+                or latest_application
+                and latest_application.position
+            ):
+                initial["position"] = position
+
+            if not address and org:
                 if address := org.address:
                     initial["address"] = address
                     initial["postal_address"] = address.address
@@ -2093,7 +2163,7 @@ class ApplicationView(LoginRequiredMixin):
             models.Round.get(self.kwargs["round"]) if "round" in self.kwargs else self.object.round
         )
 
-    @property
+    @cached_property
     def nomination(self):
         if "nomination" in self.kwargs:
             return models.Nomination.get(self.kwargs["nomination"])
@@ -2125,7 +2195,7 @@ class ApplicationView(LoginRequiredMixin):
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
         update_url = None
-        update_only_referees = self.update_only_referees(application=instance, user=user)
+        update_only_referees = self.update_only_referees()
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -2729,17 +2799,29 @@ class ApplicationView(LoginRequiredMixin):
                     if url:
                         return redirect(url)
 
-                    if (
-                        site_id == 5
-                        or update_only_referees
-                        or "submit_to_referees" in self.request.POST
-                    ) and "submit" not in self.request.POST:
+                    if "submit_to_referees" in self.request.POST:
                         count = a.send_out_to_referees(request=self.request) or a.referees.count()
                         messages.info(
                             self.request,
                             _(
                                 f"Your application has been successfully submitted to {count} referee(s) to review it."
                             ),
+                        )
+                    elif update_only_referees:
+                        count = a.invite_referees(
+                            request=self.request,
+                            dispatch_invitations=(
+                                site_id != 5
+                                or (
+                                    site_id == 5
+                                    and a.round.closes_at
+                                    and a.round.closes_at <= timezone.now()
+                                )
+                            ),
+                        )
+                        messages.info(
+                            self.request,
+                            _(f"{count} new rerefee invitaion(s) were successfully created."),
                         )
                     else:
                         a.submit(request=self.request)
@@ -3156,6 +3238,7 @@ class ApplicationView(LoginRequiredMixin):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
         update_only_referees = self.update_only_referees()
+        user = self.request.user
 
         if update_only_referees:
             kwargs["update_only_referees"] = True
@@ -3164,7 +3247,7 @@ class ApplicationView(LoginRequiredMixin):
             if "files" in kwargs:
                 del kwargs["files"]
 
-        kwargs["initial"]["user"] = self.request.user
+        kwargs["initial"]["user"] = user
 
         if self.object and self.object.id:
             return kwargs
@@ -3179,7 +3262,6 @@ class ApplicationView(LoginRequiredMixin):
             kwargs["nomination"] = n
 
         if self.request.method == "GET" and "initial" in kwargs:
-            user = self.request.user
             kwargs["initial"].update(
                 {
                     "application_title": ("" if settings.SITE_ID in [4, 5] else self.round.title),
@@ -3232,13 +3314,8 @@ class ApplicationCreate(ApplicationView, CreateView):
             return redirect("home")
 
         a = models.Application.where(submitted_by=u, round=r).order_by("-id").first()
-        if a:
-            messages.warning(
-                self.request, _("You have already created an application. Please update it.")
-            )
-            return redirect(reverse("application-update", kwargs=dict(pk=a.id)))
-
         if nomination_id := request.GET.get("nomination") or n and n.pk:
+
             if nom := models.Nomination.get(nomination_id):
                 if (
                     u.email != nom.email
@@ -3252,6 +3329,26 @@ class ApplicationCreate(ApplicationView, CreateView):
                         ),
                     )
                     return redirect("home")
+
+                if a and not (nom == n) and nom.application != a:
+                    messages.warning(
+                        self.request,
+                        _(
+                            "You have already created an application for this round. The nomination will be retracted."
+                        ),
+                    )
+                if a and (nom == n) and not n.application:
+                    n.applicatio = a
+                    n.accept(
+                        by=u,
+                        description="Application in the round was already created; accecpted by default",
+                    )
+                    n.save()
+        if a:
+            messages.warning(
+                self.request, _("You have already created an application. Please update it.")
+            )
+            return redirect(reverse("application-update", kwargs=dict(pk=a.pk)))
 
         if (
             not r.direct_application_allowed
