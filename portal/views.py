@@ -6539,7 +6539,7 @@ class RoundExportView(ExportView):
             content = io.BytesIO()
             a.to_pdf(request, skip_excluded=(site_id in [4, 5])).write(content)
             content.seek(0)
-            reader = PdfReader(content)
+            reader = PdfReader(content, strict=False)
             merger.append(
                 reader,
                 outline_item=(

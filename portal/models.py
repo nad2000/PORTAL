@@ -295,7 +295,7 @@ class PdfFileMixin:
             if self.file.name.lower().endswith(".pdf"):
                 if hasattr(self, "page_count") and not self.page_count:
                     with open(self.file.path, "rb") as f:
-                        pdf_reader = PdfReader(f)
+                        pdf_reader = PdfReader(f, strict=False)
                         self.page_count = len(pdf_reader.pages)
                         self._change_reason = f"Updated page count to {self.page_count}"
                         self.save(update_fields=["page_count"])
@@ -354,10 +354,10 @@ class PdfFileMixin:
         if hasattr(self, "page_count"):
             if isinstance(file, str):
                 with open(file, "rb") as f:
-                    pdf_reader = PdfReader(f)
+                    pdf_reader = PdfReader(f, strict=False)
                     page_count = len(pdf_reader.pages)
             else:
-                pdf_reader = PdfReader(file)
+                pdf_reader = PdfReader(file, strict=False)
                 page_count = len(pdf_reader.pages)
             if not self.page_count or pdf_reader != self.page_count:
                 self.page_count = page_count
@@ -411,7 +411,7 @@ class PdfFileMixin:
                 cf = ConvertedFile()
                 cf.file.save(output_filename, File(of))
                 of.seek(0)
-                pdf_reader = PdfReader(of)
+                pdf_reader = PdfReader(of, strict=False)
                 page_count = len(pdf_reader.pages)
                 if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
                     self.page_count = page_count
@@ -446,7 +446,7 @@ class StateField(FSMFieldMixin, StatusField):
 def hash_int(
     value,
 ):
-    return hashlib.shake_256(value.to_bytes(8)).hexdigest(5)
+    return hashlib.shake_256(value.to_bytes(8, "big")).hexdigest(5)
 
 
 User = get_user_model()
@@ -3142,7 +3142,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             import_outline=True,
         )
         for title, a, *rest in attachments:
-            # merger.append(PdfReader(a, "rb"), outline_item=title, import_outline=True)
+            # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
                 template = get_template("application-export-attachment-title-page.html")
                 html = HTML(
@@ -3173,22 +3173,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # merger.append(a, outline_item=title, import_outline=True)
             try:
                 try:
-                    reader = PdfReader(a, "rb")
+                    reader = PdfReader(a, strict=False)
                 except PdfReadError as ex:
                     if "'%PDF-' expected" in ex.args[0]:
                         pdf = pikepdf.Pdf.open(a)
                         mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
                         pdf.save(mended, normalize_content=True)
-                        reader = PdfReader(mended, "rb")
+                        reader = PdfReader(mended, strict=False)
                     else:
                         raise
                 if reader.is_encrypted:
                     pdf = pikepdf.Pdf.open(a)
                     decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
                     pdf.save(decrypted, normalize_content=True)
-                    reader = PdfReader(decrypted, "rb")
+                    reader = PdfReader(decrypted, strict=False)
                     # merger.append(decrypted, outline_item=title, import_outline=import_outline)
-                    # merger.append(PdfReader(a, "rb"), outline_item=title, import_outline=True)
+                    # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
 
                 # test if book marks can be imported
                 try:
@@ -3212,7 +3212,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             html = HTML(
                 string=template.render({"page_count": len(merger.pages), "application": self})
             )
-            header_file = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)))
+            header_file = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
             for dp, hp in zip(merger.pages, header_file.pages):
                 dp.pagedata.mergePage(hp)
 
@@ -3675,7 +3675,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
                     hashlib.shake_256(
-                        (int(time.time()) if settings.DEBUG else self.pk).to_bytes(8)
+                        (int(time.time()) if settings.DEBUG else self.pk).to_bytes(8, "big")
                     ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
