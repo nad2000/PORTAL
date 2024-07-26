@@ -446,7 +446,7 @@ class StateField(FSMFieldMixin, StatusField):
 def hash_int(
     value,
 ):
-    return hashlib.shake_256(value.to_bytes(8)).hexdigest(5)
+    return hashlib.shake_256(value.to_bytes(8, "big")).hexdigest(5)
 
 
 User = get_user_model()
@@ -3675,7 +3675,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["lastname"] = self.last_name
                 participant["token"] = base64.urlsafe_b64encode(
                     hashlib.shake_256(
-                        (int(time.time()) if settings.DEBUG else self.pk).to_bytes(8)
+                        (int(time.time()) if settings.DEBUG else self.pk).to_bytes(8, "big")
                     ).digest(21)
                 ).decode()
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
