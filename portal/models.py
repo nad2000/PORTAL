@@ -619,8 +619,8 @@ class DocumentType(Model):
 
     def __str__(self):
         if self.name:
-            return self.name
-        return self.get_role_display()
+            return f"{self.role}: {self.name}"
+        return f"{self.role}: {self.get_role_display()}"
 
     class Meta:
         db_table = "document_type"
