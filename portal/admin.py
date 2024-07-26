@@ -1,11 +1,13 @@
 import os
+from functools import cache
 
+import dal
+import djhacker
 import modeltranslation
-from django.utils.html import html_safe
 from admin_ordering.admin import OrderableAdmin
 from allauth.socialaccount.admin import SocialAccountAdmin, SocialTokenAdmin
 from allauth.socialaccount.models import SocialAccount, SocialToken
-import djhacker
+from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
@@ -15,15 +17,20 @@ from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse
-from django.utils.html import format_html
+from django.utils import timezone
+from django.utils.html import format_html, html_safe
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
 from fsm_admin.mixins import FSMTransitionMixin
-from import_export.admin import ImportExportMixin, ImportExportModelAdmin, ExportActionMixin
-from import_export.resources import ModelResource
 from import_export import fields, resources
+from import_export.admin import (
+    ExportActionMixin,
+    ImportExportMixin,
+    ImportExportModelAdmin,
+)
+from import_export.resources import ModelResource
 from import_export.widgets import ForeignKeyWidget
 from modeltranslation.admin import TranslationAdmin
 from sentry_sdk import capture_exception
@@ -31,10 +38,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
-from . import models
-from . import views
-from dal import autocomplete
-import dal
+from . import models, views
 
 djhacker.formfield(
     models.Organisation.signatory,
@@ -2315,6 +2319,7 @@ class RoundAdmin(
             del actions["invite_referees"]
         return actions
 
+    @cache
     def is_active(self, obj):
         return obj.is_active
 
