@@ -38,7 +38,7 @@ from django_summernote.widgets import SummernoteInplaceWidget
 from sentry_sdk import capture_message
 
 from . import models
-from .models import DOCUMENT_ROLES
+from .models import DOCUMENT_ROLES, Q
 
 # DateInput = partial(
 #     forms.DateInput,
@@ -563,7 +563,7 @@ class ApplicationForm(forms.ModelForm):
         return "submit" in self.data
 
     def clean(self):
-        if self.instance and self.instance.state == "in_review":
+        if self.instance and self.update_only_referees:
             self.cleaned_data = {}
             self.changed_data = []
 
@@ -609,13 +609,13 @@ class ApplicationForm(forms.ModelForm):
 
     def is_valid(self):
         is_valid = super().is_valid()
-        if self.instance and self.instance.state == "in_review":
+        if self.instance and self.update_only_referees:
             return True
         return is_valid
 
     def save(self, *args, **kwargs):
 
-        if self.instance and self.instance.state == "in_review":
+        if self.instance and self.update_only_referees:
             return self.instance
 
         if (
@@ -655,6 +655,9 @@ class ApplicationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         nomination = kwargs.pop("nomination", None)
+        self.update_only_referees = update_only_referees = kwargs.pop(
+            "update_only_referees", False
+        )
         super().__init__(*args, **kwargs)
         initial = kwargs.get("initial", {})
         user = initial.get("user")
@@ -1223,6 +1226,16 @@ class ApplicationForm(forms.ModelForm):
             and instance.submitted_by != user
         )
         # send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
+        is_ro = (
+            instance
+            and instance.pk
+            and (site_id == 5)
+            and (
+                models.Nomination.where(
+                    Q(nominator=user) | Q(org__research_offices__user=user), application=instance
+                ).exists()
+            )
+        )
         submit_button = Submit(
             "submit",
             # "submit_to_referees" if send_out_to_referees else "submit",
@@ -1232,27 +1245,31 @@ class ApplicationForm(forms.ModelForm):
             css_id="submit-id-submit",
             data_toggle="tooltip",
             title=(
-                _("Save the referee list and invited new ones if any new has been added")
-                if instance.state == "in_review"
+                _("Only the main applicant or the applicant team can submit the application")
+                if is_ro
                 else (
-                    _(
-                        "Your team leader must accept the Terms and Conditions before the submission can happen"
-                    )
-                    if submission_disabled
+                    _("Save the referee list and invited new ones if any new has been added")
+                    if update_only_referees
                     else (
-                        ("Submit the application to the Research Office")
-                        if site_id in [4, 5]
-                        else ("Submit the application")
+                        _(
+                            "Your team leader must accept the Terms and Conditions before the submission can happen"
+                        )
+                        if submission_disabled
+                        else (
+                            ("Submit the application to the Research Office")
+                            if site_id in [4, 5]
+                            else ("Submit the application")
+                        )
+                        # else (
+                        #     _("Submit the application to referees for reviewing it")
+                        #     if send_out_to_referees
+                        #     else _("Submit the application")
+                        # )
                     )
-                    # else (
-                    #     _("Submit the application to referees for reviewing it")
-                    #     if send_out_to_referees
-                    #     else _("Submit the application")
-                    # )
                 )
             ),
             css_class="btn-outline-primary",
-            disabled=submission_disabled,
+            disabled=submission_disabled or is_ro,
         )
         self.helper.layout = Layout(
             TabHolder(*tabs),
@@ -1268,8 +1285,12 @@ class ApplicationForm(forms.ModelForm):
                             _(
                                 "Save the referee list and invited new ones if any new has been added"
                             )
-                            if instance.state == "in_review"
-                            else _("Save draft application")
+                            if update_only_referees
+                            else (
+                                _("Save draft application")
+                                if not instance or instance.state in ["new", "draft"]
+                                else _("Save application updates")
+                            )
                         ),
                     ),
                     submit_button,
@@ -2707,16 +2728,19 @@ class TestimonialForm(forms.ModelForm):
                 help_text=_("Please upload your (referee) curriculum vitae"),
             )
             fields.append("cv_file")
-        fields.append(Field("file", data_toggle="tooltip", title=self.fields["file"].help_text))
-        if site_id in [4, 5]:
-            self.fields["file"].label = ""
-        if round.referee_template:
-            help_text = _(
-                'You can download the application review form template at <strong><a href="%s">%s</a></strong>'
-            ) % (round.referee_template.url, os.path.basename(round.referee_template.name))
-            # fields.insert(0, HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
-            self.fields["file"].help_text = help_text
-        self.fields["file"].required = True
+        if round.testimonials_required:
+            fields.append(
+                Field("file", data_toggle="tooltip", title=self.fields["file"].help_text)
+            )
+            if site_id in [4, 5]:
+                self.fields["file"].label = ""
+            if round.referee_template:
+                help_text = _(
+                    'You can download the application review form template at <strong><a href="%s">%s</a></strong>'
+                ) % (round.referee_template.url, os.path.basename(round.referee_template.name))
+                # fields.insert(0, HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
+                self.fields["file"].help_text = help_text
+            self.fields["file"].required = True
         # fields = [
         #     Fieldset(_("Referee Report") if site_id in [4, 5] else _("Testimonial"), *fields),
         # ]

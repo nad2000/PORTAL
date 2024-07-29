@@ -46,40 +46,46 @@
        >{% trans 'Re-enter' %}
     </a>
       {% else %}
-      <div class="tooltip-wrapper{% if a.state == 'submitted'%} disabled{% endif %}"
-           {% if was_submitted %}
-           disabled
-           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
+      <div class="tooltip-wrapper{% if not can_update %} disabled{% endif %}"
+           {% if can_only_update_referees %}
+           data-title="{% trans 'You can only update the referee list' %}"
            {% elif not is_owner %}
            disabled
            data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
+           {% elif not can_update %}
+           disabled
+           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
            {% comment %}
            {% elif not a.round.is_open %}
            disabled
            data-title="{% trans 'The application period has closed. You can no longer modify this application.' %}"
               class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
            {% endcomment %}
-           {% elif not a.org|is_ro:u %}
+           {% elif is_owner and not is_ro and a.state == "submitted" or is_owner and not is_ro and a.state == "in_review" %}
+           data-title="{% trans 'Modify the referee list' %}"
+           {% elif not is_ro %}
            data-title="{% trans 'Modify your application and continue application process' %}"
+           {% else %}
+           data-title="{% trans 'Modify the application and continue application process' %}"
            {% endif %}
            >
            <a href="{% url update_view_name pk=a.pk %}"
-              class="btn btn-primary{% if not is_owner or was_submitted %} disabled{% endif %}"
-              >{% trans update_button_name %}
+              class="btn btn-primary{% if not is_owner or not can_update %} disabled{% endif %}"
+              >{% if can_only_update_referees %}{% trans 'Update Referee List' %}{% else %}{% trans update_button_name %}{% endif %}
            </a>
       </div>
         {% endif %}
 
         {% if export_button_view_name %}
-        <div class="tooltip-wrapper{% if show_basic_details %} disabled{% endif %}"
-          {% if show_basic_details %}
+        <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
+          {% if show_basic_details and not export_enabled %}
           disabled
           data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
           {% else %}
           data-title="{% trans 'Export the application into a consolidated PDF file' %}"
           {% endif %}
         >
-          <a class="btn btn-primary{% if show_basic_details %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}" target="_blank">
+          <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}" target="_blank">
             {% trans 'Export' %}
           </a>
         </div>
@@ -226,6 +232,8 @@
                   data-toggle="tooltip"
                   {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
                   {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                  {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
+                  {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
                   {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
                   {% endif %}
                   >
@@ -240,6 +248,8 @@
                     data-toggle="tooltip"
                     {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
                     {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                    {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
+                    {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
                     {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
                     {% endif %}
                     >
@@ -254,6 +264,8 @@
                       data-toggle="tooltip"
                       {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
                       {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                      {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
+                      {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
                       {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
                       {% else %}title="{% trans 'Approve the application' %}"
                       {% endif %}

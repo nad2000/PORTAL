@@ -1,3 +1,4 @@
+import functools
 import io
 import json
 import mimetypes
@@ -13,6 +14,7 @@ import django.utils.translation
 import django_filters
 import django_tables2
 import tablib
+from django.utils.safestring import mark_safe
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms.helper import FormHelper
@@ -1300,7 +1302,10 @@ class ProfileCreate(ProfileView, CreateView):
         initial = super().get_initial()
         u = self.request.user
         n = (
-            models.Nomination.where(user=self.request.user, state="submitted")
+            models.Nomination.where(
+                Q(user=self.request.user) | Q(email__in=u.emailaddress_set.values("email")),
+                state__in=["submitted", "sent", "bounced"],
+            )
             .order_by("-id")
             .first()
         )
@@ -1660,7 +1665,17 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 if a.site_id == 5:
                     url = a.get_full_detail_url(request=request)
                     count = (
-                        a.send_out_to_referees(request=request)
+                        self.invite_referees(
+                            request=request,
+                            dispatch_invitations=(
+                                a.site_id != 5
+                                or (
+                                    a.site_id == 5
+                                    and a.round.closes_at
+                                    and a.round.closes_at <= timezone.now()
+                                )
+                            ),
+                        )
                         or a.referees.filter(state__in=["sent"]).count()
                     )
                     if count and request:
@@ -1679,7 +1694,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                                 self.request,
                                 _(
                                     f"{count} referee invitation(s) were created. "
-                                    "The dispatch of the invitation(s) will be deferred until the round closes."
+                                    "The invitation(s) will be sent to referees after the round closes."
                                 ),
                             )
                 else:
@@ -1696,8 +1711,6 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         context = super().get_context_data(*args, **kwargs)
 
         a = context["application"] = self.object
-        if a.state == "in_review":
-            context["update_button_name"] = _("Edit referee list")
         if a and a.site_id == 5:
             context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
@@ -1714,11 +1727,22 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 _("Please review the application and authorize your team representative."),
             )
             context["form"] = AuthorizationForm()
-        is_owner = (
-            a.submitted_by == u
-            or a.members.filter(user=u, state="authorized").exists()
-            or (a.site_id in [4, 5] and a.org.where(research_offices__user=u).exists())
+        is_ro = a.site_id in [4, 5] and (
+            n
+            and (n.nominator == u or n.org.where(research_offices__user=u).exists())
+            or a.org.where(research_offices__user=u).exists()
         )
+        is_owner = (
+            a.submitted_by == u or a.members.filter(user=u, state="authorized").exists() or is_ro
+        )
+        is_referee = (
+            not is_ro
+            and not is_owner
+            and a.referees.filter(Q(user=u) | Q(email__in=u.emailaddress_set.values_list("email")))
+        )
+
+        if a.site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
+            context["update_button_name"] = _("Edit referee list")
         if p := a.round.panellists.filter(user=u).first():
             context["is_panellist"] = True
             coi = p.conflict_of_interests.filter(Q(application=a)).last()
@@ -1726,6 +1750,10 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             context["evaluation"] = models.Evaluation.where(panellist=p, application=a).last()
 
         context["is_owner"] = is_owner
+        can_only_update_referees = context["can_only_update_referees"] = not is_referee and (
+            a.can_only_update_referees(u)
+        )
+
         if (
             is_owner
             and not a.round.is_open
@@ -1737,12 +1765,32 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             context["can_reenter"] = True
             context["current_round"] = current_round
 
-        context["was_submitted"] = a.state in ["submitted", "approved", "cancelled"]
+        context["was_submitted"] = a.state in [
+            "submitted",
+            "approved",
+            "cancelled",
+            "accepted",
+            "funded",
+        ]
+        context["can_update"] = (
+            can_only_update_referees
+            or (
+                a.site_id != 5
+                and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+            )
+            or (a.site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
+            or (
+                a.site_id == 5
+                and is_owner
+                and a.state in ["new", "submitted", "draft", "in_review"]
+            )
+        )
         if not is_owner:
             context["show_basic_details"] = not (
                 u.is_staff
                 or u.is_superuser
-                or (settings.SITE_ID not in [4, 5] and a.referees.filter(user=u).exists())
+                or is_ro
+                or (a.site_id not in [4, 5] and a.referees.filter(user=u).exists())
                 or models.ConflictOfInterest.where(
                     Q(has_conflict=False) | Q(has_conflict__isnull=False),
                     application=a,
@@ -1755,9 +1803,11 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 .order_by("-id")
                 .first()
             ):
+                r = a.round
+                if r.site_id == 5:
+                    context["export_enabled"] = True
                 context["testimonial"] = t
                 if t.state != "submitted":
-                    r = a.round
                     closes_at = r.closes_at
                     if r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
                         messages.info(
@@ -1809,25 +1859,52 @@ class ApplicationView(LoginRequiredMixin):
     template_name = "application.html"
     form_class = forms.ApplicationForm
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if self.update_only_referees():
+            messages.info(
+                request,
+                _("You can only modify the referee list."),
+            )
+        return response
+
     # def form_invalid(self, form):
     #     return super().form_invalid(form)
 
-    @property
+    def update_only_referees(self, application=None, user=None):
+        if not application:
+            application = self.object
+        if not user:
+            user = self.request.user
+        return bool(user and application and application.can_only_update_referees(user))
+
+    @cached_property
     def previous_application(self):
         user = self.request.user
         if "previous" in self.request.GET:
-            pa = models.Application.where(id=int(self.request.GET.get("previous"))).first()
+            pa = models.Application.all_objects.filter(
+                pk=int(self.request.GET.get("previous"))
+            ).first()
             if pa and (pa.submitted_by == user or user in pa.members.all()):
                 return pa
             raise PermissionDenied(
                 _("You do not have permission to access the source application.")
             )
 
-    @property
+    @cached_property
     def latest_application(self):
+        if pa := self.previous_application:
+            return pa
+        if (r := self.round) and (
+            pa := self.model.where(submitted_by=self.request.user, round__scheme=r.scheme)
+            .order_by("-id")
+            .first()
+        ):
+            return pa
         return (
-            self.previous_application
-            or models.Application.where(submitted_by=self.request.user).order_by("-id").first()
+            models.Application.all_objects.filter(submitted_by=self.request.user)
+            .order_by("-id")
+            .first()
         )
 
     def dispatch(self, request, *args, **kwargs):
@@ -1859,7 +1936,18 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     return redirect("application", pk=pk)
 
-                if a.state and a.state not in ["new", "draft", "in_review"]:
+                if a.state and (
+                    a.site_id != 5
+                    and (
+                        a.state not in ["new", "draft", "in_review"]
+                        or (
+                            a.state not in ["new", "draft", "in_review", "submited"]
+                            and not models.Nomination.where(
+                                Q(org__research_offices__user=u) | Q(nominator=u), application=a
+                            ).exists()
+                        )
+                    )
+                ):
                     messages.error(
                         request,
                         _(
@@ -1867,7 +1955,7 @@ class ApplicationView(LoginRequiredMixin):
                             "You cannot modify a submitted application."
                         ),
                     )
-                    return redirect("application", pk=pk)
+                    return redirect("application-detail", number=a.number)
                 if not r.is_open and r.closes_at > (timezone.now() + timedelta(days=1)):
                     messages.error(
                         request,
@@ -1876,7 +1964,7 @@ class ApplicationView(LoginRequiredMixin):
                             "You cannot longer modify this application."
                         ),
                     )
-                    return redirect("application", pk=pk)
+                    return redirect("application-detail", number=a.number)
                 if r.survey_id:
                     referee = (
                         a.referees.filter(
@@ -1993,36 +2081,59 @@ class ApplicationView(LoginRequiredMixin):
                 if research_experience_in_years:
                     initial["research_experience_in_years"] = research_experience_in_years
 
+            application_with_title = (
+                self.model.all_objects.filter(submitted_by=user, title__isnull=False)
+                .order_by("-pk")
+                .first()
+            )
             initial.update(
                 {
-                    "title": user.title or nomination and nomination.title,
+                    "title": user.title
+                    or nomination
+                    and nomination.title
+                    or application_with_title
+                    and application_with_title.title,
                     # "email": user.email or nomination and nomination.email,
-                    "first_name": user.first_name or nomination and nomination.first_name,
-                    "last_name": user.last_name or nomination and nomination.last_name,
-                    "middle_names": user.middle_names or nomination and nomination.middle_names,
+                    "first_name": user.first_name
+                    or nomination
+                    and nomination.first_name
+                    or application_with_title
+                    and application_with_title.first_name,
+                    "last_name": user.last_name
+                    or nomination
+                    and nomination.last_name
+                    or application_with_title
+                    and application_with_title.last_name,
+                    "middle_names": user.middle_names
+                    or nomination
+                    and nomination.middle_names
+                    or application_with_title
+                    and application_with_title.middle_names,
                 }
             )
 
-            if nomination:
-                initial["org"] = nomination.org
-                initial["position"] = (
-                    current_affiliation
-                    and current_affiliation.role
-                    or latest_application
-                    and latest_application.position
-                    or nomination
-                    and nomination.position
-                )
-            elif current_affiliation:
-                initial["org"] = current_affiliation.org
-                initial["position"] = (
-                    current_affiliation.role or latest_application and latest_application.position
-                )
-            elif latest_application:
-                initial["org"] = latest_application.org
-                initial["position"] = latest_application.position
+            if org := (
+                initial.get("org")
+                or nomination
+                and nomination.org
+                or current_affiliation
+                and current_affiliation.org
+                or latest_application
+                and latest_application.org
+            ):
+                initial["org"] = org
 
-            if not address and (org := initial.get("org")):
+            if (
+                position := current_affiliation
+                and current_affiliation.role
+                or nomination
+                and nomination.position
+                or latest_application
+                and latest_application.position
+            ):
+                initial["position"] = position
+
+            if not address and org:
                 if address := org.address:
                     initial["address"] = address
                     initial["postal_address"] = address.address
@@ -2073,7 +2184,7 @@ class ApplicationView(LoginRequiredMixin):
             models.Round.get(self.kwargs["round"]) if "round" in self.kwargs else self.object.round
         )
 
-    @property
+    @cached_property
     def nomination(self):
         if "nomination" in self.kwargs:
             return models.Nomination.get(self.kwargs["nomination"])
@@ -2091,7 +2202,7 @@ class ApplicationView(LoginRequiredMixin):
             return n
 
     def form_valid(self, form):
-        instance = form.instance
+        instance = form.instance or self.object
         current_state = instance and instance.state
         # if not instance.pk:
         #     resp = super().form_valid(form)
@@ -2105,7 +2216,7 @@ class ApplicationView(LoginRequiredMixin):
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
         update_url = None
-
+        update_only_referees = self.update_only_referees()
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -2152,12 +2263,17 @@ class ApplicationView(LoginRequiredMixin):
                         instance.page_count = None
 
                 resp = super().form_valid(form)
-
                 has_deleted = False
-                a = self.object
+                a = form.instance or self.object
+                # dispatch invitation to the referees or defer until the application round is closed
+                dispatch_invitations = site_id != 5 or (
+                    a.state in ["approved", "accepted", "in_review"]
+                    and round.closes_at
+                    and round.closes_at <= timezone.now()
+                )
                 update_url = a and a.pk and reverse("application-update", kwargs=dict(pk=a.pk))
 
-                if a.is_team_application and current_state != "in_review":
+                if a.is_team_application and not update_only_referees:
                     members = context["members"]
                     has_deleted = bool(members.deleted_forms)
                     if has_deleted:
@@ -2189,7 +2305,7 @@ class ApplicationView(LoginRequiredMixin):
 
                 if (
                     has_required_documents
-                    and current_state != "in_review"
+                    and not update_only_referees
                     and (documents := context.get("documents"))
                 ):
                     if not documents.instance or not documents.instance.id:
@@ -2218,27 +2334,26 @@ class ApplicationView(LoginRequiredMixin):
 
                         referees.save()
                         if (
-                            a.file
-                            or site_id in [4, 5]
-                            or (
-                                has_required_documents
-                                and a.documents.filter(
-                                    ~Q(file=""), document_type__role="AF"
-                                ).exists()
-                            )
-                        ):
-                            if (
-                                site_id != 5
-                                or current_state == "in_review"
-                                or "submit_to_referees" in self.request.POST
-                            ):
-                                count = a.invite_referees(request=self.request)
-                                if count > 0:
-                                    messages.success(
-                                        self.request,
-                                        _("%d referee invitation(s) sent.") % count,
+                            not (
+                                a.file
+                                or site_id in [4, 5]
+                                and (
+                                    (
+                                        not has_required_documents
+                                        or a.documents.filter(
+                                            ~Q(file=""), document_type__role="AF"
+                                        ).exists()
                                     )
-                        elif a.referees.count():
+                                    or (
+                                        not round.research_summary_required
+                                        or a.summary
+                                        or a.summary_en
+                                        or a.summary_mi
+                                    )
+                                )
+                            )
+                            and a.referees.count()
+                        ):
                             if site_id == 5:
                                 messages.info(
                                     self.request,
@@ -2257,6 +2372,15 @@ class ApplicationView(LoginRequiredMixin):
                                 )
 
                             if has_deleted:
+                                count = a.invite_referees(
+                                    request=self.request, dispatch_invitations=dispatch_invitations
+                                )
+                                if count > 0 and dispatch_invitations:
+                                    messages.success(
+                                        self.request,
+                                        _("%d referee invitation(s) sent.") % count,
+                                    )
+                                url = self.continue_url("referees")
                                 return redirect(url)
                     else:
                         for f in referees.forms:
@@ -2310,7 +2434,7 @@ class ApplicationView(LoginRequiredMixin):
                     return self.form_invalid(form)
 
                 if (
-                    current_state != "in_review"
+                    not update_only_referees
                     and "photo_identity" in form.changed_data
                     and instance.photo_identity
                 ):
@@ -2329,14 +2453,14 @@ class ApplicationView(LoginRequiredMixin):
                     )
                     iv.save()
 
-                if current_state != "in_review" and (
+                if not update_only_referees and (
                     ethics_statement_form := context.get("ethics_statement")
                 ):
                     ethics_statement_form.instance.application = a
                     if ethics_statement_form.is_valid():
                         ethics_statement_form.save()
 
-                if current_state != "in_review" and round.has_fors:
+                if not update_only_referees and round.has_fors:
                     fors = context["fors"]
                     if not fors.instance or not fors.instance.id:
                         fors.instance = a
@@ -2353,7 +2477,7 @@ class ApplicationView(LoginRequiredMixin):
                             return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
-                if current_state != "in_review" and round.has_seos:
+                if not update_only_referees and round.has_seos:
                     seos = context["seos"]
                     if not seos.instance or not seos.instance.id:
                         seos.instance = a
@@ -2369,7 +2493,7 @@ class ApplicationView(LoginRequiredMixin):
                             return redirect(f"{update_url}#categories")
                         return self.form_invalid(form)
 
-                if current_state != "in_review" and "file" in form.changed_data and instance.file:
+                if not update_only_referees and "file" in form.changed_data and instance.file:
                     try:
                         if cf := instance.update_converted_file():
                             messages.success(
@@ -2396,7 +2520,7 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
 
                 if (
-                    current_state != "in_review"
+                    not update_only_referees
                     and "letter_of_support_file" in form.changed_data
                     and instance.letter_of_support
                     and instance.letter_of_support.file
@@ -2452,7 +2576,7 @@ class ApplicationView(LoginRequiredMixin):
             url = None
             try:
                 if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
-                    if current_state != "in_review" and self.round.applicant_cv_required:
+                    if not update_only_referees and self.round.applicant_cv_required:
                         if not a.submitted_by or not (
                             models.CurriculumVitae.where(owner=a.submitted_by).exists()
                             or a.documents.filter(~Q(file=""), document_type__role="CV").exists()
@@ -2493,7 +2617,7 @@ class ApplicationView(LoginRequiredMixin):
                             a.cv = cv
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and self.round.ethics_statement_required
                         and not (
                             a.ethics_statement
@@ -2512,7 +2636,7 @@ class ApplicationView(LoginRequiredMixin):
                             url = self.continue_url("ethics-statement")
                         # url = url or (self.request.path_info.split("?")[0] + "#ethics-statement")
 
-                    if current_state != "in_review" and not a.is_tac_accepted:
+                    if not update_only_referees and not a.is_tac_accepted:
                         if a.submitted_by == user:
                             messages.error(
                                 self.request,
@@ -2525,7 +2649,7 @@ class ApplicationView(LoginRequiredMixin):
                             # url = url or (self.request.path_info.split("?")[0] + "#tac")
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and a.round.budget_template
                         and not (
                             a.budget
@@ -2543,7 +2667,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and site_id not in [4, 5]
                         and not (
                             a.file
@@ -2567,7 +2691,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = url or (self.request.path_info.split("?")[0] + "#summary")
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and a.round
                         and a.round.pid_required
                         and a.submitted_by.needs_identity_verification
@@ -2635,7 +2759,7 @@ class ApplicationView(LoginRequiredMixin):
                             if not url:
                                 url = self.continue_url("referees")
 
-                    if current_state != "in_review" and has_required_documents:
+                    if not update_only_referees and has_required_documents:
                         for rd in a.round.required_documents.filter(is_optional=False):
                             if not a.documents.filter(~Q(file=""), required_document=rd).exists():
                                 form.add_error(
@@ -2649,7 +2773,7 @@ class ApplicationView(LoginRequiredMixin):
                                     form.active_tab = "summary"
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and site_id == 4
                         and a.round.has_seos
                         and a.application_seos.count() > 3
@@ -2665,7 +2789,7 @@ class ApplicationView(LoginRequiredMixin):
                             form.active_tab = "categories"
 
                     if (
-                        current_state != "in_review"
+                        not update_only_referees
                         and site_id == 5
                         and a.round.has_seos
                         and a.application_seos.count() > 5
@@ -2710,18 +2834,10 @@ class ApplicationView(LoginRequiredMixin):
                         return redirect(url)
 
                     if (
-                        site_id == 5
-                        or current_state == "in_review"
-                        or "submit_to_referees" in self.request.POST
-                    ) and "submit" not in self.request.POST:
-                        count = a.send_out_to_referees(request=self.request) or a.referees.count()
-                        messages.info(
-                            self.request,
-                            _(
-                                f"Your application has been successfully submitted to {count} referee(s) to review it."
-                            ),
-                        )
-                    else:
+                        not update_only_referees
+                        and "submit" in self.request.POST
+                        and a.state in ["new", "draft", "tac_accepted"]
+                    ):
                         a.submit(request=self.request)
                         messages.info(
                             self.request,
@@ -2738,8 +2854,7 @@ class ApplicationView(LoginRequiredMixin):
                                 )
                             ),
                         )
-                    a.save()
-
+                        a.save()
                 elif (
                     self.request.method == "POST"
                     or "save_draft" in self.request.POST
@@ -2752,7 +2867,7 @@ class ApplicationView(LoginRequiredMixin):
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         url = self.continue_url("referees")
                         return redirect(url)
-                    elif current_state != "in_review":
+                    elif not update_only_referees:
                         if (
                             site_id == 4
                             and a.round.has_fors
@@ -2775,6 +2890,28 @@ class ApplicationView(LoginRequiredMixin):
                                 ),
                             )
 
+                if "submit_to_referees" in self.request.POST or (
+                    site_id != 5 or a.state in ["approved", "accepted"]
+                ):
+                    count = a.send_out_to_referees(request=self.request) or a.referees.count()
+                    a.save()
+                else:
+                    count = a.invite_referees(
+                        request=self.request, dispatch_invitations=dispatch_invitations
+                    )
+                if dispatch_invitations:
+                    messages.info(
+                        self.request,
+                        _(
+                            f"Your application has been successfully submitted to {count} referee(s) to review it."
+                        ),
+                    )
+                else:
+                    messages.info(
+                        self.request,
+                        _(f"{count} new rerefee invitaion(s) were successfully created."),
+                    )
+
             except ValidationError as e:
                 capture_exception(e)
                 for m in e.messages:
@@ -2790,7 +2927,8 @@ class ApplicationView(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        is_in_review = self.object and self.object.state == "in_review"
+        update_only_referees = self.update_only_referees()
+        context["update_only_referees"] = update_only_referees
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
@@ -3020,8 +3158,8 @@ class ApplicationView(LoginRequiredMixin):
             )
             if self.request.POST:
                 fs = fsc(
-                    not is_in_review and self.request.POST or None,
-                    not is_in_review and self.request.FILES or None,
+                    not update_only_referees and self.request.POST or None,
+                    not update_only_referees and self.request.FILES or None,
                     instance=self.object,
                     # initial=initial_documents,
                 )
@@ -3074,7 +3212,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST and not is_in_review:
+            if self.request.POST and not update_only_referees:
                 fs = fsc(self.request.POST, instance=self.object)
             elif not (self.object and self.object.id):
                 fs = fsc(instance=self.object, initial=initial_fors)
@@ -3123,7 +3261,7 @@ class ApplicationView(LoginRequiredMixin):
                 else []
             )
             fs = fsc(
-                not is_in_review and self.request.POST or None,
+                not update_only_referees and self.request.POST or None,
                 instance=self.object,
                 initial=initial_seos,
             )
@@ -3134,15 +3272,17 @@ class ApplicationView(LoginRequiredMixin):
     def get_form_kwargs(self):
         """Return the keyword arguments for instantiating the form."""
         kwargs = super().get_form_kwargs()
-        is_in_review = self.object and self.object.state == "in_review"
+        update_only_referees = self.update_only_referees()
+        user = self.request.user
 
-        if is_in_review:
+        if update_only_referees:
+            kwargs["update_only_referees"] = True
             if "data" in kwargs:
                 del kwargs["data"]
             if "files" in kwargs:
                 del kwargs["files"]
 
-        kwargs["initial"]["user"] = self.request.user
+        kwargs["initial"]["user"] = user
 
         if self.object and self.object.id:
             return kwargs
@@ -3157,7 +3297,6 @@ class ApplicationView(LoginRequiredMixin):
             kwargs["nomination"] = n
 
         if self.request.method == "GET" and "initial" in kwargs:
-            user = self.request.user
             kwargs["initial"].update(
                 {
                     "application_title": ("" if settings.SITE_ID in [4, 5] else self.round.title),
@@ -3210,13 +3349,8 @@ class ApplicationCreate(ApplicationView, CreateView):
             return redirect("home")
 
         a = models.Application.where(submitted_by=u, round=r).order_by("-id").first()
-        if a:
-            messages.warning(
-                self.request, _("You have already created an application. Please update it.")
-            )
-            return redirect(reverse("application-update", kwargs=dict(pk=a.id)))
-
         if nomination_id := request.GET.get("nomination") or n and n.pk:
+
             if nom := models.Nomination.get(nomination_id):
                 if (
                     u.email != nom.email
@@ -3230,6 +3364,26 @@ class ApplicationCreate(ApplicationView, CreateView):
                         ),
                     )
                     return redirect("home")
+
+                if a and not (nom == n) and nom.application != a:
+                    messages.warning(
+                        self.request,
+                        _(
+                            "You have already created an application for this round. The nomination will be retracted."
+                        ),
+                    )
+                if a and (nom == n) and not n.application:
+                    n.applicatio = a
+                    n.accept(
+                        by=u,
+                        description="Application in the round was already created; accecpted by default",
+                    )
+                    n.save()
+        if a:
+            messages.warning(
+                self.request, _("You have already created an application. Please update it.")
+            )
+            return redirect(reverse("application-update", kwargs=dict(pk=a.pk)))
 
         if (
             not r.direct_application_allowed
@@ -5913,14 +6067,15 @@ class TestimonialView(CreateUpdateView):
                     invitations, fields=["state", "state_changed_at", "accepted_at"]
                 )
 
+        round = t.application.round
         if (
             self.request.method == "POST"
-            and t.application.round.referee_cv_required
+            and round.referee_cv_required
             and "cv_file" in form.changed_data
         ):
             try:
                 if (
-                    t.application.round.referee_cv_required
+                    round.referee_cv_required
                     and t.cv
                     and (cv_cf := t.cv.update_converted_file())
                 ):
@@ -5994,7 +6149,7 @@ class TestimonialView(CreateUpdateView):
                         )
                         return redirect(reverse("profile-cvs") + "?next=" + next_url)
 
-                if not t.file:
+                if round.testimonials_required and not t.file:
                     messages.error(
                         self.request,
                         _("You haven't uploaded your testimonial, please do and then submit."),
@@ -6275,7 +6430,7 @@ class TestimonialDetail(DetailView):
         t = self.get_object()
         referee = t.referee
         a = referee.application
-        r = a and referee.application.round
+        r = a and a.round or referee.application.round
 
         if a:
             context["extra_object"] = a
@@ -6288,15 +6443,26 @@ class TestimonialDetail(DetailView):
         )
         if survey_url:
             context["survey_url"] = survey_url
-        if t.state == "new":
-            context["update_view_name"] = f"{self.model.__name__.lower()}-create"
-            context["update_button_name"] = (
-                _("Add Referee Report") if t.site_id in [4, 5] else _("Add Testimonial")
-            )
-        else:
-            context["update_button_name"] = (
-                _("Edit Referee Report") if t.site_id in [4, 5] else _("Edit Testimonial")
-            )
+        if (
+            a.site_id != 5
+            or r.testimonials_required
+            or r.required_submitted_testimonials
+            and not r.survey_id
+            and not survey_url
+        ):
+            if t.state == "new":
+                context["update_view_name"] = f"{self.model.__name__.lower()}-create"
+                context["update_button_name"] = (
+                    mark_safe(_("Add <strong>Referee Report</strong>"))
+                    if t.site_id in [4, 5]
+                    else _("Add Testimonial")
+                )
+            else:
+                context["update_button_name"] = (
+                    mark_safe(_("Edit <strong>Referee Report</strong>"))
+                    if t.site_id in [4, 5]
+                    else _("Edit Testimonial")
+                )
 
         if not referee.has_testified:
             if r and r.survey_id:
@@ -6413,9 +6579,7 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
-                    or (
-                        settings.SITE_ID not in [4, 5] and a.referees.all().filter(user=u).exists()
-                    )
+                    or (settings.SITE_ID not in [4] and a.referees.all().filter(user=u).exists())
                     or a.round.panellists.all().filter(user=u).exists()
                     or a.org.where(research_offices__user=u).exists()
                 )
