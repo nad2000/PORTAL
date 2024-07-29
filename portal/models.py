@@ -130,8 +130,10 @@ def __(s):
 
 
 def site_contact_email(site_id=None):
-    if site_id and site_id == 4 or settings.SITE_ID == 4:
+    if site_id == 4 or settings.SITE_ID == 4:
         return "puanga@royalsociety.org.nz"
+    elif site_id == 5 or settings.SITE_ID == 5:
+        return "tawhia@royalsociety.org.nz"
     return "pmscienceprizes@royalsociety.org.nz"
 
 
@@ -4383,6 +4385,11 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
         # TODO: handle the rest of types
         if self.type == INVITATION_TYPES.T:
+            contact_email = (
+                self.application
+                and self.application.round.contact_email
+                or site_contact_email(site_id)
+            )
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
             }
@@ -4399,7 +4406,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             ) % dict(inviter=by.full_name, url=url, site_name=site_name)
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
-            contact_email = site_contact_email(site_id)
+            application = referee.application
+            contact_email = application.round.contact_email or site_contact_email(site_id)
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
@@ -5077,6 +5085,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
     guidelines = CharField(_("guideline link URL"), max_length=400, null=True, blank=True)
+    contact_email = EmailField(_("round contact email address"), blank=True, null=True)
+    limesurvey_server_url = CharField(_("LimeSurvey URL"), max_length=400, null=True, blank=True)
     description = TextField(_("short description"), null=True, blank=True)
 
     has_title = BooleanField(_("can have a title"), default=False)
@@ -5716,6 +5726,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     @cached_property
     def survey_server_url(self):
+        if self.limesurvey_server_url:
+            return self.limesurvey_server_url
         if settings.DEBUG and "LIMESURVEY_SERVER_URL" in dir(settings):
             return settings.LIMESURVEY_SERVER_URL
         else:

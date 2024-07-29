@@ -2209,6 +2209,7 @@ class RoundAdmin(
                         "description_en",
                         "description_mi",
                         "guidelines",
+                        "contact_email",
                         "survey_id",
                     ]
                 },
