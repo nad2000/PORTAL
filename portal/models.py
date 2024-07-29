@@ -3634,7 +3634,13 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @classmethod
     def invite_referees(
-        cls, request, application=None, by=None, referees=None, dispatch_invitations=True, exclude_sender=False
+        cls,
+        request,
+        application=None,
+        by=None,
+        referees=None,
+        dispatch_invitations=True,
+        exclude_sender=False,
     ):
         """Send invitations to all referee."""
         # members that don't have invitations
@@ -4375,7 +4381,6 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         url = domain_to_macrons(url)
         self.url = url
 
-
         # TODO: handle the rest of types
         if self.type == INVITATION_TYPES.T:
             subject = __("You are invited to be part of a %(site_name)s application") % {
@@ -4411,7 +4416,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 survey_url = f"{survey_url}?token={self.token}"
                 survey_url = domain_to_macrons(survey_url)
 
-            application_url = reverse("application-detail", kwargs={"number": referee.application.number})
+            application_url = reverse(
+                "application-detail", kwargs={"number": referee.application.number}
+            )
             if request:
                 application_url = request.build_absolute_uri(application_url)
             else:
@@ -4422,7 +4429,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 (
                     "Tēnā koe,\n\n"
                     "You have been invited to be a referee for %(inviter)s's application to "
-                    "the \"%(application)s\". \n\n"
+                    'the "%(application)s". \n\n'
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
                     "Please fill out the referee report/survey at %(survey_url)s "
@@ -4434,7 +4441,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else (
                     "Tēnā koe,\n\n"
                     "You have been invited to be a referee for %(inviter)s's application to "
-                    "the \"%(application)s\". \n\n"
+                    'the "%(application)s". \n\n'
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
                     "To review this invitation, please follow the link: %(url)s\n\n"
@@ -4456,13 +4463,13 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
                     "for %(main_applicant)s's application to the "
-                    "\"%(application)s\" application.</p>"
+                    '"%(application)s" application.</p>'
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
                     "<p>Please fill out the <strong>referee report/survey</strong> at \n"
                     "<a href='%(survey_url)s'>%(survey_url)s</a> "
-                    "after reviewing the application at <a href=\"%(application_url)s\">%(application_url)s</a>.</p>\n"
+                    'after reviewing the application at <a href="%(application_url)s">%(application_url)s</a>.</p>\n'
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
@@ -4470,7 +4477,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
                     "for %(main_applicant)s's application to the "
-                    "\"%(application)s\" application.</p>"
+                    '"%(application)s" application.</p>'
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
@@ -4557,7 +4564,17 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
-            cc=None if exclude_sender else (self.nomination and [self.nomination.nominator.email] or by and and [by.email] or None),
+            cc=(
+                None
+                if exclude_sender
+                else (
+                    self.nomination
+                    and [self.nomination.nominator.email]
+                    or by
+                    and [by.email]
+                    or None
+                )
+            ),
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
