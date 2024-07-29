@@ -5,6 +5,7 @@ import mimetypes
 import os
 import shutil
 import traceback
+from collections import OrderedDict
 from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote
@@ -14,7 +15,6 @@ import django.utils.translation
 import django_filters
 import django_tables2
 import tablib
-from django.utils.safestring import mark_safe
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms.helper import FormHelper
@@ -80,6 +80,7 @@ from django.template.loader import get_template
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
@@ -498,6 +499,44 @@ def survey_webhook(request):
 def complete_survey(request):
     """Handle complition of the surervy"""
     # capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
+    for r in models.Referee.where(
+        Q(user=request.user) | Q(email=request.user.email),
+        survey_completed_at__isnull=True,
+        application__round__scheme__current_round=F("application__round"),
+    ):
+        survey_id = r.application.round.survey_id
+        if r.survey_token_id and survey_id:
+            api = r.survey_api
+            # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
+            properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
+            if (
+                (completed_at := properties.get("completed"))
+                and completed_at != "N"
+                and not completed_at.startswith("1980-01-01")
+            ):
+                with transaction.atomic():
+                    description = f"Referee report was completed at {completed_at}"
+                    r.survey_completed_at = (
+                        timezone.make_aware(parse(completed_at)) or timezone.now()
+                    )
+                    # r.testify(by=r.user, description=description)
+                    # r._change_reason = description
+                    for t in models.Testimonial.where(
+                        ~Q(state="submitted"),
+                        referee__application__round__testimonials_required=False,
+                        referee=r,
+                    ):
+                        t.submit(by=r.user, description=description)
+                        t._change_reason = description
+                        t.save()
+                    else:
+                        if (
+                            r.state != "testified"
+                            and not r.application.round.testimonials_required
+                        ):
+                            r.testify(request=request)
+                        r.save()
+
     q = (
         models.Referee.where(
             Q(user=request.user) | Q(email=request.user.email),
@@ -6074,11 +6113,7 @@ class TestimonialView(CreateUpdateView):
             and "cv_file" in form.changed_data
         ):
             try:
-                if (
-                    round.referee_cv_required
-                    and t.cv
-                    and (cv_cf := t.cv.update_converted_file())
-                ):
+                if round.referee_cv_required and t.cv and (cv_cf := t.cv.update_converted_file()):
                     t.cv.save(update_fields=["converted_file"])
                     messages.success(
                         self.request,
