@@ -2210,6 +2210,7 @@ class RoundAdmin(
                         "description_mi",
                         "guidelines",
                         "contact_email",
+                        "limesurvey_server_url",
                         "survey_id",
                     ]
                 },
