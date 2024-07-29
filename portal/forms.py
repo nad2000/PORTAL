@@ -2728,16 +2728,19 @@ class TestimonialForm(forms.ModelForm):
                 help_text=_("Please upload your (referee) curriculum vitae"),
             )
             fields.append("cv_file")
-        fields.append(Field("file", data_toggle="tooltip", title=self.fields["file"].help_text))
-        if site_id in [4, 5]:
-            self.fields["file"].label = ""
-        if round.referee_template:
-            help_text = _(
-                'You can download the application review form template at <strong><a href="%s">%s</a></strong>'
-            ) % (round.referee_template.url, os.path.basename(round.referee_template.name))
-            # fields.insert(0, HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
-            self.fields["file"].help_text = help_text
-        self.fields["file"].required = True
+        if round.testimonials_required:
+            fields.append(
+                Field("file", data_toggle="tooltip", title=self.fields["file"].help_text)
+            )
+            if site_id in [4, 5]:
+                self.fields["file"].label = ""
+            if round.referee_template:
+                help_text = _(
+                    'You can download the application review form template at <strong><a href="%s">%s</a></strong>'
+                ) % (round.referee_template.url, os.path.basename(round.referee_template.name))
+                # fields.insert(0, HTML(f'<div class="alert alert-info" role="alert">{help_text}</div>'))
+                self.fields["file"].help_text = help_text
+            self.fields["file"].required = True
         # fields = [
         #     Fieldset(_("Referee Report") if site_id in [4, 5] else _("Testimonial"), *fields),
         # ]

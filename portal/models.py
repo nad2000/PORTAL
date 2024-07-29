@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
-from functools import cached_property, lru_cache, partial, wraps
+from functools import cached_property, lru_cache, partial, wraps, cache
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -2128,6 +2128,26 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
 
+    @cache
+    def can_only_update_referees(self, user):
+        return bool(
+            self.pk
+            and self.state in ["submitted", "in_review"]
+            and not (
+                user.is_superuser
+                or user.is_site_staff
+                or (
+                    self.site_id in [4, 5]
+                    and self.org
+                    and (
+                        self.org.research_offices.filter(user=user).exists()
+                        or Nomination.where(application=self, nominator=user).exists()
+                    )
+                    and self.state in ["draft", "submitted"]
+                )
+            )
+        )
+
     def invite_referees(self, request, by=None, referees=None, *args, **kwargs):
         """Send invitations to all referee."""
         return Referee.invite_referees(
@@ -2835,7 +2855,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @property
     def was_submitted(self):
-        return self.state in ["submitted", "approved", "cancelled"]
+        return self.state in ["submitted", "approved", "accepted", "in_review", "cancelled"]
 
     @property
     def deadline_days(self):
@@ -2960,6 +2980,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if not user and request:
             user = request.user
 
+        is_referee = user and self.referees.filter(Q(user=user)).exists()
+
         attachments = []
         cvs = []
         if self.file:
@@ -3040,7 +3062,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-            if self.site_id != 4:
+            if self.site_id != 4 and not is_referee:
                 add_testimonials(attachments)
 
         if (
@@ -3057,7 +3079,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         for d in self.documents.order_by("required_document__ordering"):
-            if skip_excluded and d.required_document.exclude:
+            if (
+                skip_excluded
+                and d.required_document.exclude
+                or is_referee
+                and not d.required_document.referees_can_access
+            ):
                 continue
             attachments.append(
                 (
@@ -3222,7 +3249,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             html = HTML(
                 string=template.render({"page_count": len(merger.pages), "application": self})
             )
-            header_file = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
+            header_file = PdfReader(
+                io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+            )
             for dp, hp in zip(merger.pages, header_file.pages):
                 dp.pagedata.mergePage(hp)
 
@@ -4345,6 +4374,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         url = domain_to_macrons(url)
         self.url = url
 
+
         # TODO: handle the rest of types
         if self.type == INVITATION_TYPES.T:
             subject = __("You are invited to be part of a %(site_name)s application") % {
@@ -4380,14 +4410,22 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 survey_url = f"{survey_url}?token={self.token}"
                 survey_url = domain_to_macrons(survey_url)
 
+            application_url = reverse("application-detail", kwargs={"number": referee.application.number})
+            if request:
+                application_url = request.build_absolute_uri(application_url)
+            else:
+                application_url = urljoin(f"https://{site.domain}", application_url)
+            application_url = domain_to_macrons(application_url)
+
             body = (
                 (
                     "Tēnā koe,\n\n"
                     "You have been invited to be a referee for %(inviter)s's application to "
-                    "the %(application)s. \n\n"
+                    "the \"%(application)s\". \n\n"
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
-                    "Please fill out the referee report at %(survey_url)s.\n\n"
+                    "Please fill out the referee report/survey at %(survey_url)s "
+                    "after reviewing the application at %(application_url)s.\n\n"
                     "If you have any further questions, please contact: %(contact_email)s\n\n"
                     "Ngā mihi nui"
                 )
@@ -4395,7 +4433,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else (
                     "Tēnā koe,\n\n"
                     "You have been invited to be a referee for %(inviter)s's application to "
-                    "the %(application)s. \n\n"
+                    "the \"%(application)s\". \n\n"
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
                     "To review this invitation, please follow the link: %(url)s\n\n"
@@ -4407,6 +4445,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
+                application_url=application_url,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.application.round.get_guidelines(),
@@ -4416,12 +4455,13 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
                     "for %(main_applicant)s's application to the "
-                    "%(application)s application.</p>"
+                    "\"%(application)s\" application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
-                    "<p>Please fill out the <strong>referee report</strong> at \n"
-                    "<a href='%(survey_url)s'>%(survey_url)s</a>.</p>\n"
+                    "<p>Please fill out the <strong>referee report/survey</strong> at \n"
+                    "<a href='%(survey_url)s'>%(survey_url)s</a> "
+                    "after reviewing the application at <a href=\"%(application_url)s\">%(application_url)s</a>.</p>\n"
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
@@ -4429,7 +4469,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
                     "for %(main_applicant)s's application to the "
-                    "%(application)s application.</p>"
+                    "\"%(application)s\" application.</p>"
                     "<p>We strongly advise clicking on the Referee Guidelines <strong>before</strong> clicking  "
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
@@ -4443,6 +4483,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
+                application_url=application_url,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.application.round.get_guidelines(),
@@ -5034,6 +5075,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
     nominator_cv_required = BooleanField(_("Nominator CV required"), default=True)
     nomination_form_required = BooleanField(_("Nomination form required"), default=True)
+    testimonials_required = BooleanField(
+        _("testimonials required"),
+        default=True,
+        help_text="required testimonials/referee reports",
+    )
 
     has_referees = BooleanField(_("can invite referees"), default=True)
     required_referees = PositiveSmallIntegerField(
@@ -5047,7 +5093,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     required_submitted_testimonials = BooleanField(
         _("required submitted testimonials"),
         default=True,
-        help_text="required submitted testimonials before submitting the applications",
+        help_text="required submitted testimonials or survey before submitting the applications",
     )
 
     is_flexible_number_of_referees = BooleanField(_("Flexible number of referees"), default=False)
@@ -6459,7 +6505,7 @@ class IdentityVerification(Model):
     state = FSMField(default="new", db_index=True)
 
     def natural_key(self):
-        return (self.appication.number, self.user.username)
+        return (self.application.number, self.user.username)
 
     @property
     def thread_index(self):
@@ -6639,18 +6685,18 @@ def invite_referees(
     if not applications:
         applications = Application.where(round__scheme__current_round=F("round"))
     if site_id in [5]:
-        applications = applications.filter(state="approved")
+        applications = applications.filter(state__in=["approved", "accepted", "in_review"])
     if after_round_closes:
         applications = applications.filter(round__closes_at__lte=timezone.now())
     if rounds:
-        applications = applications.filter(round__in=rounds.values("pk"))
+        applications = applications.filter(round__in=rounds.values_list("pk"))
     count = 0
     for a in applications:
         state = a.state
         if not by:
             ah = a.history.filter(state="submitted").order_by("-history_id").first()
             by = ah and ah.history_user or by
-        if site_id in [5]:
+        if site_id in [5] and a.state != "in_review":
             count += a.send_out_to_referees(by=by, request=request)
         else:
             count += a.invite_referees(by=by, request=request)

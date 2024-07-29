@@ -2238,6 +2238,7 @@ class RoundAdmin(
                                 "research_experience_in_years_required",
                                 "research_summary_required",
                                 "team_can_apply",
+                                "testimonials_required",
                             ]
                             if f not in exclude
                         ],
@@ -2311,7 +2312,7 @@ class RoundAdmin(
         invitation_count = models.invite_referees(
             rounds=queryset, by=request.user, after_round_closes=True, request=request
         )
-        messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
+        messages.success(request, f"{invitation_count} referee invitation(s) created and/or dispatched.")
 
     def get_actions(self, request):
         actions = super().get_actions(request)

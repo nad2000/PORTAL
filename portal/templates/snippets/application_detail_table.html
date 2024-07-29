@@ -11,7 +11,10 @@
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
           </a>
         {% else %}
-          <strong><a href="{% url 'application' pk=a.id %}" target="_blank">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
+          <strong><a href="{% url 'application-detail' number=a.number %}" target="_blank">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
+        {% endif %}
+        {% if not show_basic_details %}
+            &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
         {% endif %}
       </td>
     </tr>
