@@ -2300,12 +2300,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["tac_accepted", "submitted", "approved", "in_review"],
+        source=["tac_accepted", "submitted", "approved", "accepted", "in_review"],
         target="in_review",
-        conditions=[lambda self: self.site_id == 5],
+        conditions=[lambda self: self.site_id != 5 or self.state in ["accepted", "in_review"]],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
     )
-    def send_out_to_referees(self, *args, **kwargs):
+    def send_out_to_referees(self, exclude_sender=False, *args, **kwargs):
         try:
             request = kwargs.get("request")
             self.is_completed(skip_testimonials=(self.site_id == 5), *args, **kwargs)
@@ -2319,6 +2319,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         and self.round.closes_at <= timezone.now()
                     )
                 ),
+                exclude_sender=exclude_sender,
             )
         except Exception as ex:
             if request:
@@ -3633,7 +3634,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @classmethod
     def invite_referees(
-        cls, request, application=None, by=None, referees=None, dispatch_invitations=True
+        cls, request, application=None, by=None, referees=None, dispatch_invitations=True, exclude_sender=False
     ):
         """Send invitations to all referee."""
         # members that don't have invitations
@@ -3673,7 +3674,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         )
         if dispatch_invitations:
             for i in invitations:
-                i.send(request, by=by or request and request.user)
+                i.send(request, by=by or request and request.user, exclude_sender=exclude_sender)
                 i.save()
                 if i.referee:
                     i.referee.send()
@@ -4358,7 +4359,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         source=["draft", "sent", "submitted", "bounced", "autoreplied"],
         target="sent",
     )
-    def send(self, request=None, by=None, *args, **kwargs):
+    def send(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
         if not by:
             by = request.user if request else self.inviter
         url = reverse("onboard-with-token", kwargs=dict(token=self.token))
@@ -4556,7 +4557,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             request=request,
             reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
             invitation=self,
-            cc=self.nomination and [self.nomination.nominator.email] or by and [by.email] or None,
+            cc=None if exclude_sender else (self.nomination and [self.nomination.nominator.email] or by and and [by.email] or None),
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
@@ -6685,7 +6686,7 @@ def invite_referees(
     if not applications:
         applications = Application.where(round__scheme__current_round=F("round"))
     if site_id in [5]:
-        applications = applications.filter(state__in=["approved", "accepted", "in_review"])
+        applications = applications.filter(state__in=["accepted", "in_review"])
     if after_round_closes:
         applications = applications.filter(round__closes_at__lte=timezone.now())
     if rounds:
@@ -6697,9 +6698,9 @@ def invite_referees(
             ah = a.history.filter(state="submitted").order_by("-history_id").first()
             by = ah and ah.history_user or by
         if site_id in [5] and a.state != "in_review":
-            count += a.send_out_to_referees(by=by, request=request)
+            count += a.send_out_to_referees(by=by, request=request, exclude_sender=True)
         else:
-            count += a.invite_referees(by=by, request=request)
+            count += a.invite_referees(by=by, request=request, exclude_sender=True)
         if a.state != state:
             a.save()
     return count

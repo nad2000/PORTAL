@@ -1954,7 +1954,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
         "created_at",
         "updated_at",
     ]
-    search_fields = ["first_name", "last_name", "email", "token"]
+    search_fields = ["first_name", "last_name", "email", "token", "application__number"]
     date_hierarchy = "created_at"
     readonly_fields = ["submitted_at", "accepted_at", "expired_at", "token", "url"]
     inlines = [StateLogInline]
