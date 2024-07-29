@@ -4429,7 +4429,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "If you have any further questions, please contact: %(contact_email)s\n\n"
                     "Ngā mihi nui"
                 )
-                if survey_url
+                if survey_url and site_id != 5
                 else (
                     "Tēnā koe,\n\n"
                     "You have been invited to be a referee for %(inviter)s's application to "
@@ -4465,7 +4465,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
-                if survey_url
+                if survey_url and site_id != 5
                 else (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
                     "for %(main_applicant)s's application to the "
