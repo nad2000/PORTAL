@@ -1631,7 +1631,7 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
         "first_name",
         "last_name",
         "round__title",
-        # "application__number",
+        "application__number",
     ]
     # summernote_fields = ["summary"]
     exclude = [
