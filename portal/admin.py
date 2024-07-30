@@ -1383,7 +1383,7 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 @admin.register(models.Referee)
 class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     save_on_top = True
-    list_display = ["application", "has_testified", "email", "full_name", "state", "testified_at"]
+    list_display = ["application", "has_testified", "email", "full_name", "state", "testified_at", "survey_completed_at"]
     fsm_field = ["state"]
     search_fields = [
         "first_name",
@@ -1392,7 +1392,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "application__number",
         "application__application_title",
     ]
-    list_filter = ["application__round", "created_at", "testified_at", "state"]
+    list_filter = ["application__round", "created_at", "survey_completed_at", "testified_at", "state"]
     date_hierarchy = "testified_at"
     autocomplete_fields = ["user", "application"]
     readonly_fields = [
