@@ -1976,6 +1976,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
         "state",
         ("referee__application__round", admin.RelatedOnlyFieldListFilter),
         ("referee__application", admin.RelatedOnlyFieldListFilter),
+        "referee__survey_completed_at",
     ]
     readonly_fields = ["state"]
     save_on_top = True
