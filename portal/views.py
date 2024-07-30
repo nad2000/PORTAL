@@ -646,6 +646,7 @@ def get_survey_api_url():
 
 def do_survey(request, survey_id=None, token=None, referee_id=None):
     if not request.user.is_authenticated:
+        i = None
         if token := request.GET.get("token"):
             if i := models.Invitation.where(token=token).first():
                 if i.state == "revoked":
@@ -655,6 +656,8 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                     )
                 else:
                     request.session["invitation_token"] = token
+        elif referee_id:
+            i = get_object_or_404(models.Referee, pk=referee_id).invitation
 
         user_exists = (
             i and User.objects.filter(Q(email=i.email) | Q(emailaddress__email=i.email)).exists()
