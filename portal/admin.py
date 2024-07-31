@@ -1383,7 +1383,15 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 @admin.register(models.Referee)
 class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     save_on_top = True
-    list_display = ["application", "has_testified", "email", "full_name", "state", "testified_at", "survey_completed_at"]
+    list_display = [
+        "application",
+        "has_testified",
+        "email",
+        "full_name",
+        "state",
+        "testified_at",
+        "survey_completed_at",
+    ]
     fsm_field = ["state"]
     search_fields = [
         "first_name",
@@ -1392,7 +1400,13 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "application__number",
         "application__application_title",
     ]
-    list_filter = ["application__round", "created_at", "survey_completed_at", "testified_at", "state"]
+    list_filter = [
+        "created_at",
+        "survey_completed_at",
+        "testified_at",
+        "state",
+        ("application__round", admin.RelatedOnlyFieldListFilter),
+    ]
     date_hierarchy = "testified_at"
     autocomplete_fields = ["user", "application"]
     readonly_fields = [
@@ -1424,7 +1438,20 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
 
-    actions = ["send_invitations", "invite_to_survey"]
+    actions = ["send_invitations", "invite_to_survey", "sync_referee_surveys"]
+
+    @admin.action(description="Sync with the LimeSurvey surveys")
+    def sync_referee_surveys(self, request, queryset):
+        count = 0
+        rounds = models.Round.where(
+                survey_id__isnull=False,
+                pk__in=queryset.values_list("application__round").distinct())
+        for r in rounds:
+            count += r.sync_referee_surveys(
+                request=request, referees=queryset.filter(application__round=r)
+            )
+        if rounds.count() > 1:
+            messages.info(request, "In total synced {count} referee(s)")
 
     @admin.action(description="Send the referee invitations")
     def send_invitations(self, request, queryset):
@@ -2180,7 +2207,7 @@ class RoundAdmin(
         "site",
     ]
     search_fields = ["title"]
-    actions = ["create_new_round", "invite_referees"]
+    actions = ["create_new_round", "invite_referees", "sync_referee_surveys"]
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
@@ -2310,12 +2337,23 @@ class RoundAdmin(
             r.scheme.current_round = nr
             r.scheme.save(update_fields=["current_round"])
 
+    @admin.action(description="Sync with the LimeSurvey surveys")
+    def sync_referee_surveys(self, request, queryset):
+        count = 0
+        q = queryset.filter(survey_id__isnull=False)
+        for r in q:
+            count += r.sync_referee_surveys(request=request)
+        if q.count() > 1:
+            messages.info(request, "In total synced {count} referee(s)")
+
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
         invitation_count = models.invite_referees(
             rounds=queryset, by=request.user, after_round_closes=True, request=request
         )
-        messages.success(request, f"{invitation_count} referee invitation(s) created and/or dispatched.")
+        messages.success(
+            request, f"{invitation_count} referee invitation(s) created and/or dispatched."
+        )
 
     def get_actions(self, request):
         actions = super().get_actions(request)

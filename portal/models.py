@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
-from functools import cached_property, lru_cache, partial, wraps, cache
+from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -24,6 +24,7 @@ import simple_history
 from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
 from colorfield.fields import ColorField
+from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.apps import apps
 from django.conf import settings
@@ -97,6 +98,7 @@ from PyPDF2 import PdfMerger, PdfReader
 from PyPDF2.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
+from simple_history.utils import bulk_update_with_history
 from taggit.models import TagBase
 from weasyprint import HTML
 
@@ -3811,7 +3813,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(field=state, source=["*"], target="testified")
-    def testify(self, *args, request=None, by=None, description=True, commit=True, **kwargs):
+    def testify(self, request=None, by=None, description=True, commit=True, *args, **kwargs):
         for i in Invitation.where(~Q(state="accepted"), referee=self):
             if not by:
                 if i.user:
@@ -4795,6 +4797,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("curriculum vitae"),
     )
     state = StateField(_("state"), default="new")
+    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
 
     @cached_property
     def application(self):
@@ -4811,7 +4814,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     @fsm_log
     @transition(field=state, source=["new", "draft"], target="submitted")
-    def submit(self, request=None, by=None, *args, **kwargs):
+    def submit(self, request=None, by=None, commit=True, *args, **kwargs):
         # self.referee.has_testifed = True
         # self.referee.state = "testified"
         # self.referee.testified_at = datetime.now()
@@ -4821,7 +4824,8 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
             self.referee.testify(request=request, by=by, *args, **kwargs)
             if description := kwargs.get("description"):
                 self.referee._change_reason = description
-            self.referee.save()
+            if commit:
+                self.referee.save()
         if self.site_id == 5:
             pass
 
@@ -5743,6 +5747,113 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         else:
             site = self.site or Site.objects.get_current()
             return f"https://{site.domain}/limesurvey/admin/remotecontrol"
+
+    @cached_property
+    def survey_api(self):
+        if api_url := self.survey_api_url:
+            api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
+            api.open(password=settings.LIMESURVEY_API_PASSWORD)
+            return api
+
+    def sync_referee_surveys(self, request=None, by=None, referees=None):
+        try:
+            q = Referee.where(application__round=self, survey_token__isnull=False)
+            if referees:
+                q = q.filter(pk__in=referees.values_list("pk"))
+            # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
+            api = self.survey_api
+            resp = api.query(
+                method="list_participants",
+                params={
+                    "sSessionKey": api.session_key,
+                    "iSurveyID": self.survey_id,
+                    # "bUnused": True,
+                    "aAttributes": ["email", "token", "completed", "token", "sent", "emailstatus"],
+                    "aConditions": {"token": ["IN", *(r.survey_token for r in q)]},
+                },
+            )
+            if isinstance(resp, dict) and resp.get("status") == 'No survey participants found.':
+                return 0
+            participants = {
+                p["token"]: {
+                    "completed_at": (
+                        timezone.make_aware(parse(p["completed"]))
+                        if p.get("completed")
+                        and not (p["completed"] == "N" or p["completed"].startswith("1980-01-01"))
+                        else None
+                    ),
+                    **p,
+                }
+                for p in resp
+            }
+            updated_referees = []
+            for r in q:
+                p = participants.get(r.survey_token)
+                if not p or not p["completed_at"]:
+                    continue
+
+                if (
+                    r.state == "testified"
+                    and p["completed_at"] == r.survey_completed_at
+                    and not Testimonial.where(~Q(state="submitted"), referee=r).exists()
+                ):
+                    continue
+
+                r.survey_completed_at = p["completed_at"]
+                r._change_reason = (
+                    f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
+                )
+                if request:
+                    r._history_user = request.user
+                if not self.testimonials_required and r.state != "testified":
+                    r.testify(request, by=request.user, description=r._change_reason, commit=False)
+                    r.testified_at = r.survey_completed_at
+                updated_referees.append(r)
+
+            if updated_referees:
+                with transaction.atomic():
+
+                    if not self.testimonials_required:
+                        testimonials = Testimonial.where(
+                            ~Q(state="submitted"), referee__in=[r.pk for r in updated_referees]
+                        )
+                        if testimonials.count() > 0:
+                            for t in testimonials:
+                                description = r._change_reason
+                                t.submit(by=r.user, description=description, commit=False)
+                                t._change_reason = description
+                            bulk_update_with_history(
+                                testimonials,
+                                Testimonial,
+                                ["state", "state_changed_at", "updated_at"],
+                                default_user=request and request.user,
+                                default_change_reason="Synced with LimeSurvey",
+                            )
+                        bulk_update_with_history(
+                            updated_referees,
+                            Referee,
+                            [
+                                "state",
+                                "survey_completed_at",
+                                "testified_at",
+                                "state_changed_at",
+                                "updated_at",
+                            ],
+                            default_user=request and request.user,
+                            default_change_reason="Synced with LimeSurvey",
+                        )
+        except Exception as ex:
+            messages.error(request, f"{ex}")
+            raise
+        else:
+            count = len(updated_referees)
+            if request:
+                if count:
+                    messages.info(
+                        request,
+                        f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}",
+                    )
+            return count
 
     class Meta(OrderableModel.Meta):
         db_table = "round"

@@ -499,12 +499,22 @@ def survey_webhook(request):
 def complete_survey(request):
     """Handle complition of the surervy"""
     # capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
-    for r in models.Referee.where(
-        Q(user=request.user) | Q(email=request.user.email),
+    token = request.GET.get("token")
+    survey_id = request.GET.get("survey_id") or request.GET.get("survey-id")
+    q = models.Referee.where(
         survey_completed_at__isnull=True,
         application__round__scheme__current_round=F("application__round"),
-    ):
-        survey_id = r.application.round.survey_id
+    )
+    if survey_id:
+        q = q.filter(application__round__survey_id=survey_id)
+    if token:
+        q = q.filter(survey_token=token)
+    else:
+        q = q.filter(Q(user=request.user) | Q(email=request.user.email))
+    for r in q:
+        token = request.GET.get("token")
+        if not survey_id:
+            survey_id = r.application.round.survey_id
         if r.survey_token_id and survey_id:
             api = r.survey_api
             # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
@@ -538,7 +548,9 @@ def complete_survey(request):
                         r.save()
 
     q = (
-        models.Referee.where(
+        models.Referee.where(survey_token=token)
+        if token
+        else models.Referee.where(
             Q(user=request.user) | Q(email=request.user.email),
             survey_completed_at__isnull=False,
             application__round__scheme__current_round=F("application__round"),
@@ -5773,53 +5785,55 @@ class NominationView(CreateUpdateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        initial["round"] = self.round.id if self.round else None
-        org = None
-        if (
-            latest := self.request.user.nominations.filter(
-                ~Q(contact_phone__isnull=True), ~Q(contact_phone="")
-            )
-            .order_by("pk")
-            .last()
-        ):
-            initial["contact_phone"] = latest.contact_phone
-            org = latest.org
-        elif (
-            ro := self.request.user.research_offices.filter(
-                ~Q(org__contact_phone__isnull=True), ~Q(org__contact_phone="")
-            )
-            .order_by("pk")
-            .last()
-        ):
-            initial["contact_phone"] = ro.org.contact_phone
-            org = ro.org
 
-        if not org:
-            org = (
-                self.request.user.person.affiliations.filter(end_date__isnull=True)
-                .order_by("-start_date", "-id")
-                .first()
-            )
-
-        if not org:
-            a = (
-                models.Application.all_objects.filter(
-                    submitted_by=self.request.user, org__isnull=False
+        if self.request.method == "GET" and not (self.object and not self.object.pk):
+            initial["round"] = self.round.pk if self.round else None
+            org = None
+            if (
+                latest := self.request.user.nominations.filter(
+                    ~Q(contact_phone__isnull=True), ~Q(contact_phone="")
                 )
-                .order_by("-id")
-                .first()
-            )
-            if a:
-                org = a.org
-        if org:
-            initial["org"] = org.pk
+                .order_by("pk")
+                .last()
+            ):
+                initial["contact_phone"] = latest.contact_phone
+                org = latest.org
+            elif (
+                ro := self.request.user.research_offices.filter(
+                    ~Q(org__contact_phone__isnull=True), ~Q(org__contact_phone="")
+                )
+                .order_by("pk")
+                .last()
+            ):
+                initial["contact_phone"] = ro.org.contact_phone
+                org = ro.org
+
+            if not org:
+                org = (
+                    self.request.user.person.affiliations.filter(end_date__isnull=True)
+                    .order_by("-start_date", "-id")
+                    .first()
+                )
+
+            if not org:
+                a = (
+                    models.Application.all_objects.filter(
+                        submitted_by=self.request.user, org__isnull=False
+                    )
+                    .order_by("-id")
+                    .first()
+                )
+                if a:
+                    org = a.org
+            if org:
+                initial["org"] = org.pk
 
         return initial
 
     def form_valid(self, form):
         n = form.instance
 
-        if not n.id:
+        if not n.pk:
             if not n.nominator:
                 n.nominator = self.request.user
             if not n.round_id:
@@ -5992,9 +6006,10 @@ class NominationView(CreateUpdateView):
             elif ro := models.ResearchOffice.where(user=self.user).order_by("-id").first():
                 kwargs["initial"]["org"] = ro.org
 
-        kwargs["initial"]["round"] = self.round
-        kwargs["initial"]["round_id"] = self.round.id if self.round else None
-        kwargs["initial"]["nominator"] = self.request.user
+            kwargs["initial"]["round"] = self.round
+            kwargs["initial"]["round_id"] = self.round.id if self.round else None
+            kwargs["initial"]["nominator"] = self.request.user
+
         return kwargs
 
     def get_context_data(self, **kwargs):

@@ -2467,10 +2467,12 @@ class NominationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         initial = getattr(self, "initial", None) or kwargs.get("initial") or dict()
-        r = initial and initial.get("round") or self.instance.round
-        site_id = settings.SITE_ID
-        nominator = initial and initial.get("nominator") or self.instance.nominator
-        org_id = initial.get("org")
+
+        n = self.instance
+        r = n.round or initial and initial.get("round")
+        site_id = n and n.site_id or r and r.site_id or settings.SITE_ID
+        nominator = n.nominator or initial and initial.get("nominator")
+        org_id =  n and n.org and n.org.pk or initial.get("org")
         if nominator and (
             is_single_org_ro := (site_id in [4, 5] and nominator.research_offices.count() == 1)
         ):
