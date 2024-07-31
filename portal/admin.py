@@ -1639,8 +1639,8 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
         "site",
     ]
     autocomplete_fields = ["application", "user", "round", "nominator", "cv", "org"]
-
     actions = ["resend_invitations"]
+    inlines = [StateLogInline]
 
     @admin.action(description="Resend the invitations")
     def resend_invitations(self, request, queryset):
