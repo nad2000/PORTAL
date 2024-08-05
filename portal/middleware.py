@@ -19,6 +19,7 @@ class PortalMiddleware(FlatpageFallbackMiddleware):
             timezone.activate(zoneinfo.ZoneInfo(tz))
         else:
             timezone.deactivate()
+        request.site_id = int(settings.SITE_ID or 0)
 
         response = self.get_response(request)
         # response = super().process_response(request, response)

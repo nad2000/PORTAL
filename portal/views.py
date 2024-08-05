@@ -1,4 +1,3 @@
-import functools
 import io
 import json
 import mimetypes
@@ -125,7 +124,7 @@ def __(s):
 
 
 def reset_cache(request):
-    cache.delete(f"{request.user.username}:{settings.SITE_ID}")
+    cache.delete(f"{request.user.username}:{request.site_id}")
 
 
 def handler500(request, *args, **kwargs):
@@ -163,7 +162,7 @@ def handler413(request, *args, **argv):
 
 
 def favicon(request):
-    site_id = settings.SITE_ID
+    site_id = request.site_id
     if site_id in [3, 4, 5]:
         return redirect(
             staticfiles_storage.url("images/stlp.royalsociety.org.nz/favicon.ico"),
@@ -183,7 +182,7 @@ def favicon(request):
 def about(request):
     lang = request.LANGUAGE_CODE
     url = f"/{lang or 'en'}/about/"
-    site_id = settings.SITE_ID
+    site_id = request.site_id
     if FlatPage.objects.filter(url=url, sites=site_id).exists():
         return flatpage(request, url=url)
     if lang != "en":
@@ -248,7 +247,7 @@ def logout(request):
         return_url = request.build_absolute_uri(account_logout)
         if (
             sa := SocialApp.objects.filter(
-                sites__id=settings.SITE_ID, provider="rapidconnect"
+                sites__id=request.site_id, provider="rapidconnect"
             ).first()
         ) and (id_value := sa.client_id.split("/")[-1]):
             resp = redirect(f"{settings.RAPIDCONNECT_LOGOUT}?id={id_value}&return={return_url}")
@@ -349,7 +348,7 @@ class StateInPathMixin:
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
-                    if (site_id := settings.SITE_ID) in [4, 5] and (
+                    if (site_id := self.request.site_id) in [4, 5] and (
                         u.is_superuser or u.staff_of_sites.filter(id=site_id)
                     ):
                         if state == "submitted":
@@ -375,6 +374,7 @@ class AccountView(LoginRequiredMixin, TemplateView):
         return context
 
 
+@method_decorator(shoud_be_onboarded, name="dispatch")
 class CreateUpdateView(LoginRequiredMixin, UpdateView):
     """A trick to make create and update view in a single view."""
 
@@ -395,6 +395,12 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
 
         return context
 
+    def get_form_kwargs(self):
+        """Return the keyword arguments for instantiating the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs["site_id"] = self.request.site_id or 0
+        return kwargs
+
     def get_success_url(self):
         try:
             return super().get_success_url()
@@ -402,7 +408,7 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
             return (
                 self.request.GET.get("next")
                 or self.request.META.get("HTTP_REFERER")
-                or reverse("home")
+                or reverse("start")
             )
 
 
@@ -735,7 +741,8 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 @shoud_be_onboarded
 @csrf_protect
 def index(request):
-    site_id = settings.SITE_ID
+
+    site_id = request.site_id
     if request.resolver_match.view_name == "start":
         reset_cache(request)
     if "error" in request.GET:
@@ -1220,7 +1227,7 @@ def disable_profile_protection_patterns(request):
 @login_required
 @shoud_be_onboarded
 def profile_protection_patterns(request):
-    site_id = settings.SITE_ID
+    site_id = request.site_id
     person = request.person
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
@@ -2268,7 +2275,7 @@ class ApplicationView(LoginRequiredMixin):
         url = self.request.path_info
         round = self.round
         has_required_documents = round.required_documents.count() > 0
-        site_id = settings.SITE_ID
+        site_id = self.request.site_id
         update_url = None
         update_only_referees = self.update_only_referees()
         try:
@@ -3353,7 +3360,9 @@ class ApplicationView(LoginRequiredMixin):
         if self.request.method == "GET" and "initial" in kwargs:
             kwargs["initial"].update(
                 {
-                    "application_title": ("" if settings.SITE_ID in [4, 5] else self.round.title),
+                    "application_title": (
+                        "" if self.request.site_id in [4, 5] else self.round.title
+                    ),
                     # "email": user.email,
                     # "first_name": user.first_name,
                     # "last_name": user.last_name,
@@ -3371,6 +3380,7 @@ class ApplicationUpdate(ApplicationView, UpdateView):
     pass
 
 
+@method_decorator(shoud_be_onboarded, name="dispatch")
 class ApplicationCreate(ApplicationView, CreateView):
     # class ApplicationCreate(LoginRequiredMixin, CreateWithInlinesView):
     # model = Application
@@ -3378,7 +3388,6 @@ class ApplicationCreate(ApplicationView, CreateView):
     # template_name = "application.html"
     # form_class = forms.ApplicationForm
 
-    @method_decorator(shoud_be_onboarded)
     def get(self, request, *args, **kwargs):
         n = (
             models.Nomination.where(
@@ -5219,7 +5228,7 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
-        return not ("nominator" in self.forwarded and settings.SITE_ID in [4, 5])
+        return not ("nominator" in self.forwarded and self.request.site_id in [4, 5])
         # return True  # request.user.is_authenticated
 
     def get_result_label(self, result):
@@ -5234,7 +5243,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         q = models.Organisation.objects.all()
-        if (nominator := self.forwarded.get("nominator")) and settings.SITE_ID in [4, 5]:
+        if (nominator := self.forwarded.get("nominator")) and self.request.site_id in [4, 5]:
             q = q.filter(Q(research_offices__user_id=nominator))
         if self.q:
             s = self.q.lower()
@@ -5903,7 +5912,7 @@ class NominationView(CreateUpdateView):
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
             if (
-                settings.SITE_ID not in [4, 5]
+                self.request.site_id not in [4, 5]
                 and self.round.nomination_form_required
                 and not n.file
             ):
@@ -6092,7 +6101,7 @@ class TestimonialView(CreateUpdateView):
         t = form.instance
         u = self.request.user
         reset_cache(self.request)
-        site_id = settings.SITE_ID
+        site_id = self.request.site_id
 
         if not t.id:
             a = self.application
@@ -6399,7 +6408,7 @@ class NominationDetail(DetailView):
             nominator = self.object.nominator
             button_label = (
                 _("Start Application")
-                if settings.SITE_ID in [4, 5]
+                if self.request.site_id in [4, 5]
                 else _("Start Prize Application")
             )
             messages.info(
@@ -6632,7 +6641,10 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
-                    or (settings.SITE_ID not in [4] and a.referees.all().filter(user=u).exists())
+                    or (
+                        self.request.site_id not in [4]
+                        and a.referees.all().filter(user=u).exists()
+                    )
                     or a.round.panellists.all().filter(user=u).exists()
                     or a.org.where(research_offices__user=u).exists()
                 )
@@ -6670,7 +6682,8 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
         # a = get_object_or_404(models.Application, pk=pk)
         a = self.get_object()
         pdf_content = io.BytesIO()
-        a.to_pdf(request).write(pdf_content)
+        merger = a.to_pdf(request)
+        merger.write(pdf_content)
         # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
         pdf_content.seek(0)
         pdf_response = FileResponse(pdf_content, content_type="application/pdf")
@@ -6738,7 +6751,7 @@ class RoundExportView(ExportView):
 
     def get(self, request, pk):
         round = self.round
-        site_id = settings.SITE_ID
+        site_id = request.site_id
 
         # merger = PdfMerger()
         merger = PdfMerger(strict=False)

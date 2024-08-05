@@ -1,13 +1,9 @@
 import os
 from functools import partial
 
-from crispy_forms.bootstrap import Tab, TabHolder, InlineRadios
-
-# from crispy_forms.bootstrap import Modal
-from django.core.files.base import File
+from crispy_forms.bootstrap import InlineRadios, Tab, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
-    Hidden,
     HTML,
     TEMPLATE_PACK,
     BaseInput,
@@ -17,6 +13,7 @@ from crispy_forms.layout import (
     Div,
     Field,
     Fieldset,
+    Hidden,
     Layout,
     LayoutObject,
     Row,
@@ -24,9 +21,12 @@ from crispy_forms.layout import (
 from dal import autocomplete
 from django import forms
 from django.conf import settings
+
+# from crispy_forms.bootstrap import Modal
+from django.core.files.base import File
 from django.forms import FileField, HiddenInput, Widget, inlineformset_factory
 from django.forms.models import BaseInlineFormSet, modelformset_factory
-from django.forms.widgets import NullBooleanSelect, Select, TextInput, NumberInput
+from django.forms.widgets import NullBooleanSelect, NumberInput, Select, TextInput
 from django.shortcuts import reverse
 from django.template.loader import render_to_string
 from django.utils.functional import cached_property
@@ -106,6 +106,13 @@ class Submit(BaseInput):
 
 class TelInput(TextInput):
     input_type = "tel"
+
+
+class ModelForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        self.site_id = kwargs.pop("site_id", 0)
+        super().__init__(*args, **kwargs)
 
 
 class ReadOnlyFieldsMixin:
@@ -351,7 +358,7 @@ class InlineSubform(LayoutObject):
         return render_to_string(self.template, {"form": form})
 
 
-class SubscriptionForm(forms.ModelForm):
+class SubscriptionForm(ModelForm):
     class Meta:
         model = models.Subscription
         exclude = [
@@ -359,7 +366,7 @@ class SubscriptionForm(forms.ModelForm):
         ]
 
 
-class UserForm(forms.ModelForm):
+class UserForm(ModelForm):
     class Meta:
         model = models.User
         fields = ["title", "first_name", "middle_names", "last_name"]
@@ -371,7 +378,7 @@ class UserForm(forms.ModelForm):
         }
 
 
-class ProfileForm(forms.ModelForm):
+class ProfileForm(ModelForm):
     def clean_is_accepted(self):
         """Allow only 'True'"""
         if not self.cleaned_data["is_accepted"]:
@@ -489,7 +496,7 @@ def apnumber(value):
     )[value - 1]
 
 
-class ApplicationForm(forms.ModelForm):
+class ApplicationForm(ModelForm):
 
     nomination = None
 
@@ -599,7 +606,7 @@ class ApplicationForm(forms.ModelForm):
                 round.applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0
                 and not (self.cleaned_data.get("cv_file") or self.instance.cv)
-                and settings.SITE_ID not in [4, 5]
+                and self.site_id not in [4, 5]
             ):
                 raise forms.ValidationError(
                     _("Need to attach a CV before submitting the application."),
@@ -665,7 +672,7 @@ class ApplicationForm(forms.ModelForm):
             nomination = initial.get("nomination")
         self.nomination = nomination
         language = get_language()
-        site_id = settings.SITE_ID
+        site_id = self.site_id
 
         if site_id in [4, 5]:
             self.fields["application_title"].label = _("Title of proposed research")
@@ -1380,7 +1387,7 @@ class ApplicationForm(forms.ModelForm):
         }
 
 
-class ContractMemberForm(FTEMixin, forms.ModelForm):
+class ContractMemberForm(FTEMixin, ModelForm):
     # role =Field(queryset
     role = forms.ModelChoiceField(queryset=models.RoleType.where(for_application=True))
 
@@ -1391,7 +1398,7 @@ class ContractMemberForm(FTEMixin, forms.ModelForm):
         widgets = dict(user=HiddenInput(), state=InvitationStateInput(attrs={"readonly": True}))
 
 
-class AllocationForm(forms.ModelForm):
+class AllocationForm(ModelForm):
     class Meta:
         model = models.Allocation
         fields = ["period", "allocation"]
@@ -1413,7 +1420,7 @@ class ModelSelect2NoPK(autocomplete.ModelSelect2):
             super().filter_choices_to_render(selected_choices)
 
 
-class AddressForm(forms.ModelForm):
+class AddressForm(ModelForm):
 
     address = forms.CharField(label=_("Address"), widget=forms.Textarea, required=False)
 
@@ -1477,7 +1484,7 @@ class AddressForm(forms.ModelForm):
         }
 
 
-class ContractForm(forms.ModelForm):
+class ContractForm(ModelForm):
     # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
     part_fields = (
         # ("research_aims", DOCUMENT_ROLES.AIMS),
@@ -1608,7 +1615,7 @@ class ContractForm(forms.ModelForm):
         # language = get_language()
         instance = self.instance or instance
         application = instance.application or initial.get("application")
-        site_id = settings.SITE_ID
+        site_id = self.site_id
         if site_id in [4, 5]:
             self.fields["project_title"].label = _("Title of proposed research project")
             # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
@@ -2144,7 +2151,7 @@ class ContractForm(forms.ModelForm):
         )
 
 
-class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
@@ -2211,7 +2218,7 @@ class MemberFormSet(
                 raise forms.ValidationError(_("You have entered email address {v} twice."))
 
 
-class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     readonly_fields = ["state"]
 
     def save(self, commit=True):
@@ -2316,7 +2323,7 @@ class MandatoryApplicationFormInlineFormSet(BaseInlineFormSet):
         pass
 
 
-class ProfileCareerStageForm(forms.ModelForm):
+class ProfileCareerStageForm(ModelForm):
     class Meta:
         exclude = ()
         model = models.PersonCareerStage
@@ -2355,7 +2362,7 @@ ProfilePersonIdentifierFormSet = modelformset_factory(
 )
 
 
-class ProfilePersonIdentifierForm(forms.ModelForm):
+class ProfilePersonIdentifierForm(ModelForm):
     def clean(self):
         data = super().clean()
 
@@ -2463,16 +2470,17 @@ class ProfileSectionFormSetHelper(FormHelper):
             self.add_input(Button("cancel", _("Cancel"), css_class="btn-danger"))
 
 
-class NominationForm(forms.ModelForm):
+class NominationForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         initial = getattr(self, "initial", None) or kwargs.get("initial") or dict()
 
         n = self.instance
-        r = n.round or initial and initial.get("round")
-        site_id = n and n.site_id or r and r.site_id or settings.SITE_ID
-        nominator = n.nominator or initial and initial.get("nominator")
-        org_id =  n and n.org and n.org.pk or initial.get("org")
+        breakpoint()
+        r = n and n.pk and n.round or initial and initial.get("round")
+        site_id = n and n.site_id or r and r.site_id or self.site_id
+        nominator = n and n.pk and n.nominator or initial and initial.get("nominator")
+        org_id = n and n.org and n.org.pk or initial.get("org")
         if nominator and (
             is_single_org_ro := (site_id in [4, 5] and nominator.research_offices.count() == 1)
         ):
@@ -2693,7 +2701,7 @@ class NominationForm(forms.ModelForm):
         )
 
 
-class TestimonialForm(forms.ModelForm):
+class TestimonialForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -2831,7 +2839,7 @@ class TestimonialForm(forms.ModelForm):
         )
 
 
-class IdentityVerificationForm(forms.ModelForm):
+class IdentityVerificationForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -2900,13 +2908,13 @@ class IdentityVerificationForm(forms.ModelForm):
         fields = ["file", "resolution"]
 
 
-class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelForm):
+class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     readonly_fields = ["state"]
     confirm_deletion = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not (self.instance and self.instance.site_id or settings.SITE_ID) in (4, 5):
+        if not (self.instance and self.instance.site_id or self.site_id) in (4, 5):
             self.fields.pop("panel")
             self.fields.pop("role")
             self.fields.pop("is_active")
@@ -3005,7 +3013,7 @@ class PanellistFormSetHelper(FormHelper):
         self.add_input(Submit("cancel", _("Cancel"), css_class="btn-danger"))
 
 
-class ConflictOfInterestForm(forms.ModelForm):
+class ConflictOfInterestForm(ModelForm):
     has_conflict = OppositeBooleanField(label=_("Conflict of Interest"), required=False)
 
     def __init__(self, *args, **kwargs):
@@ -3081,7 +3089,7 @@ class ReadOnlyApplicationWidget(Widget):
         return context
 
 
-class ScoreForm(forms.ModelForm):
+class ScoreForm(ModelForm):
     value = forms.TypedChoiceField(choices=zip(range(1, 10), range(1, 10)))
 
     def __init__(self, *args, **kwargs):
@@ -3133,7 +3141,7 @@ class ScoreForm(forms.ModelForm):
         )
 
 
-class RoundConflictOfInterestForm(forms.ModelForm):
+class RoundConflictOfInterestForm(ModelForm):
     has_conflict = forms.NullBooleanField(
         label=_("Conflict of Interest"), required=False, widget=forms.HiddenInput()
     )
@@ -3171,7 +3179,7 @@ class RoundConflictOfInterestForm(forms.ModelForm):
         )
 
 
-class ScoreSheetForm(forms.ModelForm):
+class ScoreSheetForm(ModelForm):
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
         super().__init__(*args, **kwargs)
@@ -3204,7 +3212,7 @@ class ScoreSheetForm(forms.ModelForm):
         )
 
 
-# class ReportForm(forms.ModelForm):
+# class ReportForm(ModelForm):
 
 #     def __init__(self, *args, **kwargs):
 #         initial = kwargs.get("initial", {})
@@ -3226,7 +3234,7 @@ class ScoreSheetForm(forms.ModelForm):
 #         # language = get_language()
 #         instance = self.instance or instance
 #         # application = instance.application or initial.get("application")
-#         # site_id = settings.SITE_ID
+#         # site_id = self.site_id
 #         # if site_id in [4, 5]:
 #         #     self.fields["project_title"].label = _("Title of proposed research project")
 #         #     # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
