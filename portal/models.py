@@ -5772,7 +5772,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     "aConditions": {"token": ["IN", *(r.survey_token for r in q)]},
                 },
             )
-            if isinstance(resp, dict) and resp.get("status") == 'No survey participants found.':
+            if isinstance(resp, dict) and resp.get("status") == "No survey participants found.":
                 return 0
             participants = {
                 p["token"]: {
@@ -5800,9 +5800,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     continue
 
                 r.survey_completed_at = p["completed_at"]
-                r._change_reason = (
-                    f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
-                )
+                r._change_reason = f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
                 if request:
                     r._history_user = request.user
                 if not self.testimonials_required and r.state != "testified":
@@ -6517,6 +6515,25 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             )
         ):
             raise ValidationError(_("You cannot nominate yourself for this round."))
+
+    def get_nominator_orgs(self, nominator=None):
+        """List of organisations that nominator can nominate on behalf of"""
+        if not nominator:
+            nominator = self.nominator
+        site_id = self.site_id
+
+        if site_id in [4, 5] and nominator.research_offices.count():
+            return Organisation.where(research_offices__user=nominator).order_by("-pk")
+        q = (
+            Organisation.where(
+                affiliations__person__user=nominator, affiliations__end_date__isnull=True
+            )
+            .distinct()
+            .order_by("affiliations__start_date")
+        )
+        if q.count():
+            return q
+        return Organisation.objects.none()
 
     @cached_property
     def nominated_by_ro(self):

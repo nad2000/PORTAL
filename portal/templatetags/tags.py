@@ -1,14 +1,14 @@
 import os
-from urllib.parse import parse_qs
 from itertools import groupby
 from operator import itemgetter
-from django.utils.safestring import mark_safe
+from urllib.parse import parse_qs
 
 # import jinja2
 from django import forms, template
 from django.db import models
 from django.forms.widgets import NullBooleanSelect
 from django.template.loader import get_template
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from markupsafe import Markup
 
@@ -125,7 +125,13 @@ def field_value(value, name, *args, **kwargs):
         if isinstance(v, m.User):
             return v.full_name_with_email
         if name in ["state", "status"]:
-            return f"<{v.upper()}>"
+            if state_changed_at := getattr(value, "state_changed_at", None):
+                return mark_safe(
+                    f"""<span data-toggle="tooltip"
+                    title="{_('(the state was updated at %s)') % state_changed_at.strftime('%d-%m-%Y %H:%m')}
+                    ">&lt;<b>{v.upper()}</b>&gt</span>"""
+                )
+            return mark_safe(f"&lt;<b>{v.upper()}</b>&gt;")
     if isinstance(v, bool):
         return _("yes") if v else _("no")
     f = value._meta.get_field(name)

@@ -2474,21 +2474,25 @@ class NominationForm(forms.ModelForm):
             r = models.Round.get(r)
         site_id = n and n.pk and n.site_id or r and r.site_id or settings.SITE_ID
         nominator = n and n.pk and n.nominator or initial and initial.get("nominator") or None
-        org_id =  n and n.pk and n.org and n.org.pk or initial.get("org")
+        org_id = n and n.pk and n.org and n.org.pk or initial.get("org")
         is_single_org_ro = False
         if nominator:
             if (
                 is_single_org_ro := (site_id in [4, 5] and nominator.research_offices.count() == 1)
-                ) and (ro_org := models.Organisation.where(research_offices__user=nominator).last()):
+            ) and (ro_org := models.Organisation.where(research_offices__user=nominator).last()):
                 org_id = initial["org"] = ro_org.pk
-            elif site_id in [4, 5] and (nominator_org := models.Organisation.where(research_offices__user=nominator).last()):
+            elif site_id in [4, 5] and (
+                nominator_org := models.Organisation.where(research_offices__user=nominator).last()
+            ):
                 org_id = initial["org"] = nominator_org.pk
-            elif (nominator_affiliation := models.Organisation.where(
-                        affiliations__person__user=nominator, affiliations__end_date__isnull=True
-                    )
-                    .distinct()
-                    .order_by("affiliations__start_date")
-                    .last()):
+            elif (
+                nominator_affiliation := models.Organisation.where(
+                    affiliations__person__user=nominator, affiliations__end_date__isnull=True
+                )
+                .distinct()
+                .order_by("affiliations__start_date")
+                .last()
+            ):
                 org_id = initial["org"] = nominator_affiliation.pk
         if not initial.get("org") and org_id:
             initial["org"] = org_id
@@ -2633,7 +2637,7 @@ class NominationForm(forms.ModelForm):
         )
 
         if is_single_org_ro:
-            self.fields["org"].disabled = True
+            # self.fields["org"].disabled = True
             self.fields["org"].widget.attrs["readonly"] = "true"
             self.fields["org"].widget.attrs["disabled"] = "true"
 

@@ -5840,6 +5840,8 @@ class NominationView(CreateUpdateView):
                 n.round = self.round
             if not n.site:
                 n.site = Site.objects.get_current()
+            if not n.org:
+                n.org = n.get_nominator_orgs().last()
 
         resp = super().form_valid(form)
 
