@@ -5807,7 +5807,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     r._history_user = request.user
                 if not self.testimonials_required and r.state != "testified":
                     r.testify(request, by=request.user, description=r._change_reason, commit=False)
-                    r.testified_at = r.survey_completed_at
+                    if not r.testified_at or r.testified_at < r.survey_completed_at:
+                        r.testified_at = r.survey_completed_at
                 updated_referees.append(r)
 
             if updated_referees:
@@ -5819,7 +5820,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         )
                         if testimonials.count() > 0:
                             for t in testimonials:
-                                description = r._change_reason
+                                description = f"Synced with LimeSurvey"
                                 t.submit(by=r.user, description=description, commit=False)
                                 t._change_reason = description
                             bulk_update_with_history(

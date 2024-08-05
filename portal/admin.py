@@ -1339,6 +1339,11 @@ class AwardAdmin(admin.ModelAdmin):
 @admin.register(models.ConvertedFile)
 class ConvertedFileAdmin(admin.ModelAdmin):
     save_on_top = True
+    search_fields = [
+        "applicationdocument__application__number",
+        "application__application__number",
+        "file",
+    ]
 
     search_fields = [
         "applicationdocument__application__number",
@@ -1389,9 +1394,9 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     save_on_top = True
     list_display = [
-        "application",
-        "has_testified",
         "email",
+        "has_testified",
+        "application_number",
         "full_name",
         "state",
         "testified_at",
@@ -1425,6 +1430,10 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
     readonly_fields = ("invitation_link",)
 
+    @admin.display(description="application", ordering="application__number")
+    def application_number(self, obj):
+        return obj.application.number
+
     @admin.display(description="invitation")
     def invitation_link(self, obj):
         if obj.invitation:
@@ -1455,8 +1464,10 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
             count += r.sync_referee_surveys(
                 request=request, referees=queryset.filter(application__round=r)
             )
+        if not count:
+            messages.warning(request, "All referees were already synced.")
         if rounds.count() > 1:
-            messages.info(request, "In total synced {count} referee(s)")
+            messages.info(request, f"In total synced {count} referee(s)")
 
     @admin.action(description="Send the referee invitations")
     def send_invitations(self, request, queryset):
@@ -2348,8 +2359,10 @@ class RoundAdmin(
         q = queryset.filter(survey_id__isnull=False)
         for r in q:
             count += r.sync_referee_surveys(request=request)
+        if not count:
+            messages.warning(request, "All referees were already synced.")
         if q.count() > 1:
-            messages.info(request, "In total synced {count} referee(s)")
+            messages.info(request, f"In total synced {count} referee(s)")
 
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
