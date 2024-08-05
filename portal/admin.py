@@ -1339,6 +1339,11 @@ class AwardAdmin(admin.ModelAdmin):
 @admin.register(models.ConvertedFile)
 class ConvertedFileAdmin(admin.ModelAdmin):
     save_on_top = True
+    search_fields = [
+        "applicationdocument__application__number",
+        "application__application__number",
+        "file",
+    ]
 
     def file_size_kb(self, obj):
         if size := obj.file_size:
