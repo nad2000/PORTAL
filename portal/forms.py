@@ -2469,7 +2469,7 @@ class NominationForm(forms.ModelForm):
         initial = getattr(self, "initial", None) or kwargs.get("initial") or dict()
 
         n = self.instance
-        r = n.round or initial and initial.get("round")
+        r = n and n.round or initial and initial.get("round")
         site_id = n and n.site_id or r and r.site_id or settings.SITE_ID
         nominator = n.nominator or initial and initial.get("nominator")
         org_id =  n and n.org and n.org.pk or initial.get("org")
