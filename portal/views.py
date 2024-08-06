@@ -1783,7 +1783,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             context["form"] = AuthorizationForm()
         is_ro = a.site_id in [4, 5] and (
             n
-            and (n.nominator == u or n.org.where(research_offices__user=u).exists())
+            and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
             or a.org.where(research_offices__user=u).exists()
         )
         is_owner = (
@@ -5786,8 +5786,8 @@ class NominationView(CreateUpdateView):
     def get_initial(self):
         initial = super().get_initial()
 
+        initial["round"] = self.round.pk if self.round else None
         if self.request.method == "GET" and not (self.object and not self.object.pk):
-            initial["round"] = self.round.pk if self.round else None
             org = None
             if (
                 latest := self.request.user.nominations.filter(
@@ -5840,6 +5840,8 @@ class NominationView(CreateUpdateView):
                 n.round = self.round
             if not n.site:
                 n.site = Site.objects.get_current()
+            if not n.org:
+                n.org = n.get_nominator_orgs().last()
 
         resp = super().form_valid(form)
 
