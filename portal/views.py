@@ -288,7 +288,11 @@ class AdminRequiredMixin(AccessMixin):
     """Verify that the current user is admin or staff."""
 
     def dispatch(self, request, *args, **kwargs):
-        if not (u := request.user) or not u.is_authenticated or not (u.is_superuser or u.is_site_staff):
+        if (
+            not (u := request.user)
+            or not u.is_authenticated
+            or not (u.is_superuser or u.is_site_staff)
+        ):
             messages.error(request, _("Only the administrator can access this page"))
             return self.handle_no_permission()
         return super().dispatch(request, *args, **kwargs)
@@ -685,12 +689,26 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
+    u = request.user
     if referee_id:
         if (
             r := models.Referee.objects.prefetch_related("application", "application__round")
             .filter(id=referee_id)
             .first()
         ):
+            if (
+                not (u.is_superuser or u.is_site_staff)
+                or not u.emailaddress_set.filter(email=r.email).exists()
+            ):
+                messages.error(
+                    request,
+                    _(
+                        "The invitation to participate in the survey was not sent to your address. "
+                        "Please, make sure you have logged in with a correct account the invitation was sent to."
+                    ),
+                )
+                return redirect("index")
+
             survey_id = r.application.round.survey_id
         else:
             messages.warning(
