@@ -1453,8 +1453,8 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def sync_referee_surveys(self, request, queryset):
         count = 0
         rounds = models.Round.where(
-                survey_id__isnull=False,
-                pk__in=queryset.values_list("application__round").distinct())
+            survey_id__isnull=False, pk__in=queryset.values_list("application__round").distinct()
+        )
         for r in rounds:
             count += r.sync_referee_surveys(
                 request=request, referees=queryset.filter(application__round=r)
@@ -2234,6 +2234,27 @@ class RoundAdmin(
             )
         return exclude
 
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        if obj.pk:
+            if obj.get_guidelines():
+                if not obj.applicant_guidelines:
+                    url = obj.get_applicant_guidelines()
+                    form.base_fields["applicant_guidelines"].help_text = mark_safe(
+                        f'{form.base_fields["applicant_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
+                    )
+                if not obj.referee_guidelines:
+                    url = obj.get_referee_guidelines()
+                    form.base_fields["referee_guidelines"].help_text = mark_safe(
+                        f'{form.base_fields["referee_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
+                    )
+                if not obj.panellist_guidelines:
+                    url = obj.get_panellist_guidelines()
+                    form.base_fields["panellist_guidelines"].help_text = mark_safe(
+                        f'{form.base_fields["panellist_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
+                    )
+        return form
+
     def get_fieldsets(self, request, obj=None):
         site_id = obj and obj.site_id or settings.SITE_ID
         exclude = self.get_exclude(request)
@@ -2248,6 +2269,9 @@ class RoundAdmin(
                         "description_en",
                         "description_mi",
                         "guidelines",
+                        "applicant_guidelines",
+                        "referee_guidelines",
+                        "panellist_guidelines",
                         "contact_email",
                         "limesurvey_server_url",
                         "survey_id",

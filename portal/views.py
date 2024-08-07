@@ -288,7 +288,7 @@ class AdminRequiredMixin(AccessMixin):
     """Verify that the current user is admin or staff."""
 
     def dispatch(self, request, *args, **kwargs):
-        if not (u := request.user) or not u.is_authenticated or not (u.is_superuser or u.is_staff):
+        if not (u := request.user) or not u.is_authenticated or not (u.is_superuser or u.is_site_staff):
             messages.error(request, _("Only the administrator can access this page"))
             return self.handle_no_permission()
         return super().dispatch(request, *args, **kwargs)

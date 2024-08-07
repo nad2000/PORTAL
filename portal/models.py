@@ -6,8 +6,6 @@ import re
 import secrets
 import ssl
 import subprocess
-
-# import sys
 import tempfile
 import time
 from collections import OrderedDict
@@ -18,7 +16,6 @@ from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-# import odfdo as od
 import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
@@ -59,7 +56,6 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
-    IntegerField,
     Manager,
     ManyToManyField,
     OneToOneField,
@@ -89,7 +85,6 @@ from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 
-# from odfdo import Column, Document, Header, List, ListItem, Paragraph, Table
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
@@ -3859,6 +3854,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
             [user.id, user.id],
         )
 
+    @cached_property
+    def guidelines(self):
+        return self.application.round.get_referee_guidelines()
+
     class Meta:
         db_table = "referee"
         unique_together = ["application", "email"]
@@ -3941,6 +3940,10 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     def mail_log_error(self):
         if ml := MailLog.where(invitation__panellist=self, error__isnull=False).last():
             return ml.error
+
+    @cached_property
+    def guidelines(self):
+        return self.round.get_panellist_guidelines()
 
     # TODO: refactor and move to a common mixin
     def get_or_create_invitation(self, by=None):
@@ -4397,15 +4400,29 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             }
             body = __(
                 "Tēnā koe,\n\n"
-                "You have been invited to join %(inviter)s's team for their %(site_name)s application. "
-                "\n\nTo review this invitation, please follow the link: %(url)s\n\n"
+                "You have been invited to join %(inviter)s's team for their %(site_name)s application. \n\n"
+                "Before you click on the portal link we strongly advise you "
+                "to read about the application process: %(guidelines)s.\n\n"
+                "To review this invitation, please follow the link: %(url)s\n\n"
                 "Ngā mihi"
-            ) % dict(inviter=by.full_name, url=url, site_name=site_name)
+            ) % dict(
+                inviter=by.full_name,
+                url=url,
+                site_name=site_name,
+                guidelines=self.application.round.get_applicant_guidelines(),
+            )
             html_body = __(
-                "Tēnā koe,<br><br>You have been invited to join %(inviter)s's team for their "
-                "%(site_name)s application.<br><br>"
-                "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % dict(inviter=by.full_name, url=url, site_name=site_name)
+                "<p>Tēnā koe,</p><p>You have been invited to join %(inviter)s's team for their "
+                "%(site_name)s application.</p>"
+                "<p>Before you click on the portal link we strongly advise you "
+                'to read about the <a href="%(guidelines)s">application process</a>.</p>'
+                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a></p>"
+            ) % dict(
+                inviter=by.full_name,
+                url=url,
+                site_name=site_name,
+                guidelines=self.application.round.get_applicant_guidelines(),
+            )
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
             application = referee.application
@@ -4466,7 +4483,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 application_url=application_url,
                 site_name=site_name,
                 application=self.referee.application,
-                guidelines=self.referee.application.round.get_guidelines(),
+                guidelines=self.referee.guidelines,
                 contact_email=contact_email,
             )
             html_body = (
@@ -4504,12 +4521,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 application_url=application_url,
                 site_name=site_name,
                 application=self.referee.application,
-                guidelines=self.referee.application.round.get_guidelines(),
+                guidelines=self.referee.guidelines,
                 contact_email=contact_email,
             )
         elif self.type == INVITATION_TYPES.A:
-            subject = __("You have been nominated for %s") % self.nomination.round
-            body = __(
+            subject = "You have been nominated for %s" % self.nomination.round
+            body = (
                 "Tēnā koe,\n\n"
                 "Congratulations on being nominated for the %(round)s by %(inviter)s.\n\n"
                 "Before you click on the portal link we strongly advise you "
@@ -4519,38 +4536,49 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             ) % dict(
                 round=self.nomination.round,
                 inviter=by.full_name,
-                guidelines=self.nomination.round.get_guidelines(),
+                guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
             )
             html_body = (
-                __(
-                    "<p>Tēnā koe,</p>"
-                    "<p>Congratulations on being nominated for the %(round)s by %(inviter)s.</p>"
-                    "<p>Before you click on the portal link we strongly advise you "
-                    'to read about the <a href="%(guidelines)s">application process</a>.</p>'
-                    "<p>To accept the nomination, please follow the portal link: "
-                    "<a href='%(url)s'>%(url)s</a><br></p></br>"
-                )
+                "<p>Tēnā koe,</p>"
+                "<p>Congratulations on being nominated for the %(round)s by %(inviter)s.</p>"
+                "<p>Before you click on the portal link we strongly advise you "
+                'to read about the <a href="%(guidelines)s">application process</a>.</p>'
+                "<p>To accept the nomination, please follow the portal link: "
+                "<a href='%(url)s'>%(url)s</a><br></p></br>"
             ) % dict(
                 round=self.nomination.round,
                 inviter=by.full_name,
-                guidelines=self.nomination.round.get_guidelines(),
+                guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
             )
         elif self.type == INVITATION_TYPES.P:
             subject = __("You are invited to be a Panellist for the %(site_name)s") % {
                 "site_name": site_name
             }
-            body = __(
+            body = (
                 "Tēnā koe\n\n"
                 "You are invited to be a panellist for the %(site_name)s.\n\n"
+                "We strongly advise clicking on the Panellist Guidelines before clicking  "
+                "on the portal link below: %(guidelines)s\n\n"
                 "To review this invitation, please follow the link: %(url)s \n\n"
                 "Ngā mihi"
-            ) % {"url": url, "site_name": site_name}
-            html_body = __(
+            ) % {
+                "url": url,
+                "site_name": site_name,
+                "guidelines": self.panellist.guidelines,
+            }
+            html_body = (
                 "Tēnā koe,<br><br>You are invited to be a panellist for the %(site_name)s.<br><br>"
-                "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % {"url": url, "site_name": site.name}
+                "<p>We strongly advise clicking on the Panellist Guidelines <strong>before</strong> clicking  "
+                "on the portal link below.</p>"
+                "<p><a href='%(guidelines)s'>Panellist Guidelines</a></p>"
+                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a></p>"
+            ) % {
+                "url": url,
+                "site_name": site.name,
+                "guidelines": self.panellist.guidelines,
+            }
         else:
             subject = __("You have been given access to the %(site_name)s portal") % {
                 "site_name": site_name
@@ -5081,16 +5109,50 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
     colour = ColorField(
-        null=True, blank=True, help_text="Colour used for text hearders and back-grounds"
+        null=True, blank=True, help_text="Colour used for text headers and back-grounds"
     )
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
-    guidelines = CharField(_("guideline link URL"), max_length=400, null=True, blank=True)
+    guidelines = URLField(
+        _("round guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Round guidelines link URL"),
+    )
+    applicant_guidelines = URLField(
+        _("applicant guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        # help_text=_("Applicant guidelines link URL"),
+        help_text=_("Applicant guidelines link URL"),
+    )
+    referee_guidelines = URLField(
+        _("referee guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Referee guidelines link URL"),
+    )
+    panellist_guidelines = URLField(
+        _("panellist guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Panellist guidelines link URL"),
+    )
     contact_email = EmailField(_("round contact email address"), blank=True, null=True)
-    limesurvey_server_url = CharField(_("LimeSurvey URL"), max_length=400, null=True, blank=True)
+    limesurvey_server_url = URLField(
+        _("LimeSurvey URL"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("LimeSurvey Server URL"),
+    )
     description = TextField(_("short description"), null=True, blank=True)
 
     has_title = BooleanField(_("can have a title"), default=False)
@@ -5133,7 +5195,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("Duration"), help_text=_("Default contract duration"), null=True, blank=True
     )
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
-    survey_id = PositiveIntegerField(help_text=_("LimeSurvey Survey ID"), null=True, blank=True)
+    survey_id = PositiveIntegerField(
+        help_text=_("Referee LimeSurvey Survey ID"), null=True, blank=True
+    )
 
     letter_of_support_required = BooleanField(default=False)
     research_experience_in_years_required = BooleanField(default=False)
@@ -5293,6 +5357,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     def natural_key(self):
         return (self.scheme.code, self.opens_on)
 
+    @cache
     def get_guidelines(self):
         if not self.guidelines and (
             pr := Round.where(Q(guidelines__isnull=False) | ~Q(guidelines=""), scheme=self.scheme)
@@ -5301,6 +5366,60 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         ):
             return pr.guidelines
         return self.guidelines
+
+    @cache
+    def get_applicant_guidelines(self):
+        if self.applicant_guidelines:
+            return self.applicant_guidelines
+        if (
+            pr := Round.where(
+                Q(applicant_guidelines__isnull=False) | ~Q(applicant_guidelines=""),
+                scheme=self.scheme,
+            )
+            .order_by("-id")
+            .first()
+        ) and pr.applicant_guidelines:
+            return pr.applicant_guidelines
+        if gl := self.get_guidelines():
+            if gl.endswith("/"):
+                return f"{gl}information-for-applicants/"
+            return f"{gl}/information-for-applicants/"
+
+    @cache
+    def get_referee_guidelines(self):
+        if self.referee_guidelines:
+            return self.referee_guidelines
+        if (
+            pr := Round.where(
+                Q(referee_guidelines__isnull=False) | ~Q(referee_guidelines=""),
+                scheme=self.scheme,
+            )
+            .order_by("-id")
+            .first()
+        ) and pr.referee_guidelines:
+            return pr.referee_guidelines
+        if gl := self.get_guidelines():
+            if gl.endswith("/"):
+                return f"{gl}information-for-referees/"
+            return f"{gl}/information-for-referees/"
+
+    @cache
+    def get_panellist_guidelines(self):
+        if self.panellist_guidelines:
+            return self.panellist_guidelines
+        if (
+            pr := Round.where(
+                Q(panellist_guidelines__isnull=False) | ~Q(panellist_guidelines=""),
+                scheme=self.scheme,
+            )
+            .order_by("-id")
+            .first()
+        ) and pr.panellist_guidelines:
+            return pr.panellist_guidelines
+        if gl := self.get_guidelines():
+            if gl.endswith("/"):
+                return f"{gl}information-for-panellists/"
+            return f"{gl}/information-for-panellists/"
 
     @property
     def is_active(self):
