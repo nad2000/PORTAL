@@ -1995,9 +1995,47 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
     search_fields = ["first_name", "last_name", "email", "token", "application__number"]
     date_hierarchy = "created_at"
     readonly_fields = ["submitted_at", "accepted_at", "expired_at", "token", "url"]
-    inlines = [StateLogInline]
     ordering = ["-id"]
     actions = ["resend"]
+
+    class MailLogInline(StaffPermsMixin, admin.TabularInline):
+        classes = ["collapse"]
+        extra = 0
+        model = models.MailLog
+        ordering = ["-id"]
+        fields = [
+            "token_link",
+            "recipient",
+            "thread_index",
+            "thread_topic",
+            "sent_at",
+            "was_sent_successfully",
+            "user",
+            "sender",
+            "subject",
+        ]
+        readonly_fields = ["sent_at"]
+
+        @admin.display(description="token", ordering="token")
+        def token_link(self, obj):
+            return mark_safe(f'<a href="{self.view_on_site(obj)}">{obj.token}</a>')
+
+        @cache
+        def view_on_site(self, obj):
+            return reverse("admin:portal_maillog_change", kwargs={"object_id": obj.pk})
+
+        can_delete = False
+
+        def has_add_permission(self, request, obj=None):
+            return False
+
+        def has_change_permission(self, request, obj=None):
+            return True
+
+        def get_readonly_fields(self, request, obj=None):
+            return self.get_fields(request, obj)
+
+    inlines = [MailLogInline, StateLogInline]
 
 
 @admin.register(models.Testimonial)
