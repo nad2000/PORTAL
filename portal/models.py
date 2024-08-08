@@ -5888,7 +5888,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     "iSurveyID": self.survey_id,
                     # "bUnused": True,
                     "aAttributes": ["email", "token", "completed", "token", "sent", "emailstatus"],
-                    "aConditions": {"token": ["IN", *(r.survey_token for r in q)]},
+                    "aConditions": {
+                        "token": ["IN", *(r.survey_token for r in q)],
+                        "completed": ["<>", "N"],
+                    },
                 },
             )
             if isinstance(resp, dict) and resp.get("status") == "No survey participants found.":
@@ -5913,11 +5916,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
                 if (
                     r.state == "testified"
+                    and p["tid"] == r.survey_token_id
                     and p["completed_at"] == r.survey_completed_at
                     and not Testimonial.where(~Q(state="submitted"), referee=r).exists()
                 ):
                     continue
 
+                r.survey_completed_at = p["completed_at"]
+                if not r.survey_token_id or r.survey_token_id != p["tid"]:
+                    r.survey_token_id = p["tid"]
                 r.survey_completed_at = p["completed_at"]
                 r._change_reason = f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
                 if request:
@@ -5953,6 +5960,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                             [
                                 "state",
                                 "survey_completed_at",
+                                "survey_token_id",
                                 "testified_at",
                                 "state_changed_at",
                                 "updated_at",
