@@ -696,10 +696,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             .filter(id=referee_id)
             .first()
         ):
-            if (
-                not (u.is_superuser or u.is_site_staff)
-                or not u.emailaddress_set.filter(email=r.email).exists()
-            ):
+            if not (u.is_superuser or u.is_site_staff) or u.emailaddress_set.filter(email=r.email).exists()):
                 messages.error(
                     request,
                     _(
