@@ -7690,10 +7690,10 @@ def export_score_sheet(request, round):
         content_type = "application/vnd.oasis.opendocument.spreadsheet"
 
     filename = (
-        f'{r.scheme.code}-{r.title.replace(" ", "-").lower()}-{request.person.code or "scoresheet"}.{file_type}'
+        f'{r.scheme.code}-{request.person.code or request.user.username or "scoresheet"}.{file_type}'
     )
     response = HttpResponse(book.export(file_type), content_type=content_type)
-    response["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response
 
 
