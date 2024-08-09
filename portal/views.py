@@ -7630,6 +7630,7 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
 
 
 @login_required
+@shoud_be_onboarded
 def export_score_sheet(request, round):
     file_type = request.GET.get("type", "xlsx")
     r = (
@@ -7688,7 +7689,9 @@ def export_score_sheet(request, round):
     elif file_type == "ods":
         content_type = "application/vnd.oasis.opendocument.spreadsheet"
 
-    filename = str(r).replace(" ", "-").lower() + "-template." + file_type
+    filename = (
+        f'{r.scheme.code}-{r.title.replace(" ", "-").lower()}-{request.person.code or "scoresheet"}.{file_type}'
+    )
     response = HttpResponse(book.export(file_type), content_type=content_type)
     response["Content-Disposition"] = f"attachment; filename={filename}"
     return response
