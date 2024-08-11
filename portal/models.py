@@ -72,7 +72,7 @@ from django.db.models import (
     aggregates,
     prefetch_related_objects,
 )
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast, Coalesce, Lower
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
@@ -84,7 +84,6 @@ from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
-
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
@@ -2089,7 +2088,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         """Is user the mail applicant or a member."""
         return (
             self.submitted_by == user
-            or self.members.all().filter(Q(user=user) | Q(email=user.email)).exists()
+            or self.members.all()
+            .filter(Q(user=user) | Q(email__lower=user.email.lower()))
+            .exists()
         )
 
     def user_can_view(self, user):
@@ -2101,11 +2102,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 hasattr(self, "nomination")
                 and (self.nomination.nominator == user or self.nomination.user == user)
             )
-            or (self.referees.filter(Q(user=user) | Q(email=user.email)).exists())
-            or (self.round.panellists.filter(Q(user=user) | Q(email=user.email)).exists())
+            or (self.referees.filter(Q(user=user) | Q(email__lower=user.email.lower())).exists())
+            or (
+                self.round.panellists.filter(
+                    Q(user=user) | Q(email__lower=user.email.lower())
+                ).exists()
+            )
             or (self.org.research_offices.filter(user=user).exists())
             or self.members.all()
-            .filter(Q(email__in=user.emailaddress_set.values_list("email")))
+            .filter(Q(email__lower__in=user.emailaddress_set.values_list("email__lower")))
             .exists()
         )
 
@@ -3454,7 +3459,7 @@ class Member(PersonMixin, MemberMixin, Model):
             raise ValidationError(_("Missing application"))
         if application.pk:
             member_id = getattr(self, "id", None)
-            q = application.members.filter(email=self.email)
+            q = application.members.filter(email__lower=self.email.lower())
             if member_id:
                 q = q.filter(~Q(id=member_id))
             if q.exists():
@@ -3622,7 +3627,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             raise ValidationError(_("Missing application"))
         referee_id = getattr(self, "id", None)
         if application and application.pk:
-            q = application.referees.filter(email=self.email)
+            q = application.referees.filter(email__lower=self.email.lower())
             if referee_id:
                 q = q.filter(~Q(id=referee_id))
             if q.exists():
@@ -3651,7 +3656,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             referees = list(
                 cls.where(
                     ~Q(state__in=["testified", "accepted", "opted_out"]),
-                    ~Q(invitation__email=F("email")),
+                    ~Q(invitation__email__lower=Lower("email")),
                     application=application,
                 ).prefetch_related("application", "application__submitted_by")
             )
@@ -3704,7 +3709,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
             u = self.user
-            if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
+            if not u and (
+                ea := EmailAddress.objects.filter(email__lower=self.email.lower()).first()
+            ):
                 u = ea.user
             first_name = self.first_name or u and u.first_name or ""
             last_name = self.last_name or u and u.last_name or ""
@@ -3947,8 +3954,8 @@ class Panellist(PanellistMixin, PersonMixin, Model):
 
     # TODO: refactor and move to a common mixin
     def get_or_create_invitation(self, by=None):
-        u = self.user or User.objects.filter(email=self.email).first()
-        if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
+        u = self.user or User.objects.filter(email__lower=self.email.lower()).first()
+        if not u and (ea := EmailAddress.objects.filter(email__lower=self.email.lower()).first()):
             u = ea.user
         first_name = self.first_name or u and u.first_name or ""
         last_name = self.last_name or u and u.last_name or ""
@@ -3970,7 +3977,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
             return Invitation.get_or_create(
                 type=INVITATION_TYPES.P,
                 panellist=self,
-                email=self.email,
+                email=self.email.lower(),
                 defaults=dict(
                     panellist=self,
                     round=self.round,
@@ -4239,12 +4246,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     def user_inviations(cls, user):
         """All invitations sent to the user"""
         return cls.where(
-            Q(email=user.email)
+            Q(email__lower=user.email.lower())
             | Q(nomination__user=user)
             | Q(member__user=user)
             | Q(referee__user=user)
             | Q(panellist__user=user)
-            | Q(email__in=user.emailaddress_set.values("email"))
+            | Q(email__lower__in=user.emailaddress_set.values__list("email__lower"))
         ).distinct()
 
     @classmethod
@@ -4273,8 +4280,10 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
     @classmethod
     def get_or_create_referee_invitation(cls, referee, by=None):
-        u = referee.user or User.objects.filter(email=referee.email).first()
-        if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
+        u = referee.user or User.objects.filter(email__lower=referee.email.lower()).first()
+        if not u and (
+            ea := EmailAddress.objects.filter(email__lower=referee.email.lower()).first()
+        ):
             u = ea.user
         if not referee.user and u:
             referee.user = u
@@ -4309,7 +4318,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         i, created = cls.get_or_create(
             type=INVITATION_TYPES.R,
             referee=referee,
-            email=referee.email,
+            email=referee.email.lower(),
             defaults=dict(
                 inviter=by,
                 application=referee.application,
@@ -5669,9 +5678,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def user_nominations(self, user):
         return Nomination.where(
-            Q(user=user)
-            | Q(email=user.email)
-            | Q(email__in=Subquery(EmailAddress.objects.filter(user=user).values("email"))),
+            Q(user=user) | Q(email__in=user.emailaddress_set.values_list("email__lower")),
             state__in=["submitted", "accepted"],
             round=self,
         )
@@ -6638,7 +6645,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             and not user.is_superuser
             and (
                 self.email == user.email
-                or EmailAddress.objects.filter(email=self.email, user=user)
+                or EmailAddress.objects.filter(email__lower=self.email.lower(), user=user)
             )
         ):
             raise ValidationError(_("You cannot nominate yourself for this round."))
@@ -6835,7 +6842,7 @@ class IdentityVerification(Model):
                     email__isnull=False,
                 )
                 .distinct()
-                .values_list("name", "email")
+                .values_list("name", "email__lower")
             ),
             fail_silently=False,
             request=request,

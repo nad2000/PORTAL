@@ -2,11 +2,13 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import checks, validators
 from django.db import connection, connections, models, router
-from django.db.models import CharField, DateTimeField
+from django.db.models import CharField, DateTimeField, EmailField
 from django.db.models import Model as Base
+from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.functional import cached_property
 from model_utils import Choices
+EmailField.register_lookup(Lower)
 
 SEX_CHOICES = Choices("female", "male", "other")
 

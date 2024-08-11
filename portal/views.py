@@ -53,7 +53,7 @@ from django.db.models import (
     Value,
 )
 from django.db.models.deletion import RestrictedError
-from django.db.models.functions import Coalesce, Trim
+from django.db.models.functions import Coalesce, Lower, Trim
 from django.forms import (
     DateInput,
     Form,
@@ -374,7 +374,9 @@ class AccountView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         u = self.request.user
         context["user"] = u
-        context["emails"] = list(EmailAddress.objects.filter(~Q(email=u.email), user=u))
+        context["emails"] = list(
+            EmailAddress.objects.filter(~Q(email__lower=u.email.lower()), user=u)
+        )
         context["accounts"] = list(SocialAccount.objects.filter(user=u))
         return context
 
@@ -477,7 +479,10 @@ def survey_webhook(request):
                     r.survey_completed_at = completed_at
                     by = (
                         r.user
-                        or User.where(Q(email=r.email) | Q(emailaddress__email=r.email)).first()
+                        or User.where(
+                            Q(email__lower=r.email.lower())
+                            | Q(emailaddress__email__lower=r.email.lower())
+                        ).first()
                     )
                     for t in models.Testimonial.where(referee=r):
                         if t.state != "submitted":
@@ -514,7 +519,7 @@ def complete_survey(request):
     if token:
         q = q.filter(survey_token=token)
     else:
-        q = q.filter(Q(user=request.user) | Q(email=request.user.email))
+        q = q.filter(Q(user=request.user) | Q(email__lower=request.user.email.lower()))
     for r in q:
         token = request.GET.get("token")
         if not survey_id:
@@ -555,7 +560,7 @@ def complete_survey(request):
         models.Referee.where(survey_token=token)
         if token
         else models.Referee.where(
-            Q(user=request.user) | Q(email=request.user.email),
+            Q(user=request.user) | Q(email__lower=request.user.email.lower()),
             survey_completed_at__isnull=False,
             application__round__scheme__current_round=F("application__round"),
         )
@@ -570,7 +575,9 @@ def complete_survey(request):
 @require_http_methods(["POST"])
 def subscribe(request):
     email = request.POST["email"]
-    instance = Subscription.where(email=email).order_by("-id").first()
+    if email:
+        email = email.lower()
+    instance = Subscription.where(email__lower=email).order_by("-id").first()
 
     form = forms.SubscriptionForm(request.POST, instance=instance)
     if form.is_valid():
@@ -596,7 +603,7 @@ def subscribe(request):
 @require_http_methods(["GET", "POST"])
 def confirm_subscription(request, token):
     log_entry = get_object_or_404(models.MailLog, token=token)
-    subscription = get_object_or_404(models.Subscription, email=log_entry.recipient)
+    subscription = get_object_or_404(models.Subscription, email__lower=log_entry.recipient)
     if request.method == "POST":
         is_confirmed = bool(request.POST.get("subscribe"))
         subscription.is_confirmed = is_confirmed
@@ -676,7 +683,10 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             i = get_object_or_404(models.Referee, pk=referee_id).invitation
 
         user_exists = (
-            i and User.objects.filter(Q(email=i.email) | Q(emailaddress__email=i.email)).exists()
+            i
+            and User.objects.filter(
+                Q(email__lower=i.email.lower()) | Q(emailaddress__email__lower=i.email.lower())
+            ).exists()
         )
         if request.user and not request.user.is_authenticated:
             return redirect(
@@ -696,7 +706,11 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             .filter(id=referee_id)
             .first()
         ):
-            if not (u.is_superuser or u.is_site_staff or u.emailaddress_set.filter(email=r.email).exists()):
+            if not (
+                u.is_superuser
+                or u.is_site_staff
+                or u.emailaddress_set.filter(email__lower=r.email.lower()).exists()
+            ):
                 messages.error(
                     request,
                     _(
@@ -784,8 +798,8 @@ def index(request):
         outstanding_review_requests = models.Panellist.outstanding_requests(user)
         outstanding_nominations = models.Nomination.where(
             Q(user=user)
-            | Q(email=user.email)
-            | Q(email__in=Subquery(user.emailaddress_set.values("email"))),
+            | Q(email__lower=user.email.lower())
+            | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__loerer"))),
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
@@ -946,8 +960,10 @@ def check_profile(request, token=None):
         if token:
             if i := models.Invitation.where(token=token).first():
                 if not (
-                    i.email == u.email
-                    or u.emailaddress_set.filter(email=i.email, verified=True).exists()
+                    i.email.lower() == u.email.lower()
+                    or u.emailaddress_set.filter(
+                        email__lower=i.email.lower(), verified=True
+                    ).exists()
                 ):
                     messages.warning(
                         request,
@@ -1372,7 +1388,8 @@ class ProfileCreate(ProfileView, CreateView):
         u = self.request.user
         n = (
             models.Nomination.where(
-                Q(user=self.request.user) | Q(email__in=u.emailaddress_set.values("email")),
+                Q(user=self.request.user)
+                | Q(email__lower__in=u.emailaddress_set.values__list("email__lower")),
                 state__in=["submitted", "sent", "bounced"],
             )
             .order_by("-id")
@@ -1410,7 +1427,7 @@ def invite_team_members(request, application):
     count = 0
     members = list(
         models.Member.where(
-            ~Q(invitation__email=F("email")) | Q(state="sent") | Q(state__isnull=True),
+            ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
             application=application,
         )
     )
@@ -1468,7 +1485,7 @@ def invite_panellist(request, round):
     """Send invitations to all panellists."""
     count = 0
     panellist = list(
-        models.Panellist.where(~Q(invitation__email=F("email")) | Q(state__isnull=True))
+        models.Panellist.where(~Q(invitation__email__lower=Lower("email")) | Q(state__isnull=True))
     )
     for p in panellist:
         p.get_or_create_invitation(by=request and request.user)
@@ -1658,7 +1675,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         """Returns the member entry related to the current user"""
         user = self.request.user
         return self.object.members.filter(
-            Q(user=user) | Q(email=user.email) | Q(email__in=user.emailaddress_set.values("email"))
+            Q(user=user)
+            | Q(email__lower=user.email.lower())
+            | Q(email__lower__in=user.emailaddress_set.values__list("email__lower"))
         ).last()
 
     def get(self, request, *args, **kwargs):
@@ -1787,7 +1806,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             context["nomination"] = n
             context["nominator"] = n.nominator
         if a.members.filter(
-            Q(user=u) | Q(email=u.email) | Q(email__in=u.emailaddress_set.values("email")),
+            Q(user=u)
+            | Q(email__lower=u.email.lower())
+            | Q(email__lower__in=u.emailaddress_set.values__list("email__lower")),
             # has_authorized__isnull=True,
             Q(state__isnull=True) | ~Q(state__in=["authorized", "opted_out"]),
         ).exists():
@@ -1807,7 +1828,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         is_referee = (
             not is_ro
             and not is_owner
-            and a.referees.filter(Q(user=u) | Q(email__in=u.emailaddress_set.values_list("email")))
+            and a.referees.filter(
+                Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
+            )
         )
 
         if a.site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
@@ -1909,7 +1932,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                         )
 
             if referee := a.referees.filter(
-                Q(user=u) | Q(email__in=u.emailaddress_set.values("email"))
+                Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
             ).last():
                 context["referee"] = referee
 
@@ -2262,7 +2285,7 @@ class ApplicationView(LoginRequiredMixin):
                 user=self.request.user, round=self.round, state="accepted"
             ).last()
             or models.Nomination.where(
-                email__in=self.request.user.emailaddress_set.values("email"),
+                email__lower__in=self.request.user.emailaddress_set.values__list("email__lower"),
                 round__scheme__current_round=F("round"),
             )
             .order_by("-id")
@@ -6101,7 +6124,7 @@ class TestimonialView(CreateUpdateView):
                 and t.referee
                 and t.referee.has_testified
                 or a.referees.filter(
-                    Q(user=u) | Q(email__in=u.emailaddress_set.values("email"))
+                    Q(user=u) | Q(email__lower__in=u.emailaddress_set.values__list("email__lower"))
                 ).last()
             )
 
@@ -7689,9 +7712,7 @@ def export_score_sheet(request, round):
     elif file_type == "ods":
         content_type = "application/vnd.oasis.opendocument.spreadsheet"
 
-    filename = (
-        f'{r.scheme.code}-{request.person.code or request.user.username or "scoresheet"}.{file_type}'
-    )
+    filename = f'{r.scheme.code}-{request.person.code or request.user.username or "scoresheet"}.{file_type}'
     response = HttpResponse(book.export(file_type), content_type=content_type)
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response

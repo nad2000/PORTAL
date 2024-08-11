@@ -1,6 +1,7 @@
 from hashlib import md5
 from urllib.parse import urlencode
 
+from common.models import HelperMixin, PersonMixin, Title
 from allauth.socialaccount.models import SocialToken
 from django.conf import settings
 from django.contrib import admin
@@ -20,8 +21,6 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
-
-from common.models import HelperMixin, PersonMixin, Title
 
 
 class User(HelperMixin, PersonMixin, AbstractUser):
@@ -61,6 +60,12 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         on_delete=SET_NULL,
         default=HelperMixin.get_current_site_id,
     )
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.lower()
+
+        super().save(*args, **kwargs)
 
     @cached_property
     @admin.display(description=_("staff status"), boolean=True)
@@ -163,7 +168,7 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     def email_addresses(self):
         """All user email addresses"""
         # return [self.email, *(r[0] for r in self.emailaddress_set.values_list("email"))]
-        return [r for r, in self.emailaddress_set.values_list("email")]
+        return [r for r, in self.emailaddress_set.values_list("email__lower")]
 
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""
