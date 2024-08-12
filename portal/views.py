@@ -973,7 +973,7 @@ def check_profile(request, token=None):
                             "address that received the invitation."
                         ),
                     )
-                    return redirect(next_url or "home")
+                    return redirect(next_url or "start")
 
             else:
                 messages.warning(request, _("There is no invitation with the given token."))
