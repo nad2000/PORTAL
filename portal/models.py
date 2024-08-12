@@ -4251,7 +4251,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             | Q(member__user=user)
             | Q(referee__user=user)
             | Q(panellist__user=user)
-            | Q(email__lower__in=user.emailaddress_set.values__list("email__lower"))
+            | Q(email__lower__in=user.emailaddress_set.values_list("email__lower"))
         ).distinct()
 
     @classmethod

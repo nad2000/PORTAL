@@ -20,6 +20,7 @@
   {{ block.super }}
   <script>
     $(document).ready(function(){
+      $("#id_username").on("focus", this, setDefaultUsername);
       $('#signup-tab').on('shown.bs.tab', function (e) {
         // e.target // newly activated tab
         // e.relatedTarget // previous active tab

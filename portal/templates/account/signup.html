@@ -18,7 +18,8 @@
   {{ block.super }}
   <script>
     $(document).ready(function(){
-        $('#welcome').modal('show');
-      });
+      $("#id_username").on("focus", this, setDefaultUsername);
+      $('#welcome').modal('show');
+    });
   </script>
 {% endblock javascript %}

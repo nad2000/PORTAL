@@ -799,7 +799,7 @@ def index(request):
         outstanding_nominations = models.Nomination.where(
             Q(user=user)
             | Q(email__lower=user.email.lower())
-            | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__loerer"))),
+            | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__lower"))),
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
@@ -1389,7 +1389,7 @@ class ProfileCreate(ProfileView, CreateView):
         n = (
             models.Nomination.where(
                 Q(user=self.request.user)
-                | Q(email__lower__in=u.emailaddress_set.values__list("email__lower")),
+                | Q(email__lower__in=u.emailaddress_set.values_list("email__lower")),
                 state__in=["submitted", "sent", "bounced"],
             )
             .order_by("-id")
@@ -1677,7 +1677,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         return self.object.members.filter(
             Q(user=user)
             | Q(email__lower=user.email.lower())
-            | Q(email__lower__in=user.emailaddress_set.values__list("email__lower"))
+            | Q(email__lower__in=user.emailaddress_set.values_list("email__lower"))
         ).last()
 
     def get(self, request, *args, **kwargs):
@@ -1808,7 +1808,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         if a.members.filter(
             Q(user=u)
             | Q(email__lower=u.email.lower())
-            | Q(email__lower__in=u.emailaddress_set.values__list("email__lower")),
+            | Q(email__lower__in=u.emailaddress_set.values_list("email__lower")),
             # has_authorized__isnull=True,
             Q(state__isnull=True) | ~Q(state__in=["authorized", "opted_out"]),
         ).exists():
@@ -2285,7 +2285,7 @@ class ApplicationView(LoginRequiredMixin):
                 user=self.request.user, round=self.round, state="accepted"
             ).last()
             or models.Nomination.where(
-                email__lower__in=self.request.user.emailaddress_set.values__list("email__lower"),
+                email__lower__in=self.request.user.emailaddress_set.values_list("email__lower"),
                 round__scheme__current_round=F("round"),
             )
             .order_by("-id")
@@ -6124,7 +6124,7 @@ class TestimonialView(CreateUpdateView):
                 and t.referee
                 and t.referee.has_testified
                 or a.referees.filter(
-                    Q(user=u) | Q(email__lower__in=u.emailaddress_set.values__list("email__lower"))
+                    Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
                 ).last()
             )
 

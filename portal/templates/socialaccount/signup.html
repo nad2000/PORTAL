@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% load crispy_forms_tags i18n %}
+{% load crispy_forms_tags i18n static %}
 
 {% block breadcrumbs_content %}<div class="mt-3"></div>{% endblock %}
 {% block head_title %}{% trans "Signup" %}{% endblock %}
@@ -22,5 +22,14 @@
     {% endif %}
     <button class="btn btn-primary" type="submit">{% trans "Sign Up" %} &raquo;</button>
   </form>
-
 {% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/username.js' %}"></script>
+  <script>
+    $(document).ready(function(){
+      $("#id_username").on("focus", this, setDefaultUsername);
+    });
+  </script>
+{% endblock javascript %}
