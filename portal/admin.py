@@ -1403,6 +1403,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "first_name",
         "last_name",
         "email",
+        "testimonial__state",
         "application__number",
         "application__application_title",
     ]
@@ -2051,6 +2052,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
     list_filter = [
         "created_at",
         "state",
+        "referee__state",
         ("referee__application__round", admin.RelatedOnlyFieldListFilter),
         ("referee__application", admin.RelatedOnlyFieldListFilter),
         "referee__survey_completed_at",
