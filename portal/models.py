@@ -4415,7 +4415,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
             }
-            inviter = self.application and self.application.submitted_by and self.application.submitted_by.full_name or by.full_name
+            inviter = (
+                self.application
+                and self.application.submitted_by
+                and self.application.submitted_by.full_name
+                or by.full_name
+            )
             body = __(
                 "Tēnā koe,\n\n"
                 "You have been invited to join %(inviter)s's team for their %(site_name)s application. \n\n"
@@ -4445,7 +4450,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
             application = referee.application
-            inviter = application and self.application.submitted_by and self.application.submitted_by.full_name or by.full_name
+            inviter = (
+                application
+                and self.application.submitted_by
+                and self.application.submitted_by.full_name
+                or by.full_name
+            )
             contact_email = application.round.contact_email or site_contact_email(site_id)
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
@@ -4552,7 +4562,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             )
         elif self.type == INVITATION_TYPES.A:
             subject = "You have been nominated for %s" % self.nomination.round
-            inviter = self.nomination and self.nomination.nominator and self.nomination.nominator.full_name or by.full_name
+            inviter = (
+                self.nomination
+                and self.nomination.nominator
+                and self.nomination.nominator.full_name
+                or by.full_name
+            )
             body = (
                 "Tēnā koe,\n\n"
                 "Congratulations on being nominated for the %(round)s by %(inviter)s.\n\n"
@@ -6001,7 +6016,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         )
 
             # Re-sync testimonials with the referees:
-            if not self.testimonials_required:
+           if not self.testimonials_required:
                 updated_testimonials = []
                 description = f"Synced with LimeSurvey"
                 for r in Referee.where(

@@ -1161,7 +1161,7 @@ class ApplicationAdmin(
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
                         "is_bilingual",
-                        ("round", "panel") if obj and obj.site_id == 5 else"round",
+                        ("round", "panel") if obj and obj.site_id == 5 else "round",
                         ("title", "first_name", "middle_names", "last_name", "position"),
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
@@ -1428,7 +1428,11 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     readonly_fields = ("invitation_link",)
 
     def get_queryset(self, request):
-        return super().get_queryset(request).filter(application__round__scheme__current_round=F("application__round"))
+        return (
+            super()
+            .get_queryset(request)
+            .filter(application__round__scheme__current_round=F("application__round"))
+        )
 
     @admin.display(description="application", ordering="application__number")
     def application_number(self, obj):
@@ -2103,11 +2107,15 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
     def sync_referee_surveys(self, request, queryset):
         count = 0
         rounds = models.Round.where(
-            survey_id__isnull=False, pk__in=queryset.values_list("referee__application__round").distinct()
+            survey_id__isnull=False,
+            pk__in=queryset.values_list("referee__application__round").distinct(),
         )
         for r in rounds:
             count += r.sync_referee_surveys(
-                request=request, referees=models.Referee.where(pk__in=queryset.filter(referee__application__round=r).values_list("referee_id"))
+                request=request,
+                referees=models.Referee.where(
+                    pk__in=queryset.filter(referee__application__round=r).values_list("referee_id")
+                ),
             )
         if not count:
             messages.warning(request, "All referees and testimonials were already synced.")
