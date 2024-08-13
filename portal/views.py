@@ -2958,7 +2958,7 @@ class ApplicationView(LoginRequiredMixin):
                     if "send_invitations" in self.request.POST:
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         url = self.continue_url("referees")
-                        return redirect(url)
+                        # return redirect(url)
                     elif not update_only_referees:
                         if (
                             site_id == 4
@@ -2982,11 +2982,17 @@ class ApplicationView(LoginRequiredMixin):
                                 ),
                             )
 
+                breakpoint()
                 if "submit_to_referees" in self.request.POST or (
                     site_id != 5 or a.state in ["approved", "accepted"]
                 ):
-                    count = a.send_out_to_referees(request=self.request) or a.referees.count()
-                    a.save()
+                    if site_id != 5:
+                        count = a.invite_referees(
+                            request=self.request, dispatch_invitations=dispatch_invitations
+                        )
+                    else:
+                        count = a.send_out_to_referees(request=self.request) or a.referees.count()
+                        a.save()
                 else:
                     count = a.invite_referees(
                         request=self.request, dispatch_invitations=dispatch_invitations
@@ -3015,6 +3021,8 @@ class ApplicationView(LoginRequiredMixin):
                 messages.error(self.request, str(e))
                 return redirect(self.continue_url())
 
+            if url:
+                return redirect(url)
         return resp
 
     def get_context_data(self, **kwargs):
