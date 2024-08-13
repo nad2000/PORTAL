@@ -187,10 +187,6 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
                       </li>
                     {% endif %}
-                    <b>
-                      {{ user.username }} /
-                      {{ user.is_superuser }} / {{ user.is_site_staff }}
-                    </b>
                     {% if user.is_superuser or user.is_site_staff %}
                       <li class="nav-item" id="admin:index">
                         <a id="admin-link" class="nav-link" href="{% url 'admin:index' %}">
