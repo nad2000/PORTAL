@@ -1427,6 +1427,9 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
     readonly_fields = ("invitation_link",)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(application__round__scheme__current_round=F("application__round"))
+
     @admin.display(description="application", ordering="application__number")
     def application_number(self, obj):
         return obj.application.number

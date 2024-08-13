@@ -4415,6 +4415,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
             }
+            inviter = self.application and self.application.submitted_by and self.application.submitted_by.full_name or by.full_name
             body = __(
                 "Tēnā koe,\n\n"
                 "You have been invited to join %(inviter)s's team for their %(site_name)s application. \n\n"
@@ -4423,7 +4424,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "To review this invitation, please follow the link: %(url)s\n\n"
                 "Ngā mihi"
             ) % dict(
-                inviter=by.full_name,
+                inviter=inviter,
                 url=url,
                 site_name=site_name,
                 guidelines=self.application.round.get_applicant_guidelines(),
@@ -4435,7 +4436,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 'to read about the <a href="%(guidelines)s">application process</a>.</p>'
                 "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(link_name)s</a></p>"
             ) % dict(
-                inviter=by.full_name,
+                inviter=inviter,
                 url=url,
                 link_name=link_name,
                 site_name=site_name,
@@ -4444,6 +4445,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
             application = referee.application
+            inviter = application and self.application.submitted_by and self.application.submitted_by.full_name or by.full_name
             contact_email = application.round.contact_email or site_contact_email(site_id)
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
@@ -4495,7 +4497,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "Ngā mihi nui"
                 )
             ) % dict(
-                inviter=by.full_name,
+                inviter=inviter,
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
@@ -4535,7 +4537,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
             ) % dict(
-                inviter=by.full_name,
+                inviter=inviter,
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 link_name=link_name,
@@ -4550,6 +4552,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             )
         elif self.type == INVITATION_TYPES.A:
             subject = "You have been nominated for %s" % self.nomination.round
+            inviter = self.nomination and self.nomination.nominator and self.nomination.nominator.full_name or by.full_name
             body = (
                 "Tēnā koe,\n\n"
                 "Congratulations on being nominated for the %(round)s by %(inviter)s.\n\n"
@@ -4559,7 +4562,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "Ngā mihi nui"
             ) % dict(
                 round=self.nomination.round,
-                inviter=by.full_name,
+                inviter=inviter,
                 guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
             )
@@ -4572,7 +4575,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "<a href='%(url)s'>%(link_name)s</a><br></p></br>"
             ) % dict(
                 round=self.nomination.round,
-                inviter=by.full_name,
+                inviter=inviter,
                 guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
                 link_name=link_name,
