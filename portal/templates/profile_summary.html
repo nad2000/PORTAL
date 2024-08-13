@@ -9,12 +9,12 @@
   {% else %}
     {% breadcrumb "Profile" "profile" %}
   {% endif %}
-  {% breadcrumb user.full_name_with_email "profile-summary" username=user.username %}
+  {% breadcrumb profile_user.full_name_with_email "profile-summary" username=profile_user.username %}
 {% endblock %}
 
 {% block sidebar %}{% include 'sidebar.html' with category="profile" %}{% endblock sidebar %}
 
-{% block title %}User: {{ user.username }}{% endblock %}
+{% block title %}User: {{ profile_user.username }}{% endblock %}
 
 {% block content %}
   {% block section %}
@@ -34,23 +34,23 @@
             <tbody>
               <tr>
                 <td><b> {% trans 'Name' %}: </b></td>
-                <td>{{ user.full_name|default_if_none:"" }}</td>
+                <td>{{ profile_user.full_name|default_if_none:"" }}</td>
               </tr>
-              {% if user.email %}
+              {% if profile_user.email %}
                 <tr>
                   <td><b> {% trans 'Email' %}: </b></td>
                   <td>
-                    <a href="emailto:{{ user.email }}">{{ user.email }}</a>
+                    <a href="emailto:{{ profile_user.email }}">{{ profile_user.email }}</a>
                   </td>
                 </tr>
               {% endif %}
               <tr>
                 <td><b> {% trans 'ORCiD iD' %}: </b></td>
-                <td>{{ user.orcid|default_if_none:"" }}</td>
+                <td>{{ profile_user.orcid|default_if_none:"" }}</td>
               </tr>
               <tr>
                 <td><b> {% trans 'Username' %}: </b></td>
-                <td>{{ user.username|default_if_none:"" }}</td>
+                <td>{{ profile_user.username|default_if_none:"" }}</td>
               </tr>
             </tbody>
           </table>
@@ -194,14 +194,14 @@
          class="progress-bar"/>
     </div>
 
-    {% if user.is_approved %}
+    {% if profile_user.is_approved %}
       <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="{% trans 'User has been already approved' %}">
         <a class="btn btn-primary disabled mb-3" href="#" role="button">{% trans 'Approve' %}</a>
       </span>
     {% else %}
-      <form method="post" action="{% url 'approve-user' user_id=user.id %}">
+      <form method="post" action="{% url 'approve-user' user_id=profile_user.id %}">
         {% csrf_token %}
-        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <input type="hidden" name="user_id" value="{{ profile_user.id }}">
         <input type="submit" class="btn btn-primary mb-3" role="button" value="{% trans 'Approve' %}">
       </form>
     {% endif %}

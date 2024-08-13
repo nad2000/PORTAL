@@ -5714,6 +5714,7 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
     slug_field = "username"
     slug_url_kwarg = "username"
     template_name = "profile_summary.html"
+    context_object_name = "profile_user"
     user = None
 
     def get_context_data(self, **kwargs):
@@ -5730,7 +5731,7 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
                 ),
             )
 
-        context["user"] = user
+        # context["profile_user"] = user
         context["person"] = person
         context["image_url"] = user.image_url()
 
