@@ -2566,7 +2566,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "cancelled", "approved", "accepted"],
+        source=["submitted", "cancelled", "approved", "accepted", "in_review"],
         target="draft",
         custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
     )
