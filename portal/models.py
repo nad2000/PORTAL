@@ -2358,6 +2358,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # )
             # url = domain_to_macrons(url)
             url = self.get_full_detail_url(request=request)
+            link_name = domain_to_macrons(url)
             if self.site_id == 5:
                 html_message = (
                     "<p>Kia ora %(nominator)s</p>"
@@ -2378,6 +2379,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 % {
                     "nominator": nominator,
                     "url": url,
+                    "link_name": link_name,
                     "number": self.number,
                     "title": self.application_title or round.title,
                 },
@@ -2395,7 +2397,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
         elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
-            url = domain_to_macrons(url)
+            link_name = domain_to_macrons(url)
             url = self.get_full_detail_url(request=request)
             send_mail(
                 __("Application '%s' Submitted") % self,
@@ -2407,6 +2409,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 % {
                     "nominator": nominator,
                     "url": url,
+                    "link_name": link_name,
                     "number": self.number,
                     "title": self.application_title or round.title,
                 },
@@ -2505,7 +2508,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         url = request.build_absolute_uri(
             reverse("application-detail", kwargs={"number": self.number})
         )
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         if not resolution:
             resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
         subject = f'Application "{self}" was ACCEPTED'
@@ -2518,6 +2521,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution,
         }
         # send_mail(
@@ -2601,13 +2605,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.application_title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
@@ -2687,7 +2692,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         url = request.build_absolute_uri(
             reverse("application-detail", kwargs={"number": self.number})
         )
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(
                 r if isinstance(r, str) else r.full_name for r in recipients
@@ -2696,6 +2701,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "user": by and by.full_name_with_email,
             "title": self.application_title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
@@ -2751,13 +2757,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
@@ -2812,13 +2819,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         # send_mail(
@@ -4394,7 +4402,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             url = request.build_absolute_uri(url)
         else:
             url = urljoin(f"https://{site.domain}", url)
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         self.url = url
 
         # TODO: handle the rest of types
@@ -4425,10 +4433,11 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "%(site_name)s application.</p>"
                 "<p>Before you click on the portal link we strongly advise you "
                 'to read about the <a href="%(guidelines)s">application process</a>.</p>'
-                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a></p>"
+                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(link_name)s</a></p>"
             ) % dict(
                 inviter=by.full_name,
                 url=url,
+                link_name=link_name,
                 site_name=site_name,
                 guidelines=self.application.round.get_applicant_guidelines(),
             )
@@ -4450,7 +4459,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else:
                     survey_url = urljoin(f"https://{site.domain}", survey_url)
                 survey_url = f"{survey_url}?token={self.token}"
-                survey_url = domain_to_macrons(survey_url)
+                surveyi_link_name = domain_to_macrons(survey_url)
 
             application_url = reverse(
                 "application-detail", kwargs={"number": referee.application.number}
@@ -4459,7 +4468,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 application_url = request.build_absolute_uri(application_url)
             else:
                 application_url = urljoin(f"https://{site.domain}", application_url)
-            application_url = domain_to_macrons(application_url)
+            application_link_name = domain_to_macrons(application_url)
 
             body = (
                 (
@@ -4489,7 +4498,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
+                surveyi_link_name=surveyi_link_name,
                 application_url=application_url,
+                application_link_name=application_link_name,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.guidelines,
@@ -4504,8 +4515,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
                     "<p>Please fill out the <strong>referee report/survey</strong> at \n"
-                    "<a href='%(survey_url)s'>%(survey_url)s</a> "
-                    'after reviewing the application at <a href="%(application_url)s">%(application_url)s</a>.</p>\n'
+                    "<a href='%(survey_url)s'>%(surveyi_link_name)s</a> "
+                    'after reviewing the application at <a href="%(application_url)s">%(application_link_name)s</a>.</p>\n'
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
@@ -4518,7 +4529,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
                     "<p><strong>To review this invitation, you are required to follow the portal link</strong>: "
-                    "<a href='%(url)s'>%(url)s</a> after you have read about the process.</p>"
+                    "<a href='%(url)s'>%(link_name)s</a> after you have read about the process.</p>"
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
@@ -4526,8 +4537,11 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 inviter=by.full_name,
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
+                link_name=link_name,
                 survey_url=survey_url,
+                surveyi_link_name=surveyi_link_name,
                 application_url=application_url,
+                application_link_name=application_link_name,
                 site_name=site_name,
                 application=self.referee.application,
                 guidelines=self.referee.guidelines,
@@ -4554,12 +4568,13 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "<p>Before you click on the portal link we strongly advise you "
                 'to read about the <a href="%(guidelines)s">application process</a>.</p>'
                 "<p>To accept the nomination, please follow the portal link: "
-                "<a href='%(url)s'>%(url)s</a><br></p></br>"
+                "<a href='%(url)s'>%(link_name)s</a><br></p></br>"
             ) % dict(
                 round=self.nomination.round,
                 inviter=by.full_name,
                 guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
+                link_name=link_name,
             )
         elif self.type == INVITATION_TYPES.P:
             subject = __("You are invited to be a Panellist for the %(site_name)s") % {
@@ -4582,9 +4597,10 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "<p>We strongly advise clicking on the Panellist Guidelines <strong>before</strong> clicking  "
                 "on the portal link below.</p>"
                 "<p><a href='%(guidelines)s'>Panellist Guidelines</a></p>"
-                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a></p>"
+                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(link_name)s</a></p>"
             ) % {
                 "url": url,
+                "link_name": link_name,
                 "site_name": site.name,
                 "guidelines": self.panellist.guidelines,
             }
@@ -4592,15 +4608,15 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You have been given access to the %(site_name)s portal") % {
                 "site_name": site_name
             }
-            body = __(
+            body = (
                 "Tēnā koe,\n\n You have been given access to the %(site_name)s portal.\n\n"
                 "To confirm this access, please follow the link: %(url)s \n\n"
                 "Ngā mihi"
             ) % {"site_name": site_name, "url": url}
-            html_body = __(
+            html_body = (
                 "Tēnā koe,<br><br>You have been given access to the %(site_name)s portal.<br><br>"
-                "To confirm this access, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % {"url": url, "site_name": site_name}
+                "To confirm this access, please follow the link: <a href='%(url)s'>%(link_name)s</a><br>"
+                ) % {"url": url, "link_name": link_name, "site_name": site_name}
 
         resp = send_mail(
             subject,

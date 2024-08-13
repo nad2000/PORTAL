@@ -250,9 +250,11 @@ def send_mail(
         domain = request and request.get_host() or site.domain
     # if ":" in domain:
     #     domain = domain.split(":")[0]
+    utf_domain = domain
     if domain and domain.startswith("xn--"):
-        domain = domain.encode().decode("idna")
+        utf_domain = domain.encode().decode("idna")
     root = f"https://{domain}"
+    utf_root = f"https://{domain}"
     if recipients and isinstance(recipients, (list, tuple)):
         recipients = [
             (
@@ -285,6 +287,7 @@ def send_mail(
         if not html_footer:
             html_footer = DEFAULT_SITE_HTML_FOOTER.get(site.domain, DEFAULT_HTML_FOOTER) % {
                 "domain": domain,
+                "utf_domain": utf_domain,
                 "site_name": site.name,
                 "logo_url": (
                     f"{urljoin(root, 'static/images/alt_logo.jpg')}"
