@@ -3607,7 +3607,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    state = StateField(_("state"), null=True, blank=True, default="new")
+    state = StateField(_("referee state"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     testified_at = MonitorField(
         monitor="state", when=["testified"], null=True, blank=True, default=None
@@ -4617,7 +4617,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             html_body = (
                 "Tēnā koe,<br><br>You have been given access to the %(site_name)s portal.<br><br>"
                 "To confirm this access, please follow the link: <a href='%(url)s'>%(link_name)s</a><br>"
-                ) % {"url": url, "link_name": link_name, "site_name": site_name}
+            ) % {"url": url, "link_name": link_name, "site_name": site_name}
 
         resp = send_mail(
             subject,
@@ -4850,7 +4850,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         on_delete=RESTRICT,
         verbose_name=_("curriculum vitae"),
     )
-    state = StateField(_("state"), default="new")
+    state = StateField(_("testimonial state"), default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
 
     @cached_property
@@ -5919,7 +5919,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 },
             )
             if isinstance(resp, dict) and resp.get("status") == "No survey participants found.":
-                return 0
+                # return 0
+                resp = []
             participants = {
                 p["token"]: {
                     "completed_at": (
@@ -5933,6 +5934,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 for p in resp
             }
             updated_referees = []
+            updated_testimonials = []
             for r in q:
                 p = participants.get(r.survey_token)
                 if not p or not p["completed_at"]:
@@ -5963,6 +5965,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 with transaction.atomic():
 
                     if not self.testimonials_required:
+                        updated_testimonials = []
                         testimonials = Testimonial.where(
                             ~Q(state="submitted"), referee__in=[r.pk for r in updated_referees]
                         )
@@ -5971,8 +5974,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                                 description = f"Synced with LimeSurvey"
                                 t.submit(by=r.user, description=description, commit=False)
                                 t._change_reason = description
+                                updated_testimonials.append(t)
                             bulk_update_with_history(
-                                testimonials,
+                                updated_testimonials,
                                 Testimonial,
                                 ["state", "state_changed_at", "updated_at"],
                                 default_user=request and request.user,
@@ -5992,11 +5996,39 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                             default_user=request and request.user,
                             default_change_reason="Synced with LimeSurvey",
                         )
+
+            # Re-sync testimonials with the referees:
+            if not self.testimonials_required:
+                updated_testimonials = []
+                description = f"Synced with LimeSurvey"
+                for r in Referee.where(
+                    Q(Q(testimonial__isnull=True) | ~Q(testimonial__state="submitted")),
+                    state="testified",
+                    application__round=self,
+                ):
+                    t, _ = Testimonial.get_or_create(referee=r)
+                    if t.state != "submitted":
+                        t.submit(
+                            by=r.user or request.user,
+                            description=description,
+                            commit=False,
+                            request=request,
+                        )
+                        t._change_reason = description
+                        updated_testimonials.append(t)
+                bulk_update_with_history(
+                    updated_testimonials,
+                    Testimonial,
+                    ["state", "state_changed_at", "updated_at"],
+                    default_user=request and request.user,
+                    default_change_reason="Synced with LimeSurvey",
+                )
+
         except Exception as ex:
             messages.error(request, f"{ex}")
             raise
         else:
-            count = len(updated_referees)
+            count = len(updated_referees) or len(updated_testimonials)
             if request:
                 if count:
                     messages.info(

@@ -332,8 +332,8 @@
       </tr>
     {% endif %}
     {#% if nominator or user.is_superuser or user.is_site_staff or a|can_edit:user %#}
-    {% if nominator or  a|can_edit:user %}
 
+    {% if nominator or  a|can_edit:user %}
 	  {% with nomination=a.nomination %}
 		{% if nomination %}
 		  <tr>
@@ -346,10 +346,9 @@
 		  </tr>
 		{% endif %}
 	  {% endwith %}
-
     {% endif %}
-
-    {% if SITE_ID != 5 or not is_ro %}{% if r.has_referees and  a.referees.all.count and a|can_see_referees:u %}
+    
+    {% if SITE_ID != 5 or not is_ro or u.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Referees' %}</th>
         <td colspan="3">
@@ -362,6 +361,9 @@
                   </a>
                 {% else %}
                   {{ r | person_with_email }}
+                {% endif %}
+                {% if not show_basic_details %}
+                  {% if r.state_changed_at %}{{ r|field_value:'state' }}{% else %}&lt;<strong>{{ r.get_state_display|upper }}</strong>&gt;{% endif %}
                 {% endif %}
               </li>
             {% endfor %}

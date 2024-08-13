@@ -1403,7 +1403,6 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "first_name",
         "last_name",
         "email",
-        "testimonial__state",
         "application__number",
         "application__application_title",
     ]
@@ -1412,6 +1411,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "survey_completed_at",
         "testified_at",
         "state",
+        "testimonial__state",
         ("application__round", admin.RelatedOnlyFieldListFilter),
     ]
     date_hierarchy = "testified_at"
@@ -2095,6 +2095,23 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.referee.application_id})
+
+    @admin.action(description="Sync with the LimeSurvey surveys")
+    def sync_referee_surveys(self, request, queryset):
+        count = 0
+        rounds = models.Round.where(
+            survey_id__isnull=False, pk__in=queryset.values_list("referee__application__round").distinct()
+        )
+        for r in rounds:
+            count += r.sync_referee_surveys(
+                request=request, referees=models.Referee.where(pk__in=queryset.filter(referee__application__round=r).values_list("referee_id"))
+            )
+        if not count:
+            messages.warning(request, "All referees and testimonials were already synced.")
+        if rounds.count() > 1:
+            messages.info(request, f"In total synced {count} referee(s) and testimonial(s)")
+
+    actions = ["sync_referee_surveys"]
 
 
 class SchemeResource(ModelResource):

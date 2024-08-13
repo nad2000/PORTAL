@@ -1857,6 +1857,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             context["can_reenter"] = True
             context["current_round"] = current_round
 
+        if is_owner or is_ro or u.is_superuser or u.is_site_staff:
+            context["referees"] = a.referees.all()
+
         context["was_submitted"] = a.state in [
             "submitted",
             "approved",
