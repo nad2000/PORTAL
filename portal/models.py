@@ -4448,6 +4448,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
+            surveyi_link_name = None
             if survey_url := (
                 referee.user
                 and referee.application.round.survey_id
