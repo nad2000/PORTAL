@@ -2982,7 +2982,6 @@ class ApplicationView(LoginRequiredMixin):
                                 ),
                             )
 
-                breakpoint()
                 if "submit_to_referees" in self.request.POST or (
                     site_id != 5 or a.state in ["approved", "accepted"]
                 ):
