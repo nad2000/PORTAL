@@ -77,7 +77,7 @@ if __name__ == "__main__":
                         from_addresses.append(final_recipient)
 
             pass
-        if content_type == "message/disposition-notification":
+        if content_type == "message/disposition-notification" or ("Read: " in subject and content_type == "application/ms-tnef"):
             for p in part.walk():
                 message_id = p["original-message-id"]
                 if not body:
@@ -141,6 +141,7 @@ if __name__ == "__main__":
                 if (
                     content_type == "message/disposition-notification"
                     or "read:" in subject_lower
+                    or ("Read: " in subject and content_type == "application/ms-tnef")
                     or not (
                         "undelivered" in subject_lower
                         or "fail" in subject_lower
@@ -160,7 +161,7 @@ if __name__ == "__main__":
                         ).first()
                         or ml.user
                     )
-                    if content_type == "message/disposition-notification":
+                    if content_type == "message/disposition-notification" or ("Read: " in subject and content_type == "application/ms-tnef"):
                         ml.invitation.mark_read(
                             by=by,
                             description=subject,
