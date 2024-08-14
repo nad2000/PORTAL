@@ -65,10 +65,18 @@ if __name__ == "__main__":
         body = msg.get_payload(decode=True)
 
     message_id = message_id or msg["references"] or msg["in-reply-to"]
+    has_disposition_notification = any(
+        p.get_content_type() == "message/disposition-notification" for p in msg.walk()
+    )
+    has_ms_tnef = any(p.get_content_type() == "application/ms-tnef" for p in msg.walk())
+    has_delivery_status = any(
+        p.get_content_type() == "message/delivery-status" for p in msg.walk()
+    )
 
     for part in msg.walk():
         content_type = part.get_content_type()
-        if content_type == "message/delivery-status":
+
+        if has_delivery_status:
             for line in part.as_string().splitlines():
                 if line and re.search(r"(final-recipient|original-recipient)", line, re.I):
                     match = re.search(EMAIL_EX, line, re.I)
@@ -76,10 +84,9 @@ if __name__ == "__main__":
                         final_recipient = match[0].lower()
                         from_addresses.append(final_recipient)
 
-            pass
-        if content_type == "message/disposition-notification" or ("Read: " in subject and content_type == "application/ms-tnef"):
+        if has_disposition_notification or ("Read: " in subject and has_ms_tnef):
             for p in part.walk():
-                message_id = p["original-message-id"]
+                message_id = p["original-message-id"] or part["in-reply-to"]
                 if not body:
                     body = p.get_payload(decode=True)
                 if message_id:
@@ -98,10 +105,13 @@ if __name__ == "__main__":
             )
         if not message_id:
             continue
+
         if "@" in message_id:
             message_id = message_id.split("@")[0][1:]
+
         if not message_id:
             continue
+
         ml = (
             models.MailLog.all_objects.filter(
                 models.Q(recipient__in=from_addresses)
@@ -139,9 +149,9 @@ if __name__ == "__main__":
                         )
                 subject_lower = subject.lower()
                 if (
-                    content_type == "message/disposition-notification"
+                    (has_disposition_notification)
+                    or ("Read: " in subject and has_ms_tnef)
                     or "read:" in subject_lower
-                    or ("Read: " in subject and content_type == "application/ms-tnef")
                     or not (
                         "undelivered" in subject_lower
                         or "fail" in subject_lower
@@ -161,7 +171,8 @@ if __name__ == "__main__":
                         ).first()
                         or ml.user
                     )
-                    if content_type == "message/disposition-notification" or ("Read: " in subject and content_type == "application/ms-tnef"):
+
+                    if (has_disposition_notification) or ("Read: " in subject and has_ms_tnef):
                         ml.invitation.mark_read(
                             by=by,
                             description=subject,
@@ -232,9 +243,9 @@ if __name__ == "__main__":
                         or a.submitted_by == by
                         or a.members.filter(user=by).exists()
                     ):
-                        recipients = [
-                            u for u in site.staff_users.all()
-                        ] or [u for u in models.User.where(is_superuser=True)]
+                        recipients = [u for u in site.staff_users.all()] or [
+                            u for u in models.User.where(is_superuser=True)
+                        ]
                     else:
                         a = contract.application
                         recipients = (
