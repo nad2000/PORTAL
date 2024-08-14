@@ -945,10 +945,11 @@ class ApplicationAdmin(
         "referees__email",
     ]
     autocomplete_fields = [
-        "submitted_by",
+        "address",
         "cv",
         "org",
-        "address",
+        "panel",
+        "submitted_by",
     ]
     # summernote_fields = ["summary"]
     exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
@@ -1161,7 +1162,7 @@ class ApplicationAdmin(
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
                         "is_bilingual",
-                        ("round", "panel") if obj and obj.site_id == 5 else "round",
+                        ("round", "panel") if obj and obj.round and obj.round.can_specify_panel else "round",
                         ("title", "first_name", "middle_names", "last_name", "position"),
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
