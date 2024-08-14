@@ -6016,31 +6016,48 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         )
 
             # Re-sync testimonials with the referees:
-           if not self.testimonials_required:
-                updated_testimonials = []
-                description = f"Synced with LimeSurvey"
-                for r in Referee.where(
-                    Q(Q(testimonial__isnull=True) | ~Q(testimonial__state="submitted")),
-                    state="testified",
-                    application__round=self,
-                ):
-                    t, _ = Testimonial.get_or_create(referee=r)
-                    if t.state != "submitted":
-                        t.submit(
-                            by=r.user or request.user,
-                            description=description,
-                            commit=False,
-                            request=request,
+            updated_testimonials = []
+            description = "Synced with LimeSurvey"
+            for r in Referee.where(
+                (
+                    Q(
+                        ~Q(testimonial__state="submitted") | Q(state_changed_at__isnull=True),
+                        testimonial__file__isnull=False,
+                    )
+                    if self.testimonials_required
+                    else Q(
+                        Q(testimonial__isnull=True)
+                        | ~Q(testimonial__state="submitted")
+                        | Q(state_changed_at__isnull=True),
+                    )
+                ),
+                state="testified",
+                application__round=self,
+            ):
+                t, _ = Testimonial.get_or_create(referee=r)
+                if t.state != "submitted":
+                    t.submit(
+                        by=r.user or request.user,
+                        description=description,
+                        commit=False,
+                        request=request,
+                    )
+                    t._change_reason = description
+                    if not t.state_changed_at:
+                        t.state_changed_at = max(
+                            filter(
+                                lambda d: d,
+                                [r.survey_completed_at, r.testified_at, r.state_changed_at],
+                            )
                         )
-                        t._change_reason = description
-                        updated_testimonials.append(t)
-                bulk_update_with_history(
-                    updated_testimonials,
-                    Testimonial,
-                    ["state", "state_changed_at", "updated_at"],
-                    default_user=request and request.user,
-                    default_change_reason="Synced with LimeSurvey",
-                )
+                    updated_testimonials.append(t)
+            bulk_update_with_history(
+                updated_testimonials,
+                Testimonial,
+                ["state", "state_changed_at", "updated_at"],
+                default_user=request and request.user,
+                default_change_reason="Synced with LimeSurvey",
+            )
 
         except Exception as ex:
             messages.error(request, f"{ex}")

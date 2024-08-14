@@ -59,7 +59,11 @@
     <i class="fas fa-database"></i>
     DB Explorer
   </a> /
-
+  {% if LIMESURVEY_ADMIN_URL %}
+    <a id="limesurvey-admin-link" href="{{ LIMESURVEY_ADMIN_URL }}">
+      <img src="{% static 'images/limesurvey.png' %}" width="12" height="12" class="d-inline-block align-top" alt="LimeSurvey"> LimeSurvey
+    </a> /
+  {% endif %}
   {% if site_url %}
       <a href="{{ site_url }}">
         <i class="fa fa-fw fa-home"></i>

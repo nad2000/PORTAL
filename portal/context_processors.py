@@ -30,8 +30,8 @@ def portal_context(request):
         cache_key = f"{u.username}:{site_id}"
         cache_control = request.META.get("HTTP_CACHE_CONTROL")
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
-            stats = cache.get(cache_key)
-        if has_refreshed or not stats or view_name == "start":
+            context = cache.get(cache_key)
+        if has_refreshed or not context or view_name == "start":
             is_ro = models.ResearchOffice.where(user=u).exists()
             is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
@@ -64,7 +64,7 @@ def portal_context(request):
                 + application_funded_count
                 + application_in_review_count
             )
-            stats = {
+            context = {
                 "is_staff": is_staff,
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_draft_count": application_draft_count,
@@ -91,19 +91,19 @@ def portal_context(request):
                 "is_ro": is_ro,
             }
             if site_id == 5:
-                stats["application_in_review_count"] = application_in_review_count
+                context["application_in_review_count"] = application_in_review_count
             if site_id in [4, 5] and (is_staff or u.is_superuser):
                 application_approved_count = models.Application.user_application_count(
                     u, "approved"
                 )
-                stats["application_approved_count"] = application_approved_count
+                context["application_approved_count"] = application_approved_count
                 application_count += application_approved_count
-            stats["application_count"] = application_count
+            context["application_count"] = application_count
             if is_ro or u.is_superuser or u.is_staff or u.is_site_staff:
-                stats["contract_count"] = models.Contract.objects.count()
+                context["contract_count"] = models.Contract.objects.count()
 
             # if outstanding_testimonial_requests:
-            #     stats["outstanding_testimonial_requests"] = outstanding_testimonial_requests
+            #     context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or u.is_staff):
                 with connection.cursor() as cursor:
                     cursor.execute(
@@ -116,15 +116,15 @@ def portal_context(request):
                         [u.id, u.id, u.id],
                     )
                     row = cursor.fetchone()
-                stats["has_testimonials"] = row[0]
-                stats["has_reviews"] = row[1]
-                stats["has_nominations"] = row[2]
+                context["has_testimonials"] = row[0]
+                context["has_reviews"] = row[1]
+                context["has_nominations"] = row[2]
             is_canonical = domain == request.get_host()
             schema = "https" if request.is_secure() else "http"
             port = request.get_port()
             port = "" if port in [80, 433] else f":{port}"
             if request.user.is_superuser:
-                stats["all_sites"] = [
+                context["all_sites"] = [
                     dict(
                         site_id=a.site_id,
                         domain=(
@@ -158,8 +158,12 @@ def portal_context(request):
                         ),
                     )
                 ]
-            cache.set(cache_key, stats)
-        context.update(stats)
+                if site_id in [4, 5]:
+                    context["LIMESURVEY_ADMIN_URL"] = (
+                        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+                    )
+            cache.set(cache_key, context)
+        context.update(context)
     return context
 
 
