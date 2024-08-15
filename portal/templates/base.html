@@ -198,6 +198,13 @@ table.table .asteriskField,.popover-header {color: gray;}
                             <i class="fas fa-database"></i> {% trans "DB Explorer" %}</a>
                         </li>
                       {#% endif %#}
+                      {% if LIMESURVEY_ADMIN_URL %}
+                        <li class="nav-item" id="limesurvey-admin_id">
+                          <a id="limesurvey-admin-link" class="nav-link" href="{{ LIMESURVEY_ADMIN_URL }}">
+                            <img src="{% static 'images/limesurvey.png' %}" width="19" height="19" class="d-inline-block align-top" alt="LimeSurvey"> {% trans "LimeSurvey" %}
+                          </a>
+                        </li>
+                      {% endif %}
                       <li class="nav-item" id="invitation-create">
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'invitation-create' %}">

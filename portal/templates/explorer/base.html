@@ -1,4 +1,5 @@
 {% extends "explorer/base.html" %}
+{% load static %}
 
 {% block extrastyle %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
@@ -15,6 +16,13 @@
        >
        <i class="fas fa-radiation"></i> Portal Admin</a>
   </li>
+  {% if LIMESURVEY_ADMIN_URL %}
+    <li class="nav-item" id="limesurvey-admin_id">
+      <a id="limesurvey-admin-link" class="nav-link" href="{{ LIMESURVEY_ADMIN_URL }}">
+        <img src="{% static 'images/limesurvey.png' %}" width="19" height="19" class="d-inline-block align-top" alt="LimeSurvey"> LimeSurvey
+      </a>
+    </li>
+  {% endif %}
   <li class="nav-item" id="index">
     <a id="admin-link"
        class="nav-link"

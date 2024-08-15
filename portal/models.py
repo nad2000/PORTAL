@@ -6,8 +6,6 @@ import re
 import secrets
 import ssl
 import subprocess
-
-# import sys
 import tempfile
 import time
 from collections import OrderedDict
@@ -18,7 +16,6 @@ from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-# import odfdo as od
 import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
@@ -59,7 +56,6 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
-    IntegerField,
     Manager,
     ManyToManyField,
     OneToOneField,
@@ -76,7 +72,7 @@ from django.db.models import (
     aggregates,
     prefetch_related_objects,
 )
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast, Coalesce, Lower
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
@@ -88,8 +84,6 @@ from django_fsm_log.helpers import FSMLogDescriptor
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
-
-# from odfdo import Column, Document, Header, List, ListItem, Paragraph, Table
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
@@ -2094,7 +2088,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         """Is user the mail applicant or a member."""
         return (
             self.submitted_by == user
-            or self.members.all().filter(Q(user=user) | Q(email=user.email)).exists()
+            or self.members.all()
+            .filter(Q(user=user) | Q(email__lower=user.email.lower()))
+            .exists()
         )
 
     def user_can_view(self, user):
@@ -2106,11 +2102,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 hasattr(self, "nomination")
                 and (self.nomination.nominator == user or self.nomination.user == user)
             )
-            or (self.referees.filter(Q(user=user) | Q(email=user.email)).exists())
-            or (self.round.panellists.filter(Q(user=user) | Q(email=user.email)).exists())
+            or (self.referees.filter(Q(user=user) | Q(email__lower=user.email.lower())).exists())
+            or (
+                self.round.panellists.filter(
+                    Q(user=user) | Q(email__lower=user.email.lower())
+                ).exists()
+            )
             or (self.org.research_offices.filter(user=user).exists())
             or self.members.all()
-            .filter(Q(email__in=user.emailaddress_set.values_list("email")))
+            .filter(Q(email__lower__in=user.emailaddress_set.values_list("email__lower")))
             .exists()
         )
 
@@ -2358,6 +2358,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # )
             # url = domain_to_macrons(url)
             url = self.get_full_detail_url(request=request)
+            link_name = domain_to_macrons(url)
             if self.site_id == 5:
                 html_message = (
                     "<p>Kia ora %(nominator)s</p>"
@@ -2378,6 +2379,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 % {
                     "nominator": nominator,
                     "url": url,
+                    "link_name": link_name,
                     "number": self.number,
                     "title": self.application_title or round.title,
                 },
@@ -2395,7 +2397,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
         elif round.notify_nominator and nominator:
             url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
-            url = domain_to_macrons(url)
+            link_name = domain_to_macrons(url)
             url = self.get_full_detail_url(request=request)
             send_mail(
                 __("Application '%s' Submitted") % self,
@@ -2407,6 +2409,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 % {
                     "nominator": nominator,
                     "url": url,
+                    "link_name": link_name,
                     "number": self.number,
                     "title": self.application_title or round.title,
                 },
@@ -2505,7 +2508,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         url = request.build_absolute_uri(
             reverse("application-detail", kwargs={"number": self.number})
         )
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         if not resolution:
             resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
         subject = f'Application "{self}" was ACCEPTED'
@@ -2518,6 +2521,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution,
         }
         # send_mail(
@@ -2566,7 +2570,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "cancelled", "approved", "accepted"],
+        source=["submitted", "cancelled", "approved", "accepted", "in_review"],
         target="draft",
         custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
     )
@@ -2601,13 +2605,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.application_title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
@@ -2687,7 +2692,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         url = request.build_absolute_uri(
             reverse("application-detail", kwargs={"number": self.number})
         )
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(
                 r if isinstance(r, str) else r.full_name for r in recipients
@@ -2696,6 +2701,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             "user": by and by.full_name_with_email,
             "title": self.application_title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
@@ -2751,13 +2757,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         recipients = [self.submitted_by, *self.members.all()]
         url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         send_mail(
@@ -2812,13 +2819,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             recipients.append(nominator)
         url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
             "number": self.number,
             "user": by and by.full_name_with_email,
             "title": self.title or self.round.title,
             "url": url,
+            "link_name": link_name,
             "resolution": resolution or "Requested for reviewing and re-drafting.",
         }
         # send_mail(
@@ -3459,7 +3467,7 @@ class Member(PersonMixin, MemberMixin, Model):
             raise ValidationError(_("Missing application"))
         if application.pk:
             member_id = getattr(self, "id", None)
-            q = application.members.filter(email=self.email)
+            q = application.members.filter(email__lower=self.email.lower())
             if member_id:
                 q = q.filter(~Q(id=member_id))
             if q.exists():
@@ -3599,7 +3607,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    state = StateField(_("state"), null=True, blank=True, default="new")
+    state = StateField(_("referee state"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     testified_at = MonitorField(
         monitor="state", when=["testified"], null=True, blank=True, default=None
@@ -3627,7 +3635,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             raise ValidationError(_("Missing application"))
         referee_id = getattr(self, "id", None)
         if application and application.pk:
-            q = application.referees.filter(email=self.email)
+            q = application.referees.filter(email__lower=self.email.lower())
             if referee_id:
                 q = q.filter(~Q(id=referee_id))
             if q.exists():
@@ -3656,7 +3664,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             referees = list(
                 cls.where(
                     ~Q(state__in=["testified", "accepted", "opted_out"]),
-                    ~Q(invitation__email=F("email")),
+                    ~Q(invitation__email__lower=Lower("email")),
                     application=application,
                 ).prefetch_related("application", "application__submitted_by")
             )
@@ -3709,7 +3717,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
             u = self.user
-            if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
+            if not u and (
+                ea := EmailAddress.objects.filter(email__lower=self.email.lower()).first()
+            ):
                 u = ea.user
             first_name = self.first_name or u and u.first_name or ""
             last_name = self.last_name or u and u.last_name or ""
@@ -3859,6 +3869,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
             [user.id, user.id],
         )
 
+    @cached_property
+    def guidelines(self):
+        return self.application.round.get_referee_guidelines()
+
     class Meta:
         db_table = "referee"
         unique_together = ["application", "email"]
@@ -3942,10 +3956,14 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         if ml := MailLog.where(invitation__panellist=self, error__isnull=False).last():
             return ml.error
 
+    @cached_property
+    def guidelines(self):
+        return self.round.get_panellist_guidelines()
+
     # TODO: refactor and move to a common mixin
     def get_or_create_invitation(self, by=None):
-        u = self.user or User.objects.filter(email=self.email).first()
-        if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
+        u = self.user or User.objects.filter(email__lower=self.email.lower()).first()
+        if not u and (ea := EmailAddress.objects.filter(email__lower=self.email.lower()).first()):
             u = ea.user
         first_name = self.first_name or u and u.first_name or ""
         last_name = self.last_name or u and u.last_name or ""
@@ -3967,7 +3985,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
             return Invitation.get_or_create(
                 type=INVITATION_TYPES.P,
                 panellist=self,
-                email=self.email,
+                email=self.email.lower(),
                 defaults=dict(
                     panellist=self,
                     round=self.round,
@@ -4236,12 +4254,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     def user_inviations(cls, user):
         """All invitations sent to the user"""
         return cls.where(
-            Q(email=user.email)
+            Q(email__lower=user.email.lower())
             | Q(nomination__user=user)
             | Q(member__user=user)
             | Q(referee__user=user)
             | Q(panellist__user=user)
-            | Q(email__in=user.emailaddress_set.values("email"))
+            | Q(email__lower__in=user.emailaddress_set.values_list("email__lower"))
         ).distinct()
 
     @classmethod
@@ -4270,8 +4288,10 @@ class Invitation(InvitationMixin, PersonMixin, Model):
 
     @classmethod
     def get_or_create_referee_invitation(cls, referee, by=None):
-        u = referee.user or User.objects.filter(email=referee.email).first()
-        if not u and (ea := EmailAddress.objects.filter(email=referee.email).first()):
+        u = referee.user or User.objects.filter(email__lower=referee.email.lower()).first()
+        if not u and (
+            ea := EmailAddress.objects.filter(email__lower=referee.email.lower()).first()
+        ):
             u = ea.user
         if not referee.user and u:
             referee.user = u
@@ -4306,7 +4326,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         i, created = cls.get_or_create(
             type=INVITATION_TYPES.R,
             referee=referee,
-            email=referee.email,
+            email=referee.email.lower(),
             defaults=dict(
                 inviter=by,
                 application=referee.application,
@@ -4382,7 +4402,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             url = request.build_absolute_uri(url)
         else:
             url = urljoin(f"https://{site.domain}", url)
-        url = domain_to_macrons(url)
+        link_name = domain_to_macrons(url)
         self.url = url
 
         # TODO: handle the rest of types
@@ -4395,24 +4415,52 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
             }
+            inviter = (
+                self.application
+                and self.application.submitted_by
+                and self.application.submitted_by.full_name
+                or by.full_name
+            )
             body = __(
                 "Tēnā koe,\n\n"
-                "You have been invited to join %(inviter)s's team for their %(site_name)s application. "
-                "\n\nTo review this invitation, please follow the link: %(url)s\n\n"
+                "You have been invited to join %(inviter)s's team for their %(site_name)s application. \n\n"
+                "Before you click on the portal link we strongly advise you "
+                "to read about the application process: %(guidelines)s.\n\n"
+                "To review this invitation, please follow the link: %(url)s\n\n"
                 "Ngā mihi"
-            ) % dict(inviter=by.full_name, url=url, site_name=site_name)
+            ) % dict(
+                inviter=inviter,
+                url=url,
+                site_name=site_name,
+                guidelines=self.application.round.get_applicant_guidelines(),
+            )
             html_body = __(
-                "Tēnā koe,<br><br>You have been invited to join %(inviter)s's team for their "
-                "%(site_name)s application.<br><br>"
-                "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % dict(inviter=by.full_name, url=url, site_name=site_name)
+                "<p>Tēnā koe,</p><p>You have been invited to join %(inviter)s's team for their "
+                "%(site_name)s application.</p>"
+                "<p>Before you click on the portal link we strongly advise you "
+                'to read about the <a href="%(guidelines)s">application process</a>.</p>'
+                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(link_name)s</a></p>"
+            ) % dict(
+                inviter=inviter,
+                url=url,
+                link_name=link_name,
+                site_name=site_name,
+                guidelines=self.application.round.get_applicant_guidelines(),
+            )
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
             application = referee.application
+            inviter = (
+                application
+                and self.application.submitted_by
+                and self.application.submitted_by.full_name
+                or by.full_name
+            )
             contact_email = application.round.contact_email or site_contact_email(site_id)
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
+            surveyi_link_name = None
             if survey_url := (
                 referee.user
                 and referee.application.round.survey_id
@@ -4424,7 +4472,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else:
                     survey_url = urljoin(f"https://{site.domain}", survey_url)
                 survey_url = f"{survey_url}?token={self.token}"
-                survey_url = domain_to_macrons(survey_url)
+                surveyi_link_name = domain_to_macrons(survey_url)
 
             application_url = reverse(
                 "application-detail", kwargs={"number": referee.application.number}
@@ -4433,7 +4481,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 application_url = request.build_absolute_uri(application_url)
             else:
                 application_url = urljoin(f"https://{site.domain}", application_url)
-            application_url = domain_to_macrons(application_url)
+            application_link_name = domain_to_macrons(application_url)
 
             body = (
                 (
@@ -4459,14 +4507,16 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "Ngā mihi nui"
                 )
             ) % dict(
-                inviter=by.full_name,
+                inviter=inviter,
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
+                surveyi_link_name=surveyi_link_name,
                 application_url=application_url,
+                application_link_name=application_link_name,
                 site_name=site_name,
                 application=self.referee.application,
-                guidelines=self.referee.application.round.get_guidelines(),
+                guidelines=self.referee.guidelines,
                 contact_email=contact_email,
             )
             html_body = (
@@ -4478,8 +4528,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
                     "<p>Please fill out the <strong>referee report/survey</strong> at \n"
-                    "<a href='%(survey_url)s'>%(survey_url)s</a> "
-                    'after reviewing the application at <a href="%(application_url)s">%(application_url)s</a>.</p>\n'
+                    "<a href='%(survey_url)s'>%(surveyi_link_name)s</a> "
+                    'after reviewing the application at <a href="%(application_url)s">%(application_link_name)s</a>.</p>\n'
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
@@ -4492,24 +4542,33 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
                     "<p><strong>To review this invitation, you are required to follow the portal link</strong>: "
-                    "<a href='%(url)s'>%(url)s</a> after you have read about the process.</p>"
+                    "<a href='%(url)s'>%(link_name)s</a> after you have read about the process.</p>"
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
             ) % dict(
-                inviter=by.full_name,
+                inviter=inviter,
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
+                link_name=link_name,
                 survey_url=survey_url,
+                surveyi_link_name=surveyi_link_name,
                 application_url=application_url,
+                application_link_name=application_link_name,
                 site_name=site_name,
                 application=self.referee.application,
-                guidelines=self.referee.application.round.get_guidelines(),
+                guidelines=self.referee.guidelines,
                 contact_email=contact_email,
             )
         elif self.type == INVITATION_TYPES.A:
-            subject = __("You have been nominated for %s") % self.nomination.round
-            body = __(
+            subject = "You have been nominated for %s" % self.nomination.round
+            inviter = (
+                self.nomination
+                and self.nomination.nominator
+                and self.nomination.nominator.full_name
+                or by.full_name
+            )
+            body = (
                 "Tēnā koe,\n\n"
                 "Congratulations on being nominated for the %(round)s by %(inviter)s.\n\n"
                 "Before you click on the portal link we strongly advise you "
@@ -4518,52 +4577,65 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "Ngā mihi nui"
             ) % dict(
                 round=self.nomination.round,
-                inviter=by.full_name,
-                guidelines=self.nomination.round.get_guidelines(),
+                inviter=inviter,
+                guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
             )
             html_body = (
-                __(
-                    "<p>Tēnā koe,</p>"
-                    "<p>Congratulations on being nominated for the %(round)s by %(inviter)s.</p>"
-                    "<p>Before you click on the portal link we strongly advise you "
-                    'to read about the <a href="%(guidelines)s">application process</a>.</p>'
-                    "<p>To accept the nomination, please follow the portal link: "
-                    "<a href='%(url)s'>%(url)s</a><br></p></br>"
-                )
+                "<p>Tēnā koe,</p>"
+                "<p>Congratulations on being nominated for the %(round)s by %(inviter)s.</p>"
+                "<p>Before you click on the portal link we strongly advise you "
+                'to read about the <a href="%(guidelines)s">application process</a>.</p>'
+                "<p>To accept the nomination, please follow the portal link: "
+                "<a href='%(url)s'>%(link_name)s</a><br></p></br>"
             ) % dict(
                 round=self.nomination.round,
-                inviter=by.full_name,
-                guidelines=self.nomination.round.get_guidelines(),
+                inviter=inviter,
+                guidelines=self.nomination.round.get_applicant_guidelines(),
                 url=url,
+                link_name=link_name,
             )
         elif self.type == INVITATION_TYPES.P:
             subject = __("You are invited to be a Panellist for the %(site_name)s") % {
                 "site_name": site_name
             }
-            body = __(
+            body = (
                 "Tēnā koe\n\n"
                 "You are invited to be a panellist for the %(site_name)s.\n\n"
+                "We strongly advise clicking on the Panellist Guidelines before clicking  "
+                "on the portal link below: %(guidelines)s\n\n"
                 "To review this invitation, please follow the link: %(url)s \n\n"
                 "Ngā mihi"
-            ) % {"url": url, "site_name": site_name}
-            html_body = __(
+            ) % {
+                "url": url,
+                "site_name": site_name,
+                "guidelines": self.panellist.guidelines,
+            }
+            html_body = (
                 "Tēnā koe,<br><br>You are invited to be a panellist for the %(site_name)s.<br><br>"
-                "To review this invitation, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % {"url": url, "site_name": site.name}
+                "<p>We strongly advise clicking on the Panellist Guidelines <strong>before</strong> clicking  "
+                "on the portal link below.</p>"
+                "<p><a href='%(guidelines)s'>Panellist Guidelines</a></p>"
+                "<p>To review this invitation, please follow the link: <a href='%(url)s'>%(link_name)s</a></p>"
+            ) % {
+                "url": url,
+                "link_name": link_name,
+                "site_name": site.name,
+                "guidelines": self.panellist.guidelines,
+            }
         else:
             subject = __("You have been given access to the %(site_name)s portal") % {
                 "site_name": site_name
             }
-            body = __(
+            body = (
                 "Tēnā koe,\n\n You have been given access to the %(site_name)s portal.\n\n"
                 "To confirm this access, please follow the link: %(url)s \n\n"
                 "Ngā mihi"
             ) % {"site_name": site_name, "url": url}
-            html_body = __(
+            html_body = (
                 "Tēnā koe,<br><br>You have been given access to the %(site_name)s portal.<br><br>"
-                "To confirm this access, please follow the link: <a href='%(url)s'>%(url)s</a><br>"
-            ) % {"url": url, "site_name": site_name}
+                "To confirm this access, please follow the link: <a href='%(url)s'>%(link_name)s</a><br>"
+            ) % {"url": url, "link_name": link_name, "site_name": site_name}
 
         resp = send_mail(
             subject,
@@ -4796,7 +4868,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         on_delete=RESTRICT,
         verbose_name=_("curriculum vitae"),
     )
-    state = StateField(_("state"), default="new")
+    state = StateField(_("testimonial state"), default="new")
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
 
     @cached_property
@@ -5081,16 +5153,50 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
     colour = ColorField(
-        null=True, blank=True, help_text="Colour used for text hearders and back-grounds"
+        null=True, blank=True, help_text="Colour used for text headers and back-grounds"
     )
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
-    guidelines = CharField(_("guideline link URL"), max_length=400, null=True, blank=True)
+    guidelines = URLField(
+        _("round guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Round guidelines link URL"),
+    )
+    applicant_guidelines = URLField(
+        _("applicant guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        # help_text=_("Applicant guidelines link URL"),
+        help_text=_("Applicant guidelines link URL"),
+    )
+    referee_guidelines = URLField(
+        _("referee guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Referee guidelines link URL"),
+    )
+    panellist_guidelines = URLField(
+        _("panellist guidelines"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Panellist guidelines link URL"),
+    )
     contact_email = EmailField(_("round contact email address"), blank=True, null=True)
-    limesurvey_server_url = CharField(_("LimeSurvey URL"), max_length=400, null=True, blank=True)
+    limesurvey_server_url = URLField(
+        _("LimeSurvey URL"),
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("LimeSurvey Server URL"),
+    )
     description = TextField(_("short description"), null=True, blank=True)
 
     has_title = BooleanField(_("can have a title"), default=False)
@@ -5133,7 +5239,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("Duration"), help_text=_("Default contract duration"), null=True, blank=True
     )
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
-    survey_id = PositiveIntegerField(help_text=_("LimeSurvey Survey ID"), null=True, blank=True)
+    survey_id = PositiveIntegerField(
+        help_text=_("Referee LimeSurvey Survey ID"), null=True, blank=True
+    )
 
     letter_of_support_required = BooleanField(default=False)
     research_experience_in_years_required = BooleanField(default=False)
@@ -5293,6 +5401,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     def natural_key(self):
         return (self.scheme.code, self.opens_on)
 
+    @cache
     def get_guidelines(self):
         if not self.guidelines and (
             pr := Round.where(Q(guidelines__isnull=False) | ~Q(guidelines=""), scheme=self.scheme)
@@ -5301,6 +5410,60 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         ):
             return pr.guidelines
         return self.guidelines
+
+    @cache
+    def get_applicant_guidelines(self):
+        if self.applicant_guidelines:
+            return self.applicant_guidelines
+        if (
+            pr := Round.where(
+                Q(applicant_guidelines__isnull=False) | ~Q(applicant_guidelines=""),
+                scheme=self.scheme,
+            )
+            .order_by("-id")
+            .first()
+        ) and pr.applicant_guidelines:
+            return pr.applicant_guidelines
+        if gl := self.get_guidelines():
+            if gl.endswith("/"):
+                return f"{gl}information-for-applicants/"
+            return f"{gl}/information-for-applicants/"
+
+    @cache
+    def get_referee_guidelines(self):
+        if self.referee_guidelines:
+            return self.referee_guidelines
+        if (
+            pr := Round.where(
+                Q(referee_guidelines__isnull=False) | ~Q(referee_guidelines=""),
+                scheme=self.scheme,
+            )
+            .order_by("-id")
+            .first()
+        ) and pr.referee_guidelines:
+            return pr.referee_guidelines
+        if gl := self.get_guidelines():
+            if gl.endswith("/"):
+                return f"{gl}information-for-referees/"
+            return f"{gl}/information-for-referees/"
+
+    @cache
+    def get_panellist_guidelines(self):
+        if self.panellist_guidelines:
+            return self.panellist_guidelines
+        if (
+            pr := Round.where(
+                Q(panellist_guidelines__isnull=False) | ~Q(panellist_guidelines=""),
+                scheme=self.scheme,
+            )
+            .order_by("-id")
+            .first()
+        ) and pr.panellist_guidelines:
+            return pr.panellist_guidelines
+        if gl := self.get_guidelines():
+            if gl.endswith("/"):
+                return f"{gl}information-for-panellists/"
+            return f"{gl}/information-for-panellists/"
 
     @property
     def is_active(self):
@@ -5550,9 +5713,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def user_nominations(self, user):
         return Nomination.where(
-            Q(user=user)
-            | Q(email=user.email)
-            | Q(email__in=Subquery(EmailAddress.objects.filter(user=user).values("email"))),
+            Q(user=user) | Q(email__in=user.emailaddress_set.values_list("email__lower")),
             state__in=["submitted", "accepted"],
             round=self,
         )
@@ -5769,11 +5930,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     "iSurveyID": self.survey_id,
                     # "bUnused": True,
                     "aAttributes": ["email", "token", "completed", "token", "sent", "emailstatus"],
-                    "aConditions": {"token": ["IN", *(r.survey_token for r in q)]},
+                    "aConditions": {
+                        "token": ["IN", *(r.survey_token for r in q)],
+                        "completed": ["<>", "N"],
+                    },
                 },
             )
-            if isinstance(resp, dict) and resp.get("status") == 'No survey participants found.':
-                return 0
+            if isinstance(resp, dict) and resp.get("status") == "No survey participants found.":
+                # return 0
+                resp = []
             participants = {
                 p["token"]: {
                     "completed_at": (
@@ -5787,6 +5952,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 for p in resp
             }
             updated_referees = []
+            updated_testimonials = []
             for r in q:
                 p = participants.get(r.survey_token)
                 if not p or not p["completed_at"]:
@@ -5794,15 +5960,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
                 if (
                     r.state == "testified"
+                    and p["tid"] == r.survey_token_id
                     and p["completed_at"] == r.survey_completed_at
                     and not Testimonial.where(~Q(state="submitted"), referee=r).exists()
                 ):
                     continue
 
                 r.survey_completed_at = p["completed_at"]
-                r._change_reason = (
-                    f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
-                )
+                if not r.survey_token_id or r.survey_token_id != p["tid"]:
+                    r.survey_token_id = p["tid"]
+                r.survey_completed_at = p["completed_at"]
+                r._change_reason = f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
                 if request:
                     r._history_user = request.user
                 if not self.testimonials_required and r.state != "testified":
@@ -5815,6 +5983,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 with transaction.atomic():
 
                     if not self.testimonials_required:
+                        updated_testimonials = []
                         testimonials = Testimonial.where(
                             ~Q(state="submitted"), referee__in=[r.pk for r in updated_referees]
                         )
@@ -5823,8 +5992,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                                 description = f"Synced with LimeSurvey"
                                 t.submit(by=r.user, description=description, commit=False)
                                 t._change_reason = description
+                                updated_testimonials.append(t)
                             bulk_update_with_history(
-                                testimonials,
+                                updated_testimonials,
                                 Testimonial,
                                 ["state", "state_changed_at", "updated_at"],
                                 default_user=request and request.user,
@@ -5836,6 +6006,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                             [
                                 "state",
                                 "survey_completed_at",
+                                "survey_token_id",
                                 "testified_at",
                                 "state_changed_at",
                                 "updated_at",
@@ -5843,11 +6014,56 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                             default_user=request and request.user,
                             default_change_reason="Synced with LimeSurvey",
                         )
+
+            # Re-sync testimonials with the referees:
+            updated_testimonials = []
+            description = "Synced with LimeSurvey"
+            for r in Referee.where(
+                (
+                    Q(
+                        ~Q(testimonial__state="submitted") | Q(state_changed_at__isnull=True),
+                        testimonial__file__isnull=False,
+                    )
+                    if self.testimonials_required
+                    else Q(
+                        Q(testimonial__isnull=True)
+                        | ~Q(testimonial__state="submitted")
+                        | Q(state_changed_at__isnull=True),
+                    )
+                ),
+                state="testified",
+                application__round=self,
+            ):
+                t, _ = Testimonial.get_or_create(referee=r)
+                if t.state != "submitted":
+                    t.submit(
+                        by=r.user or request.user,
+                        description=description,
+                        commit=False,
+                        request=request,
+                    )
+                    t._change_reason = description
+                    if not t.state_changed_at:
+                        t.state_changed_at = max(
+                            filter(
+                                lambda d: d,
+                                [r.survey_completed_at, r.testified_at, r.state_changed_at],
+                            )
+                        )
+                    updated_testimonials.append(t)
+            bulk_update_with_history(
+                updated_testimonials,
+                Testimonial,
+                ["state", "state_changed_at", "updated_at"],
+                default_user=request and request.user,
+                default_change_reason="Synced with LimeSurvey",
+            )
+
         except Exception as ex:
             messages.error(request, f"{ex}")
             raise
         else:
-            count = len(updated_referees)
+            count = len(updated_referees) or len(updated_testimonials)
             if request:
                 if count:
                     messages.info(
@@ -6513,10 +6729,29 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             and not user.is_superuser
             and (
                 self.email == user.email
-                or EmailAddress.objects.filter(email=self.email, user=user)
+                or EmailAddress.objects.filter(email__lower=self.email.lower(), user=user)
             )
         ):
             raise ValidationError(_("You cannot nominate yourself for this round."))
+
+    def get_nominator_orgs(self, nominator=None):
+        """List of organisations that nominator can nominate on behalf of"""
+        if not nominator:
+            nominator = self.nominator
+        site_id = self.site_id
+
+        if site_id in [4, 5] and nominator.research_offices.count():
+            return Organisation.where(research_offices__user=nominator).order_by("-pk")
+        q = (
+            Organisation.where(
+                affiliations__person__user=nominator, affiliations__end_date__isnull=True
+            )
+            .distinct()
+            .order_by("affiliations__start_date")
+        )
+        if q.count():
+            return q
+        return Organisation.objects.none()
 
     @cached_property
     def nominated_by_ro(self):
@@ -6691,7 +6926,7 @@ class IdentityVerification(Model):
                     email__isnull=False,
                 )
                 .distinct()
-                .values_list("name", "email")
+                .values_list("name", "email__lower")
             ),
             fail_silently=False,
             request=request,

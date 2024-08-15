@@ -915,6 +915,7 @@ class ApplicationAdmin(
         IsActiveRoundApplicationListFilter,
         ("round", admin.RelatedOnlyFieldListFilter),
         ("org", admin.RelatedOnlyFieldListFilter),
+        ("panel", admin.RelatedOnlyFieldListFilter),
         "state",
         "created_at",
         "updated_at",
@@ -944,10 +945,11 @@ class ApplicationAdmin(
         "referees__email",
     ]
     autocomplete_fields = [
-        "submitted_by",
+        "address",
         "cv",
         "org",
-        "address",
+        "panel",
+        "submitted_by",
     ]
     # summernote_fields = ["summary"]
     exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
@@ -1160,7 +1162,7 @@ class ApplicationAdmin(
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
                         "is_bilingual",
-                        "round",
+                        ("round", "panel") if obj and obj.round and obj.round.can_specify_panel else "round",
                         ("title", "first_name", "middle_names", "last_name", "position"),
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
@@ -1415,6 +1417,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "survey_completed_at",
         "testified_at",
         "state",
+        "testimonial__state",
         ("application__round", admin.RelatedOnlyFieldListFilter),
     ]
     date_hierarchy = "testified_at"
@@ -1429,6 +1432,13 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     inlines = [StateLogInline]
 
     readonly_fields = ("invitation_link",)
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .filter(application__round__scheme__current_round=F("application__round"))
+        )
 
     @admin.display(description="application", ordering="application__number")
     def application_number(self, obj):
@@ -1458,8 +1468,8 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def sync_referee_surveys(self, request, queryset):
         count = 0
         rounds = models.Round.where(
-                survey_id__isnull=False,
-                pk__in=queryset.values_list("application__round").distinct())
+            survey_id__isnull=False, pk__in=queryset.values_list("application__round").distinct()
+        )
         for r in rounds:
             count += r.sync_referee_surveys(
                 request=request, referees=queryset.filter(application__round=r)
@@ -2000,9 +2010,47 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
     search_fields = ["first_name", "last_name", "email", "token", "application__number"]
     date_hierarchy = "created_at"
     readonly_fields = ["submitted_at", "accepted_at", "expired_at", "token", "url"]
-    inlines = [StateLogInline]
     ordering = ["-id"]
     actions = ["resend"]
+
+    class MailLogInline(StaffPermsMixin, admin.TabularInline):
+        classes = ["collapse"]
+        extra = 0
+        model = models.MailLog
+        ordering = ["-id"]
+        fields = [
+            "token_link",
+            "recipient",
+            "thread_index",
+            "thread_topic",
+            "sent_at",
+            "was_sent_successfully",
+            "user",
+            "sender",
+            "subject",
+        ]
+        readonly_fields = ["sent_at"]
+
+        @admin.display(description="token", ordering="token")
+        def token_link(self, obj):
+            return mark_safe(f'<a href="{self.view_on_site(obj)}">{obj.token}</a>')
+
+        @cache
+        def view_on_site(self, obj):
+            return reverse("admin:portal_maillog_change", kwargs={"object_id": obj.pk})
+
+        can_delete = False
+
+        def has_add_permission(self, request, obj=None):
+            return False
+
+        def has_change_permission(self, request, obj=None):
+            return True
+
+        def get_readonly_fields(self, request, obj=None):
+            return self.get_fields(request, obj)
+
+    inlines = [MailLogInline, StateLogInline]
 
 
 @admin.register(models.Testimonial)
@@ -2017,6 +2065,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
     list_filter = [
         "created_at",
         "state",
+        "referee__state",
         ("referee__application__round", admin.RelatedOnlyFieldListFilter),
         ("referee__application", admin.RelatedOnlyFieldListFilter),
         "referee__survey_completed_at",
@@ -2059,6 +2108,27 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.referee.application_id})
+
+    @admin.action(description="Sync with the LimeSurvey surveys")
+    def sync_referee_surveys(self, request, queryset):
+        count = 0
+        rounds = models.Round.where(
+            survey_id__isnull=False,
+            pk__in=queryset.values_list("referee__application__round").distinct(),
+        )
+        for r in rounds:
+            count += r.sync_referee_surveys(
+                request=request,
+                referees=models.Referee.where(
+                    pk__in=queryset.filter(referee__application__round=r).values_list("referee_id")
+                ),
+            )
+        if not count:
+            messages.warning(request, "All referees and testimonials were already synced.")
+        if rounds.count() > 1:
+            messages.info(request, f"In total synced {count} referee(s) and testimonial(s)")
+
+    actions = ["sync_referee_surveys"]
 
 
 class SchemeResource(ModelResource):
@@ -2239,6 +2309,27 @@ class RoundAdmin(
             )
         return exclude
 
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        if obj.pk:
+            if obj.get_guidelines():
+                if not obj.applicant_guidelines:
+                    url = obj.get_applicant_guidelines()
+                    form.base_fields["applicant_guidelines"].help_text = mark_safe(
+                        f'{form.base_fields["applicant_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
+                    )
+                if not obj.referee_guidelines:
+                    url = obj.get_referee_guidelines()
+                    form.base_fields["referee_guidelines"].help_text = mark_safe(
+                        f'{form.base_fields["referee_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
+                    )
+                if not obj.panellist_guidelines:
+                    url = obj.get_panellist_guidelines()
+                    form.base_fields["panellist_guidelines"].help_text = mark_safe(
+                        f'{form.base_fields["panellist_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
+                    )
+        return form
+
     def get_fieldsets(self, request, obj=None):
         site_id = obj and obj.site_id or settings.SITE_ID
         exclude = self.get_exclude(request)
@@ -2253,6 +2344,9 @@ class RoundAdmin(
                         "description_en",
                         "description_mi",
                         "guidelines",
+                        "applicant_guidelines",
+                        "referee_guidelines",
+                        "panellist_guidelines",
                         "contact_email",
                         "limesurvey_server_url",
                         "survey_id",
