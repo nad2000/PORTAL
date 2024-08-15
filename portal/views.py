@@ -1288,11 +1288,9 @@ def profile_protection_patterns(request):
             .order_by("id")
             .last()
         )
-        if "wizard" in request.session:
-            del request.session["wizard"]
-            if "wizard-views" in request.session:
-                del request.session["wizard-views"]
-            request.session.modified = True
+        
+        if "wizard" in request.session or "wizard-views" in request.session:
+            turn_off_wizard(request)
             url = (i and i.handler_url) or "index"
         else:
             url = (i and i.handler_url) or "profile"
@@ -4696,6 +4694,15 @@ class IdentityVerificationView(LoginRequiredMixin, UpdateView):
         return resp
 
 
+def turn_off_wizard(request):
+    if request.session.get("wizard"):
+        del request.session["wizard"]
+    if request.session.get("wizard-views"):
+        del request.session["wizard-views"]
+    request.session.modified = True
+    return 
+
+
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     template_name = "profile_section.html"
     exclude = ()
@@ -4818,11 +4825,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         return super().get_success_url()
 
     def turn_off_wizard(self):
-        if self.request.session.get("wizard"):
-            del self.request.session["wizard"]
-        if self.request.session.get("wizard-views"):
-            del self.request.session["wizard-views"]
-        self.request.session.modified = True
+        turn_off_wizard(self.request)
 
     def formset_valid(self, formset):
         request = self.request
@@ -5035,32 +5038,30 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
 
     def get_queryset(self):
         # if there is an invitation or nomination reuse it:
-        if not self.request.user.person.employments.count() > 0:
+        p = self.request.user.person
+        q = p.employments.all()
+        if not q.count() > 0:
             data = (
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
             )
-            if (
-                data
-                and data.org
-                and not models.Affiliation.where(
-                    person=self.request.user.person,
-                    org=data.org,
-                    type=models.AFFILIATION_TYPES.EMP,
-                ).exists()
-            ):
+            nomination = getattr(data, "nomination", data)
+            if (data and data.org):
                 models.Affiliation.create(
-                    person=self.request.user.person,
+                    person=p,
                     org=data.org,
                     type=models.AFFILIATION_TYPES.EMP,
+                    role=getattr(nomination, "position", ""),
                 )
 
-        return self.model.where(
-            person=self.request.user.person, type__in=self.affiliation_type.values()
-        ).order_by(
-            "start_date",
-            "end_date",
-        )
+        # return self.model.where(
+        #     person=self.request.user.person, type__in=self.affiliation_type.values()
+        # ).order_by(
+        #     "start_date",
+        #     "end_date",
+        # )
+
+        return q.filter(type__in=self.affiliation_type.values()).order_by("start_date", "end_date")
 
     def get_defaults(self):
         """Default values for a form."""
