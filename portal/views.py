@@ -1,11 +1,9 @@
-import functools
 import io
 import json
 import mimetypes
 import os
 import shutil
 import traceback
-from collections import OrderedDict
 from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote
@@ -1288,7 +1286,7 @@ def profile_protection_patterns(request):
             .order_by("id")
             .last()
         )
-        
+
         if "wizard" in request.session or "wizard-views" in request.session:
             turn_off_wizard(request)
             url = (i and i.handler_url) or "index"
@@ -4695,12 +4693,12 @@ class IdentityVerificationView(LoginRequiredMixin, UpdateView):
 
 
 def turn_off_wizard(request):
-    if request.session.get("wizard"):
+    if "wizard" in request.session:
         del request.session["wizard"]
-    if request.session.get("wizard-views"):
+    if "wizard-views" in request.session:
         del request.session["wizard-views"]
     request.session.modified = True
-    return 
+    return
 
 
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
@@ -4720,6 +4718,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
             request.session["wizard"] = True
             request.session["wizard-views"] = self.section_views.copy()
+            request.session.modified = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
@@ -4849,6 +4848,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                         self.turn_off_wizard()
                     else:
                         request.session["wizard-views"] = wizard_views
+                        request.session.modified = True
         except ProtectedError as ex:
             if url_name == "profile-cvs" and hasattr(formset, "deleted_objects"):
                 messages.error(
@@ -5046,7 +5046,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                 or models.Nomination.where(user=self.request.user).order_by("-id").first()
             )
             nomination = getattr(data, "nomination", data)
-            if (data and data.org):
+            if data and data.org:
                 models.Affiliation.create(
                     person=p,
                     org=data.org,
