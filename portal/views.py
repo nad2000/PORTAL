@@ -1108,7 +1108,7 @@ def is_profile_completed(request):
         if (views := request.session.get("wizard-views")) and views != []:
             return False
         else:
-            self.turn_off_wizard(request)
+            turn_off_wizard(request)
     return True
 
 
@@ -1373,6 +1373,19 @@ class ProfileCreate(ProfileView, CreateView):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
+    def get(self, *args, **kwargs):
+        u = self.request.user
+        if models.Person.where(user=u).exists():
+            messages.error(request, _("The profile was aready created."))
+            return redirect("profile-update")
+
+        # Start profile wizard:
+        if not self.request.session.get("wizard"):
+            self.request.session["wizard"] = True
+            self.request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+            self.request.session.modified = True
+        return super().get(*args, **kwargs)
+
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
 
@@ -1398,6 +1411,7 @@ class ProfileCreate(ProfileView, CreateView):
             initial["middle_names"] = n.middle_names or u.middle_names
             initial["last_name"] = n.last_name or u.last_name
             initial["title"] = n.title or u.title
+            initial["user"] = u
         return initial
 
 
@@ -4713,13 +4727,15 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         "profile-academic-records",
         "profile-recognitions",
         "profile-professional-records",
+        # "profile-protection-patterns",
     ]
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
-            request.session["wizard"] = True
-            request.session["wizard-views"] = self.section_views.copy()
-            request.session.modified = True
+            if not request.session.get("wizard"):
+                request.session["wizard"] = True
+                request.session["wizard-views"] = self.section_views.copy()
+                request.session.modified = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
@@ -4838,11 +4854,10 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 if not success_url:
                     self.success_url = reverse("home")
             elif request.session.get("wizard"):
-                if not request.session.get("wizard-views"):
-                    request.session["wizard-views"] = (
+                if (wizard_views := request.session.get("wizard-views", None)) is None:
+                    wizard_views = request.session["wizard-views"] = (
                         ProfileSectionFormSetView.section_views.copy()
                     )
-                wizard_views = request.session.get("wizard-views", [])
                 if url_name in wizard_views:
                     del wizard_views[wizard_views.index(url_name)]
                     if not wizard_views:
