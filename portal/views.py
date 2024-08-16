@@ -219,10 +219,11 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
-        person = Person.where(user=user).first()
-        if not person or request.session.get("wizard") or request.session.get("wizard-views"):
+        person = Person.where(user=user).last()
+        if not person or request.session.get("wizard") or ("wizard_views" in request.session.get):
+            wizard_views = request.session.get("wizard-views")
             view_name = person and "profile-update" or "profile-create"
-            if person and (wizard_views := request.session.get("wizard-views")):
+            if person and wizard_views is not None:
                 view_name = wizard_views[0]
             messages.info(
                 request,
@@ -1249,10 +1250,13 @@ def disable_profile_protection_patterns(request):
 
 
 @login_required
-@shoud_be_onboarded
 def profile_protection_patterns(request):
     site_id = settings.SITE_ID
-    person = request.person
+    if not (person := models.Person.where(user=request.user).last()):
+        url = reverse("prifile-create")
+        if (next_url := request.GET.get("next")) and next_url.startswith("/"):
+            url = f"{url}?next={next_url}"
+        return redirect(url)
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
         rp = request.POST
