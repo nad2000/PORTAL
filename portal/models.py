@@ -1925,7 +1925,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Please enter the URL where your presentation video can be viewed"),
     )
 
-    state = StateField(default="new", verbose_name=_("state"))
+    state = StateField(default="new", verbose_name=_("application state"))
     state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")

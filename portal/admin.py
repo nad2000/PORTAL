@@ -1413,6 +1413,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "testified_at",
         "state",
         "testimonial__state",
+        "application__state",
         ("application__round", admin.RelatedOnlyFieldListFilter),
     ]
     date_hierarchy = "testified_at"
