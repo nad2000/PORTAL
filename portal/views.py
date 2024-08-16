@@ -692,8 +692,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                 + f"?next={quote(request.get_full_path())}"
             )
 
-    person = Person.where(user=request.user).last()
-    if not person or not is_profile_completed(request):
+    if not is_profile_completed(request):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
@@ -1103,11 +1102,14 @@ def user_profile(request, pk=None):
 
 
 def is_profile_completed(request):
-    return (
-        Person.where(user=request.user).exists()
-        and "wizard" not in request.session
-        and "wizard-views" not in request.session
-    )
+    if not Person.where(user=request.user).exists():
+        return False
+    if request.session.get("wizard"):
+        if (views := request.session.get("wizard-views")) and views != []:
+            return False
+        else:
+            self.turn_off_wizard(request)
+    return True
 
 
 class ProfileView:
@@ -4698,7 +4700,6 @@ def turn_off_wizard(request):
     if "wizard-views" in request.session:
         del request.session["wizard-views"]
     request.session.modified = True
-    return
 
 
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):

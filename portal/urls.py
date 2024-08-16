@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.http import HttpResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
+from django.shortcuts import redirect
 
 from . import apis, models, views
 
@@ -580,6 +581,12 @@ urlpatterns = [
     path("413/", views.handler413),
     path("favicon.ico", views.favicon),
     path("webhooks/survey/", views.survey_webhook),
+    re_path(
+        "limesurvey/(.*)$",
+        cache_page(None)(
+            lambda request, rest: redirect(f"{settings.LIMESURVEY_SERVER_URL}{rest}")
+        ),
+    ),
     path("demo/", views.demo),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
