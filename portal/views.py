@@ -6293,8 +6293,9 @@ class TestimonialView(CreateUpdateView):
                     and not a.referees.filter(~Q(state="testified")).exists()
                 ):
                     if t.site_id == 5 and a.state == "in_review":
-                        a.submit(request=self.request)
-                        a.save()
+                        pass
+                        # a.submit(request=self.request)
+                        # a.save()
                     else:
                         url = self.request.build_absolute_uri(
                             reverse("application-update", kwargs={"pk": a.id})
