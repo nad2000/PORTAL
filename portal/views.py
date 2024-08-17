@@ -220,7 +220,7 @@ def shoud_be_onboarded(function):
     def wrap(request, *args, **kwargs):
         user = request.user
         person = Person.where(user=user).last()
-        if not person or request.session.get("wizard") or ("wizard_views" in request.session.get):
+        if not person or request.session.get("wizard") or ("wizard_views" in request.session):
             wizard_views = request.session.get("wizard-views")
             view_name = person and "profile-update" or "profile-create"
             if person and wizard_views is not None:
