@@ -1380,7 +1380,7 @@ class ProfileCreate(ProfileView, CreateView):
     def get(self, *args, **kwargs):
         u = self.request.user
         if models.Person.where(user=u).exists():
-            messages.error(request, _("The profile was aready created."))
+            messages.error(self.request, _("The profile was aready created."))
             return redirect("profile-update")
 
         # Start profile wizard:
