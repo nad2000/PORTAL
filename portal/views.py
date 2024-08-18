@@ -219,10 +219,11 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
-        person = Person.where(user=user).first()
-        if not person or request.session.get("wizard") or request.session.get("wizard-views"):
+        person = Person.where(user=user).last()
+        if not person or request.session.get("wizard") or ("wizard_views" in request.session):
+            wizard_views = request.session.get("wizard-views")
             view_name = person and "profile-update" or "profile-create"
-            if person and (wizard_views := request.session.get("wizard-views")):
+            if person and wizard_views is not None:
                 view_name = wizard_views[0]
             messages.info(
                 request,
@@ -692,8 +693,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                 + f"?next={quote(request.get_full_path())}"
             )
 
-    person = Person.where(user=request.user).last()
-    if not person or not is_profile_completed(request):
+    if not is_profile_completed(request):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
@@ -1103,11 +1103,14 @@ def user_profile(request, pk=None):
 
 
 def is_profile_completed(request):
-    return (
-        Person.where(user=request.user).exists()
-        and "wizard" not in request.session
-        and "wizard-views" not in request.session
-    )
+    if not Person.where(user=request.user).exists():
+        return False
+    if request.session.get("wizard"):
+        if (views := request.session.get("wizard-views")) and views != []:
+            return False
+        else:
+            turn_off_wizard(request)
+    return True
 
 
 class ProfileView:
@@ -1247,10 +1250,13 @@ def disable_profile_protection_patterns(request):
 
 
 @login_required
-@shoud_be_onboarded
 def profile_protection_patterns(request):
     site_id = settings.SITE_ID
-    person = request.person
+    if not (person := models.Person.where(user=request.user).last()):
+        url = reverse("prifile-create")
+        if (next_url := request.GET.get("next")) and next_url.startswith("/"):
+            url = f"{url}?next={next_url}"
+        return redirect(url)
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
         rp = request.POST
@@ -1371,6 +1377,19 @@ class ProfileCreate(ProfileView, CreateView):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
+    def get(self, *args, **kwargs):
+        u = self.request.user
+        if models.Person.where(user=u).exists():
+            messages.error(self.request, _("The profile was aready created."))
+            return redirect("profile-update")
+
+        # Start profile wizard:
+        if not self.request.session.get("wizard"):
+            self.request.session["wizard"] = True
+            self.request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+            self.request.session.modified = True
+        return super().get(*args, **kwargs)
+
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
 
@@ -1396,6 +1415,7 @@ class ProfileCreate(ProfileView, CreateView):
             initial["middle_names"] = n.middle_names or u.middle_names
             initial["last_name"] = n.last_name or u.last_name
             initial["title"] = n.title or u.title
+            initial["user"] = u
         return initial
 
 
@@ -4695,7 +4715,6 @@ def turn_off_wizard(request):
     if "wizard-views" in request.session:
         del request.session["wizard-views"]
     request.session.modified = True
-    return
 
 
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
@@ -4709,13 +4728,15 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         "profile-academic-records",
         "profile-recognitions",
         "profile-professional-records",
+        # "profile-protection-patterns",
     ]
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
-            request.session["wizard"] = True
-            request.session["wizard-views"] = self.section_views.copy()
-            request.session.modified = True
+            if not request.session.get("wizard"):
+                request.session["wizard"] = True
+                request.session["wizard-views"] = self.section_views.copy()
+                request.session.modified = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
@@ -4834,11 +4855,10 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 if not success_url:
                     self.success_url = reverse("home")
             elif request.session.get("wizard"):
-                if not request.session.get("wizard-views"):
-                    request.session["wizard-views"] = (
+                if (wizard_views := request.session.get("wizard-views", None)) is None:
+                    wizard_views = request.session["wizard-views"] = (
                         ProfileSectionFormSetView.section_views.copy()
                     )
-                wizard_views = request.session.get("wizard-views", [])
                 if url_name in wizard_views:
                     del wizard_views[wizard_views.index(url_name)]
                     if not wizard_views:
@@ -6270,8 +6290,9 @@ class TestimonialView(CreateUpdateView):
                     and not a.referees.filter(~Q(state="testified")).exists()
                 ):
                     if t.site_id == 5 and a.state == "in_review":
-                        a.submit(request=self.request)
-                        a.save()
+                        pass
+                        # a.submit(request=self.request)
+                        # a.save()
                     else:
                         url = self.request.build_absolute_uri(
                             reverse("application-update", kwargs={"pk": a.id})

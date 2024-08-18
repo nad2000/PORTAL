@@ -1348,8 +1348,11 @@ class ConvertedFileAdmin(admin.ModelAdmin):
     ]
 
     def file_size_kb(self, obj):
-        if size := obj.file_size:
-            return round(size / 1000, 2)
+        try:
+            if size := obj.file_size:
+                return round(size / 1000, 2)
+        except:
+            return
 
     file_size_kb.short_description = "file size (KB)"
     exclude = [
@@ -1413,6 +1416,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "testified_at",
         "state",
         "testimonial__state",
+        "application__state",
         ("application__round", admin.RelatedOnlyFieldListFilter),
     ]
     date_hierarchy = "testified_at"
@@ -2074,6 +2078,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
         "referee__application__number",
     ]
 
+    @admin.display(description="application", ordering="referee__application__number")
     def application_url(self, obj):
         return mark_safe(
             '<a href="%s">%s</a>'
@@ -2085,9 +2090,9 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
                 obj.referee.application.number,
             )
         )
-
-    application_url.allow_tags = True
-    application_url.short_description = "Application"
+    # application_url.allow_tags = True
+    # application_url.short_description = "Application"
+    application_url.ordering="referee__application__number"
 
     def is_submitted(self, obj):
         return obj.is_active
