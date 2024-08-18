@@ -2970,7 +2970,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def user_draft_applications(cls, user):
         return cls.user_applications(user, ["draft", "new"])
 
-    def get_testimonials(self, has_testified=None):
+    def get_testimonials(self, has_testified=None, user=None):
         sql = (
             "SELECT DISTINCT tm.* FROM referee AS r "
             "JOIN application AS a "
@@ -2980,6 +2980,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         if has_testified:
             sql += " AND r.state='testified'"
+        if user:
+            sql += f" AND r.user_id={user.pk}"
         sql += " ORDER BY tm.id"
         if self.round.required_referees:
             sql += f" LIMIT {self.round.required_referees}"
@@ -3016,8 +3018,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        def add_testimonials(attachments):
-            for t in self.get_testimonials(has_testified=True):
+        def add_testimonials(attachments, user=None):
+            for t in self.get_testimonials(has_testified=True, user=user):
                 if t.file and t.referee:
                     attachments.append(
                         (
@@ -3075,8 +3077,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-            if self.site_id != 4 and not is_referee:
-                add_testimonials(attachments)
+            if self.site_id in [4, 5] and not is_referee and is_:
+                if user.is_superuser or self.is_applicant(user) or user.is_site_staff:
+                    add_testimonials(attachments)
+                else:
+                    add_testimonials(attachments, user=user)
 
         if (
             self.round.letter_of_support_required
@@ -3107,12 +3112,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if self.site_id == 4 or not (
-            self.site_id == 5
-            and (nomination := Nomination.where(application=self).last())
+        if self.site_id in [4, 5] and not (
+            (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
         ):
-            add_testimonials(attachments)
+            if user.is_superuser or self.is_applicant(user) or user.is_site_staff:
+                add_testimonials(attachments)
+            else:
+                add_testimonials(attachments, user=user)
 
         ssl._create_default_https_context = ssl._create_unverified_context
 
