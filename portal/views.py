@@ -4562,17 +4562,14 @@ class ApplicationListMixin:
 
 
 class ApplicationList(
-    LoginRequiredMixin,
-    StateInPathMixin,
-    ApplicationListMixin,
-    SingleTableView,
-    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
+    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView,
+    LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
 ):
     model = models.Application
     table_class = tables.ApplicationTable
     extra_context = {"category": "applications"}
     template_name = "table.html"
-    # filterset_class = ApplicationFilterSet
+    filterset_class = ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_table_kwargs(self):
@@ -4609,7 +4606,7 @@ class ApplicationList(
         #         context["application_draft_count"] = application_draft_count
         #         context["application_submitted_count"] = application_submitted_count
 
-        context["filter_disabled"] = True
+        # context["filter_disabled"] = True
         if (state := self.request.path.split("/")[-1]) and state in [
             "draft",
             "submitted",

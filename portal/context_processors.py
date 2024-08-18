@@ -26,8 +26,10 @@ def portal_context(request):
         or view_name in ["index", "home"],  # , "account_login", "account_signup"],
     }
 
+    breakpoint()
     if (u := request.user) and u.is_authenticated:
-        cache_key = f"{u.username}:{site_id}"
+        filters = request.GET.get("application_filter","")
+        cache_key = f"{u.username}:{site_id}:{filters}"
         cache_control = request.META.get("HTTP_CACHE_CONTROL")
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             cached_context = cache.get(cache_key)
@@ -158,7 +160,7 @@ def portal_context(request):
                         ),
                     )
                 ]
-                if site_id in [4, 5]:
+                if site_id in [4, 5] and (u.is_superuser or u.is_site_staff):
                     cached_context["LIMESURVEY_ADMIN_URL"] = (
                         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
                     )
