@@ -3341,6 +3341,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     class Meta:
         db_table = "application"
 
+# class ApplicationExportLog(Model):
+#     application = ForeignKey(Application, on_delete=CASCADE, related_name="export_log")
+#     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="application_export_log")
+#     application = ForeignKey("Application", on_delete=CASCADE)
+
+#     class Meta:
+#         db_table = "application_export_log"
+
 
 class ApplicationNumber(Model):
     """Historical or alternative application numbers."""

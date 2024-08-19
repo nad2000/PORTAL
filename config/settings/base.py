@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).parents[2]
 # portal/)
 APPS_DIR = ROOT_DIR / "portal"
 EXPORTED_DIR = ROOT_DIR / "exported"
+GEOIP_PATH = ROOT_DIR / "GeoIP2"
 env = environ.Env()
 
 ENV = env("ENV", default="local")
@@ -110,6 +111,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = [
+    # "django_user_agents",
+    # "tracking_analyzer",
     "portal.apps.PortalConfig",
     "users.apps.UsersConfig",
     "django.contrib.auth",
@@ -164,6 +167,7 @@ INSTALLED_APPS = [
     "django_bootstrap_breadcrumbs",
     # "taggit",
     "admin_ordering",
+    "easyaudit",
 ]
 
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
@@ -241,6 +245,7 @@ MIDDLEWARE = [
     # "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
 ]
 
 
@@ -284,7 +289,7 @@ TEMPLATES = [
             # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
             "loaders": [
                 (
-                    #"django.template.loaders.cached.Loader",
+                    # "django.template.loaders.cached.Loader",
                     "portal.template.Loader",
                     [
                         "multisite.template.loaders.filesystem.Loader",
@@ -521,3 +526,11 @@ SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
 
 DJANGO_TABLES2_TABLE_ATTRS = {"class": "table table-striped table-bordered"}
 DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4-responsive.html"
+# DJANGO_EASY_AUDIT_WATCH_MODEL_EVENTS = False
+DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
+    r"^/admin/",
+    r"^/static/",
+    r"^/favicon.ico$",
+    "^/webmanifest",
+    "^/summernote",
+]

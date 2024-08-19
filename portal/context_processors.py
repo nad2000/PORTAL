@@ -26,7 +26,6 @@ def portal_context(request):
         or view_name in ["index", "home"],  # , "account_login", "account_signup"],
     }
 
-    breakpoint()
     if (u := request.user) and u.is_authenticated:
         filters = request.GET.get("application_filter","")
         cache_key = f"{u.username}:{site_id}:{filters}"
