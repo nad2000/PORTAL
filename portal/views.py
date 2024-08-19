@@ -4583,7 +4583,11 @@ class ApplicationListMixin:
 
 class ApplicationList(
     # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView,
-    LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
+    LoginRequiredMixin,
+    StateInPathMixin,
+    ApplicationListMixin,
+    SingleTableMixin,
+    FilterView,
 ):
     model = models.Application
     table_class = tables.ApplicationTable
@@ -6719,12 +6723,20 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
     def get_attachments(self, pk=None, number=None):
         attachments = []
         app = self.model.get(id=pk)
+        u = self.request.user
+        if app.site_id in [4, 5] and app.is_applicant(u):
+            return attachments
+
         if app.file:
             attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(app.pdf_file))
         if app.cv and app.cv.file:
             attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(app.cv.pdf_file))
 
-        testimonials = app.get_testimonials()
+        testimonials = (
+            app.get_testimonials()
+            if u.is_superuser or u.is_site_staff
+            else app.get_testimonials(user=u)
+        )
         for t in testimonials:
             if t.file:
                 attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))

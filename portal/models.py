@@ -3077,8 +3077,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-            if self.site_id in [4, 5] and not is_referee and is_:
-                if user.is_superuser or self.is_applicant(user) or user.is_site_staff:
+            if self.site_id in [4, 5] and not is_referee and not self.is_applicant(user):
+                if user.is_superuser or user.is_site_staff:
                     add_testimonials(attachments)
                 else:
                     add_testimonials(attachments, user=user)
