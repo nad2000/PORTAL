@@ -587,6 +587,7 @@ urlpatterns = [
             lambda request, rest: redirect(f"{settings.LIMESURVEY_SERVER_URL}{rest}")
         ),
     ),
+    path("impersonate/<username>", views.impersonate),
     # path("demo/", views.demo),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]

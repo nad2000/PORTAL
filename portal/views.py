@@ -22,6 +22,7 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import (
     AccessMixin,
@@ -206,6 +207,15 @@ def pyinfo(request, message=None):
                 return handler500(**locals())
             raise
     return render(request, "pyinfo.html", info)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def impersonate(request, username):
+    u = User.get(username=username)
+    if request.user.pk != u.pk:
+        login(request, u, backend="django.contrib.auth.backends.ModelBackend")
+    return redirect("start")
 
 
 def shoud_be_onboarded(function):
