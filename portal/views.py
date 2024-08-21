@@ -6915,7 +6915,12 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         )
 
     def get_attachments(self, pk):
-        testimonial = self.model.get(id=pk)
+        # testimonial = self.model.get(id=pk)
+        testimonial = (
+            self.model.where(pk=pk)
+            .prefetch_related("referee", "referee__application", "referee__application__round")
+            .last()
+        )
         attachments = []
         if testimonial.file:
             attachments.append(
@@ -6924,11 +6929,13 @@ class TestimonialExportView(ExportView, TestimonialDetail):
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(testimonial.pdf_file),
                 )
             )
-        if testimonial.cv:
+        if testimonial.referee.application.round.referee_cv_required and (
+            referee_cv := testimonial.cv or models.CurriculumVitae.last_user_cv(testimonial.referee.user)
+        ):
             attachments.append(
                 (
                     f"{testimonial.cv} {_('Curriculum Vitae')}",
-                    settings.PRIVATE_STORAGE_ROOT + "/" + str(testimonial.cv.pdf_file),
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
                 )
             )
         return attachments
