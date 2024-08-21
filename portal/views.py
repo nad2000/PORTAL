@@ -10,7 +10,6 @@ from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 import django.utils.translation
-import django_filters
 import django_tables2
 import tablib
 from allauth.account.models import EmailAddress
@@ -108,7 +107,7 @@ from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
 from weasyprint import HTML
 
-from . import forms, models, tables
+from . import filters, forms, models, tables
 from .forms import Submit
 from .models import Address, Application, Person, PersonCareerStage, Subscription, User
 from .pyinfo import info
@@ -3738,143 +3737,6 @@ class ApplicationCreate(ApplicationView, CreateView):
 #         return super().formset_valid(formset)
 
 
-class RelatedOnlyModelChoiceFilter(django_filters.ModelChoiceFilter):
-    # ("round", admin.RelatedOnlyFieldListFilter),
-    __queryset = None
-
-    # @property
-    # def field(self):
-    #     request = self.get_request()
-    #     queryset = self.get_queryset(request).filter(**{"id__in": self.parent.qs.values_list(self.field_name)})
-    #     self.extra["choices"] = [(o, o) for o in queryset]
-    #     return super().field
-
-    def get_queryset(self, request):
-        if not self.__queryset:
-            self.__queryset = (
-                super()
-                .get_queryset(request)
-                .filter(**{"id__in": self.parent.queryset.values_list(self.field_name)})
-            )
-        return self.__queryset
-
-
-def application_filter_rounds(request, *args, **kwargs):
-    if request is None:
-        return models.Round.objects.none()
-
-    # company = request.user.company
-    return models.Round.objects.all()
-
-
-class YearChoiceFilter(django_filters.ChoiceFilter):
-    # field_class = ChoiceField
-    field_class = django_filters.fields.ChoiceField
-
-    # def __init__(self, *args, **kwargs):
-    #     # self.null_value = kwargs.get("null_value", settings.NULL_CHOICE_VALUE)
-    #     with connection.cursor() as cr:
-    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
-    #         kwargs["choices"] = [(y, y) for y in cr.fetchall()]
-    #     super().__init__(*args, **kwargs)
-
-    # @property
-    # def field(self):
-    #     with connection.cursor() as cr:
-    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
-    #         self.extra["choices"] = [(y, y) for (y,) in cr.fetchall()]
-    #     return super().field
-
-    def filter(self, qs, value):
-        if value != self.null_value and value:
-            return qs.filter(created_at__year=value)
-        return qs
-
-
-class ApplicationFilterSet(django_filters.FilterSet):
-    # @property
-    # def qs(self):
-    #     parent = super().qs
-    #     author = getattr(self.request, 'user', None)
-    #     return parent.filter(is_published=True) | parent.filter(author=author)
-
-    # @property
-    # def qs(self):
-    #     qs = super().qs
-    #     if self.form.data.get('archived_filter') != "true":
-    #         qs = qs.filter(round__scheme__current_round=F("round"))
-    #     return qs
-
-    application_filter = django_filters.CharFilter(
-        method="set_filter", label=gettext_lazy("Application Filter")
-    )
-    archived_filter = django_filters.BooleanFilter(
-        method="filter_archived",
-        label=gettext_lazy("Archived Applications"),
-    )
-    active_filter = django_filters.BooleanFilter(
-        method="filter_active", label=gettext_lazy("Active Applications")
-    )
-    # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
-    year_filter = YearChoiceFilter(
-        label=gettext_lazy("Year"),
-        widget=django_filters.widgets.LinkWidget,
-        choices=[(v, v) for v in range(timezone.now().year, 2019, -1)],
-        # method="set_filter",
-        # queryset=application_filter_years,
-    )
-
-    round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
-        #     "round",
-        label=gettext_lazy("Round"),
-        widget=django_filters.widgets.LinkWidget,
-        # widget=LinkWidget,
-        field_name="round",
-        queryset=application_filter_rounds,
-    )
-
-    class Meta:
-        model = models.Application
-        fields = ["application_filter", "archived_filter", "active_filter", "round"]
-
-    def filter_archived(self, queryset, name, value):
-        if not value:
-            return queryset.filter(round__scheme__current_round=F("round"))
-        return queryset
-
-    def filter_active(self, queryset, name, value):
-        if value:
-            return queryset.filter(round__scheme__current_round=F("round"))
-        return queryset
-
-    def set_filter(self, queryset, name, value):
-        if value:
-            return queryset.filter(
-                Q(application_title__icontains=value)
-                | Q(number__icontains=value)
-                | Q(first_name__icontains=value)
-                | Q(last_name__icontains=value)
-                | Q(email__icontains=value)
-                | Q(submitted_by__first_name__icontains=value)
-                | Q(submitted_by__last_name__icontains=value)
-                | Q(submitted_by__email__icontains=value)
-                | Q(
-                    Exists(
-                        models.Member.where(
-                            first_name__icontains=value, application=OuterRef("pk")
-                        )
-                    )
-                )
-                | Q(
-                    Exists(
-                        models.Member.where(last_name__icontains=value, application=OuterRef("pk"))
-                    )
-                )
-            ).distinct()
-        else:
-            return queryset
-
-
 class InvitationList(LoginRequiredMixin, SingleTableView):
     table_class = tables.InvitationTable
     model = models.Invitation
@@ -4582,20 +4444,10 @@ class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
     form_class = forms.ContractForm
 
 
-class ApplicationListMixin:
-    def get_queryset(self, *args, **kwargs):
-        u = self.request.user
-        q = models.Application.user_applications(u, round=self.request.GET.get("round"))
-        if u.is_staff or u.is_superuser:
-            return q.prefetch_related("contracts")
-        return q
-
-
 class ApplicationList(
     # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView,
     LoginRequiredMixin,
     StateInPathMixin,
-    ApplicationListMixin,
     SingleTableMixin,
     FilterView,
 ):
@@ -4603,8 +4455,18 @@ class ApplicationList(
     table_class = tables.ApplicationTable
     extra_context = {"category": "applications"}
     template_name = "table.html"
-    filterset_class = ApplicationFilterSet
+    filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
+
+    def get_queryset(self, *args, **kwargs):
+        u = self.request.user
+        q = super().get_queryset(*args, **kwargs)
+        q = models.Application.user_applications(
+            u, round=self.request.GET.get("round"), queryset=q
+        )
+        if u.is_staff or u.is_superuser:
+            return q.prefetch_related("contracts")
+        return q
 
     def get_table_kwargs(self):
         if not (self.request.user.is_superuser or self.request.user.is_site_staff):
@@ -4640,7 +4502,6 @@ class ApplicationList(
         #         context["application_draft_count"] = application_draft_count
         #         context["application_submitted_count"] = application_submitted_count
 
-        # context["filter_disabled"] = True
         if (state := self.request.path.split("/")[-1]) and state in [
             "draft",
             "submitted",
@@ -6419,9 +6280,11 @@ class TestimonialView(CreateUpdateView):
         return context
 
 
-class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterView):
     model = models.Nomination
     table_class = tables.NominationTable
+    filterset_class = filters.NominationFilterSet
+    paginator_class = django_tables2.paginators.LazyPaginator
     template_name = "nominations.html"
 
     def get_context_data(self, *args, **kwargs):
@@ -6537,10 +6400,17 @@ class NominationDetail(DetailView):
         return context
 
 
-class TestimonialList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+class TestimonialList(
+    LoginRequiredMixin,
+    StateInPathMixin,
+    SingleTableMixin,
+    FilterView,
+):
     model = models.Testimonial
     table_class = tables.TestimonialTable
     template_name = "testimonials.html"
+    filterset_class = filters.TestimonialFilterSet
+    paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_queryset(self, *args, **kwargs):
         state = self.state
@@ -6930,7 +6800,8 @@ class TestimonialExportView(ExportView, TestimonialDetail):
                 )
             )
         if testimonial.referee.application.round.referee_cv_required and (
-            referee_cv := testimonial.cv or models.CurriculumVitae.last_user_cv(testimonial.referee.user)
+            referee_cv := testimonial.cv
+            or models.CurriculumVitae.last_user_cv(testimonial.referee.user)
         ):
             attachments.append(
                 (
@@ -8204,7 +8075,7 @@ class SummaryReportList(LoginRequiredMixin, SingleTableMixin, FilterView):
     table_class = tables.SummaryReportTable
     template_name = "table.html"
     extra_context = {"category": "applications"}
-    filterset_class = ApplicationFilterSet
+    filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_queryset(self, *args, **kwargs):

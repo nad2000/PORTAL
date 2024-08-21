@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
 from django.db import connection
-from django.db.models import Max, Q, Subquery
+from django.db.models import Max, F, Q, Subquery
 from django.utils import timezone
 from multisite.models import Alias
 
@@ -27,16 +27,19 @@ def portal_context(request):
     }
 
     if (u := request.user) and u.is_authenticated:
-        filters = request.GET.get("application_filter","")
-        cache_key = f"{u.username}:{site_id}:{filters}"
+        filters = request.GET.get("application_filter", "")
+        # cache_key = f"{u.username}:{site_id}:{filters}"
+        cache_key = f"{u.username}:{site_id}"
         cache_control = request.META.get("HTTP_CACHE_CONTROL")
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             cached_context = cache.get(cache_key)
         if has_refreshed or not cached_context or view_name == "start":
-            is_ro = models.ResearchOffice.where(user=u).exists()
+            is_ro = u.research_offices.exists()
             is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
-            counts = {s: c for s, c in models.Application.user_application_counts(u)}
+            counts = {
+                s: c for s, c in models.Application.user_application_counts(u, request=request)
+            }
             # application_draft_count = models.Application.user_application_count(
             #     u, ["draft", "new"]
             # )
@@ -159,6 +162,16 @@ def portal_context(request):
                         ),
                     )
                 ]
+                cached_context["filter_disabled"] = not (
+                    u.is_superuser
+                    or is_ro
+                    or u.is_site_staff
+                    or models.ConflictOfInterest.where(
+                        panellist__user=u,
+                        has_conflict=False,
+                        panellist__round__schema__current_round=F("panellist__round"),
+                    ).exists()
+                )
                 if site_id in [4, 5] and (u.is_superuser or u.is_site_staff):
                     cached_context["LIMESURVEY_ADMIN_URL"] = (
                         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"

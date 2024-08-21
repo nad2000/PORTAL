@@ -172,10 +172,12 @@ thead th.orderable.desc > a {
     {% if filter and not filter_disabled %}
     <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
         {% for n, v in request.GET.items %}
-          {% if n != 'application_filter' and n != 'archived_filter' and n != 'active_filter' and n != 'page' %}
+          {% if n != 'nomination_filter' and n != 'testimonial_filter' and n != 'application_filter' and n != 'archived_filter' and n != 'active_filter' and n != 'page' %}
             <input type="hidden" name="{{ n }}" value="{{ v }}">
           {% endif %}
         {% endfor %}
+
+        {% comment %}
         <!-- input type="checkbox"
           data-toggle="toggle"
           {% if filter.form.archived_filter.value == True %}checked{% endif %}
@@ -192,20 +194,34 @@ thead th.orderable.desc > a {
           {% if filter.form.active_filter.value == True %}value="true"{% else %}value="false"{% endif %}
           data-toggle="toggle" data-on="{% trans 'Active' %}" data-off="{% trans 'All' %}"
         >
+        {% endcomment %}
         <span>&nbsp;</span>
-        {% bootstrap_field filter.form.application_filter show_label=False %}
+        {% if filter.form.application_filter %}
+          {% bootstrap_field filter.form.application_filter show_label=False %}
+        {% elif filter.form.testimonial_filter %}
+          {% bootstrap_field filter.form.testimonial_filter show_label=False %}
+        {% elif filter.form.nomination_filter %}
+          {% bootstrap_field filter.form.nomination_filter show_label=False %}
+        {% endif %}
         {#% bootstrap_field filter.form.round show_label=False %#}
         {#% bootstrap_field filter.form.archived_filter show_label=False %#}
         {#% if user.is_superuser or user.is_saff %#}
         {#% endif %#}
 
         <button class="btn btn-primary ml-1">{% trans 'Filter' %}</button>
+        <a href="?" type="button" class="btn btn-outline-secondary ml-1"
+          data-toggle="tooltip"
+          title="{% trans 'Clear all filters' %}"
+        >
+          {% trans 'Clear' %}
+        </a>
       </form>
     {% endif %}
   {% endblock %}
 
 
   {% if user.is_saff and filter or user.is_superuser and filter %}
+    {% if filter.form.round_filter or filter.form.round_filter %}
     <div class="row">
       <div class="col-md-10">
         {% render_table table %}
@@ -220,20 +236,24 @@ thead th.orderable.desc > a {
             <!-- h5 class="card-title">Light card title</h5 -->
             <p class="card-text">
               <!-- details data-filter-title="round" open="" -->
-              <details data-filter-title="round" id="round-filter">
-                <summary>{% trans 'By round' %}</summary>
-                {{ filter.form.round_filter }}
-                {#% bootstrap_field filter.form.round_filter show_label=False %#}
-                {#% bootstrap_field filter.form.archived_filter show_label=True %#}
-                <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
-              </details>
-              <details data-filter-title="year" id="year-filter">
-                <summary>{% trans 'By year' %}</summary>
-                {{ filter.form.year_filter }}
-                {#% bootstrap_field filter.form.round_filter show_label=False %#}
-                {#% bootstrap_field filter.form.archived_filter show_label=True %#}
-                <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
-              </details>
+              {% if filter.form.round_filter %}
+                <details data-filter-title="round" id="round-filter">
+                  <summary>{% trans 'By round' %}</summary>
+                  {{ filter.form.round_filter }}
+                  {#% bootstrap_field filter.form.round_filter show_label=False %#}
+                  {#% bootstrap_field filter.form.archived_filter show_label=True %#}
+                  <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
+                </details>
+              {% endif %}
+              {% if filter.form.year_filter %}
+                <details data-filter-title="year" id="year-filter">
+                  <summary>{% trans 'By year' %}</summary>
+                  {{ filter.form.year_filter }}
+                  {#% bootstrap_field filter.form.round_filter show_label=False %#}
+                  {#% bootstrap_field filter.form.archived_filter show_label=True %#}
+                  <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
+                </details>
+              {% endif %}
             </p>
           </div>
           <!-- /form -->
@@ -257,6 +277,9 @@ thead th.orderable.desc > a {
 
       </div>
     </div>
+    {% else %}
+      {% render_table table %}
+    {% endif %}
   {% else %}
     {% render_table table %}
   {% endif %}

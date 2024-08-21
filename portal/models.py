@@ -2895,9 +2895,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @classmethod
     def user_applications(
-        cls, user, state=None, round=None, select_related=True, include_inactive=False
+        cls, user, state=None, round=None, select_related=True, include_inactive=False, request=None, queryset=None
     ):
-        q = cls.objects.all()
+        q = queryset or cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
 
         if select_related:
@@ -2948,17 +2948,17 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return q
 
     @classmethod
-    def user_application_count(cls, user, state=None, round=None):
+    def user_application_count(cls, user, state=None, round=None, request=None):
         return cls.user_applications(
-            user=user, state=state, round=round, select_related=False
+            user=user, state=state, round=round, select_related=False, request=request
         ).count()
 
     @classmethod
-    def user_application_counts(cls, user, state=None, round=None):
+    def user_application_counts(cls, user, state=None, round=None, request=None):
         return (
             cls.where(
                 pk__in=cls.user_applications(
-                    user=user, state=state, round=round, select_related=False
+                    user=user, state=state, round=round, select_related=False, request=request
                 ).values("pk")
             )
             .values_list("state")
@@ -2967,8 +2967,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @classmethod
-    def user_draft_applications(cls, user):
-        return cls.user_applications(user, ["draft", "new"])
+    def user_draft_applications(cls, user, request=None):
+        return cls.user_applications(user, ["draft", "new"], request=request)
 
     def get_testimonials(self, has_testified=None, user=None):
         sql = (
@@ -3035,7 +3035,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         and referee_cv not in cvs
                     ):
                         cvs.append(referee_cv)
-                        attachments.append(
+                        attachents.append(
                             (
                                 f"{referee_cv.full_name} {_('Curriculum Vitae')}",
                                 settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
@@ -4947,7 +4947,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     def __str__(self):
         if self.referee_id:
-            if self.site_id == 4:
+            if self.site_id in [4, 5]:
                 return _("Referee report by {0} for {1}").format(
                     self.referee, self.referee.application
                 )
