@@ -1053,7 +1053,9 @@ def check_profile(request, token=None):
                             request,
                             mark_safe(
                                 _(
-                                    f"The referee report submission closed at <b>{testimonial_submission_closes_at.isoformat()}</b>."
+                                    "The referee report submission was closed on "
+                                    f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                    f"at <b>{testimonial_submission_closes_at.time()}</b>."
                                 )
                             ),
                         )
@@ -1956,7 +1958,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                             self.request,
                             mark_safe(
                                 _(
-                                    "The referee report submission closed on "
+                                    "The referee report submission was closed on "
                                     f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
                                     f"at <b>{testimonial_submission_closes_at.time()}</b>."
                                 )
@@ -6038,7 +6040,9 @@ class TestimonialView(CreateUpdateView):
                         request,
                         mark_safe(
                             _(
-                                f"The referee report submission closed at <b>{testimonial_submission_closes_at.isoformat()}</b>."
+                                "The referee report submission was closed on "
+                                f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                f"at <b>{testimonial_submission_closes_at.time()}</b>."
                             )
                         ),
                     )
@@ -6545,7 +6549,9 @@ class TestimonialDetail(DetailView):
                         self.request,
                         mark_safe(
                             _(
-                                f"The referee report submission closed at <b>{testimonial_submission_closes_at.isoformat()}</b>."
+                                "The referee report submission was closed on "
+                                f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                f"at <b>{testimonial_submission_closes_at.time()}</b>."
                             )
                         ),
                     )
