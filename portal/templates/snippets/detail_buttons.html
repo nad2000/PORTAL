@@ -15,7 +15,8 @@
     <div class="tooltip-wrapper{% if not scheme.current_round.is_open or object.state == "submitted" or object.state == "submitted" or object.state == "accepted" or object.referee.survey_completed_at %} disabled{% endif %}"
          {% if object.referee and object.referee.survey_completed_at %}
            disabled
-         title="{% blocktrans with completed_at=object.referee.survey_completed_at %}Referee report was completed at <b>{{ completed_at }}</b>{% endblocktrans %}"
+           data-html="true"
+          title="{% blocktrans with completed_at=object.referee.survey_completed_at %}Referee report was completed at <b>{{ completed_at }}</b>{% endblocktrans %}"
        {% elif object.state == "submitted" or object.state == "submitted" %}
            disabled
          data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"

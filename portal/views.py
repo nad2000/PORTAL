@@ -1046,6 +1046,19 @@ def check_profile(request, token=None):
                 elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
                     next_url = reverse("application", kwargs={"pk": a_id})
                 elif i.type == "R" and (r := i.referee):
+                    if (
+                        testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
+                    ) and testimonial_submission_closes_at > timezone.now():
+                        messages.error(
+                            request,
+                            mark_safe(
+                                _(
+                                    f"The referee report submission closed at <b>{testimonial_submission_closes_at.isoformat()}</b>."
+                                )
+                            ),
+                        )
+                        return redirect(next_url or "home")
+
                     if t := models.Testimonial.where(referee=r).last():
                         next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
@@ -1713,6 +1726,8 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             referee = (
                 a.referees.filter(
                     Q(user=u) | Q(email=u.email) | Q(email__in=u.email_addresses),
+                    Q(application__round__testimonial_submission_closes_at__isnull=True)
+                    | Q(application__round__testimonial_submission_closes_at__gt=timezone.now()),
                     survey_completed_at__isnull=True,
                 )
                 .order_by("-id")
@@ -1905,6 +1920,11 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
+
+        r = a.round
+        testimonial_submission_closes_at = r.testimonial_submission_closes_at
+        if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
+            context["reviewing_closed"] = True
         if not is_owner:
             context["show_basic_details"] = not (
                 u.is_staff
@@ -1923,13 +1943,26 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 .order_by("-id")
                 .first()
             ):
-                r = a.round
                 if r.site_id == 5:
                     context["export_enabled"] = True
                 context["testimonial"] = t
                 if t.state != "submitted":
                     closes_at = r.closes_at
-                    if r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                    if (
+                        testimonial_submission_closes_at
+                        and testimonial_submission_closes_at < timezone.now()
+                    ):
+                        messages.warning(
+                            self.request,
+                            mark_safe(
+                                _(
+                                    "The referee report submission closed on "
+                                    f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                    f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                                )
+                            ),
+                        )
+                    elif r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
                         messages.info(
                             self.request,
                             (
@@ -5998,6 +6031,19 @@ class TestimonialView(CreateUpdateView):
                 Q(user=u) | Q(email=u.email), application_id=self.kwargs["application"]
             ).last()
             if r:
+                if (
+                    testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
+                ) and testimonial_submission_closes_at > timezone.now():
+                    messages.error(
+                        request,
+                        mark_safe(
+                            _(
+                                f"The referee report submission closed at <b>{testimonial_submission_closes_at.isoformat()}</b>."
+                            )
+                        ),
+                    )
+                    return redirect("home")
+
                 t = models.Testimonial.where(referee=r).last()
                 if t:
                     return redirect("testimonial-update", pk=t.pk)
@@ -6439,6 +6485,10 @@ class TestimonialDetail(DetailView):
         a = referee.application
         r = a and a.round or referee.application.round
 
+        testimonial_submission_closes_at = r and r.testimonial_submission_closes_at
+        if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
+            context["reviewing_closed"] = True
+
         if a:
             context["extra_object"] = a
             context["application"] = a
@@ -6487,7 +6537,19 @@ class TestimonialDetail(DetailView):
                 )
             else:
                 closes_at = r.closes_at
-                if r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                if (
+                    not testimonial_submission_closes_at
+                    and testimonial_submission_closes_at < timezone.now()
+                ):
+                    messages.warning(
+                        self.request,
+                        mark_safe(
+                            _(
+                                f"The referee report submission closed at <b>{testimonial_submission_closes_at.isoformat()}</b>."
+                            )
+                        ),
+                    )
+                elif r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
                     messages.info(
                         self.request,
                         (

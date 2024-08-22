@@ -2895,7 +2895,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @classmethod
     def user_applications(
-        cls, user, state=None, round=None, select_related=True, include_inactive=False, request=None, queryset=None
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        include_inactive=False,
+        request=None,
+        queryset=None,
     ):
         q = queryset or cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
@@ -3340,6 +3347,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     class Meta:
         db_table = "application"
+
 
 # class ApplicationExportLog(Model):
 #     application = ForeignKey(Application, on_delete=CASCADE, related_name="export_log")
@@ -3880,8 +3888,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
             "ae.email = r.email LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
             "  JOIN application AS a ON a.id = r.application_id "
             "  JOIN scheme AS s ON s.current_round_id = a.round_id "
-            "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')",
-            [user.id, user.id],
+            "  JOIN round ON round.id = a.round_id "
+            "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')"
+            "  AND (round.testimonial_submission_closes_at IS NULL OR round.testimonial_submission_closes_at > %s)",
+            [user.id, user.id, timezone.now()],
         )
 
     @cached_property
@@ -4345,6 +4355,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             defaults=dict(
                 inviter=by,
                 application=referee.application,
+                round=referee.round,
                 first_name=first_name,
                 middle_names=middle_names,
                 last_name=last_name,
@@ -4822,11 +4833,11 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site_id = cls.get_current_site_id()
         return cls.objects.raw(
             "SELECT i.* FROM invitation AS i JOIN account_emailaddress AS ae ON ae.email = i.email "
-            "  JOIN scheme AS s ON s.current_round_id = i.round_id "
+            "  LEFT JOIN scheme AS s ON s.current_round_id = i.round_id "
+            "  LEFT JOIN round AS r ON r.id = i.round_id "
             "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked') AND i.site_id=%s "
-            "UNION SELECT * FROM invitation WHERE email=%s AND state NOT IN ('accepted', 'expired', 'revoked') "
-            "  AND site_id=%s",
-            [user.id, site_id, user.email, site_id],
+            """  AND (i."type" != 'R' OR r.testimonial_submission_closes_at IS NULL or r.testimonial_submission_closes_at > %s)""",
+            [user.id, site_id, timezone.now()],
         )
 
     def __str__(self):
@@ -5173,6 +5184,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
+    testimonial_submission_closes_at = DateTimeField(
+        null=True, blank=True, verbose_name="Testimonial submission closes at"
+    )
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
     guidelines = URLField(
@@ -6787,6 +6801,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             email=self.email,
             defaults=dict(
                 first_name=self.first_name,
+                round=self.round,
                 middle_names=self.middle_names,
                 last_name=self.last_name,
                 org=self.org,

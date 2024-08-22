@@ -1162,7 +1162,11 @@ class ApplicationAdmin(
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
                         "is_bilingual",
-                        ("round", "panel") if obj and obj.round and obj.round.can_specify_panel else "round",
+                        (
+                            ("round", "panel")
+                            if obj and obj.round and obj.round.can_specify_panel
+                            else "round"
+                        ),
                         ("title", "first_name", "middle_names", "last_name", "position"),
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
@@ -1955,6 +1959,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 
 @admin.register(models.Invitation)
 class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, SimpleHistoryAdmin):
+
     @admin.action(description="Resend invitations")
     def resend(self, request, queryset):
         recipients = []
@@ -2090,9 +2095,10 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
                 obj.referee.application.number,
             )
         )
+
     # application_url.allow_tags = True
     # application_url.short_description = "Application"
-    application_url.ordering="referee__application__number"
+    application_url.ordering = "referee__application__number"
 
     def is_submitted(self, obj):
         return obj.is_active
@@ -2340,7 +2346,11 @@ class RoundAdmin(
                     "fields": [
                         "scheme",
                         ("title_en", "title_mi", "colour"),
-                        ("opens_on", "closes_at"),
+                        (
+                            ("opens_on", "closes_at", "testimonial_submission_closes_at")
+                            if site_id == 5
+                            else ("opens_on", "closes_at")
+                        ),
                         "description_en",
                         "description_mi",
                         "guidelines",
