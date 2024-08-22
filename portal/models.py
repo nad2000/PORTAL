@@ -7285,6 +7285,40 @@ class Panel(PanelMixin, Model):
 simple_history.register(Panel, inherit=True, table_name="panel_history", bases=[PanelMixin, Model])
 
 
+class PanelDecision(Model):
+    site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    objects = CurrentSiteManager()
+    all_objects = Manager()
+
+    number = CharField(
+        max_length=24,
+        primary_key=True,
+        help_text="Application/proposal number",
+        db_column="number"
+    )
+    grade = PositiveSmallIntegerField("Grade%", blank=True, null=True)
+    decision = FixedCharField(
+        max_length=1,
+        choices=Choices(
+            ("Y", _("Yes, funded")),
+            ("N", _("Not funded")),
+            ("R", _("Reserve")),
+            ("I", _("Ineligible")),
+        ),
+    )
+    panel = CharField(_("panel"), max_length=3, blank=True, null=True)
+    rank = PositiveSmallIntegerField(blank=True, null=True)
+
+    def natural_key(self):
+        return (self.number,)
+
+    def __str__(self):
+        return f"{self.number} ({self.grade}/{self.rank}): {self.decision}"
+
+    class Meta:
+        db_table = "panel_decision"
+
+
 def add_title_data(apps, schema_editor):
     """
     Add to the migrations:

@@ -303,6 +303,48 @@ class KeywordAdmin(ExportActionMixin, ImportExportModelAdmin):
     prepopulated_fields = {"slug": ["name"]}
 
 
+class PanelDecisionResource(ModelResource):
+    
+    number = fields.Field(attribute='number', column_name='Proposal')
+    grade = fields.Field(attribute='grade', column_name='Grade%')
+    decision = fields.Field(attribute='decision', column_name='Decision')
+    panel = fields.Field(attribute='panel', column_name='Panel')
+    rank = fields.Field(attribute='rank', column_name='Rank')
+    adjust = fields.Field(column_name='Adjust')
+    f7 = fields.Field(column_name='F7')
+    f8 = fields.Field(column_name='F8')
+    f9 = fields.Field(column_name='F9')
+
+    def before_save_instance(self, instance, row, **kwargs):
+        if instance.decision:
+            instance.decision = instance.decision.upper()
+
+    class Meta:
+        model = models.PanelDecision
+        exclude = ["site", "created_at", "updated_at"]
+        import_id_fields = ["number"]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+        use_transactions = True
+
+
+@admin.register(models.PanelDecision)
+class PanelDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
+    show_close_button = True
+
+    # class KeywordedItemInline(admin.StackedInline):
+    #     model = models.KeywordedItem
+    # inlines = [KeywordedItemInline]
+
+    list_editable = ["grade", "decision", "panel", "rank"]
+    list_display = ["number", "grade", "decision", "panel", "rank"]
+    ordering = ["number", "panel"]
+    search_fields = ["number", "panel"]
+    list_filter = ["panel", "decision"]
+    resource_classes = [PanelDecisionResource]
+
+
 class EthnicityResource(ModelResource):
     class Meta:
         model = models.Ethnicity
