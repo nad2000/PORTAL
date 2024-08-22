@@ -6542,7 +6542,7 @@ class TestimonialDetail(DetailView):
             else:
                 closes_at = r.closes_at
                 if (
-                    not testimonial_submission_closes_at
+                    testimonial_submission_closes_at
                     and testimonial_submission_closes_at < timezone.now()
                 ):
                     messages.warning(

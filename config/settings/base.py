@@ -533,4 +533,6 @@ DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
     r"^/favicon.ico$",
     "^/webmanifest",
     "^/summernote",
+    "^/status",
+    "^/autocomplete",
 ]
