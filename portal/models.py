@@ -2921,10 +2921,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if round:
             q = q.filter(round=round)
 
-        if not round and not ((user.is_staff or user.is_superuser) and include_inactive):
+        if not round and not (
+            (user.is_staff or user.is_superuser or user.is_site_staff) and include_inactive
+        ):
             q = q.filter(round=F("round__scheme__current_round"))
 
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or user.is_site_staff:
             return q
 
         f = (
@@ -2995,14 +2997,28 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
-    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+    def to_pdf(
+        self,
+        request=None,
+        user=None,
+        add_headers=None,
+        skip_excluded=False,
+        cache=False,
+        for_panellists=False,
+    ):
         """Create PDF file for export and return PdfMerger"""
 
         r = self.round
         if not user and request:
             user = request.user
 
-        is_referee = user and self.referees.filter(Q(user=user)).exists()
+        is_referee = user and self.referees.filter(user=user).exists()
+        is_panellist = (
+            user
+            and self.conflict_of_interests.filter(
+                panellist__user=user, has_conflict=False, has_conflict__isnull=False
+            ).exists()
+        )
 
         attachments = []
         cvs = []
@@ -3053,12 +3069,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if (
             user.is_superuser
             or user.is_staff
-            or (
-                self.site_id != 4
-                and self.conflict_of_interests.filter(
-                    panellist__user=user, has_conflict=False, has_conflict__isnull=False
-                ).exists()
-            )
+            or (self.site_id != 4 and is_panellist)
+            or for_panellists
         ):
             for n in Nomination.where(application=self, nominator__isnull=False):
                 if n.file:
@@ -3085,7 +3097,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         )
 
             if self.site_id in [4, 5] and not is_referee and not self.is_applicant(user):
-                if user.is_superuser or user.is_site_staff:
+                if user.is_superuser or user.is_site_staff or for_panellists:
                     add_testimonials(attachments)
                 else:
                     add_testimonials(attachments, user=user)
@@ -3109,6 +3121,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 and d.required_document.exclude
                 or is_referee
                 and not d.required_document.referees_can_access
+                or (is_panellist or for_panellists)
+                and not d.required_document.panellists_can_access
             ):
                 continue
             attachments.append(
@@ -3123,7 +3137,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
         ):
-            if user.is_superuser or self.is_applicant(user) or user.is_site_staff:
+            if user.is_superuser or self.is_applicant(user) or user.is_site_staff or is_panellist or for_panellists:
                 add_testimonials(attachments)
             else:
                 add_testimonials(attachments, user=user)
@@ -3281,6 +3295,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
             for dp, hp in zip(merger.pages, header_file.pages):
                 dp.pagedata.mergePage(hp)
+
+        if cache and for_panellists:
+            pass
 
         return merger
 
@@ -7294,7 +7311,7 @@ class PanelDecision(Model):
         max_length=24,
         primary_key=True,
         help_text="Application/proposal number",
-        db_column="number"
+        db_column="number",
     )
     grade = PositiveSmallIntegerField("Grade%", blank=True, null=True)
     decision = FixedCharField(

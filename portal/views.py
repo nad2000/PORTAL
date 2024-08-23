@@ -4,6 +4,8 @@ import mimetypes
 import os
 import shutil
 import traceback
+import py7zr
+import tempfile
 from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote
@@ -194,7 +196,7 @@ def about(request):
     return render(request, "pages/about.html", locals())
 
 
-@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+@user_passes_test(lambda u: u.is_superuser or u.is_staff or u.is_site_staff)
 def pyinfo(request, message=None):
     """Show Python and runtime environment and settings or test exception handling."""
     if message:
@@ -821,7 +823,7 @@ def index(request):
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
                 user__is_active=True,
@@ -1385,7 +1387,7 @@ class ProfileDetail(ProfileView, DetailView):
         if "pk" in self.kwargs:
             p = super().get_object()
             u = self.request.user
-            if u.is_staff or u.is_superuser or p.user == u:
+            if u.is_staff or u.is_superuser or p.user == u or u.is_site_staff:
                 return p
             raise PermissionDenied(_("You are not allowed to see this profile."))
         return self.request.user.person
@@ -1688,7 +1690,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         else:
             a = self.get_object()
             self.object = a
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             if not a.user_can_view(u):
                 messages.error(request, _("You do not have permissions to view this application."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
@@ -1932,6 +1934,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 u.is_staff
                 or u.is_superuser
                 or is_ro
+                or u.is_site_staff
                 or (a.site_id not in [4, 5] and a.referees.filter(user=u).exists())
                 or models.ConflictOfInterest.where(
                     Q(has_conflict=False) | Q(has_conflict__isnull=False),
@@ -2064,7 +2067,7 @@ class ApplicationView(LoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and not (u.is_staff or u.is_superuser):
+        if u.is_authenticated and not (u.is_staff or u.is_superuser or u.is_site_staff):
             if (pk := self.kwargs.get("pk")) and (
                 a := get_object_or_404(models.Application, pk=pk)
             ):
@@ -3781,7 +3784,7 @@ class InvitationList(LoginRequiredMixin, SingleTableView):
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         u = self.request.user
-        if not (u.is_superuser or u.is_staff):
+        if not (u.is_superuser or u.is_staff or u.is_site_staff):
             queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
         return queryset
 
@@ -4499,7 +4502,7 @@ class ApplicationList(
         q = models.Application.user_applications(
             u, round=self.request.GET.get("round"), queryset=q
         )
-        if u.is_staff or u.is_superuser:
+        if u.is_staff or u.is_superuser or u.is_site_staff:
             return q.prefetch_related("contracts")
         return q
 
@@ -4593,7 +4596,7 @@ class IdentityVerificationView(LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and not (u.is_staff or u.is_superuser):
+        if u.is_authenticated and not (u.is_staff or u.is_superuser or u.is_site_staff):
             messages.error(request, _("You do not have permissions to access this page."))
             return redirect("index")
         return super().dispatch(request, *args, **kwargs)
@@ -5642,7 +5645,11 @@ class AdminstaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """only Admin staff can access"""
 
     def test_func(self):
-        return self.request.user.is_superuser or self.request.user.is_staff
+        return (
+            self.request.user.is_superuser
+            or self.request.user.is_staff
+            or self.request.user.is_site_staff
+        )
 
 
 class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
@@ -5733,7 +5740,7 @@ class NominationView(CreateUpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.user = u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
             if n and n.nominator and n.nominator != u:
                 messages.error(
@@ -6021,7 +6028,7 @@ class TestimonialView(CreateUpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             t = self.get_object()
             if t and t.referee and t.referee.user and t.referee.user != u:
                 messages.error(
@@ -6348,7 +6355,7 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Fil
         queryset = super().get_queryset(*args, **kwargs)
         u = self.request.user
         state = self.request.path.split("/")[-1]
-        if not (u.is_superuser or u.is_staff):
+        if not (u.is_superuser or u.is_staff or u.is_site_staff):
             # if not state or (state == "submitted" or "submitted" in state):
             queryset = queryset.filter(
                 Q(nominator=u)
@@ -6372,7 +6379,7 @@ class NominationDetail(DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
             if not (
                 n.nominator == u
@@ -6475,7 +6482,7 @@ class TestimonialDetail(DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             t = self.get_object()
             if t.referee.user != u:
                 messages.error(request, _("You do not have permissions to view this testimonial."))
@@ -6647,6 +6654,7 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
         return (
             u.is_staff
             or u.is_superuser
+            or u.is_site_staff
             or (
                 "pk" in self.kwargs
                 # and (a := get_object_or_404(models.Application, pk=self.kwargs["pk"]))
@@ -6656,7 +6664,7 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
                     or a.members.all().filter(user=u).exists()
                     or (settings.SITE_ID not in [4] and a.referees.all().filter(user=u).exists())
                     or a.round.panellists.all().filter(user=u).exists()
-                    or a.org.where(research_offices__user=u).exists()
+                    or a.org.research_offices.filter(user=u).exists()
                 )
             )
         )
@@ -6761,7 +6769,12 @@ class RoundExportView(ExportView):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
-        return u.is_staff or u.is_superuser or self.round.panellists.all().where(user=u).exists()
+        return (
+            u.is_staff
+            or u.is_superuser
+            or self.round.panellists.filter(user=u).exists()
+            or u.is_site_staff
+        )
 
     @property
     def filename(self):
@@ -6770,6 +6783,11 @@ class RoundExportView(ExportView):
     def get(self, request, pk):
         round = self.round
         site_id = settings.SITE_ID
+        file_format = request.GET.get("format", "pdf")
+        u = request.user
+        for_panellists = request.GET.get("for_panellists", False) and (
+            u.is_superuser or u.is_site_staff
+        )
 
         # merger = PdfMerger()
         merger = PdfMerger(strict=False)
@@ -6778,23 +6796,58 @@ class RoundExportView(ExportView):
 
         numbers = []
         # for a in self.round.applications.all().order_by("number"):
-        for a in (
-            self.round.applications.filter(state="accepted")
+        applications = (
+            self.round.applications.filter(state__in=["accepted", "in_review"])
             if site_id in [4, 5]
             else self.round.applications.filter(state__in=["submitted", "approved"])
-        ).order_by("number"):
+        ).order_by("number")
+
+        if file_format and file_format != "pdf":
+            output_filename = os.path.join(tempfile.gettempdir(), f"{self.filename}.7z")
+            with py7zr.SevenZipFile(output_filename, "w") as archive:
+                for a in applications:
+                    filename = os.path.join(tempfile.gettempdir(), f"{a.number}.pdf")
+                    with open(filename, "wb") as output:
+                        a.to_pdf(
+                            request,
+                            skip_excluded=(site_id in [4, 5]),
+                            for_panellists=for_panellists,
+                        ).write(output)
+                    archive.write(filename, f"{a.number}.pdf")
+            # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
+            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+            # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+
+            content_type = "application/x-7z-compressed"
+            if settings.DEBUG:
+                response = StreamingHttpResponse(
+                    FileWrapper(open(output_filename, "rb")), content_type=content_type
+                )
+            else:
+                # works with nginx:
+                response = HttpResponse(content_type="application/force-download")
+                response["X-Sendfile"] = output_filename
+                response["X-Accel-Redirect"] = output_filename
+            response["Content-Length"] = os.path.getsize(output_filename)
+            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+            response["Content-Disposition"] = f"attachment; filename={round.scheme.code}-{round.opens_on.year}.7z"
+            return response
+
+        for a in applications:
             numbers.append(a.number)
             content = io.BytesIO()
-            a.to_pdf(request, skip_excluded=(site_id in [4, 5])).write(content)
+            a.to_pdf(
+                request, skip_excluded=(site_id in [4, 5]), for_panellists=for_panellists
+            ).write(content)
             content.seek(0)
             reader = PdfReader(content, strict=False)
             merger.append(
                 reader,
-                outline_item=(
-                    f"{a}"
-                    if a.site_id in [4, 5]
-                    else f"{a.number}: {a.application_title or round.title}"
-                ),
+                # outline_item=(
+                #     f"{a}"
+                #     if a.site_id in [4, 5]
+                #     else f"{a.number}: {a.application_title or round.title}"
+                # ),
                 import_outline=True,
             )
         merger.add_metadata({"/Keywords": ", ".join(numbers)})
@@ -6804,7 +6857,7 @@ class RoundExportView(ExportView):
         content.seek(0)
 
         response = FileResponse(content, content_type="application/pdf")
-        response["Content-Disposition"] = f"attachment; filename={self.filename}.pdf"
+        response["Content-Disposition"] = f"inline; filename={self.filename}.pdf"
         return response
 
         # except Exception as ex:
@@ -6845,6 +6898,7 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         return (
             u.is_staff
             or u.is_superuser
+            or u.is_site_staff
             or (
                 "pk" in self.kwargs
                 and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
@@ -7020,7 +7074,7 @@ class RoundList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
-        if (u := self.request.user) and (u.is_staff or u.is_superuser):
+        if (u := self.request.user) and (u.is_staff or u.is_superuser or u.is_site_staff):
             return kwargs
         kwargs.update(
             {
@@ -7037,7 +7091,7 @@ class RoundList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
         queryset = queryset.filter(id__in=models.Scheme.objects.values("current_round"))
 
         user = self.request.user
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_staff or user.is_superuser or user.is_site_staff):
             queryset = queryset.filter(panellists__user=user).distinct()
         else:
             queryset = queryset.annotate(evaluation_count=Count("panellists__evaluations"))
@@ -7051,7 +7105,7 @@ class ScoreSheetList(AdminRequiredMixin, StateInPathMixin, SingleTableView):
 
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
-        if (u := self.request.user) and (u.is_staff or u.is_superuser):
+        if (u := self.request.user) and (u.is_staff or u.is_superuser or u.is_site_staff):
             return kwargs
         kwargs.update({"exclude": ("evaluation_count",)})
         return kwargs
@@ -7068,7 +7122,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
 
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
-        if (u := self.request.user) and (u.is_staff or u.is_superuser):
+        if (u := self.request.user) and (u.is_staff or u.is_superuser or u.is_site_staff):
             return kwargs
         kwargs.update({"exclude": ("evaluation_count",)})
         return kwargs
@@ -7106,7 +7160,9 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
     def get(self, request, *args, **kwargs):
         user = self.request.user
         if r := self.round:
-            if not (user.is_staff or user.is_superuser or r.has_online_scoring):
+            if not (
+                user.is_staff or user.is_superuser or r.has_online_scoring or user.is_site_staff
+            ):
                 if not r.all_coi_statements_given_by(request.user):
                     return redirect("round-coi", round=r.id)
                 else:
@@ -7128,7 +7184,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
                 queryset = queryset.filter(evaluations__state=state)
 
         user = self.request.user
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_staff or user.is_superuser or user.is_site_staff):
             queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
                 coi=FilteredRelation(
                     "conflict_of_interests",
@@ -7171,7 +7227,7 @@ class ConflictOfInterestView(CreateUpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             coi = self.get_object()
             if coi and coi.panellist and coi.panellist.user and coi.panellist.user != u:
                 messages.error(request, _("You do not have permissions to access this page."))
@@ -7383,7 +7439,7 @@ def edit_evaluation(request, pk):
 class CreateEvaluation(LoginRequiredMixin, EvaluationMixin, CreateWithInlinesView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             a = self.application
             if not (a and models.Panellist.where(round=a.round, user=u).exists()):
                 messages.error(
@@ -7422,7 +7478,7 @@ class CreateEvaluation(LoginRequiredMixin, EvaluationMixin, CreateWithInlinesVie
 class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             e = self.get_object()
             if e and e.panellist and e.panellist.user and e.panellist.user != u:
                 messages.error(request, _("You do not have permissions to access this page."))
@@ -7449,7 +7505,11 @@ class EvaluationDetail(DetailView):
     template_name = "evaluation.html"
 
     def dispatch(self, request, *args, **kwargs):
-        if not (u := request.user) and u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if (
+            not (u := request.user)
+            and u.is_authenticated
+            and not (u.is_superuser or u.is_staff or u.is_site_staff)
+        ):
             if (e := self.get_object()) and e.panellist and e.panellist.user != u:
                 messages.error(request, _("You do not have permission to access this review."))
                 return self.handle_no_permission()
@@ -7688,6 +7748,7 @@ def export_score_sheet(request, round):
         for a in r.applications.all().order_by("number")
         if request.user.is_staff
         or request.user.is_superuser
+        or request.user.is_site_staff
         or (
             not a.conflict_of_interests.all()
             .filter(panellist__user=request.user, has_conflict=True)
