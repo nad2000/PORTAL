@@ -6784,19 +6784,25 @@ class RoundExportView(ExportView):
         round = self.round
         site_id = settings.SITE_ID
         file_format = request.GET.get("format", "pdf")
-        regenerate = request.GET.get("regenerate", False) 
+        regenerate = request.GET.get("regenerate", False)
         regenerate = regenerate and regenerate != "0"
         u = request.user
         for_panellists = request.GET.get("for_panellists", False) and (
             u.is_superuser or u.is_site_staff
         )
 
-        # merger = PdfMerger()
-        merger = PdfMerger(strict=False)
-        merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
-        merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
+        if for_panellists or round.panellists.filter(user=u).exists():
+            prefix = "panellists"
+        elif u.is_superuser or u.is_site_staff:
+            prefix = "admins"
+        else:
+            prefix = u.username
 
-        numbers = []
+        prefix = os.path.join(tempfile.gettempdir(), prefix)
+        if not os.path.exists(prefix):
+            os.makedirs(prefix)
+        output_filename = os.path.join(prefix, f"{self.filename}.{file_format}")
+
         # for a in self.round.applications.all().order_by("number"):
         applications = (
             self.round.applications.filter(state__in=["accepted", "in_review"])
@@ -6804,23 +6810,26 @@ class RoundExportView(ExportView):
             else self.round.applications.filter(state__in=["submitted", "approved"])
         ).order_by("number")
 
-        if file_format and file_format != "pdf":
-            output_filename = os.path.join(tempfile.gettempdir(), f"{self.filename}.7z")
-            if not os.path.exists(outpu_filename) or regenerate:
-                with py7zr.SevenZipFile(output_filename, "w") as archive:
-                    for a in applications:
-                        filename = os.path.join(tempfile.gettempdir(), f"{a.number}.pdf")
-                        if not os.path.exists(filename) or regenerate:
-                            with open(filename, "wb") as output:
-                                a.to_pdf(
-                                    request,
-                                    skip_excluded=(site_id in [4, 5]),
-                                    for_panellists=for_panellists,
-                                ).write(output)
-                        archive.write(filename, f"{a.number}.pdf")
+        for a in applications:
+            filename = os.path.join(prefix, f"{a.number}.pdf")
+            if not os.path.exists(filename) or regenerate:
+                with open(filename, "wb") as output:
+                    a.to_pdf(
+                        request,
+                        skip_excluded=(site_id in [4, 5]),
+                        for_panellists=for_panellists,
+                    ).write(output)
+
             # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
             # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
             # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+
+        if file_format and file_format != "pdf":
+            if not os.path.exists(output_filename) or regenerate:
+                with py7zr.SevenZipFile(output_filename, "w") as archive:
+                    for a in applications:
+                        filename = os.path.join(prefix, f"{a.number}.pdf")
+                        archive.write(filename, f"{a.number}.pdf")
 
             content_type = "application/x-7z-compressed"
             if settings.DEBUG:
@@ -6837,31 +6846,42 @@ class RoundExportView(ExportView):
             response["Content-Disposition"] = f"attachment; filename={round.scheme.code}-{round.opens_on.year}.7z"
             return response
 
-        for a in applications:
-            numbers.append(a.number)
-            content = io.BytesIO()
-            a.to_pdf(
-                request, skip_excluded=(site_id in [4, 5]), for_panellists=for_panellists
-            ).write(content)
-            content.seek(0)
-            reader = PdfReader(content, strict=False)
-            merger.append(
-                reader,
-                # outline_item=(
-                #     f"{a}"
-                #     if a.site_id in [4, 5]
-                #     else f"{a.number}: {a.application_title or round.title}"
-                # ),
-                import_outline=True,
+        if not os.path.exists(output_filename) or regenerate:
+            numbers = []
+            # merger = PdfMerger()
+            merger = PdfMerger(strict=False)
+            merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
+            merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
+
+            for a in applications:
+                numbers.append(a.number)
+                filename = os.path.join(prefix, f"{a.number}.pdf")
+                reader = PdfReader(filename, strict=False)
+                merger.append(
+                    reader,
+                    outline_item=(
+                        f"{a}"
+                        if a.site_id in [4, 5]
+                        else f"{a.number}: {a.application_title or round.title}"
+                    ),
+                    import_outline=True,
+                )
+            merger.add_metadata({"/Keywords": ", ".join(numbers)})
+            merger.write(output_filename)
+
+        content_type = "application/pdf"
+        if settings.DEBUG:
+            response = StreamingHttpResponse(
+                FileWrapper(open(output_filename, "rb")), content_type=content_type
             )
-        merger.add_metadata({"/Keywords": ", ".join(numbers)})
-
-        content = io.BytesIO()
-        merger.write(content)
-        content.seek(0)
-
-        response = FileResponse(content, content_type="application/pdf")
-        response["Content-Disposition"] = f"inline; filename={self.filename}.pdf"
+        else:
+            # works with nginx:
+            response = HttpResponse(content_type="application/force-download")
+            response["X-Sendfile"] = output_filename
+            response["X-Accel-Redirect"] = output_filename
+        response["Content-Length"] = os.path.getsize(output_filename)
+        # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+        response["Content-Disposition"] = f"attachment; filename={round.scheme.code}-{round.opens_on.year}.pdf"
         return response
 
         # except Exception as ex:
