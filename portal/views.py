@@ -6801,7 +6801,7 @@ class RoundExportView(ExportView):
         prefix = os.path.join(tempfile.gettempdir(), prefix)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
-        output_filename = os.path.join(prefix, f"{self.filename}.{file_format}")
+        output_filename = os.path.join(prefix, f"{round.scheme.code}-{round.opens_on.year}.{file_format}")
 
         # for a in self.round.applications.all().order_by("number"):
         applications = (

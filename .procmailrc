@@ -1,0 +1,2 @@
+:0Wc:
+| source $HOME/venv311/bin/activate; env ENV=prod python prod/email_receiver.py
