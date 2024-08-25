@@ -6784,6 +6784,8 @@ class RoundExportView(ExportView):
         round = self.round
         site_id = settings.SITE_ID
         file_format = request.GET.get("format", "pdf")
+        regenerate = request.GET.get("regenerate", False) 
+        regenerate = regenerate and regenerate != "0"
         u = request.user
         for_panellists = request.GET.get("for_panellists", False) and (
             u.is_superuser or u.is_site_staff
@@ -6804,16 +6806,18 @@ class RoundExportView(ExportView):
 
         if file_format and file_format != "pdf":
             output_filename = os.path.join(tempfile.gettempdir(), f"{self.filename}.7z")
-            with py7zr.SevenZipFile(output_filename, "w") as archive:
-                for a in applications:
-                    filename = os.path.join(tempfile.gettempdir(), f"{a.number}.pdf")
-                    with open(filename, "wb") as output:
-                        a.to_pdf(
-                            request,
-                            skip_excluded=(site_id in [4, 5]),
-                            for_panellists=for_panellists,
-                        ).write(output)
-                    archive.write(filename, f"{a.number}.pdf")
+            if not os.path.exists(outpu_filename) or regenerate:
+                with py7zr.SevenZipFile(output_filename, "w") as archive:
+                    for a in applications:
+                        filename = os.path.join(tempfile.gettempdir(), f"{a.number}.pdf")
+                        if not os.path.exists(filename) or regenerate:
+                            with open(filename, "wb") as output:
+                                a.to_pdf(
+                                    request,
+                                    skip_excluded=(site_id in [4, 5]),
+                                    for_panellists=for_panellists,
+                                ).write(output)
+                        archive.write(filename, f"{a.number}.pdf")
             # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
             # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
             # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
