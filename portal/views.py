@@ -6769,7 +6769,7 @@ class RoundExportView(ExportView):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
-        return (
+        return u.is_authenticated and (
             u.is_staff
             or u.is_superuser
             or self.round.panellists.filter(user=u).exists()
@@ -6801,7 +6801,9 @@ class RoundExportView(ExportView):
         prefix = os.path.join(tempfile.gettempdir(), prefix)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
-        output_filename = os.path.join(prefix, f"{round.scheme.code}-{round.opens_on.year}.{file_format}")
+        output_filename = os.path.join(
+            prefix, f"{round.scheme.code}-{round.opens_on.year}.{file_format}"
+        )
 
         # for a in self.round.applications.all().order_by("number"):
         applications = (
@@ -6832,7 +6834,7 @@ class RoundExportView(ExportView):
                         archive.write(filename, f"{a.number}.pdf")
 
             content_type = "application/x-7z-compressed"
-            if settings.DEBUG:
+            if True or settings.DEBUG:
                 response = StreamingHttpResponse(
                     FileWrapper(open(output_filename, "rb")), content_type=content_type
                 )
@@ -6843,7 +6845,9 @@ class RoundExportView(ExportView):
                 response["X-Accel-Redirect"] = output_filename
             response["Content-Length"] = os.path.getsize(output_filename)
             # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-            response["Content-Disposition"] = f"attachment; filename={round.scheme.code}-{round.opens_on.year}.7z"
+            response["Content-Disposition"] = (
+                f"attachment; filename={round.scheme.code}-{round.opens_on.year}.7z"
+            )
             return response
 
         if not os.path.exists(output_filename) or regenerate:
@@ -6870,7 +6874,7 @@ class RoundExportView(ExportView):
             merger.write(output_filename)
 
         content_type = "application/pdf"
-        if settings.DEBUG:
+        if True or settings.DEBUG:
             response = StreamingHttpResponse(
                 FileWrapper(open(output_filename, "rb")), content_type=content_type
             )
@@ -6881,7 +6885,9 @@ class RoundExportView(ExportView):
             response["X-Accel-Redirect"] = output_filename
         response["Content-Length"] = os.path.getsize(output_filename)
         # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-        response["Content-Disposition"] = f"attachment; filename={round.scheme.code}-{round.opens_on.year}.pdf"
+        response["Content-Disposition"] = (
+            f"attachment; filename={round.scheme.code}-{round.opens_on.year}.pdf"
+        )
         return response
 
         # except Exception as ex:

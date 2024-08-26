@@ -133,10 +133,20 @@ thead th.orderable.desc > a {
           class="btn btn-outline-primary"
           href="{% url 'round-application-export' pk=round.id %}"
           trarget="_blank"
-          data-toggle="tooltip" title="{% trans 'Export all the applications of the round' %}"
-                                role="button"
-                                style="margin: 1px;">
-        {% trans "Export PDF" %}
+          data-toggle="tooltip"
+          {% if SITE_ID == 5 %}
+            title="Export all the applications of the round for the panellist scoring"
+          {% else %}
+            title="{% trans 'Export all the applications of the round' %}"
+          {% endif %}
+          role="button"
+          style="margin: 1px;"
+      >
+        {% if SITE_ID == 5 %}
+          {% trans "Export Applications" %}
+        {% else %}
+          {% trans "Export PDF" %}
+        {% endif %}
       </a>
     </div>
 

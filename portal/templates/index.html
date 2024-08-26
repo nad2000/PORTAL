@@ -54,7 +54,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
 <!-- Modal -->
 <div class="modal fade" id="roundDetail" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog{% if SITE_ID == 5 %} modal-lg{% endif %}" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="modal-title" id="roundDetailLabel" style="color:inherit">{% trans 'Round' %}</h4>
