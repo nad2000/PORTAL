@@ -6814,7 +6814,7 @@ class RoundExportView(ExportView):
 
         for a in applications:
             filename = os.path.join(prefix, f"{a.number}.pdf")
-            if not os.path.exists(filename) or regenerate:
+            if not os.path.exists(filename) or regenerate os.path.getsize(filename) < 100:
                 with open(filename, "wb") as output:
                     a.to_pdf(
                         request,
@@ -6827,7 +6827,7 @@ class RoundExportView(ExportView):
             # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
 
         if file_format and file_format != "pdf":
-            if not os.path.exists(output_filename) or regenerate:
+            if not os.path.exists(output_filename) or regenerate or os.path.getsize(output_filename) < 100:
                 with py7zr.SevenZipFile(output_filename, "w") as archive:
                     for a in applications:
                         filename = os.path.join(prefix, f"{a.number}.pdf")

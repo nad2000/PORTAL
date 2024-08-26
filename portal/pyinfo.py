@@ -11,6 +11,7 @@ import os
 import platform
 import socket
 import sys
+import tempfile
 from datetime import datetime
 
 from django.conf import settings
@@ -96,6 +97,9 @@ def get_system_info():  # noqa: D103
 
     if hasattr(os, "path"):
         system_info.append(("OS Path", os.environ["PATH"]))
+
+    system_info.append(("tempdir", tempfile.gettempdir()))
+    system_info.append(("TMP Path", os.environ.get("TMP")))
 
     if hasattr(sys, "version"):
         system_info.append(("Python Version", sys.version))
