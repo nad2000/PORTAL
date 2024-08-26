@@ -1327,6 +1327,8 @@ class ApplicationForm(forms.ModelForm):
             "site",
             "state",
             "submitted_by",
+            "state_changed_at",
+            "tac_accepted_at",
         ]
         widgets = dict(
             keywords=autocomplete.ModelSelect2Multiple(
@@ -2959,7 +2961,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, forms.ModelFor
 
     class Meta:
         model = models.Panellist
-        exclude = ("site",)
+        exclude = ("site", "state_changed_at")
         widgets = {
             "state": InvitationStateInput(attrs={"readonly": True}),
             "round": HiddenInput(),

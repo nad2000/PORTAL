@@ -4369,7 +4369,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             defaults=dict(
                 inviter=by,
                 application=referee.application,
-                round=referee.round,
+                round=referee.application.round,
                 first_name=first_name,
                 middle_names=middle_names,
                 last_name=last_name,

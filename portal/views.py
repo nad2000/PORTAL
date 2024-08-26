@@ -3062,14 +3062,14 @@ class ApplicationView(LoginRequiredMixin):
                     count = a.invite_referees(
                         request=self.request, dispatch_invitations=dispatch_invitations
                     )
-                if dispatch_invitations:
+                if dispatch_invitations and count:
                     messages.info(
                         self.request,
                         _(
                             f"Your application has been successfully submitted to {count} referee(s) to review it."
                         ),
                     )
-                else:
+                elif count:
                     messages.info(
                         self.request,
                         _(f"{count} new rerefee invitaion(s) were successfully created."),
@@ -6814,7 +6814,7 @@ class RoundExportView(ExportView):
 
         for a in applications:
             filename = os.path.join(prefix, f"{a.number}.pdf")
-            if not os.path.exists(filename) or regenerate os.path.getsize(filename) < 100:
+            if not os.path.exists(filename) or regenerate or os.path.getsize(filename) < 100:
                 with open(filename, "wb") as output:
                     a.to_pdf(
                         request,
