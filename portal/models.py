@@ -299,7 +299,7 @@ class PdfFileMixin:
                         self.save(update_fields=["page_count"])
                 return self.file
             if not self.converted_file:
-                self.update_converted_file()
+                self.update_converted_file(commit=True)
             return self.converted_file.file
 
     @property
@@ -361,17 +361,42 @@ class PdfFileMixin:
                 self.page_count = page_count
                 return page_count
 
-    def update_converted_file(self):
+    def update_converted_file(self, commit=False):
         """If the attached file is not PDF convert and update the PDF version."""
 
-        if self.file.name and self.file.name.lower().endswith(".pdf") and self.converted_file:
+        if not self.file or (
+            (file_ext := Path(self.file.path).suffix)
+            and file_ext.lower() == ".pdf"
+            and self.converted_file
+        ):
+            # NB! easy-audit doens't deal well with delete within transition:
+            # if (cf := self.converted_file) and cf.pk and commit:
+            #     self.converted_file.delete()
             self.converted_file = None
-            self.update_page_count(self.file.path)
 
-        elif self.file.name and not self.file.name.lower().endswith(".pdf"):
+            if hasattr(self, "page_count"):
+                if self.file and self.file.name:
+                    self.update_page_count(self.file.path)
+                else:
+                    self.page_count = 0
+
+            if commit:
+                self._change_reason = "Converted file and page count updated"
+                self.save(
+                    update_fields=(
+                        ["converted_file", "page_count"]
+                        if hasattr(self, "page_count")
+                        else ["converted_file"]
+                    )
+                )
+
+            return
+
+        file_ext = file_ext.lower()
+        if self.file.name and file_ext != ".pdf":
             cp = subprocess.run(
                 [
-                    "loffice",
+                    "lowriter" if file_ext.startswith(".doc") else "loffice",
                     "--headless",
                     "--convert-to",
                     "pdf",
@@ -418,6 +443,17 @@ class PdfFileMixin:
                 cf.save()
 
             self.converted_file = cf
+
+            if commit:
+                self._change_reason = "Converted file and page count updated"
+                self.save(
+                    update_fields=(
+                        ["converted_file", "page_count"]
+                        if hasattr(self, "page_count")
+                        else ["converted_file"]
+                    )
+                )
+
             return cf
 
 

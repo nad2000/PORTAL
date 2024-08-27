@@ -2369,7 +2369,8 @@ class ApplicationView(LoginRequiredMixin):
         referees = context["referees"]
         user = self.request.user
         reset_cache(self.request)
-        url = self.request.path_info
+        # url = self.request.path_info
+        url = None
         round = self.round
         has_required_documents = round.required_documents.count() > 0
         site_id = settings.SITE_ID
@@ -2470,6 +2471,35 @@ class ApplicationView(LoginRequiredMixin):
                         documents.instance = a
                     if documents.is_valid():
                         documents.save()
+                        for f in documents.forms:
+                            if (
+                                "file" in f.changed_data
+                                and f.instance.file
+                                and f.instance.file.path
+                            ):
+                                try:
+                                    cf = f.instance.update_converted_file(commit=True)
+                                    if cf:
+                                        messages.success(
+                                            self.request,
+                                            _(
+                                                "The document file was converted into PDF file successfully. "
+                                                'Please review the converted version <a href="%s" target="_blank">%s</a>. '
+                                                "If it is not converted correctly, please save your document file "
+                                                "in PDF format and reupload it."
+                                            )
+                                            % (cf.file.url, os.path.basename(cf.file.name)),
+                                        )
+                                except Exception as ex:
+                                    capture_exception(ex)
+                                    messages.error(
+                                        self.request,
+                                        _(
+                                            "Failed to convert your application form into PDF. "
+                                            "Please save or convert your document into PDF format and to reupload it."
+                                        ),
+                                    )
+                                    url = f"{update_url}#documents" if update_url else  self.continue_url("documents")
                     else:
                         if update_url:
                             return redirect(f"{update_url}#documents")
@@ -2724,6 +2754,8 @@ class ApplicationView(LoginRequiredMixin):
                     messages.error(self.request, ex)
             capture_exception(ex)
             # return redirect(url)
+            if url:
+                return redirect(url)
             if update_url:
                 return redirect(update_url)
             return self.form_invalid(form)
@@ -2731,7 +2763,7 @@ class ApplicationView(LoginRequiredMixin):
         if has_deleted:  # keep editing
             return redirect(url)
         else:
-            url = None
+            # url = None
             try:
                 if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
                     if not update_only_referees and self.round.applicant_cv_required:
@@ -3023,7 +3055,8 @@ class ApplicationView(LoginRequiredMixin):
                         a.save()
                     if "send_invitations" in self.request.POST:
                         # url = self.request.path_info.split("?")[0] + "#referees"
-                        url = self.continue_url("referees")
+                        if not url:
+                            url = self.continue_url("referees")
                         # return redirect(url)
                     elif not update_only_referees:
                         if (
@@ -6827,7 +6860,11 @@ class RoundExportView(ExportView):
             # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
 
         if file_format and file_format != "pdf":
-            if not os.path.exists(output_filename) or regenerate or os.path.getsize(output_filename) < 100:
+            if (
+                not os.path.exists(output_filename)
+                or regenerate
+                or os.path.getsize(output_filename) < 100
+            ):
                 with py7zr.SevenZipFile(output_filename, "w") as archive:
                     for a in applications:
                         filename = os.path.join(prefix, f"{a.number}.pdf")
