@@ -42,16 +42,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="historicalinvitation",
             name="read_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True, when={"read"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="status", when={"read"}),
         ),
         migrations.AddField(
             model_name="historicalinvitation",
             name="status_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="status"),
         ),
         migrations.AddField(
             model_name="historicalsocioeconomicobjective",
@@ -66,16 +62,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="invitation",
             name="read_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True, when={"read"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="status", when={"read"}),
         ),
         migrations.AddField(
             model_name="invitation",
             name="status_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="status"),
         ),
         migrations.AddField(
             model_name="maillog",

@@ -328,6 +328,7 @@ TEMPLATES = [
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#form-renderer
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
+# FORMS_URLFIELD_ASSUME_HTTPS = True
 
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
 # CRISPY_ALLOWED_TEMPLATE_PACKS = ["bootstrap4",]

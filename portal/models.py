@@ -88,8 +88,8 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
-from PyPDF2 import PdfMerger, PdfReader
-from PyPDF2.errors import PdfReadError
+from pypdf import PdfMerger, PdfReader
+from pypdf.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history

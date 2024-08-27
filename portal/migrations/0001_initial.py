@@ -470,31 +470,31 @@ class Migration(migrations.Migration):
                 (
                     "submitted_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"submitted"}
+                        monitor="status", when={"submitted"}
                     ),
                 ),
                 (
                     "sent_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"sent"}
+                        monitor="status", when={"sent"}
                     ),
                 ),
                 (
                     "accepted_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"accepted"}
+                        monitor="status", when={"accepted"}
                     ),
                 ),
                 (
                     "expired_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"expired"}
+                        monitor="status", when={"expired"}
                     ),
                 ),
                 (
                     "bounced_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"bounced"}
+                        monitor="status", when={"bounced"}
                     ),
                 ),
                 (
@@ -890,7 +890,7 @@ class Migration(migrations.Migration):
                 (
                     "testified_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"testified"}
+                        monitor="status", when={"testified"}
                     ),
                 ),
                 (
@@ -1611,7 +1611,7 @@ class Migration(migrations.Migration):
                 (
                     "authorized_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"authorized"}
+                        monitor="status", when={"authorized"}
                     ),
                 ),
                 (
@@ -1909,7 +1909,7 @@ class Migration(migrations.Migration):
                 (
                     "testified_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"testified"}
+                        monitor="status", when={"testified"}
                     ),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
@@ -2490,7 +2490,7 @@ class Migration(migrations.Migration):
                 (
                     "authorized_at",
                     model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"authorized"}
+                        monitor="status", when={"authorized"}
                     ),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),

@@ -98,7 +98,7 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from private_storage.views import PrivateStorageDetailView
-from PyPDF2 import PdfMerger, PdfReader
+from pypdf import PdfMerger, PdfReader
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -2499,7 +2499,11 @@ class ApplicationView(LoginRequiredMixin):
                                             "Please save or convert your document into PDF format and to reupload it."
                                         ),
                                     )
-                                    url = f"{update_url}#documents" if update_url else  self.continue_url("documents")
+                                    url = (
+                                        f"{update_url}#documents"
+                                        if update_url
+                                        else self.continue_url("documents")
+                                    )
                     else:
                         if update_url:
                             return redirect(f"{update_url}#documents")
@@ -2688,7 +2692,8 @@ class ApplicationView(LoginRequiredMixin):
                                 self.request,
                                 _(
                                     "Your application form was converted into PDF file. "
-                                    "Please review the converted application form version <a href='%s'>%s</a>."
+                                    "Please review the converted application form version <a href='%s'>%s</a>. "
+                                    "If it is not converted correctly, please save your document file in PDF format and reupload it."
                                 )
                                 % (cf.file.url, os.path.basename(cf.file.name)),
                             )
