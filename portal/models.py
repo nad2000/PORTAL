@@ -3113,7 +3113,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         and referee_cv not in cvs
                     ):
                         cvs.append(referee_cv)
-                        attachents.append(
+                        attachments.append(
                             (
                                 f"{referee_cv.full_name} {_('Curriculum Vitae')}",
                                 settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
