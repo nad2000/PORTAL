@@ -396,7 +396,29 @@ class PdfFileMixin:
         if self.file.name and file_ext != ".pdf":
             cp = subprocess.run(
                 [
-                    "lowriter" if file_ext.startswith(".doc") else "loffice",
+                    (
+                        "lowriter"
+                        if file_ext
+                        in [".odt", ".ott", ".oth", ".odm", ".doc", ".docx", ".docm", ".docb"]
+                        else (
+                            "localc"
+                            if file_ext
+                            in [
+                                ".xls",
+                                ".xlw",
+                                ".xlt",
+                                ".xml",
+                                ".xlsx",
+                                ".xlsm",
+                                ".xltx",
+                                ".xltm",
+                                ".xlsb",
+                                ".csv",
+                                ".ctv",
+                            ]
+                            else "loffice"
+                        )
+                    ),
                     "--headless",
                     "--convert-to",
                     "pdf",
