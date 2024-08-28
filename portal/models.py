@@ -1095,7 +1095,7 @@ class Organisation(Model):
     )
     # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     notes = TextField(blank=True, null=True)
-    website = CharField(max_length=255, blank=True, null=True)
+    website = URLField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
     def natural_key(self):
@@ -3712,6 +3712,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    org = ForeignKey(
+        Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
+    )
     state = StateField(_("referee state"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state")
     testified_at = MonitorField(monitor="state", when=["testified"])
@@ -3746,6 +3749,60 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     _("Referee with the email address %(email)s was already added"),
                     params={"email": self.email},
                 )
+
+    @classmethod
+    def set_organisation(cls, request=None, by=None, queryset=None):
+        if not queryset:
+            queryset = cls.where(
+                org__isnull=True, application__round__scheme__current_round=F("application__round")
+            )
+        updated_referees = []
+        for r in queryset:
+            u = r.user
+            if not u:
+                ea = EmailAddress.objects.filter(email=r.email.lower()).last()
+                u = ea.user
+            if u:
+                p = Person.where(user=u).last()
+                emp = (
+                    Affiliation.where(
+                        type="EMP", person=p, end_date__isnull=True, org__isnull=False
+                    )
+                    .order_by("-start_date")
+                    .first()
+                )
+                if emp:
+                    r.org = emp.org
+                    updated_referees.append(r)
+            if not r.org:
+                domain = r.email.lower().split("@")[1]
+                org = Organisation.where(
+                    Q(email__icontains=domain)
+                    | Q(website__icontains=domain)
+                    | Q(ro_email__icontains=domain)
+                ).first()
+                if org:
+                    r.org = org
+                    updated_referees.append(r)
+            if r.org:
+                r._change_reason = (f"asinged organisation {org} to the refreee record",)
+
+            if updated_referees:
+                bulk_update_with_history(
+                    updated_referees,
+                    Referee,
+                    ["org"],
+                    default_user=request and request.user,
+                    default_change_reason="asinged organisation to the refreee record",
+                )
+
+                if request:
+                    messages.info(
+                        request,
+                        f"Assigned organisation to {len(updated_referees)} referee(s): "
+                        f"{', '.join(f'{r.email}: {r.org.name}' for r in updated_referees)}",
+                    )
+                return len(updated_referees)
 
     @classmethod
     def invite_referees(

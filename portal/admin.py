@@ -304,7 +304,7 @@ class KeywordAdmin(ExportActionMixin, ImportExportModelAdmin):
 
 
 class PanelDecisionResource(ModelResource):
-    
+
     number = fields.Field(attribute='number', column_name='Proposal')
     grade = fields.Field(attribute='grade', column_name='Grade%')
     decision = fields.Field(attribute='decision', column_name='Decision')
@@ -1044,7 +1044,7 @@ class ApplicationAdmin(
             "survey_url",
         ]
         exclude = ["survey_token", "survey_token_id", "survey_invitation_sent_at"]
-        autocomplete_fields = ["user"]
+        autocomplete_fields = ["user", "org"]
 
         def get_exclude(self, request, obj=None):
             exclude = super().get_exclude(request, obj)
@@ -1445,6 +1445,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "application_number",
         "full_name",
         "state",
+        "org",
         "testified_at",
         "survey_completed_at",
     ]
@@ -1464,9 +1465,10 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "testimonial__state",
         "application__state",
         ("application__round", admin.RelatedOnlyFieldListFilter),
+        ("org", admin.RelatedOnlyFieldListFilter),
     ]
     date_hierarchy = "testified_at"
-    autocomplete_fields = ["user", "application"]
+    autocomplete_fields = ["user", "application", "org"]
     readonly_fields = [
         # "application",
         "state",
@@ -1507,7 +1509,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
 
-    actions = ["send_invitations", "invite_to_survey", "sync_referee_surveys"]
+    actions = ["send_invitations", "invite_to_survey", "sync_referee_surveys", "set_organisation"]
 
     @admin.action(description="Sync with the LimeSurvey surveys")
     def sync_referee_surveys(self, request, queryset):
@@ -1528,6 +1530,10 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def send_invitations(self, request, queryset):
         count = models.Referee.invite_referees(request, by=request.user, referees=queryset)
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
+
+    @admin.action(description="Assign Organisations to the referees")
+    def set_organisation(self, request, queryset):
+        models.Referee.set_organisation(request, by=request.user, queryset=queryset)
 
     @admin.action(description="Send invitations to the referees for the survey")
     def invite_to_survey(self, request, queryset):

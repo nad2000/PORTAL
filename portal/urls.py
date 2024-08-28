@@ -569,6 +569,7 @@ urlpatterns = [
                     ),
                     name="openapi-schema",
                 ),
+                path("object-counts", views.object_counts),
                 path("", include(apis.router.urls)),
             ]
         ),
@@ -588,7 +589,7 @@ urlpatterns = [
         ),
     ),
     path("impersonate/<username>", views.impersonate),
-    # path("demo/", views.demo),
+    path("demo/", views.demo),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
 

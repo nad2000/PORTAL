@@ -85,7 +85,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import condition, require_http_methods
 from django.views.generic import DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
@@ -512,6 +512,13 @@ def survey_webhook(request):
         },
         status=200,
     )
+
+
+@login_required
+def object_counts(request):
+    cache_key = f"{request.user.username}:{settings.SITE_ID}"
+    cached_context = cache.get(cache_key, {})
+    return JsonResponse(cached_context)
 
 
 @login_required
@@ -1640,7 +1647,15 @@ class SingleApplicationMixin:
     slug_field = "number"
     slug_url_kwarg = "number"
 
+    _obj = None
+
     def get_object(self, queryset=None):
+        if not self.request.user.is_authenticated:
+            return None
+
+        if self._obj:
+            return self._obj
+
         if queryset is None:
             queryset = self.get_queryset()
 
@@ -1676,12 +1691,18 @@ class SingleApplicationMixin:
                 _("No %(verbose_name)s found matching the query")
                 % {"verbose_name": queryset.model._meta.verbose_name}
             )
-        return obj
+        self._obj = obj
+        return self._obj
 
 
 class ApplicationDetail(SingleApplicationMixin, DetailView):
     model = Application
     template_name = "application_detail.html"
+
+    def last_modified(request):
+        if (o := self.get_object()) and (u := request.user) and u.is_authenticated and hasattr(o, "updated_at"):
+            # return f"u.username:o.updated_at.strftime('%s')"
+            return f"o.updated_at.strftime('%s')"
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
@@ -1722,6 +1743,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             | Q(email__lower__in=user.emailaddress_set.values_list("email__lower"))
         ).last()
 
+    @method_decorator(condition(last_modified_func=last_modified))
     def get(self, request, *args, **kwargs):
         resp = super().get(request, *args, **kwargs)
 
@@ -8392,8 +8414,15 @@ class MemberFTEForm(ModelForm):
 #     #     )
 
 
-def demo(request):
-    a = Application.get(1683)
+def demo(request, pk=None):
+    # a = Application.get(1683)
+    a = Application.where(pk=pk).last() if pk else Application.last()
+
+    class DemoForm(Form):
+        field1 = fields.CharField(max_length=100, required=True)
+        field2 = fields.CharField(max_length=50, required=True)
+        field3 = fields.CharField(max_length=50, required=True)
+
     duration = 3
     MemberFTEFormSet = forms.inlineformset_factory(
         models.Application,
@@ -8407,14 +8436,14 @@ def demo(request):
     if request.method == "POST":
         # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
         formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
+        form = DemoForm(request.POST or None)
 
         if formset.is_valid():
             pass
-
     else:
+        form = DemoForm()
         formset = MemberFTEFormSet(instance=a, prefix="demo")
 
-    form = Form()
     form.helper = FormHelper()
     form.helper.help_text_inline = True
     form.helper.html5_required = True
