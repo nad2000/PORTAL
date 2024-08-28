@@ -3752,10 +3752,14 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @classmethod
     def set_organisation(cls, request=None, by=None, queryset=None):
+        if not by and request:
+            by = request.by
         if not queryset:
             queryset = cls.where(
                 org__isnull=True, application__round__scheme__current_round=F("application__round")
             )
+        else:
+            queryset = queryset.filter(org_isnull=True)
         updated_referees = []
         for r in queryset:
             u = r.user
@@ -3785,14 +3789,14 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     r.org = org
                     updated_referees.append(r)
             if r.org:
-                r._change_reason = (f"asinged organisation {org} to the refreee record",)
+                r._change_reason = f"asinged organisation {r.org} to the refreee record"
 
             if updated_referees:
                 bulk_update_with_history(
                     updated_referees,
                     Referee,
                     ["org"],
-                    default_user=request and request.user,
+                    default_user=by,
                     default_change_reason="asinged organisation to the refreee record",
                 )
 
