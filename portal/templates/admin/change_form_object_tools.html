@@ -3,6 +3,17 @@
 {% block object-tools-items %}
   {% if original %}
      {% if original.can_export_to_pdf %}
+        {% if SITE_ID == 5 and view_name == 'admin:portal_application_change' %}
+          <li>
+            <a
+               href="{% url 'application-export' original.pk %}?for_panellists=1"
+               target="_blank"
+               title="Export the application for Panellists into a consolidated PDF file"
+            >
+              Export (for Panellists)
+            </a>
+          </li>
+        {% endif %}
         <li>
           <a
              href="{% url 'application-export' original.pk %}"
