@@ -3759,13 +3759,14 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 org__isnull=True, application__round__scheme__current_round=F("application__round")
             )
         else:
-            queryset = queryset.filter(org_isnull=True)
+            queryset = queryset.filter(org__isnull=True)
         updated_referees = []
         for r in queryset:
             u = r.user
             if not u:
                 ea = EmailAddress.objects.filter(email=r.email.lower()).last()
-                u = ea.user
+                if ea:
+                    u = ea.user
             if u:
                 p = Person.where(user=u).last()
                 emp = (
@@ -3781,9 +3782,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
             if not r.org:
                 domain = r.email.lower().split("@")[1]
                 org = Organisation.where(
-                    Q(email__icontains=domain)
-                    | Q(website__icontains=domain)
-                    | Q(ro_email__icontains=domain)
+                    Q(email__isnull=False, email__icontains=domain)
+                    | Q(website__isnull=False, website__icontains=domain)
+                    | Q(ro_email__isnull=False, ro_email__icontains=domain)
                 ).first()
                 if org:
                     r.org = org
@@ -3791,22 +3792,22 @@ class Referee(RefereeMixin, PersonMixin, Model):
             if r.org:
                 r._change_reason = f"asinged organisation {r.org} to the refreee record"
 
-            if updated_referees:
-                bulk_update_with_history(
-                    updated_referees,
-                    Referee,
-                    ["org"],
-                    default_user=by,
-                    default_change_reason="asinged organisation to the refreee record",
-                )
+        if updated_referees:
+            bulk_update_with_history(
+                updated_referees,
+                Referee,
+                ["org"],
+                default_user=by,
+                default_change_reason="asinged organisation to the refreee record",
+            )
 
-                if request:
-                    messages.info(
-                        request,
-                        f"Assigned organisation to {len(updated_referees)} referee(s): "
-                        f"{', '.join(f'{r.email}: {r.org.name}' for r in updated_referees)}",
-                    )
-                return len(updated_referees)
+            if request:
+                messages.info(
+                    request,
+                    f"Assigned organisation to {len(updated_referees)} referee(s): "
+                    f"{', '.join(f'{r.email}: {r.org.name}' for r in updated_referees)}",
+                )
+            return len(updated_referees)
 
     @classmethod
     def invite_referees(
