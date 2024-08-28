@@ -7,6 +7,7 @@ from pathlib import Path
 import environ
 from django.conf.locale import LANG_INFO
 from multisite import SiteID
+from simple_history.models import HistoricalChanges
 
 ROOT_DIR = Path(__file__).parents[2]
 # portal/)
@@ -537,3 +538,10 @@ DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
     "^/status",
     "^/autocomplete",
 ]
+
+
+def crud_difference_callbacks(model, *args, **kwargs):
+    return not isinstance(model, HistoricalChanges)
+
+
+DJANGO_EASY_AUDIT_CRUD_DIFFERENCE_CALLBACKS = [crud_difference_callbacks]
