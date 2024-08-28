@@ -2788,6 +2788,8 @@ class ApplicationView(LoginRequiredMixin):
             return self.form_invalid(form)
 
         if has_deleted:  # keep editing
+            if not url:
+                url = self.request.path_info
             return redirect(url)
         else:
             # url = None
