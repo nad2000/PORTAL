@@ -3790,7 +3790,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     r.org = org
                     updated_referees.append(r)
             if r.org:
-                r._change_reason = f"asinged organisation {r.org} to the refreee record"
+                r._change_reason = f"assigned organisation {r.org} to the referee record"
 
         if updated_referees:
             bulk_update_with_history(
@@ -3798,7 +3798,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 Referee,
                 ["org"],
                 default_user=by,
-                default_change_reason="asinged organisation to the refreee record",
+                default_change_reason="assigned organisation to the referee record",
             )
 
             if request:
