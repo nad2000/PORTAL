@@ -1,0 +1,20 @@
+{% load tags %}
+<li>
+  {% if u.is_staff or u.is_superuser %}
+    {% if for_panellists %}
+      {{ r.full_name }}
+    {% else %}
+      <a href="{% url 'admin:portal_referee_change' object_id=r.id %}">
+        {{ r | person_with_email }}
+      </a>
+    {% endif %}
+  {% else %}
+    {{ r | person_with_email }}
+  {% endif %}
+  {% if not show_basic_details and not for_panellists %}
+    {% if r.state_changed_at %}{{ r|field_value:'state' }}{% else %}&lt;<strong>{{ r.get_state_display|upper }}</strong>&gt;{% endif %}
+  {% endif %}
+  {% if for_panellists and r.org %}
+    ({{ r.org }})
+  {% endif %}
+</li>
