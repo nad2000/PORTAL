@@ -1699,10 +1699,15 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
     model = Application
     template_name = "application_detail.html"
 
-    def last_modified(request):
-        if (o := self.get_object()) and (u := request.user) and u.is_authenticated and hasattr(o, "updated_at"):
-            # return f"u.username:o.updated_at.strftime('%s')"
-            return f"o.updated_at.strftime('%s')"
+    # def last_modified(self, request, *args, **kwargs):
+    #     if (
+    #         (o := self.get_object())
+    #         and (u := request.user)
+    #         and u.is_authenticated
+    #         and hasattr(o, "updated_at")
+    #     ):
+    #         # return f"u.username:o.updated_at.strftime('%s')"
+    #         return f"o.updated_at.strftime('%s')"
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
@@ -1743,7 +1748,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             | Q(email__lower__in=user.emailaddress_set.values_list("email__lower"))
         ).last()
 
-    @method_decorator(condition(last_modified_func=last_modified))
+    # @method_decorator(condition(last_modified_func=last_modified))
     def get(self, request, *args, **kwargs):
         resp = super().get(request, *args, **kwargs)
 
@@ -1865,7 +1870,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         context = super().get_context_data(*args, **kwargs)
 
         a = context["application"] = self.object
-        if a and a.site_id == 5:
+        r = a.round
+        site_id = a.site_id
+        if a and site_id == 5:
             context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
         if n := models.Nomination.where(application=a).last():
@@ -1883,7 +1890,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 _("Please review the application and authorize your team representative."),
             )
             context["form"] = AuthorizationForm()
-        is_ro = a.site_id in [4, 5] and (
+        is_ro = site_id in [4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
             or a.org.where(research_offices__user=u).exists()
@@ -1899,9 +1906,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             )
         )
 
-        if a.site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
+        if site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
             context["update_button_name"] = _("Edit referee list")
-        if p := a.round.panellists.filter(user=u).first():
+        if p := r.panellists.filter(user=u).first():
             context["is_panellist"] = True
             coi = p.conflict_of_interests.filter(Q(application=a)).last()
             context["has_coi"] = not coi or coi.has_conflict is True or coi.has_conflict is None
@@ -1914,17 +1921,26 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
 
         if (
             is_owner
-            and not a.round.is_open
-            and (current_round := a.round.scheme.current_round)
-            and current_round != a.round
+            and not r.is_open
+            and (current_round := r.scheme.current_round)
+            and current_round != r
             and current_round.is_open
             and not Application.user_applications(user=u, round=current_round).exists()
         ):
             context["can_reenter"] = True
             context["current_round"] = current_round
 
+        if for_panellists := self.request.GET.get("for_panellists", False):
+            context["for_panellists"] = for_panellists
+
         if is_owner or is_ro or u.is_superuser or u.is_site_staff:
-            context["referees"] = a.referees.all()
+            if site_id == 5 and for_panellists:
+                referees = a.referees.order_by("testified_at")
+                if r.required_referees:
+                    referees = referees[: r.required_referees + 1]
+                context["referees"] = referees
+            else:
+                context["referees"] = a.referees.all()
 
         context["was_submitted"] = a.state in [
             "submitted",
@@ -1936,18 +1952,17 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         context["can_update"] = (
             can_only_update_referees
             or (
-                a.site_id != 5
+                site_id != 5
                 and a.state not in ["submitted", "approved", "cancelled", "accepted"]
             )
-            or (a.site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
+            or (site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
             or (
-                a.site_id == 5
+                site_id == 5
                 and is_owner
                 and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
 
-        r = a.round
         testimonial_submission_closes_at = r.testimonial_submission_closes_at
         if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
             context["reviewing_closed"] = True
@@ -1957,7 +1972,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 or u.is_superuser
                 or is_ro
                 or u.is_site_staff
-                or (a.site_id not in [4, 5] and a.referees.filter(user=u).exists())
+                or (site_id not in [4, 5] and a.referees.filter(user=u).exists())
                 or models.ConflictOfInterest.where(
                     Q(has_conflict=False) | Q(has_conflict__isnull=False),
                     application=a,
@@ -1970,7 +1985,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 .order_by("-id")
                 .first()
             ):
-                if r.site_id == 5:
+                if site_id == 5:
                     context["export_enabled"] = True
                 context["testimonial"] = t
                 if t.state != "submitted":
@@ -1989,14 +2004,14 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                                 )
                             ),
                         )
-                    elif r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                    elif site_id != 5 or (closes_at and closes_at <= timezone.now()):
                         messages.info(
                             self.request,
                             (
                                 _(
                                     "Please review the application details and submit referee report."
                                 )
-                                if t.site_id in [4, 5]
+                                if site_id in [4, 5]
                                 else _(
                                     "Please review the application details and submit testimonial."
                                 )
@@ -2018,7 +2033,6 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                                 )
                             ),
                         )
-
             if referee := a.referees.filter(
                 Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
             ).last():
@@ -8215,6 +8229,7 @@ def application_exported_view(request, number, lang=None):
     # if not remote_addr.startswith("127.0.0."):
     #     return remote_addr
     number = vignere.decode(number)
+    for_panellists = request.GET("for_panellists", False)
     application = get_object_or_404(models.Application, number=number)
     round = application.round
     site = Site.objects.get_current()
@@ -8231,6 +8246,11 @@ def application_exported_view(request, number, lang=None):
         logo_2 = f"{settings.STATIC_URL}images/RS_logo.png"
     elif site_id == 7:
         logo = f"{settings.STATIC_URL}images/pmspace-logo_small.jpg"
+
+    if site_id == 5:
+        referees = application.referees.order_by("testified_at")
+        if round.required_referees:
+            referees = referees[: round.required_referees + 1]
 
     objects = application.get_testimonials()
 

@@ -47,12 +47,23 @@ body {
       {% for attribute, value in title_page.items %}
         {% if attribute != 'TITLES' %}
           <tr>
-            <th>
-              {{ attribute }}
-            </th>
-            <td>
-              {{ value }}
-            </td>
+            {% if attribute == 'file_name' %}
+              <th>
+                {% trans 'File Name' %}
+              </th>
+              <td>
+                <small><font size="-3">
+                  {{ value }}
+                </font></small>
+              </td>
+            {% else %}
+              <th>
+                {{ attribute }}
+              </th>
+              <td>
+                {{ value }}
+              </td>
+            {% endif %}
           </tr>
         {% endif %}
       {% endfor %}

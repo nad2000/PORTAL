@@ -85,7 +85,7 @@
           data-title="{% trans 'Export the application into a consolidated PDF file' %}"
           {% endif %}
         >
-          <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}" target="_blank">
+        <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}{% if for_panellists %}?for_panellists={{ for_panellists }}{% endif %}" target="_blank">
             {% trans 'Export' %}
           </a>
         </div>

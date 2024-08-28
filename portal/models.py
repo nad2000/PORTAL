@@ -3064,6 +3064,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         """Create PDF file for export and return PdfMerger"""
 
         r = self.round
+        site_id = self.site_id
+
         if not user and request:
             user = request.user
 
@@ -3077,6 +3079,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         attachments = []
         cvs = []
+        if not for_panellists and request:
+            for_panellists = request.GET.get("for_panellists", False)
+        include_header_page = not (site_id == 5 and for_panellists)
         if self.file:
             attachments.append(
                 (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
@@ -3092,7 +3097,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 (
                     f"{cv.full_name} {_('Curriculum Vitae')}",
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
-                    cv.title_page,
+                    include_header_page and cv.title_page,
                 )
             )
 
@@ -3121,19 +3126,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-        if (
-            user.is_superuser
-            or user.is_staff
-            or (self.site_id != 4 and is_panellist)
-            or for_panellists
-        ):
+        if user.is_superuser or user.is_staff or (site_id != 4 and is_panellist) or for_panellists:
             for n in Nomination.where(application=self, nominator__isnull=False):
                 if n.file:
                     attachments.append(
                         (
                             _("Nomination Submitted By %s") % n.nominator.full_name,
                             settings.PRIVATE_STORAGE_ROOT + "/" + str(n.pdf_file),
-                            n.title_page,
+                            include_header_page and n.title_page,
                         )
                     )
 
@@ -3147,11 +3147,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             (
                                 f"{nominator_cv.full_name} {_('Curriculum Vitae')}",
                                 settings.PRIVATE_STORAGE_ROOT + "/" + str(nominator_cv.pdf_file),
-                                nominator_cv.title_page,
+                                include_header_page and nominator_cv.title_page,
                             )
                         )
 
-        if self.site_id not in [4, 5] and not is_referee and not self.is_applicant(user):
+        if site_id not in [4, 5] and not is_referee and not self.is_applicant(user):
             if (
                 user.is_superuser
                 or self.is_applicant(user)
@@ -3163,16 +3163,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             else:
                 add_testimonials(attachments, user=user)
 
-        if (
-            self.round.letter_of_support_required
-            and self.letter_of_support
-            and self.letter_of_support.file
-        ):
+        if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
             attachments.append(
                 (
                     _("Letter of Support"),
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(self.letter_of_support.pdf_file),
-                    self.letter_of_support.title_page,
+                    include_header_page and self.letter_of_support.title_page,
                 )
             )
 
@@ -3190,11 +3186,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 (
                     f"{d.required_document}",
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(d.pdf_file),
-                    d.title_page,
+                    include_header_page and d.title_page,
                 )
             )
-
-        if self.site_id in [4, 5] and not (
+        
+        if site_id in [4, 5] and not (
             (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
         ):
@@ -3216,38 +3212,38 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             {
                 "/Title": (
                     f"{self}"
-                    if self.site_id in [4, 5]
-                    else f"{self.number}: {self.application_title or self.round.title}"
+                    if site_id in [4, 5]
+                    else f"{self.number}: {self.application_title or r.title}"
                 )
             }
         )
         merger.add_metadata({"/Author": self.lead_with_email})
-        merger.add_metadata({"/Subject": self.round.title})
+        merger.add_metadata({"/Subject": r.title})
         merger.add_metadata({"/Number": self.number})
-        # merger.add_metadata({"/Keywords": self.round.title})
+        # merger.add_metadata({"/Keywords": r.title})
 
         objects = []
         site = self.site or Site.objects.get_current()
         domain = site.domain
 
         logo_url = logo_1_url = logo_2_url = None
-        if self.site_id == 2:
+        if site_id == 2:
             if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
                 logo_url = f"file://{logo_path}"
 
-        elif self.site_id in [4, 5]:
+        elif site_id in [4, 5]:
             if logo_path := finders.find("images/MBIE_logo.jpg"):
                 logo_1_url = f"file://{logo_path}"
 
             if logo_path := finders.find("images/RS_logo.png"):
                 logo_2_url = f"file://{logo_path}"
 
-        elif self.site_id == 7:
+        elif site_id == 7:
             if logo_path := finders.find("images/pmspace-logo_small.jpg"):
                 logo_url = f"file://{logo_path}"
 
         if (
-            self.round.research_summary_required
+            r.research_summary_required
             and (self.summary_en or self.summary_mi)
             and (
                 (self.summary_en and ("<img" in self.summary_en or "<iframe" in self.summary_en))
@@ -3258,6 +3254,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             number = vignere.encode(self.number)
             url = reverse("application-exported-view", kwargs={"number": number})
+            if site_id == 5 and for_panellists:
+                url = f"{url}?for_panellists=1"
             if request:
                 summary_url = request.build_absolute_uri(url)
             else:
@@ -3272,10 +3270,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "user": user,
                 "site": site,
                 "domain": domain,
+                "site_id": site_id,
+                "SITE_ID": site_id,
                 "logo": logo_url,
                 "logo_1": logo_1_url,
                 "logo_2": logo_2_url,
+                "for_panellists": for_panellists,
             }
+            if for_panellists and (user.is_superuser or user.is_site_staff):
+                if site_id == 5:
+                    referees = self.referees.order_by("testified_at")
+                    if r.required_referees:
+                        referees = referees[: r.required_referees + 1]
+                    context["referees"] = referees
+                else:
+                    context["referees"] = self.referees.all()
+
             html = HTML(string=template.render(context))
 
         pdf_object = html.write_pdf(presentational_hints=True)
@@ -3283,7 +3293,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         pdf_stream = io.BytesIO(pdf_object)
         merger.append(
             pdf_stream,
-            outline_item=(self.application_title or self.round.title),
+            outline_item=(self.application_title or r.title),
             import_outline=True,
         )
         for title, a, *rest in attachments:
@@ -3299,6 +3309,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             # "objects": objects,
                             "user": user,
                             "site": site,
+                            "site_id": site_id,
+                            "SITE_ID": site_id,
                             "domain": domain,
                             "logo": logo_url,
                             "logo_1": logo_1_url,
@@ -3311,7 +3323,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 pdf_stream = io.BytesIO(pdf_object)
                 merger.append(
                     pdf_stream,
-                    # outline_item=(self.application_title or self.round.title),
+                    # outline_item=(self.application_title or r.title),
                     import_outline=True,
                 )
 
@@ -3352,7 +3364,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 capture_message(f"Failed to merge file {a}")
                 raise
 
-        if add_headers or self.site_id == 4:
+        if add_headers or site_id == 4:
             template = get_template("headers.html")
             html = HTML(
                 string=template.render({"page_count": len(merger.pages), "application": self})
@@ -5100,6 +5112,21 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
                 self.referee, self.referee.application
             )
         return self.file.name if self.file else gettext("N/A")
+
+    def title_page(self):
+
+        if self.site_id == 5:
+            tp = {
+                "TITLES": [_("Referee Report")],
+                # _("Submitted At"): self.updated_at or self.created_at,
+                # "file_name": self.filename,
+            }
+            tp[_("Referee")] = self.referee.full_name
+            if org := self.referee.org:
+                tp[_("Organisation")] = f"{org.code}: {org.name}"
+
+            return tp
+        return super().title_page()
 
     class Meta:
         db_table = "testimonial"
