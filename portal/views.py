@@ -1937,7 +1937,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             if site_id == 5 and for_panellists:
                 referees = a.referees.order_by("testified_at")
                 if r.required_referees:
-                    referees = referees[: r.required_referees + 1]
+                    referees = referees[: r.required_referee]
                 context["referees"] = referees
             else:
                 context["referees"] = a.referees.all()
