@@ -3281,7 +3281,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 if site_id == 5:
                     referees = self.referees.order_by("testified_at")
                     if r.required_referees:
-                        referees = referees[: r.required_referees + 1]
+                        referees = referees[: r.required_referees]
                     context["referees"] = referees
                 else:
                     context["referees"] = self.referees.all()
