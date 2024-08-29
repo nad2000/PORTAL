@@ -5124,6 +5124,8 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
             tp[_("Referee")] = self.referee.full_name
             if org := self.referee.org:
                 tp[_("Organisation")] = f"{org.code}: {org.name}"
+                if org.address and org.address.country:
+                    tp[_("Country")] = org.address.country.name
 
             return tp
         return super().title_page()

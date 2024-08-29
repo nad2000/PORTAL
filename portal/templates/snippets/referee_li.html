@@ -15,6 +15,6 @@
     {% if r.state_changed_at %}{{ r|field_value:'state' }}{% else %}&lt;<strong>{{ r.get_state_display|upper }}</strong>&gt;{% endif %}
   {% endif %}
   {% if for_panellists and r.org %}
-    ({{ r.org }})
+    ({{ r.org }}{% if r.org.address and r.org.address.country %} / {{ r.org.address.country.name }}{% endif %})
   {% endif %}
 </li>
