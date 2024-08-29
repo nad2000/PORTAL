@@ -8,7 +8,7 @@ import py7zr
 import tempfile
 from datetime import timedelta
 from functools import wraps
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 
 import django.utils.translation
@@ -6874,7 +6874,9 @@ class RoundExportView(ExportView):
         else:
             prefix = u.username
 
-        prefix = os.path.join(tempfile.gettempdir(), prefix)
+        # prefix = os.path.join(tempfile.gettempdir(), prefix)
+        prefix_url = os.path.join("rounds", f"{round.scheme.code}", f"{round.opens_on.year}", prefix)
+        prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
         output_filename = os.path.join(
@@ -6914,19 +6916,22 @@ class RoundExportView(ExportView):
                         archive.write(filename, f"{a.number}.pdf")
 
             content_type = "application/x-7z-compressed"
-            if True or settings.DEBUG:
+            if settings.DEBUG or not hasattr(settings, "PRIVATE_STORAGE_INTERNAL_URL"):
                 response = StreamingHttpResponse(
                     FileWrapper(open(output_filename, "rb")), content_type=content_type
                 )
             else:
                 # works with nginx:
-                response = HttpResponse(content_type="application/force-download")
-                response["X-Sendfile"] = output_filename
-                response["X-Accel-Redirect"] = output_filename
+                output_url = os.path.join(settings.PRIVATE_STORAGE_INTERNAL_URL, prefix_url, f"{round.scheme.code}-{round.opens_on.year}.{file_format}")
+                # response = HttpResponse(content_type="application/force-download")
+                response = HttpResponse(content_type=content_type)
+                response["X-Accel-Redirect"] = quote(output_url)
+                response['Content-Type'] = content_type
+                response["X-Sendfile"] = quote(output_url)
             response["Content-Length"] = os.path.getsize(output_filename)
             # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
             response["Content-Disposition"] = (
-                f"attachment; filename={round.scheme.code}-{round.opens_on.year}.7z"
+                f"attachment; filename={round.scheme.code}-{round.opens_on.year}.{file_format}"
             )
             return response
 
@@ -8488,6 +8493,10 @@ def demo(request, pk=None):
 
     return render(request, "demo.html", locals())
 
+
+# def accel(request):
+#     "/home/app/prod/portal/media/rounds/test.txt"
+#     return 
 
 # def send_notification(registration_ids=None, message_title="TEST TITLE", message_desc="You are welcome!"):
 #     fcm_api = ""
