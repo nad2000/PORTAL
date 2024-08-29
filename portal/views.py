@@ -8229,7 +8229,7 @@ def application_exported_view(request, number, lang=None):
     # if not remote_addr.startswith("127.0.0."):
     #     return remote_addr
     number = vignere.decode(number)
-    for_panellists = request.GET("for_panellists", False)
+    for_panellists = request.GET.get("for_panellists", False)
     application = get_object_or_404(models.Application, number=number)
     round = application.round
     site = Site.objects.get_current()
@@ -8250,7 +8250,7 @@ def application_exported_view(request, number, lang=None):
     if site_id == 5:
         referees = application.referees.order_by("testified_at")
         if round.required_referees:
-            referees = referees[: round.required_referees + 1]
+            referees = referees[: round.required_referees]
 
     objects = application.get_testimonials()
 

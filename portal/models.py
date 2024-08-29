@@ -3189,7 +3189,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     include_header_page and d.title_page,
                 )
             )
-        
+
         if site_id in [4, 5] and not (
             (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
