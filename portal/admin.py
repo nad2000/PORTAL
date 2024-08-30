@@ -305,15 +305,15 @@ class KeywordAdmin(ExportActionMixin, ImportExportModelAdmin):
 
 class PanelDecisionResource(ModelResource):
 
-    number = fields.Field(attribute='number', column_name='Proposal')
-    grade = fields.Field(attribute='grade', column_name='Grade%')
-    decision = fields.Field(attribute='decision', column_name='Decision')
-    panel = fields.Field(attribute='panel', column_name='Panel')
-    rank = fields.Field(attribute='rank', column_name='Rank')
-    adjust = fields.Field(column_name='Adjust')
-    f7 = fields.Field(column_name='F7')
-    f8 = fields.Field(column_name='F8')
-    f9 = fields.Field(column_name='F9')
+    number = fields.Field(attribute="number", column_name="Proposal")
+    grade = fields.Field(attribute="grade", column_name="Grade%")
+    decision = fields.Field(attribute="decision", column_name="Decision")
+    panel = fields.Field(attribute="panel", column_name="Panel")
+    rank = fields.Field(attribute="rank", column_name="Rank")
+    adjust = fields.Field(column_name="Adjust", saves_null_values=False)
+    f7 = fields.Field(column_name="F7", saves_null_values=False)
+    f8 = fields.Field(column_name="F8", saves_null_values=False)
+    f9 = fields.Field(column_name="F9", saves_null_values=False)
 
     def before_save_instance(self, instance, row, **kwargs):
         if instance.decision:
