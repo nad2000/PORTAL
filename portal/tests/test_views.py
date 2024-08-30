@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.flatpages.models import FlatPage
 
 from portal import models
-from portal.models import Ethnicity, Profile, Subscription
+from portal.models import Ethnicity, Person, Subscription
 
 pytestmark = pytest.mark.django_db
 
@@ -49,7 +49,7 @@ def test_template_views(client, admin_user):
         in resp.content
     )
 
-    Profile.create(user=admin_user, is_completed=True)
+    Person.create(user=admin_user, is_completed=True)
 
     resp = client.get("/")
     assert resp.status_code == 200
@@ -75,15 +75,15 @@ def test_profile(client, admin_user):
     Ethnicity.objects.create(code="11111", description="New Zealand European")
     Ethnicity.objects.create(code="12411", description="Polish")
     Ethnicity.objects.create(code="12928", description="Latvian")
-    assert not Profile.objects.filter(user=user).exists()
+    assert not Person.objects.filter(user=user).exists()
     resp = client.get("/myprofile", follow=True)
     assert b"Next" in resp.content
 
-    p = Profile.create(user=user)
+    p = Person.create(user=user)
     resp = client.get("/myprofile", follow=True)
     assert b"Primary Language Spoken" in resp.content
     assert b"Edit" in resp.content
-    p = Profile.get(user=user)
+    p = Person.get(user=user)
     assert p.gender == 0 and p.ethnicities.count() == 0
 
     resp = client.post(
@@ -121,7 +121,7 @@ def test_profile(client, admin_user):
         follow=True,
     )
     assert resp.status_code == 200
-    p = Profile.get(user=user)
+    p = Person.get(user=user)
     assert p.gender == 1 and p.ethnicities.count() == 1
 
     client.force_login(admin_user)
@@ -142,7 +142,7 @@ def test_profile(client, admin_user):
         follow=True,
     )
     assert resp.status_code == 200
-    assert Profile.objects.filter(user=admin_user).count() == 0
+    assert Person.objects.filter(user=admin_user).count() == 0
     assert b"consent" in resp.content
 
     resp = client.post(
@@ -204,7 +204,7 @@ def test_profile(client, admin_user):
     # Create and update career stages
     models.CareerStage.create(code="R1", description="description #1", definition="definition #1")
     resp = client.get("/profile/career-stages/")
-    assert not models.ProfileCareerStage.where(profile=p).exists()
+    assert not models.PersonCareerStage.where(profile=p).exists()
     resp = client.post(
         "/profile/career-stages/",
         {
@@ -218,9 +218,9 @@ def test_profile(client, admin_user):
         },
         follow=True,
     )
-    assert models.ProfileCareerStage.where(profile=p).exists()
+    assert models.PersonCareerStage.where(profile=p).exists()
 
-    pcs = models.ProfileCareerStage.get(profile=p)
+    pcs = models.PersonCareerStage.get(profile=p)
     resp = client.post(
         "/profile/career-stages/",
         {
@@ -238,7 +238,7 @@ def test_profile(client, admin_user):
         },
         follow=True,
     )
-    assert models.ProfileCareerStage.where(profile=p, year_achieved=2003).exists()
+    assert models.PersonCareerStage.where(profile=p, year_achieved=2003).exists()
 
     resp = client.post(
         "/profile/career-stages/",
@@ -258,14 +258,14 @@ def test_profile(client, admin_user):
         },
         follow=True,
     )
-    assert not models.ProfileCareerStage.where(profile=p, year_achieved=2003).exists()
+    assert not models.PersonCareerStage.where(profile=p, year_achieved=2003).exists()
 
-    # Profile identifier:
+    # Person identifier:
     models.PersonIdentifierType.create(
         code="11", description="Identifier #11", definition="Identifier #11 definition"
     )
     resp = client.get("/profile/external-ids/")
-    assert not models.ProfilePersonIdentifier.where(profile=p).exists()
+    assert not models.PersonPersonIdentifier.where(profile=p).exists()
     # resp = client.post(
     #     "/profile/external-ids/",
     #     {
@@ -279,7 +279,7 @@ def test_profile(client, admin_user):
     #     },
     #     follow=True,
     # )
-    # assert models.ProfilePersonIdentifier.where(profile=p).exists()
+    # assert models.PersonPersonIdentifier.where(profile=p).exists()
 
     resp = client.post(
         "/profile/cvs/",
@@ -407,7 +407,7 @@ def test_application(client, django_user_model):
         email="test123@test.com",
     )
     client.force_login(u)
-    Profile.create(user=u)
+    Person.create(user=u)
     org = models.Organisation.create(name="ORG")
 
     resp = client.get(f"/applications/{r.pk}/~create")
@@ -535,7 +535,7 @@ def test_cv(client, admin_user):
     )
     assert b"Please complete your profile" in resp.content
 
-    profile = models.Profile.create(user=admin_user, is_completed=True)
+    profile = models.Person.create(user=admin_user, is_completed=True)
 
     resp = client.get("/profile/cvs/")
 

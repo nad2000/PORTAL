@@ -4,7 +4,9 @@ from hashlib import md5
 import jwt
 from allauth.socialaccount import providers
 from allauth.socialaccount.models import SocialApp, SocialToken
-from allauth.tests import Mock, TestCase, patch
+from allauth.tests import Mock, TestCase
+# from django.test import TestCase
+# from unittest.mock import Mock
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site

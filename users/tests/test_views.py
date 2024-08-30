@@ -1,7 +1,7 @@
 import pytest
 from django.test import RequestFactory
 
-from portal.models import Profile
+from portal.models import Person
 from users.models import User
 from users.views import UserRedirectView, UserUpdateView
 
@@ -58,7 +58,7 @@ def test_adapter(client):
     # assert b"Your profile is not completed yet. Please complete your profile." in resp.content
     assert b"Please complete your profile" in resp.content
 
-    p = Profile.objects.create(user=user, is_accepted=True)
+    p = Person.objects.create(user=user, is_accepted=True)
     p.is_completed = True
     p.save()
 
