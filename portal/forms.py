@@ -2292,7 +2292,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
     class Meta:
         model = models.Referee
-        fields = ["state", "email", "first_name", "middle_names", "last_name"]
+        fields = ["state", "email", "first_name", "middle_names", "last_name", "org"]
         widgets = dict(
             email=forms.EmailInput(
                 attrs={
@@ -2304,6 +2304,11 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
             ),
             has_testiefed=NullBooleanSelect(attrs=dict(readonly=True)),
             state=InvitationStateInput(attrs={"readonly": True}),
+            org=autocomplete.ModelSelect2(
+                "org-autocomplete",
+                # forward=["nominator"],
+                attrs={"data-placeholder": _("Choose the organisation of the referee...")},
+            ),
         )
 
 
