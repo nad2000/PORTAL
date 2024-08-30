@@ -4,13 +4,14 @@ import mimetypes
 import os
 import shutil
 import traceback
+import py7zr
+import tempfile
 from datetime import timedelta
 from functools import wraps
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 
 import django.utils.translation
-import django_filters
 import django_tables2
 import tablib
 from allauth.account.models import EmailAddress
@@ -22,6 +23,7 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import (
     AccessMixin,
@@ -83,7 +85,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import condition, require_http_methods
 from django.views.generic import DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
@@ -96,7 +98,7 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from private_storage.views import PrivateStorageDetailView
-from PyPDF2 import PdfMerger, PdfReader
+from pypdf import PdfMerger, PdfReader
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -107,7 +109,7 @@ from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
 from weasyprint import HTML
 
-from . import forms, models, tables
+from . import filters, forms, models, tables
 from .forms import Submit
 from .models import Address, Application, Person, PersonCareerStage, Subscription, User
 from .pyinfo import info
@@ -194,7 +196,7 @@ def about(request):
     return render(request, "pages/about.html", locals())
 
 
-@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+@user_passes_test(lambda u: u.is_superuser or u.is_staff or u.is_site_staff)
 def pyinfo(request, message=None):
     """Show Python and runtime environment and settings or test exception handling."""
     if message:
@@ -208,6 +210,15 @@ def pyinfo(request, message=None):
     return render(request, "pyinfo.html", info)
 
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def impersonate(request, username):
+    u = User.get(username=username)
+    if request.user.pk != u.pk:
+        login(request, u, backend="django.contrib.auth.backends.ModelBackend")
+    return redirect("start")
+
+
 def shoud_be_onboarded(function):
     """
     Check if the authentication user has a profile.  If it is missing,
@@ -219,10 +230,11 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
-        person = Person.where(user=user).first()
-        if not person or request.session.get("wizard") or request.session.get("wizard-views"):
+        person = Person.where(user=user).last()
+        if not person or request.session.get("wizard") or ("wizard_views" in request.session):
+            wizard_views = request.session.get("wizard-views")
             view_name = person and "profile-update" or "profile-create"
-            if person and (wizard_views := request.session.get("wizard-views")):
+            if person and wizard_views is not None:
                 view_name = wizard_views[0]
             messages.info(
                 request,
@@ -510,6 +522,13 @@ def survey_webhook(request):
 
 
 @login_required
+def object_counts(request):
+    cache_key = f"{request.user.username}:{settings.SITE_ID}"
+    cached_context = cache.get(cache_key, {})
+    return JsonResponse(cached_context)
+
+
+@login_required
 def complete_survey(request):
     """Handle complition of the surervy"""
     # capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
@@ -699,8 +718,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                 + f"?next={quote(request.get_full_path())}"
             )
 
-    person = Person.where(user=request.user).last()
-    if not person or not is_profile_completed(request):
+    if not is_profile_completed(request):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
@@ -820,7 +838,7 @@ def index(request):
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
                 user__is_active=True,
@@ -1045,6 +1063,21 @@ def check_profile(request, token=None):
                 elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
                     next_url = reverse("application", kwargs={"pk": a_id})
                 elif i.type == "R" and (r := i.referee):
+                    if (
+                        testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
+                    ) and testimonial_submission_closes_at > timezone.now():
+                        messages.error(
+                            request,
+                            mark_safe(
+                                _(
+                                    "The referee report submission was closed on "
+                                    f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                    f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                                )
+                            ),
+                        )
+                        return redirect(next_url or "home")
+
                     if t := models.Testimonial.where(referee=r).last():
                         next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
@@ -1111,11 +1144,14 @@ def user_profile(request, pk=None):
 
 
 def is_profile_completed(request):
-    return (
-        Person.where(user=request.user).exists()
-        and "wizard" not in request.session
-        and "wizard-views" not in request.session
-    )
+    if not Person.where(user=request.user).exists():
+        return False
+    if request.session.get("wizard"):
+        if (views := request.session.get("wizard-views")) and views != []:
+            return False
+        else:
+            turn_off_wizard(request)
+    return True
 
 
 class ProfileView:
@@ -1255,10 +1291,13 @@ def disable_profile_protection_patterns(request):
 
 
 @login_required
-@shoud_be_onboarded
 def profile_protection_patterns(request):
-    site_id = request.site_id
-    person = request.person
+    site_id = settings.SITE_ID
+    if not (person := models.Person.where(user=request.user).last()):
+        url = reverse("prifile-create")
+        if (next_url := request.GET.get("next")) and next_url.startswith("/"):
+            url = f"{url}?next={next_url}"
+        return redirect(url)
     if request.method == "POST":
         no_protection_needed = "no_protection_needed" in request.POST
         rp = request.POST
@@ -1363,7 +1402,7 @@ class ProfileDetail(ProfileView, DetailView):
         if "pk" in self.kwargs:
             p = super().get_object()
             u = self.request.user
-            if u.is_staff or u.is_superuser or p.user == u:
+            if u.is_staff or u.is_superuser or p.user == u or u.is_site_staff:
                 return p
             raise PermissionDenied(_("You are not allowed to see this profile."))
         return self.request.user.person
@@ -1378,6 +1417,19 @@ class ProfileCreate(ProfileView, CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
+
+    def get(self, *args, **kwargs):
+        u = self.request.user
+        if models.Person.where(user=u).exists():
+            messages.error(self.request, _("The profile was aready created."))
+            return redirect("profile-update")
+
+        # Start profile wizard:
+        if not self.request.session.get("wizard"):
+            self.request.session["wizard"] = True
+            self.request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+            self.request.session.modified = True
+        return super().get(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
@@ -1404,6 +1456,7 @@ class ProfileCreate(ProfileView, CreateView):
             initial["middle_names"] = n.middle_names or u.middle_names
             initial["last_name"] = n.last_name or u.last_name
             initial["title"] = n.title or u.title
+            initial["user"] = u
         return initial
 
 
@@ -1602,7 +1655,15 @@ class SingleApplicationMixin:
     slug_field = "number"
     slug_url_kwarg = "number"
 
+    _obj = None
+
     def get_object(self, queryset=None):
+        if not self.request.user.is_authenticated:
+            return None
+
+        if self._obj:
+            return self._obj
+
         if queryset is None:
             queryset = self.get_queryset()
 
@@ -1638,12 +1699,23 @@ class SingleApplicationMixin:
                 _("No %(verbose_name)s found matching the query")
                 % {"verbose_name": queryset.model._meta.verbose_name}
             )
-        return obj
+        self._obj = obj
+        return self._obj
 
 
 class ApplicationDetail(SingleApplicationMixin, DetailView):
     model = Application
     template_name = "application_detail.html"
+
+    # def last_modified(self, request, *args, **kwargs):
+    #     if (
+    #         (o := self.get_object())
+    #         and (u := request.user)
+    #         and u.is_authenticated
+    #         and hasattr(o, "updated_at")
+    #     ):
+    #         # return f"u.username:o.updated_at.strftime('%s')"
+    #         return f"o.updated_at.strftime('%s')"
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
@@ -1652,7 +1724,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         else:
             a = self.get_object()
             self.object = a
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             if not a.user_can_view(u):
                 messages.error(request, _("You do not have permissions to view this application."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
@@ -1684,6 +1756,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             | Q(email__lower__in=user.emailaddress_set.values_list("email__lower"))
         ).last()
 
+    # @method_decorator(condition(last_modified_func=last_modified))
     def get(self, request, *args, **kwargs):
         resp = super().get(request, *args, **kwargs)
 
@@ -1692,6 +1765,8 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             referee = (
                 a.referees.filter(
                     Q(user=u) | Q(email=u.email) | Q(email__in=u.email_addresses),
+                    Q(application__round__testimonial_submission_closes_at__isnull=True)
+                    | Q(application__round__testimonial_submission_closes_at__gt=timezone.now()),
                     survey_completed_at__isnull=True,
                 )
                 .order_by("-id")
@@ -1803,7 +1878,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         context = super().get_context_data(*args, **kwargs)
 
         a = context["application"] = self.object
-        if a and a.site_id == 5:
+        r = a.round
+        site_id = a.site_id
+        if a and site_id == 5:
             context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
         if n := models.Nomination.where(application=a).last():
@@ -1821,7 +1898,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 _("Please review the application and authorize your team representative."),
             )
             context["form"] = AuthorizationForm()
-        is_ro = a.site_id in [4, 5] and (
+        is_ro = site_id in [4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
             or a.org.where(research_offices__user=u).exists()
@@ -1837,9 +1914,9 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             )
         )
 
-        if a.site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
+        if site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
             context["update_button_name"] = _("Edit referee list")
-        if p := a.round.panellists.filter(user=u).first():
+        if p := r.panellists.filter(user=u).first():
             context["is_panellist"] = True
             coi = p.conflict_of_interests.filter(Q(application=a)).last()
             context["has_coi"] = not coi or coi.has_conflict is True or coi.has_conflict is None
@@ -1852,17 +1929,26 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
 
         if (
             is_owner
-            and not a.round.is_open
-            and (current_round := a.round.scheme.current_round)
-            and current_round != a.round
+            and not r.is_open
+            and (current_round := r.scheme.current_round)
+            and current_round != r
             and current_round.is_open
             and not Application.user_applications(user=u, round=current_round).exists()
         ):
             context["can_reenter"] = True
             context["current_round"] = current_round
 
+        if for_panellists := self.request.GET.get("for_panellists", False):
+            context["for_panellists"] = for_panellists
+
         if is_owner or is_ro or u.is_superuser or u.is_site_staff:
-            context["referees"] = a.referees.all()
+            if site_id == 5 and for_panellists:
+                referees = a.referees.order_by("testified_at")
+                if r.required_referees:
+                    referees = referees[: r.required_referees + 1]
+                context["referees"] = referees
+            else:
+                context["referees"] = a.referees.all()
 
         context["was_submitted"] = a.state in [
             "submitted",
@@ -1874,22 +1960,27 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         context["can_update"] = (
             can_only_update_referees
             or (
-                a.site_id != 5
+                site_id != 5
                 and a.state not in ["submitted", "approved", "cancelled", "accepted"]
             )
-            or (a.site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
+            or (site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
             or (
-                a.site_id == 5
+                site_id == 5
                 and is_owner
                 and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
+
+        testimonial_submission_closes_at = r.testimonial_submission_closes_at
+        if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
+            context["reviewing_closed"] = True
         if not is_owner:
             context["show_basic_details"] = not (
                 u.is_staff
                 or u.is_superuser
                 or is_ro
-                or (a.site_id not in [4, 5] and a.referees.filter(user=u).exists())
+                or u.is_site_staff
+                or (site_id not in [4, 5] and a.referees.filter(user=u).exists())
                 or models.ConflictOfInterest.where(
                     Q(has_conflict=False) | Q(has_conflict__isnull=False),
                     application=a,
@@ -1902,20 +1993,33 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 .order_by("-id")
                 .first()
             ):
-                r = a.round
-                if r.site_id == 5:
+                if site_id == 5:
                     context["export_enabled"] = True
                 context["testimonial"] = t
                 if t.state != "submitted":
                     closes_at = r.closes_at
-                    if r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                    if (
+                        testimonial_submission_closes_at
+                        and testimonial_submission_closes_at < timezone.now()
+                    ):
+                        messages.warning(
+                            self.request,
+                            mark_safe(
+                                _(
+                                    "The referee report submission was closed on "
+                                    f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                    f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                                )
+                            ),
+                        )
+                    elif site_id != 5 or (closes_at and closes_at <= timezone.now()):
                         messages.info(
                             self.request,
                             (
                                 _(
                                     "Please review the application details and submit referee report."
                                 )
-                                if t.site_id in [4, 5]
+                                if site_id in [4, 5]
                                 else _(
                                     "Please review the application details and submit testimonial."
                                 )
@@ -1937,7 +2041,6 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                                 )
                             ),
                         )
-
             if referee := a.referees.filter(
                 Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
             ).last():
@@ -2008,7 +2111,7 @@ class ApplicationView(LoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and not (u.is_staff or u.is_superuser):
+        if u.is_authenticated and not (u.is_staff or u.is_superuser or u.is_site_staff):
             if (pk := self.kwargs.get("pk")) and (
                 a := get_object_or_404(models.Application, pk=pk)
             ):
@@ -2310,7 +2413,8 @@ class ApplicationView(LoginRequiredMixin):
         referees = context["referees"]
         user = self.request.user
         reset_cache(self.request)
-        url = self.request.path_info
+        # url = self.request.path_info
+        url = None
         round = self.round
         has_required_documents = round.required_documents.count() > 0
         site_id = self.request.site_id
@@ -2411,6 +2515,39 @@ class ApplicationView(LoginRequiredMixin):
                         documents.instance = a
                     if documents.is_valid():
                         documents.save()
+                        for f in documents.forms:
+                            if (
+                                "file" in f.changed_data
+                                and f.instance.file
+                                and f.instance.file.path
+                            ):
+                                try:
+                                    cf = f.instance.update_converted_file(commit=True)
+                                    if cf:
+                                        messages.success(
+                                            self.request,
+                                            _(
+                                                "The document file was converted into PDF file successfully. "
+                                                'Please review the converted version <a href="%s" target="_blank">%s</a>. '
+                                                "If it is not converted correctly, please save your document file "
+                                                "in PDF format and reupload it."
+                                            )
+                                            % (cf.file.url, os.path.basename(cf.file.name)),
+                                        )
+                                except Exception as ex:
+                                    capture_exception(ex)
+                                    messages.error(
+                                        self.request,
+                                        _(
+                                            "Failed to convert your application form into PDF. "
+                                            "Please save or convert your document into PDF format and to reupload it."
+                                        ),
+                                    )
+                                    url = (
+                                        f"{update_url}#documents"
+                                        if update_url
+                                        else self.continue_url("documents")
+                                    )
                     else:
                         if update_url:
                             return redirect(f"{update_url}#documents")
@@ -2599,7 +2736,8 @@ class ApplicationView(LoginRequiredMixin):
                                 self.request,
                                 _(
                                     "Your application form was converted into PDF file. "
-                                    "Please review the converted application form version <a href='%s'>%s</a>."
+                                    "Please review the converted application form version <a href='%s'>%s</a>. "
+                                    "If it is not converted correctly, please save your document file in PDF format and reupload it."
                                 )
                                 % (cf.file.url, os.path.basename(cf.file.name)),
                             )
@@ -2665,14 +2803,18 @@ class ApplicationView(LoginRequiredMixin):
                     messages.error(self.request, ex)
             capture_exception(ex)
             # return redirect(url)
+            if url:
+                return redirect(url)
             if update_url:
                 return redirect(update_url)
             return self.form_invalid(form)
 
         if has_deleted:  # keep editing
+            if not url:
+                url = self.request.path_info
             return redirect(url)
         else:
-            url = None
+            # url = None
             try:
                 if "submit" in self.request.POST or "submit_to_referees" in self.request.POST:
                     if not update_only_referees and self.round.applicant_cv_required:
@@ -2964,7 +3106,8 @@ class ApplicationView(LoginRequiredMixin):
                         a.save()
                     if "send_invitations" in self.request.POST:
                         # url = self.request.path_info.split("?")[0] + "#referees"
-                        url = self.continue_url("referees")
+                        if not url:
+                            url = self.continue_url("referees")
                         # return redirect(url)
                     elif not update_only_referees:
                         if (
@@ -3003,14 +3146,14 @@ class ApplicationView(LoginRequiredMixin):
                     count = a.invite_referees(
                         request=self.request, dispatch_invitations=dispatch_invitations
                     )
-                if dispatch_invitations:
+                if dispatch_invitations and count:
                     messages.info(
                         self.request,
                         _(
                             f"Your application has been successfully submitted to {count} referee(s) to review it."
                         ),
                     )
-                else:
+                elif count:
                     messages.info(
                         self.request,
                         _(f"{count} new rerefee invitaion(s) were successfully created."),
@@ -3718,143 +3861,6 @@ class ApplicationCreate(ApplicationView, CreateView):
 #         return super().formset_valid(formset)
 
 
-class RelatedOnlyModelChoiceFilter(django_filters.ModelChoiceFilter):
-    # ("round", admin.RelatedOnlyFieldListFilter),
-    __queryset = None
-
-    # @property
-    # def field(self):
-    #     request = self.get_request()
-    #     queryset = self.get_queryset(request).filter(**{"id__in": self.parent.qs.values_list(self.field_name)})
-    #     self.extra["choices"] = [(o, o) for o in queryset]
-    #     return super().field
-
-    def get_queryset(self, request):
-        if not self.__queryset:
-            self.__queryset = (
-                super()
-                .get_queryset(request)
-                .filter(**{"id__in": self.parent.queryset.values_list(self.field_name)})
-            )
-        return self.__queryset
-
-
-def application_filter_rounds(request, *args, **kwargs):
-    if request is None:
-        return models.Round.objects.none()
-
-    # company = request.user.company
-    return models.Round.objects.all()
-
-
-class YearChoiceFilter(django_filters.ChoiceFilter):
-    # field_class = ChoiceField
-    field_class = django_filters.fields.ChoiceField
-
-    # def __init__(self, *args, **kwargs):
-    #     # self.null_value = kwargs.get("null_value", settings.NULL_CHOICE_VALUE)
-    #     with connection.cursor() as cr:
-    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
-    #         kwargs["choices"] = [(y, y) for y in cr.fetchall()]
-    #     super().__init__(*args, **kwargs)
-
-    # @property
-    # def field(self):
-    #     with connection.cursor() as cr:
-    #         cr.execute("SELECT DISTINCT strftime('%Y', opens_on) AS year FROM round ORDER BY 1;")
-    #         self.extra["choices"] = [(y, y) for (y,) in cr.fetchall()]
-    #     return super().field
-
-    def filter(self, qs, value):
-        if value != self.null_value and value:
-            return qs.filter(created_at__year=value)
-        return qs
-
-
-class ApplicationFilterSet(django_filters.FilterSet):
-    # @property
-    # def qs(self):
-    #     parent = super().qs
-    #     author = getattr(self.request, 'user', None)
-    #     return parent.filter(is_published=True) | parent.filter(author=author)
-
-    # @property
-    # def qs(self):
-    #     qs = super().qs
-    #     if self.form.data.get('archived_filter') != "true":
-    #         qs = qs.filter(round__scheme__current_round=F("round"))
-    #     return qs
-
-    application_filter = django_filters.CharFilter(
-        method="set_filter", label=gettext_lazy("Application Filter")
-    )
-    archived_filter = django_filters.BooleanFilter(
-        method="filter_archived",
-        label=gettext_lazy("Archived Applications"),
-    )
-    active_filter = django_filters.BooleanFilter(
-        method="filter_active", label=gettext_lazy("Active Applications")
-    )
-    # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
-    year_filter = YearChoiceFilter(
-        label=gettext_lazy("Year"),
-        widget=django_filters.widgets.LinkWidget,
-        choices=[(v, v) for v in range(timezone.now().year, 2019, -1)],
-        # method="set_filter",
-        # queryset=application_filter_years,
-    )
-
-    round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
-        #     "round",
-        label=gettext_lazy("Round"),
-        widget=django_filters.widgets.LinkWidget,
-        # widget=LinkWidget,
-        field_name="round",
-        queryset=application_filter_rounds,
-    )
-
-    class Meta:
-        model = models.Application
-        fields = ["application_filter", "archived_filter", "active_filter", "round"]
-
-    def filter_archived(self, queryset, name, value):
-        if not value:
-            return queryset.filter(round__scheme__current_round=F("round"))
-        return queryset
-
-    def filter_active(self, queryset, name, value):
-        if value:
-            return queryset.filter(round__scheme__current_round=F("round"))
-        return queryset
-
-    def set_filter(self, queryset, name, value):
-        if value:
-            return queryset.filter(
-                Q(application_title__icontains=value)
-                | Q(number__icontains=value)
-                | Q(first_name__icontains=value)
-                | Q(last_name__icontains=value)
-                | Q(email__icontains=value)
-                | Q(submitted_by__first_name__icontains=value)
-                | Q(submitted_by__last_name__icontains=value)
-                | Q(submitted_by__email__icontains=value)
-                | Q(
-                    Exists(
-                        models.Member.where(
-                            first_name__icontains=value, application=OuterRef("pk")
-                        )
-                    )
-                )
-                | Q(
-                    Exists(
-                        models.Member.where(last_name__icontains=value, application=OuterRef("pk"))
-                    )
-                )
-            ).distinct()
-        else:
-            return queryset
-
-
 class InvitationList(LoginRequiredMixin, SingleTableView):
     table_class = tables.InvitationTable
     model = models.Invitation
@@ -3864,7 +3870,7 @@ class InvitationList(LoginRequiredMixin, SingleTableView):
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         u = self.request.user
-        if not (u.is_superuser or u.is_staff):
+        if not (u.is_superuser or u.is_staff or u.is_site_staff):
             queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
         return queryset
 
@@ -4562,28 +4568,29 @@ class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
     form_class = forms.ContractForm
 
 
-class ApplicationListMixin:
-    def get_queryset(self, *args, **kwargs):
-        u = self.request.user
-        q = models.Application.user_applications(u, round=self.request.GET.get("round"))
-        if u.is_staff or u.is_superuser:
-            return q.prefetch_related("contracts")
-        return q
-
-
 class ApplicationList(
+    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView,
     LoginRequiredMixin,
     StateInPathMixin,
-    ApplicationListMixin,
-    SingleTableView,
-    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableMixin, FilterView
+    SingleTableMixin,
+    FilterView,
 ):
     model = models.Application
     table_class = tables.ApplicationTable
     extra_context = {"category": "applications"}
     template_name = "table.html"
-    # filterset_class = ApplicationFilterSet
+    filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
+
+    def get_queryset(self, *args, **kwargs):
+        u = self.request.user
+        q = super().get_queryset(*args, **kwargs)
+        q = models.Application.user_applications(
+            u, round=self.request.GET.get("round"), queryset=q
+        )
+        if u.is_staff or u.is_superuser or u.is_site_staff:
+            return q.prefetch_related("contracts")
+        return q
 
     def get_table_kwargs(self):
         if not (self.request.user.is_superuser or self.request.user.is_site_staff):
@@ -4619,7 +4626,6 @@ class ApplicationList(
         #         context["application_draft_count"] = application_draft_count
         #         context["application_submitted_count"] = application_submitted_count
 
-        context["filter_disabled"] = True
         if (state := self.request.path.split("/")[-1]) and state in [
             "draft",
             "submitted",
@@ -4676,7 +4682,7 @@ class IdentityVerificationView(LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and not (u.is_staff or u.is_superuser):
+        if u.is_authenticated and not (u.is_staff or u.is_superuser or u.is_site_staff):
             messages.error(request, _("You do not have permissions to access this page."))
             return redirect("index")
         return super().dispatch(request, *args, **kwargs)
@@ -4708,7 +4714,6 @@ def turn_off_wizard(request):
     if "wizard-views" in request.session:
         del request.session["wizard-views"]
     request.session.modified = True
-    return
 
 
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
@@ -4722,13 +4727,15 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         "profile-academic-records",
         "profile-recognitions",
         "profile-professional-records",
+        # "profile-protection-patterns",
     ]
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
-            request.session["wizard"] = True
-            request.session["wizard-views"] = self.section_views.copy()
-            request.session.modified = True
+            if not request.session.get("wizard"):
+                request.session["wizard"] = True
+                request.session["wizard-views"] = self.section_views.copy()
+                request.session.modified = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
@@ -4847,11 +4854,10 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 if not success_url:
                     self.success_url = reverse("home")
             elif request.session.get("wizard"):
-                if not request.session.get("wizard-views"):
-                    request.session["wizard-views"] = (
+                if (wizard_views := request.session.get("wizard-views", None)) is None:
+                    wizard_views = request.session["wizard-views"] = (
                         ProfileSectionFormSetView.section_views.copy()
                     )
-                wizard_views = request.session.get("wizard-views", [])
                 if url_name in wizard_views:
                     del wizard_views[wizard_views.index(url_name)]
                     if not wizard_views:
@@ -5725,7 +5731,11 @@ class AdminstaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """only Admin staff can access"""
 
     def test_func(self):
-        return self.request.user.is_superuser or self.request.user.is_staff
+        return (
+            self.request.user.is_superuser
+            or self.request.user.is_staff
+            or self.request.user.is_site_staff
+        )
 
 
 class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
@@ -5816,7 +5826,7 @@ class NominationView(CreateUpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.user = u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
             if n and n.nominator and n.nominator != u:
                 messages.error(
@@ -6104,7 +6114,7 @@ class TestimonialView(CreateUpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             t = self.get_object()
             if t and t.referee and t.referee.user and t.referee.user != u:
                 messages.error(
@@ -6116,6 +6126,21 @@ class TestimonialView(CreateUpdateView):
                 Q(user=u) | Q(email=u.email), application_id=self.kwargs["application"]
             ).last()
             if r:
+                if (
+                    testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
+                ) and testimonial_submission_closes_at > timezone.now():
+                    messages.error(
+                        request,
+                        mark_safe(
+                            _(
+                                "The referee report submission was closed on "
+                                f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                            )
+                        ),
+                    )
+                    return redirect("home")
+
                 t = models.Testimonial.where(referee=r).last()
                 if t:
                     return redirect("testimonial-update", pk=t.pk)
@@ -6283,8 +6308,9 @@ class TestimonialView(CreateUpdateView):
                     and not a.referees.filter(~Q(state="testified")).exists()
                 ):
                     if t.site_id == 5 and a.state == "in_review":
-                        a.submit(request=self.request)
-                        a.save()
+                        pass
+                        # a.submit(request=self.request)
+                        # a.save()
                     else:
                         url = self.request.build_absolute_uri(
                             reverse("application-update", kwargs={"pk": a.id})
@@ -6397,9 +6423,11 @@ class TestimonialView(CreateUpdateView):
         return context
 
 
-class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterView):
     model = models.Nomination
     table_class = tables.NominationTable
+    filterset_class = filters.NominationFilterSet
+    paginator_class = django_tables2.paginators.LazyPaginator
     template_name = "nominations.html"
 
     def get_context_data(self, *args, **kwargs):
@@ -6413,7 +6441,7 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
         queryset = super().get_queryset(*args, **kwargs)
         u = self.request.user
         state = self.request.path.split("/")[-1]
-        if not (u.is_superuser or u.is_staff):
+        if not (u.is_superuser or u.is_staff or u.is_site_staff):
             # if not state or (state == "submitted" or "submitted" in state):
             queryset = queryset.filter(
                 Q(nominator=u)
@@ -6437,7 +6465,7 @@ class NominationDetail(DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
             if not (
                 n.nominator == u
@@ -6515,10 +6543,17 @@ class NominationDetail(DetailView):
         return context
 
 
-class TestimonialList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+class TestimonialList(
+    LoginRequiredMixin,
+    StateInPathMixin,
+    SingleTableMixin,
+    FilterView,
+):
     model = models.Testimonial
     table_class = tables.TestimonialTable
     template_name = "testimonials.html"
+    filterset_class = filters.TestimonialFilterSet
+    paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_queryset(self, *args, **kwargs):
         state = self.state
@@ -6533,7 +6568,7 @@ class TestimonialDetail(DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             t = self.get_object()
             if t.referee.user != u:
                 messages.error(request, _("You do not have permissions to view this testimonial."))
@@ -6546,6 +6581,10 @@ class TestimonialDetail(DetailView):
         referee = t.referee
         a = referee.application
         r = a and a.round or referee.application.round
+
+        testimonial_submission_closes_at = r and r.testimonial_submission_closes_at
+        if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
+            context["reviewing_closed"] = True
 
         if a:
             context["extra_object"] = a
@@ -6595,7 +6634,21 @@ class TestimonialDetail(DetailView):
                 )
             else:
                 closes_at = r.closes_at
-                if r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                if (
+                    testimonial_submission_closes_at
+                    and testimonial_submission_closes_at < timezone.now()
+                ):
+                    messages.warning(
+                        self.request,
+                        mark_safe(
+                            _(
+                                "The referee report submission was closed on "
+                                f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                            )
+                        ),
+                    )
+                elif r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
                     messages.info(
                         self.request,
                         (
@@ -6687,6 +6740,7 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
         return (
             u.is_staff
             or u.is_superuser
+            or u.is_site_staff
             or (
                 "pk" in self.kwargs
                 # and (a := get_object_or_404(models.Application, pk=self.kwargs["pk"]))
@@ -6699,7 +6753,7 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
                         and a.referees.all().filter(user=u).exists()
                     )
                     or a.round.panellists.all().filter(user=u).exists()
-                    or a.org.where(research_offices__user=u).exists()
+                    or a.org.research_offices.filter(user=u).exists()
                 )
             )
         )
@@ -6714,12 +6768,20 @@ class ApplicationExportView(SingleApplicationMixin, ExportView):
     def get_attachments(self, pk=None, number=None):
         attachments = []
         app = self.model.get(id=pk)
+        u = self.request.user
+        if app.site_id in [4, 5] and app.is_applicant(u):
+            return attachments
+
         if app.file:
             attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(app.pdf_file))
         if app.cv and app.cv.file:
             attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(app.cv.pdf_file))
 
-        testimonials = app.get_testimonials()
+        testimonials = (
+            app.get_testimonials()
+            if u.is_superuser or u.is_site_staff
+            else app.get_testimonials(user=u)
+        )
         for t in testimonials:
             if t.file:
                 attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))
@@ -6796,7 +6858,12 @@ class RoundExportView(ExportView):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
-        return u.is_staff or u.is_superuser or self.round.panellists.all().where(user=u).exists()
+        return u.is_authenticated and (
+            u.is_staff
+            or u.is_superuser
+            or self.round.panellists.filter(user=u).exists()
+            or u.is_site_staff
+        )
 
     @property
     def filename(self):
@@ -6804,42 +6871,121 @@ class RoundExportView(ExportView):
 
     def get(self, request, pk):
         round = self.round
-        site_id = request.site_id
+        site_id = settings.SITE_ID
+        file_format = request.GET.get("format", "pdf")
+        regenerate = request.GET.get("regenerate", False)
+        regenerate = regenerate and regenerate != "0"
+        u = request.user
+        for_panellists = request.GET.get("for_panellists", False) and (
+            u.is_superuser or u.is_site_staff
+        )
 
-        # merger = PdfMerger()
-        merger = PdfMerger(strict=False)
-        merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
-        merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
+        if for_panellists or round.panellists.filter(user=u).exists():
+            prefix = "panellists"
+        elif u.is_superuser or u.is_site_staff:
+            prefix = "admins"
+        else:
+            prefix = u.username
 
-        numbers = []
+        # prefix = os.path.join(tempfile.gettempdir(), prefix)
+        prefix_url = os.path.join("rounds", f"{round.scheme.code}", f"{round.opens_on.year}", prefix)
+        prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
+        if not os.path.exists(prefix):
+            os.makedirs(prefix)
+        output_filename = os.path.join(
+            prefix, f"{round.scheme.code}-{round.opens_on.year}.{file_format}"
+        )
+
         # for a in self.round.applications.all().order_by("number"):
-        for a in (
-            self.round.applications.filter(state="accepted")
+        applications = (
+            self.round.applications.filter(state__in=["accepted", "in_review"])
             if site_id in [4, 5]
             else self.round.applications.filter(state__in=["submitted", "approved"])
-        ).order_by("number"):
-            numbers.append(a.number)
-            content = io.BytesIO()
-            a.to_pdf(request, skip_excluded=(site_id in [4, 5])).write(content)
-            content.seek(0)
-            reader = PdfReader(content, strict=False)
-            merger.append(
-                reader,
-                outline_item=(
-                    f"{a}"
-                    if a.site_id in [4, 5]
-                    else f"{a.number}: {a.application_title or round.title}"
-                ),
-                import_outline=True,
+        ).order_by("number")
+
+        for a in applications:
+            filename = os.path.join(prefix, f"{a.number}.pdf")
+            if not os.path.exists(filename) or regenerate or os.path.getsize(filename) < 100:
+                with open(filename, "wb") as output:
+                    a.to_pdf(
+                        request,
+                        skip_excluded=(site_id in [4, 5]),
+                        for_panellists=for_panellists,
+                    ).write(output)
+
+            # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
+            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+            # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+
+        if file_format and file_format != "pdf":
+            if (
+                not os.path.exists(output_filename)
+                or regenerate
+                or os.path.getsize(output_filename) < 100
+            ):
+                with py7zr.SevenZipFile(output_filename, "w") as archive:
+                    for a in applications:
+                        filename = os.path.join(prefix, f"{a.number}.pdf")
+                        archive.write(filename, f"{a.number}.pdf")
+
+            content_type = "application/x-7z-compressed"
+            if settings.DEBUG or not hasattr(settings, "PRIVATE_STORAGE_INTERNAL_URL"):
+                response = StreamingHttpResponse(
+                    FileWrapper(open(output_filename, "rb")), content_type=content_type
+                )
+            else:
+                # works with nginx:
+                output_url = os.path.join(settings.PRIVATE_STORAGE_INTERNAL_URL, prefix_url, f"{round.scheme.code}-{round.opens_on.year}.{file_format}")
+                # response = HttpResponse(content_type="application/force-download")
+                response = HttpResponse(content_type=content_type)
+                response["X-Accel-Redirect"] = quote(output_url)
+                response['Content-Type'] = content_type
+                response["X-Sendfile"] = quote(output_url)
+            response["Content-Length"] = os.path.getsize(output_filename)
+            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+            response["Content-Disposition"] = (
+                f"attachment; filename={round.scheme.code}-{round.opens_on.year}.{file_format}"
             )
-        merger.add_metadata({"/Keywords": ", ".join(numbers)})
+            return response
 
-        content = io.BytesIO()
-        merger.write(content)
-        content.seek(0)
+        if not os.path.exists(output_filename) or regenerate:
+            numbers = []
+            # merger = PdfMerger()
+            merger = PdfMerger(strict=False)
+            merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
+            merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 
-        response = FileResponse(content, content_type="application/pdf")
-        response["Content-Disposition"] = f"attachment; filename={self.filename}.pdf"
+            for a in applications:
+                numbers.append(a.number)
+                filename = os.path.join(prefix, f"{a.number}.pdf")
+                reader = PdfReader(filename, strict=False)
+                merger.append(
+                    reader,
+                    outline_item=(
+                        f"{a}"
+                        if a.site_id in [4, 5]
+                        else f"{a.number}: {a.application_title or round.title}"
+                    ),
+                    import_outline=True,
+                )
+            merger.add_metadata({"/Keywords": ", ".join(numbers)})
+            merger.write(output_filename)
+
+        content_type = "application/pdf"
+        if True or settings.DEBUG:
+            response = StreamingHttpResponse(
+                FileWrapper(open(output_filename, "rb")), content_type=content_type
+            )
+        else:
+            # works with nginx:
+            response = HttpResponse(content_type="application/force-download")
+            response["X-Sendfile"] = output_filename
+            response["X-Accel-Redirect"] = output_filename
+        response["Content-Length"] = os.path.getsize(output_filename)
+        # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+        response["Content-Disposition"] = (
+            f"attachment; filename={round.scheme.code}-{round.opens_on.year}.pdf"
+        )
         return response
 
         # except Exception as ex:
@@ -6880,6 +7026,7 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         return (
             u.is_staff
             or u.is_superuser
+            or u.is_site_staff
             or (
                 "pk" in self.kwargs
                 and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
@@ -6888,7 +7035,12 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         )
 
     def get_attachments(self, pk):
-        testimonial = self.model.get(id=pk)
+        # testimonial = self.model.get(id=pk)
+        testimonial = (
+            self.model.where(pk=pk)
+            .prefetch_related("referee", "referee__application", "referee__application__round")
+            .last()
+        )
         attachments = []
         if testimonial.file:
             attachments.append(
@@ -6897,11 +7049,14 @@ class TestimonialExportView(ExportView, TestimonialDetail):
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(testimonial.pdf_file),
                 )
             )
-        if testimonial.cv:
+        if testimonial.referee.application.round.referee_cv_required and (
+            referee_cv := testimonial.cv
+            or models.CurriculumVitae.last_user_cv(testimonial.referee.user)
+        ):
             attachments.append(
                 (
                     f"{testimonial.cv} {_('Curriculum Vitae')}",
-                    settings.PRIVATE_STORAGE_ROOT + "/" + str(testimonial.cv.pdf_file),
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
                 )
             )
         return attachments
@@ -7047,7 +7202,7 @@ class RoundList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
-        if (u := self.request.user) and (u.is_staff or u.is_superuser):
+        if (u := self.request.user) and (u.is_staff or u.is_superuser or u.is_site_staff):
             return kwargs
         kwargs.update(
             {
@@ -7064,7 +7219,7 @@ class RoundList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
         queryset = queryset.filter(id__in=models.Scheme.objects.values("current_round"))
 
         user = self.request.user
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_staff or user.is_superuser or user.is_site_staff):
             queryset = queryset.filter(panellists__user=user).distinct()
         else:
             queryset = queryset.annotate(evaluation_count=Count("panellists__evaluations"))
@@ -7078,7 +7233,7 @@ class ScoreSheetList(AdminRequiredMixin, StateInPathMixin, SingleTableView):
 
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
-        if (u := self.request.user) and (u.is_staff or u.is_superuser):
+        if (u := self.request.user) and (u.is_staff or u.is_superuser or u.is_site_staff):
             return kwargs
         kwargs.update({"exclude": ("evaluation_count",)})
         return kwargs
@@ -7095,7 +7250,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
 
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
-        if (u := self.request.user) and (u.is_staff or u.is_superuser):
+        if (u := self.request.user) and (u.is_staff or u.is_superuser or u.is_site_staff):
             return kwargs
         kwargs.update({"exclude": ("evaluation_count",)})
         return kwargs
@@ -7133,7 +7288,9 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
     def get(self, request, *args, **kwargs):
         user = self.request.user
         if r := self.round:
-            if not (user.is_staff or user.is_superuser or r.has_online_scoring):
+            if not (
+                user.is_staff or user.is_superuser or r.has_online_scoring or user.is_site_staff
+            ):
                 if not r.all_coi_statements_given_by(request.user):
                     return redirect("round-coi", round=r.id)
                 else:
@@ -7155,7 +7312,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
                 queryset = queryset.filter(evaluations__state=state)
 
         user = self.request.user
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_staff or user.is_superuser or user.is_site_staff):
             queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
                 coi=FilteredRelation(
                     "conflict_of_interests",
@@ -7198,7 +7355,7 @@ class ConflictOfInterestView(CreateUpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             coi = self.get_object()
             if coi and coi.panellist and coi.panellist.user and coi.panellist.user != u:
                 messages.error(request, _("You do not have permissions to access this page."))
@@ -7410,7 +7567,7 @@ def edit_evaluation(request, pk):
 class CreateEvaluation(LoginRequiredMixin, EvaluationMixin, CreateWithInlinesView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             a = self.application
             if not (a and models.Panellist.where(round=a.round, user=u).exists()):
                 messages.error(
@@ -7449,7 +7606,7 @@ class CreateEvaluation(LoginRequiredMixin, EvaluationMixin, CreateWithInlinesVie
 class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             e = self.get_object()
             if e and e.panellist and e.panellist.user and e.panellist.user != u:
                 messages.error(request, _("You do not have permissions to access this page."))
@@ -7476,7 +7633,11 @@ class EvaluationDetail(DetailView):
     template_name = "evaluation.html"
 
     def dispatch(self, request, *args, **kwargs):
-        if not (u := request.user) and u.is_authenticated and not (u.is_superuser or u.is_staff):
+        if (
+            not (u := request.user)
+            and u.is_authenticated
+            and not (u.is_superuser or u.is_staff or u.is_site_staff)
+        ):
             if (e := self.get_object()) and e.panellist and e.panellist.user != u:
                 messages.error(request, _("You do not have permission to access this review."))
                 return self.handle_no_permission()
@@ -7715,6 +7876,7 @@ def export_score_sheet(request, round):
         for a in r.applications.all().order_by("number")
         if request.user.is_staff
         or request.user.is_superuser
+        or request.user.is_site_staff
         or (
             not a.conflict_of_interests.all()
             .filter(panellist__user=request.user, has_conflict=True)
@@ -8085,6 +8247,7 @@ def application_exported_view(request, number, lang=None):
     # if not remote_addr.startswith("127.0.0."):
     #     return remote_addr
     number = vignere.decode(number)
+    for_panellists = request.GET.get("for_panellists", False)
     application = get_object_or_404(models.Application, number=number)
     round = application.round
     site = Site.objects.get_current()
@@ -8101,6 +8264,11 @@ def application_exported_view(request, number, lang=None):
         logo_2 = f"{settings.STATIC_URL}images/RS_logo.png"
     elif site_id == 7:
         logo = f"{settings.STATIC_URL}images/pmspace-logo_small.jpg"
+
+    if site_id == 5:
+        referees = application.referees.order_by("testified_at")
+        if round.required_referees:
+            referees = referees[: round.required_referees]
 
     objects = application.get_testimonials()
 
@@ -8170,7 +8338,7 @@ class SummaryReportList(LoginRequiredMixin, SingleTableMixin, FilterView):
     table_class = tables.SummaryReportTable
     template_name = "table.html"
     extra_context = {"category": "applications"}
-    filterset_class = ApplicationFilterSet
+    filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
     def get_queryset(self, *args, **kwargs):
@@ -8286,8 +8454,15 @@ class MemberFTEForm(ModelForm):
 #     #     )
 
 
-def demo(request):
-    a = Application.get(1683)
+def demo(request, pk=None):
+    # a = Application.get(1683)
+    a = Application.where(pk=pk).last() if pk else Application.last()
+
+    class DemoForm(Form):
+        field1 = fields.CharField(max_length=100, required=True)
+        field2 = fields.CharField(max_length=50, required=True)
+        field3 = fields.CharField(max_length=50, required=True)
+
     duration = 3
     MemberFTEFormSet = forms.inlineformset_factory(
         models.Application,
@@ -8301,14 +8476,14 @@ def demo(request):
     if request.method == "POST":
         # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
         formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
+        form = DemoForm(request.POST or None)
 
         if formset.is_valid():
             pass
-
     else:
+        form = DemoForm()
         formset = MemberFTEFormSet(instance=a, prefix="demo")
 
-    form = Form()
     form.helper = FormHelper()
     form.helper.help_text_inline = True
     form.helper.html5_required = True
@@ -8331,6 +8506,10 @@ def demo(request):
 
     return render(request, "demo.html", locals())
 
+
+# def accel(request):
+#     "/home/app/prod/portal/media/rounds/test.txt"
+#     return
 
 # def send_notification(registration_ids=None, message_title="TEST TITLE", message_desc="You are welcome!"):
 #     fcm_api = ""

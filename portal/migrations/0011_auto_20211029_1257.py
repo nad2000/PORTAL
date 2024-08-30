@@ -268,10 +268,7 @@ class Migration(migrations.Migration):
             model_name="application",
             name="tac_accepted_at",
             field=model_utils.fields.MonitorField(
-                blank=True,
-                default=None,
                 monitor="state",
-                null=True,
                 verbose_name="Terms and Conditions accepted at",
                 when={"tac_accepted"},
             ),
@@ -545,10 +542,7 @@ class Migration(migrations.Migration):
             model_name="historicalapplication",
             name="tac_accepted_at",
             field=model_utils.fields.MonitorField(
-                blank=True,
-                default=None,
                 monitor="state",
-                null=True,
                 verbose_name="Terms and Conditions accepted at",
                 when={"tac_accepted"},
             ),
@@ -1545,33 +1539,23 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "submitted_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"submitted"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"submitted"}),
                 ),
                 (
                     "sent_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"sent"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"sent"}),
                 ),
                 (
                     "accepted_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"accepted"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"accepted"}),
                 ),
                 (
                     "expired_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"expired"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"expired"}),
                 ),
                 (
                     "bounced_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="status", null=True, when={"bounced"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"bounced"}),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField()),

@@ -303,6 +303,48 @@ class KeywordAdmin(ExportActionMixin, ImportExportModelAdmin):
     prepopulated_fields = {"slug": ["name"]}
 
 
+class PanelDecisionResource(ModelResource):
+
+    number = fields.Field(attribute='number', column_name='Proposal')
+    grade = fields.Field(attribute='grade', column_name='Grade%')
+    decision = fields.Field(attribute='decision', column_name='Decision')
+    panel = fields.Field(attribute='panel', column_name='Panel')
+    rank = fields.Field(attribute='rank', column_name='Rank')
+    adjust = fields.Field(column_name='Adjust')
+    f7 = fields.Field(column_name='F7')
+    f8 = fields.Field(column_name='F8')
+    f9 = fields.Field(column_name='F9')
+
+    def before_save_instance(self, instance, row, **kwargs):
+        if instance.decision:
+            instance.decision = instance.decision.upper()
+
+    class Meta:
+        model = models.PanelDecision
+        exclude = ["site", "created_at", "updated_at"]
+        import_id_fields = ["number"]
+        skip_unchanged = True
+        report_skipped = True
+        raise_errors = False
+        use_transactions = True
+
+
+@admin.register(models.PanelDecision)
+class PanelDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
+    show_close_button = True
+
+    # class KeywordedItemInline(admin.StackedInline):
+    #     model = models.KeywordedItem
+    # inlines = [KeywordedItemInline]
+
+    list_editable = ["grade", "decision", "panel", "rank"]
+    list_display = ["number", "grade", "decision", "panel", "rank"]
+    ordering = ["number", "panel"]
+    search_fields = ["number", "panel"]
+    list_filter = ["panel", "decision"]
+    resource_classes = [PanelDecisionResource]
+
+
 class EthnicityResource(ModelResource):
     class Meta:
         model = models.Ethnicity
@@ -1002,7 +1044,7 @@ class ApplicationAdmin(
             "survey_url",
         ]
         exclude = ["survey_token", "survey_token_id", "survey_invitation_sent_at"]
-        autocomplete_fields = ["user"]
+        autocomplete_fields = ["user", "org"]
 
         def get_exclude(self, request, obj=None):
             exclude = super().get_exclude(request, obj)
@@ -1162,7 +1204,11 @@ class ApplicationAdmin(
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
                         "is_bilingual",
-                        ("round", "panel") if obj and obj.round and obj.round.can_specify_panel else "round",
+                        (
+                            ("round", "panel")
+                            if obj and obj.round and obj.round.can_specify_panel
+                            else "round"
+                        ),
                         ("title", "first_name", "middle_names", "last_name", "position"),
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
@@ -1353,8 +1399,11 @@ class ConvertedFileAdmin(admin.ModelAdmin):
     ]
 
     def file_size_kb(self, obj):
-        if size := obj.file_size:
-            return round(size / 1000, 2)
+        try:
+            if size := obj.file_size:
+                return round(size / 1000, 2)
+        except:
+            return
 
     file_size_kb.short_description = "file size (KB)"
     exclude = [
@@ -1401,6 +1450,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "application_number",
         "full_name",
         "state",
+        "org",
         "testified_at",
         "survey_completed_at",
     ]
@@ -1418,10 +1468,12 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "testified_at",
         "state",
         "testimonial__state",
+        "application__state",
         ("application__round", admin.RelatedOnlyFieldListFilter),
+        ("org", admin.RelatedOnlyFieldListFilter),
     ]
     date_hierarchy = "testified_at"
-    autocomplete_fields = ["user", "application"]
+    autocomplete_fields = ["user", "application", "org"]
     readonly_fields = [
         # "application",
         "state",
@@ -1462,7 +1514,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
 
-    actions = ["send_invitations", "invite_to_survey", "sync_referee_surveys"]
+    actions = ["send_invitations", "invite_to_survey", "sync_referee_surveys", "set_organisation"]
 
     @admin.action(description="Sync with the LimeSurvey surveys")
     def sync_referee_surveys(self, request, queryset):
@@ -1483,6 +1535,10 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def send_invitations(self, request, queryset):
         count = models.Referee.invite_referees(request, by=request.user, referees=queryset)
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
+
+    @admin.action(description="Assign Organisations to the referees")
+    def set_organisation(self, request, queryset):
+        models.Referee.set_organisation(request, by=request.user, queryset=queryset)
 
     @admin.action(description="Send invitations to the referees for the survey")
     def invite_to_survey(self, request, queryset):
@@ -1956,6 +2012,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 
 @admin.register(models.Invitation)
 class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, SimpleHistoryAdmin):
+
     @admin.action(description="Resend invitations")
     def resend(self, request, queryset):
         recipients = []
@@ -2079,6 +2136,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
         "referee__application__number",
     ]
 
+    @admin.display(description="application", ordering="referee__application__number")
     def application_url(self, obj):
         return mark_safe(
             '<a href="%s">%s</a>'
@@ -2091,8 +2149,9 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
             )
         )
 
-    application_url.allow_tags = True
-    application_url.short_description = "Application"
+    # application_url.allow_tags = True
+    # application_url.short_description = "Application"
+    application_url.ordering = "referee__application__number"
 
     def is_submitted(self, obj):
         return obj.is_active
@@ -2340,7 +2399,11 @@ class RoundAdmin(
                     "fields": [
                         "scheme",
                         ("title_en", "title_mi", "colour"),
-                        ("opens_on", "closes_at"),
+                        (
+                            ("opens_on", "closes_at", "testimonial_submission_closes_at")
+                            if site_id == 5
+                            else ("opens_on", "closes_at")
+                        ),
                         "description_en",
                         "description_mi",
                         "guidelines",

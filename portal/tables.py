@@ -128,7 +128,7 @@ class NominationTable(tables.Table):
     )
     state = StateColumn()
     application = tables.Column(
-        # accessor="referee.application.number",
+        # accessor="referee__application__number",
         linkify=lambda record: (
             reverse("application", kwargs=dict(pk=record.application_id))
             if record.application
@@ -169,12 +169,12 @@ class NominationTable(tables.Table):
 class TestimonialTable(tables.Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(
-        accessor="referee.application.number",
+        accessor="referee__application__number",
         linkify=lambda record: reverse("testimonial-detail", kwargs=dict(pk=record.id)),
     )
-    application_title = tables.Column(accessor="referee.application.application_title")
+    application_title = tables.Column(accessor="referee__application__application_title")
     referee = tables.Column(
-        accessor="referee.full_name_with_email",
+        accessor="referee__full_name_with_email",
         order_by=("referee__first_name", "referee__last_name", "referee__email"),
     )
 
@@ -522,7 +522,7 @@ class EvaluationTable(tables.Table):
         verbose_name=_("Total Score"), attrs={"td": {"style": "text-align: right;"}}
     )
     panellist = tables.Column(
-        accessor="panellist.full_name_with_email",
+        accessor="panellist__full_name_with_email",
         order_by=("panellist__first_name", "panellist__last_name", "panellist__email"),
     )
 

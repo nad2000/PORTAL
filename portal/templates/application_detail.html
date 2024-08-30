@@ -85,7 +85,7 @@
           data-title="{% trans 'Export the application into a consolidated PDF file' %}"
           {% endif %}
         >
-          <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}" target="_blank">
+        <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}{% if for_panellists %}?for_panellists={{ for_panellists }}{% endif %}" target="_blank">
             {% trans 'Export' %}
           </a>
         </div>
@@ -106,7 +106,7 @@
              data-title="{% trans 'Submit the referee report' %}"
              {% endif %}
              >
-             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or referee.survey_completed_at or reviewing_disabled %} disabled{% endif %}"
+             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or referee.survey_completed_at or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
                 href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
                {% trans 'Complete' %}
                <strong>{% trans 'Referee Report' %}</strong></a>
@@ -114,18 +114,21 @@
 
         {% else %}
 
-        <div class="tooltip-wrapper{% if testimonial.state == "submitted" or reviewing_disabled %} disabled{% endif %}"
+        <div class="tooltip-wrapper{% if testimonial.state == "submitted" or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
              {% if testimonial.state == "submitted" %}
              disabled
              data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
              {% elif reviewing_disabled %}
              disabled
              data-title="{% trans 'The application reviewing will be open after the application submission is closed.' %}"
+             {% elif reviewing_closed %}
+             disabled
+             data-title="{% trans 'The application reviewing has been closed.' %}"
              {% else %}
              data-title="{% trans 'Update and submit the testimonial' %}"
              {% endif %}
              >
-             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or reviewing_disabled %} disabled{% endif %}"
+             <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
                 href="{% if testimonial %}{% url 'testimonial-update' pk=testimonial.pk %}{% else %}{% url 'application-review-create' application=referee.application_id %}{% endif %}">
                {% if testimonial and testimonial.file %}
                {% trans 'Update' %}

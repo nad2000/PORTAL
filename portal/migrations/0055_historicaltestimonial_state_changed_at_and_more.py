@@ -14,15 +14,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="historicaltestimonial",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AddField(
             model_name="testimonial",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
     ]

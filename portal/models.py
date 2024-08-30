@@ -88,8 +88,8 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
-from PyPDF2 import PdfMerger, PdfReader
-from PyPDF2.errors import PdfReadError
+from pypdf import PdfMerger, PdfReader
+from pypdf.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
@@ -299,7 +299,7 @@ class PdfFileMixin:
                         self.save(update_fields=["page_count"])
                 return self.file
             if not self.converted_file:
-                self.update_converted_file()
+                self.update_converted_file(commit=True)
             return self.converted_file.file
 
     @property
@@ -361,17 +361,64 @@ class PdfFileMixin:
                 self.page_count = page_count
                 return page_count
 
-    def update_converted_file(self):
+    def update_converted_file(self, commit=False):
         """If the attached file is not PDF convert and update the PDF version."""
 
-        if self.file.name and self.file.name.lower().endswith(".pdf") and self.converted_file:
+        if not self.file or (
+            (file_ext := Path(self.file.path).suffix)
+            and file_ext.lower() == ".pdf"
+            and self.converted_file
+        ):
+            # NB! easy-audit doens't deal well with delete within transition:
+            # if (cf := self.converted_file) and cf.pk and commit:
+            #     self.converted_file.delete()
             self.converted_file = None
-            self.update_page_count(self.file.path)
 
-        elif self.file.name and not self.file.name.lower().endswith(".pdf"):
+            if hasattr(self, "page_count"):
+                if self.file and self.file.name:
+                    self.update_page_count(self.file.path)
+                else:
+                    self.page_count = 0
+
+            if commit:
+                self._change_reason = "Converted file and page count updated"
+                self.save(
+                    update_fields=(
+                        ["converted_file", "page_count"]
+                        if hasattr(self, "page_count")
+                        else ["converted_file"]
+                    )
+                )
+
+            return
+
+        file_ext = file_ext.lower()
+        if self.file.name and file_ext != ".pdf":
             cp = subprocess.run(
                 [
-                    "loffice",
+                    (
+                        "lowriter"
+                        if file_ext
+                        in [".odt", ".ott", ".oth", ".odm", ".doc", ".docx", ".docm", ".docb"]
+                        else (
+                            "localc"
+                            if file_ext
+                            in [
+                                ".xls",
+                                ".xlw",
+                                ".xlt",
+                                ".xml",
+                                ".xlsx",
+                                ".xlsm",
+                                ".xltx",
+                                ".xltm",
+                                ".xlsb",
+                                ".csv",
+                                ".ctv",
+                            ]
+                            else "loffice"
+                        )
+                    ),
                     "--headless",
                     "--convert-to",
                     "pdf",
@@ -418,6 +465,17 @@ class PdfFileMixin:
                 cf.save()
 
             self.converted_file = cf
+
+            if commit:
+                self._change_reason = "Converted file and page count updated"
+                self.save(
+                    update_fields=(
+                        ["converted_file", "page_count"]
+                        if hasattr(self, "page_count")
+                        else ["converted_file"]
+                    )
+                )
+
             return cf
 
 
@@ -1037,7 +1095,7 @@ class Organisation(Model):
     )
     # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     notes = TextField(blank=True, null=True)
-    website = CharField(max_length=255, blank=True, null=True)
+    website = URLField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
     def natural_key(self):
@@ -1925,17 +1983,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Please enter the URL where your presentation video can be viewed"),
     )
 
-    state = StateField(default="new", verbose_name=_("state"))
-    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
+    state = StateField(default="new", verbose_name=_("application state"))
+    state_changed_at = MonitorField(monitor="state")
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")
     )
     tac_accepted_at = MonitorField(
         monitor="state",
         when=["tac_accepted"],
-        null=True,
-        blank=True,
-        default=None,
         verbose_name=_("Terms and Conditions accepted at"),
     )
     budget = PrivateFileField(
@@ -2895,9 +2950,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @classmethod
     def user_applications(
-        cls, user, state=None, round=None, select_related=True, include_inactive=False
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        include_inactive=False,
+        request=None,
+        queryset=None,
     ):
-        q = cls.objects.all()
+        q = queryset or cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
 
         if select_related:
@@ -2914,10 +2976,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if round:
             q = q.filter(round=round)
 
-        if not round and not ((user.is_staff or user.is_superuser) and include_inactive):
+        if not round and not (
+            (user.is_staff or user.is_superuser or user.is_site_staff) and include_inactive
+        ):
             q = q.filter(round=F("round__scheme__current_round"))
 
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or user.is_site_staff:
             return q
 
         f = (
@@ -2948,17 +3012,17 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return q
 
     @classmethod
-    def user_application_count(cls, user, state=None, round=None):
+    def user_application_count(cls, user, state=None, round=None, request=None):
         return cls.user_applications(
-            user=user, state=state, round=round, select_related=False
+            user=user, state=state, round=round, select_related=False, request=request
         ).count()
 
     @classmethod
-    def user_application_counts(cls, user, state=None, round=None):
+    def user_application_counts(cls, user, state=None, round=None, request=None):
         return (
             cls.where(
                 pk__in=cls.user_applications(
-                    user=user, state=state, round=round, select_related=False
+                    user=user, state=state, round=round, select_related=False, request=request
                 ).values("pk")
             )
             .values_list("state")
@@ -2967,10 +3031,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     @classmethod
-    def user_draft_applications(cls, user):
-        return cls.user_applications(user, ["draft", "new"])
+    def user_draft_applications(cls, user, request=None):
+        return cls.user_applications(user, ["draft", "new"], request=request)
 
-    def get_testimonials(self, has_testified=None):
+    def get_testimonials(self, has_testified=None, user=None):
         sql = (
             "SELECT DISTINCT tm.* FROM referee AS r "
             "JOIN application AS a "
@@ -2980,23 +3044,44 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         if has_testified:
             sql += " AND r.state='testified'"
+        if user:
+            sql += f" AND r.user_id={user.pk}"
         sql += " ORDER BY tm.id"
         if self.round.required_referees:
             sql += f" LIMIT {self.round.required_referees}"
 
         return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
-    def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+    def to_pdf(
+        self,
+        request=None,
+        user=None,
+        add_headers=None,
+        skip_excluded=False,
+        cache=False,
+        for_panellists=False,
+    ):
         """Create PDF file for export and return PdfMerger"""
 
         r = self.round
+        site_id = self.site_id
+
         if not user and request:
             user = request.user
 
-        is_referee = user and self.referees.filter(Q(user=user)).exists()
+        is_referee = user and self.referees.filter(user=user).exists()
+        is_panellist = (
+            user
+            and self.conflict_of_interests.filter(
+                panellist__user=user, has_conflict=False, has_conflict__isnull=False
+            ).exists()
+        )
 
         attachments = []
         cvs = []
+        if not for_panellists and request:
+            for_panellists = request.GET.get("for_panellists", False)
+        include_header_page = not (site_id == 5 and for_panellists)
         if self.file:
             attachments.append(
                 (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
@@ -3012,12 +3097,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 (
                     f"{cv.full_name} {_('Curriculum Vitae')}",
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
-                    cv.title_page,
+                    include_header_page and cv.title_page,
                 )
             )
 
-        def add_testimonials(attachments):
-            for t in self.get_testimonials(has_testified=True):
+        def add_testimonials(attachments, user=None):
+            for t in self.get_testimonials(has_testified=True, user=user):
                 if t.file and t.referee:
                     attachments.append(
                         (
@@ -3041,23 +3126,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-        if (
-            user.is_superuser
-            or user.is_staff
-            or (
-                self.site_id != 4
-                and self.conflict_of_interests.filter(
-                    panellist__user=user, has_conflict=False, has_conflict__isnull=False
-                ).exists()
-            )
-        ):
+        if user.is_superuser or user.is_staff or (site_id != 4 and is_panellist) or for_panellists:
             for n in Nomination.where(application=self, nominator__isnull=False):
                 if n.file:
                     attachments.append(
                         (
                             _("Nomination Submitted By %s") % n.nominator.full_name,
                             settings.PRIVATE_STORAGE_ROOT + "/" + str(n.pdf_file),
-                            n.title_page,
+                            include_header_page and n.title_page,
                         )
                     )
 
@@ -3071,23 +3147,28 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             (
                                 f"{nominator_cv.full_name} {_('Curriculum Vitae')}",
                                 settings.PRIVATE_STORAGE_ROOT + "/" + str(nominator_cv.pdf_file),
-                                nominator_cv.title_page,
+                                include_header_page and nominator_cv.title_page,
                             )
                         )
 
-            if self.site_id != 4 and not is_referee:
+        if site_id not in [4, 5] and not is_referee and not self.is_applicant(user):
+            if (
+                user.is_superuser
+                or self.is_applicant(user)
+                or user.is_site_staff
+                or is_panellist
+                or for_panellists
+            ):
                 add_testimonials(attachments)
+            else:
+                add_testimonials(attachments, user=user)
 
-        if (
-            self.round.letter_of_support_required
-            and self.letter_of_support
-            and self.letter_of_support.file
-        ):
+        if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
             attachments.append(
                 (
                     _("Letter of Support"),
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(self.letter_of_support.pdf_file),
-                    self.letter_of_support.title_page,
+                    include_header_page and self.letter_of_support.title_page,
                 )
             )
 
@@ -3097,22 +3178,32 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 and d.required_document.exclude
                 or is_referee
                 and not d.required_document.referees_can_access
+                or (is_panellist or for_panellists)
+                and not d.required_document.panellists_can_access
             ):
                 continue
             attachments.append(
                 (
                     f"{d.required_document}",
                     settings.PRIVATE_STORAGE_ROOT + "/" + str(d.pdf_file),
-                    d.title_page,
+                    include_header_page and d.title_page,
                 )
             )
 
-        if self.site_id == 4 or not (
-            self.site_id == 5
-            and (nomination := Nomination.where(application=self).last())
+        if site_id in [4, 5] and not (
+            (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
         ):
-            add_testimonials(attachments)
+            if (
+                user.is_superuser
+                or self.is_applicant(user)
+                or user.is_site_staff
+                or is_panellist
+                or for_panellists
+            ):
+                add_testimonials(attachments)
+            else:
+                add_testimonials(attachments, user=user)
 
         ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -3121,38 +3212,38 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             {
                 "/Title": (
                     f"{self}"
-                    if self.site_id in [4, 5]
-                    else f"{self.number}: {self.application_title or self.round.title}"
+                    if site_id in [4, 5]
+                    else f"{self.number}: {self.application_title or r.title}"
                 )
             }
         )
         merger.add_metadata({"/Author": self.lead_with_email})
-        merger.add_metadata({"/Subject": self.round.title})
+        merger.add_metadata({"/Subject": r.title})
         merger.add_metadata({"/Number": self.number})
-        # merger.add_metadata({"/Keywords": self.round.title})
+        # merger.add_metadata({"/Keywords": r.title})
 
         objects = []
         site = self.site or Site.objects.get_current()
         domain = site.domain
 
         logo_url = logo_1_url = logo_2_url = None
-        if self.site_id == 2:
+        if site_id == 2:
             if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
                 logo_url = f"file://{logo_path}"
 
-        elif self.site_id in [4, 5]:
+        elif site_id in [4, 5]:
             if logo_path := finders.find("images/MBIE_logo.jpg"):
                 logo_1_url = f"file://{logo_path}"
 
             if logo_path := finders.find("images/RS_logo.png"):
                 logo_2_url = f"file://{logo_path}"
 
-        elif self.site_id == 7:
+        elif site_id == 7:
             if logo_path := finders.find("images/pmspace-logo_small.jpg"):
                 logo_url = f"file://{logo_path}"
 
         if (
-            self.round.research_summary_required
+            r.research_summary_required
             and (self.summary_en or self.summary_mi)
             and (
                 (self.summary_en and ("<img" in self.summary_en or "<iframe" in self.summary_en))
@@ -3163,6 +3254,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             number = vignere.encode(self.number)
             url = reverse("application-exported-view", kwargs={"number": number})
+            if site_id == 5 and for_panellists:
+                url = f"{url}?for_panellists=1"
             if request:
                 summary_url = request.build_absolute_uri(url)
             else:
@@ -3177,10 +3270,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "user": user,
                 "site": site,
                 "domain": domain,
+                "site_id": site_id,
+                "SITE_ID": site_id,
                 "logo": logo_url,
                 "logo_1": logo_1_url,
                 "logo_2": logo_2_url,
+                "for_panellists": for_panellists,
             }
+            if for_panellists and (user.is_superuser or user.is_site_staff):
+                if site_id == 5:
+                    referees = self.referees.order_by("testified_at")
+                    if r.required_referees:
+                        referees = referees[: r.required_referees]
+                    context["referees"] = referees
+                else:
+                    context["referees"] = self.referees.all()
+
             html = HTML(string=template.render(context))
 
         pdf_object = html.write_pdf(presentational_hints=True)
@@ -3188,7 +3293,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         pdf_stream = io.BytesIO(pdf_object)
         merger.append(
             pdf_stream,
-            outline_item=(self.application_title or self.round.title),
+            outline_item=(self.application_title or r.title),
             import_outline=True,
         )
         for title, a, *rest in attachments:
@@ -3204,6 +3309,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             # "objects": objects,
                             "user": user,
                             "site": site,
+                            "site_id": site_id,
+                            "SITE_ID": site_id,
                             "domain": domain,
                             "logo": logo_url,
                             "logo_1": logo_1_url,
@@ -3216,7 +3323,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 pdf_stream = io.BytesIO(pdf_object)
                 merger.append(
                     pdf_stream,
-                    # outline_item=(self.application_title or self.round.title),
+                    # outline_item=(self.application_title or r.title),
                     import_outline=True,
                 )
 
@@ -3257,7 +3364,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 capture_message(f"Failed to merge file {a}")
                 raise
 
-        if add_headers or self.site_id == 4:
+        if add_headers or site_id == 4:
             template = get_template("headers.html")
             html = HTML(
                 string=template.render({"page_count": len(merger.pages), "application": self})
@@ -3267,6 +3374,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
             for dp, hp in zip(merger.pages, header_file.pages):
                 dp.pagedata.mergePage(hp)
+
+        if cache and for_panellists:
+            pass
 
         return merger
 
@@ -3333,6 +3443,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     class Meta:
         db_table = "application"
+
+
+# class ApplicationExportLog(Model):
+#     application = ForeignKey(Application, on_delete=CASCADE, related_name="export_log")
+#     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="application_export_log")
+#     application = ForeignKey("Application", on_delete=CASCADE)
+
+#     class Meta:
+#         db_table = "application_export_log"
 
 
 class ApplicationNumber(Model):
@@ -3420,10 +3539,8 @@ class Member(PersonMixin, MemberMixin, Model):
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
-    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
-    authorized_at = MonitorField(
-        monitor="state", when=["authorized"], null=True, blank=True, default=None
-    )
+    state_changed_at = MonitorField(monitor="state")
+    authorized_at = MonitorField(monitor="state", when=["authorized"])
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3607,11 +3724,12 @@ class Referee(RefereeMixin, PersonMixin, Model):
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
-    state = StateField(_("referee state"), null=True, blank=True, default="new")
-    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
-    testified_at = MonitorField(
-        monitor="state", when=["testified"], null=True, blank=True, default=None
+    org = ForeignKey(
+        Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
     )
+    state = StateField(_("referee state"), null=True, blank=True, default="new")
+    state_changed_at = MonitorField(monitor="state")
+    testified_at = MonitorField(monitor="state", when=["testified"])
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=100, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
@@ -3643,6 +3761,65 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     _("Referee with the email address %(email)s was already added"),
                     params={"email": self.email},
                 )
+
+    @classmethod
+    def set_organisation(cls, request=None, by=None, queryset=None):
+        if not by and request:
+            by = request.by
+        if not queryset:
+            queryset = cls.where(
+                org__isnull=True, application__round__scheme__current_round=F("application__round")
+            )
+        else:
+            queryset = queryset.filter(org__isnull=True)
+        updated_referees = []
+        for r in queryset:
+            u = r.user
+            if not u:
+                ea = EmailAddress.objects.filter(email=r.email.lower()).last()
+                if ea:
+                    u = ea.user
+            if u:
+                p = Person.where(user=u).last()
+                emp = (
+                    Affiliation.where(
+                        type="EMP", person=p, end_date__isnull=True, org__isnull=False
+                    )
+                    .order_by("-start_date")
+                    .first()
+                )
+                if emp:
+                    r.org = emp.org
+                    updated_referees.append(r)
+            if not r.org:
+                domain = r.email.lower().split("@")[1]
+                org = Organisation.where(
+                    Q(email__isnull=False, email__icontains=domain)
+                    | Q(website__isnull=False, website__icontains=domain)
+                    | Q(ro_email__isnull=False, ro_email__icontains=domain)
+                ).first()
+                if org:
+                    r.org = org
+                    updated_referees.append(r)
+            if r.org:
+                r._change_reason = f"assigned organisation {r.org} to the referee record"
+
+        if updated_referees:
+            bulk_update_with_history(
+                updated_referees,
+                Referee,
+                ["org"],
+                default_user=by,
+                default_change_reason="assigned organisation to the referee record",
+            )
+
+            if request:
+                messages.info(
+                    request,
+                    f"Assigned organisation to {len(updated_referees)} referee(s): "
+                    f"{', '.join(f'{r.email}: {r.org.name}' for r in updated_referees)}",
+                )
+            return len(updated_referees)
 
     @classmethod
     def invite_referees(
@@ -3865,8 +4042,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
             "ae.email = r.email LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
             "  JOIN application AS a ON a.id = r.application_id "
             "  JOIN scheme AS s ON s.current_round_id = a.round_id "
-            "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')",
-            [user.id, user.id],
+            "  JOIN round ON round.id = a.round_id "
+            "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')"
+            "  AND (round.testimonial_submission_closes_at IS NULL OR round.testimonial_submission_closes_at > %s)",
+            [user.id, user.id, timezone.now()],
         )
 
     @cached_property
@@ -3919,7 +4098,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="panellists")
-    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
+    state_changed_at = MonitorField(monitor="state")
 
     panel = ForeignKey(
         "Panel", blank=True, null=True, on_delete=SET_NULL, related_name="panellists"
@@ -4158,21 +4337,13 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         "Round", null=True, blank=True, on_delete=SET_NULL, related_name="invitations"
     )
     state = StateField(default="draft")
-    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
-    submitted_at = MonitorField(
-        monitor="state", when=["submitted"], null=True, blank=True, default=None
-    )
-    sent_at = MonitorField(monitor="state", when=["sent"], null=True, blank=True, default=None)
-    accepted_at = MonitorField(
-        monitor="state", when=["accepted"], null=True, blank=True, default=None
-    )
-    read_at = MonitorField(monitor="state", when=["read"], null=True, blank=True, default=None)
-    expired_at = MonitorField(
-        monitor="state", when=["expired"], null=True, blank=True, default=None
-    )
-    bounced_at = MonitorField(
-        monitor="state", when=["bounced"], null=True, blank=True, default=None
-    )
+    state_changed_at = MonitorField(monitor="state")
+    submitted_at = MonitorField(monitor="state", when=["submitted"])
+    sent_at = MonitorField(monitor="state", when=["sent"])
+    accepted_at = MonitorField(monitor="state", when=["accepted"])
+    read_at = MonitorField(monitor="state", when=["read"])
+    expired_at = MonitorField(monitor="state", when=["expired"])
+    bounced_at = MonitorField(monitor="state", when=["bounced"])
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
     # history = HistoricalRecords(table_name="invitation_history")
@@ -4330,6 +4501,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             defaults=dict(
                 inviter=by,
                 application=referee.application,
+                round=referee.application.round,
                 first_name=first_name,
                 middle_names=middle_names,
                 last_name=last_name,
@@ -4807,11 +4979,11 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site_id = cls.get_current_site_id()
         return cls.objects.raw(
             "SELECT i.* FROM invitation AS i JOIN account_emailaddress AS ae ON ae.email = i.email "
-            "  JOIN scheme AS s ON s.current_round_id = i.round_id "
+            "  LEFT JOIN scheme AS s ON s.current_round_id = i.round_id "
+            "  LEFT JOIN round AS r ON r.id = i.round_id "
             "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked') AND i.site_id=%s "
-            "UNION SELECT * FROM invitation WHERE email=%s AND state NOT IN ('accepted', 'expired', 'revoked') "
-            "  AND site_id=%s",
-            [user.id, site_id, user.email, site_id],
+            """  AND (i."type" != 'R' OR r.testimonial_submission_closes_at IS NULL or r.testimonial_submission_closes_at > %s)""",
+            [user.id, site_id, timezone.now()],
         )
 
     def __str__(self):
@@ -4869,7 +5041,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("curriculum vitae"),
     )
     state = StateField(_("testimonial state"), default="new")
-    state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
+    state_changed_at = MonitorField(monitor="state")
 
     @cached_property
     def application(self):
@@ -4932,7 +5104,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     def __str__(self):
         if self.referee_id:
-            if self.site_id == 4:
+            if self.site_id in [4, 5]:
                 return _("Referee report by {0} for {1}").format(
                     self.referee, self.referee.application
                 )
@@ -4940,6 +5112,23 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
                 self.referee, self.referee.application
             )
         return self.file.name if self.file else gettext("N/A")
+
+    def title_page(self):
+
+        if self.site_id == 5:
+            tp = {
+                "TITLES": [_("Referee Report")],
+                # _("Submitted At"): self.updated_at or self.created_at,
+                # "file_name": self.filename,
+            }
+            tp[_("Referee")] = self.referee.full_name
+            if org := self.referee.org:
+                tp[_("Organisation")] = f"{org.code}: {org.name}"
+                if org.address and org.address.country:
+                    tp[_("Country")] = org.address.country.name
+
+            return tp
+        return super().title_page()
 
     class Meta:
         db_table = "testimonial"
@@ -5158,6 +5347,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
+    testimonial_submission_closes_at = DateTimeField(
+        null=True, blank=True, verbose_name="Testimonial submission closes at"
+    )
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
 
     guidelines = URLField(
@@ -6772,6 +6964,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             email=self.email,
             defaults=dict(
                 first_name=self.first_name,
+                round=self.round,
                 middle_names=self.middle_names,
                 last_name=self.last_name,
                 org=self.org,
@@ -7253,6 +7446,40 @@ class Panel(PanelMixin, Model):
 
 
 simple_history.register(Panel, inherit=True, table_name="panel_history", bases=[PanelMixin, Model])
+
+
+class PanelDecision(Model):
+    site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    objects = CurrentSiteManager()
+    all_objects = Manager()
+
+    number = CharField(
+        max_length=24,
+        primary_key=True,
+        help_text="Application/proposal number",
+        db_column="number",
+    )
+    grade = PositiveSmallIntegerField("Grade%", blank=True, null=True)
+    decision = FixedCharField(
+        max_length=1,
+        choices=Choices(
+            ("Y", _("Yes, funded")),
+            ("N", _("Not funded")),
+            ("R", _("Reserve")),
+            ("I", _("Ineligible")),
+        ),
+    )
+    panel = CharField(_("panel"), max_length=3, blank=True, null=True)
+    rank = PositiveSmallIntegerField(blank=True, null=True)
+
+    def natural_key(self):
+        return (self.number,)
+
+    def __str__(self):
+        return f"{self.number} ({self.grade}/{self.rank}): {self.decision}"
+
+    class Meta:
+        db_table = "panel_decision"
 
 
 def add_title_data(apps, schema_editor):
@@ -8101,7 +8328,7 @@ class ContractMember(PersonMixin, Model):
     # state = StateField(null=True, blank=True, default="new")
     # state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
     # authorized_at = MonitorField(
-    #     monitor="state", when=["authorized"], null=True, blank=True, default=None
+    #     monitor="state", when=["authorized"]
     # )
     history = HistoricalRecords(table_name="contract_member_history")
 
@@ -8215,9 +8442,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     )
     date_first_remind = DateField(blank=True, null=True)
     state = StateField(default="new", verbose_name=_("state"))
-    acknowledged_at = MonitorField(
-        monitor="state", when=["acknowledged"], null=True, blank=True, default=None
-    )
+    acknowledged_at = MonitorField(monitor="state", when=["acknowledged"])
 
     # reported = models.BooleanField(blank=True, null=True)
     # reported_date = models.DateField(blank=True, null=True)
@@ -8328,11 +8553,11 @@ simple_history.register(
 #     state = StateField(default="new", verbose_name=_("state"))
 
 #     reported_at = MonitorField(
-#         monitor="state", when=["reported", "submitted"], null=True, blank=True, default=None
+#         monitor="state", when=["reported", "submitted"]
 #     )
 #     assessor = ForeignKey(User, on_delete=SET_NULL, blank=True, null=True)
 #     assessed_at = MonitorField(
-#         monitor="state", when=["assessed"], null=True, blank=True, default=None
+#         monitor="state", when=["assessed"]
 #     )
 
 #     # exported = models.BooleanField(blank=True, null=True)

@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='application',
             name='tac_accepted_at',
-            field=model_utils.fields.MonitorField(blank=True, default=None, monitor='state', null=True, when={'tac_accepted'}),
+            field=model_utils.fields.MonitorField(monitor='state', when={'tac_accepted'}),
         ),
         migrations.AddField(
             model_name='historicalapplication',
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='historicalapplication',
             name='tac_accepted_at',
-            field=model_utils.fields.MonitorField(blank=True, default=None, monitor='state', null=True, when={'tac_accepted'}),
+            field=model_utils.fields.MonitorField(monitor='state', when={'tac_accepted'}),
         ),
         migrations.AlterField(
             model_name='application',

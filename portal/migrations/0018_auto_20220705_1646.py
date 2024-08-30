@@ -12,30 +12,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="historicalmember",
             name="status_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="status"),
         ),
         migrations.AddField(
             model_name="historicalreferee",
             name="status_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="status"),
         ),
         migrations.AddField(
             model_name="member",
             name="status_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="status"),
         ),
         migrations.AddField(
             model_name="referee",
             name="status_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="status", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="status"),
         ),
         migrations.AlterField(
             model_name="application",

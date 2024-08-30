@@ -1318,9 +1318,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "acknowledged_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="state", null=True, when={"acknowledged"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="state", when={"acknowledged"}),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField(db_index=True)),
@@ -1509,9 +1507,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "acknowledged_at",
-                    model_utils.fields.MonitorField(
-                        blank=True, default=None, monitor="state", null=True, when={"acknowledged"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="state", when={"acknowledged"}),
                 ),
             ],
             options={
@@ -2396,58 +2392,42 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalinvitation",
             name="accepted_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"accepted"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"accepted"}),
         ),
         migrations.AlterField(
             model_name="historicalinvitation",
             name="bounced_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"bounced"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"bounced"}),
         ),
         migrations.AlterField(
             model_name="historicalinvitation",
             name="expired_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"expired"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"expired"}),
         ),
         migrations.AlterField(
             model_name="historicalinvitation",
             name="read_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"read"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"read"}),
         ),
         migrations.AlterField(
             model_name="historicalinvitation",
             name="sent_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"sent"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"sent"}),
         ),
         migrations.AlterField(
             model_name="historicalinvitation",
             name="submitted_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"submitted"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"submitted"}),
         ),
         migrations.AlterField(
             model_name="historicalmember",
             name="authorized_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"authorized"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"authorized"}),
         ),
         migrations.AlterField(
             model_name="historicalreferee",
             name="testified_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"testified"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"testified"}),
         ),
         migrations.AlterField(
             model_name="historicalround",
@@ -2491,44 +2471,32 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="invitation",
             name="accepted_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"accepted"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"accepted"}),
         ),
         migrations.AlterField(
             model_name="invitation",
             name="bounced_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"bounced"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"bounced"}),
         ),
         migrations.AlterField(
             model_name="invitation",
             name="expired_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"expired"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"expired"}),
         ),
         migrations.AlterField(
             model_name="invitation",
             name="read_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"read"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"read"}),
         ),
         migrations.AlterField(
             model_name="invitation",
             name="sent_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"sent"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"sent"}),
         ),
         migrations.AlterField(
             model_name="invitation",
             name="submitted_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"submitted"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"submitted"}),
         ),
         migrations.AlterField(
             model_name="letterofsupport",
@@ -2561,9 +2529,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="member",
             name="authorized_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"authorized"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"authorized"}),
         ),
         migrations.AlterField(
             model_name="member",
@@ -2591,9 +2557,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="referee",
             name="testified_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True, when={"testified"}
-            ),
+            field=model_utils.fields.MonitorField(monitor="state", when={"testified"}),
         ),
         migrations.AlterField(
             model_name="round",
@@ -3575,9 +3539,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalinvitation",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="historicalmember",
@@ -3602,9 +3564,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalmember",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="historicalnomination",
@@ -3648,9 +3608,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalpanellist",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="historicalperson",
@@ -3692,9 +3650,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="historicalreferee",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="historicalround",
@@ -3724,9 +3680,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="invitation",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="member",
@@ -3751,9 +3705,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="member",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="nomination",
@@ -3797,9 +3749,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="panellist",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="person",
@@ -3902,9 +3852,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="referee",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="round",
@@ -3926,16 +3874,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="application",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AddField(
             model_name="historicalapplication",
             name="state_changed_at",
-            field=model_utils.fields.MonitorField(
-                blank=True, default=None, monitor="state", null=True
-            ),
+            field=model_utils.fields.MonitorField(monitor="state"),
         ),
         migrations.AlterField(
             model_name="historicalapplication",
