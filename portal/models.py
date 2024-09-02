@@ -82,6 +82,7 @@ from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
+from django_fsm_log.models import StateLog
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
@@ -4532,25 +4533,27 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = Site.objects.get_current()
         site_name = site.name
 
-        subject = "The invitation sent from %(site_name)s portal was revoked" % {
-            "site_name": site_name
-        }
-        html_body = (
-            "<p>Tēnā koe,</p>"
-            "<p>The invitation previously sent from %(site_name)s portal was revoked.</p>"
-        ) % {"site_name": site_name}
+        # If the inviation has been sent:
+        if self.state == "sent" or StateLog.objects.for_(i).filter(state="sent").exists():
+            subject = "The invitation sent from %(site_name)s portal was revoked" % {
+                "site_name": site_name
+            }
+            html_body = (
+                "<p>Tēnā koe,</p>"
+                "<p>The invitation previously sent from %(site_name)s portal was revoked.</p>"
+            ) % {"site_name": site_name}
 
-        send_mail(
-            subject,
-            html_message=html_body,
-            recipients=[self.email],
-            fail_silently=False,
-            request=request,
-            reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
-            invitation=self,
-            thread_index=self.thread_index,
-            thread_topic=self.thread_topic,
-        )
+            send_mail(
+                subject,
+                html_message=html_body,
+                recipients=[self.email],
+                fail_silently=False,
+                request=request,
+                reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
+                invitation=self,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
 
         self.referee = None
         self.member = None
