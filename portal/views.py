@@ -2196,7 +2196,7 @@ class ApplicationView(LoginRequiredMixin):
     def get_initial(self):
         user = self.request.user
         initial = super().get_initial()
-        initial["round"] = self.round.id
+        initial["round"] = self.round.pk
         round = self.round
         nomination = self.nomination
 
@@ -2352,7 +2352,7 @@ class ApplicationView(LoginRequiredMixin):
                 initial["summary_en"] = latest_application.summary_en
                 initial["summary_mi"] = latest_application.summary_mi
                 initial["summary"] = latest_application.summary
-                if latest_application.file:
+                if latest_application.file and latest_application.round.scheme == round.scheme:
                     initial["file"] = latest_application.file
                 initial["letter_of_support_required"] = latest_application.letter_of_support
                 if (
@@ -2551,14 +2551,15 @@ class ApplicationView(LoginRequiredMixin):
                     if referees.is_valid():
                         # referees.instance = a
                         has_deleted = bool(has_deleted or referees.deleted_forms)
-                        # if has_deleted or "send_invitations" in self.request.POST:
-                        #     url = self.continue_url("referees")
+                        if has_deleted or "send_invitations" in self.request.POST:
+                            url = self.continue_url("referees")
 
-                        # for df in referees.deleted_forms:
-                        #     if referee := df.instance:
-                        #         for i in models.Invitation.where(models.Q(referee=referee)):
-                        #             i.revoke(self.request)
-                        #             i.save()
+                        for df in referees.deleted_forms:
+                            referee = df.instance
+                            if referee and referee.pk:
+                                for i in models.Invitation.where(models.Q(referee=referee)):
+                                    i.revoke(self.request)
+                                    i.save()
 
                         referees.save()
                         if (
@@ -8496,7 +8497,7 @@ def demo(request, pk=None):
 
 # def accel(request):
 #     "/home/app/prod/portal/media/rounds/test.txt"
-#     return 
+#     return
 
 # def send_notification(registration_ids=None, message_title="TEST TITLE", message_desc="You are welcome!"):
 #     fcm_api = ""

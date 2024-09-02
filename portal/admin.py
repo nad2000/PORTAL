@@ -1286,11 +1286,11 @@ class ApplicationAdmin(
 
     actions = ["send_identity_verification_reminder", "request_resubmission", "invite_referees"]
 
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if settings.SITE_ID != 5 and "invite_referees" in actions:
-            del actions["invite_referees"]
-        return actions
+    # def get_actions(self, request):
+    #     actions = super().get_actions(request)
+    #     if settings.SITE_ID != 5 and "invite_referees" in actions:
+    #         del actions["invite_referees"]
+    #     return actions
 
     # def save_formset(self, request, form, formset, change):
     #     super().save_formset(request, form, formset, change)
