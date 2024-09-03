@@ -3744,6 +3744,23 @@ class Referee(RefereeMixin, PersonMixin, Model):
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
 
+    def save(self, *args, **kwargs):
+        if not self.org:
+            if u := (
+                self.user
+                or (ea := EmailAddress.objects.filter(email=self.email).last())
+                and ea.user
+            ):
+                if (p := Person.where(user=u).first()) and (
+                    af := p.affiliations.filter(type="EMP", end_date__isnull=True)
+                    .order_by("-start_date")
+                    .first()
+                ):
+                    self.org = af.org
+                    if "update_fields" in kwargs:
+                        kwargs["update_fields"].append("org")
+        super().save(*args, **kwargs)
+
     def natural_key(self):
         return (self.application.number, self.email)
 
