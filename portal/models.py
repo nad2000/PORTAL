@@ -3751,6 +3751,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 or (ea := EmailAddress.objects.filter(email=self.email).last())
                 and ea.user
             ):
+                # if not self.user:
+                #     self.org = u
+                #     if "update_fields" in kwargs:
+                #         kwargs["update_fields"].append("user")
                 if (p := Person.where(user=u).first()) and (
                     af := p.affiliations.filter(type="EMP", end_date__isnull=True)
                     .order_by("-start_date")
