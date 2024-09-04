@@ -139,6 +139,43 @@ urlpatterns = [
             ]
         ),
     ),
+    path(
+        "reports/",
+        include(
+            [
+                path(
+                    "",
+                    views.ReportList.as_view(),
+                    name="report-list",
+                ),
+                path(
+                    "~create",
+                    views.ReportCreate.as_view(),
+                    name="report-create",
+                ),
+                path(
+                    "<int:pk>/",
+                    views.ReportDetail.as_view(),
+                    name="report",
+                ),
+                path(
+                    "<number>/",
+                    views.ReportDetail.as_view(),
+                    name="report-detail",
+                ),
+                path(
+                    "<int:pk>/~update",
+                    views.ReportUpdate.as_view(),
+                    name="report-update",
+                ),
+                path(
+                    "<int:pk>/~export",
+                    views.ReportExportView.as_view(),
+                    name="report-export",
+                ),
+            ]
+        ),
+    ),
     # path(
     #     "reports/",
     #     include(
@@ -590,6 +627,8 @@ urlpatterns = [
     ),
     path("impersonate/<username>", views.impersonate),
     path("demo/", views.demo),
+    path("demo/<int:pk>/", views.demo),
+    path("demo/~create", views.demo_create, name="demo-create"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
 

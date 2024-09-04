@@ -2714,6 +2714,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                     "is_signatory_to_oa",
                     "involves_childeren",
                     "has_child_protection",
+                    "requires_approval",
                 ],
             },
         ),

@@ -325,6 +325,98 @@ class ApplicationTable(tables.Table):
         )
 
 
+
+def report_link(table, record, value):
+    u = table.request.user
+    if u.is_superuser:
+        return reverse("admin:portal_report_change", kwargs={"object_id": record.id})
+    if record.site_id not in [4, 5] and not record.was_submitted and record.is_applicant(u):
+        return reverse("report-update", kwargs={"pk": record.id})
+    return record.get_absolute_url()
+
+
+def report_contract_link(table, record, value):
+    if value:
+        return reverse("contract-detail", kwargs={"number": value.number})
+    return f'{reverse("contract-create")}?report_id={record.pk}'
+
+
+class ReportTable(tables.Table):
+    state = StateColumn(verbose_name=_("Status"))
+    # number = tables.Column(linkify=report_link)
+    email = tables.Column(
+        linkify=lambda table, record, value: (
+            reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
+            if (table.request.user.is_staff or table.request.user.is_superuser)
+            and record.submitted_by_id
+            else None
+        )
+    )
+    export = tables.LinkColumn(
+        "report-export",
+        args=[tables.A("pk")],
+        text=gettext_lazy("Export"),
+        attrs={
+            "a": {
+                "class": "btn btn-primary btn-sm",
+                "target": "_blank",
+                "data-toggle": "tooltip",
+                "title": gettext_lazy("Export the report into a consolidated PDF file"),
+            },
+            "td": {"class": "text-center"},
+        },
+    )
+
+    # def before_render(self, request):
+    #     if (u := request.user) and not u.is_superuser and not u.is_staff:
+    #         self.columns.hide("export")
+    #         self.columns.hide("contract")
+
+    # def render_latest_contract(self, record, value):
+    #     if record.state == "funded" or record.state == "archived" and record.contract:
+    #         return value
+
+    def render_number(self, record, value):
+        if (
+            record.state in ["draft", "new"]
+            and (deadline_days := record.deadline_days)
+            and record.deadline_days < 6
+        ):
+            r = record.round
+            closes_at = timezone.localtime(r.closes_at)
+            return format_html(
+                """<span
+                    data-toggle="tooltip"
+                    title="%s"
+                >
+                    <i class="fas fa-exclamation-circle %s"
+                    ></i> %s
+                </span>"""
+                % (
+                    _("The round is closing in %s day(s) on %s by %s")
+                    % (
+                        deadline_days,
+                        formats.date_format(closes_at, "d-m-Y"),
+                        formats.date_format(closes_at, "P"),
+                    ),
+                    "text-danger" if record.deadline_days < 4 else "text-warning",
+                    value,
+                )
+            )
+        return value
+
+    class Meta:
+        model = models.Report
+        template_name = "django_tables2/bootstrap4-responsive.html"
+        attrs = {"class": "table table-striped table-bordered"}
+        fields = (
+            "state",
+            "contract",
+            "period",
+            "type",
+        )
+
+
 def round_link(record, table, *args, **kwargs):
     user = table.request.user
     if not (user.is_staff or user.is_superuser) and (

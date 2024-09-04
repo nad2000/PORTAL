@@ -8,6 +8,8 @@ from django.utils.translation import gettext_lazy
 from . import models
 
 __first_year = {}
+
+
 def first_year(site_id=None):
     global __first_year
     if not site_id:
@@ -63,12 +65,21 @@ class YearChoiceFilter(django_filters.ChoiceFilter):
         return qs
 
 
-def application_filter_rounds(request, *args, **kwargs):
+def application_filter_rounds(request=None, *args, **kwargs):
     if request is None:
         return models.Round.objects.none()
 
     # company = request.user.company
     return models.Round.objects.all()
+
+
+def filter_all_rounds(request=None, *args, **kwargs):
+    if request is None:
+        return models.Round.objects.none()
+
+    # company = request.user.company
+    return models.Round.all_objects.all()
+
 
 class FilterSet(django_filters.FilterSet):
 
@@ -77,7 +88,9 @@ class FilterSet(django_filters.FilterSet):
         model = self.queryset.model
 
         year_now = timezone.now().year
-        if (start_year := first_year(request and getattr(request, "site_id", None))) and start_year != year_now:
+        if (
+            start_year := first_year(request and getattr(request, "site_id", None))
+        ) and start_year != year_now:
             self.filters["year_filter"] = self.year_filter = YearChoiceFilter(
                 label=gettext_lazy("Year"),
                 widget=django_filters.widgets.LinkWidget,
@@ -85,22 +98,35 @@ class FilterSet(django_filters.FilterSet):
                 # method="set_filter",
                 # queryset=application_filter_years,
             )
-            self.year_filter.model=model
-            self.year_filter.parent=self
+            self.year_filter.model = model
+            self.year_filter.parent = self
 
-        round_field_name="referee__application__round" if model is models.Testimonial else "round"
-        rounds=models.Round.where(pk__in=self.queryset.values_list(round_field_name))
+        if model is models.Testimonial:
+            round_field_name = "referee__application__round"
+        elif model is models.Report:
+            round_field_name = "contract__application__round"
+        else:
+            round_field_name = "round"
+        rounds = models.Round.all_objects.filter(
+            pk__in=self.queryset.values_list(round_field_name)
+        )
         if rounds.count() > 1:
-            self.filters["round_filter"] = self.round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
-                #     "round",
-                label=gettext_lazy("Round"),
-                widget=django_filters.widgets.LinkWidget,
-                # widget=LinkWidget,
-                field_name=round_field_name,
-                queryset=application_filter_rounds,
+            self.filters["round_filter"] = self.round_filter = (
+                RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
+                    #     "round",
+                    label=gettext_lazy("Round"),
+                    widget=django_filters.widgets.LinkWidget,
+                    # widget=LinkWidget,
+                    field_name=round_field_name,
+                    queryset=(
+                        filter_all_rounds
+                        if model in [models.Contract, models.Report]
+                        else application_filter_rounds
+                    ),
+                )
             )
-            self.round_filter.model=model
-            self.round_filter.parent=self
+            self.round_filter.model = model
+            self.round_filter.parent = self
 
 
 class ApplicationFilterSet(FilterSet):
@@ -291,8 +317,7 @@ class NominationFilterSet(FilterSet):
     #     return qs
 
     nomination_filter = django_filters.CharFilter(
-        method="set_filter",
-        label=gettext_lazy("Nomination Filter")
+        method="set_filter", label=gettext_lazy("Nomination Filter")
     )
     archived_filter = django_filters.BooleanFilter(
         method="filter_archived",
@@ -321,16 +346,12 @@ class NominationFilterSet(FilterSet):
 
     def filter_archived(self, queryset, name, value):
         if not value:
-            return queryset.filter(
-                round__scheme__current_round=F("round")
-            )
+            return queryset.filter(round__scheme__current_round=F("round"))
         return queryset
 
     def filter_active(self, queryset, name, value):
         if value:
-            return queryset.filter(
-                round__scheme__current_round=F("round")
-            )
+            return queryset.filter(round__scheme__current_round=F("round"))
         return queryset
 
     def set_filter(self, queryset, name, value):
@@ -360,6 +381,92 @@ class NominationFilterSet(FilterSet):
     class Meta:
         model = models.Nomination
         fields = ["nomination_filter", "archived_filter", "active_filter"]
+
+
+class ReportFilterSet(FilterSet):
+    # @property
+    # def qs(self):
+    #     parent = super().qs
+    #     author = getattr(self.request, 'user', None)
+    #     return parent.filter(is_published=True) | parent.filter(author=author)
+
+    # @property
+    # def qs(self):
+    #     qs = super().qs
+    #     if self.form.data.get('archived_filter') != "true":
+    #         qs = qs.filter(round__scheme__current_round=F("round"))
+    #     return qs
+
+    report_filter = django_filters.CharFilter(
+        method="set_filter", label=gettext_lazy("Report Filter")
+    )
+    archived_filter = django_filters.BooleanFilter(
+        method="filter_archived",
+        label=gettext_lazy("Archived Reports"),
+    )
+    active_filter = django_filters.BooleanFilter(
+        method="filter_active", label=gettext_lazy("Active Reports")
+    )
+    # # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
+    # year_filter = YearChoiceFilter(
+    #     label=gettext_lazy("Year"),
+    #     widget=django_filters.widgets.LinkWidget,
+    #     choices=[(v, v) for v in range(timezone.now().year, 2019, -1)],
+    #     # method="set_filter",
+    #     # queryset=application_filter_years,
+    # )
+
+    # round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
+    #     #     "round",
+    #     label=gettext_lazy("Round"),
+    #     widget=django_filters.widgets.LinkWidget,
+    #     # widget=LinkWidget,
+    #     field_name="referee__application__round",
+    #     queryset=application_filter_rounds,
+    # )
+
+    def filter_archived(self, queryset, name, value):
+        if not value:
+            return queryset.filter(
+                contract__application__round__scheme__current_round=F(
+                    "contract__application__round"
+                )
+            )
+        return queryset
+
+    def filter_active(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                contract__application__round__scheme__current_round=F(
+                    "contract__application__round"
+                )
+            )
+        return queryset
+
+    def set_filter(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                Q(contract__application__application_title__icontains=value)
+                | Q(contract__project_title__icontains=value)
+                # | Q(contract__last_name__icontains=value)
+                # | Q(contract__email__icontains=value)
+                # | Q(contract__user__first_name__icontains=value)
+                # | Q(contract__user__last_name__icontains=value)
+                # | Q(contract__user__email__icontains=value)
+                # | Q(contract__application__number__icontains=value)
+                # | Q(contract__application__first_name__icontains=value)
+                # | Q(contract__application__last_name__icontains=value)
+                # | Q(contract__application__email__icontains=value)
+                # | Q(contract__application__submitted_by__first_name__icontains=value)
+                # | Q(contract__application__submitted_by__last_name__icontains=value)
+                # | Q(contract__application__submitted_by__email__icontains=value)
+            ).distinct()
+        else:
+            return queryset
+
+    class Meta:
+        model = models.Report
+        fields = ["report_filter", "archived_filter", "active_filter"]
 
 
 # vim:set ft=python.django:

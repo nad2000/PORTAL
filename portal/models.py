@@ -8734,6 +8734,77 @@ class Report(ReportMixin, Model):
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"
 
+    @classmethod
+    def user_object_counts(
+        cls, user, state=None, round=None, request=None, queryset=None, *args, **kwargs
+    ):
+        return (
+            cls.where(
+                pk__in=cls.user_objects(
+                    user=user, state=state, round=round, select_related=False, request=request
+                ).values("pk")
+            )
+            .values_list("state")
+            .annotate(total=Count("state"))
+            .order_by()
+        )
+
+    @classmethod
+    def user_objects(
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        request=None,
+        queryset=None,
+        *args,
+        **kwargs,
+    ):
+        q = queryset or cls.objects.all()
+        # q = cls.where(round__site=Site.objects.get_current())
+
+        if select_related:
+            prefetch_related_objects(q, "contract__application__round")
+
+        if state:
+            if isinstance(state, (list, tuple)):
+                q = q.filter(state__in=state)
+            else:
+                q = q.filter(state=state)
+        else:
+            q = q.filter(~Q(state="archived"))
+
+        # if round:
+        #     q = q.filter(contract__application__round=round)
+
+        # if not round and not (
+        #     (user.is_staff or user.is_superuser or user.is_site_staff) and include_inactive
+        # ):
+        #     q = q.filter(round=F("round__scheme__current_round"))
+
+        if user.is_staff or user.is_superuser or user.is_site_staff:
+            return q
+
+        f = (
+            Q(contract__application__submitted_by=user)
+            # | Q(members__user=user, members__state="authorized")
+            # | Q(referees__user=user)
+            # | Q(nomination__nominator=user)
+            # | Q(nomination__user=user)
+            # | Q(
+            #     Q(contrcat__org__research_offices__user=user),
+            #     Q(
+            #         Q(nomination__org=F("org"))
+            #         | Q(nomination__nominator__research_offices__org=F("org"))
+            #     ),
+            # )
+        )
+        q = q.filter(f)
+        q = q.distinct()
+
+        return q
+
     class Meta:
         db_table = "report"
         unique_together = (("contract", "period", "type"),)

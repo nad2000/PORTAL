@@ -1,0 +1,23 @@
+    <form>
+    <div class="row">
+      <div class="col-4 col-md-3">
+        <label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>
+        {{ form.code }}
+      </div>
+      <div class="col-4 col-md-3">
+        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+      </div>
+      <div class="col-4 col-md-3">
+        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+      </div>
+      <div class="col-3 align-self-end">
+        <button
+           type="submit"
+           class="btn btn-primary"
+        >Submit</button>
+      </div>
+    </div>
+    </form>
+

@@ -153,7 +153,7 @@
   </div>
   {% endif %}
 
-  {% if is_ro %}
+  {% if is_ro or user.is_superuser %}
 
   <div class="card mb-2">
     <div class="card-header">
@@ -169,11 +169,16 @@
 
   <div class="card mb-2">
     <div class="card-header">
-      <span data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}">
-        {% trans 'Reports' %} <span class="badge badge-primary">0</span>
-      </span>
+      {% if report_counts.total > 0 %}
+        <a href="{% url 'report-list' %}" id="report-list">{% trans 'Reports' %}</a> <span class="badge badge-primary">{{ report_counts.total }}</span>
+      {% else %}
+        <span data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}">
+          {% trans 'Reports' %} <span class="badge badge-primary">0</span>
+        </span>
+      {% endif %}
     </div>
   </div>
+
   {% endif %}
 
   {% if nomination_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}

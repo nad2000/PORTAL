@@ -106,6 +106,12 @@ def portal_context(request):
             if is_ro or u.is_superuser or u.is_staff or u.is_site_staff:
                 cached_context["contract_count"] = models.Contract.objects.count()
 
+            counts = {
+                s: c for s, c in models.Report.user_object_counts(u, request=request)
+            }
+            counts = {"total": sum(counts.values()), **{s: counts.get(s, 0) for s in models.Report.STATES}}
+            cached_context["report_counts"] = counts
+
             # if outstanding_testimonial_requests:
             #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or u.is_staff):
