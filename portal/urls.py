@@ -35,9 +35,19 @@ urlpatterns = [
     path("subscriptions/", views.SubscriptionList.as_view(), name="subscriptions"),
     path("users/<int:pk>/profile", views.user_profile, name="user-profile"),
     path(
+        "objects/<path:model>/<int:pk>/~delete",
+        views.delete_object,
+        name="objects-delete",
+    ),
+    path(
         "applications/",
         include(
             [
+                # path(
+                #     "referees/<int:pk>/~delete",
+                #     views.delete_referee,
+                #     name="referees-delete",
+                # ),
                 path(
                     "summary",
                     views.SummaryReportList.as_view(),

@@ -4,7 +4,6 @@ import mimetypes
 import os
 import shutil
 import traceback
-import py7zr
 from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote, urljoin
@@ -12,6 +11,7 @@ from wsgiref.util import FileWrapper
 
 import django.utils.translation
 import django_tables2
+import py7zr
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -20,6 +20,7 @@ from crispy_forms.layout import Field, Layout
 from dal import autocomplete
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
+from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
@@ -2818,6 +2819,43 @@ class ItemFormSetView(ModelFormSetView):
     model = models.Referee
     # fields = ['name', 'sku', 'price']
     # template_name = 'item_formset.html'
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_object(request, model, pk):
+    model = apps.all_models["portal"].get(model)
+    if model and (o := pk and model.objects.filter(pk=pk).first()):
+        return HttpResponse(
+            f"""
+    <div class="alert alert-success">
+        Referee {o} successfully deleted<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">×</span></button></div>
+    """
+        )
+    return HttpResponse(
+        """
+    <div class="alert alert-success">
+        TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">×</span></button></div>
+    """
+    )
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_referee(request, pk):
+    if r := pk and models.Referee.where(pk=pk).first():
+        return HttpResponse(
+            f"""
+    <div class="alert alert-success">Referee {r.full_name_with_email} successfully deleted<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
+    """
+        )
+    return HttpResponse(
+        """
+    <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
+    """
+    )
 
 
 class ApplicationView(LoginRequiredMixin):

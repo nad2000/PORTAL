@@ -90,6 +90,7 @@
         {% block localcss %}
           <!-- This file stores project-specific CSS -->
           <style>
+tr.htmx-swapping td {opacity: 0; transition: opacity 1s ease-out;}
 table.table .asteriskField,.popover-header {color: gray;}
 .greyAsteriskField { color: $red; font-weight: bold; margin-left: 1.6px; }
 .modelselect2multiple,.modelselect2nopk {height: auto !important;}
@@ -115,7 +116,7 @@ table.table .asteriskField,.popover-header {color: gray;}
   </head>
 
   <!-- body class="d-flex flex-column min-vh-100" -->
-  <body class="d-flex flex-column min-vh-100">
+  <body class="d-flex flex-column min-vh-100"{% if csrf_token %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endif %}>
     {% block body %}
 
       {% block header %}
@@ -590,6 +591,8 @@ You have a request to review a {{ site_name }} application to act on.
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js" integrity="sha384-VHvPCCyXqtD5DqJeNxl2dtTyhF78xXNXdkwX1CZeRusQfRKp+tA7hAShOK/B/fQ2" crossorigin="anonymous"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.js"></script>
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
+      <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+      <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
 
       <!-- Your stuff: Third-party javascript libraries go here -->
       <!-- place project specific Javascript in this file -->
@@ -660,9 +663,7 @@ You have a request to review a {{ site_name }} application to act on.
 </script -->
     {% endcompress %}
     {% if request.GET.logout %}
-      <script>
-        $.ajax({url: '{{ settings.ORCID_BASE_URL }}' + 'userStatus.json?logUserOut=true', dataType: 'jsonp'});
-      </script>
+      <script>$(document).ready(function() {$.ajax({url: '{{ settings.ORCID_BASE_URL }}' + 'userStatus.json?logUserOut=true', dataType: 'jsonp'});});</script>
     {% endif %}
 
   {% endblock javascript %}
