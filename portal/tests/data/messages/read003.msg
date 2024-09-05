@@ -1,5 +1,5 @@
-From g.POOIUY@auckland.ac.nz  Wed Aug 14 15:02:33 2024
-Return-Path: <g.POOIUY@auckland.ac.nz>
+From g.jfskdfjs@org111.ac.nz  Wed Aug 14 15:02:33 2024
+Return-Path: <g.jfskdfjs@org111.ac.nz>
 X-Original-To: app@xn--twhia-fwa.royalsociety.org.nz
 Delivered-To: app@xn--twhia-fwa.royalsociety.org.nz
 Received: from AUS01-ME3-obe.outbound.protection.outlook.com (mail-me3aus01on2173.outbound.protection.outlook.com [40.107.108.173])
@@ -13,9 +13,9 @@ ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  bh=5PjxeoeL0s+eG15rP7cbSXA6whmIJ/Y/2fXj3zqT6vQ=;
  b=Svv5pR7vCMvvDDztzffxZEqS88LNIPQgwt9TXjgcm01xpywEYkUC9DGQ6ckCJTr4McUnFA8oMV487TJ9re+BzN5TMfPhAKN5qjMiykIO6gezPEsvyTCrdl4VbWq+KsqchLF8fK13O3rtXBZ9MJkQQNLcW1Tjx/hqmjrV8Q3oBHP4MfserrlUUYrI5v2qilZ4DBmRBtd5ehDP9rtl3XpEL3LxadTrRPCe9hy6kKTK0SuwZ44U6bQuwQeOLJq62HkgzfwOmY01NAiso4dt0KU08vXfePVaqNcz0CCtafGXrRFpDcJNR628ryLrGmyIF+RivhrgNJTW9b2zZ817Ze5a3g==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=auckland.ac.nz; dmarc=pass action=none
- header.from=auckland.ac.nz; dkim=pass header.d=auckland.ac.nz; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=auckland.ac.nz;
+ smtp.mailfrom=org111.ac.nz; dmarc=pass action=none
+ header.from=org111.ac.nz; dkim=pass header.d=org111.ac.nz; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=org111.ac.nz;
  s=selector1;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
  bh=5PjxeoeL0s+eG15rP7cbSXA6whmIJ/Y/2fXj3zqT6vQ=;
@@ -28,7 +28,7 @@ Received: from SY7P300MB0720.AUSP300.PROD.OUTLOOK.COM
  ([fe80::fbff:fff1:8b9b:ee0f]) by SY7P300MB0720.AUSP300.PROD.OUTLOOK.COM
  ([fe80::fbff:fff1:8b9b:ee0f%4]) with mapi id 15.20.7849.021; Wed, 14 Aug 2024
  03:02:30 +0000
-From: Wgxigsg POOIUY <g.POOIUY@auckland.ac.nz>
+From: Wgxigsg jfskdfjs <g.pooiuy@org111.ac.nz>
 To: =?iso-8859-4?Q?app=40t=E0whia=2Eroyalsociety=2Eorg=2Enz?=
 	<app@xn--twhia-fwa.royalsociety.org.nz>
 Subject:
@@ -47,7 +47,7 @@ Content-Language: en-US
 X-MS-Has-Attach:
 X-MS-TNEF-Correlator:
 authentication-results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=auckland.ac.nz;
+ header.d=none;dmarc=none action=none header.from=org111.ac.nz;
 x-ms-publictraffictype: Email
 x-ms-traffictypediagnostic: SY7P300MB0720:EE_|ME0P300MB1439:EE_
 x-ms-office365-filtering-correlation-id: 31292b91-7430-410c-3a2e-08dcbc0d898b
@@ -112,7 +112,7 @@ Content-Type: multipart/report;
 	boundary="_000_SY7P300MB07204081E8E0FC9AA81D5D68C3872SY7P300MB0720AUSP_";
 	report-type=disposition-notification
 MIME-Version: 1.0
-X-OriginatorOrg: auckland.ac.nz
+X-OriginatorOrg: org111.ac.nz
 X-MS-Exchange-CrossTenant-AuthAs: Internal
 X-MS-Exchange-CrossTenant-AuthSource: SY7P300MB0720.AUSP300.PROD.OUTLOOK.COM
 X-MS-Exchange-CrossTenant-Network-Message-Id: 31292b91-7430-410c-3a2e-08dcbc0d898b
@@ -137,13 +137,13 @@ Content-Transfer-Encoding: quoted-printable
 
 Your message
 
-   To: Wgxigsg POOIUY
+   To: Wgxigsg jfskdfjs
    Subject: [T=E0whia Te Mana Fellowships] You are invited as a referee for=
  a T=E0whia Te Mana Fellowships application
-   Sent: Wednesday, August 14, 2024 11:18:49 AM (UTC+12:00) Auckland, Welli=
+   Sent: Wednesday, August 14, 2024 11:18:49 AM (UTC+12:00) org111, Welli=
 ngton
 
- was read on Wednesday, August 14, 2024 3:02:29 PM (UTC+12:00) Auckland, We=
+ was read on Wednesday, August 14, 2024 3:02:29 PM (UTC+12:00) org111, We=
 llington.
 
 --_002_SY7P300MB07204081E8E0FC9AA81D5D68C3872SY7P300MB0720AUSP_
@@ -162,7 +162,7 @@ ding-left: 4pt; border-left: #800000 2px solid; } --></style>
 <font size=3D"2"><span style=3D"font-size:11pt;">
 <div class=3D"PlainText">Your message <br>
 <br>
-&nbsp;&nbsp; To: Wgxigsg POOIUY<br>
+&nbsp;&nbsp; To: Wgxigsg jfskdfjs<br>
 &nbsp;&nbsp; Subject: [T=E0whia Te Mana Fellowships] You are invited as a r=
 eferee for a T=E0whia Te Mana Fellowships application<br>
 &nbsp;&nbsp; Sent: Wednesday, August 14, 2024 11:18:49 AM (UTC+12:00) Auckl=
@@ -179,10 +179,10 @@ d, Wellington.</div>
 --_000_SY7P300MB07204081E8E0FC9AA81D5D68C3872SY7P300MB0720AUSP_
 Content-Type: message/disposition-notification
 
-Final-recipient: RFC822; g.POOIUY@auckland.ac.nz
+Final-recipient: RFC822; g.jfskdfjs@org111.ac.nz
 Disposition: automatic-action/MDN-sent-automatically; displayed
 X-MSExch-Correlation-Key: bgQwnyBr5kS+03Z+9z9UVA==
-X-Display-Name: Wgxigsg POOIUY
+X-Display-Name: Wgxigsg jfskdfjs
 
 
 --_000_SY7P300MB07204081E8E0FC9AA81D5D68C3872SY7P300MB0720AUSP_--

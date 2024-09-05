@@ -1985,7 +1985,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     state = StateField(default="new", verbose_name=_("application state"))
-    state_changed_at = MonitorField(monitor="state", null=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")
     )
@@ -1995,6 +1995,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("Terms and Conditions accepted at"),
         null=True,
         default=None,
+        blank=True
     )
     budget = PrivateFileField(
         blank=True,
@@ -3542,8 +3543,8 @@ class Member(PersonMixin, MemberMixin, Model):
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
-    state_changed_at = MonitorField(monitor="state", null=True, default=None)
-    authorized_at = MonitorField(monitor="state", when=["authorized"], null=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    authorized_at = MonitorField(monitor="state", when=["authorized"], null=True, default=None, blank=True)
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3731,8 +3732,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
         Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
     )
     state = StateField(_("referee state"), null=True, blank=True, default="new")
-    state_changed_at = MonitorField(monitor="state", null=True, default=None)
-    testified_at = MonitorField(monitor="state", when=["testified"], null=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    testified_at = MonitorField(monitor="state", when=["testified"], null=True, default=None, blank=True)
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=100, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
@@ -4106,7 +4107,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="panellists")
-    state_changed_at = MonitorField(monitor="state", null=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
 
     panel = ForeignKey(
         "Panel", blank=True, null=True, on_delete=SET_NULL, related_name="panellists"
@@ -4345,13 +4346,13 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         "Round", null=True, blank=True, on_delete=SET_NULL, related_name="invitations"
     )
     state = StateField(default="draft")
-    state_changed_at = MonitorField(monitor="state", null=True, default=None)
-    submitted_at = MonitorField(monitor="state", when=["submitted"], null=True, default=None)
-    sent_at = MonitorField(monitor="state", when=["sent"], null=True, default=None)
-    accepted_at = MonitorField(monitor="state", when=["accepted"], null=True, default=None)
-    read_at = MonitorField(monitor="state", when=["read"], null=True, default=None)
-    expired_at = MonitorField(monitor="state", when=["expired"], null=True, default=None)
-    bounced_at = MonitorField(monitor="state", when=["bounced"], null=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    submitted_at = MonitorField(monitor="state", when=["submitted"], null=True, default=None, blank=True)
+    sent_at = MonitorField(monitor="state", when=["sent"], null=True, default=None, blank=True)
+    accepted_at = MonitorField(monitor="state", when=["accepted"], null=True, default=None, blank=True)
+    read_at = MonitorField(monitor="state", when=["read"], null=True, default=None, blank=True)
+    expired_at = MonitorField(monitor="state", when=["expired"], null=True, default=None, blank=True)
+    bounced_at = MonitorField(monitor="state", when=["bounced"], null=True, default=None, blank=True)
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
     # history = HistoricalRecords(table_name="invitation_history")
@@ -4567,7 +4568,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "sent", "submitted", "bounced", "autoreplied"],
+        source=["draft", "sent", "submitted", "bounced", "autoreplied", "read"],
         target="sent",
     )
     def send(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
@@ -5055,7 +5056,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("curriculum vitae"),
     )
     state = StateField(_("testimonial state"), default="new")
-    state_changed_at = MonitorField(monitor="state", null=True, default=None)
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
 
     @cached_property
     def application(self):
@@ -7110,7 +7111,7 @@ class IdentityVerification(Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent"], target="sent")
+    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent")
     def send(self, request, *args, **kwargs):
         url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
 
@@ -8461,7 +8462,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     )
     date_first_remind = DateField(blank=True, null=True)
     state = StateField(default="new", verbose_name=_("state"))
-    acknowledged_at = MonitorField(monitor="state", when=["acknowledged"], null=True, default=None)
+    acknowledged_at = MonitorField(monitor="state", when=["acknowledged"], null=True, default=None, blank=True)
 
     # reported = models.BooleanField(blank=True, null=True)
     # reported_date = models.DateField(blank=True, null=True)
