@@ -6142,6 +6142,7 @@ class TestimonialView(CreateUpdateView):
         initial = super().get_initial()
         if a := self.application:
             initial.update({"application": a, "referee": self.referee})
+
         return initial
 
     @property
@@ -6161,6 +6162,7 @@ class TestimonialView(CreateUpdateView):
                 t
                 and t.referee
                 and t.referee.has_testified
+                and t.referee
                 or a.referees.filter(
                     Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
                 ).last()

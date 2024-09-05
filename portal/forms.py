@@ -2718,15 +2718,16 @@ class TestimonialForm(forms.ModelForm):
         referee = initial and initial.get("referee") or self.instance and self.instance.referee
         fields = []
         if round.referee_cv_required:
-            user = (
-                referee.user
-                or models.User.where(
-                    models.Q(email=referee.email) | models.Q(emailaddress__email=referee.email)
-                ).last()
-            )
+            if referee:
+                user = (
+                    referee.user
+                    or models.User.where(
+                        models.Q(email=referee.email) | models.Q(emailaddress__email=referee.email)
+                    ).last()
+                )
 
-            if referee and (cv := models.CurriculumVitae.last_user_cv(user)):
-                self.initial["cv_file"] = cv.file
+                if referee and (cv := models.CurriculumVitae.last_user_cv(user)):
+                    self.initial["cv_file"] = cv.file
 
             self.fields["cv_file"] = FileField(
                 label=_("Curriculum Vitae"),
