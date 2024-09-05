@@ -4587,19 +4587,22 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         self.url = url
 
         # TODO: handle the rest of types
+        application = self.application
+        if not application:
+            return
         if self.type == INVITATION_TYPES.T:
             contact_email = (
-                self.application
-                and self.application.round.contact_email
+                application
+                and application.round.contact_email
                 or site_contact_email(site_id)
             )
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
             }
             inviter = (
-                self.application
-                and self.application.submitted_by
-                and self.application.submitted_by.full_name
+                application
+                and application.submitted_by
+                and application.submitted_by.full_name
                 or by.full_name
             )
             body = __(
@@ -4613,7 +4616,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 inviter=inviter,
                 url=url,
                 site_name=site_name,
-                guidelines=self.application.round.get_applicant_guidelines(),
+                guidelines=application.round.get_applicant_guidelines(),
             )
             html_body = __(
                 "<p>Tēnā koe,</p><p>You have been invited to join %(inviter)s's team for their "
@@ -4626,10 +4629,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 url=url,
                 link_name=link_name,
                 site_name=site_name,
-                guidelines=self.application.round.get_applicant_guidelines(),
+                guidelines=application.round.get_applicant_guidelines(),
             )
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
+            if not referee:
+                return
             application = referee.application
             inviter = (
                 application
