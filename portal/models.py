@@ -3739,6 +3739,13 @@ class Referee(RefereeMixin, PersonMixin, Model):
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
 
+    def make_survey_token(self):
+        return base64.urlsafe_b64encode(
+            hashlib.shake_256(
+                f"{(int(time.time()) if settings.DEBUG else self.pk)}".encode()
+            ).digest(21)
+        ).decode()
+
     def natural_key(self):
         return (self.application.number, self.email)
 
@@ -3918,11 +3925,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["firstname"] = self.first_name
                 if last_name:
                     participant["lastname"] = self.last_name
-                participant["token"] = base64.urlsafe_b64encode(
-                    hashlib.shake_256(
-                        f"{(int(time.time()) if settings.DEBUG else self.pk)}".encode()
-                    ).digest(21)
-                ).decode()
+                token = self.make_survey_token()
+                participant["token"] = token
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
                 if not isinstance(resp, list):
                     limesurvey_status = resp.get("status")
@@ -3931,14 +3935,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         % limesurvey_status
                     )
                 for r in resp:
+                    if "errors" in r and "token" in r["errors"] and " has already been taken." in r["errors"]["token"]:
+                        r = api.token.get_participant_properties(survey_id, None, {"token": token})
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
-                        self.survey_token = r.get("token")
+                        self.survey_token = r.get("token", token)
                         properties = api.token.get_participant_properties(
                             survey_id, self.survey_token_id
                         )
                         if (
-                            int(properties.get("tid")) != int(self.survey_token_id)
+                            int(properties.get("tid")) != self.survey_token_id
                             or properties.get("token") != self.survey_token
                         ):
                             raise Exception(
@@ -6125,7 +6131,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def sync_referee_surveys(self, request=None, by=None, referees=None):
         try:
-            q = Referee.where(application__round=self, survey_token__isnull=False)
+            q = Referee.where(application__round=self)  # , survey_token__isnull=False)
             if referees:
                 q = q.filter(pk__in=referees.values_list("pk"))
             # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
@@ -6161,7 +6167,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             updated_referees = []
             updated_testimonials = []
             for r in q:
+                token = r.survey_token or r.make_survey_token()
                 p = participants.get(r.survey_token)
+                if p and r.survey_token:
+                    r.survey_token = token
+                    r.survey_token_id = p.get("tid")
+                    r._change_reason = f"Updated token and token ID"
+                    r.save(update_fields=["survey_token", "survey_token_id"])
                 if not p or not p["completed_at"]:
                     continue
 
