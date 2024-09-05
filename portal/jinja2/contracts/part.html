@@ -1,0 +1,12 @@
+{% extends "contracts/base.html" %}
+{% block content %}
+  {% if part == "cover" or part == "cover_page" %}
+    {% include 'contracts/parts/cover_page.html' with context %}
+  {% elif part == "background" %}
+    {% include 'contracts/parts/background.html' with context %}
+  {% elif part == "agreement" %}
+    {% include 'contracts/parts/agreement.html' with context %}
+  {% elif part == "schedule" %}
+    {% include 'contracts/parts/schedule.html' with context %}
+  {% endif %}
+{% endblock %}
