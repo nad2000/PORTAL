@@ -35,11 +35,17 @@
               </th>
             {% endif %}
           {% endfor %}
+          <th></th>
         </tr>
       {% endif %}
     </thead>
 
-    <tbody id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}form_set">
+    <tbody id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}form_set"
+           hx-confirm="Are you sure?" 
+           hx-target="closest tr" 
+           hx-swap="outerHTML swap:1s"
+           hx-on::after-swap="console.log(this,en)"
+      >
       <tr class="d-none empty-form" id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}empty_form">
         {% for field in formset.empty_form %}
           {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
@@ -69,6 +75,21 @@
               {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False field_class=field.field_class %}
             {% endif %}
           {% endfor %}
+            <td>
+              {% if form.instance and form.instance.pk %}
+                <button
+                  class="btn btn-danger"
+                  hx-delete="{% url 'objects-delete' model=form.instance.model_name pk=form.instance.pk %}"
+                  {% comment %}
+                  hx-target="#messages"
+                  hx-swap="beforeend"
+                  hx-trigger="console.log(this)"
+                  {% endcomment %}
+                >
+                  <i class="fa fa-times" style="width: 12px;"></i>
+                </button>
+              {% endif %}
+            </td>
         </tr>
 
       {% endfor %}

@@ -266,6 +266,17 @@ def user_has_nomination(value, user):
 
 @register.simple_tag(takes_context=True)
 # @jinja2.pass_context
+def jinja(context, template, *args, **kwargs):
+    # request = context.get("request")
+    # site = context.get("site")
+    # contract = object = context.get("object")
+    # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
+    output = get_template(template).render(context)
+    return Markup(output)
+
+
+@register.simple_tag(takes_context=True)
+# @jinja2.pass_context
 def contract_summary(context, *args, **kwargs):
     request = context.get("request")
     site = context.get("site")

@@ -82,6 +82,7 @@ from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
+from django_fsm_log.models import StateLog
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
@@ -1985,7 +1986,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     state = StateField(default="new", verbose_name=_("application state"))
-    state_changed_at = MonitorField(monitor="state")
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     is_tac_accepted = BooleanField(
         default=False, verbose_name=_("I have read and accept the Terms and Conditions")
     )
@@ -1993,6 +1994,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         monitor="state",
         when=["tac_accepted"],
         verbose_name=_("Terms and Conditions accepted at"),
+        null=True,
+        default=None,
+        blank=True,
     )
     budget = PrivateFileField(
         blank=True,
@@ -3540,8 +3544,10 @@ class Member(PersonMixin, MemberMixin, Model):
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
-    state_changed_at = MonitorField(monitor="state")
-    authorized_at = MonitorField(monitor="state", when=["authorized"])
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    authorized_at = MonitorField(
+        monitor="state", when=["authorized"], null=True, default=None, blank=True
+    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3729,12 +3735,35 @@ class Referee(RefereeMixin, PersonMixin, Model):
         Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
     )
     state = StateField(_("referee state"), null=True, blank=True, default="new")
-    state_changed_at = MonitorField(monitor="state")
-    testified_at = MonitorField(monitor="state", when=["testified"])
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    testified_at = MonitorField(
+        monitor="state", when=["testified"], null=True, default=None, blank=True
+    )
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=100, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
+
+    def save(self, *args, **kwargs):
+        if not self.org:
+            if u := (
+                self.user
+                or (ea := EmailAddress.objects.filter(email=self.email).last())
+                and ea.user
+            ):
+                # if not self.user:
+                #     self.org = u
+                #     if "update_fields" in kwargs:
+                #         kwargs["update_fields"].append("user")
+                if (p := Person.where(user=u).first()) and (
+                    af := p.affiliations.filter(type="EMP", end_date__isnull=True)
+                    .order_by("-start_date")
+                    .first()
+                ):
+                    self.org = af.org
+                    if "update_fields" in kwargs:
+                        kwargs["update_fields"].append("org")
+        super().save(*args, **kwargs)
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3853,21 +3882,26 @@ class Referee(RefereeMixin, PersonMixin, Model):
             )
 
         # send 'yet unsent' invitations:
-        invitations = list(
-            (
-                Invitation.where(
-                    Q(sent_at__isnull=True),
-                    ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
-                    application=application,
-                    type="R",
-                )
-                if application
-                else Invitation.where(
-                    ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
-                    referee__in=Subquery(referees.values("id")),
-                )
-            ).prefetch_related("referee", "referee__user")
-        )
+        invitations = (
+            Invitation.where(
+                Q(sent_at__isnull=True),
+                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
+                application=application,
+                type="R",
+            )
+            if application
+            else Invitation.where(
+                ~Q(state__in=["accepted", "expired", "bounced", "revoked"]),
+                referee__in=Subquery(referees.values("id")),
+            )
+        ).prefetch_related("referee", "referee__user")
+        if settings.SITE_ID in [1, 2, 7]:
+            invitations = invitations.filter(~Q(application__file=""))
+        elif settings.SITE_ID == 4:
+            invitations = invitations.filter(
+                application__documents__document_type__role="AF"
+            ).distinct()
+
         if dispatch_invitations:
             for i in invitations:
                 i.send(request, by=by or request and request.user, exclude_sender=exclude_sender)
@@ -3877,7 +3911,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     i.referee.save()
                 count += 1
             return count
-        return len(invitations)
+        return invitations.count()
 
     @fsm_log
     @transition(field=state, source=["*"], target="accepted")
@@ -4099,7 +4133,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="panellists")
-    state_changed_at = MonitorField(monitor="state")
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
 
     panel = ForeignKey(
         "Panel", blank=True, null=True, on_delete=SET_NULL, related_name="panellists"
@@ -4338,13 +4372,21 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         "Round", null=True, blank=True, on_delete=SET_NULL, related_name="invitations"
     )
     state = StateField(default="draft")
-    state_changed_at = MonitorField(monitor="state")
-    submitted_at = MonitorField(monitor="state", when=["submitted"])
-    sent_at = MonitorField(monitor="state", when=["sent"])
-    accepted_at = MonitorField(monitor="state", when=["accepted"])
-    read_at = MonitorField(monitor="state", when=["read"])
-    expired_at = MonitorField(monitor="state", when=["expired"])
-    bounced_at = MonitorField(monitor="state", when=["bounced"])
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    submitted_at = MonitorField(
+        monitor="state", when=["submitted"], null=True, default=None, blank=True
+    )
+    sent_at = MonitorField(monitor="state", when=["sent"], null=True, default=None, blank=True)
+    accepted_at = MonitorField(
+        monitor="state", when=["accepted"], null=True, default=None, blank=True
+    )
+    read_at = MonitorField(monitor="state", when=["read"], null=True, default=None, blank=True)
+    expired_at = MonitorField(
+        monitor="state", when=["expired"], null=True, default=None, blank=True
+    )
+    bounced_at = MonitorField(
+        monitor="state", when=["bounced"], null=True, default=None, blank=True
+    )
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
     # history = HistoricalRecords(table_name="invitation_history")
@@ -4480,7 +4522,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = (referee.application and referee.application.site) or Site.objects.get_current()
 
         if (
-            settings.SITE_ID in [4, 5]
+            site.pk in [4, 5]
             and referee.application.round.survey_id
             and not (referee.survey_token_id or referee.survey_token)
         ):
@@ -4532,25 +4574,27 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = Site.objects.get_current()
         site_name = site.name
 
-        subject = "The invitation sent from %(site_name)s portal was revoked" % {
-            "site_name": site_name
-        }
-        html_body = (
-            "<p>Tēnā koe,</p>"
-            "<p>The invitation previously sent from %(site_name)s portal was revoked.</p>"
-        ) % {"site_name": site_name}
+        # If the inviation has been sent:
+        if self.state == "sent" or StateLog.objects.for_(self).filter(state="sent").exists():
+            subject = "The invitation sent from %(site_name)s portal was revoked" % {
+                "site_name": site_name
+            }
+            html_body = (
+                "<p>Tēnā koe,</p>"
+                "<p>The invitation previously sent from %(site_name)s portal was revoked.</p>"
+            ) % {"site_name": site_name}
 
-        send_mail(
-            subject,
-            html_message=html_body,
-            recipients=[self.email],
-            fail_silently=False,
-            request=request,
-            reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
-            invitation=self,
-            thread_index=self.thread_index,
-            thread_topic=self.thread_topic,
-        )
+            send_mail(
+                subject,
+                html_message=html_body,
+                recipients=[self.email],
+                fail_silently=False,
+                request=request,
+                reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
+                invitation=self,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
 
         self.referee = None
         self.member = None
@@ -5042,7 +5086,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("curriculum vitae"),
     )
     state = StateField(_("testimonial state"), default="new")
-    state_changed_at = MonitorField(monitor="state")
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
 
     @cached_property
     def application(self):
@@ -7257,12 +7301,17 @@ def invite_referees(
         applications = Application.where(round__scheme__current_round=F("round"))
     if site_id in [5]:
         applications = applications.filter(state__in=["accepted", "in_review"])
+    elif site_id in [1, 4, 7]:
+        applications = applications.filter(
+            Q(~Q(file="") | ~Q(documents__document_type__role="AF"))
+        )
+
     if after_round_closes:
         applications = applications.filter(round__closes_at__lte=timezone.now())
     if rounds:
         applications = applications.filter(round__in=rounds.values_list("pk"))
     count = 0
-    for a in applications:
+    for a in applications.distinct():
         state = a.state
         if not by:
             ah = a.history.filter(state="submitted").order_by("-history_id").first()
@@ -8327,9 +8376,9 @@ class ContractMember(PersonMixin, Model):
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
     address = ForeignKey(Address, null=True, blank=True, on_delete=PROTECT)
     # state = StateField(null=True, blank=True, default="new")
-    # state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None)
+    # state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None, blank=True)
     # authorized_at = MonitorField(
-    #     monitor="state", when=["authorized"]
+    #     monitor="state", when=["authorized"], null=True, default=None, blank=True
     # )
     history = HistoricalRecords(table_name="contract_member_history")
 
@@ -8443,7 +8492,9 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     )
     date_first_remind = DateField(blank=True, null=True)
     state = StateField(default="new", verbose_name=_("state"))
-    acknowledged_at = MonitorField(monitor="state", when=["acknowledged"])
+    acknowledged_at = MonitorField(
+        monitor="state", when=["acknowledged"], null=True, default=None, blank=True
+    )
 
     # reported = models.BooleanField(blank=True, null=True)
     # reported_date = models.DateField(blank=True, null=True)
@@ -8553,9 +8604,13 @@ class Report(ReportMixin, Model):
     )
     state = StateField(default="new", verbose_name=_("state"))
 
-    reported_at = MonitorField(monitor="state", when=["reported", "submitted"])
+    reported_at = MonitorField(
+        monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True
+    )
     assessor = ForeignKey(User, on_delete=SET_NULL, blank=True, null=True)
-    assessed_at = MonitorField(monitor="state", when=["assessed"])
+    assessed_at = MonitorField(
+        monitor="state", when=["assessed"], null=True, default=None, blank=True
+    )
 
     # exported = models.BooleanField(blank=True, null=True)
     # exported_date = models.DateField(blank=True, null=True)
@@ -8678,6 +8733,77 @@ class Report(ReportMixin, Model):
 
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"
+
+    @classmethod
+    def user_object_counts(
+        cls, user, state=None, round=None, request=None, queryset=None, *args, **kwargs
+    ):
+        return (
+            cls.where(
+                pk__in=cls.user_objects(
+                    user=user, state=state, round=round, select_related=False, request=request
+                ).values("pk")
+            )
+            .values_list("state")
+            .annotate(total=Count("state"))
+            .order_by()
+        )
+
+    @classmethod
+    def user_objects(
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        request=None,
+        queryset=None,
+        *args,
+        **kwargs,
+    ):
+        q = queryset or cls.objects.all()
+        # q = cls.where(round__site=Site.objects.get_current())
+
+        if select_related:
+            prefetch_related_objects(q, "contract__application__round")
+
+        if state:
+            if isinstance(state, (list, tuple)):
+                q = q.filter(state__in=state)
+            else:
+                q = q.filter(state=state)
+        else:
+            q = q.filter(~Q(state="archived"))
+
+        # if round:
+        #     q = q.filter(contract__application__round=round)
+
+        # if not round and not (
+        #     (user.is_staff or user.is_superuser or user.is_site_staff) and include_inactive
+        # ):
+        #     q = q.filter(round=F("round__scheme__current_round"))
+
+        if user.is_staff or user.is_superuser or user.is_site_staff:
+            return q
+
+        f = (
+            Q(contract__application__submitted_by=user)
+            # | Q(members__user=user, members__state="authorized")
+            # | Q(referees__user=user)
+            # | Q(nomination__nominator=user)
+            # | Q(nomination__user=user)
+            # | Q(
+            #     Q(contrcat__org__research_offices__user=user),
+            #     Q(
+            #         Q(nomination__org=F("org"))
+            #         | Q(nomination__nominator__research_offices__org=F("org"))
+            #     ),
+            # )
+        )
+        q = q.filter(f)
+        q = q.distinct()
+
+        return q
 
     class Meta:
         db_table = "report"

@@ -35,9 +35,19 @@ urlpatterns = [
     path("subscriptions/", views.SubscriptionList.as_view(), name="subscriptions"),
     path("users/<int:pk>/profile", views.user_profile, name="user-profile"),
     path(
+        "objects/<path:model>/<int:pk>/~delete",
+        views.delete_object,
+        name="objects-delete",
+    ),
+    path(
         "applications/",
         include(
             [
+                # path(
+                #     "referees/<int:pk>/~delete",
+                #     views.delete_referee,
+                #     name="referees-delete",
+                # ),
                 path(
                     "summary",
                     views.SummaryReportList.as_view(),
@@ -135,6 +145,43 @@ urlpatterns = [
                     "<int:pk>/~export",
                     views.ContractExportView.as_view(),
                     name="contract-export",
+                ),
+            ]
+        ),
+    ),
+    path(
+        "reports/",
+        include(
+            [
+                path(
+                    "",
+                    views.ReportList.as_view(),
+                    name="report-list",
+                ),
+                path(
+                    "~create",
+                    views.ReportCreate.as_view(),
+                    name="report-create",
+                ),
+                path(
+                    "<int:pk>/",
+                    views.ReportDetail.as_view(),
+                    name="report",
+                ),
+                path(
+                    "<number>/",
+                    views.ReportDetail.as_view(),
+                    name="report-detail",
+                ),
+                path(
+                    "<int:pk>/~update",
+                    views.ReportUpdate.as_view(),
+                    name="report-update",
+                ),
+                path(
+                    "<int:pk>/~export",
+                    views.ReportExportView.as_view(),
+                    name="report-export",
                 ),
             ]
         ),
@@ -590,6 +637,8 @@ urlpatterns = [
     ),
     path("impersonate/<username>", views.impersonate),
     path("demo/", views.demo),
+    path("demo/<int:pk>/", views.demo),
+    path("demo/~create", views.demo_create, name="demo-create"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
 
