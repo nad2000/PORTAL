@@ -83,6 +83,7 @@ from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from django_fsm_log.models import StateLog
 from limesurveyrc2api.limesurvey import LimeSurvey
+from limesurveyrc2api.exceptions import LimeSurveyError
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from ooopy import Transforms
@@ -3919,13 +3920,13 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not api:
                 api = self.survey_api
-            if not self.survey_token:
+            if not self.survey_token or not self.survey_token_id:
                 participant = {"email": self.email.lower()}
                 if first_name:
                     participant["firstname"] = self.first_name
                 if last_name:
                     participant["lastname"] = self.last_name
-                token = self.make_survey_token()
+                token = self.survey_token or self.make_survey_token()
                 participant["token"] = token
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
                 if not isinstance(resp, list):
@@ -3944,19 +3945,31 @@ class Referee(RefereeMixin, PersonMixin, Model):
                             survey_id, self.survey_token_id
                         )
                         if (
-                            int(properties.get("tid")) != self.survey_token_id
+                            int(properties.get("tid")) != int(self.survey_token_id)
                             or properties.get("token") != self.survey_token
                         ):
                             raise Exception(
-                                f"Failed to sync with LimeSurveyt of {self}", resp, properties
+                                f"Failed to sync with LimeSurvey of {self}", resp, properties
                             )
 
     def invite_to_survey(self, api=None, request=None):
         if survey_id := self.application.round.survey_id:
             if not api:
                 api = self.survey_api
+
+            if not self.survey_token:
+                self.survey_token = self.make_survey_token()
+                self._change_reason = f"Fixed and updated token"
+                self.save(update_fields=["survey_token"])
+
             if not self.survey_token_id:
-                self.add_to_survey(api)
+                try:
+                    resp = api.token.get_participant_properties(survey_id, None, {"token": self.survey_token})
+                    self.survey_token_id = resp.get("tid")
+                    self.save(update_fields=["survey_token_id", "updated_at"])
+                except LimeSurveyError:
+                    self.add_to_survey(api=api)
+                    self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
 
             if self.survey_token_id:
                 api = self.survey_api
@@ -6130,12 +6143,37 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             return api
 
     def sync_referee_surveys(self, request=None, by=None, referees=None):
+        if not self.survey_id:
+            return 0
         try:
             q = Referee.where(application__round=self)  # , survey_token__isnull=False)
             if referees:
                 q = q.filter(pk__in=referees.values_list("pk"))
-            # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
+            fixed_referees = []
             api = self.survey_api
+            for r in q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")):
+                if not r.survey_token:
+                    r.survey_token = r.make_survey_token()
+                try:
+                    resp = api.token.get_participant_properties(self.survey_id, None, {"token": r.survey_token})
+                    r.survey_token_id = resp.get("tid")
+                except LimeSurveyError:
+                    r.add_to_survey(api=api)
+                fixed_referees.append(r)
+            if fixed_referees:
+                bulk_update_with_history(
+                    fixed_referees,
+                    Referee,
+                    [
+                        "survey_token_id",
+                        "survey_token",
+                        "updated_at",
+                    ],
+                    default_user=request and request.user,
+                    default_change_reason="Fixed the Lime Survey Token",
+                )
+
+            # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
             resp = api.query(
                 method="list_participants",
                 params={
@@ -6169,7 +6207,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             for r in q:
                 token = r.survey_token or r.make_survey_token()
                 p = participants.get(r.survey_token)
-                if p and r.survey_token:
+                if p and not r.survey_token:
                     r.survey_token = token
                     r.survey_token_id = p.get("tid")
                     r._change_reason = f"Updated token and token ID"
