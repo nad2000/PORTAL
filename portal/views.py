@@ -2825,21 +2825,19 @@ class ItemFormSetView(ModelFormSetView):
 @require_http_methods(["DELETE"])
 def delete_object(request, model, pk):
     model = apps.all_models["portal"].get(model)
-    if model and (o := pk and model.objects.filter(pk=pk).first()):
-        return HttpResponse(
-            f"""
-    <div class="alert alert-success">
-        Referee {o} successfully deleted<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">×</span></button></div>
-    """
-        )
-    return HttpResponse(
-        """
-    <div class="alert alert-success">
-        TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">×</span></button></div>
-    """
-    )
+    messages_list = []
+    if model and (o := pk and get_object_or_404(model, pk=pk)):
+        try:
+            if i := getattr(o, "invitation", None):
+                i.revoke(request, by=request.user)
+                i.save()
+                messages_list.append(messages.Message(20, _(f"The invitation {i} was revoked.")))
+        except Exception as ex:
+            pass
+        name = o._meta.verbose_name.title()
+        messages_list.append(messages.Message(20, _(f"{name} {o} was successfully deleted")))
+        return render(request, "partials/messages.html", {"messages": messages_list})
+    raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
 
 
 @login_required

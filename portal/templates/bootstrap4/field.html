@@ -11,7 +11,7 @@
                   {% if form.confirm_deletion %}
                     onclick="event.preventDefault(); confirm_deletion($('#{{ form.DELETE.auto_id }}'), this.dataset.deletionMessage);"
                     {% with deletion_confirmation_message=form.deletion_confirmation_message %}
-                    data-deletion-message="{% if deletion_confirmation_message %}{{ form.deletion_confirmation_message }}{% else %}{% blocktrans with obj=form.instance %}Are you sure you want to delete the selected date entry <b>{{ obj }}</b> and all the objects linked to it?{% endblocktrans %}{% endif %}"
+                    data-deletion-message="{% if deletion_confirmation_message %}{% else %}{% blocktrans with obj=form.instance %}Are you sure you want to delete the selected data entry <b>{{ obj }}</b> and all the objects linked to it?{% endblocktrans %}{% endif %}"
                     {% endwith %}
                   {% else %}
                     onclick='$("#{{ form.DELETE.auto_id }}").val("on");'

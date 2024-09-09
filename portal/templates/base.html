@@ -593,6 +593,7 @@ You have a request to review a {{ site_name }} application to act on.
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
       <script src="https://unpkg.com/htmx.org@2.0.2"></script>
       <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
       <!-- Your stuff: Third-party javascript libraries go here -->
       <!-- place project specific Javascript in this file -->
@@ -600,6 +601,13 @@ You have a request to review a {{ site_name }} application to act on.
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
         $(document).ready(function(){
+                  const swalWithBootstrapButtons = Swal.mixin({
+                    customClass: {
+                      confirmButton: "btn btn-success ml-1",
+                      cancelButton: "btn btn-danger"
+                    },
+                    buttonsStyling: false
+                  });
                   // Timezone settings
                   if (!document.cookie.includes("django_timezone=")) {
                     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // e.g. "America/New_York"
@@ -619,6 +627,20 @@ You have a request to review a {{ site_name }} application to act on.
                     });
                   });
                   $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %}").addClass("active");
+                  document.addEventListener("htmx:confirm", function(e) {
+                    e.preventDefault()
+                    swalWithBootstrapButtons.fire({
+                      title: "{% trans 'Proceed?' %}",
+                      text: (e.detail.question?e.detail.question:"{% trans 'Are you sure you want to delete the selected data entry and all the objects linked to it?' %}"),
+                      showCancelButton: true,
+                      reverseButtons: true,
+                      confirmButtonText: "{% trans 'Yes, delete it!' %}",
+                      cancelButtonText: "{% trans 'Cancel' %}"
+                      // text: `I ask you... ${e.detail.question}`
+                    }).then(function(result) {
+                      if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
+                    })
+                  });
                 });
       </script>
 <!-- script type="module">

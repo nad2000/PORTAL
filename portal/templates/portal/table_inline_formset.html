@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags tags i18n %}
 {% load crispy_forms_utils %}
 {% load crispy_forms_field %}
 
@@ -13,7 +13,15 @@
   <div>
     {{ formset.management_form|crispy }}
   </div>
-
+  {% if formset.prefix %}
+  <script>
+    function {{ formset.prefix}}_delete_closest_formset_form_row(element, event) {
+      if (event.detail.successful) {
+            $(element).closest("tr").remove();
+      }
+    }
+  </script>
+  {% endif %}
   <table{% if formset.prefix %} id="{{ formset.prefix }}_table"{% endif%} class="table table-striped table-sm">
     <thead>
       {% if formset.readonly and not formset.queryset.exists %}
@@ -35,17 +43,11 @@
               </th>
             {% endif %}
           {% endfor %}
-          <th></th>
         </tr>
       {% endif %}
     </thead>
 
-    <tbody id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}form_set"
-           hx-confirm="Are you sure?" 
-           hx-target="closest tr" 
-           hx-swap="outerHTML swap:1s"
-           hx-on::after-swap="console.log(this,en)"
-      >
+    <tbody id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}form_set">
       <tr class="d-none empty-form" id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}empty_form">
         {% for field in formset.empty_form %}
           {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
@@ -71,25 +73,35 @@
                 {% crispy_field field %}
               </td>
             {% endcomment %}
+            {% elif field.name == "DELETE" %}
+              <td>
+                {% if form.id and form.id.value %}
+                  <button
+                    class="btn btn-danger"
+                    hx-delete="{% url 'objects-delete' model=form.instance.model_name pk=form.instance.pk %}"
+                    hx-params="none"
+                    hx-target="#messages"
+                    hx-on:htmx:after-request="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}delete_closest_formset_form_row(this, event)"
+                    hx-swap="beforeend scroll:bottom"
+                    {% if form.confirm_deletion %}hx-confirm="{% if form.deletion_confirmation_message %}{{ form.deletion_confirmation_message }}{% else %}{% blocktrans with name=form.instance|verbose_name obj=form.instance %}Do you wish to delete {{ name }}: {{ obj }}?{% endblocktrans %}{% endif %}"{% endif %}
+                    {% comment %}hx-on:htmx:afterSwap="console.log(this,event)" hx-target="#messages" hx-swap="beforeend" hx-trigger="console.log(this)"{% endcomment %}
+                  >
+                    <i class="fa fa-times" style="width: 12px;"></i>
+                  </button>
+                {% else%}
+                  <button
+                    type="button" 
+                    class="btn btn-success" 
+                    onclick="formset_add_a_row(this, '{{ formset.prefix }}');"
+                  >
+                    <i class="fa fa-plus" style="width: 12px;"></i>
+                  </button>
+                {% endif %}
+              </td>
             {% else %}
               {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False field_class=field.field_class %}
             {% endif %}
           {% endfor %}
-            <td>
-              {% if form.instance and form.instance.pk %}
-                <button
-                  class="btn btn-danger"
-                  hx-delete="{% url 'objects-delete' model=form.instance.model_name pk=form.instance.pk %}"
-                  {% comment %}
-                  hx-target="#messages"
-                  hx-swap="beforeend"
-                  hx-trigger="console.log(this)"
-                  {% endcomment %}
-                >
-                  <i class="fa fa-times" style="width: 12px;"></i>
-                </button>
-              {% endif %}
-            </td>
         </tr>
 
       {% endfor %}

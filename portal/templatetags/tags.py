@@ -18,6 +18,16 @@ register = template.Library()
 
 
 @register.filter(is_safe=True)
+def verbose_name(obj):
+    return _(obj._meta.verbose_name)
+
+
+@register.filter(is_safe=True)
+def verbose_name_plural(obj):
+    return _(obj._meta.verbose_name_plural)
+
+
+@register.filter(is_safe=True)
 def color_variant(hex_color, brightness_offset=1):
     """takes a color like #87c95f and produces a lighter or darker variant"""
     if len(hex_color) != 7:
