@@ -84,6 +84,7 @@ from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from django_fsm_log.models import StateLog
 from limesurveyrc2api.limesurvey import LimeSurvey
+from limesurveyrc2api.exceptions import LimeSurveyError
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from ooopy import Transforms
@@ -1019,8 +1020,11 @@ class Qualification(Model):
         _("the New Zealand Qualifications Framework Qualification level"),
         default=True,
     )
+    # history = HistoricalRecords(table_name="qualification_history")
 
     def __str__(self):
+        # if self.code:
+        #     return f"{self.code}: {self.description}"
         return self.description
 
     class Meta:
@@ -3548,6 +3552,7 @@ class Member(PersonMixin, MemberMixin, Model):
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
     )
+    authorized_at = MonitorField(monitor="state", when=["authorized"], null=True, default=None, blank=True)
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3765,6 +3770,13 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         kwargs["update_fields"].append("org")
         super().save(*args, **kwargs)
 
+    def make_survey_token(self):
+        return base64.urlsafe_b64encode(
+            hashlib.shake_256(
+                f"{(int(time.time()) if settings.DEBUG else self.pk)}".encode()
+            ).digest(21)
+        ).decode()
+
     def natural_key(self):
         return (self.application.number, self.email)
 
@@ -3938,17 +3950,14 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not api:
                 api = self.survey_api
-            if not self.survey_token:
+            if not self.survey_token or not self.survey_token_id:
                 participant = {"email": self.email.lower()}
                 if first_name:
                     participant["firstname"] = self.first_name
                 if last_name:
                     participant["lastname"] = self.last_name
-                participant["token"] = base64.urlsafe_b64encode(
-                    hashlib.shake_256(
-                        f"{(int(time.time()) if settings.DEBUG else self.pk)}".encode()
-                    ).digest(21)
-                ).decode()
+                token = self.survey_token or self.make_survey_token()
+                participant["token"] = token
                 resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
                 if not isinstance(resp, list):
                     limesurvey_status = resp.get("status")
@@ -3957,9 +3966,11 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         % limesurvey_status
                     )
                 for r in resp:
+                    if "errors" in r and "token" in r["errors"] and " has already been taken." in r["errors"]["token"]:
+                        r = api.token.get_participant_properties(survey_id, None, {"token": token})
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
-                        self.survey_token = r.get("token")
+                        self.survey_token = r.get("token", token)
                         properties = api.token.get_participant_properties(
                             survey_id, self.survey_token_id
                         )
@@ -3968,15 +3979,27 @@ class Referee(RefereeMixin, PersonMixin, Model):
                             or properties.get("token") != self.survey_token
                         ):
                             raise Exception(
-                                f"Failed to sync with LimeSurveyt of {self}", resp, properties
+                                f"Failed to sync with LimeSurvey of {self}", resp, properties
                             )
 
     def invite_to_survey(self, api=None, request=None):
         if survey_id := self.application.round.survey_id:
             if not api:
                 api = self.survey_api
+
+            if not self.survey_token:
+                self.survey_token = self.make_survey_token()
+                self._change_reason = f"Fixed and updated token"
+                self.save(update_fields=["survey_token"])
+
             if not self.survey_token_id:
-                self.add_to_survey(api)
+                try:
+                    resp = api.token.get_participant_properties(survey_id, None, {"token": self.survey_token})
+                    self.survey_token_id = resp.get("tid")
+                    self.save(update_fields=["survey_token_id", "updated_at"])
+                except LimeSurveyError:
+                    self.add_to_survey(api=api)
+                    self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
 
             if self.survey_token_id:
                 api = self.survey_api
@@ -4603,7 +4626,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "sent", "submitted", "bounced", "autoreplied"],
+        source=["draft", "sent", "submitted", "bounced", "autoreplied", "read"],
         target="sent",
     )
     def send(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
@@ -4623,19 +4646,22 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         self.url = url
 
         # TODO: handle the rest of types
+        application = self.application
+        if not application:
+            return
         if self.type == INVITATION_TYPES.T:
             contact_email = (
-                self.application
-                and self.application.round.contact_email
+                application
+                and application.round.contact_email
                 or site_contact_email(site_id)
             )
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
             }
             inviter = (
-                self.application
-                and self.application.submitted_by
-                and self.application.submitted_by.full_name
+                application
+                and application.submitted_by
+                and application.submitted_by.full_name
                 or by.full_name
             )
             body = __(
@@ -4649,7 +4675,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 inviter=inviter,
                 url=url,
                 site_name=site_name,
-                guidelines=self.application.round.get_applicant_guidelines(),
+                guidelines=application.round.get_applicant_guidelines(),
             )
             html_body = __(
                 "<p>Tēnā koe,</p><p>You have been invited to join %(inviter)s's team for their "
@@ -4662,10 +4688,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 url=url,
                 link_name=link_name,
                 site_name=site_name,
-                guidelines=self.application.round.get_applicant_guidelines(),
+                guidelines=application.round.get_applicant_guidelines(),
             )
         elif self.type == INVITATION_TYPES.R:
             referee = self.referee
+            if not referee:
+                return
             application = referee.application
             inviter = (
                 application
@@ -6154,12 +6182,37 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             return api
 
     def sync_referee_surveys(self, request=None, by=None, referees=None):
+        if not self.survey_id:
+            return 0
         try:
-            q = Referee.where(application__round=self, survey_token__isnull=False)
+            q = Referee.where(application__round=self)  # , survey_token__isnull=False)
             if referees:
                 q = q.filter(pk__in=referees.values_list("pk"))
-            # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
+            fixed_referees = []
             api = self.survey_api
+            for r in q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")):
+                if not r.survey_token:
+                    r.survey_token = r.make_survey_token()
+                try:
+                    resp = api.token.get_participant_properties(self.survey_id, None, {"token": r.survey_token})
+                    r.survey_token_id = resp.get("tid")
+                except LimeSurveyError:
+                    r.add_to_survey(api=api)
+                fixed_referees.append(r)
+            if fixed_referees:
+                bulk_update_with_history(
+                    fixed_referees,
+                    Referee,
+                    [
+                        "survey_token_id",
+                        "survey_token",
+                        "updated_at",
+                    ],
+                    default_user=request and request.user,
+                    default_change_reason="Fixed the Lime Survey Token",
+                )
+
+            # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
             resp = api.query(
                 method="list_participants",
                 params={
@@ -6191,7 +6244,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             updated_referees = []
             updated_testimonials = []
             for r in q:
+                token = r.survey_token or r.make_survey_token()
                 p = participants.get(r.survey_token)
+                if p and not r.survey_token:
+                    r.survey_token = token
+                    r.survey_token_id = p.get("tid")
+                    r._change_reason = f"Updated token and token ID"
+                    r.save(update_fields=["survey_token", "survey_token_id"])
                 if not p or not p["completed_at"]:
                     continue
 
@@ -7141,7 +7200,7 @@ class IdentityVerification(Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent"], target="sent")
+    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent")
     def send(self, request, *args, **kwargs):
         url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
 

@@ -1443,7 +1443,17 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 @admin.register(models.Referee)
 class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+
     save_on_top = True
+
+    @admin.display(description="State", empty_value="N/A")
+    def STATE(self, obj):
+        if obj.state:
+            sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+            return mark_safe(
+                f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
+            )
+
     list_display = [
         "email",
         "has_testified",
@@ -1475,15 +1485,18 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     date_hierarchy = "testified_at"
     autocomplete_fields = ["user", "application", "org"]
     readonly_fields = [
+        "STATE",
         # "application",
-        "state",
+        # "state",
         "state_changed_at",
         "has_testified",
         "testified_at",
+        "invitation_link",
+        "testimonial_link",
     ]
     inlines = [StateLogInline]
 
-    readonly_fields = ("invitation_link",)
+
 
     def get_queryset(self, request):
         return (
@@ -1505,6 +1518,17 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                     obj.invitation,
                 )
             )
+
+    @admin.display(description="testimonial")
+    def testimonial_link(self, obj):
+        if t := models.Testimonial.where(referee=obj).order_by("-pk").first():
+            return mark_safe(
+                '<a href="{}?_popup=1" target="_blank">{}</a>'.format(
+                    reverse("admin:portal_testimonial_change", args=(t.pk,)),
+                    obj.invitation,
+                )
+            )
+        return '-'
 
     def has_testified(self, obj):
         return obj.state == "testified"
@@ -2114,6 +2138,14 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
 class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     # summernote_fields = ["summary"]
 
+    @admin.display(description="State", empty_value="N/A")
+    def STATE(self, obj):
+        if obj.state:
+            sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+            return mark_safe(
+                f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
+            )
+
     autocomplete_fields = ["cv", "referee"]
     date_hierarchy = "created_at"
     exclude = ["summary", "site", "converted_file"]
@@ -2127,7 +2159,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, S
         ("referee__application", admin.RelatedOnlyFieldListFilter),
         "referee__survey_completed_at",
     ]
-    readonly_fields = ["state"]
+    readonly_fields = ["STATE"]
     save_on_top = True
     search_fields = [
         "referee__first_name",

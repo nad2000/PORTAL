@@ -2715,7 +2715,7 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
             if site_id == 5 and for_panellists:
                 referees = a.referees.order_by("testified_at")
                 if r.required_referees:
-                    referees = referees[: r.required_referees + 1]
+                    referees = referees[: r.required_referee]
                 context["referees"] = referees
             else:
                 context["referees"] = a.referees.all()
@@ -6138,19 +6138,20 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .values("org_id__min")
                     ),
                 ).values_list("org_id", "name")
-            ).order_by("name")
-        else:
-            q = (
-                q.filter(
-                    id__in=models.Organisation.objects.all()
-                    .values("name")
-                    .annotate(Min("id"))
-                    .values("id__min")
-                )
-                .order_by("name")
-                .values_list("id", "name")
             )
-        return q
+            # q = (
+            #     q.distinct()
+            #     if django.db.connection.vendor == "sqlite"
+            #     else q.distinct("id", "name")
+            # )
+        else:
+            q = q.filter(
+                id__in=models.Organisation.objects.all()
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
+            ).values_list("id", "name")
+        return q.order_by("name")
 
 
 class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -6199,7 +6200,9 @@ class QualificationAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySet
         return models.Qualification.objects.order_by("description")
 
     def create_object(self, text):
-        return self.get_queryset().get_or_create(is_nzqf=False, **{self.create_field: text})[0]
+        return self.get_queryset().get_or_create(
+            defaults={"is_nzqf": False}, **{self.create_field: text}
+        )[0]
 
 
 class PersonIdentifierAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -6954,6 +6957,7 @@ class TestimonialView(CreateUpdateView):
         initial = super().get_initial()
         if a := self.application:
             initial.update({"application": a, "referee": self.referee})
+
         return initial
 
     @property
@@ -6973,6 +6977,7 @@ class TestimonialView(CreateUpdateView):
                 t
                 and t.referee
                 and t.referee.has_testified
+                and t.referee
                 or a.referees.filter(
                     Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
                 ).last()

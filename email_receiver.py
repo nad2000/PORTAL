@@ -39,6 +39,7 @@ if __name__ == "__main__":
 
     from portal import models
     from portal.utils import send_mail
+    from django.conf import settings 
 
     # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
     # msg = email.message_from_string(full_msg)
@@ -127,7 +128,8 @@ if __name__ == "__main__":
             or models.MailLog.all_objects.filter(token=message_id).first()
         )
         if ml:
-            site = ml.site
+            if (site := ml.site):
+                settings.SITE_ID = site.pk
             with transaction.atomic():
                 if payload := (body or part.get_payload()):
                     if isinstance(payload, list):
@@ -164,6 +166,8 @@ if __name__ == "__main__":
                 ml.save()
                 if ml.invitation:
                     site = ml.invitation.site
+                    if site and site.pk:
+                        settings.SITE_ID = site.pk
                     by = (
                         models.User.where(
                             models.Q(email=ml.recipient)
@@ -177,7 +181,7 @@ if __name__ == "__main__":
                             by=by,
                             description=subject,
                         )
-                    elif re.search("automatic.*reply", subject, re.I):
+                    elif re.search("automatic.*reply", subject_lower, re.I):
                         ml.invitation.mark_autoreplied(
                             by=by,
                             description=subject,
@@ -191,7 +195,9 @@ if __name__ == "__main__":
 
     if to and (to.startswith("contracts") or to.startswith("comments")) and message_id:
         if contract := models.Contract.all_objects.filter(comments__token=message_id).last():
-            site = contract.site
+            if (site := contract.site):
+                settings.SITE_ID = site.pk
+
             by = models.User.where(
                 models.Q(email=sender) | models.Q(emailaddress__email=sender)
             ).first()
