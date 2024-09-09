@@ -1951,15 +1951,10 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
         ]
         context["can_update"] = (
             can_only_update_referees
-            or (
-                site_id != 5
-                and a.state not in ["submitted", "approved", "cancelled", "accepted"]
-            )
+            or (site_id != 5 and a.state not in ["submitted", "approved", "cancelled", "accepted"])
             or (site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
             or (
-                site_id == 5
-                and is_owner
-                and a.state in ["new", "submitted", "draft", "in_review"]
+                site_id == 5 and is_owner and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
 
@@ -5326,19 +5321,20 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                         .values("org_id__min")
                     ),
                 ).values_list("org_id", "name")
-            ).order_by("name")
-        else:
-            q = (
-                q.filter(
-                    id__in=models.Organisation.objects.all()
-                    .values("name")
-                    .annotate(Min("id"))
-                    .values("id__min")
-                )
-                .order_by("name")
-                .values_list("id", "name")
             )
-        return q
+            # q = (
+            #     q.distinct()
+            #     if django.db.connection.vendor == "sqlite"
+            #     else q.distinct("id", "name")
+            # )
+        else:
+            q = q.filter(
+                id__in=models.Organisation.objects.all()
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
+            ).values_list("id", "name")
+        return q.order_by("name")
 
 
 class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -5387,7 +5383,9 @@ class QualificationAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySet
         return models.Qualification.objects.order_by("description")
 
     def create_object(self, text):
-        return self.get_queryset().get_or_create(is_nzqf=False, **{self.create_field: text})[0]
+        return self.get_queryset().get_or_create(
+            defaults={"is_nzqf": False}, **{self.create_field: text}
+        )[0]
 
 
 class PersonIdentifierAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -6878,7 +6876,9 @@ class RoundExportView(ExportView):
             prefix = u.username
 
         # prefix = os.path.join(tempfile.gettempdir(), prefix)
-        prefix_url = os.path.join("rounds", f"{round.scheme.code}", f"{round.opens_on.year}", prefix)
+        prefix_url = os.path.join(
+            "rounds", f"{round.scheme.code}", f"{round.opens_on.year}", prefix
+        )
         prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
@@ -6925,11 +6925,15 @@ class RoundExportView(ExportView):
                 )
             else:
                 # works with nginx:
-                output_url = os.path.join(settings.PRIVATE_STORAGE_INTERNAL_URL, prefix_url, f"{round.scheme.code}-{round.opens_on.year}.{file_format}")
+                output_url = os.path.join(
+                    settings.PRIVATE_STORAGE_INTERNAL_URL,
+                    prefix_url,
+                    f"{round.scheme.code}-{round.opens_on.year}.{file_format}",
+                )
                 # response = HttpResponse(content_type="application/force-download")
                 response = HttpResponse(content_type=content_type)
                 response["X-Accel-Redirect"] = quote(output_url)
-                response['Content-Type'] = content_type
+                response["Content-Type"] = content_type
                 response["X-Sendfile"] = quote(output_url)
             response["Content-Length"] = os.path.getsize(output_filename)
             # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"

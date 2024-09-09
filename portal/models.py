@@ -1019,8 +1019,11 @@ class Qualification(Model):
         _("the New Zealand Qualifications Framework Qualification level"),
         default=True,
     )
+    # history = HistoricalRecords(table_name="qualification_history")
 
     def __str__(self):
+        # if self.code:
+        #     return f"{self.code}: {self.description}"
         return self.description
 
     class Meta:
