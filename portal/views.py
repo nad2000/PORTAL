@@ -2343,15 +2343,19 @@ class InvitationCreate(CreateView):
     labels = {"org": _("organisation")}
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
-        if form.instance.org:
-            form.instance.organisation = form.instance.org.name
+        u = self.request.user
+        i = form.instance
+        i.user = u
+        if i.org:
+            i.organisation = i.org.name
+        if not i.inviter:
+            i.inviter = u
 
-        self.object = form.save()
-        self.object.send(self.request)
-        self.object.save()
+        form.save()
+        i.send(self.request, by=u)
+        i.save()
 
-        messages.success(self.request, _("An invitation was sent to ") + form.instance.email)
+        messages.success(self.request, _("An invitation was sent to ") + i.email)
         return redirect(self.get_success_url())
 
     def get_form_class(self):
