@@ -18,6 +18,8 @@ import django
 from django.core.files.base import File
 from django.db import transaction
 from django.shortcuts import reverse
+# from django.contrib.sites.models import Site
+from django.db.models import Value, F, Q
 
 EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 message_id = None
@@ -52,6 +54,15 @@ if __name__ == "__main__":
     sender = msg["from"]
     from_addresses = []
 
+    if subject:
+        subject = str(make_header(decode_header(subject)))
+
+    # Skip CCed emails:
+    if subject and subject.strip().startswith("[") and (
+            models.Site.objects.alias(subject=Value(subject[1:])).filter(name__isnull=False, subject__istartswith=F("name")).exists() 
+            or subject[1:].startswith(settings.EMAIL_SUBJECT_PREFIX)):
+        return
+
     if sender and (match := re.search(EMAIL_EX, sender)):
         sender = match[0].lower()
         from_addresses.append(sender)
@@ -59,8 +70,6 @@ if __name__ == "__main__":
     if to and (recipient_match := re.search(EMAIL_EX, to)):
         to = recipient_match[0].lower()
 
-    if subject:
-        subject = str(make_header(decode_header(subject)))
     body = msg["body"]
     if not msg.is_multipart():
         body = msg.get_payload(decode=True)
@@ -85,7 +94,7 @@ if __name__ == "__main__":
                         final_recipient = match[0].lower()
                         from_addresses.append(final_recipient)
 
-        if has_disposition_notification or ("Read: " in subject and has_ms_tnef):
+        if has_disposition_notification or (("Read: " in subject or "Empfangsbestätigung angezeig" in subject) and has_ms_tnef):
             for p in part.walk():
                 message_id = p["original-message-id"] or part["in-reply-to"]
                 if not body:
