@@ -18,8 +18,9 @@ import django
 from django.core.files.base import File
 from django.db import transaction
 from django.shortcuts import reverse
+
 # from django.contrib.sites.models import Site
-from django.db.models import Value, F, Q
+from django.db.models import Value, F
 
 EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 message_id = None
@@ -41,7 +42,7 @@ if __name__ == "__main__":
 
     from portal import models
     from portal.utils import send_mail
-    from django.conf import settings 
+    from django.conf import settings
 
     # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
     # msg = email.message_from_string(full_msg)
@@ -58,10 +59,17 @@ if __name__ == "__main__":
         subject = str(make_header(decode_header(subject)))
 
     # Skip CCed emails:
-    if subject and subject.strip().startswith("[") and (
-            models.Site.objects.alias(subject=Value(subject[1:])).filter(name__isnull=False, subject__istartswith=F("name")).exists() 
-            or subject[1:].startswith(settings.EMAIL_SUBJECT_PREFIX)):
-        return
+    if (
+        subject
+        and subject.strip().startswith("[")
+        and (
+            models.Site.objects.alias(subject=Value(subject[1:]))
+            .filter(name__isnull=False, subject__istartswith=F("name"))
+            .exists()
+            or subject[1:].startswith(settings.EMAIL_SUBJECT_PREFIX)
+        )
+    ):
+        exit()
 
     if sender and (match := re.search(EMAIL_EX, sender)):
         sender = match[0].lower()
@@ -94,7 +102,9 @@ if __name__ == "__main__":
                         final_recipient = match[0].lower()
                         from_addresses.append(final_recipient)
 
-        if has_disposition_notification or (("Read: " in subject or "Empfangsbestätigung angezeig" in subject) and has_ms_tnef):
+        if has_disposition_notification or (
+            ("Read: " in subject or "Empfangsbestätigung angezeig" in subject) and has_ms_tnef
+        ):
             for p in part.walk():
                 message_id = p["original-message-id"] or part["in-reply-to"]
                 if not body:
@@ -137,7 +147,7 @@ if __name__ == "__main__":
             or models.MailLog.all_objects.filter(token=message_id).first()
         )
         if ml:
-            if (site := ml.site):
+            if site := ml.site:
                 settings.SITE_ID = site.pk
             with transaction.atomic():
                 if payload := (body or part.get_payload()):
@@ -204,7 +214,7 @@ if __name__ == "__main__":
 
     if to and (to.startswith("contracts") or to.startswith("comments")) and message_id:
         if contract := models.Contract.all_objects.filter(comments__token=message_id).last():
-            if (site := contract.site):
+            if site := contract.site:
                 settings.SITE_ID = site.pk
 
             by = models.User.where(
