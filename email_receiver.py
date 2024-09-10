@@ -71,6 +71,13 @@ if __name__ == "__main__":
     ):
         exit()
 
+    is_autoreply = (
+        (x_autoreply := msg["X-Autoreply"])
+        and x_autoreply.lower() == "yes"
+        or (auto_submitted := msg["Auto-Submitted"])
+        and auto_submitted.lower() == "auto-replied"
+    )
+
     if sender and (match := re.search(EMAIL_EX, sender)):
         sender = match[0].lower()
         from_addresses.append(sender)
@@ -200,7 +207,7 @@ if __name__ == "__main__":
                             by=by,
                             description=subject,
                         )
-                    elif re.search("automatic.*reply", subject_lower, re.I):
+                    elif re.search("automatic.*reply", subject_lower, re.I) or is_autoreply:
                         ml.invitation.mark_autoreplied(
                             by=by,
                             description=subject,
