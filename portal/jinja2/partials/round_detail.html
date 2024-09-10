@@ -1,0 +1,111 @@
+<div class="modal-dialog{% if round.site_id == 5 %} modal-lg{% endif %}" role="document" id="#round-detail-{{ round.pk }}">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="roundDetailLabel" style="color:inherit">{{ round.title if round else _('Round') }}</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="roundDetailBody">
+
+  <table class="table table-bordered searchable table-striped">
+    <tbody>
+
+      {% if round.opens_on %}
+        <tr>
+          <th style="width: 32%; min-width: 180px; max-width: 200px;">
+            {{ _("Period Starts On") }}
+          </th>
+          <td>
+            {{ round.opens_on.strftime('%d-%m-%Y') }}
+          </td>
+        </tr>
+      {% endif %}
+
+      {% if round.closes_at %}
+        <tr>
+          <th style="width: 32%; min-width: 180px; max-width: 200px;">
+            {{ _("Ends On") }}
+          </th>
+          <td>
+            {{ round.closes_at.strftime('%d-%m-%Y') }}
+          </td>
+        </tr>
+      {% endif %}
+
+      {% for a in applications %}
+        <tr>
+          <th>
+            {{ _("Applications") }} ({{ a["state"] }})
+          </th>
+          <td>
+            {{ a["total"] }}
+          </td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th>
+          {{ _("Total Applications") }}
+        </th>
+        <td>
+          {{ total_applications }}
+        </td>
+      </tr>
+
+      {% for n in nominations %}
+        <tr>
+          <th>
+            {{ _("Nominations") }} ({{ n["state"] }})
+          </th>
+          <td>
+            {{ n["total"] }}
+          </td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th>
+          {{ _("Total Nominations") }}
+        </th>
+        <td>
+          {{ total_nominations }}
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  <a class="btn btn-primary" href="{{ url('round-summary', round=round.id) }}" role="button">{{ _("Show Detailed Report") }}</a>
+  <a class="btn btn-outline-primary" href="{{ url('scores-list', round=round.id) }}" role="button">{{ _("Show Scores") }}</a>
+
+  <a
+    class="btn btn-outline-primary"
+    target="_blank"
+    href="{{ url('round-application-export', pk=round.id) }}{% if round.site_id ==5 %}?format=7z{% if user.is_superuser or user.is_site_staff %}&for_panellists=1{% endif %}{% endif %}"
+    data-toggle="tooltip"
+    {% if round.site_id == 5 and (user.is_superuser or user.is_site_staff) %}
+      title="Export all the applications of the round for the panellist scoring"
+    {% else %}
+        title="{{ _('Export all the applications of the round') }}{% if round.site_id == 4 %}{{ _(' (only ACCEPTED)') }}{% endif %}"
+    {% endif %}
+    role="button"
+  >
+    {% if round.site_id == 5 and (user.is_superuser or user.is_site_staff) %}
+      {{ _("Export Applications") }}
+    {% else %}
+      {{ _("Export PDF") }}
+    {% endif %}
+  </a>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Close') }}</button>
+        <!-- button type="button" class="btn btn-primary">Save changes</button -->
+      </div>
+    </div>
+  <script>
+    $("#round-detail-{{ round.pk }}").ready(function() {
+      $("#round-detail-{{ round.pk }}").tooltip();
+    });
+  </script>
+
+  </div>

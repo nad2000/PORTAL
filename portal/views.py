@@ -704,6 +704,7 @@ def unsubscribe(request, token):
 
 @login_required
 def round_detail(request, round):
+    modal = request.GET.get("modal")
     user = request.user
     round = get_object_or_404(models.Round, id=round)
     applications = Application.where(round=round).values("state").annotate(total=Count("state"))
@@ -714,7 +715,7 @@ def round_detail(request, round):
     )
     total_nominations = sum(n["total"] for n in nominations)
 
-    return render(request, "round_detail.html", locals())
+    return render(request, "partials/round_detail.html" if modal else "round_detail.html", locals())
 
 
 def round_required_documents(request, round):
