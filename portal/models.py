@@ -4609,11 +4609,14 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         link_name = domain_to_macrons(url)
         self.url = url
 
-        # TODO: handle the rest of types
         application = self.application
-        if not application:
-            return
         if self.type == INVITATION_TYPES.T:
+            if not self.member:
+                return
+            if not application:
+                self.application = application = self.member.application
+            if not application:
+                return
             contact_email = (
                 application
                 and application.round.contact_email
@@ -4659,6 +4662,8 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             if not referee:
                 return
             application = referee.application
+            if not self.application:
+                self.application = application
             inviter = (
                 application
                 and self.application.submitted_by
