@@ -249,7 +249,8 @@ class ApplicationTable(tables.Table):
             "td": {"class": "text-center"},
         },
     )
-    contract = tables.columns.linkcolumn.BaseLinkColumn(
+    current_contract = tables.columns.linkcolumn.BaseLinkColumn(
+        verbose_name=gettext_lazy("Contract"),
         text=lambda record: (
             ""
             if record.state != "funded"
@@ -257,8 +258,12 @@ class ApplicationTable(tables.Table):
         ),
         linkify=lambda table, record, value: (
             reverse("application-contract", args=[record.pk])
-            if record.state == "funded" or record.contract
-            else None
+            if record.contract
+            else (
+                f'{reverse("contract-create")}?application_id={record.pk}'
+                if record.state == "funded"
+                else None
+            )
         ),
         attrs={
             "a": {
@@ -321,9 +326,8 @@ class ApplicationTable(tables.Table):
             "first_name",
             "last_name",
             "export",
-            "contract",
+            # "contract",
         )
-
 
 
 def report_link(table, record, value):

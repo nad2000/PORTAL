@@ -443,6 +443,11 @@ urlpatterns = [
                     views.CityAutocomplete.as_view(model=models.Address),
                     name="city-autocomplete",
                 ),
+                path(
+                    "reporting-schedule-entry-autocomplete/",
+                    views.ReportingScheduleEntryAutocomplete.as_view(model=models.ReportingScheduleEntry),
+                    name="reporting-schedule-entry-autocomplete",
+                ),
             ]
         ),
     ),

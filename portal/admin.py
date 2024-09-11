@@ -52,6 +52,18 @@ djhacker.formfield(
     ),
 )
 
+djhacker.formfield(
+    models.Report.schedule_entry,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="reporting-schedule-entry-autocomplete",
+        forward=[
+            dal.forward.Field("contract", "contract"),
+            dal.forward.Const("1", "exclude_taken"),
+        ],
+    ),
+)
+
 
 # class QueryField(forms.ChoiceField):
 
@@ -276,6 +288,22 @@ class CountryAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.
     search_fields = ["name", "code", "code3"]
     date_hierarchy = "created_at"
     ordering = ["code", "code3"]
+
+
+@admin.register(models.ReportingScheduleEntry)
+class ReportingScheduleEntryAdmin(admin.ModelAdmin):
+
+    search_fields = ["contract__number"]
+
+    def get_model_perms(self, request):
+        """
+        Return empty perms dict thus hiding the model from admin index.
+        """
+        return {}
+
+    def get_search_results(self, request, queryset, search_term):
+        r = super().get_search_results(request, queryset, search_term)
+        return r
 
 
 @admin.register(models.Address)
@@ -2926,6 +2954,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # "fund",
         "contract",
         "type",
+        "period",
         # "application",
         "state",
     )
@@ -2942,6 +2971,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     search_fields = ["number", "contract__project_title", "contract__number"]
     autocomplete_fields = [
         "assessor",
+        # "schedule_entry",
         # "principal",
         # "coordinator",
         # "fund",
@@ -2961,11 +2991,11 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                 "fields": [
                     (
                         "state",
-                        "type",
+                        # "type",
                         "contract",
-                        "period",
+                        # "period",
+                        "schedule_entry",
                     ),
-                    "schedule_entry",
                     "assessor",
                     # ("number", "refcode", "year"),
                     # "project_title",
@@ -3161,6 +3191,14 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # CommentInline,
         StateLogInline,
     ]
+
+    def save_model(self, request, obj, form, change):
+        if obj.schedule_entry:
+            if not obj.type:
+                obj.type = obj.schedule_entry.type
+            if not obj.period:
+                obj.period = obj.schedule_entry.period
+        super().save_model(request, obj, form, change)
 
 
 # vim:set ft=python.django:

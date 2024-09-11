@@ -715,7 +715,9 @@ def round_detail(request, round):
     )
     total_nominations = sum(n["total"] for n in nominations)
 
-    return render(request, "partials/round_detail.html" if modal else "round_detail.html", locals())
+    return render(
+        request, "partials/round_detail.html" if modal else "round_detail.html", locals()
+    )
 
 
 def round_required_documents(request, round):
@@ -6275,6 +6277,21 @@ class PanelAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         if self.q:
             q = q.filter(Q(description__istartswith=self.q) | Q(code__istartswith=self.q))
         return q.order_by("code")
+
+
+class ReportingScheduleEntryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        return False
+
+    def get_queryset(self):
+
+        q = super().get_queryset()
+        if contract := self.forwarded.get("contract"):
+            # select only people affiliated with the org
+            q = q.filter(contract=contract)
+        if "exclude_taken" in self.forwarded:
+            q = q.filter(report__isnull=True)
+        return q
 
 
 class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
