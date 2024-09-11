@@ -348,13 +348,18 @@ def report_contract_link(table, record, value):
 class ReportTable(tables.Table):
     state = StateColumn(verbose_name=_("Status"))
     # number = tables.Column(linkify=report_link)
-    email = tables.Column(
-        linkify=lambda table, record, value: (
-            reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
-            if (table.request.user.is_staff or table.request.user.is_superuser)
-            and record.submitted_by_id
-            else None
-        )
+    number = tables.LinkColumn(
+        "report",
+        args=[tables.A("pk")],
+        text=lambda record: f"{record.contract.number}:{record.type}-{record.period}",
+        verbose_name=gettext_lazy("Report"),
+        order_by=["contract__number", "period", "type"],
+    )
+    contract = tables.columns.linkcolumn.BaseLinkColumn(
+        linkify=lambda record: reverse(
+            "contract-detail", kwargs=dict(number=record.contract.number)
+        ),
+        text=lambda record: record.contract.number,
     )
     export = tables.LinkColumn(
         "report-export",
@@ -370,6 +375,11 @@ class ReportTable(tables.Table):
             "td": {"class": "text-center"},
         },
     )
+    pi = tables.Column(
+        gettext_lazy("Contract PI"),
+        tables.A("pi__full_name_with_email"),
+        order_by="contract__members__email",
+    )
 
     # def before_render(self, request):
     #     if (u := request.user) and not u.is_superuser and not u.is_staff:
@@ -380,34 +390,34 @@ class ReportTable(tables.Table):
     #     if record.state == "funded" or record.state == "archived" and record.contract:
     #         return value
 
-    def render_number(self, record, value):
-        if (
-            record.state in ["draft", "new"]
-            and (deadline_days := record.deadline_days)
-            and record.deadline_days < 6
-        ):
-            r = record.round
-            closes_at = timezone.localtime(r.closes_at)
-            return format_html(
-                """<span
-                    data-toggle="tooltip"
-                    title="%s"
-                >
-                    <i class="fas fa-exclamation-circle %s"
-                    ></i> %s
-                </span>"""
-                % (
-                    _("The round is closing in %s day(s) on %s by %s")
-                    % (
-                        deadline_days,
-                        formats.date_format(closes_at, "d-m-Y"),
-                        formats.date_format(closes_at, "P"),
-                    ),
-                    "text-danger" if record.deadline_days < 4 else "text-warning",
-                    value,
-                )
-            )
-        return value
+    # def render_number(self, record, value):
+    #     if (
+    #         record.state in ["draft", "new"]
+    #         and (deadline_days := record.deadline_days)
+    #         and record.deadline_days < 6
+    #     ):
+    #         r = record.round
+    #         closes_at = timezone.localtime(r.closes_at)
+    #         return format_html(
+    #             """<span
+    #                 data-toggle="tooltip"
+    #                 title="%s"
+    #             >
+    #                 <i class="fas fa-exclamation-circle %s"
+    #                 ></i> %s
+    #             </span>"""
+    #             % (
+    #                 _("The round is closing in %s day(s) on %s by %s")
+    #                 % (
+    #                     deadline_days,
+    #                     formats.date_format(closes_at, "d-m-Y"),
+    #                     formats.date_format(closes_at, "P"),
+    #                 ),
+    #                 "text-danger" if record.deadline_days < 4 else "text-warning",
+    #                 value,
+    #             )
+    #         )
+    #     return value
 
     class Meta:
         model = models.Report
@@ -415,9 +425,12 @@ class ReportTable(tables.Table):
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
+            "number",
             "contract",
-            "period",
+            "pi",
+            # "period",
             "type",
+            "due_date",
         )
 
 
@@ -748,15 +761,25 @@ class SummaryReportTable(tables.Table):
 
 class ContractTable(tables.Table):
     application = tables.Column(
+        gettext_lazy("Proposal"),
+        tables.A("application__number"),
         linkify=lambda value, record: reverse(
             "application-detail", kwargs=dict(number=record.application.number)
-        )
+        ),
+        order_by="application__number",
     )
     number = tables.Column(
+        verbose_name=gettext_lazy("Contract"),
         linkify=lambda value, record: reverse("contract-detail", kwargs=dict(number=record.number))
     )
-    state = StateColumn()
+    state = StateColumn(gettext_lazy("Status"))
     # contract_pi = tables.Column(linkify=application_link)
+    pi = tables.Column(
+        gettext_lazy("Contract PI"),
+        tables.A("pi__full_name_with_email"),
+        order_by="members__email",
+    )
+    notes = StateColumn()
 
     # email = tables.Column(
     #     linkify=lambda table, record, value: reverse(
@@ -818,9 +841,10 @@ class ContractTable(tables.Table):
         model = models.Contract
         fields = (
             "state",
-            "number",
             "application",
-            # "contract_pi",
+            "number",
+            "pi",
+            "notes"
         )
 
 

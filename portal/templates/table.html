@@ -182,7 +182,7 @@ thead th.orderable.desc > a {
     {% if filter and not filter_disabled %}
     <form action="" method="GET" class="form form-inline mb-3" autocomplete="on">
         {% for n, v in request.GET.items %}
-          {% if n != 'report_filter' and n != 'nomination_filter' and n != 'testimonial_filter' and n != 'application_filter' and n != 'archived_filter' and n != 'active_filter' and n != 'page' %}
+          {% if n != 'contract_filter' and  n != 'report_filter' and n != 'nomination_filter' and n != 'testimonial_filter' and n != 'application_filter' and n != 'archived_filter' and n != 'active_filter' and n != 'page' %}
             <input type="hidden" name="{{ n }}" value="{{ v }}">
           {% endif %}
         {% endfor %}
@@ -210,6 +210,8 @@ thead th.orderable.desc > a {
           {% bootstrap_field filter.form.application_filter show_label=False %}
         {% elif filter.form.report_filter %}
           {% bootstrap_field filter.form.report_filter show_label=False %}
+        {% elif filter.form.contract_filter %}
+          {% bootstrap_field filter.form.contract_filter show_label=False %}
         {% elif filter.form.testimonial_filter %}
           {% bootstrap_field filter.form.testimonial_filter show_label=False %}
         {% elif filter.form.nomination_filter %}

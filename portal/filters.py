@@ -105,6 +105,8 @@ class FilterSet(django_filters.FilterSet):
             round_field_name = "referee__application__round"
         elif model is models.Report:
             round_field_name = "contract__application__round"
+        elif model is models.Contract:
+            round_field_name = "application__round"
         else:
             round_field_name = "round"
         rounds = models.Round.all_objects.filter(
@@ -447,6 +449,7 @@ class ReportFilterSet(FilterSet):
         if value:
             return queryset.filter(
                 Q(contract__application__application_title__icontains=value)
+                | Q(contract__number__icontains=value)
                 | Q(contract__project_title__icontains=value)
                 # | Q(contract__last_name__icontains=value)
                 # | Q(contract__email__icontains=value)
@@ -467,6 +470,93 @@ class ReportFilterSet(FilterSet):
     class Meta:
         model = models.Report
         fields = ["report_filter", "archived_filter", "active_filter"]
+
+
+class ContractFilterSet(FilterSet):
+    # @property
+    # def qs(self):
+    #     parent = super().qs
+    #     author = getattr(self.request, 'user', None)
+    #     return parent.filter(is_published=True) | parent.filter(author=author)
+
+    # @property
+    # def qs(self):
+    #     qs = super().qs
+    #     if self.form.data.get('archived_filter') != "true":
+    #         qs = qs.filter(round__scheme__current_round=F("round"))
+    #     return qs
+
+    contract_filter = django_filters.CharFilter(
+        method="set_filter", label=gettext_lazy("Contract Filter")
+    )
+    archived_filter = django_filters.BooleanFilter(
+        method="filter_archived",
+        label=gettext_lazy("Archived Contracts"),
+    )
+    active_filter = django_filters.BooleanFilter(
+        method="filter_active", label=gettext_lazy("Active Contracts")
+    )
+    # # year_filter = django_filters.ChoiceFilter(  # YearChoiceFilter(
+    # year_filter = YearChoiceFilter(
+    #     label=gettext_lazy("Year"),
+    #     widget=django_filters.widgets.LinkWidget,
+    #     choices=[(v, v) for v in range(timezone.now().year, 2019, -1)],
+    #     # method="set_filter",
+    #     # queryset=application_filter_years,
+    # )
+
+    # round_filter = RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
+    #     #     "round",
+    #     label=gettext_lazy("Round"),
+    #     widget=django_filters.widgets.LinkWidget,
+    #     # widget=LinkWidget,
+    #     field_name="referee__application__round",
+    #     queryset=application_filter_rounds,
+    # )
+
+    def filter_archived(self, queryset, name, value):
+        if not value:
+            return queryset.filter(
+                application__round__scheme__current_round=F(
+                    "application__round"
+                )
+            )
+        return queryset
+
+    def filter_active(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                application__round__scheme__current_round=F(
+                    "application__round"
+                )
+            )
+        return queryset
+
+    def set_filter(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                Q(application__application_title__icontains=value)
+                | Q(number__icontains=value)
+                | Q(project_title__icontains=value)
+                # | Q(contract__last_name__icontains=value)
+                # | Q(contract__email__icontains=value)
+                # | Q(contract__user__first_name__icontains=value)
+                # | Q(contract__user__last_name__icontains=value)
+                # | Q(contract__user__email__icontains=value)
+                # | Q(contract__application__number__icontains=value)
+                # | Q(contract__application__first_name__icontains=value)
+                # | Q(contract__application__last_name__icontains=value)
+                # | Q(contract__application__email__icontains=value)
+                # | Q(contract__application__submitted_by__first_name__icontains=value)
+                # | Q(contract__application__submitted_by__last_name__icontains=value)
+                # | Q(contract__application__submitted_by__email__icontains=value)
+            ).distinct()
+        else:
+            return queryset
+
+    class Meta:
+        model = models.Contract
+        fields = ["contract_filter", "archived_filter", "active_filter"]
 
 
 # vim:set ft=python.django:

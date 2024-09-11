@@ -7959,6 +7959,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     def __str__(self):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
+    @cached_property
+    def pi(self):
+        return self.submitted_by or (pi := self.members.filter(role="PI").last()) and pi.user
+
     def save(self, *args, **kwargs):
         if (
             not self.pk
@@ -8675,6 +8679,14 @@ class Report(ReportMixin, Model):
     assessed_at = MonitorField(
         monitor="state", when=["assessed"], null=True, default=None, blank=True
     )
+
+    @cached_property
+    def due_date(self):
+        return self.schedule_entry.due_date
+
+    @cached_property
+    def pi(self):
+        return self.contract.pi
 
     # exported = models.BooleanField(blank=True, null=True)
     # exported_date = models.DateField(blank=True, null=True)

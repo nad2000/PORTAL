@@ -1443,22 +1443,22 @@ class ReportDetail(DetailView):
     slug_field = "number"
     slug_url_kwarg = "number"
 
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .prefetch_related(
-                Prefetch(
-                    "allocations", queryset=models.Allocation.objects.all().order_by("period")
-                ),
-                Prefetch(
-                    "reporting_schedule",
-                    queryset=models.ReportingScheduleEntry.objects.all().order_by(
-                        "period", "due_date"
-                    ),
-                ),
-            )
-        )
+    # def get_queryset(self):
+    #     return (
+    #         super()
+    #         .get_queryset()
+    #         .prefetch_related(
+    #             Prefetch(
+    #                 "allocations", queryset=models.Allocation.objects.all().order_by("period")
+    #             ),
+    #             Prefetch(
+    #                 "reporting_schedule",
+    #                 queryset=models.ReportingScheduleEntry.objects.all().order_by(
+    #                     "period", "due_date"
+    #                 ),
+    #             ),
+    #         )
+    #     )
 
 
 class ReportViewMixin:
@@ -4683,18 +4683,17 @@ class InvitationList(LoginRequiredMixin, SingleTableView):
         return queryset
 
 
-class ContractList(LoginRequiredMixin, SingleTableView):
+class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterView):
     table_class = tables.ContractTable
     model = models.Contract
     template_name = "table.html"
-    # extra_context = {"category": "applications"}
+    extra_context = {"category": "contracts"}
+    filterset_class = filters.ContractFilterSet
 
-    # def get_queryset(self, *args, **kwargs):
-    #     queryset = super().get_queryset(*args, **kwargs)
-    #     u = self.request.user
-    #     if not (u.is_superuser or u.is_staff):
-    #         queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
-    #     return queryset
+    def get_queryset(self, *args, **kwargs):
+        queryset = super().get_queryset(*args, **kwargs)
+        queryset = queryset.filter(Q(members__isnull=True) | Q(members__role="PI"))
+        return queryset
 
 
 class ContractDetail(DetailView):

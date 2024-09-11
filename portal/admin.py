@@ -2925,7 +2925,15 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         autocomplete_fields = ["code"]
         classes = ["collapse"]
 
+    class MemberInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        view_on_site = False
+        model = models.ContractMember
+        # readonly_fields = ["state", "state_changed_at"]
+        autocomplete_fields = ["user", "address"]
+
     inlines = [
+        MemberInline,
         EthicsStatementInline,
         ContractDocumentInline,
         ReportingScheduleEntryInline,
