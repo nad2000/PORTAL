@@ -130,7 +130,7 @@ class FilterSet(django_filters.FilterSet):
             self.round_filter.model = model
             self.round_filter.parent = self
 
-        if model and hasattr(model, "fund"):
+        if model and "fund" in model._meta.fields_map:
             self.filters["fund_filter"] = self.fund_filter = (
                 RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
                     #     "round",
@@ -138,12 +138,25 @@ class FilterSet(django_filters.FilterSet):
                     widget=django_filters.widgets.LinkWidget,
                     # widget=LinkWidget,
                     field_name="fund",
-                    queryset=models.Fund.objects.all()
+                    queryset=models.Fund.objects.all(),
                 )
             )
             self.fund_filter.model = model
             self.fund_filter.parent = self
 
+        if model and hasattr(model, "state"):
+            self.filters["state_filter"] = self.state_filter = django_filters.ChoiceFilter(
+                label=gettext_lazy("Status"),
+                field_name="state",
+                widget=django_filters.widgets.LinkWidget,
+                choices=[
+                    (k, gettext_lazy(v))
+                    for k, v in model.state.field.choices
+                    if k in queryset.distinct().values_list("state", flat=True)
+                ],
+            )
+            self.state_filter.model = model
+            self.state_filter.parent = self
 
 
 class ApplicationFilterSet(FilterSet):
@@ -545,18 +558,14 @@ class ContractFilterSet(FilterSet):
     def filter_archived(self, queryset, name, value):
         if not value:
             return queryset.filter(
-                application__round__scheme__current_round=F(
-                    "application__round"
-                )
+                application__round__scheme__current_round=F("application__round")
             )
         return queryset
 
     def filter_active(self, queryset, name, value):
         if value:
             return queryset.filter(
-                application__round__scheme__current_round=F(
-                    "application__round"
-                )
+                application__round__scheme__current_round=F("application__round")
             )
         return queryset
 
