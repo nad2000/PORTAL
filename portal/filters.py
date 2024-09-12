@@ -36,7 +36,7 @@ class RelatedOnlyModelChoiceFilter(django_filters.ModelChoiceFilter):
             self.__queryset = (
                 super()
                 .get_queryset(request)
-                .filter(**{"id__in": self.parent.queryset.values_list(self.field_name)})
+                .filter(**{"pk__in": self.parent.queryset.values_list(self.field_name)})
             )
         return self.__queryset
 
@@ -129,6 +129,21 @@ class FilterSet(django_filters.FilterSet):
             )
             self.round_filter.model = model
             self.round_filter.parent = self
+
+        if model and hasattr(model, "fund"):
+            self.filters["fund_filter"] = self.fund_filter = (
+                RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
+                    #     "round",
+                    label=gettext_lazy("Fund"),
+                    widget=django_filters.widgets.LinkWidget,
+                    # widget=LinkWidget,
+                    field_name="fund",
+                    queryset=models.Fund.objects.all()
+                )
+            )
+            self.fund_filter.model = model
+            self.fund_filter.parent = self
+
 
 
 class ApplicationFilterSet(FilterSet):
@@ -486,6 +501,12 @@ class ContractFilterSet(FilterSet):
     #         qs = qs.filter(round__scheme__current_round=F("round"))
     #     return qs
 
+    # def __init__(self, queryset, *args, **kwargs):
+    #     super().__init__(queryset, *args, **kwargs)
+    #     if "fund" in self.form.fields:
+    #         q = self.form.fields["fund"].queryset
+    #         q = q.filter(pk__in=queryset.values("fund"))
+
     contract_filter = django_filters.CharFilter(
         method="set_filter", label=gettext_lazy("Contract Filter")
     )
@@ -513,6 +534,13 @@ class ContractFilterSet(FilterSet):
     #     field_name="referee__application__round",
     #     queryset=application_filter_rounds,
     # )
+
+    # def filter_fund(self, queryset, name, value):
+    #     if not value:
+    #         return queryset.filter(
+    #             fund=value
+    #         )
+    #     return queryset
 
     def filter_archived(self, queryset, name, value):
         if not value:
@@ -556,6 +584,7 @@ class ContractFilterSet(FilterSet):
 
     class Meta:
         model = models.Contract
+        # fields = ["fund", "contract_filter", "archived_filter", "active_filter"]
         fields = ["contract_filter", "archived_filter", "active_filter"]
 
 

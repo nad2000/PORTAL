@@ -1429,12 +1429,10 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
     template_name = "table.html"
     filterset_class = filters.ReportFilterSet
 
-    # def get_queryset(self, *args, **kwargs):
-    #     queryset = super().get_queryset(*args, **kwargs)
-    #     u = self.request.user
-    #     if not (u.is_superuser or u.is_staff):
-    #         queryset = queryset.filter(Q(inviter=u) | Q(email__in=u.email_addresses))
-    #     return queryset
+    def get_queryset(self, *args, **kwargs):
+        queryset = super().get_queryset(*args, **kwargs)
+        queryset = queryset.filter(Q(contract__members__isnull=True) | Q(contract__members__role="PI"))
+        return queryset
 
 
 class ReportDetail(DetailView):
