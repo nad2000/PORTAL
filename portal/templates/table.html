@@ -273,8 +273,6 @@ thead th.orderable.desc > a {
                 <details data-filter-title="round" id="round-filter">
                   <summary>{% trans 'By round' %}</summary>
                   {{ filter.form.round_filter }}
-                  {#% bootstrap_field filter.form.round_filter show_label=False %#}
-                  {#% bootstrap_field filter.form.archived_filter show_label=True %#}
                   <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
                 </details>
               {% endif %}
@@ -284,6 +282,13 @@ thead th.orderable.desc > a {
                   {{ filter.form.year_filter }}
                   {#% bootstrap_field filter.form.round_filter show_label=False %#}
                   {#% bootstrap_field filter.form.archived_filter show_label=True %#}
+                  <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
+                </details>
+              {% endif %}
+              {% if filter.form.org_filter %}
+                <details data-filter-title="org" id="org-filter">
+                  <summary>{% trans 'By source' %}</summary>
+                  {{ filter.form.org_filter }}
                   <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
                 </details>
               {% endif %}

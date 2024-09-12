@@ -158,6 +158,16 @@ class FilterSet(django_filters.FilterSet):
             self.state_filter.model = model
             self.state_filter.parent = self
 
+        if model and hasattr(model, "org"):
+            self.filters["org_filter"] = self.org_filter = RelatedOnlyModelChoiceFilter(
+                label=gettext_lazy("Source"),
+                field_name="org",
+                widget=django_filters.widgets.LinkWidget,
+                queryset=models.Organisation.objects.all(),
+            )
+            self.org_filter.model = model
+            self.org_filter.parent = self
+
 
 class ApplicationFilterSet(FilterSet):
     # @property
