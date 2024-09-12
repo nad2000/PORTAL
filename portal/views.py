@@ -429,6 +429,59 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
             )
 
 
+class SingleObjectMixin:
+
+    slug_field = "number"
+    slug_url_kwarg = "number"
+
+    _obj = None
+
+    def get_object(self, queryset=None):
+        if not self.request.user.is_authenticated:
+            return None
+
+        if self._obj:
+            return self._obj
+
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if pk is not None:
+            queryset = queryset.filter(pk=pk)
+
+        if slug is not None and (pk is None or self.query_pk_and_slug):
+            slug_field = self.get_slug_field()
+            queryset = queryset.filter(**{slug_field: slug})
+
+        # If none of those are defined, it's an error.
+        if pk is None and slug is None:
+            raise AttributeError(
+                "Generic detail view %s must be called with either an object "
+                "pk or a slug in the URLconf." % self.__class__.__name__
+            )
+
+        try:
+            # Get the single item from the filtered queryset
+            obj = queryset.last()
+            if not obj and slug:
+                an = get_object_or_404(models.ApplicationNumber, **{slug_field: slug})
+                obj = an.application
+        except queryset.model.DoesNotExist:
+            raise Http404(
+                _("No %(verbose_name)s found matching the query")
+                % {"verbose_name": queryset.model._meta.verbose_name}
+            )
+        if not obj:
+            raise Http404(
+                _("No %(verbose_name)s found matching the query")
+                % {"verbose_name": queryset.model._meta.verbose_name}
+            )
+        self._obj = obj
+        return self._obj
+
+
 class DetailView(LoginRequiredMixin, DetailView):
     template_name = "detail.html"
 
@@ -1208,11 +1261,13 @@ def is_profile_completed(request):
     return True
 
 
-class ProfileView:
+class ProfileViewMixin:
 
     model = models.Person
     template_name = "profile_form.html"
     form_class = forms.ProfileForm
+    slug_url_kwarg = "username"
+    slug_field = "user__username"
 
     def get_user_form(self):
         u = self.request.user
@@ -1438,8 +1493,8 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
 class ReportDetail(DetailView):
     template_name = "portal/report_detail.html"
     model = models.Report
-    slug_field = "number"
-    slug_url_kwarg = "number"
+    # slug_field = "number"
+    # slug_url_kwarg = "number"
 
     # def get_queryset(self):
     #     return (
@@ -2138,7 +2193,7 @@ class ReportExportView(ExportView):
             return resp
 
 
-class ProfileDetail(ProfileView, DetailView):
+class ProfileDetail(ProfileViewMixin, DetailView):
     template_name = "profile.html"
     raise_exception = True
 
@@ -2179,12 +2234,12 @@ class ProfileDetail(ProfileView, DetailView):
         return self.request.user.person
 
 
-class ProfileUpdate(ProfileView, LoginRequiredMixin, UpdateView):
+class ProfileUpdate(ProfileViewMixin, LoginRequiredMixin, UpdateView):
     def get_object(self):
         return self.request.user.person
 
 
-class ProfileCreate(ProfileView, CreateView):
+class ProfileCreate(ProfileViewMixin, CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -2425,60 +2480,7 @@ class AuthorizationForm(Form):
     #     return True
 
 
-class SingleApplicationMixin:
-
-    slug_field = "number"
-    slug_url_kwarg = "number"
-
-    _obj = None
-
-    def get_object(self, queryset=None):
-        if not self.request.user.is_authenticated:
-            return None
-
-        if self._obj:
-            return self._obj
-
-        if queryset is None:
-            queryset = self.get_queryset()
-
-        pk = self.kwargs.get(self.pk_url_kwarg)
-        slug = self.kwargs.get(self.slug_url_kwarg)
-        if pk is not None:
-            queryset = queryset.filter(pk=pk)
-
-        if slug is not None and (pk is None or self.query_pk_and_slug):
-            slug_field = self.get_slug_field()
-            queryset = queryset.filter(**{slug_field: slug})
-
-        # If none of those are defined, it's an error.
-        if pk is None and slug is None:
-            raise AttributeError(
-                "Generic detail view %s must be called with either an object "
-                "pk or a slug in the URLconf." % self.__class__.__name__
-            )
-
-        try:
-            # Get the single item from the filtered queryset
-            obj = queryset.last()
-            if not obj and slug:
-                an = get_object_or_404(models.ApplicationNumber, **{slug_field: slug})
-                obj = an.application
-        except queryset.model.DoesNotExist:
-            raise Http404(
-                _("No %(verbose_name)s found matching the query")
-                % {"verbose_name": queryset.model._meta.verbose_name}
-            )
-        if not obj:
-            raise Http404(
-                _("No %(verbose_name)s found matching the query")
-                % {"verbose_name": queryset.model._meta.verbose_name}
-            )
-        self._obj = obj
-        return self._obj
-
-
-class ApplicationDetail(SingleApplicationMixin, DetailView):
+class ApplicationDetail(DetailView):
     model = Application
     template_name = "application_detail.html"
 
@@ -7502,7 +7504,7 @@ class TestimonialDetail(DetailView):
         return context
 
 
-class ApplicationExportView(SingleApplicationMixin, ExportView):
+class ApplicationExportView(ExportView):
     """Application PDF export view"""
 
     model = models.Application

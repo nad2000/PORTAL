@@ -8579,7 +8579,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     # duration = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.period}:{self.type}:{self.contract}"
+        return f"{self.contract}:{self.type}-{self.period}"
 
     class Meta:
         db_table = "reporting_schedule_entry"

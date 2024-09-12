@@ -22,15 +22,16 @@
       {% for field in object|fields %}
         {% if field.name != 'id' and exclude is None or field.name not in exclude %}
           {% if not object|field_is_empty:field.name %}
+          {% with value=object|field_value:field.name %}
           <tr>
             <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
               {{ field.verbose_name|title }}
             </th>
             <td>
-              {% if object|field_is_empty:field.name %}
+              {% if not value and value != 0 %}
                 {% trans 'N/A' %}
               {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" %}
-                {{ object|field_value:field.name|safe }}
+                {{ value|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>
               {% elif field.name == "converted_file"%}
@@ -38,10 +39,11 @@
                   {{ object.converted_file|field_file_name|basename }}
                 </a>
               {% else %}
-                {{ object|field_value:field.name }}
+                {{ value }}
               {% endif %}
             </td>
           </tr>
+          {% endwith %}
           {% endif %}
         {% endif %}
       {% endfor %}
