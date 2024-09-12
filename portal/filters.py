@@ -158,10 +158,19 @@ class FilterSet(django_filters.FilterSet):
             self.state_filter.model = model
             self.state_filter.parent = self
 
-        if model and hasattr(model, "org"):
+        if model:
+            if hasattr(model, "org"):
+                org_field = "org"
+            elif model is models.Report:
+                org_field = "contract__org"
+            elif model is models.Testimonial:
+                org_field = "application__org"
+            else:
+                org_field = "org"
+
             self.filters["org_filter"] = self.org_filter = RelatedOnlyModelChoiceFilter(
                 label=gettext_lazy("Source"),
-                field_name="org",
+                field_name="org" if hasattr(model, "org") else "contract__org",
                 widget=django_filters.widgets.LinkWidget,
                 queryset=models.Organisation.objects.all(),
             )
