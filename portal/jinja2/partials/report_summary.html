@@ -1,0 +1,107 @@
+{% set r=report %}
+{% set c=r.contract %}
+{% set a=c.application %}
+{% set contract_number=c.number %}
+{% set application_number=a.number %}
+{% set due_in_days=(r.due_date - current_date).days %}
+<div class="table-responsive">
+  <table class="table table-bordered searchable">
+    <tbody>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Contract Investigator') }}
+        </th>
+        <td>
+          {{ c.pi }}
+          <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
+        </td>
+      </tr>
+
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Coordinator') }}
+        </th>
+        <td>
+          TODO: is coordinator or the contract?
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Project Title') }}
+        </th>
+        <td>
+          <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">
+            {{ c.project_title or a.application_title or a.round.name }}
+          </a>
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report Number, Type') }}
+        </th>
+        <td>
+          <a href="{{ url('report', pk=r.pk) }}" target="_blank">#{{ r.period }}, {{ r.get_type_display() }}</a>
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report Due') }}
+        </th>
+        <td>
+          {% if due_in_days < 0 %} 
+            <span class="text-danger"> {{ r.due_date }} ({{ -due_in_days }} {{ _('day(s) overdue') }}) </span>
+          {% elif due_in_days < 4 %}
+            <span class="text-warning"> {{ r.due_date }} ({{ _('due in') }} {{ due_in_days }} {{ _('day(s)') }}) </span>
+          {% else %}
+            {{ r.due_date }}
+          {% endif %}
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Project URL') }}
+        </th>
+        <td>
+          TODO: ???? (if relevant and known)
+        </td>
+      </tr>
+
+      {% if c.host_number %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Organisation Contract ID') }}
+        </th>
+        <td>
+          {{ c.host_number }}
+        </td>
+      </tr>
+      {% endif %}
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Application') }}
+        </th>
+        <td>
+          <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
+        </td>
+      </tr>
+
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Current Contract') }}
+        </th>
+        <td>
+          <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+
+</div>

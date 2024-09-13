@@ -281,7 +281,7 @@ def jinja(context, template, *args, **kwargs):
     # site = context.get("site")
     # contract = object = context.get("object")
     # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
-    output = get_template(template).render(context)
+    output = get_template(template).render(context.flatten())
     return Markup(output)
 
 

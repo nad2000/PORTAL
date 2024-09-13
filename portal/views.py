@@ -1698,132 +1698,135 @@ class ReportViewMixin:
         #             )
         #         ]
 
-        class ReportDocumentForm(ModelForm):
+        # class ReportDocumentForm(ModelForm):
 
-            application_document = fields.Field(widget=HiddenInput(), required=False)
+        #     application_document = fields.Field(widget=HiddenInput(), required=False)
 
-            def save(self, commit=True):
-                if (
-                    "application_document" in self.cleaned_data
-                    and not self.cleaned_data["file"]
-                    and (
-                        d := models.ApplicationDocument.get(
-                            self.cleaned_data["application_document"]
-                        )
-                    )
-                ):
-                    res = super().save(commit=False)
-                    res.file = d.file
-                    res.save()
-                    return res
-                elif "file" in self.changed_data:
-                    res = super().save(*args, **kwargs)
-                    return res
-                return self.instance
+        #     def save(self, commit=True):
+        #         if (
+        #             "application_document" in self.cleaned_data
+        #             and not self.cleaned_data["file"]
+        #             and (
+        #                 d := models.ApplicationDocument.get(
+        #                     self.cleaned_data["application_document"]
+        #                 )
+        #             )
+        #         ):
+        #             res = super().save(commit=False)
+        #             res.file = d.file
+        #             res.save()
+        #             return res
+        #         elif "file" in self.changed_data:
+        #             res = super().save(*args, **kwargs)
+        #             return res
+        #         return self.instance
 
-        class Meta:
-            model = models.ReportDocument
-            exclude = ["converted_file"]
+        # class Meta:
+        #     model = models.ReportDocument
+        #     exclude = ["converted_file"]
 
-        fsc = forms.inlineformset_factory(
-            models.Report,
-            models.ReportDocument,
-            form=ReportDocumentForm,
-            extra=len(initial),
-            can_delete=False,
-            exclude=[
-                "converted_file",
-            ],
-            widgets={
-                "application_document": HiddenInput(),
-                "required_document": HiddenInput(),
-                "state": HiddenInput(),
-                "page_count": HiddenInput(),
-                "document_type": HiddenInput(),
-                # "required_document": widgets.Select(attrs={"disabled": True}),
-                # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
-                "file": widgets.ClearableFileInput(
-                    attrs={
-                        "placeholder": _("Please upload a file ..."),
-                        "data-placeholder": _("Please upload a file ..."),
-                        "data-required": 1,
-                        "oninvalid": "this.setCustomValidity('%s')"
-                        % _("The file is required. Please upload a file ..."),
-                        "oninput": "this.setCustomValidity('')",
-                    }
-                ),
-            },
-        )
+        # fsc = forms.inlineformset_factory(
+        #     models.Report,
+        #     models.ReportDocument,
+        #     form=ReportDocumentForm,
+        #     extra=len(initial),
+        #     can_delete=False,
+        #     exclude=[
+        #         "converted_file",
+        #     ],
+        #     widgets={
+        #         "application_document": HiddenInput(),
+        #         "required_document": HiddenInput(),
+        #         "state": HiddenInput(),
+        #         "page_count": HiddenInput(),
+        #         "document_type": HiddenInput(),
+        #         # "required_document": widgets.Select(attrs={"disabled": True}),
+        #         # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+        #         "file": widgets.ClearableFileInput(
+        #             attrs={
+        #                 "placeholder": _("Please upload a file ..."),
+        #                 "data-placeholder": _("Please upload a file ..."),
+        #                 "data-required": 1,
+        #                 "oninvalid": "this.setCustomValidity('%s')"
+        #                 % _("The file is required. Please upload a file ..."),
+        #                 "oninput": "this.setCustomValidity('')",
+        #             }
+        #         ),
+        #     },
+        # )
 
-        # exclude budgets
-        class fsc(fsc):
-            def get_queryset(self):
-                qs = super().get_queryset()
-                return qs.filter(~Q(document_type__role__in=exclued_document_roles))
+        # # exclude budgets
+        # class fsc(fsc):
+        #     def get_queryset(self):
+        #         qs = super().get_queryset()
+        #         return qs.filter(~Q(document_type__role__in=exclued_document_roles))
 
-        if self.request.POST:
-            fs = fsc(
-                self.request.POST or None,
-                self.request.FILES or None,
-                instance=self.object,
-                # initial=initial,
-            )
-        else:
-            fs = fsc(instance=self.object, initial=initial)
-        if initial:
-            fs.extra = len(initial)
-        return fs
+        # if self.request.POST:
+        #     fs = fsc(
+        #         self.request.POST or None,
+        #         self.request.FILES or None,
+        #         instance=self.object,
+        #         # initial=initial,
+        #     )
+        # else:
+        #     fs = fsc(instance=self.object, initial=initial)
+        # if initial:
+        #     fs.extra = len(initial)
+        # return fs
 
-    def get_address_form(self):
-        report = self.object
-        application = self.application
-        applicant = application and application.submitted_by.person
+    # def get_address_form(self):
+        # report = self.object
+        # application = self.application
+        # applicant = application and application.submitted_by.person
 
-        a = None
-        if report and report.address:
-            a = report.address
-        if not (report and report.pk):
-            if not a and applicant:
-                a = applicant.address
-            if not a and application:
-                a = applicant.address
+        # a = None
+        # if report and report.address:
+        #     a = report.address
+        # if not (report and report.pk):
+        #     if not a and applicant:
+        #         a = applicant.address
+        #     if not a and application:
+        #         a = applicant.address
 
-        return forms.AddressForm(
-            data=self.request.POST or None,
-            instance=a,
-            initial=a
-            and {
-                "address": a.address or "",
-                "city": a.city or "",
-                "postcode": a.postcode or "",
-                "country": a.country,
-            }
-            or {"country": "NZ"},
-        )
+        # return forms.AddressForm(
+        #     data=self.request.POST or None,
+        #     instance=a,
+        #     initial=a
+        #     and {
+        #         "address": a.address or "",
+        #         "city": a.city or "",
+        #         "postcode": a.postcode or "",
+        #         "country": a.country,
+        #     }
+        #     or {"country": "NZ"},
+        # )
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
-        self.allocations = context["allocations"] = self.get_allocation_formset()
-        self.reporting_schedule = context["reporting_schedule"] = (
-            self.get_reporting_schedule_formset()
-        )
-        self.personnel = context["personnel"] = self.get_personnel_formset()
-        a = self.application
-        context["application"] = a
+        context["current_date"] = timezone.localdate()
+        context["report"] = r = self.object
+        
+        # self.allocations = context["allocations"] = self.get_allocation_formset()
+        # self.reporting_schedule = context["reporting_schedule"] = (
+        #     self.get_reporting_schedule_formset()
+        # )
+        # self.personnel = context["personnel"] = self.get_personnel_formset()
+        context["contract"] = c = r.contract
+        context["application"] = a = c.application
         context["round"] = round = a.round
         context["is_pi"] = (a.submitted_by == u) or (
-            self.object and self.object.pk and self.object.members.filter(role="PI").exists()
+            self.object and self.object.pk and self.object.contract.members.filter(role="PI").exists()
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
 
-        self.documents = context["documents"] = self.get_document_formset()
-        context["required_documents"] = {
-            rd.id: rd for rd in round.required_report_documents.all().order_by("ordering")
-        }
-        if "address_form" not in kwargs:
-            context["address_form"] = self.get_address_form()
+        # self.documents = context["documents"] = self.get_document_formset()
+        # context["required_documents"] = {
+        #     rd.id: rd for rd in round.required_report_documents.all().order_by("ordering")
+        # }
+        # if "address_form" not in kwargs:
+        #     context["address_form"] = self.get_address_form()
 
         return context
 
@@ -1850,236 +1853,236 @@ class ReportViewMixin:
         try:
             with transaction.atomic():
                 resp = super().form_valid(form)
-                fs = self.get_allocation_formset()
-                fs.instance = self.object
-                if fs.is_valid():
-                    fs.save()
-                fs = self.get_reporting_schedule_formset()
-                fs.instance = self.object
-                if fs.is_valid():
-                    fs.save()
-                fs = self.get_personnel_formset()
-                fs.instance = self.object
-                if fs.is_valid():
-                    fs.save()
-                fs = self.get_document_formset()
-                fs.instance = self.object
-                if fs.is_valid():
-                    fs.save(commit=False)
-                    for f in fs.forms:
-                        if "file" in f.changed_data:
-                            if f.instance.file.name.lower().endswith(".pdf"):
-                                doc_file = f.instance.file.open()
-                                f.instance.update_page_count(doc_file)
-                                # f.instance.sarve(update_fields=["page_count"])
-                            else:
-                                cf = f.instance.update_converted_file()
-                                # f.instance.save(update_fields=["page_count", "converted_file"])
-                                if cf:
-                                    messages.success(
-                                        self.request,
-                                        _(
-                                            "%(document_type)s %(original)s was converted into PDF file. "
-                                            "Please review the converted document <a href='%(url)s'>%(name)s</a>."
-                                        )
-                                        % {
-                                            "document_type": f.instance.document_type
-                                            or f.instance.required_document
-                                            and f.instance.required_document.document_type,
-                                            "original": os.path.basename(f.instance.file.name),
-                                            "url": cf.file.url,
-                                            "name": os.path.basename(cf.file.name),
-                                        },
-                                    )
-                    fs.save(commit=True)
+                # fs = self.get_allocation_formset()
+                # fs.instance = self.object
+                # if fs.is_valid():
+                #     fs.save()
+                # fs = self.get_reporting_schedule_formset()
+                # fs.instance = self.object
+                # if fs.is_valid():
+                #     fs.save()
+                # fs = self.get_personnel_formset()
+                # fs.instance = self.object
+                # if fs.is_valid():
+                #     fs.save()
+                # fs = self.get_document_formset()
+                # fs.instance = self.object
+                # if fs.is_valid():
+                #     fs.save(commit=False)
+                #     for f in fs.forms:
+                #         if "file" in f.changed_data:
+                #             if f.instance.file.name.lower().endswith(".pdf"):
+                #                 doc_file = f.instance.file.open()
+                #                 f.instance.update_page_count(doc_file)
+                #                 # f.instance.sarve(update_fields=["page_count"])
+                #             else:
+                #                 cf = f.instance.update_converted_file()
+                #                 # f.instance.save(update_fields=["page_count", "converted_file"])
+                #                 if cf:
+                #                     messages.success(
+                #                         self.request,
+                #                         _(
+                #                             "%(document_type)s %(original)s was converted into PDF file. "
+                #                             "Please review the converted document <a href='%(url)s'>%(name)s</a>."
+                #                         )
+                #                         % {
+                #                             "document_type": f.instance.document_type
+                #                             or f.instance.required_document
+                #                             and f.instance.required_document.document_type,
+                #                             "original": os.path.basename(f.instance.file.name),
+                #                             "url": cf.file.url,
+                #                             "name": os.path.basename(cf.file.name),
+                #                         },
+                #                     )
+                #     fs.save(commit=True)
 
-                address_form = self.get_address_form()
-                # instance=self.object.address if self.object and self.object.pk else None)
-                if address_form.changed_data or not self.object.address:
-                    if address_form.data.get("address") and form.data.get("address").strip():
-                        if not address_form.is_valid():
-                            return self.form_invalid(form)
-                        address = address_form.save()
-                    else:
-                        address = None
-                    if self.object.address != address:
-                        self.object.address = address
-                        self.object.save(update_fields=["address"])
+                # address_form = self.get_address_form()
+                # # instance=self.object.address if self.object and self.object.pk else None)
+                # if address_form.changed_data or not self.object.address:
+                #     if address_form.data.get("address") and form.data.get("address").strip():
+                #         if not address_form.is_valid():
+                #             return self.form_invalid(form)
+                #         address = address_form.save()
+                #     else:
+                #         address = None
+                #     if self.object.address != address:
+                #         self.object.address = address
+                #         self.object.save(update_fields=["address"])
 
         except Exception as ex:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
             return super().form_invalid(form)
 
-        is_host = (
-            a.org.research_offices.filter(user=u).exists()
-            or a.submitted_by == u
-            or a.members.filter(user=u).exists()
-        )
-        recipients = (
-            (
-                (
-                    i.host_contact_email
-                    or [u for u in Site.objects.get_current().staff_users.all()]
-                    or [u for u in User.where(is_superuser=True)]
-                )
-                if is_host
-                else [ro.user for ro in a.org.research_offices.all()]
-                or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
-            )
-            if self.request.POST.get("doc_role")
-            or self.request.POST.get("doc_type")
-            or "post_comment" in self.request.POST
-            else []
-        )
-        recipient_list = ", ".join(
-            [
-                r.full_name_with_email if isinstance(r, models.User) else r
-                for r in (recipients if isinstance(recipients, (list, tuple)) else [recipients])
-            ]
-        )
-        if (
-            self.request.POST.get("doc_role")
-            or self.request.POST.get("doc_type")
-            or self.request.POST.get("required_doc")
-        ):
-            document_role = form.data.get("doc_role")
-            document_type = form.data.get("doc_type")
-            document_action = form.data.get("doc_action")
-            required_document = form.data.get("required_doc")
-            resolution = (form.data.get("resolution") or "").strip()
-            if (document_role in models.DOCUMENT_ROLES or document_type or required_document) and (
-                d := (
-                    i.documents.filter(required_document=required_document).order_by("id").last()
-                    if required_document
-                    else (
-                        i.documents.filter(
-                            required_document__document_type__role=document_role
-                        ).last()
-                        if document_role
-                        else (
-                            i.documents.filter(
-                                Q(document_type=document_type)
-                                | Q(required_document__document_type=document_type)
-                            )
-                            .order_by("id")
-                            .last()
-                        )
-                    )
-                )
-            ):
-                previous_state = d.state
-                if document_action == "approve":
-                    if is_host:
-                        if d.state not in ["accepted", "approved"]:
-                            d.approve(
-                                request=self.request, description=resolution or f"approved by {u}"
-                            )
-                            # d.save()
-                        else:
-                            messages.warning(
-                                self.request, _("The document was already %s") % _(d.state)
-                            )
-                    else:
-                        if d.state != "accepted":
-                            d.accept(
-                                request=self.request, description=resolution or f"accepted by {u}"
-                            )
-                            # d.save()
-                        else:
-                            messages.warning(
-                                self.request, _("The document was already %s") % _(d.state)
-                            )
-                    if d.state != previous_state:
-                        messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
-                elif document_action == "request_correction":
-                    d.save_draft(
-                        request=self.request,
-                        description=resolution or f"requested corrections by {u}",
-                    )
-                if previous_state != d.state:
-                    d.save()
+        # is_host = (
+        #     a.org.research_offices.filter(user=u).exists()
+        #     or a.submitted_by == u
+        #     or a.members.filter(user=u).exists()
+        # )
+        # recipients = (
+        #     (
+        #         (
+        #             i.host_contact_email
+        #             or [u for u in Site.objects.get_current().staff_users.all()]
+        #             or [u for u in User.where(is_superuser=True)]
+        #         )
+        #         if is_host
+        #         else [ro.user for ro in a.org.research_offices.all()]
+        #         or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
+        #     )
+        #     if self.request.POST.get("doc_role")
+        #     or self.request.POST.get("doc_type")
+        #     or "post_comment" in self.request.POST
+        #     else []
+        # )
+        # recipient_list = ", ".join(
+        #     [
+        #         r.full_name_with_email if isinstance(r, models.User) else r
+        #         for r in (recipients if isinstance(recipients, (list, tuple)) else [recipients])
+        #     ]
+        # )
+        # if (
+        #     self.request.POST.get("doc_role")
+        #     or self.request.POST.get("doc_type")
+        #     or self.request.POST.get("required_doc")
+        # ):
+        #     document_role = form.data.get("doc_role")
+        #     document_type = form.data.get("doc_type")
+        #     document_action = form.data.get("doc_action")
+        #     required_document = form.data.get("required_doc")
+        #     resolution = (form.data.get("resolution") or "").strip()
+        #     if (document_role in models.DOCUMENT_ROLES or document_type or required_document) and (
+        #         d := (
+        #             i.documents.filter(required_document=required_document).order_by("id").last()
+        #             if required_document
+        #             else (
+        #                 i.documents.filter(
+        #                     required_document__document_type__role=document_role
+        #                 ).last()
+        #                 if document_role
+        #                 else (
+        #                     i.documents.filter(
+        #                         Q(document_type=document_type)
+        #                         | Q(required_document__document_type=document_type)
+        #                     )
+        #                     .order_by("id")
+        #                     .last()
+        #                 )
+        #             )
+        #         )
+        #     ):
+        #         previous_state = d.state
+        #         if document_action == "approve":
+        #             if is_host:
+        #                 if d.state not in ["accepted", "approved"]:
+        #                     d.approve(
+        #                         request=self.request, description=resolution or f"approved by {u}"
+        #                     )
+        #                     # d.save()
+        #                 else:
+        #                     messages.warning(
+        #                         self.request, _("The document was already %s") % _(d.state)
+        #                     )
+        #             else:
+        #                 if d.state != "accepted":
+        #                     d.accept(
+        #                         request=self.request, description=resolution or f"accepted by {u}"
+        #                     )
+        #                     # d.save()
+        #                 else:
+        #                     messages.warning(
+        #                         self.request, _("The document was already %s") % _(d.state)
+        #                     )
+        #             if d.state != previous_state:
+        #                 messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
+        #         elif document_action == "request_correction":
+        #             d.save_draft(
+        #                 request=self.request,
+        #                 description=resolution or f"requested corrections by {u}",
+        #             )
+        #         if previous_state != d.state:
+        #             d.save()
 
-                respond_url = self.request.build_absolute_uri(
-                    reverse("report-update", kwargs=dict(pk=i.pk))
-                )
-                if document_role in ["B", "PB", "AB"]:
-                    respond_url += "#finances"
-                # elif document_role in ["AIM", "PT"]:
-                #     respond_url += "#research"
-                elif document_role or document_type or required_document:
-                    respond_url += "#appendices"
+        #         respond_url = self.request.build_absolute_uri(
+        #             reverse("report-update", kwargs=dict(pk=i.pk))
+        #         )
+        #         if document_role in ["B", "PB", "AB"]:
+        #             respond_url += "#finances"
+        #         # elif document_role in ["AIM", "PT"]:
+        #         #     respond_url += "#research"
+        #         elif document_role or document_type or required_document:
+        #             respond_url += "#appendices"
 
-                if not document_action or document_action == "approve":
-                    # TODO: notify about approvals after all documents got approved:
-                    html_message = f'<p>The report record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
-                    html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-                    html_message += f":</p>{resolution}" if resolution else "."
-                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
-                    subject = f"Report {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}"
-                elif document_action == "request_correction":
-                    html_message = f'<p>The report record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}'
-                    html_message += f":</p>{resolution}" if resolution else ".</p>"
-                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
-                    subject = f"{u.full_name_with_email} requested correction(s) of the report {i} {d.document_type} {d}"
-                    messages.info(
-                        self.request,
-                        _("The request to amend the %s was sent to %s") % (d, recipient_list),
-                    )
-                elif document_action in ["request_approval", "awaiting_approval"]:
-                    html_message = f'<p>The report record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:'
-                    html_message += f":</p>{resolution}" if resolution else ".</p>"
-                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
-                    subject = f"{u.full_name_with_email} requested approval of the report {i} {d.document_type} {d}"
-                    messages.info(
-                        self.request,
-                        _("The request to approve the %s was sent to %s") % (d, recipient_list),
-                    )
-                send_mail(
-                    request=self.request,
-                    subject=subject,
-                    html_message=html_message,
-                    cc=[u.full_email_address],
-                    recipients=recipients,
-                    thread_index=i.thread_index,
-                    thread_topic=i.thread_topic,
-                )
-                return redirect("report-update", pk=i.pk)
+        #         if not document_action or document_action == "approve":
+        #             # TODO: notify about approvals after all documents got approved:
+        #             html_message = f'<p>The report record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
+        #             html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+        #             html_message += f":</p>{resolution}" if resolution else "."
+        #             html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+        #             subject = f"Report {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}"
+        #         elif document_action == "request_correction":
+        #             html_message = f'<p>The report record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}'
+        #             html_message += f":</p>{resolution}" if resolution else ".</p>"
+        #             html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+        #             subject = f"{u.full_name_with_email} requested correction(s) of the report {i} {d.document_type} {d}"
+        #             messages.info(
+        #                 self.request,
+        #                 _("The request to amend the %s was sent to %s") % (d, recipient_list),
+        #             )
+        #         elif document_action in ["request_approval", "awaiting_approval"]:
+        #             html_message = f'<p>The report record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:'
+        #             html_message += f":</p>{resolution}" if resolution else ".</p>"
+        #             html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+        #             subject = f"{u.full_name_with_email} requested approval of the report {i} {d.document_type} {d}"
+        #             messages.info(
+        #                 self.request,
+        #                 _("The request to approve the %s was sent to %s") % (d, recipient_list),
+        #             )
+        #         send_mail(
+        #             request=self.request,
+        #             subject=subject,
+        #             html_message=html_message,
+        #             cc=[u.full_email_address],
+        #             recipients=recipients,
+        #             thread_index=i.thread_index,
+        #             thread_topic=i.thread_topic,
+        #         )
+        #         return redirect("report-update", pk=i.pk)
 
-        if "post_comment" in self.request.POST:
-            token = models.get_unique_mail_token()
-            attachment = form.cleaned_data.get("attachment", None)
-            if body := form.cleaned_data.get("comment", None):
-                body = body.strip()
+        # if "post_comment" in self.request.POST:
+        #     token = models.get_unique_mail_token()
+        #     attachment = form.cleaned_data.get("attachment", None)
+        #     if body := form.cleaned_data.get("comment", None):
+        #         body = body.strip()
 
-            if body or attachment:
-                models.ReportComment.create(
-                    report=i, submitted_by=u, comment=body, attachment=attachment, token=token
-                )
+        #     if body or attachment:
+        #         models.ReportComment.create(
+        #             report=i, submitted_by=u, comment=body, attachment=attachment, token=token
+        #         )
 
-            respond_url = (
-                self.request.build_absolute_uri(reverse("report-update", kwargs=dict(pk=i.pk)))
-                + "#correspondence"
-            )
-            html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-            html_message += f":</p>{body}" if body else "."
-            html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-            send_mail(
-                request=self.request,
-                from_email="reports",
-                subject=f"Comment posted by {u.full_name_with_email} to {i}",
-                html_message=html_message,
-                cc=[u.full_email_address],
-                attachments=attachment and [attachment],
-                recipients=recipients,
-                thread_index=i.thread_index,
-                thread_topic=i.thread_topic,
-                token=token,
-            )
-            return redirect(
-                reverse("report-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
-            )
-        return resp
+        #     respond_url = (
+        #         self.request.build_absolute_uri(reverse("report-update", kwargs=dict(pk=i.pk)))
+        #         + "#correspondence"
+        #     )
+        #     html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+        #     html_message += f":</p>{body}" if body else "."
+        #     html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+        #     send_mail(
+        #         request=self.request,
+        #         from_email="reports",
+        #         subject=f"Comment posted by {u.full_name_with_email} to {i}",
+        #         html_message=html_message,
+        #         cc=[u.full_email_address],
+        #         attachments=attachment and [attachment],
+        #         recipients=recipients,
+        #         thread_index=i.thread_index,
+        #         thread_topic=i.thread_topic,
+        #         token=token,
+        #     )
+        #     return redirect(
+        #         reverse("report-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
+        #     )
+        # return resp
 
 
 class ReportCreate(ReportViewMixin, CreateView):

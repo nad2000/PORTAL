@@ -3245,7 +3245,8 @@ class ReportForm(ModelForm):
         super().__init__(*args, **kwargs)
         # language = get_language()
         instance = self.instance or instance
-        # application = instance.application or initial.get("application")
+        contract = instance.contract or initial.get("contract")
+        application = contract.application or initial.get("application")
         # site_id = self.site_id
         # if site_id in [4, 5]:
         #     self.fields["project_title"].label = _("Title of proposed research project")
@@ -3260,32 +3261,31 @@ class ReportForm(ModelForm):
         #     else {}
         # )
 
-        # submission_disabled = not instance or (
-        #     instance.submitted_by and instance.submitted_by != user
-        # )
-        # is_pi = instance and (
-        #     instance.submitted_by == user
-        #     or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
-        #     or application.submitted_by == user
-        # )
-        # is_ro = application and application.org.research_offices.filter(user=user).exists()
-        # submit_button = Submit(
-        #     "submit_contract",  # NB! Never call a button 'submit'!
-        #     _("Submit"),
-        #     # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
-        #     data_toggle="tooltip",
-        #     title=(
-        #         _("Only P.I. can submit the contract")
-        #         if not is_pi
-        #         else (
-        #             _("Not all the parts/appendices of the contract were approved and/or accepted")
-        #             if submission_disabled
-        #             else _("Submit the contract")
-        #         )
-        #     ),
-        #     css_class="btn-outline-primary",
-        #     disabled=submission_disabled or not is_pi,
-        # )
+        is_pi = instance and (
+            contract.submitted_by == user
+            or (contract.pk and contract.members.filter(user=user, role__code="PI").exists())
+            # or application.submitted_by == user
+            # or (application.pk and application.members.filter(user=user, role__code="PI").exists())
+        )
+        submission_disabled = not instance or not is_pi
+        is_ro = application and application.org.research_offices.filter(user=user).exists()
+        submit_button = Submit(
+            "submit_report",  # NB! Never call a button 'submit'!
+            _("Submit"),
+            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+            data_toggle="tooltip",
+            title=(
+                _("Only P.I. can submit the contract")
+                if not is_pi
+                else (
+                    _("Not all the parts/appendices of the contract were approved and/or accepted")
+                    if submission_disabled
+                    else _("Submit the contract")
+                )
+            ),
+            css_class="btn-outline-primary",
+            disabled=submission_disabled or not is_pi,
+        )
         # # if is_pi or is_ro:
         # #     pass
         # # else:
@@ -3428,44 +3428,44 @@ class ReportForm(ModelForm):
         #     # self.fields["involves_childeren"].disabled = True
         #     # self.fields["has_child_protection"].disabled = True
 
-        # self.helper = FormHelper(self)
-        # tabs = [
-        #     # Tab(
-        #     #     "Playgroud",
-        #     #     Modal(
-        #     #         # email.help_text was set during the initalization of the django form field
-        #     #         Field("email", placeholder="Email", wrapper_class="mb-0"),
-        #     #         Button(
-        #     #             "submit",
-        #     #             "Send Reset Email",
-        #     #             id="email_reset",
-        #     #             css_class="btn-primary mt-3",
-        #     #             onClick="someJavasciptFunction()",  # used to submit the form
-        #     #         ),
-        #     #         css_id="my_modal_id",
-        #     #         title="This is my modal",
-        #     #         title_class="w-100 text-center",
-        #     #     ),
-        #     # ),
-        #     Tab(
-        #         mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
-        #         *(
-        #             [
-        #                 HTML("{% load tags %}{% contract_summary %}"),
-        #                 Field("start_date", type="hidden", css_class="hidden"),
-        #                 Field("end_date", type="hidden", css_class="hidden"),
-        #             ]
-        #             if self.instance
-        #             and self.instance.id
-        #             and not (user.is_superuser or user.is_staff)
-        #             else [
-        #                 HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-        #                 Row(Column("start_date"), Column("end_date")),
-        #                 SubForm("address_form"),
-        #             ]
-        #         ),
-        #         css_id="summary",
-        #     ),
+        self.helper = FormHelper(self)
+        tabs = [
+            # Tab(
+            #     "Playgroud",
+            #     Modal(
+            #         # email.help_text was set during the initalization of the django form field
+            #         Field("email", placeholder="Email", wrapper_class="mb-0"),
+            #         Button(
+            #             "submit",
+            #             "Send Reset Email",
+            #             id="email_reset",
+            #             css_class="btn-primary mt-3",
+            #             onClick="someJavasciptFunction()",  # used to submit the form
+            #         ),
+            #         css_id="my_modal_id",
+            #         title="This is my modal",
+            #         title_class="w-100 text-center",
+            #     ),
+            # ),
+            Tab(
+                mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
+                *(
+                    [
+                        HTML("{% load tags %}{% jinja 'partials/report_summary.html' %}"),
+                        # Field("start_date", type="hidden", css_class="hidden"),
+                        # Field("end_date", type="hidden", css_class="hidden"),
+                    ]
+                    # if self.instance
+                    # and self.instance.id
+                    # and not (user.is_superuser or user.is_staff)
+                    # else [
+                    #     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                    #     Row(Column("start_date"), Column("end_date")),
+                    #     SubForm("address_form"),
+                    # ]
+                ),
+                css_id="summary",
+            ),
         #     Tab(
         #         _("Research"),
         #         Field("project_title"),
@@ -3579,7 +3579,7 @@ class ReportForm(ModelForm):
         #         ),
         #         css_id="appendices",
         #     ),
-        # ]
+        ]
 
         # if instance and instance.pk:
         #     tabs.append(
@@ -3602,36 +3602,36 @@ class ReportForm(ModelForm):
         #             css_id="correspondence",
         #         )
         #     )
-        # self.helper.layout = Layout(
-        #     TabHolder(*tabs),
-        #     ButtonHolder(
-        #         Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
-        #         Div(
-        #             Submit(
-        #                 "save_draft",
-        #                 _("Save"),
-        #                 css_class="btn-primary",
-        #                 data_toggle="tooltip",
-        #                 title=_("Save draft contract"),
-        #             ),
-        #             submit_button,
-        #             HTML(
-        #                 """<a href="{{ view.get_success_url }}"
-        #                 type="button"
-        #                 role="button"
-        #                 class="btn btn-secondary"
-        #                 id="cancel">
-        #                     %s
-        #                 </a>"""
-        #                 % _("Cancel")
-        #             ),
-        #             Button("next", _("Next") + " »", css_class="btn-primary"),
-        #             css_class="float-right",
-        #         ),
-        #         css_class="mb-5",
-        #     ),
-        # )
-        # self.helper.include_media = False
+        self.helper.layout = Layout(
+            TabHolder(*tabs),
+            ButtonHolder(
+                Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
+                Div(
+                    Submit(
+                        "save_draft",
+                        _("Save"),
+                        css_class="btn-primary",
+                        data_toggle="tooltip",
+                        title=_("Save draft contract"),
+                    ),
+                    submit_button,
+                    HTML(
+                        """<a href="{{ view.get_success_url }}"
+                        type="button"
+                        role="button"
+                        class="btn btn-secondary"
+                        id="cancel">
+                            %s
+                        </a>"""
+                        % _("Cancel")
+                    ),
+                    Button("next", _("Next") + " »", css_class="btn-primary"),
+                    css_class="float-right",
+                ),
+                css_class="mb-5",
+            ),
+        )
+        self.helper.include_media = False
 
     # def save(self, *args, **kwargs):
     #     created = not self.instance.pk
