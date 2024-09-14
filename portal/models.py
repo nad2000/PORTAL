@@ -3552,7 +3552,9 @@ class Member(PersonMixin, MemberMixin, Model):
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
     )
-    authorized_at = MonitorField(monitor="state", when=["authorized"], null=True, default=None, blank=True)
+    authorized_at = MonitorField(
+        monitor="state", when=["authorized"], null=True, default=None, blank=True
+    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3966,7 +3968,11 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         % limesurvey_status
                     )
                 for r in resp:
-                    if "errors" in r and "token" in r["errors"] and " has already been taken." in r["errors"]["token"]:
+                    if (
+                        "errors" in r
+                        and "token" in r["errors"]
+                        and " has already been taken." in r["errors"]["token"]
+                    ):
                         r = api.token.get_participant_properties(survey_id, None, {"token": token})
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
@@ -3994,7 +4000,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not self.survey_token_id:
                 try:
-                    resp = api.token.get_participant_properties(survey_id, None, {"token": self.survey_token})
+                    resp = api.token.get_participant_properties(
+                        survey_id, None, {"token": self.survey_token}
+                    )
                     self.survey_token_id = resp.get("tid")
                     self.save(update_fields=["survey_token_id", "updated_at"])
                 except LimeSurveyError:
@@ -4654,9 +4662,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             if not application:
                 return
             contact_email = (
-                application
-                and application.round.contact_email
-                or site_contact_email(site_id)
+                application and application.round.contact_email or site_contact_email(site_id)
             )
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
@@ -6195,11 +6201,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 q = q.filter(pk__in=referees.values_list("pk"))
             fixed_referees = []
             api = self.survey_api
-            for r in q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")):
+            for r in q.filter(
+                Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
+            ):
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
-                    resp = api.token.get_participant_properties(self.survey_id, None, {"token": r.survey_token})
+                    resp = api.token.get_participant_properties(
+                        self.survey_id, None, {"token": r.survey_token}
+                    )
                     r.survey_token_id = resp.get("tid")
                 except LimeSurveyError:
                     r.add_to_survey(api=api)
@@ -7205,7 +7215,9 @@ class IdentityVerification(Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent")
+    @transition(
+        field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent"
+    )
     def send(self, request, *args, **kwargs):
         url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
 
@@ -8805,7 +8817,16 @@ class Report(ReportMixin, Model):
                 self.period = se.period
             if not self.type:
                 self.type = se.type
+        elif self.period and self.type:
+            if se := self.contract.reporting_schedule.filter(
+                period=self.period, type=self.type
+            ).last():
+                self.schedule_entry = se
         super().save(*args, **kwargs)
+
+    publications = ManyToManyField(
+        "Report", blank=True, db_table="report_publication", related_name="reports"
+    )
 
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"
@@ -8973,7 +8994,6 @@ class Publication(Model):
     doi = CharField(
         max_length=400, blank=True, null=True, help_text=_("Digital Object Identifier (DOI)")
     )
-    report = ForeignKey(Report, on_delete=CASCADE, related_name="publications")
     rsnz_ref = IntegerField(blank=True, null=True)
 
     # contract = ForeignKey(Contract, on_delete=CASCADE, blank=True, null=True)
@@ -8986,7 +9006,7 @@ class Publication(Model):
         PublicationStatus, on_delete=DO_NOTHING, blank=True, null=True, db_column="status"
     )
     status_date = DateField(blank=True, null=True)
-    title = CharField(max_length=1000, blank=True, null=True)
+    title = CharField(max_length=1000)
     title2 = CharField(max_length=1000, blank=True, null=True)
     host = CharField(max_length=100, blank=True, null=True)
     journal = CharField(max_length=100, blank=True, null=True)
@@ -9009,7 +9029,7 @@ class Publication(Model):
     isi_loc = CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.report.number}: {self.title}"
+        return f"{self.title}"
 
     class Meta:
         db_table = "publication"

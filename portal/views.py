@@ -16,7 +16,9 @@ import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Field, Layout
+from crispy_forms.layout import Column, Field, Fieldset, Layout, Row
+from crispy_forms import layout
+from crispy_forms import bootstrap
 from dal import autocomplete
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -61,6 +63,7 @@ from django.forms import (
     IntegerField,
     ModelForm,
     TextInput,
+    URLInput,
     ValidationError,
     fields,
     modelformset_factory,
@@ -565,6 +568,27 @@ class CreateView(LoginRequiredMixin, CreateView):
                 or self.request.META.get("HTTP_REFERER")
                 or reverse("home")
             )
+
+
+# class ObjectView(
+#     LoginRequiredMixin, SingleObjectTemplateResponseMixin, ModelFormMixin, ProcessFormView
+# ):
+#     """ViewSet implemetation..."""
+
+#     def init_object(self, request, *args, **kwargs):
+#         if kwargs and (kwargs.get(self.pk_url_kwarg) or kwargs.get(self.slug_url_kwarg)):
+#             self.object = self.get_object()
+#         else:
+#             self.object = None
+#         return self.object
+
+#     def get(self, request, *args, **kwargs):
+#         self.init_object(request, *args, **kwargs)
+#         return super().get(request, *args, **kwargs)
+
+#     def post(self, request, *args, **kwargs):
+#         self.init_object(request, *args, **kwargs)
+#         return super().post(request, *args, **kwargs)
 
 
 class SubscriptionList(LoginRequiredMixin, SingleTableView):
@@ -1486,7 +1510,9 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
 
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
-        queryset = queryset.filter(Q(contract__members__isnull=True) | Q(contract__members__role="PI"))
+        queryset = queryset.filter(
+            Q(contract__members__isnull=True) | Q(contract__members__role="PI")
+        )
         return queryset
 
 
@@ -1775,38 +1801,38 @@ class ReportViewMixin:
         # return fs
 
     # def get_address_form(self):
-        # report = self.object
-        # application = self.application
-        # applicant = application and application.submitted_by.person
+    # report = self.object
+    # application = self.application
+    # applicant = application and application.submitted_by.person
 
-        # a = None
-        # if report and report.address:
-        #     a = report.address
-        # if not (report and report.pk):
-        #     if not a and applicant:
-        #         a = applicant.address
-        #     if not a and application:
-        #         a = applicant.address
+    # a = None
+    # if report and report.address:
+    #     a = report.address
+    # if not (report and report.pk):
+    #     if not a and applicant:
+    #         a = applicant.address
+    #     if not a and application:
+    #         a = applicant.address
 
-        # return forms.AddressForm(
-        #     data=self.request.POST or None,
-        #     instance=a,
-        #     initial=a
-        #     and {
-        #         "address": a.address or "",
-        #         "city": a.city or "",
-        #         "postcode": a.postcode or "",
-        #         "country": a.country,
-        #     }
-        #     or {"country": "NZ"},
-        # )
+    # return forms.AddressForm(
+    #     data=self.request.POST or None,
+    #     instance=a,
+    #     initial=a
+    #     and {
+    #         "address": a.address or "",
+    #         "city": a.city or "",
+    #         "postcode": a.postcode or "",
+    #         "country": a.country,
+    #     }
+    #     or {"country": "NZ"},
+    # )
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
         context["current_date"] = timezone.localdate()
         context["report"] = r = self.object
-        
+
         # self.allocations = context["allocations"] = self.get_allocation_formset()
         # self.reporting_schedule = context["reporting_schedule"] = (
         #     self.get_reporting_schedule_formset()
@@ -1816,7 +1842,9 @@ class ReportViewMixin:
         context["application"] = a = c.application
         context["round"] = round = a.round
         context["is_pi"] = (a.submitted_by == u) or (
-            self.object and self.object.pk and self.object.contract.members.filter(role="PI").exists()
+            self.object
+            and self.object.pk
+            and self.object.contract.members.filter(role="PI").exists()
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
@@ -9288,6 +9316,67 @@ def demo_create(request):
         pass
 
     return render(request, "partials/form.html", locals())
+
+
+class PublicationViewMixin:
+
+    model = models.Publication
+    fields = "__all__"
+    exclude = ["updated_at", "created_at"]
+    widgets = {
+        "status_date": forms.DateInput(),
+        "citations_date": forms.DateInput(),
+        "impact_year": forms.DateInput(attrs={"class": "yearpicker"}),
+        "url": URLInput(),
+        # "org": autocomplete.ModelSelect2("org-autocomplete"),
+    }
+
+    def get_form_class(self):
+        """Return the form class to use in this view."""
+        return model_forms.modelform_factory(
+            self.model, fields=self.fields, exclude=self.exclude, widgets=self.widgets
+        )
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper = FormHelper()
+        form.helper.layout = Layout(
+            "title",
+            "title2",
+            "doi",
+            Row(Column("rsnz_ref"), Column("type")),
+            Row(Column("status"), Column("status_date")),
+            "host",
+            "journal",
+            "publisher",
+            "editor",
+            "location",
+            "url",
+            "volume",
+            "year_ref",
+            "page_ref",
+            "host_ref",
+            Row(Column("citations"), Column("citations_date")),
+            "abstract",
+            "uid",
+            Row(Column("impact_factor"), Column("impact_year")),
+            "xcr",
+            "isi_loc",
+            bootstrap.FormActions(
+                layout.Submit('save', 'Save changes'),
+                layout.Button('cancel', 'Cancel', css_class="btn btn-secondary"),
+                css_class="float-right"
+            )
+        )
+        return form
+
+
+class PublicationUpdateView(PublicationViewMixin, UpdateView):
+    pass
+
+
+class PublicationCreateView(PublicationViewMixin, CreateView):
+    pass
 
 
 @login_required
