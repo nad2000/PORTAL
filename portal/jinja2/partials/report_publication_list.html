@@ -1,0 +1,19 @@
+<table class="table table-striped">
+{% for p in report.publications.all() %}
+  <tr>
+    <td>{{ p.title }}{% if p.title2 %}
+        / {{ p.title2 }}
+      {% endif %}
+      {% if p.doi %}
+        DOI: <a href="{{ p.doi }}">
+          {{ p.doi }}
+        </a>
+      {% endif %}
+    </td>
+    <td>
+      <button>x</button>
+      <button>E</button>
+    </td>
+  </tr>
+{% endfor %}
+</table>

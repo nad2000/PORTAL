@@ -9331,6 +9331,11 @@ class PublicationViewMixin:
         # "org": autocomplete.ModelSelect2("org-autocomplete"),
     }
 
+    def get_template_names(self):
+        if self.request.GET.get("_popup"):
+            return ["partials/publication_form.html"]
+        return super().get_template_names()
+
     def get_form_class(self):
         """Return the form class to use in this view."""
         return model_forms.modelform_factory(
