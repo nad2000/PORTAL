@@ -8825,7 +8825,7 @@ class Report(ReportMixin, Model):
         super().save(*args, **kwargs)
 
     publications = ManyToManyField(
-        "Report", blank=True, db_table="report_publication", related_name="reports"
+        "Publication", blank=True, db_table="report_publication", related_name="reports"
     )
 
     def __str__(self):

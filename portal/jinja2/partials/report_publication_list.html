@@ -11,8 +11,25 @@
       {% endif %}
     </td>
     <td>
-      <button>x</button>
-      <button>E</button>
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        hx-delete=""
+        hx-params="none"
+        hx-target=""
+        hx-on:htmx:after-request=""
+        hx-swap="beforeend scroll:bottom"
+      ><i class="fa fa-times"></i></button>
+      <button
+        class="btn btn-primary btn-sm"
+        hx-get=""
+        hx-params="none"
+        hx-target=""
+        hx-on:htmx:after-request=""
+        hx-swap="beforeend scroll:bottom"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
     </td>
   </tr>
 {% endfor %}

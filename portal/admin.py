@@ -2950,6 +2950,25 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         StateLogInline,
     ]
 
+@admin.register(models.Publication)
+class PublicationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+    save_on_top = True
+    show_close_button = True
+
+    list_display = (
+        # "number",
+        # "category",
+        # "fund",
+        "title",
+        "status",
+        # "application",
+    )
+
+    list_filter = [
+        ("type", admin.RelatedOnlyFieldListFilter),
+        ("status", admin.RelatedOnlyFieldListFilter),
+    ]
+
 
 @admin.register(models.Report)
 class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
@@ -3068,6 +3087,14 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("contract").select_related("contract__application__round")
+
+    class PublicationInline(admin.StackedInline):
+        # model = models.Report.publications.through
+        model = models.Report.publications.through
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
 
     # class TeamInline(admin.StackedInline):
     #     model = models.ContractTeam
@@ -3189,6 +3216,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # ReportingScheduleEntryInline,
         # AllocationInline,
         ForInline,
+        PublicationInline,
         # TeamInline,
         # AllocationInline,
         # ReportingInline,

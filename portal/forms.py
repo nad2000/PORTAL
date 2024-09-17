@@ -3466,119 +3466,149 @@ class ReportForm(ModelForm):
                 ),
                 css_id="summary",
             ),
-        #     Tab(
-        #         _("Research"),
-        #         Field("project_title"),
-        #         Field("abstract"),
-        #         Field("notes"),
-        #         css_id="research",
-        #     ),
-        #     Tab(
-        #         _("Personnel"),
-        #         TableInlineFormset("personnel"),
-        #         css_id="personnel",
-        #     ),
-        #     Tab(
-        #         _("Proposal"),
-        #         HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
-        #         css_id="proposal",
-        #     ),
-        #     Tab(
-        #         _("Reporting"),
-        #         Fieldset(
-        #             _("Reporting Schedule"),
-        #             TableInlineFormset("reporting_schedule"),
-        #             css_id="reporting_schedule",
-        #         ),
-        #         css_id="reporting",
-        #     ),
-        #     Tab(
-        #         _("Compliance"),
-        #         *compliance_fields,
-        #         css_id="compliance",
-        #     ),
-        #     Tab(
-        #         mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-        #         HTML(
-        #             """{% load i18n %}<div class="alert alert-dark" role="alert">
-        #             {% blocktrans %}
-        #             Funding has been allocated over the award period.
-        #             You can distributed it differently, but may not exceed
-        #             the total award. All amounts are exclusive of GST.
-        #             {% endblocktrans %}
-        #             </div>"""
-        #         ),
-        #         Fieldset(
-        #             _("Budget Allocation"),
-        #             TableInlineFormset(
-        #                 "allocations", template="portal/allocations_table_inline_formset.html"
-        #             ),
-        #             css_id="allocations",
-        #         ),
-        #         (
-        #             # Field("proposal_budget"),
-        #             Fieldset(
-        #                 None,
-        #                 HTML(
-        #                     f"""<div class="input-group mb-2">
-        #                 <div class="input-group-prepend">
-        #                     <span class="input-group-text">{_("Proposal Budget")}</span>
-        #                 </div>
-        #                 <div class="form-control d-flex h-auto">
-        #                     <span class="text-break" style="flex-grow:1;min-width:0">
-        #                     <a href="{proposal_budget_file.url}">
-        #                         {os.path.basename(proposal_budget_file.name)}
-        #                     </a>
-        #                     </span>
-        #                 </div>
-        #             </div>"""
-        #                 ),
-        #                 # Submit(
-        #                 #     "copy_proposal_budget",
-        #                 #     _("Copy"),
-        #                 #     css_class="btn-primary float-right",
-        #                 #     data_document_action="copy_proposal_budget",
-        #                 #     # data_document_role="PB",
-        #                 #     data_document_role="PB",
-        #                 # ),
-        #             )
-        #             if proposal_budget_file
-        #             else None
-        #         ),
-        #         Fieldset(
-        #             None,
-        #             # Field("award_budget", label=""),
-        #             Field("budget", label=""),
-        #             ButtonHolder(
-        #                 Submit(
-        #                     "request_budget_correction",
-        #                     _("Request Correction"),
-        #                     css_class="btn-primary",
-        #                     data_document_action="request_correction",
-        #                     # data_document_role="PB",
-        #                     data_document_role="B",
-        #                 ),
-        #                 Submit(
-        #                     "approve_budget",
-        #                     _("Awaiting Approval"),
-        #                     css_class="btn-secondary",
-        #                     data_document_action="awaiting_approval",
-        #                     # data_document_role="AB",
-        #                     data_document_role="B",
-        #                 ),
-        #                 css_class="float-right",
-        #             ),
-        #         ),
-        #         css_id="finances",
-        #     ),
-        #     Tab(
-        #         mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
-        #         Div(
-        #             DocumentInlineFormset("documents"),
-        #             css_id="documents",
-        #         ),
-        #         css_id="appendices",
-        #     ),
+            Tab(
+                mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
+                HTML(
+                    """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
+                    </p>
+                </div>{% jinja 'partials/report_publication_list.html' %}"""
+                ),
+                Div(
+                    Div(
+                        ButtonHolder(
+                            Button(
+                                "import_ris_file", _("Import RIS file"), css_class="btn-primary btn-sm"
+                            ),
+                            Button(
+                                "import_from_orcid",
+                                _("Import from ORCID"),
+                                css_class="btn-secondary btn-sm",
+                            ),
+                            Button("nothing_to_add", _("Nothing to add"), css_class="btn-primary btn-sm"),
+                            css_class="float-right mb-5",
+                        ),
+                        css_class="col-12",
+                    ),
+                    css_class="row",
+                ),
+                css_id="publications",
+            ),
+            #     Tab(
+            #         _("Research"),
+            #         Field("project_title"),
+            #         Field("abstract"),
+            #         Field("notes"),
+            #         css_id="research",
+            #     ),
+            #     Tab(
+            #         _("Personnel"),
+            #         TableInlineFormset("personnel"),
+            #         css_id="personnel",
+            #     ),
+            #     Tab(
+            #         _("Proposal"),
+            #         HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+            #         css_id="proposal",
+            #     ),
+            #     Tab(
+            #         _("Reporting"),
+            #         Fieldset(
+            #             _("Reporting Schedule"),
+            #             TableInlineFormset("reporting_schedule"),
+            #             css_id="reporting_schedule",
+            #         ),
+            #         css_id="reporting",
+            #     ),
+            #     Tab(
+            #         _("Compliance"),
+            #         *compliance_fields,
+            #         css_id="compliance",
+            #     ),
+            #     Tab(
+            #         mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
+            #         HTML(
+            #             """{% load i18n %}<div class="alert alert-dark" role="alert">
+            #             {% blocktrans %}
+            #             Funding has been allocated over the award period.
+            #             You can distributed it differently, but may not exceed
+            #             the total award. All amounts are exclusive of GST.
+            #             {% endblocktrans %}
+            #             </div>"""
+            #         ),
+            #         Fieldset(
+            #             _("Budget Allocation"),
+            #             TableInlineFormset(
+            #                 "allocations", template="portal/allocations_table_inline_formset.html"
+            #             ),
+            #             css_id="allocations",
+            #         ),
+            #         (
+            #             # Field("proposal_budget"),
+            #             Fieldset(
+            #                 None,
+            #                 HTML(
+            #                     f"""<div class="input-group mb-2">
+            #                 <div class="input-group-prepend">
+            #                     <span class="input-group-text">{_("Proposal Budget")}</span>
+            #                 </div>
+            #                 <div class="form-control d-flex h-auto">
+            #                     <span class="text-break" style="flex-grow:1;min-width:0">
+            #                     <a href="{proposal_budget_file.url}">
+            #                         {os.path.basename(proposal_budget_file.name)}
+            #                     </a>
+            #                     </span>
+            #                 </div>
+            #             </div>"""
+            #                 ),
+            #                 # Submit(
+            #                 #     "copy_proposal_budget",
+            #                 #     _("Copy"),
+            #                 #     css_class="btn-primary float-right",
+            #                 #     data_document_action="copy_proposal_budget",
+            #                 #     # data_document_role="PB",
+            #                 #     data_document_role="PB",
+            #                 # ),
+            #             )
+            #             if proposal_budget_file
+            #             else None
+            #         ),
+            #         Fieldset(
+            #             None,
+            #             # Field("award_budget", label=""),
+            #             Field("budget", label=""),
+            #             ButtonHolder(
+            #                 Submit(
+            #                     "request_budget_correction",
+            #                     _("Request Correction"),
+            #                     css_class="btn-primary",
+            #                     data_document_action="request_correction",
+            #                     # data_document_role="PB",
+            #                     data_document_role="B",
+            #                 ),
+            #                 Submit(
+            #                     "approve_budget",
+            #                     _("Awaiting Approval"),
+            #                     css_class="btn-secondary",
+            #                     data_document_action="awaiting_approval",
+            #                     # data_document_role="AB",
+            #                     data_document_role="B",
+            #                 ),
+            #                 css_class="float-right",
+            #             ),
+            #         ),
+            #         css_id="finances",
+            #     ),
+            #     Tab(
+            #         mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
+            #         Div(
+            #             DocumentInlineFormset("documents"),
+            #             css_id="documents",
+            #         ),
+            #         css_id="appendices",
+            #     ),
         ]
 
         # if instance and instance.pk:
