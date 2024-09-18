@@ -51,16 +51,16 @@ class Migration(migrations.Migration):
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
-        # migrations.RenameField(
-        #     model_name="contract",
-        #     old_name="involves_childeren",
-        #     new_name="involves_children",
-        # ),
-        # migrations.RenameField(
-        #     model_name="historicalcontract",
-        #     old_name="involves_childeren",
-        #     new_name="involves_children",
-        # ),
+        migrations.RenameField(
+            model_name="contract",
+            old_name="involves_childeren",
+            new_name="involves_children",
+        ),
+        migrations.RenameField(
+            model_name="historicalcontract",
+            old_name="involves_childeren",
+            new_name="involves_children",
+        ),
         # migrations.AlterField(
         #     model_name="application",
         #     name="state_changed_at",
