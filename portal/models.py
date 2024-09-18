@@ -7905,7 +7905,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         help_text=_("Is your institution a signatory to the ANZCCART Openness Agreement?"),
     )
-    involves_childeren = BooleanField(
+    involves_children = BooleanField(
         _("involves children "),
         null=True,
         blank=True,

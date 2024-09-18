@@ -1827,6 +1827,58 @@ class ReportViewMixin:
     #     or {"country": "NZ"},
     # )
 
+    def get_personnel_formset(self, *args, **kwargs):
+        a = self.application
+        duration = a and a.round.duration or 3
+        if self.object and self.object.pk:
+            extra = 1
+            initial = []
+        else:
+            a = self.application
+            pi, _ = models.RoleType.objects.get_or_create(
+                code="PI",
+                defaults={
+                    "name": "Principal Investigator",
+                    "description": "Principal Investigator",
+                },
+            )
+
+            initial = [
+                dict(
+                    email=a.email or a.submitted_by.email,
+                    first_name=a.first_name or a.submitted_by and a.submitted_by.first_name,
+                    middle_names=a.middle_names,
+                    last_name=a.last_name or a.submitted_by and a.submitted_by.last_name,
+                    role=pi.code,
+                    user=a.submitted_by,
+                ),
+                *[
+                    dict(
+                        email=m.email,
+                        first_name=m.first_name or m.user and m.user.first_name,
+                        middle_names=m.middle_names,
+                        last_name=m.last_name or m.user and m.user.last_name,
+                        role=m.role and models.RoleType.where(name__icontains=m.role).first(),
+                        user=m.user,
+                    )
+                    for m in a.members.all()
+                ],
+            ]
+            extra = len(initial) + 1
+        fsc = forms.inlineformset_factory(
+            models.Contract,
+            models.ContractMember,
+            can_delete=True,
+            form=forms.ContractMemberForm,
+            extra=extra,
+        )
+        return fsc(
+            self.request.POST or None,
+            instance=self.object,
+            initial=initial,
+            form_kwargs={"duration": duration},
+        )
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
@@ -1848,6 +1900,101 @@ class ReportViewMixin:
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
+        if round.has_fors:
+            fsc = forms.inlineformset_factory(
+                self.model,
+                models.ReportFor,
+                extra=1,
+                can_delete=True,
+                exclude=[],
+                # fields = ["id", "code", "application", "share"],
+                labels={"code": _("Field of Research")},
+                help_texts={
+                    "code": _("Field of Research"),
+                    "share": _("Share in %"),
+                },
+                widgets={
+                    "code": autocomplete.ModelSelect2(
+                        "for-autocomplete",
+                        attrs={
+                            "data-placeholder": _("Choose a field of research..."),
+                            "placeholder": _("Choose a field of research..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Field of research is required"),
+                            "oninput": "this.setCustomValidity('')",
+                        },
+                    ),
+                },
+            )
+
+            initial_fors = (
+                [
+                    dict(
+                        code=r.code_id,
+                        share=r.share,
+                    )
+                    for r in models.ApplicationFor.where(application=a)
+                ]
+                if not (self.object and self.object.id)
+                else []
+            )
+            # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
+            if self.request.POST:
+                fs = fsc(self.request.POST, instance=self.object)
+            elif not (self.object and self.object.id):
+                fs = fsc(instance=self.object, initial=initial_fors)
+            else:
+                fs = fsc(instance=self.object)
+            if initial_fors:
+                fs.extra = len(initial_fors)
+            context["fors"] = fs
+
+        if round.has_seos:
+            fsc = forms.inlineformset_factory(
+                self.model,
+                models.ReportSeo,
+                # form=forms.RefereeForm,
+                extra=1,
+                can_delete=True,
+                exclude=[],
+                labels={"code": _("Socio-Economic Objective")},
+                help_texts={
+                    "code": _("Socio-Economic Objective"),
+                    "share": _("Share in %"),
+                },
+                widgets={
+                    "code": autocomplete.ModelSelect2(
+                        "seo-autocomplete",
+                        attrs={
+                            "data-placeholder": _("Choose a ..."),
+                            "placeholder": _("Choose a Socio-Economic Objective..."),
+                            "data-required": 1,
+                            "oninvalid": "this.setCustomValidity('%s')"
+                            % _("Socio-Economic Objective is required"),
+                            "oninput": "this.setCustomValidity('')",
+                        },
+                    ),
+                },
+            )
+            initial_seos = (
+                [
+                    dict(
+                        code=r.code_id,
+                        share=r.share,
+                    )
+                    for r in models.ApplicationSeo.where(application=a)
+                ]
+                if not (self.object and self.object.pk)
+                else []
+            )
+            fs = fsc(
+                self.request.POST or None,
+                instance=self.object,
+                initial=initial_seos,
+            )
+            fs.extra = len(initial_seos) or 1
+            context["seos"] = fs
 
         # self.documents = context["documents"] = self.get_document_formset()
         # context["required_documents"] = {
@@ -4179,7 +4326,7 @@ class ApplicationView(LoginRequiredMixin):
             }
 
         RefereeFormSet = forms.inlineformset_factory(
-            models.Application,
+            self.model,
             models.Referee,
             form=forms.RefereeForm,
             formset=forms.MandatoryApplicationFormInlineFormSet,
@@ -4219,7 +4366,7 @@ class ApplicationView(LoginRequiredMixin):
                 )
             ]
             fsc = forms.inlineformset_factory(
-                models.Application,
+                self.model,
                 models.ApplicationDocument,
                 extra=len(initial_documents),
                 can_delete=False,
@@ -4262,7 +4409,7 @@ class ApplicationView(LoginRequiredMixin):
 
         if round.has_fors:
             fsc = forms.inlineformset_factory(
-                models.Application,
+                self.model,
                 models.ApplicationFor,
                 extra=1,
                 can_delete=True,
@@ -4312,7 +4459,7 @@ class ApplicationView(LoginRequiredMixin):
 
         if round.has_seos:
             fsc = forms.inlineformset_factory(
-                models.Application,
+                self.model,
                 models.ApplicationSeo,
                 # form=forms.RefereeForm,
                 extra=1,
@@ -4789,7 +4936,7 @@ class ContractViewMixin:
                 for p in range(1, duration + 1)
             ]
         fsc = forms.inlineformset_factory(
-            models.Contract,
+            self.model,
             models.Allocation,
             can_delete=False,
             form=forms.AllocationForm,
@@ -4820,7 +4967,7 @@ class ContractViewMixin:
             ]
             extra = duration
         fsc = forms.inlineformset_factory(
-            models.Contract,
+            self.model,
             models.ReportingScheduleEntry,
             can_delete=True,
             can_delete_extra=True,
@@ -4884,7 +5031,7 @@ class ContractViewMixin:
             ]
             extra = len(initial) + 1
         fsc = forms.inlineformset_factory(
-            models.Contract,
+            self.model,
             models.ContractMember,
             can_delete=True,
             form=forms.ContractMemberForm,
@@ -4978,7 +5125,7 @@ class ContractViewMixin:
             exclude = ["converted_file"]
 
         fsc = forms.inlineformset_factory(
-            models.Contract,
+            self.model,
             models.ContractDocument,
             form=ContractDocumentForm,
             extra=len(initial),
@@ -9368,10 +9515,10 @@ class PublicationViewMixin:
             "xcr",
             "isi_loc",
             bootstrap.FormActions(
-                layout.Submit('save', 'Save changes'),
-                layout.Button('cancel', 'Cancel', css_class="btn btn-secondary"),
-                css_class="float-right"
-            )
+                layout.Submit("save", "Save changes"),
+                layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+                css_class="float-right",
+            ),
         )
         return form
 

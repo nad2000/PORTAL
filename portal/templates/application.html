@@ -108,9 +108,9 @@
             };
             function updateTotalToaShares() {
               var total = totalToaShares();
-              $("#id_application_toa_total_share").text(total);
-              if (total !=100) $("#id_application_toa_total_share").css({"color": "red", 'font-weight': "bold"});
-              else $("#id_application_toa_total_share").css({"color": "green", "font-weight": "bold"});
+              $("#id_toa_total_share").text(total);
+              if (total !=100) $("#id_toa_total_share").css({"color": "red", 'font-weight': "bold"});
+              else $("#id_toa_total_share").css({"color": "green", "font-weight": "bold"});
             };
           {% endif %}
           $(document).ready(function() {

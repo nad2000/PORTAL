@@ -883,7 +883,7 @@ class ApplicationForm(ModelForm):
                             HTML(
                                 f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
                                  <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
-                                 <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_application_toa_total_share"></span>
+                                 <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_toa_total_share"></span>
                                  <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
                                  </div></div></div>"""
                             ),
@@ -3247,6 +3247,7 @@ class ReportForm(ModelForm):
         instance = self.instance or instance
         contract = instance.contract or initial.get("contract")
         application = contract.application or initial.get("application")
+        round = application and application.round  or initial.get("round")
         # site_id = self.site_id
         # if site_id in [4, 5]:
         #     self.fields["project_title"].label = _("Title of proposed research project")
@@ -3274,8 +3275,9 @@ class ReportForm(ModelForm):
             _("Submit"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
+            css_id="submit-id-submit",
             title=(
-                _("Only P.I. can submit the contract")
+                _("Only PI or RO can submit the report")
                 if not is_pi
                 else (
                     _("Not all the parts/appendices of the contract were approved and/or accepted")
@@ -3427,6 +3429,108 @@ class ReportForm(ModelForm):
         #     # self.fields["is_signatory_to_oa"].disabled = True
         #     # self.fields["involves_childeren"].disabled = True
         #     # self.fields["has_child_protection"].disabled = True
+        # Category:
+        if round.has_categories:
+            category_fields = []
+            if round.research_experience_in_years_required and round.can_specify_panel:
+                self.fields["panel"].queryset = (
+                    self.fields["panel"]
+                    .queryset.filter(fund__site_id=site_id, state="active")
+                    .order_by("code", "-id")
+                )
+                category_fields = [
+                    Row(
+                        Column("research_experience_in_years"),
+                        Column("panel"),
+                    )
+                ]
+            elif round.research_experience_in_years_required:
+                category_fields = [Field("research_experience_in_years")]
+            elif round.can_specify_panel:
+                category_fields = [Field("panel")]
+
+            if round.has_toas:
+                category_fields.append(
+                    Fieldset(
+                        _("Type of Activities"),
+                        # Row('password1', 'password2'),
+                        Row(
+                            Column("toa_basic", css_class="col-2"),
+                            Column("toa_strategic", css_class="col-2"),
+                            Column("toa_applied", css_class="col-2"),
+                            Column("toa_experimental", css_class="col-2"),
+                            HTML(
+                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
+                                 <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
+                                 <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_toa_total_share"></span>
+                                 <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
+                                 </div></div></div>"""
+                            ),
+                            css_id="id_toas_row",
+                        ),
+                    ),
+                )
+            if round.has_seos:
+                category_fields.append(
+                    Fieldset(
+                        _("Socio-Economic Objectives"),
+                        TableInlineFormset(
+                            "seos", template="portal/category_table_inline_formset.html"
+                        ),
+                    )
+                )
+            if round.has_fors:
+                category_fields.append(
+                    Fieldset(
+                        _("Fields of Research"),
+                        TableInlineFormset(
+                            "fors", template="portal/category_table_inline_formset.html"
+                        ),
+                        # Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
+                    )
+                )
+            if round.has_vmts:
+                category_fields.append(
+                    Fieldset(
+                        _(" Vision Mātauranga Theme Categories"),
+                        Row(
+                            Column("vm_ecs", css_class="col-3"),
+                            Column("vm_ens", css_class="col-3"),
+                            Column("vm_hsw", css_class="col-3"),
+                            Column("vm_ink", css_class="col-3"),
+                            css_id="id_toas_row",
+                        ),
+                        Div(
+                            Row(Column("is_vm_na")),
+                            Row(Column("vm_rationale")),
+                            # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
+                            # HTML(
+                            #     """<script>
+                            # $(document).ready(function() {
+                            #     //set initial state.
+                            #     if ($('#id_is_vm_na').is(':checked')) {
+                            #         $('#id_vm_na').show()
+                            #     } else { $('#id_vm_na').hide() };
+                            #     $('#id_is_vm_na').change(function() {
+                            #         if(this.checked) {
+                            #             // var returnVal = confirm("Are you sure?");
+                            #             // $(this).prop("checked", returnVal);
+                            #             $('#id_vm_na').show();
+                            #         } else $('#id_vm_na').hide();
+                            #     });
+                            # });
+                            # </script>"""
+                            # ),
+                        ),
+                    ),
+                )
+            if round.has_keywords:
+                category_fields.append(
+                    Fieldset(
+                        _("Keywords"),
+                        Field("keywords"),
+                    )
+                )
 
         self.helper = FormHelper(self)
         tabs = [
@@ -3467,12 +3571,56 @@ class ReportForm(ModelForm):
                 css_id="summary",
             ),
             Tab(
-                mark_safe(f'<i class="material-icons">work</i> {_("Activities")}'),
+                _("Personnel"),
+                # TableInlineFormset("personnel"),
                 HTML(
                     """{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
-                    {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
+                    {{ _('Please retort .ll personnel who have participated in this project \
+                            and who are not named in the contract. \
+                            Please estimate both the amount of FTE, since the last report, \
+                            that is supported by this contract as well as the total amount of FTE \
+                            devoted to the project.') }}
+                    </p>
+                </div>
+                <p>TODO: WiP</p>"""
+                ),
+                css_id="personnel",
+            ),
+        ]
+        if round.has_categories:
+            tabs.append(
+                Tab(
+                    _("Categories"),
+                    HTML(
+                        '<div class="alert alert-dark" role="alert"><p>%s</p></div>'
+                        % (
+                            _(
+                                "The collection of this data is for the purpose of our reporting "
+                                "obligations to NZRIS or to allow categorisation of your application "
+                                "during the selection process (i.e. to early- or mid-career "
+                                "fellowship pool)."
+                            ),
+                        )
+                    ),
+                    *category_fields,
+                    css_id="categories",
+                ),
+            )
+
+        tabs.extend([
+            Tab(
+                mark_safe(
+                    f'<i class="material-icons" style="vertical-align: middle; font-size: 0.99em;">work</i> {_("Activities")}'
+                ),
+                HTML(
+                    """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any <strong>outcomes or activities</strong> that have arisen from \
+                        this project within the period. NB: if linked, the contract PI is able to import \
+                        many activity types from their ORCID profile record.') }}
                     </p>
                 </div>{% jinja 'partials/report_publication_list.html' %}"""
                 ),
@@ -3487,7 +3635,11 @@ class ReportForm(ModelForm):
                                 _("Import from ORCID"),
                                 css_class="btn-secondary btn-sm",
                             ),
-                            Button("no_activity_to_add", _("Nothing to add"), css_class="btn-primary btn-sm"),
+                            Button(
+                                "no_activity_to_add",
+                                _("Nothing to add"),
+                                css_class="btn-primary btn-sm",
+                            ),
                             css_class="float-right mb-5",
                         ),
                         css_class="col-12",
@@ -3510,14 +3662,20 @@ class ReportForm(ModelForm):
                     Div(
                         ButtonHolder(
                             Button(
-                                "import_ris_file", _("Import RIS file"), css_class="btn-primary btn-sm"
+                                "import_ris_file",
+                                _("Import RIS file"),
+                                css_class="btn-primary btn-sm",
                             ),
                             Button(
                                 "import_from_orcid",
                                 _("Import from ORCID"),
                                 css_class="btn-secondary btn-sm",
                             ),
-                            Button("nothing_to_add", _("Nothing to add"), css_class="btn-primary btn-sm"),
+                            Button(
+                                "nothing_to_add",
+                                _("Nothing to add"),
+                                css_class="btn-primary btn-sm",
+                            ),
                             css_class="float-right mb-5",
                         ),
                         css_class="col-12",
@@ -3526,6 +3684,7 @@ class ReportForm(ModelForm):
                 ),
                 css_id="publications",
             ),
+        ])
             #     Tab(
             #         _("Research"),
             #         Field("project_title"),
@@ -3639,7 +3798,6 @@ class ReportForm(ModelForm):
             #         ),
             #         css_id="appendices",
             #     ),
-        ]
 
         # if instance and instance.pk:
         #     tabs.append(

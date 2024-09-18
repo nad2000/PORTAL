@@ -6,13 +6,26 @@
 {% block head_title %}{{ object }}{% endblock %}
 
 {% block css %}
-{{ block.super }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
-<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 <style>
 #div_id_title span.select2-selection--single {height: 39px;}
 #div_id_country span.select2-selection--single {height: 39px;}
+thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
+  min-width: 5.0rem;
+}
+.rcorners {
+    border-radius: 0.25rem;
+    border-width: 2px;
+    border-style: solid;
+    padding: 0.375rem 0.75rem;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    display: block;
+}
 </style>
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
+<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
+{% endblock %}
 {{ form.media.css }}
 {% endblock %}
 
@@ -146,7 +159,62 @@
       $("td:has(div>input.datepicker)").css("width", "6em");
       $("td:has(div>input.yearpicker)").css("width", "4em");
     }
+    {% if round.has_toas %}
+      function totalToaShares() {
+        var sum = 0;
+        $("#id_toas_row input[name^='toa_']").each(function() {
+          sum += Number($(this).val());
+        });
+        return sum;
+      };
+      function updateTotalToaShares() {
+        var total = totalToaShares();
+        $("#id_toa_total_share").text(total);
+        if (total !=100) $("#id_toa_total_share").css({"color": "red", 'font-weight': "bold"});
+        else $("#id_toa_total_share").css({"color": "green", "font-weight": "bold"});
+      };
+    {% endif %}
     $(document).ready(function() {
+      {% if round.has_toas %}
+        $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
+        updateTotalToaShares();
+      {% endif %}
+      $("#submit-id-submit").click(function(e) {
+        $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
+          var $t = $(this);
+          $t.attr({
+            "required": $t.attr("data-required")
+          }); // .removeAttr('required');
+        });
+        // type='file' requires a different appraoch
+        $("input[data-required='1']").not("[name*='__prefix__']").filter("[type='file']").each(function() {
+          var $t = $(this);
+          if (!$t.closest("div.form-group").find("span > a").length) {
+            $t.attr({
+              "required": $t.attr("data-required")
+            }); // .removeAttr('required');
+          }
+        });
+        {% if round.has_toas %}
+          var total = totalToaShares();
+          if (total!=100) {
+            var has_invalid_fields = $("input:invalid,textarea:invalid").length;
+            if (!has_invalid_fields) e.preventDefault();  // need for a link
+            $('.nav a[href="#categories"]').tab('show');
+            var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
+            var msg_el = $("#messages");
+            if (msg_el.length) {
+              msg_el.append(
+                $('<div class="alert alert-danger">'
+                  +message
+                  +'<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>')
+              )
+              var scrollPos=$("#messages").offset().top; $(window).scrollTop(scrollPos);
+            } else bootbox.alert(message);
+            if (!has_invalid_fields) return false;
+          }
+        {% endif %}
+      });
       setDatePickers($(document.documentElement));
       // Keep track of the active tab
       $(document.body).on("click", "a[data-toggle='tab']", function(event) {
