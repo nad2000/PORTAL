@@ -3467,6 +3467,36 @@ class ReportForm(ModelForm):
                 css_id="summary",
             ),
             Tab(
+                mark_safe(f'<i class="material-icons">work</i> {_("Activities")}'),
+                HTML(
+                    """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
+                    </p>
+                </div>{% jinja 'partials/report_publication_list.html' %}"""
+                ),
+                Div(
+                    Div(
+                        ButtonHolder(
+                            Button(
+                                "add_activity", _("Add Activity"), css_class="btn-primary btn-sm"
+                            ),
+                            Button(
+                                "import_activities_from_orcid",
+                                _("Import from ORCID"),
+                                css_class="btn-secondary btn-sm",
+                            ),
+                            Button("no_activity_to_add", _("Nothing to add"), css_class="btn-primary btn-sm"),
+                            css_class="float-right mb-5",
+                        ),
+                        css_class="col-12",
+                    ),
+                    css_class="row",
+                ),
+                css_id="activities",
+            ),
+            Tab(
                 mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
                 HTML(
                     """{% load tags %}
