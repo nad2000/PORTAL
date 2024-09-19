@@ -1,28 +1,17 @@
-{% extends 'base.html' %}
+{% extends "form.html" %}
 {% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
 
-{% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
-{% block sidebar %}{% include 'sidebar.html' with category="contacts" %}{% endblock sidebar %}
+{% block title %}{% if object %}{{ object }}{% else %}{{ block.super }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
+{% block sidebar %}{% include 'sidebar.html' with category="reports" %}{% endblock sidebar %}
 {% block head_title %}{{ object }}{% endblock %}
-
-{% block css %}
-{{ block.super }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
-<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
-<style>
-#div_id_title span.select2-selection--single {height: 39px;}
-#div_id_country span.select2-selection--single {height: 39px;}
-</style>
-{{ form.media.css }}
-{% endblock %}
 
 {% block breadcrumbs %}
   {{ block.super }}
-  {% breadcrumb "Contracts" "contract-list" %}
+  {% breadcrumb "Reports" "report-list" %}
   {% if object.pk %}
-    {% breadcrumb object "Contrarct" "contract-update" object.pk %}
+    {% breadcrumb object "Report" "report-update" object.pk %}
   {% else %}
-    {% breadcrumb "New Contract" "contract-create" %}
+    {% breadcrumb "New Report" "report-create" %}
   {% endif %}
 {% endblock %}
 
@@ -80,176 +69,4 @@
 
 {% endblock content %}
 
-{% block javascript %}
-{{ block.super }}
-<!-- JS -->
-{{ form.media.js }}
-<!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
-  <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
-  <script src="{% static 'js/project.js' %}"></script>
-  <script>
-    var doc_role = null;
-    var doc_type = null;
-    var doc_action = null;
-    var required_doc = null;
-    function confirmAction(val) {
-        $("#id_required_doc").val(required_doc);
-        $("#id_doc_role").val(doc_role);
-        $("#id_doc_type").val(doc_type);
-        $("#id_doc_action").val(doc_action || "approve");
-        $(val).closest("form").submit();
-        return true;
-    };
-    $('input[data-document-role],#id_approve_compliance').on("click", function(event) {
-      event.preventDefault();
-      event.stopPropagation();
-      doc_action = this.dataset["documentAction"];
-      doc_role = this.dataset["documentRole"];
-      doc_type = this.dataset["documentType"];
-      required_doc = this.dataset["requiredDocument"];
-      $("#id_confirm_action").text(
-        doc_action == "request_correction" ? "{% trans 'Request Correction' %}" : (
-        doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : "{% trans 'Approve' %}")
-      );
-      $('#id_resolution_modal').modal('show');
-      return false;
-    });
-    // Jump to the last active tab:
-    // $('.yearpicker').datepicker({format: "yyyy", startView: 2});
-    function setDatePickers(el) {
-      el.find(".yearpicker").datepicker({
-        format: "yyyy",
-        // format: "yyyyy",
-        startDate: '1960',
-        endDate: '2040',
-        startView: 2,
-        minViewMode: 2,
-        clearBtn: true,
-        autoclose: true
-      });
-      el.find(".datepicker").datepicker({
-        format: "yyyy-mm-dd",
-        // startDate: '1960-01-01',
-        // endDate: '2001-12-31',
-        // startDate: $(this).data("min"),
-        // endDate: $(this).data("max"),
-        startView: 2,
-        clearBtn: true,
-        autoclose: true
-      });
-      $("td:has(div>input.datepicker)").css("width", "6em");
-      $("td:has(div>input.yearpicker)").css("width", "4em");
-    }
-    $(document).ready(function() {
-      setDatePickers($(document.documentElement));
-      // Keep track of the active tab
-      $(document.body).on("click", "a[data-toggle='tab']", function(event) {
-        location.hash = this.getAttribute("href");
-      });
-      // Jump to the last active tab:
-      if (location.hash) {
-          $('.nav a[href="' + location.hash + '"]').tab('show');
-      }{% if needs_attention %} else {
-        $('.nav a[href="#{{ needs_attention.0 }}"]').tab('show');
-      }{% endif %};
-      if (!location.hash || location.hash == "#summary") {
-        // document.getElementById("button-id-previous").disabled = true;
-        $("#button-id-previous").hide();
-      } else if (location.hash.endsWith($(".tab-pane").last().attr('id'))) {
-        // document.getElementById("button-id-next").disabled = true;
-        $("#button-id-next").hide();
-      }
-      // highlight the tabs that required attaention:
-      {% if needs_attention %}
-        {% for a in needs_attention %}
-          $("[href='#{{ a }}']").addClass("text-danger").attr("style", "font-weight: bold;");
-        {% endfor %}
-      {% endif %}
-      $("input[type='file']").on("change", function() {
-          var disabled = !$(this).val();
-          $(this).closest("fieldset").find("input[type='submit']").each(function() {
-            var b=$(this);
-            if (b.prop("disabled") != disabled) {
-              b.prop("disabled", disabled);
-              b.tooltip(disabled ? "enable" : "disable");
-              // b.css("pointer-events", disabled ? "none" : "");
-              b.closest("fieldset").find("span").each(function(s, e) {
-                $(e).tooltip(disabled ? "enable" : "disable");
-                if (!disabled) {
-                  b.detach().insertBefore(e);
-                };
-              });
-            };
-          });
-      });
-      /* $("input[type='file']").each(function(b) {
-        var approve_button = $(this).closest("fieldset").find("input[type='submit']");
-        if (approve_button) {
-          disabled = !$(this).val();
-          if (approve_button.prop("disabled") != disabled) {
-            approve_button.prop("disabled", disabled);
-            approve_button.tooltip(disabled ? "enable" : "disable");
-            approve_button.css("pointer-events", disabled ? "none" : "");
-            var span = $(this).closest("fieldset").find("span");
-            if (span) {
-              span.tooltip(disabled ? "enable" : "disable");
-              if (!disabled) {
-                approve_button.detach().insertBefore(span);
-              };
-            };
-          };
-        };
-      }); */
-      $('#id_not_applicable').change(function() {
-        var label = $('label[for="id_not_applicable_comment"]');
-        if ($(this).is(':checked')) {
-          document.getElementById("id_not_applicable_comment").setAttribute("required", "true");
-          label.text(label.text().trim());
-          $("label[for='id_not_applicable_comment']").append('<span class="asteriskField">*</span>');
-        } else {
-          document.getElementById("id_not_applicable_comment").removeAttribute("required");
-          label.children().remove();
-        }
-      });
-      // $('#id_resolution_modal').on('shown.bs.modal', function () {$('#id_resolution').focus();});
-      // $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('input:visible:enabled:first', this).focus();});
-      $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('textarea:visible:enabled:first', this).focus();});
-      $('#id_requires_approval').change(function() {
-        if (!($(this).prop('checked'))) {
-          $("#id_requires_approval_comment_help").text(
-            "{% trans 'Please provide brief reason why ethical or regulatory approval is not required.' %}");
-        } else {
-          $("#id_requires_approval_comment_help").text(
-            "{% trans 'Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. (Please provide serial number, type of approval and date received)' %}");
-        };
-      });
-      // Focus on the first tab with invalid input:
-      $('#submit-id-save_draft,#submit-id-submit').click(function () {
-          $('input:invalid,textarea:invalid').each(function () {
-            // Find the tab-pane that this element is inside, and get the id
-            var $closest = $(this).closest('.tab-pane');
-            var id = $closest.attr('id');
-
-            // Find the link that corresponds to the pane and have it show
-            $('.nav a[href="#' + id + '"]').tab('show');
-
-            // Only want to do it once
-            return false;
-          });
-          /* if (this.form.checkValidity()) {
-                        $.blockUI({
-                          message: $('#wait-message'),
-                          css: {
-                                      backgroundColor: '#0000',
-                                      color: '#0fff',
-                                      border: '0px',
-                                    }
-                      });
-                    } */
-      });
-    });
-  </script>
-{% endblock %}
 {# vim:set ft=htmldjango: #}

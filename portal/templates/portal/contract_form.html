@@ -1,39 +1,17 @@
-{% extends 'base.html' %}
+{% extends 'form.html' %}
 {% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
 
 {% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
 {% block sidebar %}{% include 'sidebar.html' with category="contacts" %}{% endblock sidebar %}
 {% block head_title %}{{ object }}{% endblock %}
 
-{% block css %}
-<style>
-#div_id_title span.select2-selection--single {height: 39px;}
-#div_id_country span.select2-selection--single {height: 39px;}
-thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
-  min-width: 5.0rem;
-}
-.rcorners {
-    border-radius: 0.25rem;
-    border-width: 2px;
-    border-style: solid;
-    padding: 0.375rem 0.75rem;
-    width: 100%;
-    height: calc(1.5em + 0.75rem + 2px);
-    display: block;
-}
-</style>
-{{ block.super }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
-<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
-{% endblock %}
-{{ form.media.css }}
-{% endblock %}
+{% block css %}{{ block.super }}{% endblock %}
 
 {% block breadcrumbs %}
   {{ block.super }}
   {% breadcrumb "Contracts" "contract-list" %}
   {% if object.pk %}
-    {% breadcrumb object "Contrarct" "contract-update" object.pk %}
+    {% breadcrumb object "Contract" "contract-update" object.pk %}
   {% else %}
     {% breadcrumb "New Contract" "contract-create" %}
   {% endif %}
@@ -45,7 +23,6 @@ thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
   {% endcomment %}
 
   <form method="post" enctype="multipart/form-data" id="contract-form">
-
     <input type="hidden" name="required_doc" id="id_required_doc" value="">
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
@@ -81,6 +58,7 @@ thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
     {% else %}
       {{ form|crispy }}
     {% endif %}
+
   </form>
 
   {% comment %}
@@ -100,12 +78,6 @@ thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
 {% block javascript %}
 {{ block.super }}
 <!-- JS -->
-{{ form.media.js }}
-<!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
-  <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
-  <script src="{% static 'js/project.js' %}"></script>
   <script>
     var doc_role = null;
     var doc_type = null;
@@ -133,52 +105,7 @@ thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
       $('#id_resolution_modal').modal('show');
       return false;
     });
-    // Jump to the last active tab:
-    // $('.yearpicker').datepicker({format: "yyyy", startView: 2});
-    function setDatePickers(el) {
-      el.find(".yearpicker").datepicker({
-        format: "yyyy",
-        // format: "yyyyy",
-        startDate: '1960',
-        endDate: '2040',
-        startView: 2,
-        minViewMode: 2,
-        clearBtn: true,
-        autoclose: true
-      });
-      el.find(".datepicker").datepicker({
-        format: "yyyy-mm-dd",
-        // startDate: '1960-01-01',
-        // endDate: '2001-12-31',
-        // startDate: $(this).data("min"),
-        // endDate: $(this).data("max"),
-        startView: 2,
-        clearBtn: true,
-        autoclose: true
-      });
-      $("td:has(div>input.datepicker)").css("width", "6em");
-      $("td:has(div>input.yearpicker)").css("width", "4em");
-    }
-    {% if round.has_toas %}
-      function totalToaShares() {
-        var sum = 0;
-        $("#id_toas_row input[name^='toa_']").each(function() {
-          sum += Number($(this).val());
-        });
-        return sum;
-      };
-      function updateTotalToaShares() {
-        var total = totalToaShares();
-        $("#id_toa_total_share").text(total);
-        if (total !=100) $("#id_toa_total_share").css({"color": "red", 'font-weight': "bold"});
-        else $("#id_toa_total_share").css({"color": "green", "font-weight": "bold"});
-      };
-    {% endif %}
     $(document).ready(function() {
-      {% if round.has_toas %}
-        $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
-        updateTotalToaShares();
-      {% endif %}
       $("#submit-id-submit").click(function(e) {
         $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
           var $t = $(this);
@@ -215,30 +142,6 @@ thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
           }
         {% endif %}
       });
-      setDatePickers($(document.documentElement));
-      // Keep track of the active tab
-      $(document.body).on("click", "a[data-toggle='tab']", function(event) {
-        location.hash = this.getAttribute("href");
-      });
-      // Jump to the last active tab:
-      if (location.hash) {
-          $('.nav a[href="' + location.hash + '"]').tab('show');
-      }{% if needs_attention %} else {
-        $('.nav a[href="#{{ needs_attention.0 }}"]').tab('show');
-      }{% endif %};
-      if (!location.hash || location.hash == "#summary") {
-        // document.getElementById("button-id-previous").disabled = true;
-        $("#button-id-previous").hide();
-      } else if (location.hash.endsWith($(".tab-pane").last().attr('id'))) {
-        // document.getElementById("button-id-next").disabled = true;
-        $("#button-id-next").hide();
-      }
-      // highlight the tabs that required attaention:
-      {% if needs_attention %}
-        {% for a in needs_attention %}
-          $("[href='#{{ a }}']").addClass("text-danger").attr("style", "font-weight: bold;");
-        {% endfor %}
-      {% endif %}
       $("input[type='file']").on("change", function() {
           var disabled = !$(this).val();
           $(this).closest("fieldset").find("input[type='submit']").each(function() {
@@ -310,16 +213,6 @@ thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
             // Only want to do it once
             return false;
           });
-          /* if (this.form.checkValidity()) {
-                        $.blockUI({
-                          message: $('#wait-message'),
-                          css: {
-                                      backgroundColor: '#0000',
-                                      color: '#0fff',
-                                      border: '0px',
-                                    }
-                      });
-                    } */
       });
     });
   </script>

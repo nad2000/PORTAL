@@ -8967,6 +8967,9 @@ class PublicationType(Model):
     code_2 = CharField(unique=True, max_length=2, null=True, blank=True)
     description = CharField(max_length=100, blank=True, null=True)
 
+    def natural_key(self):
+        return self.code
+
     def __str__(self):
         return f"{self.code}: {self.description}"
 
@@ -8979,6 +8982,9 @@ class PublicationStatus(Model):
     # type = ForeignKey(PublicationType, on_delete=DO_NOTHING)
     code = CharField(max_length=3, db_index=True)
     description = CharField(max_length=100, blank=True, null=True)
+
+    def natural_key(self):
+        return self.code
 
     def __str__(self):
         return f"{self.type.code}/{self.code}: {self.description}"

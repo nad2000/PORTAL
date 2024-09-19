@@ -3043,7 +3043,6 @@ def delete_referee(request, pk):
 
 class ApplicationView(LoginRequiredMixin):
     model = Application
-    template_name = "application.html"
     form_class = forms.ApplicationForm
 
     def get(self, request, *args, **kwargs):

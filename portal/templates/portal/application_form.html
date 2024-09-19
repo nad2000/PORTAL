@@ -19,31 +19,7 @@
   {% endif %}
 {% endblock %}
 
-{% block css %}
-  {#{ form.media.css }#}
-  <style>
-  thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
-    min-width: 5.0rem;
-  }
-  .rcorners {
-      border-radius: 0.25rem;
-      border-width: 2px;
-      border-style: solid;
-      padding: 0.375rem 0.75rem;
-      width: 100%;
-      height: calc(1.5em + 0.75rem + 2px);
-      display: block;
-  }
-  </style>
-  {{ block.super }}
-  <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
-{% endblock %}
-
 {% block content %}
-
-  <!-- div class="container">
-    <div class="row">
-    <div class="col-sm-12" -->
 
       <h1>
         {% if object.number %}{{ object.number }}: {% endif %}
@@ -87,9 +63,6 @@
         {{ block.super }}
         {#{ form.media.js }#}
         <!-- JS -->
-        <script src="{% static 'js/jquery.blockUI.js' %}"></script>
-        <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
         <script>
           {% if SITE_ID != 5 %}
             function activateRefereeTab() {
@@ -98,26 +71,7 @@
               $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").hide();
             };
           {% endif %}
-          {% if round.has_toas %}
-            function totalToaShares() {
-              var sum = 0;
-              $("#id_toas_row input[name^='toa_']").each(function() {
-                sum += Number($(this).val());
-              });
-              return sum;
-            };
-            function updateTotalToaShares() {
-              var total = totalToaShares();
-              $("#id_toa_total_share").text(total);
-              if (total !=100) $("#id_toa_total_share").css({"color": "red", 'font-weight': "bold"});
-              else $("#id_toa_total_share").css({"color": "green", "font-weight": "bold"});
-            };
-          {% endif %}
           $(document).ready(function() {
-            {% if round.has_toas %}
-              $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
-              updateTotalToaShares();
-            {% endif %}
                       {% if not update_only_referees %}
                         $("#submit-id-submit").click(function(e) {
                           $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
@@ -182,12 +136,6 @@
                         };
                         return true;
                       });
-                                bootbox.addLocale('mi', {
-                                  OK      : 'Pai',
-                                  CANCEL  : 'Whakakore',
-                                  CONFIRM : 'Whakaū'
-                                });
-                                bootbox.setDefaults({locale: "{{ LANGUAGE_CODE }}"});
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {
                                   if (!($(this).prop('checked'))) {
@@ -204,7 +152,7 @@
                                             if ($(this).is(':checked')) {
                                               document.getElementById("id_et-comment").setAttribute("required", "true");
                                               document.getElementById("id_et-comment").setAttribute(
-                                                          "oninvalid", 
+                                                          "oninvalid",
                                                           "this.setCustomValidity('{% trans 'If not relevant, please comment. For example, the work in this application did not involve people or animals.' %}')"
                                                         );
                                               document.getElementById("id_et-comment").setAttribute("oninput", "this.setCustomValidity('')");
@@ -271,33 +219,8 @@
                                                 });
                                               } */
                                 });
-                                // Track the changes in the form fields
-                                $("form :input").change(function() {
-                                  $(this.form).data("changed", true);
-                                });
-                                var confirmationMessage = "{% trans 'Do you want to close the form without saving it?' %}";
-                                $(document).on("click", "#cancel", function(e) {
-                                  // if (!$(e.toElement).closest("form").data("changed")) return;
-                                  if (!$(e.target).closest("form").data("changed")) return;
-                                  e.preventDefault();  // need for a link
-                                  href = $(this).attr('href');
-                                  return bootbox.confirm(confirmationMessage, function(result) {
-                                    if (result) window.location = href;
-                                  });
-                                });
-                                window.addEventListener("beforeunload", function (e) {
-                                  if (!$("#application-form").data("changed")
-                                    || (e.target.activeElement.type == "submit")
-                                  ) {
-                                        return undefined;
-                                    }
-                                    (e || window.event).returnValue = confirmationMessage; //Gecko + IE
-                                    return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
-                                });
-                                // Keep track of the active tab
-                                $(document.body).on("click", "a[data-toggle='tab']", function(event) {
-                                  location.hash = this.getAttribute("href");
-                                });
+      {% block activate_form_tab %}
+                                // Select form tab
                                 {% if update_only_referees %}
                                   $('.nav a[href="#referees"]').tab('show');
                                 {% elif form.errors.letter_of_support_file %}
@@ -315,13 +238,13 @@
                                       {% if SITE_ID != 5 %}if (location.hash == "#referees") activateRefereeTab();{% endif %}
                                   };
                                   if (!location.hash || location.hash == "#applicant") {
-                                    // document.getElementById("button-id-previous").disabled = true;
                                     $("#button-id-previous").hide();
                                   } else if (location.hash.endsWith($(".tab-pane").last().attr('id'))) {
-                                    // document.getElementById("button-id-next").disabled = true;
                                     $("#button-id-next").hide();
                                   }
                                 {% endif %}
+      {% endblock activate_form_tab %}
+
                                 /* $("#div_id_title").parent().css("min-width", "4rem");
                                    $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
                                 {% if SITE_ID != 5 %}
@@ -332,49 +255,6 @@
                                     $("#submit-id-submit,#submit-id-submit_to_referees,#cancel").show();
                                   });
                                 {% endif %}
-                                $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-                                  if (e.target.hash.endsWith($(".tab-pane").last().attr('id'))) {
-                                    /* document.getElementById("button-id-next").disabled = true; */
-                                    $("#button-id-next").hide();
-                                  } else {
-                                    $("#button-id-next").show();
-                                  }
-                                  if (e.target.hash == "#applicant") {
-                                    /* document.getElementById("button-id-previous").disabled = true; */
-                                    $("#button-id-previous").hide();
-                                  } else $("#button-id-previous").show();
-                                });
-                                $('#button-id-next').on('click', function (e) {
-                                  var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
-                                  if (active.length > 0) {
-                                              var nextTab = active.parent().next().children();
-                                              if (nextTab.length > 0) {
-                                                          var nextTabHash = nextTab.attr("href");
-                                                          $('a[href="'+nextTabHash+'"').tab("show");
-                                                        }
-                                            }
-                                });
-                                $('#button-id-previous').on('click', function (e) {
-                                  var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
-                                  if (active.length > 0) {
-                                              var prevTab = active.parent().prev().children();
-                                              if (prevTab.length > 0) {
-                                                          var prevTabHash = prevTab.attr("href");
-                                                          $('a[href="'+prevTabHash+'"').tab("show");
-                                                        }
-                                            }
-                                });
-            {% if form.errors %}
-              var field = $(".invalid-feedback").first();
-              if (field.length) {
-                var $closest = field.closest('.tab-pane');
-                var id = $closest.attr('id');
-                // Find the link that corresponds to the pane and have it show
-                $('.nav a[href="#' + id + '"]').tab('show');
-              }{% if form.active_tab %} else {
-                $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
-              }{% endif %}
-            {% endif %}
             {% if update_only_referees  %}
               $("#applicant,#categories,#summary,#id-verification,#ethics-statement,#tac").find("input,textarea,button,select").prop({
                 readonly: true,

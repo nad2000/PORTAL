@@ -2951,7 +2951,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     ]
 
 @admin.register(models.Publication)
-class PublicationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class PublicationAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
     show_close_button = True
 

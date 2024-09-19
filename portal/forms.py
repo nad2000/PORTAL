@@ -3910,7 +3910,6 @@ class ReportForm(ModelForm):
             "rccs",
             "fors",
             "seos",
-            "keywords",
             "state",
         ]
         widgets = dict(

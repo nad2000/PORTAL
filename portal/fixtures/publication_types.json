@@ -1,0 +1,86 @@
+[
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "BC",
+    "description": "Book Chapter"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "BK",
+    "description": "Book"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "CP",
+    "description": "Conference Presentation"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "EV",
+    "description": "Edited Volume"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "OT",
+    "description": "Other"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "PR",
+    "description": "Paper"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "PT",
+    "description": "Patent"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "RC",
+    "description": "Refereed Conference Proceedings"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "RT",
+    "description": "Report"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "SW",
+    "description": "Software"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "TS",
+    "description": "Thesis"
+  }
+},
+{
+  "model": "portal.publicationtype",
+  "fields": {
+    "code": "WS",
+    "description": "Web Site"
+  }
+}
+]
