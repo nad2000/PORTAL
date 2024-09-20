@@ -38,7 +38,7 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     # First Name and Last Name do not cover name patterns
     # around the globe.
@@ -95,9 +95,9 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     def in_group(self, group_name):
         return self.groups.filter(name=group_name).exists()
 
-    @property
-    def full_name(self):
-        return self.get_full_name()
+    # @property
+    # def full_name(self):
+    #     return self.get_full_name()
 
     @property
     def full_name_with_email(self):

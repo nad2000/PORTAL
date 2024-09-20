@@ -6485,6 +6485,13 @@ class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             q = q.filter(affiliations__org__code=org_code).distinct()
         if affiliation_type := self.forwarded.get("affiliation_type"):
             q = q.filter(affiliations__type=affiliation_type).distinct()
+        if self.q:
+            q = q.filter(
+                Q(code__istartswith=self.q)
+                | Q(email__istartswith=self.q)
+                | Q(last_name__istartswith=self.q)
+                | Q(user__last_name__istartswith=self.q)
+            )
         return q
 
 

@@ -8,6 +8,7 @@ from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.functional import cached_property
 from model_utils import Choices
+
 EmailField.register_lookup(Lower)
 
 SEX_CHOICES = Choices("female", "male", "other")
@@ -143,12 +144,15 @@ class PersonMixin:
             return self.profile.user
         elif getattr(self, "referee", None) and self.referee.user:
             return self.referee.user
+        elif hasattr(self, "_meta") and self._meta.model_name:
+            return self
 
     @cached_property
     def full_name(self):
         user = self.get_user()
         first_name = getattr(self, "first_name", None) or user and user.first_name
-        middle_names = getattr(self, "middle_names", None) or user and user.middle_names
+        if middle_names := getattr(self, "middle_names", None) or user and user.middle_names:
+            middle_names = middle_names.replace(",", " ").replace(", ", " ").replace("  ", " ").strip()
         last_name = getattr(self, "last_name", None) or user and user.last_name
         full_name = " ".join(s for s in [first_name, middle_names, last_name] if s)
         if hasattr(self, "title") and self.title:

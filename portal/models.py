@@ -1237,7 +1237,6 @@ class Person(PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
     )
     salutation = CharField(max_length=100, blank=True, null=True)
     other_names = CharField(max_length=200, blank=True, null=True)
@@ -1916,7 +1915,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, verbose_name=_("last name"))
     research_experience_in_years = PositiveSmallIntegerField(
@@ -3531,7 +3529,6 @@ class Member(PersonMixin, MemberMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     role_description = CharField(
@@ -3733,7 +3730,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
@@ -4159,7 +4156,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
@@ -4375,7 +4372,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     organisation = CharField(
@@ -8931,10 +8928,34 @@ class ReportedEffortMixin:
 
 
 class ReportedEffort(ReportedEffortMixin, Model):
-    planned_effort = OneToOneField(
-        ContractMemberEffort, on_delete=CASCADE, related_name="reported_efforts"
+    member_effort = ForeignKey(
+        ContractMemberEffort,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reported_efforts",
     )
-    # member = ForeignKey(, on_delete=CASCADE, related_name="reported_efforts")
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reported_efforts",
+    )
+    full_name = CharField(
+        _("person name"),
+        blank=True,
+        null=True,
+        max_length=400,
+    )
+    role = ForeignKey(
+        RoleType,
+        on_delete=SET_NULL,
+        related_name="+",
+        null=True,
+        blank=True,
+        db_column="role",
+    )
     fte = DecimalField(
         _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
     )
