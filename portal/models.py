@@ -8928,7 +8928,12 @@ class ReportedEffortMixin:
 
 
 class ReportedEffort(ReportedEffortMixin, Model):
-    member_effort = ForeignKey(
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="efforts",
+    )
+    member_effort = OneToOneField(
         ContractMemberEffort,
         on_delete=SET_NULL,
         blank=True,
@@ -8961,14 +8966,23 @@ class ReportedEffort(ReportedEffortMixin, Model):
     )
     state = StateField(default="new", verbose_name=_("state"))
 
+    @property
+    def fte_total(self):
+        if self.person:
+            self._meta.model.where(
+                report__contract=self.report.contract,
+                person=self.person,
+                report__perid__lt=self.report.period,
+            ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00")) + (self.fte or 0.0)
+
     def save(self, *args, **kwargs):
-        if se := self.schedule_entry:
-            if not self.contract:
-                self.contract = se.contract
-            if not self.period:
-                self.period = se.period
-            if not self.type:
-                self.type = se.type
+        if me := self.member_effort:
+            if not self.person:
+                self.person = me.member.user.person
+            if not self.full_name:
+                self.full_name = me.member.full_name
+            if not self.role:
+                self.role = me.member.role
         super().save(*args, **kwargs)
 
     class Meta:

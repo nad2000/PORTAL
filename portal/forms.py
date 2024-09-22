@@ -3224,6 +3224,24 @@ class ScoreSheetForm(ModelForm):
         )
 
 
+class ReportedEffortForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__( *args, **kwargs)
+        if instance := kwargs.get("instance"):
+            self.fields["fte_total"].initial = instance.fte_total
+        pass
+
+    fte_before = forms.DecimalField(widget=forms.HiddenInput())
+    fte_total = forms.DecimalField(
+            label=_("Total FTE"),
+            widget=forms.widgets.NumberInput(attrs={"readonly": True, "disabled": True}))
+
+    class Meta:
+        model = models.ReportedEffort
+        exclude = ["member_effort", "person", "state"]
+
+
 class ReportForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
@@ -3247,7 +3265,7 @@ class ReportForm(ModelForm):
         instance = self.instance or instance
         contract = instance.contract or initial.get("contract")
         application = contract.application or initial.get("application")
-        round = application and application.round  or initial.get("round")
+        round = application and application.round or initial.get("round")
         # site_id = self.site_id
         # if site_id in [4, 5]:
         #     self.fields["project_title"].label = _("Title of proposed research project")
@@ -3553,39 +3571,24 @@ class ReportForm(ModelForm):
             # ),
             Tab(
                 mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
-                *(
-                    [
-                        HTML("{% load tags %}{% jinja 'partials/report_summary.html' %}"),
-                        # Field("start_date", type="hidden", css_class="hidden"),
-                        # Field("end_date", type="hidden", css_class="hidden"),
-                    ]
-                    # if self.instance
-                    # and self.instance.id
-                    # and not (user.is_superuser or user.is_staff)
-                    # else [
-                    #     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    #     Row(Column("start_date"), Column("end_date")),
-                    #     SubForm("address_form"),
-                    # ]
-                ),
+                HTML("{% load tags %}{% jinja 'partials/report_summary.html' %}"),
                 css_id="summary",
             ),
             Tab(
                 _("Personnel"),
-                # TableInlineFormset("personnel"),
                 HTML(
                     """{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
-                    {{ _('Please retort .ll personnel who have participated in this project \
+                    {{ _('Please retort all personnel who have participated in this project \
                             and who are not named in the contract. \
                             Please estimate both the amount of FTE, since the last report, \
                             that is supported by this contract as well as the total amount of FTE \
                             devoted to the project.') }}
                     </p>
-                </div>
-                <p>TODO: WiP</p>"""
+                </div>"""
                 ),
+                TableInlineFormset("personnel"),
                 css_id="personnel",
             ),
         ]
@@ -3609,13 +3612,14 @@ class ReportForm(ModelForm):
                 ),
             )
 
-        tabs.extend([
-            Tab(
-                mark_safe(
-                    f'<i class="material-icons" style="vertical-align: middle; font-size: 0.99em;">work</i> {_("Activities")}'
-                ),
-                HTML(
-                    """{% load tags %}
+        tabs.extend(
+            [
+                Tab(
+                    mark_safe(
+                        f'<i class="material-icons" style="vertical-align: middle; font-size: 0.99em;">work</i> {_("Activities")}'
+                    ),
+                    HTML(
+                        """{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any <strong>outcomes or activities</strong> that have arisen from \
@@ -3623,181 +3627,184 @@ class ReportForm(ModelForm):
                         many activity types from their ORCID profile record.') }}
                     </p>
                 </div>{% jinja 'partials/report_publication_list.html' %}"""
-                ),
-                Div(
-                    Div(
-                        ButtonHolder(
-                            Button(
-                                "add_activity", _("Add Activity"), css_class="btn-primary btn-sm"
-                            ),
-                            Button(
-                                "import_activities_from_orcid",
-                                _("Import from ORCID"),
-                                css_class="btn-secondary btn-sm",
-                            ),
-                            Button(
-                                "no_activity_to_add",
-                                _("Nothing to add"),
-                                css_class="btn-primary btn-sm",
-                            ),
-                            css_class="float-right mb-5",
-                        ),
-                        css_class="col-12",
                     ),
-                    css_class="row",
+                    Div(
+                        Div(
+                            ButtonHolder(
+                                Button(
+                                    "add_activity",
+                                    _("Add Activity"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                Button(
+                                    "import_activities_from_orcid",
+                                    _("Import from ORCID"),
+                                    css_class="btn-secondary btn-sm",
+                                ),
+                                Button(
+                                    "no_activity_to_add",
+                                    _("Nothing to add"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                css_class="float-right mb-5",
+                            ),
+                            css_class="col-12",
+                        ),
+                        css_class="row",
+                    ),
+                    css_id="activities",
                 ),
-                css_id="activities",
-            ),
-            Tab(
-                mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
-                HTML(
-                    """{% load tags %}
+                Tab(
+                    mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
+                    HTML(
+                        """{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
                     </p>
                 </div>{% jinja 'partials/report_publication_list.html' %}"""
-                ),
-                Div(
-                    Div(
-                        ButtonHolder(
-                            Button(
-                                "import_ris_file",
-                                _("Import RIS file"),
-                                css_class="btn-primary btn-sm",
-                            ),
-                            Button(
-                                "import_from_orcid",
-                                _("Import from ORCID"),
-                                css_class="btn-secondary btn-sm",
-                            ),
-                            Button(
-                                "nothing_to_add",
-                                _("Nothing to add"),
-                                css_class="btn-primary btn-sm",
-                            ),
-                            css_class="float-right mb-5",
-                        ),
-                        css_class="col-12",
                     ),
-                    css_class="row",
+                    Div(
+                        Div(
+                            ButtonHolder(
+                                Button(
+                                    "import_ris_file",
+                                    _("Import RIS file"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                Button(
+                                    "import_from_orcid",
+                                    _("Import from ORCID"),
+                                    css_class="btn-secondary btn-sm",
+                                ),
+                                Button(
+                                    "nothing_to_add",
+                                    _("Nothing to add"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                css_class="float-right mb-5",
+                            ),
+                            css_class="col-12",
+                        ),
+                        css_class="row",
+                    ),
+                    css_id="publications",
                 ),
-                css_id="publications",
-            ),
-        ])
-            #     Tab(
-            #         _("Research"),
-            #         Field("project_title"),
-            #         Field("abstract"),
-            #         Field("notes"),
-            #         css_id="research",
-            #     ),
-            #     Tab(
-            #         _("Personnel"),
-            #         TableInlineFormset("personnel"),
-            #         css_id="personnel",
-            #     ),
-            #     Tab(
-            #         _("Proposal"),
-            #         HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
-            #         css_id="proposal",
-            #     ),
-            #     Tab(
-            #         _("Reporting"),
-            #         Fieldset(
-            #             _("Reporting Schedule"),
-            #             TableInlineFormset("reporting_schedule"),
-            #             css_id="reporting_schedule",
-            #         ),
-            #         css_id="reporting",
-            #     ),
-            #     Tab(
-            #         _("Compliance"),
-            #         *compliance_fields,
-            #         css_id="compliance",
-            #     ),
-            #     Tab(
-            #         mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-            #         HTML(
-            #             """{% load i18n %}<div class="alert alert-dark" role="alert">
-            #             {% blocktrans %}
-            #             Funding has been allocated over the award period.
-            #             You can distributed it differently, but may not exceed
-            #             the total award. All amounts are exclusive of GST.
-            #             {% endblocktrans %}
-            #             </div>"""
-            #         ),
-            #         Fieldset(
-            #             _("Budget Allocation"),
-            #             TableInlineFormset(
-            #                 "allocations", template="portal/allocations_table_inline_formset.html"
-            #             ),
-            #             css_id="allocations",
-            #         ),
-            #         (
-            #             # Field("proposal_budget"),
-            #             Fieldset(
-            #                 None,
-            #                 HTML(
-            #                     f"""<div class="input-group mb-2">
-            #                 <div class="input-group-prepend">
-            #                     <span class="input-group-text">{_("Proposal Budget")}</span>
-            #                 </div>
-            #                 <div class="form-control d-flex h-auto">
-            #                     <span class="text-break" style="flex-grow:1;min-width:0">
-            #                     <a href="{proposal_budget_file.url}">
-            #                         {os.path.basename(proposal_budget_file.name)}
-            #                     </a>
-            #                     </span>
-            #                 </div>
-            #             </div>"""
-            #                 ),
-            #                 # Submit(
-            #                 #     "copy_proposal_budget",
-            #                 #     _("Copy"),
-            #                 #     css_class="btn-primary float-right",
-            #                 #     data_document_action="copy_proposal_budget",
-            #                 #     # data_document_role="PB",
-            #                 #     data_document_role="PB",
-            #                 # ),
-            #             )
-            #             if proposal_budget_file
-            #             else None
-            #         ),
-            #         Fieldset(
-            #             None,
-            #             # Field("award_budget", label=""),
-            #             Field("budget", label=""),
-            #             ButtonHolder(
-            #                 Submit(
-            #                     "request_budget_correction",
-            #                     _("Request Correction"),
-            #                     css_class="btn-primary",
-            #                     data_document_action="request_correction",
-            #                     # data_document_role="PB",
-            #                     data_document_role="B",
-            #                 ),
-            #                 Submit(
-            #                     "approve_budget",
-            #                     _("Awaiting Approval"),
-            #                     css_class="btn-secondary",
-            #                     data_document_action="awaiting_approval",
-            #                     # data_document_role="AB",
-            #                     data_document_role="B",
-            #                 ),
-            #                 css_class="float-right",
-            #             ),
-            #         ),
-            #         css_id="finances",
-            #     ),
-            #     Tab(
-            #         mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
-            #         Div(
-            #             DocumentInlineFormset("documents"),
-            #             css_id="documents",
-            #         ),
-            #         css_id="appendices",
-            #     ),
+            ]
+        )
+        #     Tab(
+        #         _("Research"),
+        #         Field("project_title"),
+        #         Field("abstract"),
+        #         Field("notes"),
+        #         css_id="research",
+        #     ),
+        #     Tab(
+        #         _("Personnel"),
+        #         TableInlineFormset("personnel"),
+        #         css_id="personnel",
+        #     ),
+        #     Tab(
+        #         _("Proposal"),
+        #         HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+        #         css_id="proposal",
+        #     ),
+        #     Tab(
+        #         _("Reporting"),
+        #         Fieldset(
+        #             _("Reporting Schedule"),
+        #             TableInlineFormset("reporting_schedule"),
+        #             css_id="reporting_schedule",
+        #         ),
+        #         css_id="reporting",
+        #     ),
+        #     Tab(
+        #         _("Compliance"),
+        #         *compliance_fields,
+        #         css_id="compliance",
+        #     ),
+        #     Tab(
+        #         mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
+        #         HTML(
+        #             """{% load i18n %}<div class="alert alert-dark" role="alert">
+        #             {% blocktrans %}
+        #             Funding has been allocated over the award period.
+        #             You can distributed it differently, but may not exceed
+        #             the total award. All amounts are exclusive of GST.
+        #             {% endblocktrans %}
+        #             </div>"""
+        #         ),
+        #         Fieldset(
+        #             _("Budget Allocation"),
+        #             TableInlineFormset(
+        #                 "allocations", template="portal/allocations_table_inline_formset.html"
+        #             ),
+        #             css_id="allocations",
+        #         ),
+        #         (
+        #             # Field("proposal_budget"),
+        #             Fieldset(
+        #                 None,
+        #                 HTML(
+        #                     f"""<div class="input-group mb-2">
+        #                 <div class="input-group-prepend">
+        #                     <span class="input-group-text">{_("Proposal Budget")}</span>
+        #                 </div>
+        #                 <div class="form-control d-flex h-auto">
+        #                     <span class="text-break" style="flex-grow:1;min-width:0">
+        #                     <a href="{proposal_budget_file.url}">
+        #                         {os.path.basename(proposal_budget_file.name)}
+        #                     </a>
+        #                     </span>
+        #                 </div>
+        #             </div>"""
+        #                 ),
+        #                 # Submit(
+        #                 #     "copy_proposal_budget",
+        #                 #     _("Copy"),
+        #                 #     css_class="btn-primary float-right",
+        #                 #     data_document_action="copy_proposal_budget",
+        #                 #     # data_document_role="PB",
+        #                 #     data_document_role="PB",
+        #                 # ),
+        #             )
+        #             if proposal_budget_file
+        #             else None
+        #         ),
+        #         Fieldset(
+        #             None,
+        #             # Field("award_budget", label=""),
+        #             Field("budget", label=""),
+        #             ButtonHolder(
+        #                 Submit(
+        #                     "request_budget_correction",
+        #                     _("Request Correction"),
+        #                     css_class="btn-primary",
+        #                     data_document_action="request_correction",
+        #                     # data_document_role="PB",
+        #                     data_document_role="B",
+        #                 ),
+        #                 Submit(
+        #                     "approve_budget",
+        #                     _("Awaiting Approval"),
+        #                     css_class="btn-secondary",
+        #                     data_document_action="awaiting_approval",
+        #                     # data_document_role="AB",
+        #                     data_document_role="B",
+        #                 ),
+        #                 css_class="float-right",
+        #             ),
+        #         ),
+        #         css_id="finances",
+        #     ),
+        #     Tab(
+        #         mark_safe(f'<i class="far fa-file"></i> {_("Appendices")}'),
+        #         Div(
+        #             DocumentInlineFormset("documents"),
+        #             css_id="documents",
+        #         ),
+        #         css_id="appendices",
+        #     ),
 
         # if instance and instance.pk:
         #     tabs.append(

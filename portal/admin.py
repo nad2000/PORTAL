@@ -3096,13 +3096,12 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         view_on_site = False
         classes = ["collapse"]
 
-    # class TeamInline(admin.StackedInline):
-    #     model = models.ContractTeam
-    #     extra = 0
-    #     view_on_site = False
-    #     autocomplete_fields = ["person", "country"]
-    #     exclude = ["contract_number"]
-    #     classes = ["collapse"]
+    class ReportedEffortInline(admin.StackedInline):
+        model = models.ReportedEffort
+        extra = 0
+        view_on_site = False
+        autocomplete_fields = ["person"]
+        classes = ["collapse"]
 
     # class ReportingInline(admin.StackedInline):
     #     model = models.ContractReporting
@@ -3217,6 +3216,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # AllocationInline,
         ForInline,
         PublicationInline,
+        ReportedEffortInline,
         # TeamInline,
         # AllocationInline,
         # ReportingInline,
