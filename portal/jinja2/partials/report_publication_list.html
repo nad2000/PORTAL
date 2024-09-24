@@ -1,5 +1,7 @@
 <table class="table table-striped">
-{% for p in report.publications.all() %}
+{#% for p in report.publications.all() %#}
+{% for rp in report.publications.through.objects.filter(report=report) %}
+  {% set p=rp.publication %}
   <tr>
     <td>{{ p.title }}{% if p.title2 %}
         / {{ p.title2 }}
@@ -15,7 +17,7 @@
       <button
         class="btn btn-danger btn-sm"
         type="button"
-        hx-delete="{{ url('objects-delete', model=p.model_name, pk=p.pk) }}"
+        hx-delete="{{ url('objects-delete', model=rp._meta.model_name, pk=rp.pk) }}"
         hx-params="none"
         hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
@@ -27,7 +29,7 @@
       <button
         class="btn btn-primary btn-sm"
         type="button"
-        hx-get="{{ url('publication-update', pk=p.pk) }}?report={{ report.pk }}&_modal_dialog=1" 
+        hx-get="{{ url('publication-update', pk=p.pk) }}?report={{ report.pk }}&_modal_dialog=1"
         hx-target="#publication-dialog"
         hx-params="none"
       ><i class='fas fa-edit' style="width: 14px;"></i>
@@ -43,7 +45,7 @@
     <button
       type="button"
       class="btn btn-success btn-sm"
-      hx-get="{{ url('publication-create') }}?report={{ report.pk }}&_modal_dialog=1" 
+      hx-get="{{ url('publication-create') }}?report={{ report.pk }}&_modal_dialog=1"
       hx-target="#publication-dialog"
     >
       <i class="fa fa-plus" style="width: 14px;"></i> </button>

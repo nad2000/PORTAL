@@ -3094,11 +3094,11 @@ def delete_object(request, model, pk):
             if i := getattr(o, "invitation", None):
                 i.revoke(request, by=request.user)
                 i.save()
-                messages_list.append(messages.Message(20, _(f"The invitation {i} was revoked.")))
+                messages_list.append(messages.Message(messages.constants.INFO, _(f"The invitation {i} was revoked.")))
         except Exception as ex:
-            pass
+            messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
         name = o._meta.verbose_name.title()
-        messages_list.append(messages.Message(20, _(f"{name} {o} was successfully deleted")))
+        messages_list.append(messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted")))
         return render(request, "partials/messages.html", {"messages": messages_list})
     raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
 

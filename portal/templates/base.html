@@ -599,8 +599,8 @@ You have a request to review a {{ site_name }} application to act on.
         $(document).ready(function(){
                   const swalWithBootstrapButtons = Swal.mixin({
                     customClass: {
-                      confirmButton: "btn btn-success ml-1",
-                      cancelButton: "btn btn-danger"
+                      confirmButton: "btn btn-danger ml-1",
+                      cancelButton: "btn btn-success"
                     },
                     buttonsStyling: false
                   });
@@ -635,8 +635,8 @@ You have a request to review a {{ site_name }} application to act on.
                       text: (e.detail.question?e.detail.question:"{% trans 'Are you sure you want to delete the selected data entry and all the objects linked to it?' %}"),
                       showCancelButton: true,
                       reverseButtons: true,
-                      confirmButtonText: "{% trans 'Yes, delete it!' %}",
-                      cancelButtonText: "{% trans 'Cancel' %}"
+                      cancelButtonText: "{% trans 'Cancel' %}",
+                      confirmButtonText: "{% trans 'Yes, delete it!' %}"
                     }).then(function(result) {
                       if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
                     })
