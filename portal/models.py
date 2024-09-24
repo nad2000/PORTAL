@@ -8969,11 +8969,12 @@ class ReportedEffort(ReportedEffortMixin, Model):
     @property
     def fte_total(self):
         if self.person:
-            self._meta.model.where(
+            return self._meta.model.where(
                 report__contract=self.report.contract,
                 person=self.person,
-                report__perid__lt=self.report.period,
+                report__period__lt=self.report.period,
             ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00")) + (self.fte or 0.0)
+        return 0.0
 
     def save(self, *args, **kwargs):
         if me := self.member_effort:

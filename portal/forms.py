@@ -3227,15 +3227,15 @@ class ScoreSheetForm(ModelForm):
 class ReportedEffortForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
-        super().__init__( *args, **kwargs)
+        super().__init__(*args, **kwargs)
         if instance := kwargs.get("instance"):
             self.fields["fte_total"].initial = instance.fte_total
-        pass
 
     fte_before = forms.DecimalField(widget=forms.HiddenInput())
     fte_total = forms.DecimalField(
-            label=_("Total FTE"),
-            widget=forms.widgets.NumberInput(attrs={"readonly": True, "disabled": True}))
+        label=_("Total FTE"),
+        widget=forms.widgets.NumberInput(attrs={"readonly": True, "disabled": True}),
+    )
 
     class Meta:
         model = models.ReportedEffort
@@ -3626,7 +3626,10 @@ class ReportForm(ModelForm):
                         this project within the period. NB: if linked, the contract PI is able to import \
                         many activity types from their ORCID profile record.') }}
                     </p>
-                </div>{% jinja 'partials/report_publication_list.html' %}"""
+                </div>
+                <div id="acitvity-list">
+                {% jinja 'partials/report_publication_list.html' %}
+                </div>"""
                     ),
                     Div(
                         Div(
@@ -3662,7 +3665,10 @@ class ReportForm(ModelForm):
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
                     </p>
-                </div>{% jinja 'partials/report_publication_list.html' %}"""
+                </div>
+                <div id="publication-list">
+                {% jinja 'partials/report_publication_list.html' %}
+                </div>"""
                     ),
                     Div(
                         Div(
@@ -3918,6 +3924,10 @@ class ReportForm(ModelForm):
             "fors",
             "seos",
             "state",
+            "schedule_entry",
+            "contract",
+            "period",
+            "type",
         ]
         widgets = dict(
             start_date=DateInput(),

@@ -190,11 +190,11 @@ urlpatterns = [
         "publications/",
         include(
             [
-                # path(
-                #     "",
-                #     views.PublicationList.as_view(),
-                #     name="publication-list",
-                # ),
+                path(
+                    "",
+                    views.PublicationList.as_view(),
+                    name="publication-list",
+                ),
                 path(
                     "~create",
                     views.PublicationCreateView.as_view(),

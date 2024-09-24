@@ -125,7 +125,11 @@ class Model(TimeStampMixin, HelperMixin, Base):
         try:
             return reverse(model_name_slug, args=[str(self.id)])
         except:
-            return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
+            try:
+                return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
+            except:
+                return reverse(f"{model_name_slug}-list")
+            
 
     class Meta:
         abstract = True

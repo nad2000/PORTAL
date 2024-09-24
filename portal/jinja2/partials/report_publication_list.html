@@ -15,20 +15,21 @@
       <button
         class="btn btn-danger btn-sm"
         type="button"
-        hx-delete=""
+        hx-delete="{{ url('objects-delete', model=p.model_name, pk=p.pk) }}"
         hx-params="none"
-        hx-target=""
-        hx-on:htmx:after-request=""
+        hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
-      ><i class="fa fa-times"></i></button>
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the publication record "%s"?') % p.title }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
       <button
         class="btn btn-primary btn-sm"
         type="button"
-        hx-get=""
+        hx-get="{{ url('publication-update', pk=p.pk) }}?report={{ report.pk }}&_modal_dialog=1" 
+        hx-target="#publication-dialog"
         hx-params="none"
-        hx-target=""
-        hx-on:htmx:after-request=""
-        hx-swap="beforeend scroll:bottom"
       ><i class='fas fa-edit' style="width: 14px;"></i>
       </button>
       </div>
@@ -42,6 +43,8 @@
     <button
       type="button"
       class="btn btn-success btn-sm"
+      hx-get="{{ url('publication-create') }}?report={{ report.pk }}&_modal_dialog=1" 
+      hx-target="#publication-dialog"
     >
       <i class="fa fa-plus" style="width: 14px;"></i> </button>
     </div>

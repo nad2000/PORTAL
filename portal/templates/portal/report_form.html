@@ -26,6 +26,14 @@
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
     <input type="hidden" name="doc_action" id="id_doc_action" value="">
+    <!-- Placeholder for the modal -->
+    <div id="publication-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+      <div id="publication-dialog"
+           class="modal-dialog modal-lg"
+           hx-target="this"
+      ></div>
+    </div>
+
     <div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -68,5 +76,27 @@
   {% endcomment %}
 
 {% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script charset="utf-8">
+    function delete_closest_table_row(element, event) {
+      if (event.detail.successful) {
+            $(element).closest("tr").remove();
+      }
+    };
+    $(document).ready(function() {
+      htmx.on("htmx:afterSwap", (e) => {
+      // Response targeting #dialog => show the modal
+        target_id = e.detail.target.id;
+        if (target_id == "publication-dialog") {
+           $('#publication-modal').modal('show');
+        } else if (target_id == "publication-list") {
+           $('#publication-modal').modal('hide');
+        }
+      });
+    });
+  </script>
+{% endblock javascript %}
 
 {# vim:set ft=htmldjango: #}

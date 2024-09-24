@@ -1540,7 +1540,34 @@ class ReportDetail(DetailView):
     #     )
 
 
+class PersonnelInline(InlineFormSetFactory):
+    prefix = "personnel"
+    model = models.ReportedEffort
+    # fields = ["first_name", "middle_names", "last_name", "email"]
+    form_class = forms.ReportedEffortForm
+    # formset_kwargs = {}
+    factory_kwargs = {
+        "extra": 1,
+        "can_delete": True,
+        "labels": {"full_name": _("Name"), "fte": _("FTE from contract")},
+    }
+    # exclude=["member_effort", "person", "state"],
+
+    # def delete_existing(self, obj, commit=True):
+    #     if commit:
+    #         for i in models.Invitation.where(member=obj):
+    #             i.revoke(self.request)
+    #             i.save()
+    #         obj.delete()
+
+
+# def formset_with_prefix(formset_list, prefix):
+#     retur next((fs for fs in formset_list if fs.prefix==prefix), None)
+
+
 class ReportViewMixin:
+
+    inlines = [PersonnelInline]
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -2034,15 +2061,15 @@ class ReportViewMixin:
         #     if not (self.object and self.object.pk)
         #     else []
         # )
-        fs = fsc(
-            self.request.POST or None,
-            instance=self.object,
-            # initial=initial_seos,
-        )
-        # fs.extra = len(initial_seos) or 1
-        fs.extra = 1
-        context["personnel"] = fs
-
+        # fs = fsc(
+        #     self.request.POST or None,
+        #     instance=self.object,
+        #     # initial=initial_seos,
+        # )
+        # # fs.extra = len(initial_seos) or 1
+        # fs.extra = 1
+        # context["personnel"] = fs
+        context.update((fs.prefix, fs) for fs in kwargs.get("inlines", []))
 
         # self.documents = context["documents"] = self.get_document_formset()
         # context["required_documents"] = {
@@ -2056,10 +2083,13 @@ class ReportViewMixin:
     # def post(self, *args, **kwargs):
     #     return super().post(*args, **kwargs)
 
-    # def form_invalid(self, form):
-    #     return super().form_invalid(form)
+    def form_invalid(self, form):
+        breakpoint()
+        pass
+        return super().form_invalid(form)
 
     def form_valid(self, form):
+        breakpoint()
         a = self.application
         u = self.request.user
         i = form.instance
@@ -2308,7 +2338,7 @@ class ReportViewMixin:
         # return resp
 
 
-class ReportCreate(ReportViewMixin, CreateView):
+class ReportCreate(ReportViewMixin, CreateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
 
@@ -2375,7 +2405,7 @@ class ReportCreate(ReportViewMixin, CreateView):
         return initial
 
 
-class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateView):
+class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
 
@@ -9519,6 +9549,16 @@ def demo_create(request):
     return render(request, "partials/form.html", locals())
 
 
+
+class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+    table_class = tables.PublicationTable
+    model = models.Publication
+    template_name = "table.html"
+    extra_context = {"category": "reports"}
+    template_name = "table.html"
+    # filterset_class = filters.ReportFilterSet
+
+
 class PublicationViewMixin:
 
     model = models.Publication
@@ -9532,8 +9572,21 @@ class PublicationViewMixin:
         # "org": autocomplete.ModelSelect2("org-autocomplete"),
     }
 
+    @cached_property
+    def report_id(self):
+        if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
+            return int(report_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.GET.get("_modal_dialog"):
+            context["modal_dialog"] = True
+        if report_id := self.report_id:
+            context["report"] = report_id
+        return context
+
     def get_template_names(self):
-        if self.request.GET.get("_popup"):
+        if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
             return ["partials/publication_form.html"]
         return super().get_template_names()
 
@@ -9546,6 +9599,9 @@ class PublicationViewMixin:
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
         form.helper = FormHelper()
+
+        if self.request.GET.get("_modal_dialog"):
+            form.helper.form_tag = False
         form.helper.layout = Layout(
             "title",
             "title2",
@@ -9568,13 +9624,27 @@ class PublicationViewMixin:
             Row(Column("impact_factor"), Column("impact_year")),
             "xcr",
             "isi_loc",
-            bootstrap.FormActions(
-                layout.Submit("save", "Save changes"),
-                layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
-                css_class="float-right",
-            ),
         )
+        if not self.request.GET.get("_modal_dialog"):
+            form.helper.layout.append(
+                bootstrap.FormActions(
+                    layout.Submit("save", "Save changes"),
+                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+                    css_class="float-right",
+                ),
+            )
         return form
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        if self.object.pk and (report_id := self.report_id) and (
+            report := get_object_or_404(models.Report, pk=report_id)
+        ):
+            if not report.publications.contains(self.object):
+                report.publications.through.objects.create(report=report, publication=self.object)
+            if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+                return render(self.request, "partials/report_publication_list.html", locals())
+        return resp
 
 
 class PublicationUpdateView(PublicationViewMixin, UpdateView):

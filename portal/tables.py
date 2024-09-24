@@ -9,6 +9,14 @@ from django.utils.translation import gettext_lazy
 from . import models
 
 
+class PublicationTable(tables.Table):
+    class Meta:
+        model = models.Publication
+        template_name = "django_tables2/bootstrap4.html"
+        attrs = {"class": "table table-striped"}
+        fields = ("title", "doi")
+
+
 class SubscriptionTable(tables.Table):
     class Meta:
         model = models.Subscription
@@ -770,7 +778,9 @@ class ContractTable(tables.Table):
     )
     number = tables.Column(
         verbose_name=gettext_lazy("Contract"),
-        linkify=lambda value, record: reverse("contract-detail", kwargs=dict(number=record.number))
+        linkify=lambda value, record: reverse(
+            "contract-detail", kwargs=dict(number=record.number)
+        ),
     )
     state = StateColumn(gettext_lazy("Status"))
     # contract_pi = tables.Column(linkify=application_link)
@@ -839,13 +849,7 @@ class ContractTable(tables.Table):
 
     class Meta:
         model = models.Contract
-        fields = (
-            "state",
-            "application",
-            "number",
-            "pi",
-            "notes"
-        )
+        fields = ("state", "application", "number", "pi", "notes")
 
 
 # class ReportTable(tables.Table):
