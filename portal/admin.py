@@ -761,7 +761,7 @@ class PanelAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.Mo
 @admin.register(models.Person)
 class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
-    autocomplete_fields = ["address"]
+    autocomplete_fields = ["address", "user", "title"]
 
     def get_search_results(self, request, queryset, search_term):
         queryset, may_have_duplicates = super().get_search_results(
@@ -822,6 +822,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     list_display = ["username", "code", "user", "full_name_with_email", "created_at"]
     # list_display_links = ["username"]
     list_filter = ["created_at", "updated_at"]
+    autocomplete_fields = [ "user"]
 
     def username(self, obj):
         return obj.code or (obj.user and obj.user.username) or obj.full_name_with_email
@@ -992,6 +993,7 @@ class ApplicationAdmin(
         "org",
         "panel",
         "submitted_by",
+        "title",
     ]
     # summernote_fields = ["summary"]
     exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
@@ -1133,6 +1135,7 @@ class ApplicationAdmin(
         (
             None,
             {
+                "classes": ("wide",),
                 "fields": [
                     "STATE",
                     ("number", "application_title_en", "application_title_mi"),
@@ -1144,6 +1147,15 @@ class ApplicationAdmin(
                     "presentation_url",
                     "is_tac_accepted",
                 ]
+            },
+        ),
+        (
+            "Other fields (CHANGE WITH CARE)",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "submitted_by",
+                ],
             },
         ),
         (
@@ -1200,6 +1212,7 @@ class ApplicationAdmin(
             (
                 None,
                 {
+                    "classes": ("wide",),
                     "fields": [
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
@@ -1215,6 +1228,15 @@ class ApplicationAdmin(
                         "presentation_url",
                         "is_tac_accepted",
                     ]
+                },
+            ),
+            (
+                "Other fields (CHANGE WITH CARE)",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        "submitted_by",
+                    ],
                 },
             ),
             (
@@ -1413,6 +1435,7 @@ class ConvertedFileAdmin(admin.ModelAdmin):
 class CurriculumVitaeAdmin(admin.ModelAdmin):
     save_on_top = True
     list_display = ["person", "owner", "title", "file"]
+    autocomplete_fields = ["persson", "owner"]
     # list_filter = ["owner"]
     search_fields = [
         "owner__first_name",
@@ -1594,6 +1617,7 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "authorized_at",
         "has_authorized",
     ]
+    autocomplete_fields = ["user", "application"]
 
     def has_authorized(self, obj):
         if obj.state == "authorized":
@@ -1832,7 +1856,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     search_fields = ["name", "code"]
     date_hierarchy = "created_at"
     resource_classes = [OrganisationResource, OrganisationWOIdentifierResource]
-    autocomplete_fields = ["address"]
+    autocomplete_fields = ["address", "signatory"]
     actions = ["merge_orgs"]
 
     fieldsets = [
@@ -2239,6 +2263,7 @@ class SchemeAdmin(
     resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
+    autocomplete_fields = ["fund", "current_round"]
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
