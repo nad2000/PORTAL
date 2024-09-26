@@ -3605,7 +3605,7 @@ class Member(PersonMixin, MemberMixin, Model):
                 )
 
     @fsm_log
-    @transition(field=state, source=["new", "sent"], target="accepted")
+    @transition(field=state, source=["new", "sent", "bounced"], target="accepted")
     def accept(self, *args, **kwargs):
         pass
 
