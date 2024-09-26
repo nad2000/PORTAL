@@ -8998,6 +8998,89 @@ simple_history.register(
 )
 
 
+FUNDING_TYPES = Choices(
+    ("A", _("Award")),
+    ("C", _("Contract")),
+    ("G", _("Grant")),
+    ("S", _("Salary award")),
+)
+
+
+class ReportedFundingMixin:
+    STATES = Choices(
+        ("accepted", _("accepted")),
+        ("acknowledged", _("acknowledged")),
+        ("approved", _("approved")),
+        ("application", _("application")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("draft")),
+        ("new", _("new")),
+        ("submitted", _("submitted")),
+        # ("withdrawn", _("withdrawn")),
+    )
+
+
+class ReportedFunding(ReportedFundingMixin, Model):
+
+    orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+    put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="fundings",
+    )
+    state = StateField(default="new", verbose_name=_("status"))
+    type = FixedCharField(
+        _("Type"), max_length=1, choices=FUNDING_TYPES, help_text=_("Funding Type")
+    )
+    subtype = CharField(
+        _("Subtype"), max_length=100, null=True, blank=True, help_text=_("Funding subtype")
+    )
+    title = CharField(
+        _("Project"), max_length=400, null=True, blank=True, help_text=_("Title of funded project")
+    )
+    url = URLField(
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Project link URL"),
+    )
+    description = TextField(null=True, blank=True)
+    amount = DecimalField(
+        null=True, blank=True, help_text=_("Total funding amount"), max_digits=10, decimal_places=2
+    )
+    currency = ForeignKey(
+        Currency,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        db_column="currency",
+        default="NZD",
+        verbose_name=_("Funding currency"),
+    )
+
+    start_date = DateField(blank=True, null=True)
+    end_date = DateField(blank=True, null=True)
+    agency = ForeignKey(
+        Organisation, on_delete=SET_NULL, null=True, blank=True, verbose_name=_("Funding agency")
+    )
+
+    # def __str__(self):
+    #     return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = "reported_funding"
+
+
+simple_history.register(
+    ReportedFunding,
+    inherit=True,
+    table_name="reported_funding_history",
+    bases=[ReportedFundingMixin, Model],
+)
+
+
 class PublicationType(Model):
     code = CharField(max_length=10, primary_key=True)
     code_2 = CharField(unique=True, max_length=2, null=True, blank=True)

@@ -183,6 +183,28 @@ urlpatterns = [
                     views.ReportExportView.as_view(),
                     name="report-export",
                 ),
+                path(
+                    "funding/",
+                    include(
+                        [
+                            path(
+                                "",
+                                views.ReportedFundingList.as_view(),
+                                name="reported-funding-list",
+                            ),
+                            path(
+                                "~create",
+                                views.ReportedFundingCreateView.as_view(),
+                                name="reported-funding-create",
+                            ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedFundingUpdateView.as_view(),
+                                name="reported-funding-update",
+                            ),
+                        ]
+                    ),
+                ),
             ]
         ),
     ),
@@ -430,7 +452,9 @@ urlpatterns = [
                 ),
                 path(
                     "reporting-schedule-entry-autocomplete/",
-                    views.ReportingScheduleEntryAutocomplete.as_view(model=models.ReportingScheduleEntry),
+                    views.ReportingScheduleEntryAutocomplete.as_view(
+                        model=models.ReportingScheduleEntry
+                    ),
                     name="reporting-schedule-entry-autocomplete",
                 ),
             ]

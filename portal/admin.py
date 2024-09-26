@@ -3103,6 +3103,14 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         autocomplete_fields = ["person"]
         classes = ["collapse"]
 
+    class ReportedFundingInline(admin.StackedInline):
+        model = models.ReportedFunding
+        extra = 0
+        view_on_site = False
+        autocomplete_fields = ["agency"]
+        classes = ["collapse"]
+
+
     # class ReportingInline(admin.StackedInline):
     #     model = models.ContractReporting
     #     exclude = ["contract_number"]
@@ -3217,6 +3225,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         ForInline,
         PublicationInline,
         ReportedEffortInline,
+        ReportedFundingInline,
         # TeamInline,
         # AllocationInline,
         # ReportingInline,

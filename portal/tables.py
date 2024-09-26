@@ -9,6 +9,14 @@ from django.utils.translation import gettext_lazy
 from . import models
 
 
+class ReportedFundingTable(tables.Table):
+    class Meta:
+        model = models.ReportedFunding
+        template_name = "django_tables2/bootstrap4.html"
+        attrs = {"class": "table table-striped"}
+        fields = ("title", "doi")
+
+
 class PublicationTable(tables.Table):
     class Meta:
         model = models.Publication

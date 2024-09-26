@@ -9655,6 +9655,95 @@ class PublicationCreateView(PublicationViewMixin, CreateView):
     pass
 
 
+class ReportedFundingList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+    table_class = tables.ReportedFundingTable
+    model = models.ReportedFunding
+    template_name = "table.html"
+    extra_context = {"category": "reports"}
+    template_name = "table.html"
+    # filterset_class = filters.ReportFilterSet
+
+
+class ReportedFundingViewMixin:
+
+    model = models.ReportedFunding
+    fields = "__all__"
+    exclude = ["updated_at", "created_at"]
+    widgets = {
+        "start_date": forms.DateInput(),
+        "end_date": forms.DateInput(),
+        "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        "url": URLInput(),
+    }
+
+    @cached_property
+    def report_id(self):
+        if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
+            return int(report_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.GET.get("_modal_dialog"):
+            context["modal_dialog"] = True
+        if report_id := self.report_id:
+            context["report"] = report_id
+        return context
+
+    def get_template_names(self):
+        if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
+            return ["partials/reported_funding_form.html"]
+        return super().get_template_names()
+
+    def get_form_class(self):
+        """Return the form class to use in this view."""
+        return model_forms.modelform_factory(
+            self.model, fields=self.fields, exclude=self.exclude, widgets=self.widgets
+        )
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper = FormHelper()
+
+        if self.request.GET.get("_modal_dialog"):
+            form.helper.form_tag = False
+        form.helper.layout = Layout(
+            Row(Column("type"), Column("state")),
+            "subtype",
+            "title",
+            "url",
+            Row(Column("start_date"), Column("end_date")),
+            "agency",
+        )
+        if not self.request.GET.get("_modal_dialog"):
+            form.helper.layout.append(
+                bootstrap.FormActions(
+                    layout.Submit("save", "Save changes"),
+                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+                    css_class="float-right",
+                ),
+            )
+        return form
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        if self.object.pk and (report_id := self.report_id) and (
+            report := get_object_or_404(models.Report, pk=report_id)
+        ):
+            if not report.publications.contains(self.object):
+                report.publications.through.objects.create(report=report, publication=self.object)
+            if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+                return render(self.request, "partials/report_funding_list.html", locals())
+        return resp
+
+
+class ReportedFundingUpdateView(ReportedFundingViewMixin, UpdateView):
+    pass
+
+
+class ReportedFundingCreateView(ReportedFundingViewMixin, CreateView):
+    pass
+
+
 @login_required
 def demo(request, pk=None):
     # a = Application.get(1683)
