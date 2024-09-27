@@ -1468,7 +1468,7 @@ class ConvertedFileAdmin(admin.ModelAdmin):
 class CurriculumVitaeAdmin(admin.ModelAdmin):
     save_on_top = True
     list_display = ["person", "owner", "title", "file"]
-    autocomplete_fields = ["persson", "owner"]
+    autocomplete_fields = ["person", "owner"]
     # list_filter = ["owner"]
     search_fields = [
         "owner__first_name",

@@ -9047,9 +9047,6 @@ class ReportedFunding(ReportedFundingMixin, Model):
         help_text=_("Project link URL"),
     )
     description = TextField(null=True, blank=True)
-    amount = DecimalField(
-        null=True, blank=True, help_text=_("Total funding amount"), max_digits=10, decimal_places=2
-    )
     currency = ForeignKey(
         Currency,
         on_delete=SET_NULL,
@@ -9058,6 +9055,14 @@ class ReportedFunding(ReportedFundingMixin, Model):
         db_column="currency",
         default="NZD",
         verbose_name=_("Funding currency"),
+    )
+    amount = DecimalField(
+        null=True, blank=True, help_text=_("Total funding amount"), max_digits=10, decimal_places=2
+    )
+    share = PositiveSmallIntegerField(
+        _("Share available"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=100,
     )
 
     start_date = DateField(blank=True, null=True)

@@ -38,19 +38,32 @@ class OrcidHelper:
         self.person = user.person
         self.sections = sections or self.DEFAULT_SECTIONS
 
-    def get_orcid_profile(self, orcid_api_url, access_token):
+    @property
+    def orcid_api_url(self):
+        return urljoin(settings.ORCID_API_BASE, self.user.get_orcid())
+
+    def get_orcid_profile(self, orcid_api_url=None, access_token=None):
         """Retrieve the user ORCID profile."""
         headers = {
             "Accept": "application/json",
             "Content-Length": "0",
         }
+        if not orcid_api_url:
+            orcid_api_url = self.orcid_api_url
+        if not access_token:
+            access_token = self.user.orcid_access_token
         if access_token:
             headers["Authorization"] = f"Bearer {access_token.token}"
+
         resp = requests.get(orcid_api_url, headers=headers)
         if resp.status_code == 200:
             extra_data = resp.json()
             return (extra_data, True)
         return (None, False)
+
+    def get_orcid_fundings(self):
+        url = f"{self.orcid_api_url}/fundings"
+        return self.get_orcid_profile(orcid_api_url=url)
 
     def org_from_orcid_data(self, orcid_data):
         org_name = orcid_data.get("organization").get("name")
@@ -65,26 +78,26 @@ class OrcidHelper:
 
     def fetch_and_load_orcid_data(self):
         """Fetch the data from orcid. ["employment", "education", "qualification", ...]"""
-        orcid = self.user.orcid
-        if (
-            not orcid
-            and self.user.person
-            and (
-                ppi := models.PersonPersonIdentifier.where(
-                    person=self.user.person, code__code="02"
-                )
-                .order_by("-id")
-                .first()
-            )
-        ):
-            orcid = ppi.value
-        if not orcid and (
-            sa := self.user.socialaccount_set.all()
-            .filter(provider="orcid")
-            .order_by("-id")
-            .first()
-        ):
-            orcid = sa.uid
+        orcid = self.user.get_orcid()
+        # if (
+        #     not orcid
+        #     and self.user.person
+        #     and (
+        #         ppi := models.PersonPersonIdentifier.where(
+        #             person=self.user.person, code__code="02"
+        #         )
+        #         .order_by("-id")
+        #         .first()
+        #     )
+        # ):
+        #     orcid = ppi.value
+        # if not orcid and (
+        #     sa := self.user.socialaccount_set.all()
+        #     .filter(provider="orcid")
+        #     .order_by("-id")
+        #     .first()
+        # ):
+        #     orcid = sa.uid
 
         if orcid:
             if orcid.startswith("https://") or orcid.startswith("http://"):

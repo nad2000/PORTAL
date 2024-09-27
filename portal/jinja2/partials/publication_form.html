@@ -9,8 +9,8 @@
   <input type="hidden" name="_modal_dialog" value="1">
   <div class="modal-header">
     <h5 class="modal-title">
-      {% if instance and instance.pk %}
-        {{ instance }}
+      {% if form.instance and form.instance.pk %}
+        {{ form.instance }}
       {% else %}
         {{ _('Add a new publication') }}
       {% endif %}
@@ -75,6 +75,9 @@
     </div>
   </div>
 </div>
+<script>
+  {{ form.media.js }}
+</script>
 {% else %}
 {{ crispy(form, form.helper) }}
 {% endif %}

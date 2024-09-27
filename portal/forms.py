@@ -3696,6 +3696,46 @@ class ReportForm(ModelForm):
                     ),
                     css_id="publications",
                 ),
+                Tab(
+                    mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Funding")}'),
+                    HTML(
+                        """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any funding that have or your colleagues have applied for that is related to \
+                        this project within the period together with the proportion that the team \
+                        is able to access. \
+                        NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
+                    </p>
+                </div>
+                <div id="reported-funding-list">
+                {% jinja 'partials/report_funding_list.html' %}
+                </div>"""
+                    ),
+                    Div(
+                        Div(
+                            ButtonHolder(
+                                Button(
+                                    "funding_import_from_orcid",
+                                    _("Import from ORCID"),
+                                    css_class="btn-secondary btn-sm",
+                                    hx_post=f"?action=funding_import_from_orcid",
+                                    # hx_params="none",
+                                    hx_target="#reported-funding-list",
+                                ),
+                                Button(
+                                    "funding_nothing_to_add",
+                                    _("Nothing to add"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                css_class="float-right mb-5",
+                            ),
+                            css_class="col-12",
+                        ),
+                        css_class="row",
+                    ),
+                    css_id="funding",
+                ),
             ]
         )
         #     Tab(

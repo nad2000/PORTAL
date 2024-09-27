@@ -2080,87 +2080,42 @@ class ReportViewMixin:
 
         return context
 
-    # def post(self, *args, **kwargs):
-    #     return super().post(*args, **kwargs)
+    def post(self, *args, **kwargs):
+        if self.request.GET.get("action") == "funding_import_from_orcid":
+            breakpoint()
+            report = self.get_object()
+            user = self.request.user
+            api = OrcidHelper(user)
+            data, success = api.get_orcid_fundings()
+            for f in data.get("group"):
+                pass
+            return render(self.request, "partials/report_funding_list.html", locals())
+
+        return super().post(*args, **kwargs)
 
     def form_invalid(self, form):
         breakpoint()
-        pass
         return super().form_invalid(form)
 
     def form_valid(self, form):
         breakpoint()
-        a = self.application
+        r = i = form.instance or self.object
+        c = r.contract
+        a = c.application
         u = self.request.user
-        i = form.instance
-        if not i.submitted_by:
-            i.submitted_by = u
-        if not i.org:
-            i.org = a.org
-        if not i.application:
-            i.application = a
-        if not i.number:
-            i.number = models.Report.new_number(application=a)
-        if not i.fund:
-            i.fund = models.Fund.last()
+        # if not i.submitted_by:
+        #     i.submitted_by = u
+        # if not i.org:
+        #     i.org = a.org
+        # if not i.application:
+        #     i.application = a
+        # if not i.number:
+        #     i.number = models.Report.new_number(application=a)
+        # if not i.fund:
+        #     i.fund = models.Fund.last()
         try:
             with transaction.atomic():
                 resp = super().form_valid(form)
-                # fs = self.get_allocation_formset()
-                # fs.instance = self.object
-                # if fs.is_valid():
-                #     fs.save()
-                # fs = self.get_reporting_schedule_formset()
-                # fs.instance = self.object
-                # if fs.is_valid():
-                #     fs.save()
-                # fs = self.get_personnel_formset()
-                # fs.instance = self.object
-                # if fs.is_valid():
-                #     fs.save()
-                # fs = self.get_document_formset()
-                # fs.instance = self.object
-                # if fs.is_valid():
-                #     fs.save(commit=False)
-                #     for f in fs.forms:
-                #         if "file" in f.changed_data:
-                #             if f.instance.file.name.lower().endswith(".pdf"):
-                #                 doc_file = f.instance.file.open()
-                #                 f.instance.update_page_count(doc_file)
-                #                 # f.instance.sarve(update_fields=["page_count"])
-                #             else:
-                #                 cf = f.instance.update_converted_file()
-                #                 # f.instance.save(update_fields=["page_count", "converted_file"])
-                #                 if cf:
-                #                     messages.success(
-                #                         self.request,
-                #                         _(
-                #                             "%(document_type)s %(original)s was converted into PDF file. "
-                #                             "Please review the converted document <a href='%(url)s'>%(name)s</a>."
-                #                         )
-                #                         % {
-                #                             "document_type": f.instance.document_type
-                #                             or f.instance.required_document
-                #                             and f.instance.required_document.document_type,
-                #                             "original": os.path.basename(f.instance.file.name),
-                #                             "url": cf.file.url,
-                #                             "name": os.path.basename(cf.file.name),
-                #                         },
-                #                     )
-                #     fs.save(commit=True)
-
-                # address_form = self.get_address_form()
-                # # instance=self.object.address if self.object and self.object.pk else None)
-                # if address_form.changed_data or not self.object.address:
-                #     if address_form.data.get("address") and form.data.get("address").strip():
-                #         if not address_form.is_valid():
-                #             return self.form_invalid(form)
-                #         address = address_form.save()
-                #     else:
-                #         address = None
-                #     if self.object.address != address:
-                #         self.object.address = address
-                #         self.object.save(update_fields=["address"])
 
         except Exception as ex:
             capture_exception(ex)
@@ -3094,11 +3049,17 @@ def delete_object(request, model, pk):
             if i := getattr(o, "invitation", None):
                 i.revoke(request, by=request.user)
                 i.save()
-                messages_list.append(messages.Message(messages.constants.INFO, _(f"The invitation {i} was revoked.")))
+                messages_list.append(
+                    messages.Message(
+                        messages.constants.INFO, _(f"The invitation {i} was revoked.")
+                    )
+                )
         except Exception as ex:
             messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
         name = o._meta.verbose_name.title()
-        messages_list.append(messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted")))
+        messages_list.append(
+            messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted"))
+        )
         return render(request, "partials/messages.html", {"messages": messages_list})
     raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
 
@@ -9549,7 +9510,6 @@ def demo_create(request):
     return render(request, "partials/form.html", locals())
 
 
-
 class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
     table_class = tables.PublicationTable
     model = models.Publication
@@ -9637,8 +9597,10 @@ class PublicationViewMixin:
 
     def form_valid(self, form):
         resp = super().form_valid(form)
-        if self.object.pk and (report_id := self.report_id) and (
-            report := get_object_or_404(models.Report, pk=report_id)
+        if (
+            self.object.pk
+            and (report_id := self.report_id)
+            and (report := get_object_or_404(models.Report, pk=report_id))
         ):
             if not report.publications.contains(self.object):
                 report.publications.through.objects.create(report=report, publication=self.object)
@@ -9670,9 +9632,10 @@ class ReportedFundingViewMixin:
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
     widgets = {
-        "start_date": forms.DateInput(),
-        "end_date": forms.DateInput(),
         "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        "end_date": forms.DateInput(),
+        "report": HiddenInput(),
+        "start_date": forms.DateInput(),
         "url": URLInput(),
     }
 
@@ -9681,6 +9644,13 @@ class ReportedFundingViewMixin:
         if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
             return int(report_id)
 
+    @property
+    def report(self):
+        if self.object and self.object.report:
+            return self.object.report
+        if self.report_id:
+            return models.Report.where(pk=self.report_id).first()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.GET.get("_modal_dialog"):
@@ -9688,6 +9658,12 @@ class ReportedFundingViewMixin:
         if report_id := self.report_id:
             context["report"] = report_id
         return context
+
+    def get_initial(self):
+        initial = super().get_initial() or {}
+        initial["report"] = self.report_id
+        initial["title"] = self.report.contract.project_title
+        return initial
 
     def get_template_names(self):
         if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
@@ -9711,8 +9687,9 @@ class ReportedFundingViewMixin:
             "subtype",
             "title",
             "url",
-            Row(Column("start_date"), Column("end_date")),
-            "agency",
+            Row(Column("currency"), Column("amount"), Column("share")),
+            Row(Column("agency", css_class="col-8"), Column("start_date", css_class="col-2"), Column("end_date", css_class="col-2")),
+            "description",
         )
         if not self.request.GET.get("_modal_dialog"):
             form.helper.layout.append(
@@ -9726,13 +9703,9 @@ class ReportedFundingViewMixin:
 
     def form_valid(self, form):
         resp = super().form_valid(form)
-        if self.object.pk and (report_id := self.report_id) and (
-            report := get_object_or_404(models.Report, pk=report_id)
-        ):
-            if not report.publications.contains(self.object):
-                report.publications.through.objects.create(report=report, publication=self.object)
-            if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
-                return render(self.request, "partials/report_funding_list.html", locals())
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            report = self.report
+            return render(self.request, "partials/report_funding_list.html", locals())
         return resp
 
 

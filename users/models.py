@@ -2,7 +2,7 @@ from hashlib import md5
 from urllib.parse import urlencode
 
 from common.models import HelperMixin, PersonMixin, Title
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.models import SocialAccount, SocialToken
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import AbstractUser
@@ -114,6 +114,15 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     @property
     def is_referee(self):
         return self.in_group("REFEREE")
+
+    def get_orcid(self):
+        """find user ORCID value."""
+        orcid = self.orcid
+        if not orcid and (sa := SocialAccount.objects.filter(user=self, provider="orcid").last()):
+            orcid = sa.uid
+        if not orcid and (ppi := self.person.person_identifiers.filter(code_id="02", person__user=self).last()):
+            orcid = ppi.value
+        return orcid
 
     @property
     def orcid_access_token(self):
