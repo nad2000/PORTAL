@@ -2194,6 +2194,19 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             if self.is_preliminary:
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
+        if (pi := self.submitted_by) and not self.members.filter(user=pi).exists():
+            self.members.model.get_or_create(
+                    application=self, 
+                    user=pi, 
+                    email=self.email or pi.email, 
+                    defaults=dict(
+                        first_name=self.first_name or pi.first_name, 
+                        middle_names=self.middle_names or pi.middle_names, 
+                        last_name=self.last_name or pi.last_name, 
+                        state="authorized",
+                        authorized_at=self.updated_at,
+                        role_description="The submitter of the application",
+                        role_id="PI"))
 
     @cache
     def can_only_update_referees(self, user):
