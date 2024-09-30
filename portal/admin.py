@@ -821,6 +821,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
 
     class CurriculumVitaeInline(admin.StackedInline):
         extra = 1
+        exclude = ["owner", "converted_file"]
         model = models.CurriculumVitae
         view_on_site = False
 
@@ -850,7 +851,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     list_display = ["username", "code", "user", "full_name_with_email", "created_at"]
     # list_display_links = ["username"]
     list_filter = ["created_at", "updated_at"]
-    autocomplete_fields = [ "user"]
+    autocomplete_fields = ["user", "title", "address"]
 
     def username(self, obj):
         return obj.code or (obj.user and obj.user.username) or obj.full_name_with_email
