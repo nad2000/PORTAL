@@ -3722,6 +3722,7 @@ class ReportForm(ModelForm):
                                     hx_post=f"?action=funding_import_from_orcid",
                                     # hx_params="none",
                                     hx_target="#reported-funding-list",
+                                    hx_indicator="#spinner",
                                 ),
                                 Button(
                                     "funding_nothing_to_add",
