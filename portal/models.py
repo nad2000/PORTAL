@@ -5083,6 +5083,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         upload_subfolder=lambda instance: [hash_int(instance.referee_id)],
         blank=True,
         null=True,
+        max_length=200,
     )
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
