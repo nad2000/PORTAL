@@ -43,6 +43,9 @@ class OrcidHelper:
         return urljoin(settings.ORCID_API_BASE, self.user.get_orcid())
 
     def get_orcid_profile(self, orcid_api_url=None, access_token=None):
+        return self.get_orcid_data(orcid_api_url=orcid_api_url, access_token=access_token, path="")
+
+    def get_orcid_data(self, orcid_api_url=None, access_token=None, path=None):
         """Retrieve the user ORCID profile."""
         headers = {
             "Accept": "application/json",
@@ -54,6 +57,8 @@ class OrcidHelper:
             access_token = self.user.orcid_access_token
         if access_token:
             headers["Authorization"] = f"Bearer {access_token.token}"
+        if path:
+            orcid_api_url = f"{orcid_api_url}{path}"
 
         resp = requests.get(orcid_api_url, headers=headers)
         if resp.status_code == 200:
@@ -62,8 +67,7 @@ class OrcidHelper:
         return (None, False)
 
     def get_orcid_fundings(self):
-        url = f"{self.orcid_api_url}/fundings"
-        return self.get_orcid_profile(orcid_api_url=url)
+        return self.get_orcid_data(path="/fundings")
 
     def org_from_orcid_data(self, orcid_data):
         org_name = orcid_data.get("organization").get("name")

@@ -557,6 +557,9 @@ class Address(Model):
 
     address = TextField(_("address"))
     postcode = CharField(_("postcode"), max_length=12, null=True, blank=True)
+    region = CharField(
+        _("region"), max_length=100, null=True, blank=True, help_text=_("Region, State or County")
+    )
     city = CharField(_("city"), max_length=42, null=True, blank=True)
     country = ForeignKey(
         Country,
@@ -951,10 +954,7 @@ def validate_orcid_id(value):
 
 
 class PersonPersonIdentifier(Model):
-    person = ForeignKey(
-        "Person",
-        on_delete=CASCADE,
-    )
+    person = ForeignKey("Person", on_delete=CASCADE, related_name="person_identifiers")
     code = ForeignKey(
         PersonIdentifierType,
         on_delete=DO_NOTHING,
@@ -5109,6 +5109,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         upload_subfolder=lambda instance: [hash_int(instance.referee_id)],
         blank=True,
         null=True,
+        max_length=200,
     )
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")

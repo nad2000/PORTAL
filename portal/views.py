@@ -118,6 +118,7 @@ from .models import Address, Application, Person, PersonCareerStage, Subscriptio
 from .pyinfo import info
 from .utils import send_mail, vignere
 from .utils.orcid import OrcidHelper
+from .utils.date_utils import FuzzyDate
 
 # from .tasks import notify_user
 
@@ -2082,14 +2083,81 @@ class ReportViewMixin:
 
     def post(self, *args, **kwargs):
         if self.request.GET.get("action") == "funding_import_from_orcid":
-            breakpoint()
             report = self.get_object()
             user = self.request.user
             api = OrcidHelper(user)
             data, success = api.get_orcid_fundings()
+            put_codes = set()
             for f in data.get("group"):
-                pass
-            return render(self.request, "partials/report_funding_list.html", locals())
+                for s in f["funding-summary"]:
+                    title = s["title"]["title"]["value"]
+                    start_date = FuzzyDate.create(s.get("start-date")).start_date()
+                    end_date = FuzzyDate.create(s.get("end-date")).end_date()
+                    put_codes.add(s["put-code"])
+
+            for put_code in put_codes:
+                data, _ = api.get_orcid_data(path=f"/funding/{put_code}")
+                title = data["title"]["title"]["value"]
+                funding_type = data.get("type")
+                funding_type = funding_type and funding_type[0].upper() or None
+                start_date = FuzzyDate.create(s.get("start-date")).start_date()
+                end_date = FuzzyDate.create(s.get("end-date")).end_date()
+                amount = data.get("amount")
+                if amount:
+                    currency = amount.get("currency-code")
+                    amount = amount.get("value")
+                else:
+                    currency = None
+                organisation = data.get("orgnanization")
+                if organisation:
+                    org_name = organisation.get("name")
+                    org_address = organisation.get("address")
+                    country_code = org_address and org_address.get("country")
+                    q = models.Organisation.where(name=org_name)
+                    if country_code:
+                        q = q.filter(address__country_id=country_code)
+                    org = q.last()
+                    if not org:
+                        if org_address:
+                            city = org_address.get("city")
+                            region = org_address.get("region")
+                            country_code = org_address.get("country")
+                            country = (
+                                country_code and models.Country.where(code=country_code).last()
+                            )
+
+                            address, _ = models.Address.get_or_create(
+                                address=f"{org_name}\n{region}\n{country.name}",
+                                region=region,
+                                country=country,
+                            )
+                        org, _ = models.Organisation.get_or_create(
+                            name=org_name,
+                            address=address,
+                        )
+                else:
+                    org = None
+
+                organization_defined_type = data.get("organization-defined-type")
+                url = data.get("url")
+                models.ReportedFunding.create(
+                    orcid=self.request.user.get_orcid(),
+                    put_code=put_code,
+                    report=report,
+                    # state = '',
+                    type=funding_type,
+                    subtype=organization_defined_type and organization_defined_type.get("value"),
+                    title=title,
+                    url=url and url.get("value"),
+                    description=data.get("short-description"),
+                    currency_id=currency,
+                    amount=amount,
+                    start_date=start_date,
+                    end_date=end_date,
+                    agency=org,
+                )
+
+            return render(self.request, "partials/report_funding_list.html", {"report": report})
 
         return super().post(*args, **kwargs)
 
@@ -9688,7 +9756,11 @@ class ReportedFundingViewMixin:
             "title",
             "url",
             Row(Column("currency"), Column("amount"), Column("share")),
-            Row(Column("agency", css_class="col-8"), Column("start_date", css_class="col-2"), Column("end_date", css_class="col-2")),
+            Row(
+                Column("agency", css_class="col-8"),
+                Column("start_date", css_class="col-2"),
+                Column("end_date", css_class="col-2"),
+            ),
             "description",
         )
         if not self.request.GET.get("_modal_dialog"):
