@@ -8,6 +8,7 @@ from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
+import rispy
 
 import django.utils.translation
 import django_tables2
@@ -15,10 +16,9 @@ import py7zr
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
+from crispy_forms import bootstrap, layout
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Field, Fieldset, Layout, Row
-from crispy_forms import layout
-from crispy_forms import bootstrap
 from dal import autocomplete
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -38,6 +38,7 @@ from django.contrib.sites.models import Site
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.validators import FileExtensionValidator
 from django.db import connection, transaction
 from django.db.models import (
     Count,
@@ -58,6 +59,7 @@ from django.db.models.deletion import RestrictedError
 from django.db.models.functions import Coalesce, Lower, Trim
 from django.forms import (
     DateInput,
+    FileField,
     Form,
     HiddenInput,
     IntegerField,
@@ -89,7 +91,7 @@ from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import condition, require_http_methods
-from django.views.generic import DetailView, TemplateView
+from django.views.generic import detail, DetailView, FormView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, SingleTableView
@@ -117,8 +119,8 @@ from .forms import Submit
 from .models import Address, Application, Person, PersonCareerStage, Subscription, User
 from .pyinfo import info
 from .utils import send_mail, vignere
-from .utils.orcid import OrcidHelper
 from .utils.date_utils import FuzzyDate
+from .utils.orcid import OrcidHelper
 
 # from .tasks import notify_user
 
@@ -2431,6 +2433,115 @@ class ReportCreate(ReportViewMixin, CreateWithInlinesView):
 class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
+
+
+class ReportRisForm(Form):
+    file = FileField(
+        label=_("RIS file"),
+        required=True,
+        widget=widgets.ClearableFileInput(
+            attrs={
+                "placeholder": _("Please upload a file ..."),
+                "data-placeholder": _("Please upload a file ..."),
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _("The file is required. Please upload a file ..."),
+                "oninput": "this.setCustomValidity('')",
+                "accept": ".ris",
+            }
+        ),
+        validators=[FileExtensionValidator(allowed_extensions=["ris"])],
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.include_media = False
+        self.helper.form_tag = False
+        self.helper.layout = Layout("file")
+
+
+class ReportRisView(LoginRequiredMixin, FormView):
+    form_class = ReportRisForm
+    template_name = "portal/ris_import_form.html"
+    model = models.Report
+
+    def get_success_url(self):
+        return reverse("report", kwargs=self.kwargs)
+
+    @property
+    def report(self):
+        return get_object_or_404(self.model, pk=self.kwargs.get("pk"))
+
+    def get_context_data(self, *args, **kwargs):
+        assert self.kwargs.get("pk")
+        context = super().get_context_data(*args, **kwargs)
+        context["object"] = self.report
+        return context
+
+    def get_template_names(self):
+        if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
+            return ["partials/publication_form.html"]
+        return super().get_template_names()
+
+    def form_valid(self, form):
+        form.cleaned_data["file"].file.seek(0)
+        report = self.report
+        entries = rispy.loads(form.cleaned_data["file"].file.read().decode())
+        for e in entries:
+            tor = e.get("type_of_reference")
+            if tor:
+                t, _ = models.PublicationType.get_or_create(
+                    code=tor, defaults={"description": tor}
+                )
+            else:
+                t = None
+            p, _ = models.Publication.get_or_create(
+                doi=e.get("doi"),
+                # rsnz_ref =
+                type=t,
+                # status =
+                # status_date =
+                title=e.get("title"),
+                title2=e.get("secondary_title"),
+                # host =
+                # journal =
+                # publisher =
+                # editor =
+                # location =
+                # url =
+                volume=e.get("volume"),
+                year_ref=e.get("year"),
+                # page_ref =
+                # host_ref =
+                # citations =
+                # citations_date =
+                abstract=e.get("abstract"),
+                # uid =
+                # updated_at =
+                # impact_factor =
+                # impact_year =
+                # xcr =
+                # isi_loc =
+            )
+            if not report.publications.contains(p):
+                report.publications.add(p)
+        report.save()
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        if not hasattr(form, "helper"):
+            form.helper = FormHelper()
+        if not self.request.GET.get("_modal_dialog"):
+            form.helper.layout.append(
+                bootstrap.FormActions(
+                    layout.Submit("import", "Import ..."),
+                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+                    css_class="float-right",
+                ),
+            )
+        return form
 
 
 class ReportExportView(ExportView):
@@ -9696,6 +9807,7 @@ class ReportedFundingList(LoginRequiredMixin, StateInPathMixin, SingleTableView)
 
 class ReportedFundingViewMixin:
 
+    pk_url_kwarg = "funding_pk"
     model = models.ReportedFunding
     fields = "__all__"
     exclude = ["updated_at", "created_at"]

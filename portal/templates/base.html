@@ -99,7 +99,27 @@ table.table .asteriskField,.popover-header {color: gray;}
 .htmx-indicator{opacity:0; transition: opacity 500ms ease-in;}
 .htmx-request .htmx-indicator{opacity:1;}
 .htmx-request.htmx-indicator{opacity:1;}
-          </style>
+.spinner-indicator{
+  display:none;
+  z-index: 2;
+  position:absolute;
+  max-width: 100%;
+  height: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); 
+}
+.htmx-request .spinner-indicator{
+  /* display:inline; */
+  display: flex; 
+  justify-content: center;
+}
+.htmx-request.spinner-indicator{
+  /* display:inline; */
+  display: flex; 
+  justify-content: center;
+}
+</style>
         {% endblock %}
       {% endcompress %}
     {% endblock %}
@@ -117,7 +137,11 @@ table.table .asteriskField,.popover-header {color: gray;}
   <!-- body class="d-flex flex-column min-vh-100" -->
   <body class="d-flex flex-column min-vh-100"{% if csrf_token %} hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endif %}>
     {% block body %}
-      <img id="spinner" class="htmx-indicator" src="{% static 'images/spinner.png' %}" />
+      <!-- img id="spinner" class="spinner-indicator" src="{% static 'images/spinner.png' %}" / -->
+        <div class="alert alert-primary spinner-indicator" role="alert" id="spinner">
+          <img src="{% static 'images/spinner.png' %}" />
+          {% trans 'We are processing your request. Please be patient.' %}
+        </div>
 
       {% block header %}
         <div class="mb-0" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 30%);">

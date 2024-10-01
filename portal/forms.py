@@ -3715,15 +3715,31 @@ class ReportForm(ModelForm):
                     Div(
                         Div(
                             ButtonHolder(
-                                Button(
-                                    "funding_import_from_orcid",
-                                    _("Import from ORCID"),
-                                    css_class="btn-secondary btn-sm",
-                                    hx_post=f"?action=funding_import_from_orcid",
-                                    # hx_params="none",
-                                    hx_target="#reported-funding-list",
-                                    hx_indicator="#spinner",
+                                HTML(
+                                    f"""{{% load static %}}
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        id="button-id-funding_import_from_orcid"
+                                        hx-indicator="#button-spinner" 
+                                        hx-post="?action=funding_import_from_orcid" 
+                                        hx-target="#reported-funding-list"
+                                    >
+                                    {_("Import from ORCID")}
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                    </button>
+                                    """
                                 ),
+                                # Button(
+                                #     "funding_import_from_orcid",
+                                #     mark_safe(f"""{_("Import from ORCID")}
+                                #     <img  id="spinner" class="htmx-indicator" src="{{% load static %}}{{% static '/images/bars.svg' %}}"/>
+                                #     """),
+                                #     css_class="btn-secondary btn-sm",
+                                #     hx_post=f"?action=funding_import_from_orcid",
+                                #     # hx_params="none",
+                                #     hx_target="#reported-funding-list",
+                                #     hx_indicator="#spinner",
+                                # ),
                                 Button(
                                     "funding_nothing_to_add",
                                     _("Nothing to add"),
