@@ -2435,7 +2435,7 @@ class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
     form_class = forms.ReportForm
 
 
-class ReportRisForm(Form):
+class ReportRisImportForm(Form):
     file = FileField(
         label=_("RIS file"),
         required=True,
@@ -2461,8 +2461,8 @@ class ReportRisForm(Form):
         self.helper.layout = Layout("file")
 
 
-class ReportRisView(LoginRequiredMixin, FormView):
-    form_class = ReportRisForm
+class ReportRisImportView(LoginRequiredMixin, FormView):
+    form_class = ReportRisImportForm
     template_name = "portal/ris_import_form.html"
     model = models.Report
 
@@ -2476,63 +2476,105 @@ class ReportRisView(LoginRequiredMixin, FormView):
     def get_context_data(self, *args, **kwargs):
         assert self.kwargs.get("pk")
         context = super().get_context_data(*args, **kwargs)
+        if self.request.GET.get("_modal_dialog"):
+            context["modal_dialog"] = True
+        context["report"] = self.report
         context["object"] = self.report
         return context
 
     def get_template_names(self):
         if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
-            return ["partials/publication_form.html"]
+            return ["partials/ris_import_form.html"]
         return super().get_template_names()
 
     def form_valid(self, form):
         form.cleaned_data["file"].file.seek(0)
         report = self.report
         entries = rispy.loads(form.cleaned_data["file"].file.read().decode())
-        for e in entries:
-            tor = e.get("type_of_reference")
-            if tor:
-                t, _ = models.PublicationType.get_or_create(
-                    code=tor, defaults={"description": tor}
+        with transaction.atomic():
+            for e in entries:
+                tor = e.get("type_of_reference")
+                if tor:
+                    rt, _ = models.RisPublicationType.get_or_create(
+                        code=tor, defaults={"description": tor}
+                    )
+                    t = rt.type
+                    if not t:
+                        t, _ = models.PublicationType.get_or_create(
+                            code=tor, defaults={"description": tor}
+                        )
+                        rt.type = t
+                        rt.save(update_fields=["type"])
+                else:
+                    t = rt = None
+                url = e.get("urls", [None])[0]
+                p, created = models.Publication.get_or_create(
+                    doi=e.get("doi"),
+                    # rsnz_ref =
+                    type=t,
+                    ris_type=rt,
+                    # status =
+                    # status_date =
+                    title=e.get("title"),
+                    title2=e.get("secondary_title"),
+                    # host =
+                    # journal =
+                    publisher=e.get("publisher"),
+                    # editor =
+                    # location = e.get("publisher"),
+                    url=url,
+                    volume=e.get("volume"),
+                    year_ref=e.get("year"),
+                    # page_ref =
+                    # host_ref =
+                    # citations =
+                    # citations_date =
+                    abstract=e.get("abstract"),
+                    # uid =
+                    # updated_at =
+                    # impact_factor =
+                    # impact_year =
+                    # xcr =
+                    # isi_loc =
                 )
-            else:
-                t = None
-            p, _ = models.Publication.get_or_create(
-                doi=e.get("doi"),
-                # rsnz_ref =
-                type=t,
-                # status =
-                # status_date =
-                title=e.get("title"),
-                title2=e.get("secondary_title"),
-                # host =
-                # journal =
-                # publisher =
-                # editor =
-                # location =
-                # url =
-                volume=e.get("volume"),
-                year_ref=e.get("year"),
-                # page_ref =
-                # host_ref =
-                # citations =
-                # citations_date =
-                abstract=e.get("abstract"),
-                # uid =
-                # updated_at =
-                # impact_factor =
-                # impact_year =
-                # xcr =
-                # isi_loc =
-            )
-            if not report.publications.contains(p):
-                report.publications.add(p)
-        report.save()
+                if created:
+                    if e.get("authors"):
+                        models.PublicationAuthor.bulk_create(
+                            [
+                                models.PublicationAuthor(publication=p, name=n, type="PRIMARY")
+                                for n in e.get("authors", [])
+                            ]
+                        )
+                    if e.get("secondary_authors"):
+                        models.PublicationAuthor.bulk_create(
+                            [
+                                models.PublicationAuthor(publication=p, name=n, type="SECONDARY")
+                                for n in e.get("secondary_authors", [])
+                            ]
+                        )
+                    if e.get("urls"):
+                        models.PublicationLink.bulk_create(
+                            [
+                                models.PublicationLink(publication=p, link=l)
+                                for l in e.get("urls", [])
+                            ]
+                        )
+                    if e.get("file_attachments1"):
+                        models.PublicationLink.create(
+                            publication=p, link=e.get("file_attachments1")
+                        )
+                if not report.publications.contains(p):
+                    report.publications.add(p)
+            report.save()
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            return render(self.request, "partials/report_publication_list.html", {"report": report})
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
         if not hasattr(form, "helper"):
             form.helper = FormHelper()
+            form.layout = Layout("file")
         if not self.request.GET.get("_modal_dialog"):
             form.helper.layout.append(
                 bootstrap.FormActions(
@@ -9614,30 +9656,6 @@ class MemberFTEForm(ModelForm):
 #     #     return queryset
 
 
-# class ReportDetail(DetailView):
-#     template_name = "portal/report_detail.html"
-#     model = models.Report
-#     slug_field = "number"
-#     slug_url_kwarg = "number"
-
-#     # def get_queryset(self):
-#     #     return (
-#     #         super()
-#     #         .get_queryset()
-#     #         .prefetch_related(
-#     #             Prefetch(
-#     #                 "allocations", queryset=models.Allocation.objects.all().order_by("period")
-#     #             ),
-#     #             Prefetch(
-#     #                 "reporting_schedule",
-#     #                 queryset=models.ReportingScheduleEntry.objects.all().order_by(
-#     #                     "period", "due_date"
-#     #                 ),
-#     #             ),
-#     #         )
-#     #     )
-
-
 class AffiliationForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -9807,7 +9825,6 @@ class ReportedFundingList(LoginRequiredMixin, StateInPathMixin, SingleTableView)
 
 class ReportedFundingViewMixin:
 
-    pk_url_kwarg = "funding_pk"
     model = models.ReportedFunding
     fields = "__all__"
     exclude = ["updated_at", "created_at"]

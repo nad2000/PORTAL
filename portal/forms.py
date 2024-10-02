@@ -3677,6 +3677,11 @@ class ReportForm(ModelForm):
                                     "import_ris_file",
                                     _("Import RIS file"),
                                     css_class="btn-primary btn-sm",
+                                    hx_get=reverse(
+                                        "ris-import", kwargs={"pk": instance and instance.pk}
+                                    ) + "?_modal_dialog=1",
+                                    hx_target="#publication-dialog",
+                                    hx_params="none",
                                 ),
                                 Button(
                                     "import_from_orcid",

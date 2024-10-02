@@ -86,6 +86,10 @@ class HelperMixin:
         return cls.objects.create(*args, **kwargs)
 
     @classmethod
+    def bulk_create(cls, *args, **kwargs):
+        return cls.objects.bulk_create(*args, **kwargs)
+
+    @classmethod
     def get_or_create(cls, defaults=None, **kwargs):
         return cls.objects.get_or_create(defaults, **kwargs)
 
@@ -129,7 +133,7 @@ class Model(TimeStampMixin, HelperMixin, Base):
                 return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
             except:
                 return reverse(f"{model_name_slug}-list")
-            
+
 
     class Meta:
         abstract = True

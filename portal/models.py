@@ -2195,17 +2195,19 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         super().save(*args, **kwargs)
         if (pi := self.submitted_by) and not self.members.filter(user=pi).exists():
             self.members.model.get_or_create(
-                    application=self, 
-                    user=pi, 
-                    email=self.email or pi.email, 
-                    defaults=dict(
-                        first_name=self.first_name or pi.first_name, 
-                        middle_names=self.middle_names or pi.middle_names, 
-                        last_name=self.last_name or pi.last_name, 
-                        state="authorized",
-                        authorized_at=self.updated_at,
-                        role_description="The submitter of the application",
-                        role_id="PI"))
+                application=self,
+                user=pi,
+                email=self.email or pi.email,
+                defaults=dict(
+                    first_name=self.first_name or pi.first_name,
+                    middle_names=self.middle_names or pi.middle_names,
+                    last_name=self.last_name or pi.last_name,
+                    state="authorized",
+                    authorized_at=self.updated_at,
+                    role_description="The submitter of the application",
+                    role_id="PI",
+                ),
+            )
 
     @cache
     def can_only_update_referees(self, user):
@@ -9115,6 +9117,30 @@ class PublicationType(Model):
         db_table = "publication_type"
 
 
+class RisPublicationType(Model):
+    code = CharField(
+        max_length=10,
+        primary_key=True,
+        verbose_name='Abbreviation ("Field Label")',
+        db_column="code",
+    )
+    description = CharField(
+        max_length=100, null=True, blank=True, verbose_name='Type ("Ref Type")'
+    )
+    category = CharField(max_length=100, blank=True, null=True, verbose_name="Category")
+    type = ForeignKey(PublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="type")
+
+    def natural_key(self):
+        return self.code
+
+    def __str__(self):
+        return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = "ris_publication_type"
+        db_table_comment = "RIS reference types (https://en.wikipedia.org/wiki/RIS_(file_format))"
+
+
 class PublicationStatus(Model):
     # type = CharField(max_length=2)
     # type = ForeignKey(PublicationType, on_delete=DO_NOTHING)
@@ -9146,6 +9172,9 @@ class Publication(Model):
     # pstatus = CharField(max_length=3, blank=True, null=True)
     # ptype = CharField(max_length=2, blank=True, null=True)
     type = ForeignKey(PublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="type")
+    ris_type = ForeignKey(
+        RisPublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="ris_type"
+    )
     status = ForeignKey(
         PublicationStatus, on_delete=DO_NOTHING, blank=True, null=True, db_column="status"
     )
@@ -9177,6 +9206,23 @@ class Publication(Model):
 
     class Meta:
         db_table = "publication"
+
+
+class PublicationAuthor(Model):
+    publication = ForeignKey(Publication, on_delete=CASCADE, related_name="authors")
+    name = CharField(max_length=400)
+    type = CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        db_table = "publication_author"
+
+
+class PublicationLink(Model):
+    publication = ForeignKey(Publication, on_delete=CASCADE, related_name="links")
+    link = URLField(max_length=255)
+
+    class Meta:
+        db_table = "publication_link"
 
 
 dummy_for_translations = (

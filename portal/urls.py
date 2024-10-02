@@ -164,40 +164,35 @@ urlpatterns = [
                     name="report-create",
                 ),
                 path(
-                    "<number>/",
+                    "<number>",
                     views.ReportDetail.as_view(),
                     name="report-detail",
                 ),
+                path("<int:pk>", views.ReportDetail.as_view(), name="report"),
+                path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
+                path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
-                    "<int:pk>/",
+                    "<int:pk>/ris-import", views.ReportRisImportView.as_view(), name="ris-import"
+                ),
+                path(
+                    "funding/",
                     include(
                         [
-                            path("~update", views.ReportUpdate.as_view(), name="report-update"),
-                            path("~export", views.ReportExportView.as_view(), name="report-export"),
-                            path("ris-import", views.ReportRisView.as_view(), name="ris-import"),
                             path(
-                                "funding/",
-                                include(
-                                    [
-                                        path(
-                                            "",
-                                            views.ReportedFundingList.as_view(),
-                                            name="reported-funding-list",
-                                        ),
-                                        path(
-                                            "~create",
-                                            views.ReportedFundingCreateView.as_view(),
-                                            name="reported-funding-create",
-                                        ),
-                                        path(
-                                            "<int:funding_pk>/~update",
-                                            views.ReportedFundingUpdateView.as_view(),
-                                            name="reported-funding-update",
-                                        ),
-                                    ]
-                                ),
+                                "",
+                                views.ReportedFundingList.as_view(),
+                                name="reported-funding-list",
                             ),
-                            path("", views.ReportDetail.as_view(), name="report"),
+                            path(
+                                "~create",
+                                views.ReportedFundingCreateView.as_view(),
+                                name="reported-funding-create",
+                            ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedFundingUpdateView.as_view(),
+                                name="reported-funding-update",
+                            ),
                         ]
                     ),
                 ),
