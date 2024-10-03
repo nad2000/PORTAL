@@ -1058,7 +1058,14 @@ class ApplicationAdmin(
         extra = 0
         model = models.Member
         readonly_fields = ["state", "state_changed_at"]
+        # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
+
+        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role", "user", "state", "state_changed_at", "authorized_at"]
+
+        # def is_complete(self, obj):
+        #     if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
+        # is_complete.boolean = True
 
         def view_on_site(self, obj):
             return reverse("application", kwargs={"pk": obj.application_id})

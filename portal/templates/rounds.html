@@ -32,14 +32,11 @@
 {% block content %}
 
   {% if rounds %}
-
-    <div style="display: inline-flex;">
-      <div class="dropdown show" style="margin: 1px;">
-
+    <div style="mb-2 row">
+      <div class="dropdown show" style="display: inline;">
         <a class="btn btn-outline-primary dropdown-toggle" href="#" role="button" id="active-round-menu-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           {{ round|title }}
         </a>
-
         <div class="dropdown-menu" aria-labelledby="active-round-menu-link">
           {% for r in rounds %}
             {% if r.id != round.id %}
@@ -52,13 +49,21 @@
               </span>
             {% endif %}
           {% endfor %}
-        </div>
+        </div> <!-- dropdown-menu -->
+      </div> <!-- dropdown -->
 
-      </div>
+      {% if round and is_panellist %}
+        <a class="btn btn-primary"
+          data-toggle="tooltip"
+          title="{% trans 'Submit Conflict of Interest Statements in batch for the whole round' %}"
+          href="{% url 'round-coi' round=round.pk %}"
+          >
+          {% trans 'Conflict of Interest Statements' %}
+        </a>
+      {% endif %}
 
-      <!-- a class="btn btn-outline-primary" href="{% url 'round-summary' round=round.id %}" role="button">
       {% if user.is_superuser or user.is_site_staff %}
-          {% trans "Show Detailed Report" %}</a -->
+        <a class="btn btn-outline-primary" href="{% url 'round-summary' round=round.id %}" role="button">{% trans "Show Detailed Report" %}</a>
 
         <a class="btn btn-outline-primary" href="{% url 'scores-list' round=round.id %}" role="button" style="margin: 1px;">
           {% trans "Show Scores" %}</a>
@@ -84,30 +89,25 @@
         </a>
       {% endif %}
     </div>
-  {% endif %}
+  {% endif %}{# if round #}
 
+  {% comment %}
   {% if round %}
     <h2>
       {{ round.title|default:round.scheme.title }}
     </h2>
   {% elif application %}
+  {% endcomment %}
+
+  {% if application %}
     <h2>
       {{ application.number }}:
       {{ application.title|default:application.round.title }}
     </h2>
   {% endif %}
 
-  {% if round and is_panellist %}
-    <p>
-    <a class="btn btn-primary"
-       data-toggle="tooltip"
-       title="{% trans 'Submit Conflict of Interest Statements in batch for the whole round' %}"
-       href="{% url 'round-coi' round=round.pk %}"
-       >
-       {% trans 'Conflict of Interest Statements' %}
-    </a>
-    </p>
-  {% endif %}
-
+    <div style="mt-2 row">
   {% render_table table %}
+    </div>
+
 {% endblock %}

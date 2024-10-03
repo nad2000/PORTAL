@@ -962,16 +962,20 @@ def index(request):
             round__scheme__current_round=F("round"),
         )
         if site_id not in [4, 5, 7] or not (user.is_superuser or user.is_site_staff):
-            draft_applications = models.Application.user_draft_applications(user).filter(
+            applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-            current_applications = models.Application.user_applications(
+            if applications.count() < 7:
+                draft_applications = applications
+            applications = models.Application.user_applications(
                 user, ["submitted", "in_review", "accepted", "approved"]
             ).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
+            if applications.count() < 7:
+                current_applications = applications
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
@@ -3185,11 +3189,12 @@ class ApplicationDetail(DetailView):
                 or is_ro
                 or u.is_site_staff
                 or (site_id not in [4, 5] and a.referees.filter(user=u).exists())
-                or models.ConflictOfInterest.where(
-                    Q(has_conflict=False) | Q(has_conflict__isnull=False),
-                    application=a,
-                    panellist__user=u,
-                ).exists()
+                or r.panellists.filter(user=u).exists()
+                # or models.ConflictOfInterest.where(
+                #     Q(has_conflict=False) | Q(has_conflict__isnull=False),
+                #     application=a,
+                #     panellist__user=u,
+                # ).exists()
                 or a.org.where(research_offices__user=u).exists()
             )
             if (
@@ -8517,17 +8522,21 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
             if not (
                 user.is_staff or user.is_superuser or r.has_online_scoring or user.is_site_staff
             ):
-                if not r.all_coi_statements_given_by(request.user):
+                if not r.panellists.filter(user=user).exists():
+                    messages.error(self.request, _(f"You were not invited to this round ({r})"))
+                    return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
+                elif not r.all_coi_statements_given_by(request.user):
                     return redirect("round-coi", round=r.id)
-                else:
-                    return redirect("score-sheet", round=r.id)
-            # elif not r.all_coi_statements_given_by(request.user):
-            #     return redirect("round-coi", round=r.id)
+                return redirect("score-sheet", round=r.id)
+            elif not r.all_coi_statements_given_by(request.user) or not models.ConflictOfInterest.where(
+                    has_conflict=False,
+                    has_conflict__isnull=False,
+                    panellist__user=user, application__round=r).exists():
+                return redirect("round-coi", round=r.id)
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
-
         if r := self.round:
             queryset = queryset.filter(round=r)
 
@@ -8932,10 +8941,21 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
     form_class = forms.RoundConflictOfInterestForm
     exclude = []
 
+    @property
+    def round(self):
+        return get_object_or_404(models.Round, pk=self.kwargs["round"])
+
+    def get(self, *args, **kwargs):
+        if not self.panellist:
+            messages.error(self.request, _(f"You were not invited to this round ({self.round})"))
+            return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
+        return super().get(*args, **kwargs)
+
     def post(self, *args, **kwargs):
         reset_cache(self.request)
         resp = super().post(*args, **kwargs)
         return resp
+
 
     def formset_valid(self, formset):
         resp = super().formset_valid(formset)

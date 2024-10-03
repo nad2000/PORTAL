@@ -21,13 +21,11 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
-
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
-
 class User(HelperMixin, PersonMixin, AbstractUser):
-    username_validator = UnicodeUsernameValidator()
 
+    username_validator = UnicodeUsernameValidator()
     username = CharField(
         _("username"),
         max_length=150,
