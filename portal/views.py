@@ -820,16 +820,20 @@ def index(request):
             round__scheme__current_round=F("round"),
         )
         if site_id not in [4, 5, 7] or not (user.is_superuser or user.is_site_staff):
-            draft_applications = models.Application.user_draft_applications(user).filter(
+            applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-            current_applications = models.Application.user_applications(
+            if applications.count() < 7:
+                draft_applications = applications
+            applications = models.Application.user_applications(
                 user, ["submitted", "in_review", "accepted", "approved"]
             ).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
+            if applications.count() < 7:
+                current_applications = applications
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
@@ -1972,11 +1976,12 @@ class ApplicationDetail(SingleApplicationMixin, DetailView):
                 or is_ro
                 or u.is_site_staff
                 or (site_id not in [4, 5] and a.referees.filter(user=u).exists())
-                or models.ConflictOfInterest.where(
-                    Q(has_conflict=False) | Q(has_conflict__isnull=False),
-                    application=a,
-                    panellist__user=u,
-                ).exists()
+                or r.panellists.filter(user=u).exists()
+                # or models.ConflictOfInterest.where(
+                #     Q(has_conflict=False) | Q(has_conflict__isnull=False),
+                #     application=a,
+                #     panellist__user=u,
+                # ).exists()
                 or a.org.where(research_offices__user=u).exists()
             )
             if (
@@ -7293,8 +7298,11 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
                     return redirect("round-coi", round=r.id)
                 else:
                     return redirect("score-sheet", round=r.id)
-            # elif not r.all_coi_statements_given_by(request.user):
-            #     return redirect("round-coi", round=r.id)
+            elif not r.all_coi_statements_given_by(request.user) or not models.ConflictOfInterest.where(
+                    has_conflict=False,
+                    has_conflict__isnull=False,
+                    panellist__user=user, application__round=r).exists():
+                return redirect("round-coi", round=r.id)
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self, *args, **kwargs):

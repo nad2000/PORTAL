@@ -21,9 +21,25 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
 class User(HelperMixin, PersonMixin, AbstractUser):
+
+    username_validator = UnicodeUsernameValidator()
+
+    username = CharField(
+        _("username"),
+        max_length=150,
+        unique=True,
+        help_text=_(
+            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+        ),
+        validators=[username_validator],
+        error_messages={
+            "unique": _("The username is already taken and not available. Please choose a different username."),
+        },
+    )
     # title = CharField(max_length=40, null=True, blank=True, choices=TITLES)
     title = ForeignKey(
         Title,
