@@ -9106,6 +9106,9 @@ class PublicationType(Model):
     code = CharField(max_length=10, primary_key=True)
     code_2 = CharField(unique=True, max_length=2, null=True, blank=True)
     description = CharField(max_length=100, blank=True, null=True)
+    orcid_type = CharField(
+        max_length=100, unique=True, null=True, blank=True, help_text="ORCiD Work Type"
+    )
 
     def natural_key(self):
         return self.code
@@ -9200,6 +9203,9 @@ class Publication(Model):
     impact_year = IntegerField(blank=True, null=True)
     xcr = FloatField(blank=True, null=True)
     isi_loc = CharField(max_length=50, blank=True, null=True)
+    # imported form ORCID profile work record:
+    orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+    put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
 
     def __str__(self):
         return f"{self.title}"
@@ -9211,7 +9217,9 @@ class Publication(Model):
 class PublicationAuthor(Model):
     publication = ForeignKey(Publication, on_delete=CASCADE, related_name="authors")
     name = CharField(max_length=400)
-    type = CharField(max_length=100, blank=True, null=True, choices=Choices("PRIMARY", "SECONDARY"))
+    type = CharField(
+        max_length=100, blank=True, null=True, choices=Choices("PRIMARY", "SECONDARY")
+    )
 
     class Meta:
         db_table = "publication_author"
@@ -9220,7 +9228,9 @@ class PublicationAuthor(Model):
 class PublicationLink(Model):
     publication = ForeignKey(Publication, on_delete=CASCADE, related_name="links")
     link = URLField(max_length=255)
-    type = CharField(max_length=100, blank=True, null=True, choices=Choices("LINK", "URL", "ATTACHMENT"))
+    type = CharField(
+        max_length=100, blank=True, null=True, choices=Choices("LINK", "URL", "ATTACHMENT")
+    )
 
     class Meta:
         db_table = "publication_link"

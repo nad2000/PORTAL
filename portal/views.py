@@ -2088,9 +2088,97 @@ class ReportViewMixin:
         return context
 
     def post(self, *args, **kwargs):
+        user = self.request.user
+        if self.request.GET.get("action") == "publication_import_from_orcid":
+            report = self.get_object()
+            api = OrcidHelper(user)
+            data, success = api.get_orcid_data(path="/works")
+            put_codes = set()
+            for f in data.get("group"):
+                for s in f["work-summary"]:
+                    title = s["title"]["title"]["value"]
+                    publication_date = FuzzyDate.create(s.get("publication-date")).start_date()
+                    put_codes.add(s["put-code"])
+
+            publications = []
+            for put_code in put_codes:
+                data, _ = api.get_orcid_data(path=f"/work/{put_code}")
+                publications.append(data)
+
+            with transaction.atomic():
+                for data in publications:
+                    put_code = data["put-code"]
+                    publication_date = FuzzyDate.create(s.get("publication-date")).start_date()
+                    title = data["title"]["title"]["value"]
+                    sub_title = data["title"].get("subtitle")
+                    title2 = sub_title.get("value") if sub_title else None
+                    url = data.get("url")
+                    journal_title = data.get("journal-title")
+                    citation = data.get("citation")
+                    external_ids = data.get("external-ids")
+                    doi = None
+                    if external_ids:
+                        for ei in external_ids.get("external-id"):
+                            if ei.get("external-id-type") == "doi":
+                                doi = ei.get("external-id-value")
+                                break
+
+                    publication_type = data.get("type")
+                    if publication_type:
+                        pt = models.PublicationType.where(Q(orcid_type=publication_type) | Q(code=publication_type.upper())).first()
+                        if not pt:
+                            pt, _ = models.PublicationType.get_or_create(
+                                Q(orcid_type=publication_type) | Q(code=publication_type.upper()),
+                                defaults=dict(
+                                    code=publication_type.upper(), description=publication_type.title()
+                                ),
+                            )
+                        elif not pt.orcid_type:
+                            pt.orcid_type = publication_type
+                            pt.save(update_fields=["orcid_type"])
+                    else:
+                        pt = None
+
+                    p, created = models.Publication.get_or_create(
+                        abstract=data.get("short-description"),
+                        doi=doi,
+                        orcid=self.request.user.get_orcid(),
+                        put_code=put_code,
+                        # publication_date=publication_date,
+                        year_ref = publication_date.year if publication_date else None,
+                        title2=title2,
+                        title=title,
+                        type=pt,
+                        url=url and url.get("value"),
+                        # citations =
+                        # citations_date =
+                        # editor =
+                        # host =
+                        # host_ref =
+                        # impact_factor =
+                        # impact_year =
+                        # isi_loc =
+                        # journal =
+                        # location = e.get("publisher"),
+                        # page_ref =
+                        # publisher=e.get("publisher"),
+                        # rsnz_ref =
+                        # state = '',
+                        # status =
+                        # status_date =
+                        # uid =
+                        # updated_at =
+                        # volume=e.get("volume"),
+                        # xcr =
+                        # year_ref=e.get("year"),
+                    )
+                    report.publications.through.objects.get_or_create(report=report, publication=p)
+
+            return render(
+                self.request, "partials/report_publication_list.html", {"report": report}
+            )
         if self.request.GET.get("action") == "funding_import_from_orcid":
             report = self.get_object()
-            user = self.request.user
             api = OrcidHelper(user)
             data, success = api.get_orcid_fundings()
             put_codes = set()
@@ -2146,21 +2234,24 @@ class ReportViewMixin:
 
                 organization_defined_type = data.get("organization-defined-type")
                 url = data.get("url")
-                models.ReportedFunding.create(
+                models.ReportedFunding.get_or_create(
                     orcid=self.request.user.get_orcid(),
                     put_code=put_code,
                     report=report,
                     # state = '',
-                    type=funding_type,
-                    subtype=organization_defined_type and organization_defined_type.get("value"),
-                    title=title,
-                    url=url and url.get("value"),
-                    description=data.get("short-description"),
-                    currency_id=currency,
-                    amount=amount,
-                    start_date=start_date,
-                    end_date=end_date,
-                    agency=org,
+                    defaults=dict(
+                        type=funding_type,
+                        subtype=organization_defined_type
+                        and organization_defined_type.get("value"),
+                        title=title,
+                        url=url and url.get("value"),
+                        description=data.get("short-description"),
+                        currency_id=currency,
+                        amount=amount,
+                        start_date=start_date,
+                        end_date=end_date,
+                        agency=org,
+                    ),
                 )
 
             return render(self.request, "partials/report_funding_list.html", {"report": report})
@@ -2571,7 +2662,9 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
                     report.publications.add(p)
             report.save()
         if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
-            return render(self.request, "partials/report_publication_list.html", {"report": report})
+            return render(
+                self.request, "partials/report_publication_list.html", {"report": report}
+            )
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
@@ -8528,10 +8621,15 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
                 elif not r.all_coi_statements_given_by(request.user):
                     return redirect("round-coi", round=r.id)
                 return redirect("score-sheet", round=r.id)
-            elif not r.all_coi_statements_given_by(request.user) or not models.ConflictOfInterest.where(
+            elif (
+                not r.all_coi_statements_given_by(request.user)
+                or not models.ConflictOfInterest.where(
                     has_conflict=False,
                     has_conflict__isnull=False,
-                    panellist__user=user, application__round=r).exists():
+                    panellist__user=user,
+                    application__round=r,
+                ).exists()
+            ):
                 return redirect("round-coi", round=r.id)
         return super().get(request, *args, **kwargs)
 
@@ -8955,7 +9053,6 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
         reset_cache(self.request)
         resp = super().post(*args, **kwargs)
         return resp
-
 
     def formset_valid(self, formset):
         resp = super().formset_valid(formset)

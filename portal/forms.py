@@ -3683,10 +3683,24 @@ class ReportForm(ModelForm):
                                     hx_target="#publication-dialog",
                                     hx_params="none",
                                 ),
-                                Button(
-                                    "import_from_orcid",
-                                    _("Import from ORCID"),
-                                    css_class="btn-secondary btn-sm",
+                                # Button(
+                                #     "import_from_orcid",
+                                #     _("Import from ORCID"),
+                                #     css_class="btn-secondary btn-sm",
+                                # ),
+                                HTML(
+                                    f"""{{% load static %}}
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        id="button-id-publication_import_from_orcid"
+                                        hx-indicator="#button-spinner"
+                                        hx-post="?action=publication_import_from_orcid"
+                                        hx-target="#publication-list"
+                                    >
+                                    {_("Import from ORCID")}
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                    </button>
+                                    """
                                 ),
                                 Button(
                                     "nothing_to_add",
@@ -3725,8 +3739,8 @@ class ReportForm(ModelForm):
                                     <button
                                         class="btn btn-secondary btn-sm"
                                         id="button-id-funding_import_from_orcid"
-                                        hx-indicator="#button-spinner" 
-                                        hx-post="?action=funding_import_from_orcid" 
+                                        hx-indicator="#button-spinner"
+                                        hx-post="?action=funding_import_from_orcid"
                                         hx-target="#reported-funding-list"
                                     >
                                     {_("Import from ORCID")}
