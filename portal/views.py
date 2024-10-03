@@ -7294,10 +7294,12 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
             if not (
                 user.is_staff or user.is_superuser or r.has_online_scoring or user.is_site_staff
             ):
-                if not r.all_coi_statements_given_by(request.user):
+                if not r.panellists.filter(user=user).exists():
+                    messages.error(self.request, _(f"You were not invited to this round ({r})"))
+                    return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
+                elif not r.all_coi_statements_given_by(request.user):
                     return redirect("round-coi", round=r.id)
-                else:
-                    return redirect("score-sheet", round=r.id)
+                return redirect("score-sheet", round=r.id)
             elif not r.all_coi_statements_given_by(request.user) or not models.ConflictOfInterest.where(
                     has_conflict=False,
                     has_conflict__isnull=False,
@@ -7711,10 +7713,21 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
     form_class = forms.RoundConflictOfInterestForm
     exclude = []
 
+    @property
+    def round(self):
+        return get_object_or_404(models.Round, pk=self.kwargs["round"])
+
+    def get(self, *args, **kwargs):
+        if not self.panellist:
+            messages.error(self.request, _(f"You were not invited to this round ({self.round})"))
+            return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
+        return super().get(*args, **kwargs)
+
     def post(self, *args, **kwargs):
         reset_cache(self.request)
         resp = super().post(*args, **kwargs)
         return resp
+
 
     def formset_valid(self, formset):
         resp = super().formset_valid(formset)
