@@ -7307,7 +7307,6 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
 
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
-
         if r := self.round:
             queryset = queryset.filter(round=r)
 
