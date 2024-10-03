@@ -2555,13 +2555,13 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
                     if e.get("urls"):
                         models.PublicationLink.bulk_create(
                             [
-                                models.PublicationLink(publication=p, link=l)
+                                models.PublicationLink(publication=p, link=l, type="URL")
                                 for l in e.get("urls", [])
                             ]
                         )
                     if e.get("file_attachments1"):
                         models.PublicationLink.create(
-                            publication=p, link=e.get("file_attachments1")
+                            publication=p, link=e.get("file_attachments1"), type="ATTAACHMENT"
                         )
                 if not report.publications.contains(p):
                     report.publications.add(p)

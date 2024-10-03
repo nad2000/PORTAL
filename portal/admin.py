@@ -2990,6 +2990,24 @@ class PublicationAdmin(StaffPermsMixin, SimpleHistoryAdmin):
         # "application",
     )
 
+    class AuthorInline(admin.StackedInline):
+        # model = models.Report.publications.through
+        model = models.PublicationAuthor
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    class LinkInline(admin.StackedInline):
+        # model = models.Report.publications.through
+        model = models.PublicationLink
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    inlines = [AuthorInline, LinkInline]
+
     list_filter = [
         ("type", admin.RelatedOnlyFieldListFilter),
         ("status", admin.RelatedOnlyFieldListFilter),

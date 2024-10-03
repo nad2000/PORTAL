@@ -9211,7 +9211,7 @@ class Publication(Model):
 class PublicationAuthor(Model):
     publication = ForeignKey(Publication, on_delete=CASCADE, related_name="authors")
     name = CharField(max_length=400)
-    type = CharField(max_length=100, blank=True, null=True)
+    type = CharField(max_length=100, blank=True, null=True, choices=Choices("PRIMARY", "SECONDARY"))
 
     class Meta:
         db_table = "publication_author"
@@ -9220,6 +9220,7 @@ class PublicationAuthor(Model):
 class PublicationLink(Model):
     publication = ForeignKey(Publication, on_delete=CASCADE, related_name="links")
     link = URLField(max_length=255)
+    type = CharField(max_length=100, blank=True, null=True, choices=Choices("LINK", "URL", "ATTACHMENT"))
 
     class Meta:
         db_table = "publication_link"
