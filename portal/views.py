@@ -2125,12 +2125,15 @@ class ReportViewMixin:
 
                     publication_type = data.get("type")
                     if publication_type:
-                        pt = models.PublicationType.where(Q(orcid_type=publication_type) | Q(code=publication_type.upper())).first()
+                        pt = models.PublicationType.where(
+                            Q(orcid_type=publication_type) | Q(code=publication_type.upper())
+                        ).first()
                         if not pt:
                             pt, _ = models.PublicationType.get_or_create(
                                 Q(orcid_type=publication_type) | Q(code=publication_type.upper()),
                                 defaults=dict(
-                                    code=publication_type.upper(), description=publication_type.title()
+                                    code=publication_type.upper(),
+                                    description=publication_type.title(),
                                 ),
                             )
                         elif not pt.orcid_type:
@@ -2145,7 +2148,7 @@ class ReportViewMixin:
                         orcid=self.request.user.get_orcid(),
                         put_code=put_code,
                         # publication_date=publication_date,
-                        year_ref = publication_date.year if publication_date else None,
+                        year_ref=publication_date.year if publication_date else None,
                         title2=title2,
                         title=title,
                         type=pt,

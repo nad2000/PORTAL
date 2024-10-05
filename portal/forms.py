@@ -229,7 +229,10 @@ class TableInlineFormset(LayoutObject):
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
         formset = context[self.formset_name_in_context]
-        return render_to_string(self.template, {"formset": formset, "form_id": self.form_id})
+        return render_to_string(
+            self.template,
+            {"formset": formset, "form_id": self.form_id, "use_custom_control": True},
+        )
 
 
 class SubForm(LayoutObject):
@@ -1391,7 +1394,11 @@ class ApplicationForm(ModelForm):
 
 class ContractMemberForm(FTEMixin, ModelForm):
     # role =Field(queryset
-    role = forms.ModelChoiceField(queryset=models.RoleType.where(for_application=True))
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(for_application=True).order_by(
+            models.Coalesce("name", "code")
+        )
+    )
 
     class Meta:
         model = models.ContractMember
@@ -2157,7 +2164,10 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
 
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(for_application=True), required=False
+        queryset=models.RoleType.where(for_application=True).order_by(
+            models.Coalesce("name", "code")
+        ),
+        required=False,
     )
 
     def clean(self):
@@ -3193,8 +3203,8 @@ class RoundConflictOfInterestForm(ModelForm):
 
 class ScoreSheetForm(ModelForm):
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
         super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
 
         instance = kwargs.get("instance")
         r = instance and instance.round or kwargs["initial"].get("round")
@@ -3230,7 +3240,13 @@ class ReportedEffortForm(ModelForm):
         super().__init__(*args, **kwargs)
         if instance := kwargs.get("instance"):
             self.fields["fte_total"].initial = instance.fte_total
+        self.helper = FormHelper(self)
 
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(for_contracting=True).order_by(
+            models.Coalesce("name", "code")
+        )
+    )
     fte_before = forms.DecimalField(widget=forms.HiddenInput())
     fte_total = forms.DecimalField(
         label=_("Total FTE"),
@@ -3679,7 +3695,8 @@ class ReportForm(ModelForm):
                                     css_class="btn-primary btn-sm",
                                     hx_get=reverse(
                                         "ris-import", kwargs={"pk": instance and instance.pk}
-                                    ) + "?_modal_dialog=1",
+                                    )
+                                    + "?_modal_dialog=1",
                                     hx_target="#publication-dialog",
                                     hx_params="none",
                                 ),
