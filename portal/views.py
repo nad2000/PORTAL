@@ -1526,8 +1526,11 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
 class ReportDetail(DetailView):
     template_name = "portal/report_detail.html"
     model = models.Report
-    # slug_field = "number"
-    # slug_url_kwarg = "number"
+    slug_field = "number"
+    slug_url_kwarg = "number"
+
+    # def get(self, request, *args, **kwargs):
+    #     return super().get(request, *args, **kwargs)
 
     # def get_queryset(self):
     #     return (
@@ -1934,6 +1937,9 @@ class ReportViewMixin:
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
+            if not self.object.file:
+                context["needs_attention"].append("report")
+
         if round.has_fors:
             fsc = forms.inlineformset_factory(
                 self.model,
@@ -2261,12 +2267,10 @@ class ReportViewMixin:
 
         return super().post(*args, **kwargs)
 
-    def form_invalid(self, form):
-        breakpoint()
-        return super().form_invalid(form)
+    # def form_invalid(self, form):
+    #     return super().form_invalid(form)
 
     def form_valid(self, form):
-        breakpoint()
         r = i = form.instance or self.object
         c = r.contract
         a = c.application
@@ -2458,7 +2462,7 @@ class ReportViewMixin:
         #     return redirect(
         #         reverse("report-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
         #     )
-        # return resp
+        return resp
 
 
 class ReportCreate(ReportViewMixin, CreateWithInlinesView):

@@ -3239,7 +3239,9 @@ class ReportedEffortForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if instance := kwargs.get("instance"):
-            self.fields["fte_total"].initial = instance.fte_total
+            self.fields["fte_before"].initial = self.fields["fte_total"].initial = (
+                instance.fte_total
+            )
         self.helper = FormHelper(self)
 
     role = forms.ModelChoiceField(
@@ -3790,6 +3792,41 @@ class ReportForm(ModelForm):
                     css_id="funding",
                 ),
             ]
+        )
+        if round.nomination_template:
+            help_text = _(
+                'You can download the research report template at <strong><a href="%s">%s</a></strong>'
+            ) % (round.report_template.url, os.path.basename(round.report_template.name))
+            fields = [
+                HTML(
+                    '<div class="alert alert-dark" role="alert">%s</div>'
+                    % (
+                        _(
+                            "Please download the research report template at "
+                            '<strong><a href="%s">%s</a></strong>, '
+                            "complete then upload below."
+                        )
+                        % (
+                            round.report_template.url,
+                            os.path.basename(round.report_template.name),
+                        )
+                    )
+                ),
+                Field("file", label=help_text, help_text=help_text),
+            ]
+            self.fields["file"].help_text = help_text
+        else:
+            fields = ["file"]
+        self.fields["file"].widget.attrs[
+            "accept"
+        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+
+        tabs.append(
+            Tab(
+                mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
+                *fields,
+                css_id="report",
+            )
         )
         #     Tab(
         #         _("Research"),

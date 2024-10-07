@@ -26,12 +26,10 @@
   </div>
   <div class="modal-footer">
     {% if instance and instance.pk %}
-    <button type="button" class="btn btn-danger" hx-post="{{ url('remove_movie', pk=instance.pk) }}">Remove</button>
+      <button type="button" class="btn btn-danger" hx-post="{{ url('remove_movie', pk=instance.pk) }}">{{ _('Remove') }}</button>
     <span class="flex-grow-1"></span>
     {% endif %}
-    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-      Cancel
-    </button>
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
     <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
   </div>
 </form>
@@ -40,8 +38,24 @@
   $("#publication-form").ready(function() {
     // $(".select2-selection__arrow").remove();
     // $('#id_agency').select2();
-    $('#id_year_ref,#id_impact_year').datepicker({format: "yyyy", startView: 2, maxViewMode: 2, autoclose: true});
-    $('#id_status_date').datepicker();
+    $('#id_year_ref,#id_impact_year').datepicker({
+        format: "yyyy", 
+        startView: 2, 
+        // maxViewMode: 2, 
+        clearBtn: true,
+        autoclose: true
+    });
+    $('#id_status_date,#id_citations_date').datepicker({
+        format: "yyyy-mm-dd",
+        // startDate: '1960-01-01',
+        // endDate: '2001-12-31',
+        // startDate: $(this).data("min"),
+        // endDate: $(this).data("max"),
+        startView: 2,
+        clearBtn: true,
+        autoclose: true
+    });
+    $(".select2-selection__arrow").remove();
   });
 </script>
 {% elif modal %}

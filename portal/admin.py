@@ -2584,11 +2584,12 @@ class RoundAdmin(
                     "Templates",
                     {
                         "fields": [
+                            "application_template",
                             "score_sheet_template",
                             "nomination_template",
-                            "application_template",
                             "referee_template",
                             "budget_template",
+                            "report_template",
                         ]
                     },
                 )

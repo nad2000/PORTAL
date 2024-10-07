@@ -15,6 +15,7 @@ from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
+from datetime import timedelta
 
 import pikepdf
 import simple_history
@@ -5681,6 +5682,32 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             )
         ],
     )
+    report_template = FileField(
+        null=True,
+        blank=True,
+        upload_to=round_template_path,
+        verbose_name=_("Report Template"),
+        help_text=_("Research report template"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
 
     funding_amount = PositiveIntegerField(null=True, blank=True)
     funding_currency = ForeignKey(
@@ -8676,7 +8703,7 @@ class ReportMixin:
     )
 
 
-class Report(ReportMixin, Model):
+class Report(ReportMixin, PdfFileMixin, Model):
     schedule_entry = OneToOneField(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
@@ -8696,6 +8723,38 @@ class Report(ReportMixin, Model):
         help_text=_("Reporting Type"),
     )
     state = StateField(default="new", verbose_name=_("state"))
+    file = PrivateFileField(
+        verbose_name=_("Completed research report"),
+        blank=True,
+        null=True,
+        upload_to="reports",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.contract_id),
+        ],
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+    )
 
     reported_at = MonitorField(
         monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True
@@ -8843,6 +8902,15 @@ class Report(ReportMixin, Model):
 
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"
+
+    @property
+    def due_in_days(self):
+        current_date = timezone.localdate()
+        if self.due_date:
+            return (self.due_date - current_date).days
+        elif (c := self.contract) and c.start_date and self.period:
+            return (c.start_date + timedelta(365 * self.period) - current_date).days
+        return 365
 
     @classmethod
     def user_object_counts(
