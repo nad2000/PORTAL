@@ -3239,9 +3239,12 @@ class ReportedEffortForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if instance := kwargs.get("instance"):
+            fte_total = instance.fte_total
             self.fields["fte_before"].initial = self.fields["fte_total"].initial = (
-                instance.fte_total
+                f"{fte_total:.2f}"
             )
+            if instance.fte:
+                self.fields["fte_before"].initial = fte_total - instance.fte
         self.helper = FormHelper(self)
 
     role = forms.ModelChoiceField(
@@ -3249,10 +3252,13 @@ class ReportedEffortForm(ModelForm):
             models.Coalesce("name", "code")
         )
     )
-    fte_before = forms.DecimalField(widget=forms.HiddenInput())
+    fte_before = forms.DecimalField(widget=forms.HiddenInput(), required=False)
     fte_total = forms.DecimalField(
         label=_("Total FTE"),
-        widget=forms.widgets.NumberInput(attrs={"readonly": True, "disabled": True}),
+        required=False,
+        widget=forms.widgets.NumberInput(
+            attrs={"readonly": True, "disabled": True, "step": "0.01"}
+        ),
     )
 
     class Meta:
@@ -3261,6 +3267,12 @@ class ReportedEffortForm(ModelForm):
 
 
 class ReportForm(ModelForm):
+
+    comment = forms.CharField(
+        label="",
+        required=False,
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -3593,7 +3605,7 @@ class ReportForm(ModelForm):
                 css_id="summary",
             ),
             Tab(
-                _("Personnel"),
+                mark_safe(f'<i class="fas fa-users"></i> {_("Personnel")}'),
                 HTML(
                     """{% load tags %}
                 <div class="alert alert-dark" role="alert">
@@ -3828,6 +3840,27 @@ class ReportForm(ModelForm):
                 css_id="report",
             )
         )
+        if instance and instance.pk:
+            tabs.append(
+                Tab(
+                    mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
+                    # Field("host_contact_email"),
+                    Field("comment"),
+                    Fieldset(
+                        None,
+                        Field("attachment"),
+                        Submit(
+                            "post_comment",
+                            _("Post Comment"),
+                            css_class="btn-primary float-right",
+                        ),
+                    ),
+                    HTML(
+                        '{% include "snippets/comments.html" with comments=object.comments.all %}'
+                    ),
+                    css_id="correspondence",
+                )
+            )
         #     Tab(
         #         _("Research"),
         #         Field("project_title"),

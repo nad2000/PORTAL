@@ -5816,7 +5816,7 @@ class ContractViewMixin:
                 body = body.strip()
 
             if body or attachment:
-                models.ContractComment.create(
+                i.comments.model.create(
                     contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
                 )
 

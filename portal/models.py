@@ -7780,6 +7780,10 @@ class ContractComment(Model):
     def __str__(self):
         return f"Submitted by {self.submitted_by} at {self.created_at}"
 
+    @property
+    def target(self):
+        return self.contract
+
     class Meta:
         db_table = "contract_comment"
         verbose_name = _("comment")
@@ -9056,8 +9060,15 @@ class ReportedEffort(ReportedEffortMixin, Model):
             return self._meta.model.where(
                 report__contract=self.report.contract,
                 person=self.person,
-                report__period__lt=self.report.period,
-            ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00")) + (self.fte or 0.0)
+                # report__period__lt=self.report.period,
+            ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00"))  # + (self.fte or 0.0)
+        elif self.full_name:
+            return self._meta.model.where(
+                report__contract=self.report.contract,
+                full_name=self.full_name,
+                person=self.person,
+                # report__period__lt=self.report.period,
+            ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00"))  # + (self.fte or 0.0)
         return 0.0
 
     def save(self, *args, **kwargs):
@@ -9302,6 +9313,64 @@ class PublicationLink(Model):
 
     class Meta:
         db_table = "publication_link"
+
+
+class ReportComment(Model):
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
+    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="reports",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.report_id),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+        related_name="report_comments",
+    )
+
+    @property
+    def target(self):
+        return self.report
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    class Meta:
+        db_table = "report_comment"
+        verbose_name = _("comment")
+        ordering = ["-id"]
+
+
+class ReportCommentAttachment(Model):
+    comment = ForeignKey(ReportComment, on_delete=CASCADE, related_name="attachments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="reports",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.comment.report_id),
+            "comments",
+            hash_int(instance.comment_id),
+            "attachments",
+        ],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "report_comment_attachment"
+        verbose_name = _("attachment")
+
 
 
 dummy_for_translations = (

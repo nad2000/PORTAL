@@ -54,9 +54,13 @@
         </th>
         <td>
           {% if due_in_days < 0 %}
+            <strong>
             <span class="text-danger"> {{ r.due_date }} ({{ -due_in_days }} {{ _('day(s) overdue') }}) </span>
+            </strong>
           {% elif due_in_days < 4 %}
+            <strong>
             <span class="text-warning"> {{ r.due_date }} ({{ _('due in') }} {{ due_in_days }} {{ _('day(s)') }}) </span>
+            </strong>
           {% else %}
             {{ r.due_date }}
           {% endif %}
