@@ -8697,6 +8697,7 @@ class ReportMixin:
         ("accepted", _("accepted")),
         ("acknowledged", _("acknowledged")),
         ("approved", _("approved")),
+        ("assessed", _("assessed")),
         ("archived", _("archived")),
         ("cancelled", _("cancelled")),
         ("draft", _("draft")),
@@ -8759,6 +8760,7 @@ class Report(ReportMixin, PdfFileMixin, Model):
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
+    assessment = TextField(blank=True, null=True)
 
     reported_at = MonitorField(
         monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True

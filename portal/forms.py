@@ -3316,26 +3316,38 @@ class ReportForm(ModelForm):
             # or application.submitted_by == user
             # or (application.pk and application.members.filter(user=user, role__code="PI").exists())
         )
+
+        is_assessor = instance and user and (instance.assessor == user)
         submission_disabled = not instance or not is_pi
         is_ro = application and application.org.research_offices.filter(user=user).exists()
-        submit_button = Submit(
-            "submit_report",  # NB! Never call a button 'submit'!
-            _("Submit"),
-            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
-            data_toggle="tooltip",
-            css_id="submit-id-submit",
-            title=(
-                _("Only PI or RO can submit the report")
-                if not is_pi
-                else (
-                    _("Not all the parts/appendices of the contract were approved and/or accepted")
-                    if submission_disabled
-                    else _("Submit the contract")
-                )
-            ),
-            css_class="btn-outline-primary",
-            disabled=submission_disabled or not is_pi,
-        )
+        if is_assessor:
+            submit_button = Submit(
+                "assess",
+                _("Assess"),
+                css_id="submit-id-submit",
+                css_class="btn-outline-primary",
+            )
+        else:
+            submit_button = Submit(
+                "submit_report",  # NB! Never call a button 'submit'!
+                _("Submit"),
+                # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+                data_toggle="tooltip",
+                css_id="submit-id-submit",
+                title=(
+                    _("Only PI or RO can submit the report")
+                    if not is_pi
+                    else (
+                        _(
+                            "Not all the parts/appendices of the contract were approved and/or accepted"
+                        )
+                        if submission_disabled
+                        else _("Submit the contract")
+                    )
+                ),
+                css_class="btn-outline-primary",
+                disabled=submission_disabled or not is_pi,
+            )
         # # if is_pi or is_ro:
         # #     pass
         # # else:
@@ -3805,33 +3817,60 @@ class ReportForm(ModelForm):
                 ),
             ]
         )
-        if round.nomination_template:
-            help_text = _(
-                'You can download the research report template at <strong><a href="%s">%s</a></strong>'
-            ) % (round.report_template.url, os.path.basename(round.report_template.name))
+        if is_assessor and instance.file != "":
             fields = [
                 HTML(
-                    '<div class="alert alert-dark" role="alert">%s</div>'
-                    % (
-                        _(
-                            "Please download the research report template at "
-                            '<strong><a href="%s">%s</a></strong>, '
-                            "complete then upload below."
-                        )
-                        % (
-                            round.report_template.url,
-                            os.path.basename(round.report_template.name),
-                        )
-                    )
+                    """{% load tags %}
+                    <div class="table-responsive">
+                    <table class="table table-bordered searchable">
+                    <tbody>
+                    <tr>
+                    <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                    Completed Report:
+                    </th> 
+                    <td>
+                        <a href="{{ object.file.url }}" target="_blank">
+                        {{ object.file|basename }}
+                        </a>
+                    </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                    </div>"""
                 ),
-                Field("file", label=help_text, help_text=help_text),
+                "assessment",
             ]
-            self.fields["file"].help_text = help_text
+            del self.fields["file"]
+            # self.fields["assessment"].required = True
         else:
-            fields = ["file"]
-        self.fields["file"].widget.attrs[
-            "accept"
-        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+            del self.fields["assessment"]
+            if round.nomination_template:
+                help_text = _(
+                    'You can download the research report template at <strong><a href="%s">%s</a></strong>'
+                ) % (round.report_template.url, os.path.basename(round.report_template.name))
+                fields = [
+                    HTML(
+                        '<div class="alert alert-dark" role="alert">%s</div>'
+                        % (
+                            _(
+                                "Please download the research report template at "
+                                '<strong><a href="%s">%s</a></strong>, '
+                                "complete then upload below."
+                            )
+                            % (
+                                round.report_template.url,
+                                os.path.basename(round.report_template.name),
+                            )
+                        )
+                    ),
+                    Field("file", label=help_text, help_text=help_text),
+                ]
+                self.fields["file"].help_text = help_text
+            else:
+                fields = ["file"]
+            self.fields["file"].widget.attrs[
+                "accept"
+            ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
 
         tabs.append(
             Tab(
@@ -4076,6 +4115,7 @@ class ReportForm(ModelForm):
     class Meta:
         model = models.Report
         exclude = [
+            "assessor",
             "address",
             "site",
             "fund",
@@ -4109,21 +4149,15 @@ class ReportForm(ModelForm):
             ),
             panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
-            # summary=SummernoteWidget(),
-            daytime_phone=TelInput(),
-            mobile_phone=TelInput(),
-            # file=FileInput(),
             abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
             notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary_en=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary_mi=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            ethics_statement__comment=SummernoteInplaceWidget(
-                attrs={"summernote": {"width": "100%"}}
-            ),
-            # round=HiddenInput(),
-            letter_of_support_file=forms.ClearableFileInput(
-                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            assessment=SummernoteInplaceWidget(
+                attrs={
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
+                    "oninput": "this.setCustomValidity('')",
+                    "summernote": {"width": "100%", "height": "200px"},
+                }
             ),
         )
 

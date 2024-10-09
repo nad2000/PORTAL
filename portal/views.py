@@ -1937,7 +1937,7 @@ class ReportViewMixin:
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
-            if not self.object.file:
+            if not self.object.file or self.object.assessor == u:
                 context["needs_attention"].append("report")
 
         if round.has_fors:

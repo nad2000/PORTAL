@@ -101,6 +101,14 @@
         }
       });
       $(".select2-selection__arrow").remove();
+      $("#submit-id-submit").click(function(e) {
+        $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
+          var $t = $(this);
+          $t.attr({
+            "required": $t.attr("data-required")
+          });
+        });
+      });
     });
   </script>
 {% endblock javascript %}
