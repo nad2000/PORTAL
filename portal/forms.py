@@ -1,7 +1,7 @@
 import os
 from functools import partial
 
-from crispy_forms.bootstrap import InlineRadios, Tab, TabHolder
+from crispy_forms.bootstrap import InlineField, InlineCheckboxes, InlineRadios, Tab, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -3273,6 +3273,18 @@ class ReportForm(ModelForm):
         required=False,
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
+    attachment = FileField(
+        required=False,
+        label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": (
+                    ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                )
+            }
+        ),
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -3880,6 +3892,31 @@ class ReportForm(ModelForm):
             )
         )
         if instance and instance.pk:
+            if is_assessor:
+                self.fields["recipients"] = forms.MultipleChoiceField(
+                    label=_("TO"),
+                    choices=[(v, v) for v in ["PI", "RO", "RA", "TS"]],
+                    required=False,
+                    initial=["RO"],
+                )
+                self.fields["cc_recipients"] = forms.MultipleChoiceField(
+                    label=_("CC"),
+                    choices=[(v, v) for v in ["PI", "RO", "RA", "TS"]],
+                    required=False,
+                    initial=["TS"],
+                )
+                self.fields["to_pi"] = forms.BooleanField(label=_("PI"), required=False)
+                self.fields["to_ro"] = forms.BooleanField(
+                    label=_("RO"), required=False, initial=True
+                )
+                self.fields["to_ra"] = forms.BooleanField(label=_("RA"), required=False)
+                self.fields["to_ts"] = forms.BooleanField(label=_("TS"), required=False)
+                self.fields["cc_pi"] = forms.BooleanField(label=_("PI"), required=False)
+                self.fields["cc_ro"] = forms.BooleanField(label=_("RO"), required=False)
+                self.fields["cc_ra"] = forms.BooleanField(
+                    label=_("RA"), required=False, initial=True
+                )
+                self.fields["cc_ts"] = forms.BooleanField(label=_("TS"), required=False)
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
@@ -3888,10 +3925,46 @@ class ReportForm(ModelForm):
                     Fieldset(
                         None,
                         Field("attachment"),
-                        Submit(
-                            "post_comment",
-                            _("Post Comment"),
-                            css_class="btn-primary float-right",
+                        (
+                            Row(
+                                Column(
+                                    Row(
+                                        Column(
+                                            HTML("<strong><u>TO:</u></strong>"), css_class="col-1"
+                                        ),
+                                        Column(
+                                            Field(
+                                                "recipients",
+                                                template="bootstrap4/layout/recipients_inline.html",
+                                            )
+                                        ),
+                                    ),
+                                    Row(
+                                        Column(
+                                            HTML("<strong><u>CC:</u></strong>"), css_class="col-1"
+                                        ),
+                                        Column(
+                                            Field(
+                                                "cc_recipients",
+                                                template="bootstrap4/layout/recipients_inline.html",
+                                            )
+                                        ),
+                                    ),
+                                ),
+                                Column(
+                                    Submit(
+                                        "post_comment",
+                                        _("Post Comment"),
+                                        css_class="btn-primary float-right",
+                                    ),
+                                ),
+                            )
+                            if is_assessor
+                            else Submit(
+                                "post_comment",
+                                _("Post Comment"),
+                                css_class="btn-primary float-right",
+                            )
                         ),
                     ),
                     HTML(

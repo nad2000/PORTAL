@@ -2271,6 +2271,7 @@ class ReportViewMixin:
     #     return super().form_invalid(form)
 
     def form_valid(self, form):
+        breakpoint()
         r = i = form.instance or self.object
         c = r.contract
         a = c.application
