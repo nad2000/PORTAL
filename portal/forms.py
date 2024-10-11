@@ -3285,6 +3285,20 @@ class ReportForm(ModelForm):
             }
         ),
     )
+    categery = forms.ChoiceField(
+        choices=[("R", _("Risk of variation")), ("O", _("Other"))],
+        # widget=forms.RadioSelect,
+        required=False,
+        # label=gettext_lazy("Category"),
+        label="",
+    )
+    alert_date = forms.ChoiceField(
+        choices=[("2WK", _("Two weeks")), ("WK", _("A week"))],
+        # widget=forms.RadioSelect,
+        required=False,
+        # label=gettext_lazy("Alert date"),
+        label="",
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -3839,7 +3853,7 @@ class ReportForm(ModelForm):
                     <tr>
                     <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
                     Completed Report:
-                    </th> 
+                    </th>
                     <td>
                         <a href="{{ object.file.url }}" target="_blank">
                         {{ object.file|basename }}
@@ -3930,7 +3944,7 @@ class ReportForm(ModelForm):
                                 Column(
                                     Row(
                                         Column(
-                                            HTML("<strong><u>TO:</u></strong>"), css_class="col-1"
+                                            HTML("<strong><u>TO</u></strong>:&nbsp;"), css_class="col-1"
                                         ),
                                         Column(
                                             Field(
@@ -3941,7 +3955,7 @@ class ReportForm(ModelForm):
                                     ),
                                     Row(
                                         Column(
-                                            HTML("<strong><u>CC:</u></strong>"), css_class="col-1"
+                                            HTML("<strong><u>CC</u></strong>:&nbsp;"), css_class="col-1"
                                         ),
                                         Column(
                                             Field(
@@ -3951,6 +3965,11 @@ class ReportForm(ModelForm):
                                         ),
                                     ),
                                 ),
+                                Column(HTML("<strong>Category</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"), 
+                                Column("categery"),
+                                #"text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
+                                Column(HTML("<strong>Alert date</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"), 
+                                Column(Field("alert_date")),
                                 Column(
                                     Submit(
                                         "post_comment",
