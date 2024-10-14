@@ -1105,6 +1105,12 @@ class Organisation(Model):
     website = URLField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
+    @cache
+    def get_ro(self):
+        if self.ro_email:
+            return [self.ro_email]
+        return [ro.user for ro in self.research_offices.all()]
+
     def natural_key(self):
         return self.code
 
@@ -8989,6 +8995,15 @@ class Report(ReportMixin, PdfFileMixin, Model):
 
         return q
 
+    @property
+    def thread_index(self):
+        site_id = self.contract and self.contract.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{self.pk}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return f"{self}"
+
     class Meta:
         db_table = "report"
         unique_together = (("contract", "period", "type"),)
@@ -9059,20 +9074,42 @@ class ReportedEffort(ReportedEffortMixin, Model):
     @property
     def fte_total(self):
         if self.person:
-            return self._meta.model.where(
-                report__contract=self.report.contract,
-                person=self.person,
-                # report__period__lt=self.report.period,
-            ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00"))  # + (self.fte or 0.0)
+            return (
+                self._meta.model.where(
+                    report__contract=self.report.contract,
+                    person=self.person,
+                    # report__period__lt=self.report.period,
+                )
+                .aggregate(Sum("fte", default=0))
+                .get("fte__sum", Decimal("0.00"))
+            )  # + (self.fte or 0.0)
         elif self.full_name:
-            return self._meta.model.where(
-                report__contract=self.report.contract,
-                full_name=self.full_name,
-                person=self.person,
-                # report__period__lt=self.report.period,
-            ).aggregate(Sum("fte", default=0)).get("fte__sum", Decimal("0.00"))  # + (self.fte or 0.0)
+            return (
+                self._meta.model.where(
+                    report__contract=self.report.contract,
+                    full_name=self.full_name,
+                    person=self.person,
+                    # report__period__lt=self.report.period,
+                )
+                .aggregate(Sum("fte", default=0))
+                .get("fte__sum", Decimal("0.00"))
+            )  # + (self.fte or 0.0)
         return 0.0
 
+    @cached_property
+    def user(self):
+        if self.person and self.person.user:
+            return self.person.user
+        if self.member_effort and self.member_effort.member and self.member_effort.member.user:
+            return self.member_effort.member.user
+
+    @cached_property
+    def email(self):
+        if user := self.user:
+            return user.email
+        if self.member_effort and self.member_effort.member:
+            return self.member_effort.member.email
+    
     def save(self, *args, **kwargs):
         if me := self.member_effort:
             if not self.person:
@@ -9317,6 +9354,9 @@ class PublicationLink(Model):
         db_table = "publication_link"
 
 
+REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Other")))
+
+
 class ReportComment(Model):
     report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
@@ -9339,6 +9379,17 @@ class ReportComment(Model):
         verbose_name=_("submitted by"),
         related_name="report_comments",
     )
+    category = FixedCharField(
+        choices=REPORT_COMMENT_CATEGORIES,
+        max_length=1,
+        null=True,
+        blank=True,
+    )
+    alert_date = CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+    )
 
     @property
     def target(self):
@@ -9351,6 +9402,17 @@ class ReportComment(Model):
         db_table = "report_comment"
         verbose_name = _("comment")
         ordering = ["-id"]
+
+
+class ReportCommentRecipient(Model):
+    comment = ForeignKey(ReportComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "report_comment_recipient"
+        verbose_name = _("recipient")
 
 
 class ReportCommentAttachment(Model):
@@ -9372,7 +9434,6 @@ class ReportCommentAttachment(Model):
     class Meta:
         db_table = "report_comment_attachment"
         verbose_name = _("attachment")
-
 
 
 dummy_for_translations = (

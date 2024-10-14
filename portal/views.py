@@ -68,6 +68,7 @@ from django.forms import (
     URLInput,
     ValidationError,
     fields,
+    modelform_factory,
     modelformset_factory,
 )
 from django.forms import models as model_forms
@@ -2271,7 +2272,6 @@ class ReportViewMixin:
     #     return super().form_invalid(form)
 
     def form_valid(self, form):
-        breakpoint()
         r = i = form.instance or self.object
         c = r.contract
         a = c.application
@@ -2430,39 +2430,105 @@ class ReportViewMixin:
         #         )
         #         return redirect("report-update", pk=i.pk)
 
-        # if "post_comment" in self.request.POST:
-        #     token = models.get_unique_mail_token()
-        #     attachment = form.cleaned_data.get("attachment", None)
-        #     if body := form.cleaned_data.get("comment", None):
-        #         body = body.strip()
+        if "post_comment" in self.request.POST:
 
-        #     if body or attachment:
-        #         models.ReportComment.create(
-        #             report=i, submitted_by=u, comment=body, attachment=attachment, token=token
-        #         )
+            attachment = form.cleaned_data.get("attachment", None)
+            if body := form.cleaned_data.get("comment", None):
+                body = body.strip()
 
-        #     respond_url = (
-        #         self.request.build_absolute_uri(reverse("report-update", kwargs=dict(pk=i.pk)))
-        #         + "#correspondence"
-        #     )
-        #     html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-        #     html_message += f":</p>{body}" if body else "."
-        #     html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-        #     send_mail(
-        #         request=self.request,
-        #         from_email="reports",
-        #         subject=f"Comment posted by {u.full_name_with_email} to {i}",
-        #         html_message=html_message,
-        #         cc=[u.full_email_address],
-        #         attachments=attachment and [attachment],
-        #         recipients=recipients,
-        #         thread_index=i.thread_index,
-        #         thread_topic=i.thread_topic,
-        #         token=token,
-        #     )
-        #     return redirect(
-        #         reverse("report-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
-        #     )
+            if body or attachment:
+                CommentForm = modelform_factory(models.ReportComment, exclude=["report", "token"])
+                comment_form = CommentForm(
+                    self.request.POST,
+                    self.request.FILES,
+                )
+                comment = comment_form.save(commit=False)
+                comment.submitted_by = u
+                comment.token = models.get_unique_mail_token()
+                comment.report = i
+                comment.save()
+
+                subject = (
+                    f"{comment.get_category_display()} / {i}"
+                    if comment.category
+                    else f"Comment posted by {u.full_name_with_email} to {i}"
+                )
+
+                _recipients = form.cleaned_data.get("recipients", [])
+                _cc_recipients = form.cleaned_data.get("cc_recipients", [])
+                recipients = [e.user or e.email for e in i.efforts.filter(role__in=_recipients)]
+                if "RO" in _recipients:
+                    recipients.extend(c.org.get_ro())
+                cc_recipients = [e.user or e.email for e in i.efforts.filter(role__in=_recipients)]
+                if "RO" in _cc_recipients:
+                    cc_recipients.extend(c.org.get_ro())
+
+                report_comment_recipients = [
+                    (
+                        models.ReportCommentRecipient(user, email=e, comment=comment)
+                        if isinstance(e, str)
+                        else models.ReportCommentRecipient(user=e, email=e.email, comment=comment)
+                    )
+                    for e in recipients
+                ]
+                report_comment_recipients.extend(
+                    [
+                        (
+                            models.ReportCommentRecipient(email=e, comment=comment, is_cced=True)
+                            if isinstance(e, str)
+                            else models.ReportCommentRecipient(
+                                user=e, email=e.email, comment=comment, is_cced=True
+                            )
+                        )
+                        for e in cc_recipients
+                    ]
+                )
+                if "RO" in _recipients:
+                    report_comment_recipients.extend(
+                        [
+                            models.ReportCommentRecipient(
+                                user=ro if not isinstance(ro, str) else None,
+                                email=ro.email if not isinstance(ro, str) else ro,
+                                comment=comment,
+                                is_cced=False,
+                            )
+                            for ro in c.org.get_ro()
+                        ]
+                    )
+                if "RO" in _cc_recipients:
+                    report_comment_recipients.extend(
+                        [
+                            models.ReportCommentRecipient(
+                                user=ro if not isinstance(ro, str) else None,
+                                email=ro.email if not isinstance(ro, str) else ro,
+                                comment=comment,
+                                is_cced=True,
+                            )
+                            for ro in c.org.get_ro()
+                        ]
+                    )
+
+                models.ReportCommentRecipient.bulk_create(report_comment_recipients)
+
+                respond_url = (
+                    self.request.build_absolute_uri(self.request.path) + "#correspondence"
+                )
+                html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i}">{i}</data>'
+                html_message += f":</p>{body}" if body else "."
+                html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                send_mail(
+                    request=self.request,
+                    from_email="reports",
+                    subject=subject,
+                    html_message=html_message,
+                    cc=cc_recipients,
+                    attachments=attachment and [attachment],
+                    recipients=recipients,
+                    thread_index=i.thread_index,
+                    thread_topic=i.thread_topic,
+                    token=comment.token,
+                )
+                return redirect(f"{self.request.path}#correspondence")
         return resp
 
 

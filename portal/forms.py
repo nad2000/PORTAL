@@ -3285,7 +3285,7 @@ class ReportForm(ModelForm):
             }
         ),
     )
-    categery = forms.ChoiceField(
+    category = forms.ChoiceField(
         choices=[("R", _("Risk of variation")), ("O", _("Other"))],
         # widget=forms.RadioSelect,
         required=False,
@@ -3965,10 +3965,10 @@ class ReportForm(ModelForm):
                                         ),
                                     ),
                                 ),
-                                Column(HTML("<strong>Category</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"), 
-                                Column("categery"),
+                                Column(HTML("<strong>Category</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                Column("category"),
                                 #"text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
-                                Column(HTML("<strong>Alert date</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"), 
+                                Column(HTML("<strong>Alert date</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
                                 Column(Field("alert_date")),
                                 Column(
                                     Submit(
