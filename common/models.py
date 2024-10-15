@@ -8,6 +8,7 @@ from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.functional import cached_property
 from model_utils import Choices
+
 EmailField.register_lookup(Lower)
 
 SEX_CHOICES = Choices("female", "male", "other")
@@ -85,6 +86,10 @@ class HelperMixin:
         return cls.objects.create(*args, **kwargs)
 
     @classmethod
+    def bulk_create(cls, *args, **kwargs):
+        return cls.objects.bulk_create(*args, **kwargs)
+
+    @classmethod
     def get_or_create(cls, defaults=None, **kwargs):
         return cls.objects.get_or_create(defaults, **kwargs)
 
@@ -124,7 +129,11 @@ class Model(TimeStampMixin, HelperMixin, Base):
         try:
             return reverse(model_name_slug, args=[str(self.id)])
         except:
-            return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
+            try:
+                return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
+            except:
+                return reverse(f"{model_name_slug}-list")
+
 
     class Meta:
         abstract = True
@@ -143,12 +152,15 @@ class PersonMixin:
             return self.profile.user
         elif getattr(self, "referee", None) and self.referee.user:
             return self.referee.user
+        elif hasattr(self, "_meta") and self._meta.model_name:
+            return self
 
     @cached_property
     def full_name(self):
         user = self.get_user()
         first_name = getattr(self, "first_name", None) or user and user.first_name
-        middle_names = getattr(self, "middle_names", None) or user and user.middle_names
+        if middle_names := getattr(self, "middle_names", None) or user and user.middle_names:
+            middle_names = middle_names.replace(",", " ").replace(", ", " ").replace("  ", " ").strip()
         last_name = getattr(self, "last_name", None) or user and user.last_name
         full_name = " ".join(s for s in [first_name, middle_names, last_name] if s)
         if hasattr(self, "title") and self.title:

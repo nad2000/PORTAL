@@ -15,6 +15,7 @@ from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
+from datetime import timedelta
 
 import pikepdf
 import simple_history
@@ -557,6 +558,9 @@ class Address(Model):
 
     address = TextField(_("address"))
     postcode = CharField(_("postcode"), max_length=12, null=True, blank=True)
+    region = CharField(
+        _("region"), max_length=100, null=True, blank=True, help_text=_("Region, State or County")
+    )
     city = CharField(_("city"), max_length=42, null=True, blank=True)
     country = ForeignKey(
         Country,
@@ -951,10 +955,7 @@ def validate_orcid_id(value):
 
 
 class PersonPersonIdentifier(Model):
-    person = ForeignKey(
-        "Person",
-        on_delete=CASCADE,
-    )
+    person = ForeignKey("Person", on_delete=CASCADE, related_name="person_identifiers")
     code = ForeignKey(
         PersonIdentifierType,
         on_delete=DO_NOTHING,
@@ -1104,6 +1105,12 @@ class Organisation(Model):
     website = URLField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
+    @cache
+    def get_ro(self):
+        if self.ro_email:
+            return [self.ro_email]
+        return [ro.user for ro in self.research_offices.all()]
+
     def natural_key(self):
         return self.code
 
@@ -1237,7 +1244,6 @@ class Person(PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
     )
     salutation = CharField(max_length=100, blank=True, null=True)
     other_names = CharField(max_length=200, blank=True, null=True)
@@ -1916,7 +1922,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, verbose_name=_("last name"))
     research_experience_in_years = PositiveSmallIntegerField(
@@ -2195,6 +2200,21 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             if self.is_preliminary:
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
+        if (pi := self.submitted_by) and not self.members.filter(user=pi).exists():
+            self.members.model.get_or_create(
+                application=self,
+                user=pi,
+                email=self.email or pi.email,
+                defaults=dict(
+                    first_name=self.first_name or pi.first_name,
+                    middle_names=self.middle_names or pi.middle_names,
+                    last_name=self.last_name or pi.last_name,
+                    state="authorized",
+                    authorized_at=self.updated_at,
+                    role_description="The submitter of the application",
+                    role_id="PI",
+                ),
+            )
 
     @cache
     def can_only_update_referees(self, user):
@@ -3531,7 +3551,6 @@ class Member(PersonMixin, MemberMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     role_description = CharField(
@@ -3552,7 +3571,9 @@ class Member(PersonMixin, MemberMixin, Model):
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
     )
-    authorized_at = MonitorField(monitor="state", when=["authorized"], null=True, default=None, blank=True)
+    authorized_at = MonitorField(
+        monitor="state", when=["authorized"], null=True, default=None, blank=True
+    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3606,7 +3627,7 @@ class Member(PersonMixin, MemberMixin, Model):
                 )
 
     @fsm_log
-    @transition(field=state, source=["new", "sent"], target="accepted")
+    @transition(field=state, source=["new", "sent", "bounced"], target="accepted")
     def accept(self, *args, **kwargs):
         pass
 
@@ -3731,7 +3752,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     # has_testifed = BooleanField(null=True, blank=True)
@@ -3966,7 +3987,11 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         % limesurvey_status
                     )
                 for r in resp:
-                    if "errors" in r and "token" in r["errors"] and " has already been taken." in r["errors"]["token"]:
+                    if (
+                        "errors" in r
+                        and "token" in r["errors"]
+                        and " has already been taken." in r["errors"]["token"]
+                    ):
                         r = api.token.get_participant_properties(survey_id, None, {"token": token})
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
@@ -3994,7 +4019,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not self.survey_token_id:
                 try:
-                    resp = api.token.get_participant_properties(survey_id, None, {"token": self.survey_token})
+                    resp = api.token.get_participant_properties(
+                        survey_id, None, {"token": self.survey_token}
+                    )
                     self.survey_token_id = resp.get("tid")
                     self.save(update_fields=["survey_token_id", "updated_at"])
                 except LimeSurveyError:
@@ -4151,7 +4178,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     # person = models.ForeignKey(Person, blank=True, null=True, on_delete=models.CASCADE, related_name="+")
@@ -4367,7 +4394,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(_("last name"), max_length=150, null=True, blank=True)
     organisation = CharField(
@@ -4654,9 +4681,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             if not application:
                 return
             contact_email = (
-                application
-                and application.round.contact_email
-                or site_contact_email(site_id)
+                application and application.round.contact_email or site_contact_email(site_id)
             )
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
@@ -5106,6 +5131,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         upload_subfolder=lambda instance: [hash_int(instance.referee_id)],
         blank=True,
         null=True,
+        max_length=200,
     )
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
@@ -5662,6 +5688,32 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             )
         ],
     )
+    report_template = FileField(
+        null=True,
+        blank=True,
+        upload_to=round_template_path,
+        verbose_name=_("Report Template"),
+        help_text=_("Research report template"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
 
     funding_amount = PositiveIntegerField(null=True, blank=True)
     funding_currency = ForeignKey(
@@ -6195,11 +6247,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 q = q.filter(pk__in=referees.values_list("pk"))
             fixed_referees = []
             api = self.survey_api
-            for r in q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")):
+            for r in q.filter(
+                Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
+            ):
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
-                    resp = api.token.get_participant_properties(self.survey_id, None, {"token": r.survey_token})
+                    resp = api.token.get_participant_properties(
+                        self.survey_id, None, {"token": r.survey_token}
+                    )
                     r.survey_token_id = resp.get("tid")
                 except LimeSurveyError:
                     r.add_to_survey(api=api)
@@ -7205,7 +7261,9 @@ class IdentityVerification(Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent")
+    @transition(
+        field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent"
+    )
     def send(self, request, *args, **kwargs):
         url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
 
@@ -7728,6 +7786,10 @@ class ContractComment(Model):
     def __str__(self):
         return f"Submitted by {self.submitted_by} at {self.created_at}"
 
+    @property
+    def target(self):
+        return self.contract
+
     class Meta:
         db_table = "contract_comment"
         verbose_name = _("comment")
@@ -7893,7 +7955,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         help_text=_("Is your institution a signatory to the ANZCCART Openness Agreement?"),
     )
-    involves_childeren = BooleanField(
+    involves_children = BooleanField(
         _("involves children "),
         null=True,
         blank=True,
@@ -8641,6 +8703,7 @@ class ReportMixin:
         ("accepted", _("accepted")),
         ("acknowledged", _("acknowledged")),
         ("approved", _("approved")),
+        ("assessed", _("assessed")),
         ("archived", _("archived")),
         ("cancelled", _("cancelled")),
         ("draft", _("draft")),
@@ -8651,7 +8714,7 @@ class ReportMixin:
     )
 
 
-class Report(ReportMixin, Model):
+class Report(ReportMixin, PdfFileMixin, Model):
     schedule_entry = OneToOneField(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
@@ -8671,6 +8734,39 @@ class Report(ReportMixin, Model):
         help_text=_("Reporting Type"),
     )
     state = StateField(default="new", verbose_name=_("state"))
+    file = PrivateFileField(
+        verbose_name=_("Completed research report"),
+        blank=True,
+        null=True,
+        upload_to="reports",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.contract_id),
+        ],
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+    )
+    assessment = TextField(blank=True, null=True)
 
     reported_at = MonitorField(
         monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True
@@ -8805,10 +8901,28 @@ class Report(ReportMixin, Model):
                 self.period = se.period
             if not self.type:
                 self.type = se.type
+        elif self.period and self.type:
+            if se := self.contract.reporting_schedule.filter(
+                period=self.period, type=self.type
+            ).last():
+                self.schedule_entry = se
         super().save(*args, **kwargs)
+
+    publications = ManyToManyField(
+        "Publication", blank=True, db_table="report_publication", related_name="reports"
+    )
 
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"
+
+    @property
+    def due_in_days(self):
+        current_date = timezone.localdate()
+        if self.due_date:
+            return (self.due_date - current_date).days
+        elif (c := self.contract) and c.start_date and self.period:
+            return (c.start_date + timedelta(365 * self.period) - current_date).days
+        return 365
 
     @classmethod
     def user_object_counts(
@@ -8881,6 +8995,15 @@ class Report(ReportMixin, Model):
 
         return q
 
+    @property
+    def thread_index(self):
+        site_id = self.contract and self.contract.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{self.pk}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return f"REPORT:{self.period}:{self.type}:{self.contract.number}"
+
     class Meta:
         db_table = "report"
         unique_together = (("contract", "period", "type"),)
@@ -8910,23 +9033,91 @@ class ReportedEffortMixin:
 
 
 class ReportedEffort(ReportedEffortMixin, Model):
-    planned_effort = OneToOneField(
-        ContractMemberEffort, on_delete=CASCADE, related_name="reported_efforts"
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="efforts",
     )
-    # member = ForeignKey(, on_delete=CASCADE, related_name="reported_efforts")
+    member_effort = OneToOneField(
+        ContractMemberEffort,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reported_efforts",
+    )
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reported_efforts",
+    )
+    full_name = CharField(
+        _("person name"),
+        blank=True,
+        null=True,
+        max_length=400,
+    )
+    role = ForeignKey(
+        RoleType,
+        on_delete=SET_NULL,
+        related_name="+",
+        null=True,
+        blank=True,
+        db_column="role",
+    )
     fte = DecimalField(
         _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
     )
     state = StateField(default="new", verbose_name=_("state"))
 
+    @property
+    def fte_total(self):
+        if self.person:
+            return (
+                self._meta.model.where(
+                    report__contract=self.report.contract,
+                    person=self.person,
+                    # report__period__lt=self.report.period,
+                )
+                .aggregate(Sum("fte", default=0))
+                .get("fte__sum", Decimal("0.00"))
+            )  # + (self.fte or 0.0)
+        elif self.full_name:
+            return (
+                self._meta.model.where(
+                    report__contract=self.report.contract,
+                    full_name=self.full_name,
+                    person=self.person,
+                    # report__period__lt=self.report.period,
+                )
+                .aggregate(Sum("fte", default=0))
+                .get("fte__sum", Decimal("0.00"))
+            )  # + (self.fte or 0.0)
+        return 0.0
+
+    @cached_property
+    def user(self):
+        if self.person and self.person.user:
+            return self.person.user
+        if self.member_effort and self.member_effort.member and self.member_effort.member.user:
+            return self.member_effort.member.user
+
+    @cached_property
+    def email(self):
+        if user := self.user:
+            return user.email
+        if self.member_effort and self.member_effort.member:
+            return self.member_effort.member.email
+    
     def save(self, *args, **kwargs):
-        if se := self.schedule_entry:
-            if not self.contract:
-                self.contract = se.contract
-            if not self.period:
-                self.period = se.period
-            if not self.type:
-                self.type = se.type
+        if me := self.member_effort:
+            if not self.person:
+                self.person = me.member.user.person
+            if not self.full_name:
+                self.full_name = me.member.full_name
+            if not self.role:
+                self.role = me.member.role
         super().save(*args, **kwargs)
 
     class Meta:
@@ -8941,10 +9132,104 @@ simple_history.register(
 )
 
 
+FUNDING_TYPES = Choices(
+    ("A", _("Award")),
+    ("C", _("Contract")),
+    ("G", _("Grant")),
+    ("S", _("Salary award")),
+)
+
+
+class ReportedFundingMixin:
+    STATES = Choices(
+        ("accepted", _("accepted")),
+        ("acknowledged", _("acknowledged")),
+        ("approved", _("approved")),
+        ("application", _("application")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("draft")),
+        ("new", _("new")),
+        ("submitted", _("submitted")),
+        # ("withdrawn", _("withdrawn")),
+    )
+
+
+class ReportedFunding(ReportedFundingMixin, Model):
+
+    orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+    put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="fundings",
+    )
+    state = StateField(default="new", verbose_name=_("status"))
+    type = FixedCharField(
+        _("Type"), max_length=1, choices=FUNDING_TYPES, help_text=_("Funding Type")
+    )
+    subtype = CharField(
+        _("Subtype"), max_length=100, null=True, blank=True, help_text=_("Funding subtype")
+    )
+    title = CharField(
+        _("Project"), max_length=400, null=True, blank=True, help_text=_("Title of funded project")
+    )
+    url = URLField(
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text=_("Project link URL"),
+    )
+    description = TextField(null=True, blank=True)
+    currency = ForeignKey(
+        Currency,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        db_column="currency",
+        default="NZD",
+        verbose_name=_("Funding currency"),
+    )
+    amount = DecimalField(
+        null=True, blank=True, help_text=_("Total funding amount"), max_digits=10, decimal_places=2
+    )
+    share = PositiveSmallIntegerField(
+        _("Share available"),
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=100,
+    )
+
+    start_date = DateField(blank=True, null=True)
+    end_date = DateField(blank=True, null=True)
+    agency = ForeignKey(
+        Organisation, on_delete=SET_NULL, null=True, blank=True, verbose_name=_("Funding agency")
+    )
+
+    # def __str__(self):
+    #     return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = "reported_funding"
+
+
+simple_history.register(
+    ReportedFunding,
+    inherit=True,
+    table_name="reported_funding_history",
+    bases=[ReportedFundingMixin, Model],
+)
+
+
 class PublicationType(Model):
     code = CharField(max_length=10, primary_key=True)
     code_2 = CharField(unique=True, max_length=2, null=True, blank=True)
     description = CharField(max_length=100, blank=True, null=True)
+    orcid_type = CharField(
+        max_length=100, unique=True, null=True, blank=True, help_text="ORCiD Work Type"
+    )
+
+    def natural_key(self):
+        return self.code
 
     def __str__(self):
         return f"{self.code}: {self.description}"
@@ -8953,11 +9238,38 @@ class PublicationType(Model):
         db_table = "publication_type"
 
 
+class RisPublicationType(Model):
+    code = CharField(
+        max_length=10,
+        primary_key=True,
+        verbose_name='Abbreviation ("Field Label")',
+        db_column="code",
+    )
+    description = CharField(
+        max_length=100, null=True, blank=True, verbose_name='Type ("Ref Type")'
+    )
+    category = CharField(max_length=100, blank=True, null=True, verbose_name="Category")
+    type = ForeignKey(PublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="type")
+
+    def natural_key(self):
+        return self.code
+
+    def __str__(self):
+        return f"{self.code}: {self.description}"
+
+    class Meta:
+        db_table = "ris_publication_type"
+        db_table_comment = "RIS reference types (https://en.wikipedia.org/wiki/RIS_(file_format))"
+
+
 class PublicationStatus(Model):
     # type = CharField(max_length=2)
     # type = ForeignKey(PublicationType, on_delete=DO_NOTHING)
     code = CharField(max_length=3, db_index=True)
     description = CharField(max_length=100, blank=True, null=True)
+
+    def natural_key(self):
+        return self.code
 
     def __str__(self):
         return f"{self.type.code}/{self.code}: {self.description}"
@@ -8973,7 +9285,6 @@ class Publication(Model):
     doi = CharField(
         max_length=400, blank=True, null=True, help_text=_("Digital Object Identifier (DOI)")
     )
-    report = ForeignKey(Report, on_delete=CASCADE, related_name="publications")
     rsnz_ref = IntegerField(blank=True, null=True)
 
     # contract = ForeignKey(Contract, on_delete=CASCADE, blank=True, null=True)
@@ -8982,11 +9293,14 @@ class Publication(Model):
     # pstatus = CharField(max_length=3, blank=True, null=True)
     # ptype = CharField(max_length=2, blank=True, null=True)
     type = ForeignKey(PublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="type")
+    ris_type = ForeignKey(
+        RisPublicationType, on_delete=SET_NULL, blank=True, null=True, db_column="ris_type"
+    )
     status = ForeignKey(
         PublicationStatus, on_delete=DO_NOTHING, blank=True, null=True, db_column="status"
     )
     status_date = DateField(blank=True, null=True)
-    title = CharField(max_length=1000, blank=True, null=True)
+    title = CharField(max_length=1000)
     title2 = CharField(max_length=1000, blank=True, null=True)
     host = CharField(max_length=100, blank=True, null=True)
     journal = CharField(max_length=100, blank=True, null=True)
@@ -9007,12 +9321,120 @@ class Publication(Model):
     impact_year = IntegerField(blank=True, null=True)
     xcr = FloatField(blank=True, null=True)
     isi_loc = CharField(max_length=50, blank=True, null=True)
+    # imported form ORCID profile work record:
+    orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+    put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
 
     def __str__(self):
-        return f"{self.report.number}: {self.title}"
+        return f"{self.title}"
 
     class Meta:
         db_table = "publication"
+
+
+class PublicationAuthor(Model):
+    publication = ForeignKey(Publication, on_delete=CASCADE, related_name="authors")
+    name = CharField(max_length=400)
+    type = CharField(
+        max_length=100, blank=True, null=True, choices=Choices("PRIMARY", "SECONDARY")
+    )
+
+    class Meta:
+        db_table = "publication_author"
+
+
+class PublicationLink(Model):
+    publication = ForeignKey(Publication, on_delete=CASCADE, related_name="links")
+    link = URLField(max_length=255)
+    type = CharField(
+        max_length=100, blank=True, null=True, choices=Choices("LINK", "URL", "ATTACHMENT")
+    )
+
+    class Meta:
+        db_table = "publication_link"
+
+
+REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Other")))
+
+
+class ReportComment(Model):
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
+    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="reports",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.report_id),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+        related_name="report_comments",
+    )
+    category = FixedCharField(
+        choices=REPORT_COMMENT_CATEGORIES,
+        max_length=1,
+        null=True,
+        blank=True,
+    )
+    alert_date = CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+    )
+
+    @property
+    def target(self):
+        return self.report
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    class Meta:
+        db_table = "report_comment"
+        verbose_name = _("comment")
+        ordering = ["-id"]
+
+
+class ReportCommentRecipient(Model):
+    comment = ForeignKey(ReportComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "report_comment_recipient"
+        verbose_name = _("recipient")
+
+
+class ReportCommentAttachment(Model):
+    comment = ForeignKey(ReportComment, on_delete=CASCADE, related_name="attachments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="reports",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.comment.report_id),
+            "comments",
+            hash_int(instance.comment_id),
+            "attachments",
+        ],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "report_comment_attachment"
+        verbose_name = _("attachment")
 
 
 dummy_for_translations = (

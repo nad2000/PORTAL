@@ -11,6 +11,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="{{ request.site.name }}">
     <meta name="author" content="Royal Society Te Apārangi">
+    <!-- meta name="robots" content="all, index, follow" -->
+    <meta name="googlebot" content="all, index, follow">
+    <meta name="rights" content="Royal Society Te Apārangi">
+    <meta name="created" content="20191814">
+    <meta property="og:title" content="{% if object %}{{ object }}{% else %}{{ site.description }}{% endif %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.royalsociety.org.nz/">
+    <meta property="og:site_name" content="Royal Society Te Apārangi">
+    <meta property="og:description" content="{{ site.description }}">
 
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
@@ -18,6 +27,7 @@
     <![endif]-->
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     {#% if domain == "international.royalsociety.org.nz" %#}
     {% if SITE_ID == 3 or SITE_ID == 4 or SITE_ID == 5 %}
       <link rel="icon" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
@@ -31,23 +41,9 @@
 	<link rel="icon" type="image/png" sizes="310x310" href="{% static 'images/stlp.royalsociety.org.nz/favicons/RS/logoBandTransparentSquareNoWriting__ScaleWidthWzMxMF0.png' %}">
 	<link rel="apple-touch-icon" type="image/png" sizes="310x310" href="{% static 'images/stlp.royalsociety.org.nz/favicons/RS/logoBandTransparentSquareNoWriting__ScaleWidthWzMxMF0.png' %}">
 
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<meta charset="utf-8">
-	<title>Home</title>
-	<meta name="robots" content="all, index, follow">
-	<meta name="googlebot" content="all, index, follow">
-	<meta name="rights" content="Royal Society Te Apārangi">
-	<meta name="created" content="20191814">
 	<!--[if lt IE 9]>
                 <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
             <![endif]-->
-	<meta name="description" content="Royal Society Te Apārangi supports New Zealanders to explore, discover and share knowledge.">
-	<meta property="og:title" content="Home">
-	<meta property="og:type" content="website">
-	<meta property="og:url" content="https://www.royalsociety.org.nz/">
-	<meta property="og:site_name" content="Royal Society Te Apārangi">
-	<meta property="og:description" content="Royal Society Te Apārangi supports New Zealanders to explore, discover and share knowledge.">
 
         <!-- https://helpx.adobe.com/typekit/using/content-security-policy.html -->
         <!--<meta http-equiv="Content-Security-Policy" content="default-src 'self' *.radionz.co.nz; script-src 'self' 'sha256-5kMb497w7ItxXRHeDONhgk1HOjOqzAVeP4/0KPiMW0Y=' 'sha256-9g3/5tK7TVEOKjpR2drHlVUOymcGU+GKzMMtYimN6Iw=' graph.facebook.com count-server.sharethis.com use.typekit.net platform-api.sharethis.com buttons-config.sharethis.com www.google-analytics.com www.google.com www.gstatic.com; style-src 'self' 'unsafe-inline' use.typekit.net; font-src 'self' use.typekit.net fonts.typekit.net; img-src 'self' p.typekit.net www.google-analytics.com *.evbuc.com; connect-src 'self' l.sharethis.com performance.typekit.net; frame-src www.google.com player.vimeo.com youtube.com *.radionz.co.nz;">-->
@@ -100,7 +96,30 @@ table.table .asteriskField,.popover-header {color: gray;}
 .popover {max-width: 400px;}
 .custom-file-label::after {content: "{% trans 'Browse' %}";}
 :root {--border-color: lightgray;}
-          </style>
+.htmx-indicator{opacity:0; transition: opacity 500ms ease-in;}
+.htmx-request .htmx-indicator{opacity:1;}
+.htmx-request.htmx-indicator{opacity:1;}
+.spinner-indicator{
+  display:none;
+  z-index: 2;
+  position:absolute;
+  max-width: 100%;
+  height: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); 
+}
+.htmx-request .spinner-indicator{
+  /* display:inline; */
+  display: flex; 
+  justify-content: center;
+}
+.htmx-request.spinner-indicator{
+  /* display:inline; */
+  display: flex; 
+  justify-content: center;
+}
+</style>
         {% endblock %}
       {% endcompress %}
     {% endblock %}
@@ -116,8 +135,13 @@ table.table .asteriskField,.popover-header {color: gray;}
   </head>
 
   <!-- body class="d-flex flex-column min-vh-100" -->
-  <body class="d-flex flex-column min-vh-100"{% if csrf_token %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endif %}>
+  <body class="d-flex flex-column min-vh-100"{% if csrf_token %} hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endif %}>
     {% block body %}
+      <!-- img id="spinner" class="spinner-indicator" src="{% static 'images/spinner.png' %}" / -->
+        <div class="alert alert-primary spinner-indicator" role="alert" id="spinner">
+          <img src="{% static 'images/spinner.png' %}" />
+          {% trans 'We are processing your request. Please be patient.' %}
+        </div>
 
       {% block header %}
         <div class="mb-0" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 30%);">
@@ -465,7 +489,7 @@ You have a request to review a {{ site_name }} application to act on.
         {% endif %}
 
           <div class="row">
-            <div class="col-12" id="messages">
+            <div class="col-12" id="messages" hx-on::after-swap="setTimeout(function name() {$('#messages .alert').fadeOut('slow');}, 5000);">
               {% if messages %}
                 {% for message in messages %}
                   <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -603,8 +627,8 @@ You have a request to review a {{ site_name }} application to act on.
         $(document).ready(function(){
                   const swalWithBootstrapButtons = Swal.mixin({
                     customClass: {
-                      confirmButton: "btn btn-success ml-1",
-                      cancelButton: "btn btn-danger"
+                      confirmButton: "btn btn-danger ml-1",
+                      cancelButton: "btn btn-success"
                     },
                     buttonsStyling: false
                   });
@@ -639,8 +663,8 @@ You have a request to review a {{ site_name }} application to act on.
                       text: (e.detail.question?e.detail.question:"{% trans 'Are you sure you want to delete the selected data entry and all the objects linked to it?' %}"),
                       showCancelButton: true,
                       reverseButtons: true,
-                      confirmButtonText: "{% trans 'Yes, delete it!' %}",
-                      cancelButtonText: "{% trans 'Cancel' %}"
+                      cancelButtonText: "{% trans 'Cancel' %}",
+                      confirmButtonText: "{% trans 'Yes, delete it!' %}"
                     }).then(function(result) {
                       if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
                     })

@@ -1,7 +1,7 @@
 import os
 from functools import partial
 
-from crispy_forms.bootstrap import InlineRadios, Tab, TabHolder
+from crispy_forms.bootstrap import InlineField, InlineCheckboxes, InlineRadios, Tab, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -229,7 +229,10 @@ class TableInlineFormset(LayoutObject):
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
         formset = context[self.formset_name_in_context]
-        return render_to_string(self.template, {"formset": formset, "form_id": self.form_id})
+        return render_to_string(
+            self.template,
+            {"formset": formset, "form_id": self.form_id, "use_custom_control": True},
+        )
 
 
 class SubForm(LayoutObject):
@@ -883,7 +886,7 @@ class ApplicationForm(ModelForm):
                             HTML(
                                 f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
                                  <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
-                                 <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_application_toa_total_share"></span>
+                                 <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_toa_total_share"></span>
                                  <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
                                  </div></div></div>"""
                             ),
@@ -1391,7 +1394,11 @@ class ApplicationForm(ModelForm):
 
 class ContractMemberForm(FTEMixin, ModelForm):
     # role =Field(queryset
-    role = forms.ModelChoiceField(queryset=models.RoleType.where(for_application=True))
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(for_application=True).order_by(
+            models.Coalesce("name", "code")
+        )
+    )
 
     class Meta:
         model = models.ContractMember
@@ -2157,7 +2164,10 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
 
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(for_application=True), required=False
+        queryset=models.RoleType.where(for_application=True).order_by(
+            models.Coalesce("name", "code")
+        ),
+        required=False,
     )
 
     def clean(self):
@@ -3193,8 +3203,8 @@ class RoundConflictOfInterestForm(ModelForm):
 
 class ScoreSheetForm(ModelForm):
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
         super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
 
         instance = kwargs.get("instance")
         r = instance and instance.round or kwargs["initial"].get("round")
@@ -3224,7 +3234,71 @@ class ScoreSheetForm(ModelForm):
         )
 
 
+class ReportedEffortForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if instance := kwargs.get("instance"):
+            fte_total = instance.fte_total
+            self.fields["fte_before"].initial = self.fields["fte_total"].initial = (
+                f"{fte_total:.2f}"
+            )
+            if instance.fte:
+                self.fields["fte_before"].initial = fte_total - instance.fte
+        self.helper = FormHelper(self)
+
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(for_contracting=True).order_by(
+            models.Coalesce("name", "code")
+        )
+    )
+    fte_before = forms.DecimalField(widget=forms.HiddenInput(), required=False)
+    fte_total = forms.DecimalField(
+        label=_("Total FTE"),
+        required=False,
+        widget=forms.widgets.NumberInput(
+            attrs={"readonly": True, "disabled": True, "step": "0.01"}
+        ),
+    )
+
+    class Meta:
+        model = models.ReportedEffort
+        exclude = ["member_effort", "person", "state"]
+
+
 class ReportForm(ModelForm):
+
+    comment = forms.CharField(
+        label="",
+        required=False,
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
+    attachment = FileField(
+        required=False,
+        label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": (
+                    ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                )
+            }
+        ),
+    )
+    category = forms.ChoiceField(
+        choices=[("R", _("Risk of variation")), ("O", _("Other"))],
+        # widget=forms.RadioSelect,
+        required=False,
+        # label=gettext_lazy("Category"),
+        label="",
+    )
+    alert_date = forms.ChoiceField(
+        choices=[("2WK", _("Two weeks")), ("WK", _("A week"))],
+        # widget=forms.RadioSelect,
+        required=False,
+        # label=gettext_lazy("Alert date"),
+        label="",
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -3247,6 +3321,7 @@ class ReportForm(ModelForm):
         instance = self.instance or instance
         contract = instance.contract or initial.get("contract")
         application = contract.application or initial.get("application")
+        round = application and application.round or initial.get("round")
         # site_id = self.site_id
         # if site_id in [4, 5]:
         #     self.fields["project_title"].label = _("Title of proposed research project")
@@ -3267,25 +3342,38 @@ class ReportForm(ModelForm):
             # or application.submitted_by == user
             # or (application.pk and application.members.filter(user=user, role__code="PI").exists())
         )
+
+        is_assessor = instance and user and (instance.assessor == user)
         submission_disabled = not instance or not is_pi
         is_ro = application and application.org.research_offices.filter(user=user).exists()
-        submit_button = Submit(
-            "submit_report",  # NB! Never call a button 'submit'!
-            _("Submit"),
-            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
-            data_toggle="tooltip",
-            title=(
-                _("Only P.I. can submit the contract")
-                if not is_pi
-                else (
-                    _("Not all the parts/appendices of the contract were approved and/or accepted")
-                    if submission_disabled
-                    else _("Submit the contract")
-                )
-            ),
-            css_class="btn-outline-primary",
-            disabled=submission_disabled or not is_pi,
-        )
+        if is_assessor:
+            submit_button = Submit(
+                "assess",
+                _("Assess"),
+                css_id="submit-id-submit",
+                css_class="btn-outline-primary",
+            )
+        else:
+            submit_button = Submit(
+                "submit_report",  # NB! Never call a button 'submit'!
+                _("Submit"),
+                # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+                data_toggle="tooltip",
+                css_id="submit-id-submit",
+                title=(
+                    _("Only PI or RO can submit the report")
+                    if not is_pi
+                    else (
+                        _(
+                            "Not all the parts/appendices of the contract were approved and/or accepted"
+                        )
+                        if submission_disabled
+                        else _("Submit the contract")
+                    )
+                ),
+                css_class="btn-outline-primary",
+                disabled=submission_disabled or not is_pi,
+            )
         # # if is_pi or is_ro:
         # #     pass
         # # else:
@@ -3427,6 +3515,108 @@ class ReportForm(ModelForm):
         #     # self.fields["is_signatory_to_oa"].disabled = True
         #     # self.fields["involves_childeren"].disabled = True
         #     # self.fields["has_child_protection"].disabled = True
+        # Category:
+        if round.has_categories:
+            category_fields = []
+            if round.research_experience_in_years_required and round.can_specify_panel:
+                self.fields["panel"].queryset = (
+                    self.fields["panel"]
+                    .queryset.filter(fund__site_id=site_id, state="active")
+                    .order_by("code", "-id")
+                )
+                category_fields = [
+                    Row(
+                        Column("research_experience_in_years"),
+                        Column("panel"),
+                    )
+                ]
+            elif round.research_experience_in_years_required:
+                category_fields = [Field("research_experience_in_years")]
+            elif round.can_specify_panel:
+                category_fields = [Field("panel")]
+
+            if round.has_toas:
+                category_fields.append(
+                    Fieldset(
+                        _("Type of Activities"),
+                        # Row('password1', 'password2'),
+                        Row(
+                            Column("toa_basic", css_class="col-2"),
+                            Column("toa_strategic", css_class="col-2"),
+                            Column("toa_applied", css_class="col-2"),
+                            Column("toa_experimental", css_class="col-2"),
+                            HTML(
+                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
+                                 <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
+                                 <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_toa_total_share"></span>
+                                 <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
+                                 </div></div></div>"""
+                            ),
+                            css_id="id_toas_row",
+                        ),
+                    ),
+                )
+            if round.has_seos:
+                category_fields.append(
+                    Fieldset(
+                        _("Socio-Economic Objectives"),
+                        TableInlineFormset(
+                            "seos", template="portal/category_table_inline_formset.html"
+                        ),
+                    )
+                )
+            if round.has_fors:
+                category_fields.append(
+                    Fieldset(
+                        _("Fields of Research"),
+                        TableInlineFormset(
+                            "fors", template="portal/category_table_inline_formset.html"
+                        ),
+                        # Row(Column(HTML( "Total:")), Column(HTML("<span id='fors_total_shares'>0</share>"))),
+                    )
+                )
+            if round.has_vmts:
+                category_fields.append(
+                    Fieldset(
+                        _(" Vision Mātauranga Theme Categories"),
+                        Row(
+                            Column("vm_ecs", css_class="col-3"),
+                            Column("vm_ens", css_class="col-3"),
+                            Column("vm_hsw", css_class="col-3"),
+                            Column("vm_ink", css_class="col-3"),
+                            css_id="id_toas_row",
+                        ),
+                        Div(
+                            Row(Column("is_vm_na")),
+                            Row(Column("vm_rationale")),
+                            # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
+                            # HTML(
+                            #     """<script>
+                            # $(document).ready(function() {
+                            #     //set initial state.
+                            #     if ($('#id_is_vm_na').is(':checked')) {
+                            #         $('#id_vm_na').show()
+                            #     } else { $('#id_vm_na').hide() };
+                            #     $('#id_is_vm_na').change(function() {
+                            #         if(this.checked) {
+                            #             // var returnVal = confirm("Are you sure?");
+                            #             // $(this).prop("checked", returnVal);
+                            #             $('#id_vm_na').show();
+                            #         } else $('#id_vm_na').hide();
+                            #     });
+                            # });
+                            # </script>"""
+                            # ),
+                        ),
+                    ),
+                )
+            if round.has_keywords:
+                category_fields.append(
+                    Fieldset(
+                        _("Keywords"),
+                        Field("keywords"),
+                    )
+                )
 
         self.helper = FormHelper(self)
         tabs = [
@@ -3449,23 +3639,359 @@ class ReportForm(ModelForm):
             # ),
             Tab(
                 mark_safe(f'<i class="fas fa-yin-yang"></i> {_("Summary")}'),
-                *(
-                    [
-                        HTML("{% load tags %}{% jinja 'partials/report_summary.html' %}"),
-                        # Field("start_date", type="hidden", css_class="hidden"),
-                        # Field("end_date", type="hidden", css_class="hidden"),
-                    ]
-                    # if self.instance
-                    # and self.instance.id
-                    # and not (user.is_superuser or user.is_staff)
-                    # else [
-                    #     HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                    #     Row(Column("start_date"), Column("end_date")),
-                    #     SubForm("address_form"),
-                    # ]
-                ),
+                HTML("{% load tags %}{% jinja 'partials/report_summary.html' %}"),
                 css_id="summary",
             ),
+            Tab(
+                mark_safe(f'<i class="fas fa-users"></i> {_("Personnel")}'),
+                HTML(
+                    """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please retort all personnel who have participated in this project \
+                            and who are not named in the contract. \
+                            Please estimate both the amount of FTE, since the last report, \
+                            that is supported by this contract as well as the total amount of FTE \
+                            devoted to the project.') }}
+                    </p>
+                </div>"""
+                ),
+                TableInlineFormset("personnel"),
+                css_id="personnel",
+            ),
+        ]
+        if round.has_categories:
+            tabs.append(
+                Tab(
+                    _("Categories"),
+                    HTML(
+                        '<div class="alert alert-dark" role="alert"><p>%s</p></div>'
+                        % (
+                            _(
+                                "The collection of this data is for the purpose of our reporting "
+                                "obligations to NZRIS or to allow categorisation of your application "
+                                "during the selection process (i.e. to early- or mid-career "
+                                "fellowship pool)."
+                            ),
+                        )
+                    ),
+                    *category_fields,
+                    css_id="categories",
+                ),
+            )
+
+        tabs.extend(
+            [
+                Tab(
+                    mark_safe(
+                        f'<i class="material-icons" style="vertical-align: middle; font-size: 0.99em;">work</i> {_("Activities")}'
+                    ),
+                    HTML(
+                        """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any <strong>outcomes or activities</strong> that have arisen from \
+                        this project within the period. NB: if linked, the contract PI is able to import \
+                        many activity types from their ORCID profile record.') }}
+                    </p>
+                </div>
+                <div id="acitvity-list">
+                {% jinja 'partials/report_publication_list.html' %}
+                </div>"""
+                    ),
+                    Div(
+                        Div(
+                            ButtonHolder(
+                                Button(
+                                    "add_activity",
+                                    _("Add Activity"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                Button(
+                                    "import_activities_from_orcid",
+                                    _("Import from ORCID"),
+                                    css_class="btn-secondary btn-sm",
+                                ),
+                                Button(
+                                    "no_activity_to_add",
+                                    _("Nothing to add"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                css_class="float-right mb-5",
+                            ),
+                            css_class="col-12",
+                        ),
+                        css_class="row",
+                    ),
+                    css_id="activities",
+                ),
+                Tab(
+                    mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
+                    HTML(
+                        """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
+                    </p>
+                </div>
+                <div id="publication-list">
+                {% jinja 'partials/report_publication_list.html' %}
+                </div>"""
+                    ),
+                    Div(
+                        Div(
+                            ButtonHolder(
+                                Button(
+                                    "import_ris_file",
+                                    _("Import RIS file"),
+                                    css_class="btn-primary btn-sm",
+                                    hx_get=reverse(
+                                        "ris-import", kwargs={"pk": instance and instance.pk}
+                                    )
+                                    + "?_modal_dialog=1",
+                                    hx_target="#publication-dialog",
+                                    hx_params="none",
+                                ),
+                                # Button(
+                                #     "import_from_orcid",
+                                #     _("Import from ORCID"),
+                                #     css_class="btn-secondary btn-sm",
+                                # ),
+                                HTML(
+                                    f"""{{% load static %}}
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        id="button-id-publication_import_from_orcid"
+                                        hx-indicator="#button-spinner"
+                                        hx-post="?action=publication_import_from_orcid"
+                                        hx-target="#publication-list"
+                                    >
+                                    {_("Import from ORCID")}
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                    </button>
+                                    """
+                                ),
+                                Button(
+                                    "nothing_to_add",
+                                    _("Nothing to add"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                css_class="float-right mb-5",
+                            ),
+                            css_class="col-12",
+                        ),
+                        css_class="row",
+                    ),
+                    css_id="publications",
+                ),
+                Tab(
+                    mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Funding")}'),
+                    HTML(
+                        """{% load tags %}
+                <div class="alert alert-dark" role="alert">
+                    <p style="margin-bottom: 0px;">
+                    {{ _('Please report any funding that have or your colleagues have applied for that is related to \
+                        this project within the period together with the proportion that the team \
+                        is able to access. \
+                        NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
+                    </p>
+                </div>
+                <div id="reported-funding-list">
+                {% jinja 'partials/report_funding_list.html' %}
+                </div>"""
+                    ),
+                    Div(
+                        Div(
+                            ButtonHolder(
+                                HTML(
+                                    f"""{{% load static %}}
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        id="button-id-funding_import_from_orcid"
+                                        hx-indicator="#button-spinner"
+                                        hx-post="?action=funding_import_from_orcid"
+                                        hx-target="#reported-funding-list"
+                                    >
+                                    {_("Import from ORCID")}
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                    </button>
+                                    """
+                                ),
+                                # Button(
+                                #     "funding_import_from_orcid",
+                                #     mark_safe(f"""{_("Import from ORCID")}
+                                #     <img  id="spinner" class="htmx-indicator" src="{{% load static %}}{{% static '/images/bars.svg' %}}"/>
+                                #     """),
+                                #     css_class="btn-secondary btn-sm",
+                                #     hx_post=f"?action=funding_import_from_orcid",
+                                #     # hx_params="none",
+                                #     hx_target="#reported-funding-list",
+                                #     hx_indicator="#spinner",
+                                # ),
+                                Button(
+                                    "funding_nothing_to_add",
+                                    _("Nothing to add"),
+                                    css_class="btn-primary btn-sm",
+                                ),
+                                css_class="float-right mb-5",
+                            ),
+                            css_class="col-12",
+                        ),
+                        css_class="row",
+                    ),
+                    css_id="funding",
+                ),
+            ]
+        )
+        if is_assessor and instance.file != "":
+            fields = [
+                HTML(
+                    """{% load tags %}
+                    <div class="table-responsive">
+                    <table class="table table-bordered searchable">
+                    <tbody>
+                    <tr>
+                    <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                    Completed Report:
+                    </th>
+                    <td>
+                        <a href="{{ object.file.url }}" target="_blank">
+                        {{ object.file|basename }}
+                        </a>
+                    </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                    </div>"""
+                ),
+                "assessment",
+            ]
+            del self.fields["file"]
+            # self.fields["assessment"].required = True
+        else:
+            del self.fields["assessment"]
+            if round.nomination_template:
+                help_text = _(
+                    'You can download the research report template at <strong><a href="%s">%s</a></strong>'
+                ) % (round.report_template.url, os.path.basename(round.report_template.name))
+                fields = [
+                    HTML(
+                        '<div class="alert alert-dark" role="alert">%s</div>'
+                        % (
+                            _(
+                                "Please download the research report template at "
+                                '<strong><a href="%s">%s</a></strong>, '
+                                "complete then upload below."
+                            )
+                            % (
+                                round.report_template.url,
+                                os.path.basename(round.report_template.name),
+                            )
+                        )
+                    ),
+                    Field("file", label=help_text, help_text=help_text),
+                ]
+                self.fields["file"].help_text = help_text
+            else:
+                fields = ["file"]
+            self.fields["file"].widget.attrs[
+                "accept"
+            ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+
+        tabs.append(
+            Tab(
+                mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
+                *fields,
+                css_id="report",
+            )
+        )
+        if instance and instance.pk:
+            if is_assessor:
+                self.fields["recipients"] = forms.MultipleChoiceField(
+                    label=_("TO"),
+                    choices=[(v, v) for v in ["PI", "RO", "RA", "TS"]],
+                    required=False,
+                    initial=["RO"],
+                )
+                self.fields["cc_recipients"] = forms.MultipleChoiceField(
+                    label=_("CC"),
+                    choices=[(v, v) for v in ["PI", "RO", "RA", "TS"]],
+                    required=False,
+                    initial=["TS"],
+                )
+                self.fields["to_pi"] = forms.BooleanField(label=_("PI"), required=False)
+                self.fields["to_ro"] = forms.BooleanField(
+                    label=_("RO"), required=False, initial=True
+                )
+                self.fields["to_ra"] = forms.BooleanField(label=_("RA"), required=False)
+                self.fields["to_ts"] = forms.BooleanField(label=_("TS"), required=False)
+                self.fields["cc_pi"] = forms.BooleanField(label=_("PI"), required=False)
+                self.fields["cc_ro"] = forms.BooleanField(label=_("RO"), required=False)
+                self.fields["cc_ra"] = forms.BooleanField(
+                    label=_("RA"), required=False, initial=True
+                )
+                self.fields["cc_ts"] = forms.BooleanField(label=_("TS"), required=False)
+            tabs.append(
+                Tab(
+                    mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
+                    # Field("host_contact_email"),
+                    Field("comment"),
+                    Fieldset(
+                        None,
+                        Field("attachment"),
+                        (
+                            Row(
+                                Column(
+                                    Row(
+                                        Column(
+                                            HTML("<strong><u>TO</u></strong>:&nbsp;"), css_class="col-1"
+                                        ),
+                                        Column(
+                                            Field(
+                                                "recipients",
+                                                template="bootstrap4/layout/recipients_inline.html",
+                                            )
+                                        ),
+                                    ),
+                                    Row(
+                                        Column(
+                                            HTML("<strong><u>CC</u></strong>:&nbsp;"), css_class="col-1"
+                                        ),
+                                        Column(
+                                            Field(
+                                                "cc_recipients",
+                                                template="bootstrap4/layout/recipients_inline.html",
+                                            )
+                                        ),
+                                    ),
+                                ),
+                                Column(HTML("<strong>Category</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                Column("category"),
+                                #"text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
+                                Column(HTML("<strong>Alert date</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                Column(Field("alert_date")),
+                                Column(
+                                    Submit(
+                                        "post_comment",
+                                        _("Post Comment"),
+                                        css_class="btn-primary float-right",
+                                    ),
+                                ),
+                            )
+                            if is_assessor
+                            else Submit(
+                                "post_comment",
+                                _("Post Comment"),
+                                css_class="btn-primary float-right",
+                            )
+                        ),
+                    ),
+                    HTML(
+                        '{% include "snippets/comments.html" with comments=object.comments.all %}'
+                    ),
+                    css_id="correspondence",
+                )
+            )
         #     Tab(
         #         _("Research"),
         #         Field("project_title"),
@@ -3579,7 +4105,6 @@ class ReportForm(ModelForm):
         #         ),
         #         css_id="appendices",
         #     ),
-        ]
 
         # if instance and instance.pk:
         #     tabs.append(
@@ -3682,6 +4207,7 @@ class ReportForm(ModelForm):
     class Meta:
         model = models.Report
         exclude = [
+            "assessor",
             "address",
             "site",
             "fund",
@@ -3692,8 +4218,11 @@ class ReportForm(ModelForm):
             "rccs",
             "fors",
             "seos",
-            "keywords",
             "state",
+            "schedule_entry",
+            "contract",
+            "period",
+            "type",
         ]
         widgets = dict(
             start_date=DateInput(),
@@ -3712,21 +4241,15 @@ class ReportForm(ModelForm):
             ),
             panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
-            # summary=SummernoteWidget(),
-            daytime_phone=TelInput(),
-            mobile_phone=TelInput(),
-            # file=FileInput(),
             abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
             notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary_en=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            summary_mi=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            ethics_statement__comment=SummernoteInplaceWidget(
-                attrs={"summernote": {"width": "100%"}}
-            ),
-            # round=HiddenInput(),
-            letter_of_support_file=forms.ClearableFileInput(
-                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            assessment=SummernoteInplaceWidget(
+                attrs={
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
+                    "oninput": "this.setCustomValidity('')",
+                    "summernote": {"width": "100%", "height": "200px"},
+                }
             ),
         )
 

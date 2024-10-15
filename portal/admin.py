@@ -789,7 +789,7 @@ class PanelAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.Mo
 @admin.register(models.Person)
 class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
-    autocomplete_fields = ["address"]
+    autocomplete_fields = ["address", "user", "title"]
 
     def get_search_results(self, request, queryset, search_term):
         queryset, may_have_duplicates = super().get_search_results(
@@ -821,6 +821,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
 
     class CurriculumVitaeInline(admin.StackedInline):
         extra = 1
+        exclude = ["owner", "converted_file"]
         model = models.CurriculumVitae
         view_on_site = False
 
@@ -850,6 +851,7 @@ class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     list_display = ["username", "code", "user", "full_name_with_email", "created_at"]
     # list_display_links = ["username"]
     list_filter = ["created_at", "updated_at"]
+    autocomplete_fields = ["user", "title", "address"]
 
     def username(self, obj):
         return obj.code or (obj.user and obj.user.username) or obj.full_name_with_email
@@ -1020,6 +1022,7 @@ class ApplicationAdmin(
         "org",
         "panel",
         "submitted_by",
+        "title",
     ]
     # summernote_fields = ["summary"]
     exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
@@ -1055,7 +1058,14 @@ class ApplicationAdmin(
         extra = 0
         model = models.Member
         readonly_fields = ["state", "state_changed_at"]
+        # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
+
+        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role", "user", "state", "state_changed_at", "authorized_at"]
+
+        # def is_complete(self, obj):
+        #     if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
+        # is_complete.boolean = True
 
         def view_on_site(self, obj):
             return reverse("application", kwargs={"pk": obj.application_id})
@@ -1161,6 +1171,7 @@ class ApplicationAdmin(
         (
             None,
             {
+                "classes": ("wide",),
                 "fields": [
                     "STATE",
                     ("number", "application_title_en", "application_title_mi"),
@@ -1172,6 +1183,15 @@ class ApplicationAdmin(
                     "presentation_url",
                     "is_tac_accepted",
                 ]
+            },
+        ),
+        (
+            "Other fields (CHANGE WITH CARE)",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "submitted_by",
+                ],
             },
         ),
         (
@@ -1228,6 +1248,7 @@ class ApplicationAdmin(
             (
                 None,
                 {
+                    "classes": ("wide",),
                     "fields": [
                         "STATE",
                         ("number", "application_title_en", "application_title_mi"),
@@ -1243,6 +1264,15 @@ class ApplicationAdmin(
                         "presentation_url",
                         "is_tac_accepted",
                     ]
+                },
+            ),
+            (
+                "Other fields (CHANGE WITH CARE)",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        "submitted_by",
+                    ],
                 },
             ),
             (
@@ -1446,6 +1476,7 @@ class ConvertedFileAdmin(admin.ModelAdmin):
 class CurriculumVitaeAdmin(admin.ModelAdmin):
     save_on_top = True
     list_display = ["person", "owner", "title", "file"]
+    autocomplete_fields = ["person", "owner"]
     # list_filter = ["owner"]
     search_fields = [
         "owner__first_name",
@@ -1627,6 +1658,7 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "authorized_at",
         "has_authorized",
     ]
+    autocomplete_fields = ["user", "application"]
 
     def has_authorized(self, obj):
         if obj.state == "authorized":
@@ -1865,7 +1897,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     search_fields = ["name", "code"]
     date_hierarchy = "created_at"
     resource_classes = [OrganisationResource, OrganisationWOIdentifierResource]
-    autocomplete_fields = ["address"]
+    autocomplete_fields = ["address", "signatory"]
     actions = ["merge_orgs"]
 
     fieldsets = [
@@ -2272,6 +2304,7 @@ class SchemeAdmin(
     resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
+    autocomplete_fields = ["fund", "current_round"]
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
@@ -2551,11 +2584,12 @@ class RoundAdmin(
                     "Templates",
                     {
                         "fields": [
+                            "application_template",
                             "score_sheet_template",
                             "nomination_template",
-                            "application_template",
                             "referee_template",
                             "budget_template",
+                            "report_template",
                         ]
                     },
                 )
@@ -2772,7 +2806,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                     "ethics_statement_link",
                     "has_animal_use",
                     "is_signatory_to_oa",
-                    "involves_childeren",
+                    "involves_children",
                     "has_child_protection",
                     "requires_approval",
                 ],
@@ -2950,6 +2984,43 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         StateLogInline,
     ]
 
+@admin.register(models.Publication)
+class PublicationAdmin(StaffPermsMixin, SimpleHistoryAdmin):
+    save_on_top = True
+    show_close_button = True
+
+    list_display = (
+        # "number",
+        # "category",
+        # "fund",
+        "title",
+        "status",
+        # "application",
+    )
+
+    class AuthorInline(admin.StackedInline):
+        # model = models.Report.publications.through
+        model = models.PublicationAuthor
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    class LinkInline(admin.StackedInline):
+        # model = models.Report.publications.through
+        model = models.PublicationLink
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    inlines = [AuthorInline, LinkInline]
+
+    list_filter = [
+        ("type", admin.RelatedOnlyFieldListFilter),
+        ("status", admin.RelatedOnlyFieldListFilter),
+    ]
+
 
 @admin.register(models.Report)
 class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
@@ -3031,7 +3102,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         #             "ethics_statement_link",
         #             "has_animal_use",
         #             "is_signatory_to_oa",
-        #             "involves_childeren",
+        #             "involves_children",
         #             "has_child_protection",
         #         ],
         #     },
@@ -3069,13 +3140,28 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         qs = super().get_queryset(request)
         return qs.select_related("contract").select_related("contract__application__round")
 
-    # class TeamInline(admin.StackedInline):
-    #     model = models.ContractTeam
-    #     extra = 0
-    #     view_on_site = False
-    #     autocomplete_fields = ["person", "country"]
-    #     exclude = ["contract_number"]
-    #     classes = ["collapse"]
+    class PublicationInline(admin.StackedInline):
+        # model = models.Report.publications.through
+        model = models.Report.publications.through
+        # exclude = ["contract_number"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    class ReportedEffortInline(admin.StackedInline):
+        model = models.ReportedEffort
+        extra = 0
+        view_on_site = False
+        autocomplete_fields = ["person"]
+        classes = ["collapse"]
+
+    class ReportedFundingInline(admin.StackedInline):
+        model = models.ReportedFunding
+        extra = 0
+        view_on_site = False
+        autocomplete_fields = ["agency"]
+        classes = ["collapse"]
+
 
     # class ReportingInline(admin.StackedInline):
     #     model = models.ContractReporting
@@ -3189,6 +3275,9 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # ReportingScheduleEntryInline,
         # AllocationInline,
         ForInline,
+        PublicationInline,
+        ReportedEffortInline,
+        ReportedFundingInline,
         # TeamInline,
         # AllocationInline,
         # ReportingInline,

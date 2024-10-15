@@ -2,7 +2,7 @@ from hashlib import md5
 from urllib.parse import urlencode
 
 from common.models import HelperMixin, PersonMixin, Title
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.models import SocialAccount, SocialToken
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import AbstractUser
@@ -21,9 +21,23 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
-
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 class User(HelperMixin, PersonMixin, AbstractUser):
+
+    username_validator = UnicodeUsernameValidator()
+    username = CharField(
+        _("username"),
+        max_length=150,
+        unique=True,
+        help_text=_(
+            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+        ),
+        validators=[username_validator],
+        error_messages={
+            "unique": _("The username is already taken and not available. Please choose a different username."),
+        },
+    )
     # title = CharField(max_length=40, null=True, blank=True, choices=TITLES)
     title = ForeignKey(
         Title,
@@ -38,7 +52,7 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     # First Name and Last Name do not cover name patterns
     # around the globe.
@@ -95,9 +109,9 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     def in_group(self, group_name):
         return self.groups.filter(name=group_name).exists()
 
-    @property
-    def full_name(self):
-        return self.get_full_name()
+    # @property
+    # def full_name(self):
+    #     return self.get_full_name()
 
     @property
     def full_name_with_email(self):
@@ -114,6 +128,15 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     @property
     def is_referee(self):
         return self.in_group("REFEREE")
+
+    def get_orcid(self):
+        """find user ORCID value."""
+        orcid = self.orcid
+        if not orcid and (sa := SocialAccount.objects.filter(user=self, provider="orcid").last()):
+            orcid = sa.uid
+        if not orcid and (ppi := self.person.person_identifiers.filter(code_id="02", person__user=self).last()):
+            orcid = ppi.value
+        return orcid
 
     @property
     def orcid_access_token(self):

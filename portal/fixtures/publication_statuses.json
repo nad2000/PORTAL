@@ -1,0 +1,250 @@
+[
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPN",
+      "description": "In Preparation"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPS",
+      "description": "In Press"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Published"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPN",
+      "description": "In Preparation"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPS",
+      "description": "In Press"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Published"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "type": [
+        "CP"
+      ],
+      "code": "CON",
+      "description": "Contributed Talk"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "INV",
+      "description": "Invited Talk"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "POS",
+      "description": "Poster"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Published"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "COM",
+      "description": "Completed"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPN",
+      "description": "In Preparation"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPN",
+      "description": "In Preparation"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPS",
+      "description": "In Press"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Published"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "FUL",
+      "description": "Full"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "LAP",
+      "description": "Lapsed"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PEN",
+      "description": "Pending"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PRO",
+      "description": "Provisional"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPS",
+      "description": "In Press"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Published"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "INP",
+      "description": "In Preparation"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Published"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IPN",
+      "description": "In Preparation"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Released"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "PUB",
+      "description": "Accepted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "SUB",
+      "description": "Submitted"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "ACT",
+      "description": "Active"
+    }
+  },
+  {
+    "model": "portal.publicationstatus",
+    "fields": {
+      "code": "IAC",
+      "description": "Inactive"
+    }
+  }
+]

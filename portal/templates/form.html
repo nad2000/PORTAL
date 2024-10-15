@@ -5,10 +5,33 @@
 {% block head_title %}{{ object }}{% endblock %}
 
 {% block css %}
-  <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@3/dark.css" -->
-  <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
   {{ form.media.css }}
+  <style>
+  #div_id_title span.select2-selection--single {height: 39px;}
+  #div_id_country span.select2-selection--single {height: 39px;}
+  thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
+    min-width: 5.0rem;
+  }
+  .inline-label {
+    white-space: nowrap;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    float:left;
+  }
+  .rcorners {
+      border-radius: 0.25rem;
+      border-width: 2px;
+      border-style: solid;
+      padding: 0.375rem 0.75rem;
+      width: 100%;
+      height: calc(1.5em + 0.75rem + 2px);
+      display: block;
+  }
+  </style>
   {{ block.super }}
+  <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -23,6 +46,7 @@
 
 {% block content %}
 
+  <img id="spinner" class="htmx-indicator" src="{% static 'images/spinner.png' %}" />
   <div class="container">
     <div class="row">
       <div class="col-sm-12">
@@ -69,12 +93,189 @@
 
 {% block javascript %}
   {{ block.super }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.18/dist/sweetalert2.all.min.js" integrity="sha256-HutwTOHexZPk7phZTEa350wtMYt10g21BKrAlsStcvw=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
   <script src="{% static 'js/project.js' %}"></script>
+  <script src="{% static 'js/jquery.blockUI.js' %}"></script>
   <!-- JS -->
   {{ form.media.js }}
-  <!-- script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
-  <script src="{% static 'admin/js/SelectFilter2.js' %}"></script -->
+  <script>
+    // $('.yearpicker').datepicker(eformat: "yyyy", startView: 2});
+    {% if round and round.has_toas %}
+      function totalToaShares() {
+        var sum = 0;
+        $("#id_toas_row input[name^='toa_']").each(function() {
+          sum += Number($(this).val());
+        });
+        return sum;
+      };
+      function updateTotalToaShares() {
+        var total = totalToaShares();
+        $("#id_toa_total_share").text(total);
+        if (total !=100) $("#id_toa_total_share").css({"color": "red", 'font-weight': "bold"});
+        else $("#id_toa_total_share").css({"color": "green", "font-weight": "bold"});
+      };
+    {% endif %}
+    function setDatePickers(el) {
+      el.find(".yearpicker").datepicker({
+        format: "yyyy",
+        // format: "yyyyy",
+        startDate: '1960',
+        endDate: '2030',
+        startView: 2,
+        minViewMode: 2,
+        clearBtn: true,
+        autoclose: true
+      });
+      el.find(".datepicker").datepicker({
+        format: "yyyy-mm-dd",
+        // startDate: '1960-01-01',
+        // endDate: '2001-12-31',
+        // startDate: $(this).data("min"),
+        // endDate: $(this).data("max"),
+        startView: 2,
+        clearBtn: true,
+        autoclose: true
+      });
+      $("td:has(div>input.datepicker)").css("width", "6em");
+      $("td:has(div>input.yearpicker)").css("width", "4em");
+    }
+    // -- document ready:
+    $(document).ready(function() {
+
+      {% if round.has_toas %}
+        $("#id_toas_row input[name^='toa_']").keyup(updateTotalToaShares);
+        updateTotalToaShares();
+      {% endif %}
+
+      setDatePickers($(document.documentElement));
+
+      bootbox.addLocale('mi', {
+        OK      : 'Pai',
+        CANCEL  : 'Whakakore',
+        CONFIRM : 'Whakaū'
+      });
+      bootbox.setDefaults({locale: "{{ LANGUAGE_CODE }}"});
+
+      // Keep track of the active tab
+      $(document.body).on("click", "a[data-toggle='tab']", function(event) {
+        location.hash = this.getAttribute("href");
+      });
+      {% block activate_form_tab %}
+      // Jump to the last active tab:
+      if (location.hash) {
+          $('.nav a[href="' + location.hash + '"]').tab('show');
+      }{% if needs_attention %} else {
+        $('.nav a[href="#{{ needs_attention.0 }}"]').tab('show');
+      }{% endif %};
+      if (!location.hash || location.hash == "#summary" || location.hash == "#application") {
+        // document.getElementById("button-id-previous").disabled = true;
+        $("#button-id-previous").hide();
+      } else if (location.hash.endsWith($(".tab-pane").last().attr('id'))) {
+        // document.getElementById("button-id-next").disabled = true;
+        $("#button-id-next").hide();
+      }
+      {% endblock activate_form_tab %}
+      $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        if (e.target.hash.endsWith($(".tab-pane").last().attr('id'))) {
+          $("#button-id-next").hide();
+        } else {
+          $("#button-id-next").show();
+        }
+        if (e.target.hash == "#applicant" || e.target.hash == "#summary") {
+          $("#button-id-previous").hide();
+        } else $("#button-id-previous").show();
+      });
+      $('#button-id-next').on('click', function (e) {
+        var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
+        if (active.length > 0) {
+                    var nextTab = active.parent().next().children();
+                    if (nextTab.length > 0) {
+                                var nextTabHash = nextTab.attr("href");
+                                $('a[href="'+nextTabHash+'"').tab("show");
+                              }
+                  }
+      });
+      $('#button-id-previous').on('click', function (e) {
+        var active = $("ul.nav.nav-tabs li.nav-item a.nav-link.active");
+        if (active.length > 0) {
+                    var prevTab = active.parent().prev().children();
+                    if (prevTab.length > 0) {
+                                var prevTabHash = prevTab.attr("href");
+                                $('a[href="'+prevTabHash+'"').tab("show");
+                              }
+                  }
+      });
+      {% if form.errors %}
+        var field = $(".invalid-feedback").first();
+        if (field.length) {
+          var $closest = field.closest('.tab-pane');
+          var id = $closest.attr('id');
+          // Find the link that corresponds to the pane and have it show
+          $('.nav a[href="#' + id + '"]').tab('show');
+        }{% if form.active_tab %} else {
+          $('.nav a[href="#{{ form.active_tab }}"]').tab('show');
+        }{% endif %}
+      {% endif %}
+      // highlight the tabs that required attaention:
+      {% if needs_attention %}
+        {% for a in needs_attention %}
+          $("[href='#{{ a }}']").addClass("text-danger").attr("style", "font-weight: bold;");
+        {% endfor %}
+      {% endif %}
+
+      // Track the changes in the form fields
+      $("form :input").change(function() {
+        $(this.form).data("changed", true);
+      });
+      var confirmationMessage = "{% trans 'Do you want to close the form without saving it?' %}";
+      $(document).on("click", "#cancel", function(e) {
+        // if (!$(e.toElement).closest("form").data("changed")) return;
+        if (!$(e.target).closest("form").data("changed")) return;
+        e.preventDefault();  // need for a link
+        href = $(this).attr('href');
+        return bootbox.confirm(confirmationMessage, function(result) {
+          if (result) window.location = href;
+        });
+      });
+      window.addEventListener("beforeunload", function (e) {
+        if (!$("#application-form").data("changed")
+          || (e.target.activeElement.type == "submit")
+        ) {
+              return undefined;
+          }
+          (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+          return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
+      });
+      // Focus on the first tab with invalid input:
+      $("input[name='submit']").click(function(even) {
+        $('input:invalid,textarea:invalid').each(function () {
+          // Find the tab-pane that this element is inside, and get the id
+          var $closest = $(this).closest('.tab-pane');
+          var id = $closest.attr('id');
+
+          // Find the link that corresponds to the pane and have it show
+          $('.nav a[href="#' + id + '"]').tab('show');
+
+          // Only want to do it once
+          return false;
+        });
+        /* if (this.form.checkValidity()) {
+            $.blockUI({
+              message: $('#wait-message'),
+              css: {
+                          backgroundColor: '#0000',
+                          color: '#0fff',
+                          border: '0px',
+                        }
+          });
+        } */
+      });
+      $(".select2-selection__arrow").remove();
+    });
+  </script>
   <!-- script>
     $(".custom-file-input").on("change", function() {
     var fileName = $(this).val().split("\\").pop();
@@ -100,7 +301,7 @@
       if (result.isConfirmed) {
       Swal.fire(
       "{% trans 'Submitted!' %}",
-      "{% trans 'The firm has been submitted.' %}",
+      "{% trans 'The form has been submitted.' %}",
       'success'
       );
       // thisForm.submit();
@@ -114,3 +315,4 @@
       </script -->
 
     {% endblock %}
+{# vim:set ft=htmldjango: #}
