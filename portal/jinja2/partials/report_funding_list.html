@@ -1,0 +1,50 @@
+<table class="table table-striped">
+{#% for p in report.fundings.all() %#}
+{% for f in report.fundings.all() %}
+  <tr>
+  <td>{% if f.title %}{{ f.title }}{% else %}{{ report.contract.project_title }}{% endif %} {% if f.agency %} / {{ f.agency }}{% endif %}
+      {% if f.url %} <a href="{{ f.url }}"> {{ f.url }} </a> {% endif %}
+      {{ f.get_type_display() }} {% if f.subtype %} ({{ f.subtype }}") {% endif %}
+      {% if f.currency %}{{ f.currency_id }} {% endif %}{{ f.amount }}{% if f.share %} ({{ f.share }}%){% endif %}
+    </td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=f.model_name, pk=f.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the funding record "%s"?') % f }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-funding-update', pk=f.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#reported-funding-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+<tr>
+  <td>&nbsp;</td>
+  <td>
+    <div class="buttonHolder float-right">
+    <button
+      type="button"
+      class="btn btn-success btn-sm"
+      hx-get="{{ url('reported-funding-create') }}?report={{ report.pk }}&_modal_dialog=1"
+      hx-target="#reported-funding-dialog"
+    >
+      <i class="fa fa-plus" style="width: 14px;"></i> </button>
+    </div>
+  </td>
+</tr>
+</table>
