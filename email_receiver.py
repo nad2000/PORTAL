@@ -307,4 +307,74 @@ if __name__ == "__main__":
                         site=site,
                     )
 
+    if to and (to.startswith("reports") or to.startswith("reports")) and message_id and (reply_to = models.ReportComment.where(token=message_id).last()):
+        report = reply_to.report
+        if site := contract.site:
+            settings.SITE_ID = site.pk
+
+        by = models.User.where(
+            models.Q(email=sender) | models.Q(emailaddress__email=sender)
+        ).first()
+        body = msg["body"]
+        if not msg.is_multipart():
+            body = msg.get_payload(decode=True)
+        else:
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type == "multipart/alternative":
+                    for p in part.get_payload():
+                        body = p.get_payload(decode=True)
+                        if p.get_content_type() == "text/html":
+                            break
+
+        attachments = [
+            File(io.BytesIO(a.as_bytes()), name=a.get_filename())
+            for a in msg.walk()
+            if a.get_filename()
+        ]
+
+        if by or body:
+            token = models.get_unique_mail_token()
+            if body:
+                for encoding in ["utf-8", "iso-8859-4"]:
+                    try:
+                        body = body.decode(encoding)
+                        break
+                    except:
+                        pass
+            comment = models.ReportComment.create(
+                contract=contract,
+                submitted_by=by,
+                comment=body,
+                token=token,
+                reply_to=reply_to,
+                # attachment=attachments and attachments[0] or None,
+            )
+
+            # for a in attachments[1:]:
+            for a in attachments:
+                ca = models.ReportCommentAttachment(comment=comment)
+                ca.attachment.save(content=a, name=a.name)
+                ca.save()
+
+            if by:
+                domain = to.split("@")[1]
+                recipients = []
+                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=contract.pk))}#correspondence"
+                html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{report}">{report}</data>'
+                html_message += f":</p>{body}" if body else "."
+                html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                send_mail(
+                    from_email=to,
+                    subject=f"Comment posted by {by.full_name_with_email} to {report}",
+                    html_message=html_message,
+                    cc=[by.full_email_address],
+                    attachments=attachments or None,
+                    recipients=recipients,
+                    thread_index=contract.thread_index,
+                    thread_topic=contract.thread_topic,
+                    token=token,
+                    site=site,
+                )
+
 # vim:set ft=python.django:

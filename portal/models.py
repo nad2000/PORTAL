@@ -9002,7 +9002,7 @@ class Report(ReportMixin, PdfFileMixin, Model):
 
     @property
     def thread_topic(self):
-        return f"{self}"
+        return f"REPORT:{self.period}:{self.type}:{self.contract.number}"
 
     class Meta:
         db_table = "report"
@@ -9359,6 +9359,7 @@ REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Othe
 
 class ReportComment(Model):
     report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
+    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
     comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
     attachment = PrivateFileField(
