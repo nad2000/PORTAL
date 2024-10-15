@@ -935,16 +935,20 @@ def index(request):
             round__scheme__current_round=F("round"),
         )
         if site_id not in [4, 5, 7] or not (user.is_superuser or user.is_site_staff):
-            draft_applications = models.Application.user_draft_applications(user).filter(
+            applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-            current_applications = models.Application.user_applications(
+            if applications.count() < 7:
+                draft_applications = applications
+            applications = models.Application.user_applications(
                 user, ["submitted", "in_review", "accepted", "approved"]
             ).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
+            if applications.count() < 7:
+                current_applications = applications
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
