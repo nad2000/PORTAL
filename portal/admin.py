@@ -3050,6 +3050,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     search_fields = ["number", "contract__project_title", "contract__number"]
     autocomplete_fields = [
         "assessor",
+        "contract",
         # "schedule_entry",
         # "principal",
         # "coordinator",
