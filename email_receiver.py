@@ -307,7 +307,7 @@ if __name__ == "__main__":
                         site=site,
                     )
 
-    if to and (to.startswith("reports") or to.startswith("reports")) and message_id and (reply_to = models.ReportComment.where(token=message_id).last()):
+    if to and (to.startswith("reports") or to.startswith("reports")) and message_id and (reply_to := models.ReportComment.where(token=message_id).last()):
         report = reply_to.report
         if site := contract.site:
             settings.SITE_ID = site.pk
