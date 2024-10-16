@@ -2136,6 +2136,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
 
+    @cached_property
+    def pi(self):
+        return (pi := self.members.filter(role="PI").last()) and pi.user or self.submitted_by
+
     @property
     def contract(self):
         """The latest contract."""
@@ -8023,7 +8027,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     @cached_property
     def pi(self):
-        return self.submitted_by or (pi := self.members.filter(role="PI").last()) and pi.user
+        return (pi := self.members.filter(role="PI").last()) and pi.user or self.submitted_by or self.application.pi
 
     def save(self, *args, **kwargs):
         if (
@@ -8782,7 +8786,7 @@ class Report(ReportMixin, PdfFileMixin, Model):
 
     @cached_property
     def pi(self):
-        return self.contract.pi
+        return (pi := self.efforts.filter(role="PI", person__user__isnull=False).last()) and pi.person.user or self.contract.pi
 
     # exported = models.BooleanField(blank=True, null=True)
     # exported_date = models.DateField(blank=True, null=True)

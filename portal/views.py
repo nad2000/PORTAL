@@ -2463,6 +2463,16 @@ class ReportViewMixin:
                 if "RO" in _cc_recipients:
                     cc_recipients.extend(c.org.get_ro())
 
+                # TODO: default recipients if the sender is a researcher?
+                if not recipients:
+                    pi = i.pi
+                    if u.is_site_staff:
+                        recipients = [pi]
+                    else:
+                        # TODO: ????
+                        admin = User.get(username="admin")
+                        recipients = [admin]
+
                 report_comment_recipients = [
                     (
                         models.ReportCommentRecipient(user, email=e, comment=comment)
@@ -2507,7 +2517,7 @@ class ReportViewMixin:
                             for ro in c.org.get_ro()
                         ]
                     )
-
+                
                 models.ReportCommentRecipient.bulk_create(report_comment_recipients)
 
                 respond_url = (
@@ -2515,7 +2525,7 @@ class ReportViewMixin:
                 )
                 html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i}">{i}</data>'
                 html_message += f":</p>{body}" if body else "."
-                html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
                 send_mail(
                     request=self.request,
                     from_email="reports",
@@ -5893,7 +5903,7 @@ class ContractViewMixin:
             )
             html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
             html_message += f":</p>{body}" if body else "."
-            html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
             send_mail(
                 request=self.request,
                 from_email="contracts",
