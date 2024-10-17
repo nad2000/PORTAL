@@ -67,6 +67,7 @@
       <!-- link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" -->
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
+      <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" -->
       {#% if domain == "international.royalsociety.org.nz" %#}
       {% if SITE_ID == 5 %}
         <link href="{% static 'css/tawhia.royalsociety.org.nz.css' %}" rel="stylesheet">
@@ -628,6 +629,7 @@ You have a request to review a {{ site_name }} application to act on.
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
         $(document).ready(function(){
+                  // $.fn.select2.defaults.set("theme", "bootstrap");
                   const swalWithBootstrapButtons = Swal.mixin({
                     customClass: {
                       confirmButton: "btn btn-danger ml-1",

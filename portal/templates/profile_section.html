@@ -115,8 +115,6 @@
 {% endblock %}
 
 {% block javascript %}
-  {{ block.super }}
-  {{ formset.media.js }}
   <!-- script>
     /* $('#add_more').click(function() {
     var form_idx = $('#id_form-TOTAL_FORMS').val();
@@ -131,10 +129,14 @@
     </script -->
     <script>
       $(document).ready(function() {
-              $("#submit-id-save").click(function() {
-                      formset_set_inputs(prefix="form");
-                      return true;
-                    });
-            });
+        $("#submit-id-save").click(function() {
+          formset_set_inputs(prefix="form");
+          return true;
+        });
+        $(".select2").width("100%");
+        $(".select2-selection__arrow").remove();
+      });
     </script>
+    {{ formset.media.js }}
+    {{ block.super }}
   {% endblock %}
