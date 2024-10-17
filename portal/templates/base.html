@@ -243,6 +243,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                 <ul class="navbar-nav ml-auto">
 
                   {% if user.is_authenticated %}
+                    {% with orcid=user.get_orcid %}
                     <img alt="GRAVATAR"
                          src="{{ user.avatar }}"
                          style="-webkit-border-radius: 12%; border-radius: 12%; max-width: 38px;"
@@ -252,8 +253,10 @@ table.table .asteriskField,.popover-header {color: gray;}
                          title="{% trans 'User' %}"
                          data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ user.email }}<br/>
                                 <b>{% trans 'Name' %}:&nbsp</b>{{ user.name|default:'N/A' }}<br/>
-                                <b>{% trans 'Username' %}:&nbsp</b>{{ user.username }}</p>"
+                                <b>{% trans 'Username' %}:&nbsp</b>{{ user.username }}
+                                {% if orcid %}<br/><b>ORCID:&nbsp</b>{{ orcid }}{% endif %}</p>"
                     >
+                    {% endwith %}
                     <li class="nav-item dropdown" id="profile">
                       <a class="nav-link dropdown-toggle"
                          data-toggle="dropdown"

@@ -31,14 +31,15 @@
     <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
   </div>
 </form>
-{{ form.media.js }}
-<script>
+{#{ form.media.js }#}
+<!-- script>
   $("#reported-funding-form").ready(function() {
-    $('#id_agency').select2();
+    // $('#id_agency').select2();
+    window.__dal__initialize($("#id_agency"));
     $('#id_start_date,#id_end_date').datepicker();
     $(".select2-selection__arrow").remove();
   });
-</script>
+</script -->
 {#
 {% elif modal %}
 <div class="modal" id="reported-funding-modal" tabindex="-1" role="dialog" _="on closeModal add .closing then wait for animationend then remove me">
