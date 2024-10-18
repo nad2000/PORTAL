@@ -213,7 +213,7 @@ def pyinfo(request, message=None):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
-    u = User.get(username=username)
+    u = User.objects.filter(Q(username=username)|Q(email=username)).first()
     if request.user.pk != u.pk:
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
     return redirect("start")
@@ -999,7 +999,7 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.state in ["new", "draft", "submitted", "sent", "bounced", "read", "accepted"]:
+            if i.state in ["new", "draft", "submitted", "sent", "bounced", "read", "accepted", "autoreplied"]:
                 if (
                     (i.first_name and not u.first_name)
                     or (i.middle_names and not u.middle_names)
