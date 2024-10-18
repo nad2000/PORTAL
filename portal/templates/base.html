@@ -67,6 +67,7 @@
       <!-- link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" -->
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
+      <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" -->
       {#% if domain == "international.royalsociety.org.nz" %#}
       {% if SITE_ID == 5 %}
         <link href="{% static 'css/tawhia.royalsociety.org.nz.css' %}" rel="stylesheet">
@@ -243,6 +244,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                 <ul class="navbar-nav ml-auto">
 
                   {% if user.is_authenticated %}
+                    {% with orcid=user.get_orcid %}
                     <img alt="GRAVATAR"
                          src="{{ user.avatar }}"
                          style="-webkit-border-radius: 12%; border-radius: 12%; max-width: 38px;"
@@ -252,8 +254,10 @@ table.table .asteriskField,.popover-header {color: gray;}
                          title="{% trans 'User' %}"
                          data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ user.email }}<br/>
                                 <b>{% trans 'Name' %}:&nbsp</b>{{ user.name|default:'N/A' }}<br/>
-                                <b>{% trans 'Username' %}:&nbsp</b>{{ user.username }}</p>"
+                                <b>{% trans 'Username' %}:&nbsp</b>{{ user.username }}
+                                {% if orcid %}<br/><b>ORCID:&nbsp</b>{{ orcid }}{% endif %}</p>"
                     >
+                    {% endwith %}
                     <li class="nav-item dropdown" id="profile">
                       <a class="nav-link dropdown-toggle"
                          data-toggle="dropdown"
@@ -625,6 +629,7 @@ You have a request to review a {{ site_name }} application to act on.
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
         $(document).ready(function(){
+                  // $.fn.select2.defaults.set("theme", "bootstrap");
                   const swalWithBootstrapButtons = Swal.mixin({
                     customClass: {
                       confirmButton: "btn btn-danger ml-1",

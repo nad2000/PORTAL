@@ -95,7 +95,12 @@
         } else if (target_id == "publication-list") {
            $('#publication-modal').modal('hide');
         } else if (target_id == "reported-funding-dialog") {
-           $('#reported-funding-modal').modal('show');
+          // $('#id_agency').select2();
+          window.__dal__initialize($("#id_agency"));
+          $('#id_start_date,#id_end_date').datepicker();
+          $("#id_agency").siblings(".select2").width("100%");
+          $(".select2-selection__arrow").remove();
+          $('#reported-funding-modal').modal('show');
         } else if (target_id == "reported-funding-list") {
            $('#reported-funding-modal').modal('hide');
         }
