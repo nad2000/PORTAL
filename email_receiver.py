@@ -293,7 +293,7 @@ if __name__ == "__main__":
                     respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
                     html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{contract.number}">{contract}</data>'
                     html_message += f":</p>{body}" if body else "."
-                    html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                    html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
                     send_mail(
                         from_email=to,
                         subject=f"Comment posted by {by.full_name_with_email} to {contract}",
@@ -307,9 +307,14 @@ if __name__ == "__main__":
                         site=site,
                     )
 
-    if to and (to.startswith("reports") or to.startswith("reports")) and message_id and (reply_to := models.ReportComment.where(token=message_id).last()):
+    if (
+        to
+        and (to.startswith("reports") or to.startswith("reports"))
+        and message_id
+        and (reply_to := models.ReportComment.where(token=message_id).last())
+    ):
         report = reply_to.report
-        if site := contract.site:
+        if site := report.contract.site:
             settings.SITE_ID = site.pk
 
         by = models.User.where(
@@ -343,12 +348,17 @@ if __name__ == "__main__":
                     except:
                         pass
             comment = models.ReportComment.create(
-                contract=contract,
+                report=report,
                 submitted_by=by,
                 comment=body,
                 token=token,
                 reply_to=reply_to,
                 # attachment=attachments and attachments[0] or None,
+            )
+            models.ReportCommentRecipient.create(
+                comment=comment,
+                user=reply_to.submitted_by,
+                email=reply_to.submitted_by.email,
             )
 
             # for a in attachments[1:]:
@@ -359,11 +369,11 @@ if __name__ == "__main__":
 
             if by:
                 domain = to.split("@")[1]
-                recipients = []
-                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=contract.pk))}#correspondence"
+                recipients = [reply_to.submitted_by]
+                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=report.pk))}#correspondence"
                 html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{report}">{report}</data>'
                 html_message += f":</p>{body}" if body else "."
-                html_message += f'<hr/>To responde to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
                 send_mail(
                     from_email=to,
                     subject=f"Comment posted by {by.full_name_with_email} to {report}",
@@ -371,8 +381,8 @@ if __name__ == "__main__":
                     cc=[by.full_email_address],
                     attachments=attachments or None,
                     recipients=recipients,
-                    thread_index=contract.thread_index,
-                    thread_topic=contract.thread_topic,
+                    thread_index=report.thread_index,
+                    thread_topic=report.thread_topic,
                     token=token,
                     site=site,
                 )
