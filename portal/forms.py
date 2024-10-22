@@ -3234,6 +3234,65 @@ class ScoreSheetForm(ModelForm):
         )
 
 
+class AssessedPerformanceForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["comment"].widget.attrs = {"rows": 3}
+        if instance := kwargs.get("instance"):
+            f = instance.flag
+            self.fields["flag"].label = f.name
+            self.fields["flag"].help_text = f.name
+            self.fields["flag"].widget = forms.HiddenInput()
+            if f.value_choices:
+                choices = [
+                    (e.strip() for e in r.strip().split(":"))
+                    for r in f.value_choices.split(";")
+                    if r.strip()
+                ]
+                self.fields["value"] = forms.ChoiceField(
+                    choices=choices,
+                    required=f.is_optional,
+                )
+            else:
+                # self.fields["value"] = forms.ChoiceField(
+                #     choices=[("YES", _("Yes")), ("NO" , _("No")), ("N/A", _("N/A"))] if f.is_optional else [("YES", _("Yes")), ("NO", _("No"))],
+                #     required=f.is_optional,
+                #     template_name="portal/toggle.html",
+                # )
+                self.fields["value"] = forms.ChoiceField(
+                    required=not f.is_optional,
+                    widget=forms.HiddenInput(),
+                    initial="NA" if f.is_optional else "N",
+                    choices=(
+                        [("Y", _("Yes")), ("N", _("No")), ("NA", _("N/A"))]
+                        if f.is_optional
+                        else [("Y", _("Yes")), ("N", _("No"))]
+                    ),
+                )
+            self.fields["value"].label = False
+
+            # self.helper = FormHelper(self)
+            # self.helper.layout = Layout(
+            #     Field("flag", template="partials/assessed_performance_flag.html"),
+            #     "value" if f.value_choices else Field(
+            #         "value",
+            #         data_toggle="toggle",
+            #         template="portal/toggle.html",
+            #         data_on=_("No"),
+            #         data_off=_("Yes"),
+            #         data_na=_("N/A"),
+            #         data_onstyle="success",
+            #         data_offstyle="danger",
+            #     ),
+            #     "comment",
+            # )
+
+    class Meta:
+        model = models.AssessedPerformance
+        exclude = ["created_at", "updated_at", "created_by", "updated_by"]
+
+
 class ReportedEffortForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
@@ -3944,7 +4003,8 @@ class ReportForm(ModelForm):
                                 Column(
                                     Row(
                                         Column(
-                                            HTML("<strong><u>TO</u></strong>:&nbsp;"), css_class="col-1"
+                                            HTML("<strong><u>TO</u></strong>:&nbsp;"),
+                                            css_class="col-1",
                                         ),
                                         Column(
                                             Field(
@@ -3955,7 +4015,8 @@ class ReportForm(ModelForm):
                                     ),
                                     Row(
                                         Column(
-                                            HTML("<strong><u>CC</u></strong>:&nbsp;"), css_class="col-1"
+                                            HTML("<strong><u>CC</u></strong>:&nbsp;"),
+                                            css_class="col-1",
                                         ),
                                         Column(
                                             Field(
@@ -3965,10 +4026,18 @@ class ReportForm(ModelForm):
                                         ),
                                     ),
                                 ),
-                                Column(HTML("<strong>Category</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                Column(
+                                    HTML("<strong>Category</strong>:&nbsp;"),
+                                    css_class="col-1 text-right",
+                                    style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;",
+                                ),
                                 Column("category"),
-                                #"text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
-                                Column(HTML("<strong>Alert date</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                # "text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
+                                Column(
+                                    HTML("<strong>Alert date</strong>:&nbsp;"),
+                                    css_class="col-1 text-right",
+                                    style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;",
+                                ),
                                 Column(Field("alert_date")),
                                 Column(
                                     Submit(
@@ -3990,6 +4059,16 @@ class ReportForm(ModelForm):
                         '{% include "snippets/comments.html" with comments=object.comments.all %}'
                     ),
                     css_id="correspondence",
+                )
+            )
+        if is_assessor:
+            tabs.append(
+                Tab(
+                    mark_safe(f'<i class="fas fa-flag"></i> {_("Performance")}'),
+                    TableInlineFormset(
+                        "performance", template="portal/performance_inline_formset.html"
+                    ),
+                    css_id="performance",
                 )
             )
         #     Tab(

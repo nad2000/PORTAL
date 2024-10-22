@@ -16,6 +16,9 @@
   thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
     min-width: 5.0rem;
   }
+  .datepicker {
+      z-index: 1600 !important; /* has to be larger than 1050 to work properly in the modals */
+   }
   .inline-label {
     white-space: nowrap;
     max-width: 150px;
@@ -277,6 +280,14 @@
         } */
       });
       $(".select2-selection__arrow").remove();
+      $('.three-value-choice button').on('click', function() {
+          var sel = $(this).data('title');
+          if ($(this).attr("class").includes("outline")) {
+            toggleOutline($(this));
+            $(this).siblings("button").each(function() {setOutline($(this));});
+          }
+          $(this).parent().siblings("input[type='hidden']").prop("value", sel);
+      });
     });
   </script>
   <!-- script>

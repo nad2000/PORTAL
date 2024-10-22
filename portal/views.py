@@ -1575,10 +1575,39 @@ class PersonnelInline(InlineFormSetFactory):
 # def formset_with_prefix(formset_list, prefix):
 #     retur next((fs for fs in formset_list if fs.prefix==prefix), None)
 
+class AssessedPerformanceInline(InlineFormSetFactory):
+    prefix = "performance"
+    model = models.AssessedPerformance
+    # fields = ["first_name", "middle_names", "last_name", "email"]
+    form_class = forms.AssessedPerformanceForm
+    # formset_kwargs = {}
+    factory_kwargs = {
+        "extra": 0,
+        "can_delete": False,
+    }
+
 
 class ReportViewMixin:
 
     inlines = [PersonnelInline]
+
+    def get_inlines(self):
+        inlines = super().get_inlines()
+        if self.is_assessor and AssessedPerformanceInline not in inlines:
+            inlines.append(AssessedPerformanceInline)
+        return inlines
+
+    @property
+    def is_assessor(self):
+        return self.object and self.request.user == self.object.assessor
+
+    # def forms_valid(self, *args, **kwargs):
+    #     breakpoint()
+    #     return super().forms_valid(*args, **kwargs)
+
+    # def forms_invalid(self, *args, **kwargs):
+    #     breakpoint()
+    #     return super().forms_invalid(*args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -9156,16 +9185,16 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
         return resp
 
     def get_context_data(self, *args, **kwargs):
-        data = super().get_context_data(*args, **kwargs)
-        data["yes_label"] = _("Yes")
-        data["no_label"] = _("No")
+        context = super().get_context_data(*args, **kwargs)
+        context["yes_label"] = _("Yes")
+        context["no_label"] = _("No")
 
         round_id = self.kwargs.get("round")
         if round_id and (
             p := models.Panellist.where(user=self.request.user, round_id=round_id).first()
         ):
             if p.has_all_coi_statements_submitted_for(round_id):
-                data["is_all_coi_statements_sumitted"] = True
+                context["is_all_coi_statements_sumitted"] = True
 
             for row in (
                 models.ConflictOfInterest.where(
@@ -9175,12 +9204,12 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
                 .values("has_conflict")
                 .annotate(count=Count("*"))
             ):
-                data[f"has_conflict_{row['has_conflict']}"] = row["count"] != 0
+                context[f"has_conflict_{row['has_conflict']}"] = row["count"] != 0
 
         if round_id:
-            data["round"] = models.Round.get(round_id)
+            context["round"] = models.Round.get(round_id)
 
-        return data
+        return context
 
     def get_queryset(self):
         round_id = self.kwargs["round"]

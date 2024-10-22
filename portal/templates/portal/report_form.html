@@ -97,7 +97,12 @@
         } else if (target_id == "reported-funding-dialog") {
           // $('#id_agency').select2();
           window.__dal__initialize($("#id_agency"));
-          $('#id_start_date,#id_end_date').datepicker();
+          $('#id_start_date,#id_end_date').datepicker({
+            format: "yyyy-mm-dd",
+            todayBtn: "linked",
+            autoclose: true,
+            todayHighlight: true
+          });
           $("#id_agency").siblings(".select2").width("100%");
           $(".select2-selection__arrow").remove();
           $('#reported-funding-modal').modal('show');

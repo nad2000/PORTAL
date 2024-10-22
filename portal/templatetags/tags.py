@@ -285,6 +285,16 @@ def jinja(context, template, *args, **kwargs):
     return Markup(output)
 
 
+@register.filter(is_safe=True)
+def render_field(field):
+    # request = context.get("request")
+    # site = context.get("site")
+    # contract = object = context.get("object")
+    # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
+    output = get_template(field.template_name).render({"field": field})
+    return Markup(output)
+
+
 @register.simple_tag(takes_context=True)
 # @jinja2.pass_context
 def contract_summary(context, *args, **kwargs):

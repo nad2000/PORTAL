@@ -5908,6 +5908,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 self.required_contract_documents,
                 self.required_documents,
                 self.templates,
+                self.performance_flags,
             ]:
                 objs = [o for o in m.all()]
                 for o in objs:
@@ -6435,6 +6436,40 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     class Meta(OrderableModel.Meta):
         db_table = "round"
+
+
+class PerformanceFlag(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="performance_flags")
+    name = CharField(max_length=400)
+    value_choices = CharField(
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text="given in the format: 'VALUE1:DESCRIPTION1;VALUE2:DESCRIPTION2;...', otherwise it is 'YES' or 'NO'",
+    )
+    is_optional = BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        created = not self or not self.pk
+        super().save(*args, **kwargs)
+        if created:
+            assessed_permances = [
+                AssessedPerformance(
+                    report=r,
+                    flag=self,
+                    value="N" if not self.is_optional and not self.value_choices else None,
+                )
+                for r in Report.where(
+                    ~Q(state__in=["assessed", "archived"]),
+                    ~Q(performance__flag__in=[self]),
+                    contract__application__round_id=self.round_id,
+                )
+            ]
+            if assessed_permances:
+                AssessedPerformance.bulk_create(assessed_permances)
+
+    class Meta(OrderableModel.Meta):
+        db_table = "performance_flag"
 
 
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
@@ -8027,7 +8062,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     @cached_property
     def pi(self):
-        return (pi := self.members.filter(role="PI").last()) and pi.user or self.submitted_by or self.application.pi
+        return (
+            (pi := self.members.filter(role="PI").last())
+            and pi.user
+            or self.submitted_by
+            or self.application.pi
+        )
 
     def save(self, *args, **kwargs):
         if (
@@ -8786,7 +8826,11 @@ class Report(ReportMixin, PdfFileMixin, Model):
 
     @cached_property
     def pi(self):
-        return (pi := self.efforts.filter(role="PI", person__user__isnull=False).last()) and pi.person.user or self.contract.pi
+        return (
+            (pi := self.efforts.filter(role="PI", person__user__isnull=False).last())
+            and pi.person.user
+            or self.contract.pi
+        )
 
     # exported = models.BooleanField(blank=True, null=True)
     # exported_date = models.DateField(blank=True, null=True)
@@ -8896,6 +8940,21 @@ class Report(ReportMixin, PdfFileMixin, Model):
         blank=True,
         default=0,
     )
+
+    def create(self, *args, **kwargs):
+        obj = super().create(*args, **kwargs)
+        if r := (obj.contract and obj.contract.application and obj.contract.application.round):
+            AssessedPerformance.bulk_create(
+                [
+                    AssessedPerformance(
+                        report=obj,
+                        flag=f,
+                        value="N" if not f.is_optional and not f.value_choices else None,
+                    )
+                    for f in r.performance_flags.all()
+                ]
+            )
+        return obj
 
     def save(self, *args, **kwargs):
         if se := self.schedule_entry:
@@ -9021,6 +9080,29 @@ simple_history.register(
 )
 
 
+class AssessedPerformance(Model):
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="performance",
+    )
+    flag = ForeignKey(PerformanceFlag, on_delete=CASCADE)
+    # name = CharField(max_length=400)
+    # value_choices = CharField(
+    #     max_length=400,
+    #     help_text="given in the format: 'VALUE1:DESCRIPTION1;VALUE2:DESCRIPTION2;...'",
+    # )
+    # is_optional = BooleanField(default=True)
+    value = CharField(max_length=100, null=True, blank=True)
+    comment = TextField(_("Comment"), max_length=1000, null=True, blank=True)
+
+    history = HistoricalRecords(table_name="assessed_performance_history")
+
+    class Meta:
+        db_table = "assessed_performance"
+        ordering = ["flag__ordering"]
+
+
 class ReportedEffortMixin:
     STATES = Choices(
         ("accepted", _("accepted")),
@@ -9113,7 +9195,7 @@ class ReportedEffort(ReportedEffortMixin, Model):
             return user.email
         if self.member_effort and self.member_effort.member:
             return self.member_effort.member.email
-    
+
     def save(self, *args, **kwargs):
         if me := self.member_effort:
             if not self.person:
