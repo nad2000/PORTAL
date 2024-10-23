@@ -10,6 +10,7 @@ from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 import rispy
 
+from django_select2 import forms as s2forms
 import django.utils.translation
 import django_tables2
 import py7zr
@@ -1554,26 +1555,20 @@ class ReportDetail(DetailView):
 class PersonnelInline(InlineFormSetFactory):
     prefix = "personnel"
     model = models.ReportedEffort
-    # fields = ["first_name", "middle_names", "last_name", "email"]
     form_class = forms.ReportedEffortForm
-    # formset_kwargs = {}
     factory_kwargs = {
         "extra": 1,
         "can_delete": True,
         "labels": {"full_name": _("Name"), "fte": _("FTE from contract")},
     }
-    # exclude=["member_effort", "person", "state"],
 
-    # def delete_existing(self, obj, commit=True):
-    #     if commit:
-    #         for i in models.Invitation.where(member=obj):
-    #             i.revoke(self.request)
-    #             i.save()
-    #         obj.delete()
+    def get_form_class(self):
+        if self.object and self.request and self.object.assessor == self.request.user:
+            return modelform_factory(
+                self.model, form=self.form_class, exclude=["state", "member_effort"]
+            )
+        return self.form_class
 
-
-# def formset_with_prefix(formset_list, prefix):
-#     retur next((fs for fs in formset_list if fs.prefix==prefix), None)
 
 class AssessedPerformanceInline(InlineFormSetFactory):
     prefix = "performance"
@@ -2546,7 +2541,7 @@ class ReportViewMixin:
                             for ro in c.org.get_ro()
                         ]
                     )
-                
+
                 models.ReportCommentRecipient.bulk_create(report_comment_recipients)
 
                 respond_url = (
@@ -6753,57 +6748,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return result[0]
 
     def get_queryset(self):
-        q = models.Organisation.objects.all()
-        if (nominator := self.forwarded.get("nominator")) and self.request.site_id in [4, 5]:
-            q = q.filter(Q(research_offices__user_id=nominator))
-        if self.q:
-            s = self.q.lower()
-            s0 = s.split(" ")
-            if s0[0] == "the":
-                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
-            else:
-                s0 = f"the {s}"
-            q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
-            q = (
-                q.filter(
-                    Q(
-                        id__in=models.Organisation.where(
-                            Q(name__istartswith=s) | Q(name__istartswith=s0)
-                        )
-                        .values("name")
-                        .annotate(Min("id"))
-                        .values("id__min")
-                    )
-                )
-                # .order_by("name", "id")
-                .values_list("id", "name")
-            )
-            q = q.union(
-                models.OrgName.where(
-                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
-                    Q(
-                        org_id__in=models.OrgName.where(
-                            Q(name__istartswith=s) | Q(name__istartswith=s0)
-                        )
-                        .values("name")
-                        .annotate(Min("org_id"))
-                        .values("org_id__min")
-                    ),
-                ).values_list("org_id", "name")
-            )
-            # q = (
-            #     q.distinct()
-            #     if django.db.connection.vendor == "sqlite"
-            #     else q.distinct("id", "name")
-            # )
-        else:
-            q = q.filter(
-                id__in=models.Organisation.objects.all()
-                .values("name")
-                .annotate(Min("id"))
-                .values("id__min")
-            ).values_list("id", "name")
-        return q.order_by("name")
+        nominator = self.forwarded.get("nominator") if self.request.site_id in [4, 5] else None
+        return models.Organisation.search_query(self.q, nominator=nominator)
 
 
 class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -6962,6 +6908,7 @@ class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 | Q(email__istartswith=self.q)
                 | Q(last_name__istartswith=self.q)
                 | Q(user__last_name__istartswith=self.q)
+                | Q(user__email__istartswith=self.q)
             )
         return q
 
@@ -10053,13 +10000,39 @@ class ReportedFundingList(LoginRequiredMixin, StateInPathMixin, SingleTableView)
     # filterset_class = filters.ReportFilterSet
 
 
+class OrgWidget(s2forms.ModelSelect2Widget):
+
+    theme = "bootstrap4"
+    model = models.Organisation
+    search_fields = ["name__icontains"]
+
+    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+        return self.model.search_query(term, queryset=queryset)
+
+    def result_from_instance(self, obj, request):
+        return {
+            "id": obj[0],
+            "text": obj[1],
+            # 'extra_data': obj.extra_data,
+        }
+
+
 class ReportedFundingViewMixin:
 
     model = models.ReportedFunding
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
     widgets = {
-        "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        # "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        # "agency": s2forms.ModelSelect2Widget(
+        #     model=models.Organisation,
+        #     search_fields=["name__icontains"],
+        #     attrs={"class": "form-control custom-select", "with": "100%"}
+        # ),
+        "agency": OrgWidget(
+            attrs={"class": "form-control custom-select", "with": "100%"},
+            model=models.Organisation,
+        ),
         "end_date": forms.DateInput(),
         "report": HiddenInput(),
         "start_date": forms.DateInput(),

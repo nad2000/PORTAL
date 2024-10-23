@@ -2025,7 +2025,7 @@ class ContractForm(ModelForm):
                         ),
                     ),
                     HTML(
-                        '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
+                        '{% include "snippets/comments.html" with comments=object.comments.all %}'
                     ),
                     css_id="correspondence",
                 )
@@ -3297,13 +3297,6 @@ class ReportedEffortForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if instance := kwargs.get("instance"):
-            fte_total = instance.fte_total
-            self.fields["fte_before"].initial = self.fields["fte_total"].initial = (
-                f"{fte_total:.2f}"
-            )
-            if instance.fte:
-                self.fields["fte_before"].initial = fte_total - instance.fte
         self.helper = FormHelper(self)
 
     role = forms.ModelChoiceField(
@@ -3312,17 +3305,17 @@ class ReportedEffortForm(ModelForm):
         )
     )
     fte_before = forms.DecimalField(widget=forms.HiddenInput(), required=False)
-    fte_total = forms.DecimalField(
-        label=_("Total FTE"),
-        required=False,
-        widget=forms.widgets.NumberInput(
-            attrs={"readonly": True, "disabled": True, "step": "0.01"}
-        ),
-    )
 
     class Meta:
         model = models.ReportedEffort
-        exclude = ["member_effort", "person", "state"]
+        exclude = ["member_effort", "state"]
+        widgets = {
+            "total_fte": forms.widgets.NumberInput(
+                attrs={"step": "0.01"}
+                # attrs={"readonly": True, "disabled": True, "step": "0.01"}
+            ),
+            "person": autocomplete.ModelSelect2(url="person-autocomplete"),
+        }
 
 
 class ReportForm(ModelForm):
@@ -4201,7 +4194,7 @@ class ReportForm(ModelForm):
         #                 ),
         #             ),
         #             HTML(
-        #                 '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
+        #                 '{% include "snippets/comments.html" with comments=object.comments.all %}'
         #             ),
         #             css_id="correspondence",
         #         )

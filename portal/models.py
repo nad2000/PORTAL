@@ -60,6 +60,7 @@ from django.db.models import (
     IntegerField,
     Manager,
     ManyToManyField,
+    Min,
     OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
@@ -1142,6 +1143,62 @@ class Organisation(Model):
                     a.number = default_application_number(a)
                     a.save(update_fields=["number"])
 
+    @classmethod
+    def search_query(cls, term, queryset=None, nominator=None):
+        """Organisation search queery for autocomplete and select2."""
+        # def get_queryset(self):
+        q = queryset or cls.objects.all()
+        if nominator:
+            q = q.filter(Q(research_offices__user_id=nominator))
+        if term:
+            s = term.lower()
+            s0 = s.split(" ")
+            if s0[0] == "the":
+                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
+            else:
+                s0 = f"the {s}"
+            q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
+            q = (
+                q.filter(
+                    Q(
+                        id__in=cls.where(
+                            Q(name__istartswith=s) | Q(name__istartswith=s0)
+                        )
+                        .values("name")
+                        .annotate(Min("id"))
+                        .values("id__min")
+                    )
+                )
+                # .order_by("name", "id")
+                .values_list("id", "name")
+            )
+            q = q.union(
+                OrgName.where(
+                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
+                    Q(
+                        org_id__in=OrgName.where(
+                            Q(name__istartswith=s) | Q(name__istartswith=s0)
+                        )
+                        .values("name")
+                        .annotate(Min("org_id"))
+                        .values("org_id__min")
+                    ),
+                ).values_list("org_id", "name")
+            )
+            # q = (
+            #     q.distinct()
+            #     if django.db.connection.vendor == "sqlite"
+            #     else q.distinct("id", "name")
+            # )
+        else:
+            q = q.filter(
+                id__in=cls.objects.all()
+                .values("name")
+                .annotate(Min("id"))
+                .values("id__min")
+            ).values_list("id", "name")
+        return q.order_by("name")
+
     class Meta:
         db_table = "organisation"
 
@@ -1409,15 +1466,23 @@ class Person(PersonMixin, Model):
     def protection_patterns(self):
         return ProtectionPatternPerson.get_data(self)
 
-    @lru_cache(1)
+    @cache
     def __str__(self):
         if u := self.user:
-            return (
-                f"{u.name} ({u.username})'s profile"
+            value = (
+                f"{u.name} ({u.username})"
                 if u.name and u.username
-                else f"{u.name or u.username or u.email}'s profile"
+                else f"{u.name or u.username or u.email}"
             )
-        return self.code or self.full_name_with_title
+            if self.code:
+                return f"{self.code}: {value}"
+            return value
+        value = self.full_name_with_title
+        if value:
+            if self.code:
+                return f"{self.code}: {value}"
+            return value
+        return self.code or self.email or self.orcid
 
     def save(self, *args, **kwargs):
         created = not self.id
@@ -9153,34 +9218,47 @@ class ReportedEffort(ReportedEffortMixin, Model):
         db_column="role",
     )
     fte = DecimalField(
-        _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
+        _("FTE"),
+        help_text=_("Full-Time Equivalent from the contract"),
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    total_fte = DecimalField(
+        _("Total FTE"),
+        help_text=_("Total Full-Time Equivalent"),
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
     )
     state = StateField(default="new", verbose_name=_("state"))
 
-    @property
-    def fte_total(self):
-        if self.person:
-            return (
-                self._meta.model.where(
-                    report__contract=self.report.contract,
-                    person=self.person,
-                    # report__period__lt=self.report.period,
-                )
-                .aggregate(Sum("fte", default=0))
-                .get("fte__sum", Decimal("0.00"))
-            )  # + (self.fte or 0.0)
-        elif self.full_name:
-            return (
-                self._meta.model.where(
-                    report__contract=self.report.contract,
-                    full_name=self.full_name,
-                    person=self.person,
-                    # report__period__lt=self.report.period,
-                )
-                .aggregate(Sum("fte", default=0))
-                .get("fte__sum", Decimal("0.00"))
-            )  # + (self.fte or 0.0)
-        return 0.0
+    # @property
+    # def fte_total(self):
+    #     if self.person:
+    #         return (
+    #             self._meta.model.where(
+    #                 report__contract=self.report.contract,
+    #                 person=self.person,
+    #                 # report__period__lt=self.report.period,
+    #             )
+    #             .aggregate(Sum("fte", default=0))
+    #             .get("fte__sum", Decimal("0.00"))
+    #         )  # + (self.fte or 0.0)
+    #     elif self.full_name:
+    #         return (
+    #             self._meta.model.where(
+    #                 report__contract=self.report.contract,
+    #                 full_name=self.full_name,
+    #                 person=self.person,
+    #                 # report__period__lt=self.report.period,
+    #             )
+    #             .aggregate(Sum("fte", default=0))
+    #             .get("fte__sum", Decimal("0.00"))
+    #         )  # + (self.fte or 0.0)
+    #     return 0.0
 
     @cached_property
     def user(self):

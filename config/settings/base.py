@@ -541,6 +541,8 @@ DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
 ]
 
 
+SELECT2_THEME = "bootstrap4"
+
 def crud_difference_callbacks(model, *args, **kwargs):
     return not isinstance(model, HistoricalChanges)
 
