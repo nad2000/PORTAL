@@ -9601,6 +9601,54 @@ class ReportCommentAttachment(Model):
         verbose_name = _("attachment")
 
 
+ACTIVITY_CATEGORIES = Choices(
+        ("A", _("Award")), 
+        ("C", _("Collaboration")), 
+        ("P", _("Publicity")), 
+        ("V", _("Visits")), 
+)
+
+
+# class ActivityType(Model):
+
+#     category = FixedCharField(max_length=1, choices=ACTIVITY_CATEGORIES)
+#     description = CharField(_("description"), max_length=255, blank=True, null=True)
+
+#     class Meta:
+#         db_table = "activity_type"
+#         # unique_together = (("contract", "period", "type"),)
+    
+# # Publicity
+# #     Activity: Radio, TV, Newspaper, Popular Article, Newsletter, Outreach, Public Lecture, Conference, Other
+# #     Details: ... (description)
+
+
+# class ReportedActivity(Model):
+#     category = FixedCharField(max_length=1, choices=ACTIVITY_CATEGORIES)
+#     orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+#     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+#     start_date = DateField(_("start date"), null=True, blank=True)
+#     end_date = DateField(_("end date"), null=True, blank=True)
+#     description = CharField(_("description"), max_length=255, blank=True, null=True)
+#     organisation = CharField(
+#         _("organisation"), max_length=200, null=True, blank=True
+#     )  # entered name
+#     org = ForeignKey(
+#         Organisation,
+#         on_delete=SET_NULL,
+#         verbose_name=_("organisation"),
+#     )
+#     member = ForeignKey(ReportedEffort, null=True, blank=True, on_delete=SET_NULL)
+
+#     history = HistoricalRecords(table_name="reported_activity_history")
+
+#     class Meta:
+#         db_table = "reported_activity"
+#         # unique_together = (("contract", "period", "type"),)
+
+
+
+
 dummy_for_translations = (
     _("Browse"),
     _("Currently"),
