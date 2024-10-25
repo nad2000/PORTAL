@@ -1,0 +1,55 @@
+<table class="table table-striped">
+{% for a in report.awards.all() %}
+  <tr>
+    <td>{{ a.member.full_name }} </td>
+    <td>{{ a.description }} </td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=a._meta.model_name, pk=a.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the publication record "%s"?') % a.title }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-award-update', pk=a.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#publication-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+<tr>
+  <td>&nbsp;</td>
+  <td>&nbsp;</td>
+  <td>
+    <div class="buttonHolder float-right">
+      <select name="activity_category" id="id_activity_category">
+        <option value="A">Award</option>
+        <option value="C">Collaboration</option>
+        <option value="P">Publicity</option>
+        <option value="V">Visit</option>
+        opt+
+      </select>
+      <button
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-include="[name='activity_category']"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </div>
+  </td>
+</tr>
+</table>

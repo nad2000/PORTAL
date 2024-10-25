@@ -9906,6 +9906,9 @@ class PublicationViewMixin:
         # "org": autocomplete.ModelSelect2("org-autocomplete"),
     }
 
+    def get(self, *args, **kwargs):
+        return super().get(*args, **kwargs)
+
     @cached_property
     def report_id(self):
         if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
@@ -10119,6 +10122,149 @@ class ReportedFundingUpdateView(ReportedFundingViewMixin, UpdateView):
 
 class ReportedFundingCreateView(ReportedFundingViewMixin, CreateView):
     pass
+
+
+class ReportedActivityViewMixin:
+
+    # model = models.ReportedActivity
+    fields = "__all__"
+    exclude = ["updated_at", "created_at"]
+    widgets = {
+        # "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        # "agency": s2forms.ModelSelect2Widget(
+        #     model=models.Organisation,
+        #     search_fields=["name__icontains"],
+        #     attrs={"class": "form-control custom-select", "with": "100%"}
+        # ),
+        "obj": OrgWidget(
+            attrs={"class": "form-control custom-select", "with": "100%"},
+            model=models.Organisation,
+        ),
+        "end_date": forms.DateInput(),
+        "report": HiddenInput(),
+        "start_date": forms.DateInput(),
+        "url": URLInput(),
+    }
+
+    @cached_property
+    def report_id(self):
+        if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
+            return int(report_id)
+
+    @property
+    def report(self):
+        if self.object and self.object.report:
+            return self.object.report
+        if self.report_id:
+            return models.Report.where(pk=self.report_id).first()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.GET.get("_modal_dialog"):
+            context["modal_dialog"] = True
+        if report_id := self.report_id:
+            context["report"] = report_id
+        return context
+
+    def get_initial(self):
+        initial = super().get_initial() or {}
+        initial["report"] = self.report_id
+        initial["title"] = self.report.contract.project_title
+        return initial
+
+    def get_template_names(self):
+        if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
+            return ["partials/reported_activity_form.html"]
+        return super().get_template_names()
+
+    def get_form_class(self):
+        """Return the form class to use in this view."""
+        return model_forms.modelform_factory(
+            self.model, fields=self.fields, exclude=self.exclude, widgets=self.widgets
+        )
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper = FormHelper()
+
+        if self.request.GET.get("_modal_dialog"):
+            form.helper.form_tag = False
+        form.helper.layout = Layout(
+            "type",
+            Row(
+                Column("org", css_class="col-8"),
+                Column("start_date", css_class="col-2"),
+                Column("end_date", css_class="col-2"),
+            ),
+            "description",
+        )
+        if not self.request.GET.get("_modal_dialog"):
+            form.helper.layout.append(
+                bootstrap.FormActions(
+                    layout.Submit("save", "Save changes"),
+                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+                    css_class="float-right",
+                ),
+            )
+        return form
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            report = self.report
+            return render(self.request, "partials/reported_activity_list.html", locals())
+        return resp
+
+
+class ReportedAwardViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedAward
+    fields = ["member", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["member"].queryset = self.report.efforts.all()
+        form.fields["member"].label = _("Researcher")
+        form.fields["description"].label = _("Award")
+        form.helper = FormHelper()
+
+        if self.request.GET.get("_modal_dialog"):
+            form.helper.form_tag = False
+        form.helper.layout = Layout(
+            Field("member", label=_("Researcher")), Field("description", label=_("Award"))
+        )
+        if not self.request.GET.get("_modal_dialog"):
+            form.helper.layout.append(
+                bootstrap.FormActions(
+                    layout.Submit("save", "Save changes"),
+                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+                    css_class="float-right",
+                ),
+            )
+        return form
+
+
+class ReportedAwardUpdateView(ReportedAwardViewMixin, UpdateView):
+    pass
+
+
+class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
+    pass
+
+
+class ReportedActivityView(View):
+
+    award_view = staticmethod(ReportedAwardCreateView.as_view())
+    # bar_view = staticmethod(BarView.as_view())
+
+    def dispatch(self, request, *args, **kwargs):
+        category = request.GET.get("activity_category")
+
+        if category == "A":
+            return self.award_view(request, *args, **kwargs)
+        # else:
+        #     return self.bar_view(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 @login_required

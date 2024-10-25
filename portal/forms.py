@@ -3747,8 +3747,8 @@ class ReportForm(ModelForm):
                         many activity types from their ORCID profile record.') }}
                     </p>
                 </div>
-                <div id="acitvity-list">
-                {% jinja 'partials/report_publication_list.html' %}
+                <div id="activity-list">
+                {% jinja 'partials/reported_activity_list.html' %}
                 </div>"""
                     ),
                     Div(

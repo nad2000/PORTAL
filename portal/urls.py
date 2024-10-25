@@ -184,6 +184,28 @@ urlpatterns = [
                     ),
                 ),
                 path(
+                    "activities/~create",
+                    views.ReportedActivityView.as_view(),
+                    name="reported-activity-create",
+                ),
+                path(
+                    "awards/",
+                    include(
+                        [
+                            path(
+                                "~create",
+                                views.ReportedAwardCreateView.as_view(),
+                                name="reported-award-create",
+                            ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedAwardUpdateView.as_view(),
+                                name="reported-award-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
                     "",
                     views.ReportList.as_view(),
                     name="report-list",

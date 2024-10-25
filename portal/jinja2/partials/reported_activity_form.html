@@ -1,0 +1,89 @@
+{% if modal_dialog %}
+  <form
+    hx-post="{{ request.get_full_path() }}"
+    hx-target="#activity-list"
+    hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+    class="modal-content"
+    id="reported-activity-form"
+  >
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  {% if report %}<input type="hidden" name="report" value="{{ report }}">{% endif %}
+  <input type="hidden" name="_modal_dialog" value="1">
+  <div class="modal-header">
+    <h5 class="modal-title">
+      {% if instance and instance.pk %}
+        {{ instance }}
+      {% elif object and object.pk %}
+        {{ object.title }}
+      {% else %}
+        {{ _('Add a new activity') }}
+      {% endif %}
+    </h5>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    {{ crispy(form, form.helper) }}
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
+    <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+  </div>
+</form>
+{#{ form.media.js }#}
+<!-- script>
+  $("#reported-funding-form").ready(function() {
+    // $('#id_agency').select2();
+    window.__dal__initialize($("#id_agency"));
+    $('#id_start_date,#id_end_date').datepicker();
+    $(".select2-selection__arrow").remove();
+  });
+</script -->
+{#
+{% elif modal %}
+<div class="modal" id="reported-funding-modal" tabindex="-1" role="dialog" _="on closeModal add .closing then wait for animationend then remove me">
+  <div class="modal-dialog" role="document">
+    <div class="modal-underlay" _="on click trigger closeModal"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {% if instance and instance.pk %}
+            {{ instance }}
+          {% else %}
+            {{ _('Add a new funding') }}
+          {% endif %}
+        </h5>
+        <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+        <form hx-post="{{ request.path }}" hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}' class="dialog">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+          <div class="modal-body">
+            {{ crispy(form, form.helper) }}
+          </div>
+            {% render_field form.comment hx-post="/check_comment/" hx-swap="outerHTML"  hx-trigger="keyup" hx-target="#modal_field" class="form__comment" %}
+             <div id="modal_field">Count:</div>
+            <div class="form__button">
+                <input type="button" value="Cancel" _="on click trigger closeModal"></input>
+                <input type="button" value="Submit" hx-post="{{ url('uiapp:display-modal') }}" hx-trigger="click" hx-target="#email-error" hx-swap="innerHTML"></input>
+            </div>
+        </form>
+      <div class="modal-footer">
+        {% if instance and instance.pk %}
+          <button type="button" class="btn btn-danger" hx-post="{{ url('remove_movie', pk=instance.pk) }}">{{ _('Remove') }}</button>
+        <span class="flex-grow-1"></span>
+        {% endif %}
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+#}
+{% else %}
+{{ crispy(form, form.helper) }}
+{% endif %}

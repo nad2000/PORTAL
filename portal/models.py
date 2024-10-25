@@ -1161,9 +1161,7 @@ class Organisation(Model):
             q = (
                 q.filter(
                     Q(
-                        id__in=cls.where(
-                            Q(name__istartswith=s) | Q(name__istartswith=s0)
-                        )
+                        id__in=cls.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
                         .values("name")
                         .annotate(Min("id"))
                         .values("id__min")
@@ -1176,9 +1174,7 @@ class Organisation(Model):
                 OrgName.where(
                     Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
                     Q(
-                        org_id__in=OrgName.where(
-                            Q(name__istartswith=s) | Q(name__istartswith=s0)
-                        )
+                        org_id__in=OrgName.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
                         .values("name")
                         .annotate(Min("org_id"))
                         .values("org_id__min")
@@ -1192,10 +1188,7 @@ class Organisation(Model):
             # )
         else:
             q = q.filter(
-                id__in=cls.objects.all()
-                .values("name")
-                .annotate(Min("id"))
-                .values("id__min")
+                id__in=cls.objects.all().values("name").annotate(Min("id")).values("id__min")
             ).values_list("id", "name")
         return q.order_by("name")
 
@@ -9602,10 +9595,10 @@ class ReportCommentAttachment(Model):
 
 
 ACTIVITY_CATEGORIES = Choices(
-        ("A", _("Award")), 
-        ("C", _("Collaboration")), 
-        ("P", _("Publicity")), 
-        ("V", _("Visits")), 
+    ("A", _("Award")),
+    ("C", _("Collaboration")),
+    ("P", _("Publicity")),
+    ("V", _("Visits")),
 )
 
 
@@ -9617,36 +9610,94 @@ ACTIVITY_CATEGORIES = Choices(
 #     class Meta:
 #         db_table = "activity_type"
 #         # unique_together = (("contract", "period", "type"),)
-    
+
 # # Publicity
 # #     Activity: Radio, TV, Newspaper, Popular Article, Newsletter, Outreach, Public Lecture, Conference, Other
 # #     Details: ... (description)
 
 
-# class ReportedActivity(Model):
-#     category = FixedCharField(max_length=1, choices=ACTIVITY_CATEGORIES)
-#     orcid = CharField(max_length=20, blank=True, null=True, editable=False)
-#     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
-#     start_date = DateField(_("start date"), null=True, blank=True)
-#     end_date = DateField(_("end date"), null=True, blank=True)
-#     description = CharField(_("description"), max_length=255, blank=True, null=True)
-#     organisation = CharField(
-#         _("organisation"), max_length=200, null=True, blank=True
-#     )  # entered name
-#     org = ForeignKey(
-#         Organisation,
-#         on_delete=SET_NULL,
-#         verbose_name=_("organisation"),
-#     )
-#     member = ForeignKey(ReportedEffort, null=True, blank=True, on_delete=SET_NULL)
+class ReportedActivity(Model):
+    # category = FixedCharField(max_length=1, choices=ACTIVITY_CATEGORIES)
+    type = CharField(max_length=100, null=True, blank=True)
+    orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+    put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+    start_date = DateField(_("start date"), null=True, blank=True)
+    end_date = DateField(_("end date"), null=True, blank=True)
+    description = CharField(_("description"), max_length=255, blank=True, null=True)
+    organisation = CharField(
+        _("organisation"), max_length=200, null=True, blank=True
+    )  # entered name
+    org = ForeignKey(
+        Organisation,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("organisation"),
+    )
+    member = ForeignKey(ReportedEffort, null=True, blank=True, on_delete=SET_NULL)
 
-#     history = HistoricalRecords(table_name="reported_activity_history")
-
-#     class Meta:
-#         db_table = "reported_activity"
-#         # unique_together = (("contract", "period", "type"),)
+    class Meta:
+        abstract = True
 
 
+class ReportedPublicity(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="publicities")
+
+    class Meta:
+        db_table = "reported_publicity"
+
+
+class ReportedCollaboration(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="collaborations")
+
+    full_name = CharField(_("collaborator"), max_length=400)
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="+",
+    )
+
+    class Meta:
+        db_table = "reported_collaboration"
+
+
+class ReportedVisit(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="visits")
+
+    full_name = CharField(_("host"), max_length=400)
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="+",
+    )
+    country = ForeignKey(
+        Country,
+        verbose_name=_("country"),
+        db_column="country",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        default="NZ",
+    )
+
+    class Meta:
+        db_table = "reported_visit"
+
+
+class ReportedAward(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="awards")
+
+    class Meta:
+        db_table = "reported_award"
 
 
 dummy_for_translations = (
