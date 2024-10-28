@@ -24,7 +24,8 @@
     </button>
   </div>
   <div class="modal-body">
-    {{ crispy(form, form.helper) }}
+    {{ crispy(form) }}
+    {#{ crispy(form, form.helper) }#}
   </div>
   <div class="modal-footer">
     <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>

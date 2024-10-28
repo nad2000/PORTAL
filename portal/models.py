@@ -9277,6 +9277,11 @@ class ReportedEffort(ReportedEffortMixin, Model):
                 self.role = me.member.role
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        if self.role:
+            return f"{self.full_name} ({self.role})"
+        return self.full_name
+
     class Meta:
         db_table = "reported_effort"
 
@@ -9623,7 +9628,7 @@ class ReportedActivity(Model):
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
     start_date = DateField(_("start date"), null=True, blank=True)
     end_date = DateField(_("end date"), null=True, blank=True)
-    description = CharField(_("description"), max_length=255, blank=True, null=True)
+    description = TextField(_("description"), max_length=2000, blank=True, null=True)
     organisation = CharField(
         _("organisation"), max_length=200, null=True, blank=True
     )  # entered name
@@ -9653,6 +9658,16 @@ class ReportedCollaboration(ReportedActivity):
     report = ForeignKey(Report, on_delete=CASCADE, related_name="collaborations")
 
     full_name = CharField(_("collaborator"), max_length=400)
+    country = ForeignKey(
+        Country,
+        verbose_name=_("country"),
+        db_column="country",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        default="NZ",
+    )
     person = ForeignKey(
         Person,
         on_delete=SET_NULL,

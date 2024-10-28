@@ -10136,7 +10136,7 @@ class ReportedActivityViewMixin:
         #     search_fields=["name__icontains"],
         #     attrs={"class": "form-control custom-select", "with": "100%"}
         # ),
-        "obj": OrgWidget(
+        "org": OrgWidget(
             attrs={"class": "form-control custom-select", "with": "100%"},
             model=models.Organisation,
         ),
@@ -10183,31 +10183,6 @@ class ReportedActivityViewMixin:
             self.model, fields=self.fields, exclude=self.exclude, widgets=self.widgets
         )
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class=form_class)
-        form.helper = FormHelper()
-
-        if self.request.GET.get("_modal_dialog"):
-            form.helper.form_tag = False
-        form.helper.layout = Layout(
-            "type",
-            Row(
-                Column("org", css_class="col-8"),
-                Column("start_date", css_class="col-2"),
-                Column("end_date", css_class="col-2"),
-            ),
-            "description",
-        )
-        if not self.request.GET.get("_modal_dialog"):
-            form.helper.layout.append(
-                bootstrap.FormActions(
-                    layout.Submit("save", "Save changes"),
-                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
-                    css_class="float-right",
-                ),
-            )
-        return form
-
     def form_valid(self, form):
         resp = super().form_valid(form)
         if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
@@ -10223,24 +10198,24 @@ class ReportedAwardViewMixin(ReportedActivityViewMixin):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
-        form.fields["member"].queryset = self.report.efforts.all()
+        form.fields["member"].queryset = self.report.efforts.all().order_by("full_name", "role")
         form.fields["member"].label = _("Researcher")
         form.fields["description"].label = _("Award")
-        form.helper = FormHelper()
+        # form.helper = FormHelper()
 
-        if self.request.GET.get("_modal_dialog"):
-            form.helper.form_tag = False
-        form.helper.layout = Layout(
-            Field("member", label=_("Researcher")), Field("description", label=_("Award"))
-        )
-        if not self.request.GET.get("_modal_dialog"):
-            form.helper.layout.append(
-                bootstrap.FormActions(
-                    layout.Submit("save", "Save changes"),
-                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
-                    css_class="float-right",
-                ),
-            )
+        # if self.request.GET.get("_modal_dialog"):
+        #     form.helper.form_tag = False
+        # form.helper.layout = Layout(
+        #     Field("member", label=_("Researcher")), Field("description", label=_("Award"))
+        # )
+        # if not self.request.GET.get("_modal_dialog"):
+        #     form.helper.layout.append(
+        #         bootstrap.FormActions(
+        #             layout.Submit("save", "Save changes"),
+        #             layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+        #             css_class="float-right",
+        #         ),
+        #     )
         return form
 
 
@@ -10252,9 +10227,65 @@ class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
     pass
 
 
+class ReportedPublicityViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedPublicity
+    fields = ["type", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["description"].label = _("Details")
+        form.fields["type"].label = _("Activity")
+        form.fields["type"].widget = widgets.Select(
+            choices=models.Choices(
+                "Conference",
+                "Newsletter",
+                "Newspaper",
+                "Outreach",
+                "Popular Article",
+                "Public Lecture",
+                "Radio",
+                "TV",
+                "Other",
+            )
+        )
+        return form
+
+
+class ReportedPublicityUpdateView(ReportedPublicityViewMixin, UpdateView):
+    pass
+
+
+class ReportedPublicityCreateView(ReportedPublicityViewMixin, CreateView):
+    pass
+
+
+class ReportedCollaborationViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedCollaboration
+    fields = ["full_name", "organisation", "country", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["description"].label = _("Nature of Collaboration")
+        form.fields["full_name"].label = _("Collaborator")
+        form.fields["organisation"].label = _("Institution")
+        return form
+
+
+class ReportedCollaborationUpdateView(ReportedCollaborationViewMixin, UpdateView):
+    pass
+
+
+class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView):
+    pass
+
+
 class ReportedActivityView(View):
 
     award_view = staticmethod(ReportedAwardCreateView.as_view())
+    publicity_view = staticmethod(ReportedPublicityCreateView.as_view())
+    collaboration_view = staticmethod(ReportedCollaborationCreateView.as_view())
     # bar_view = staticmethod(BarView.as_view())
 
     def dispatch(self, request, *args, **kwargs):
@@ -10262,6 +10293,10 @@ class ReportedActivityView(View):
 
         if category == "A":
             return self.award_view(request, *args, **kwargs)
+        elif category == "P":
+            return self.publicity_view(request, *args, **kwargs)
+        elif category == "C":
+            return self.collaboration_view(request, *args, **kwargs)
         # else:
         #     return self.bar_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
