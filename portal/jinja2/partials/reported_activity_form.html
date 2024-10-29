@@ -17,7 +17,7 @@
       {% if instance and instance.pk %}
         {{ instance }}
       {% elif object and object.pk %}
-        {{ object.title }}
+        {{ object }}
       {% else %}
         {{ _('Add a new activity') }}
       {% endif %}

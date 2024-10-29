@@ -10146,6 +10146,9 @@ class ReportedActivityViewMixin:
         "url": URLInput(),
     }
 
+    def get_success_url(self):
+        return ""
+
     @cached_property
     def report_id(self):
         if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
@@ -10244,7 +10247,9 @@ class ReportedPublicityViewMixin(ReportedActivityViewMixin):
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
         form.fields["description"].label = _("Details")
+        form.fields["description"].required = True
         form.fields["type"].label = _("Activity")
+        form.fields["type"].required = True
         form.fields["type"].widget = widgets.Select(
             choices=models.Choices(
                 "Conference",

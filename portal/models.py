@@ -9677,6 +9677,9 @@ class ReportedActivity(Model):
     )
     member = ForeignKey(ReportedEffort, null=True, blank=True, on_delete=SET_NULL)
 
+    def __str__(self):
+        return f"{self._meta.verbose_name.title()}: {getattr(self, 'full_name', self.member) or self.organisation or self.type}"
+
     class Meta:
         abstract = True
 

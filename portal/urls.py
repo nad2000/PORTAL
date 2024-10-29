@@ -189,6 +189,40 @@ urlpatterns = [
                     name="reported-activity-create",
                 ),
                 path(
+                    "collaboration/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedCollaborationUpdateView.as_view(),
+                                name="reported-collaboration-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
+                    "visits/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedVisitUpdateView.as_view(),
+                                name="reported-visit-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
                     "publicity/",
                     include(
                         [
