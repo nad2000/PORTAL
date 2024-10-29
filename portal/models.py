@@ -1999,7 +1999,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("Terms and Conditions accepted at"),
         null=True,
         default=None,
-        blank=True
+        blank=True,
     )
     budget = PrivateFileField(
         blank=True,
@@ -2196,17 +2196,19 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         super().save(*args, **kwargs)
         if (pi := self.submitted_by) and not self.members.filter(user=pi).exists():
             self.members.model.get_or_create(
-                    application=self, 
-                    user=pi, 
-                    email=self.email or pi.email, 
-                    defaults=dict(
-                        first_name=self.first_name or pi.first_name, 
-                        middle_names=self.middle_names or pi.middle_names, 
-                        last_name=self.last_name or pi.last_name, 
-                        state="authorized",
-                        authorized_at=self.updated_at,
-                        role_description="The submitter of the application",
-                        role_id="PI"))
+                application=self,
+                user=pi,
+                email=self.email or pi.email,
+                defaults=dict(
+                    first_name=self.first_name or pi.first_name,
+                    middle_names=self.middle_names or pi.middle_names,
+                    last_name=self.last_name or pi.last_name,
+                    state="authorized",
+                    authorized_at=self.updated_at,
+                    role_description="The submitter of the application",
+                    role_id="PI",
+                ),
+            )
 
     @cache
     def can_only_update_referees(self, user):
@@ -3561,7 +3563,9 @@ class Member(PersonMixin, MemberMixin, Model):
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    authorized_at = MonitorField(monitor="state", when=["authorized"], null=True, default=None, blank=True)
+    authorized_at = MonitorField(
+        monitor="state", when=["authorized"], null=True, default=None, blank=True
+    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -3750,7 +3754,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
     )
     state = StateField(_("referee state"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    testified_at = MonitorField(monitor="state", when=["testified"], null=True, default=None, blank=True)
+    testified_at = MonitorField(
+        monitor="state", when=["testified"], null=True, default=None, blank=True
+    )
     survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=100, null=True, blank=True, default=None)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
@@ -3952,7 +3958,11 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         % limesurvey_status
                     )
                 for r in resp:
-                    if "errors" in r and "token" in r["errors"] and " has already been taken." in r["errors"]["token"]:
+                    if (
+                        "errors" in r
+                        and "token" in r["errors"]
+                        and " has already been taken." in r["errors"]["token"]
+                    ):
                         r = api.token.get_participant_properties(survey_id, None, {"token": token})
                     if r.get("email") == self.email.lower():
                         self.survey_token_id = r.get("tid")
@@ -3980,7 +3990,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not self.survey_token_id:
                 try:
-                    resp = api.token.get_participant_properties(survey_id, None, {"token": self.survey_token})
+                    resp = api.token.get_participant_properties(
+                        survey_id, None, {"token": self.survey_token}
+                    )
                     self.survey_token_id = resp.get("tid")
                     self.save(update_fields=["survey_token_id", "updated_at"])
                 except LimeSurveyError:
@@ -4382,12 +4394,20 @@ class Invitation(InvitationMixin, PersonMixin, Model):
     )
     state = StateField(default="draft")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    submitted_at = MonitorField(monitor="state", when=["submitted"], null=True, default=None, blank=True)
+    submitted_at = MonitorField(
+        monitor="state", when=["submitted"], null=True, default=None, blank=True
+    )
     sent_at = MonitorField(monitor="state", when=["sent"], null=True, default=None, blank=True)
-    accepted_at = MonitorField(monitor="state", when=["accepted"], null=True, default=None, blank=True)
+    accepted_at = MonitorField(
+        monitor="state", when=["accepted"], null=True, default=None, blank=True
+    )
     read_at = MonitorField(monitor="state", when=["read"], null=True, default=None, blank=True)
-    expired_at = MonitorField(monitor="state", when=["expired"], null=True, default=None, blank=True)
-    bounced_at = MonitorField(monitor="state", when=["bounced"], null=True, default=None, blank=True)
+    expired_at = MonitorField(
+        monitor="state", when=["expired"], null=True, default=None, blank=True
+    )
+    bounced_at = MonitorField(
+        monitor="state", when=["bounced"], null=True, default=None, blank=True
+    )
 
     # TODO: need to figure out how to propagate STATUS to the historical rec model:
     # history = HistoricalRecords(table_name="invitation_history")
@@ -4631,9 +4651,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             if not application:
                 return
             contact_email = (
-                application
-                and application.round.contact_email
-                or site_contact_email(site_id)
+                application and application.round.contact_email or site_contact_email(site_id)
             )
             subject = __("You are invited to be part of a %(site_name)s application") % {
                 "site_name": site_name
@@ -6173,11 +6191,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 q = q.filter(pk__in=referees.values_list("pk"))
             fixed_referees = []
             api = self.survey_api
-            for r in q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")):
+            for r in q.filter(
+                Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
+            ):
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
-                    resp = api.token.get_participant_properties(self.survey_id, None, {"token": r.survey_token})
+                    resp = api.token.get_participant_properties(
+                        self.survey_id, None, {"token": r.survey_token}
+                    )
                     r.survey_token_id = resp.get("tid")
                 except LimeSurveyError:
                     r.add_to_survey(api=api)
@@ -6648,25 +6670,30 @@ class Evaluation(EvaluationMixin, Model):
             raise ValidationError(_("The review is not completed. Missing an overall comment."))
 
     @fsm_log
-    @transition(field=state, target="draft")
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="draft",
+        custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
+    )
     def request_resubmission(self, request=None, by=None, *args, **kwargs):
-        url = request.build_absolute_uri(reverse("evaluation-update", {"pk", self.pk}))
-        subject = __("Please re-evaluate the application and resubmit your scores")
-        body = __("Please re-evaluate the application and resubmit your scores: %s") % url
+        if request:
+            url = request.build_absolute_uri(reverse("evaluation-update", {"pk", self.pk}))
+            subject = __("Please re-evaluate the application and resubmit your scores")
+            body = __("Please re-evaluate the application and resubmit your scores: %s") % url
 
-        send_mail(
-            subject,
-            body,
-            recipients=[self.panellist.email or self.panellist.user.email],
-            fail_silently=False,
-            request=request,
-            reply_to=(
-                request.user.email if request and request.user else settings.DEFAULT_FROM_EMAIL
-            ),
-            thread_index=self.thread_index,
-            thread_topic=self.thread_topic,
-        )
-
+            send_mail(
+                subject,
+                body,
+                recipients=[self.panellist.email or self.panellist.user.email],
+                fail_silently=False,
+                request=request,
+                reply_to=(
+                    request.user.email if request and request.user else settings.DEFAULT_FROM_EMAIL
+                ),
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
 
     @classmethod
     def user_evaluations(cls, user, state=None, round=None):
@@ -7217,7 +7244,9 @@ class IdentityVerification(Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent")
+    @transition(
+        field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent"
+    )
     def send(self, request, *args, **kwargs):
         url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
 
@@ -8568,7 +8597,9 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     )
     date_first_remind = DateField(blank=True, null=True)
     state = StateField(default="new", verbose_name=_("state"))
-    acknowledged_at = MonitorField(monitor="state", when=["acknowledged"], null=True, default=None, blank=True)
+    acknowledged_at = MonitorField(
+        monitor="state", when=["acknowledged"], null=True, default=None, blank=True
+    )
 
     # reported = models.BooleanField(blank=True, null=True)
     # reported_date = models.DateField(blank=True, null=True)
