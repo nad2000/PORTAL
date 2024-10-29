@@ -10183,6 +10183,13 @@ class ReportedActivityViewMixin:
             self.model, fields=self.fields, exclude=self.exclude, widgets=self.widgets
         )
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper = FormHelper()
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            form.helper.form_tag = False
+        return form
+
     def form_valid(self, form):
         resp = super().form_valid(form)
         if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
@@ -10200,7 +10207,9 @@ class ReportedAwardViewMixin(ReportedActivityViewMixin):
         form = super().get_form(form_class=form_class)
         form.fields["member"].queryset = self.report.efforts.all().order_by("full_name", "role")
         form.fields["member"].label = _("Researcher")
+        form.fields["member"].required = True
         form.fields["description"].label = _("Award")
+        form.fields["description"].required = True
         # form.helper = FormHelper()
 
         # if self.request.GET.get("_modal_dialog"):
@@ -10281,11 +10290,38 @@ class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView
     pass
 
 
+class ReportedVisitViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedVisit
+    fields = ["member", "full_name", "organisation", "country", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["member"].label = _("Visitor")
+        form.fields["member"].required = True
+        form.fields["member"].queryset = self.report.efforts.all().order_by("full_name", "role")
+        form.fields["description"].label = _("Purpose")
+        form.fields["description"].required = True
+        form.fields["full_name"].label = _("Host")
+        form.fields["organisation"].label = _("Institution")
+        form.fields["organisation"].required = True
+        return form
+
+
+class ReportedVisitUpdateView(ReportedVisitViewMixin, UpdateView):
+    pass
+
+
+class ReportedVisitCreateView(ReportedVisitViewMixin, CreateView):
+    pass
+
+
 class ReportedActivityView(View):
 
     award_view = staticmethod(ReportedAwardCreateView.as_view())
     publicity_view = staticmethod(ReportedPublicityCreateView.as_view())
     collaboration_view = staticmethod(ReportedCollaborationCreateView.as_view())
+    visit_view = staticmethod(ReportedVisitCreateView.as_view())
     # bar_view = staticmethod(BarView.as_view())
 
     def dispatch(self, request, *args, **kwargs):
@@ -10297,6 +10333,8 @@ class ReportedActivityView(View):
             return self.publicity_view(request, *args, **kwargs)
         elif category == "C":
             return self.collaboration_view(request, *args, **kwargs)
+        elif category == "V":
+            return self.visit_view(request, *args, **kwargs)
         # else:
         #     return self.bar_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)

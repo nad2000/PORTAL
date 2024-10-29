@@ -1,8 +1,11 @@
 {% if modal_dialog %}
   <form
+    hx-validate="true"
     hx-post="{{ request.get_full_path() }}"
     hx-target="#activity-list"
     hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+    action="{{ request.get_full_path() }}"
+    method="post"
     class="modal-content"
     id="reported-activity-form"
   >
@@ -29,7 +32,9 @@
   </div>
   <div class="modal-footer">
     <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
-    <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+    <!-- button type="submit" class="btn btn-primary">{{ _('Save') }}</button -->
+    <!-- button type="post" class="btn btn-primary">{{ _('Save') }}</button -->
+    <input type="submit" class="btn btn-primary" value="{{ _('Save') }}">
   </div>
 </form>
 {#{ form.media.js }#}

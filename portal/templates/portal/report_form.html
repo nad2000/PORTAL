@@ -123,6 +123,7 @@
         } else if (target_id == "reported-funding-list") {
            $('#reported-funding-modal').modal('hide');
         }
+        $("[required]").attr("hx-validate", true);
       });
       $(".select2-selection__arrow").remove();
       $("#submit-id-submit").click(function(e) {

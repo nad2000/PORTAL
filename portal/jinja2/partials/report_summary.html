@@ -53,9 +53,9 @@
           {{ _('Report Due') }}
         </th>
         <td>
-          {% if due_in_days < 0 %}
+          {% if due_in_days < 1 %}
             <strong>
-                <span class="text-danger"> {{ r.due_date }} ({% if due_in_days < 1 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
+                <span class="text-danger"> {{ r.due_date }} ({% if due_in_days == 0 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
             </strong>
           {% elif due_in_days < 4 %}
             <strong>

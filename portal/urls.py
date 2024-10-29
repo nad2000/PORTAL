@@ -189,14 +189,31 @@ urlpatterns = [
                     name="reported-activity-create",
                 ),
                 path(
+                    "publicity/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedPublicityUpdateView.as_view(),
+                                name="reported-publicity-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
                     "awards/",
                     include(
                         [
-                            path(
-                                "~create",
-                                views.ReportedAwardCreateView.as_view(),
-                                name="reported-award-create",
-                            ),
+                            # path(
+                            #     "~create",
+                            #     views.ReportedAwardCreateView.as_view(),
+                            #     name="reported-award-create",
+                            # ),
                             path(
                                 "<int:pk>/~update",
                                 views.ReportedAwardUpdateView.as_view(),
