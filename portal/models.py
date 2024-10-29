@@ -3633,9 +3633,6 @@ class Member(PersonMixin, MemberMixin, Model):
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
     )
-    authorized_at = MonitorField(
-        monitor="state", when=["authorized"], null=True, default=None, blank=True
-    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -6797,6 +6794,19 @@ class Evaluation(EvaluationMixin, Model):
             for s in Score.where(evaluation=self)
         )
 
+    @property
+    def thread_index(self):
+        if self.application_id and (n := Nomination.where(application=self.application_id).last()):
+            idx = n.id
+        else:
+            idx = self.application_id
+        site_id = self.application and self.application.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{idx}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.application and self.application.number
+
     @fsm_log
     @transition(field=state, source=["draft", "new"], target="draft", custom=dict(admin=False))
     def save_draft(self, *args, **kwargs):
@@ -6808,6 +6818,32 @@ class Evaluation(EvaluationMixin, Model):
         self.total_score = self.calc_evaluation_score()
         if not self.comment:
             raise ValidationError(_("The review is not completed. Missing an overall comment."))
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="draft",
+        custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
+    )
+    def request_resubmission(self, request=None, by=None, *args, **kwargs):
+        if request:
+            url = request.build_absolute_uri(reverse("evaluation-update", {"pk", self.pk}))
+            subject = __("Please re-evaluate the application and resubmit your scores")
+            body = __("Please re-evaluate the application and resubmit your scores: %s") % url
+
+            send_mail(
+                subject,
+                body,
+                recipients=[self.panellist.email or self.panellist.user.email],
+                fail_silently=False,
+                request=request,
+                reply_to=(
+                    request.user.email if request and request.user else settings.DEFAULT_FROM_EMAIL
+                ),
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
 
     @classmethod
     def user_evaluations(cls, user, state=None, round=None):

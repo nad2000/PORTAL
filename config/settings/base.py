@@ -530,6 +530,12 @@ SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
 DJANGO_TABLES2_TABLE_ATTRS = {"class": "table table-striped table-bordered"}
 DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4-responsive.html"
 # DJANGO_EASY_AUDIT_WATCH_MODEL_EVENTS = False
+DJANGO_EASY_AUDIT_UNREGISTERED_CLASSES_EXTRA = [
+    "explorer.Query",
+    "explorer.QueryLog",
+    "explorer.QueryFavorite",
+    # "explorer.ExplorerValue",
+]
 DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
     r"^/admin/",
     r"^/static/",
