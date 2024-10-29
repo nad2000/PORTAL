@@ -9134,7 +9134,8 @@ class Report(ReportMixin, PdfFileMixin, Model):
             return q
 
         f = (
-            Q(contract__application__submitted_by=user)
+            Q(assessor=user)
+            | Q(contract__application__submitted_by=user)
             # | Q(members__user=user, members__state="authorized")
             # | Q(referees__user=user)
             # | Q(nomination__nominator=user)
@@ -9160,6 +9161,60 @@ class Report(ReportMixin, PdfFileMixin, Model):
     @property
     def thread_topic(self):
         return f"REPORT:{self.period}:{self.type}:{self.contract.number}"
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "submitted"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="submit"),
+    )
+    def submit(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        if self.assessor:
+            url = self.get_full_detail_url(request=request)
+            link_name = domain_to_macrons(url)
+
+            send_mail(
+                f"Report {self} Submitted",
+                message=f"User {by} submitted the report {self}.",
+                from_email="reports",
+                recipients=[self.assessor],
+                fail_silently=False,
+                request=request,
+                # reply_to=settings.DEFAULT_FROM_EMAIL,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted", "assessed"],
+        target="assessed",
+        custom=dict(verbose="Assess", button_name="assess"),
+    )
+    def assess(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+
+        send_mail(
+            f"Report {self} Assessed",
+            message=f"User {by} submitted the report {self}.",
+            from_email="reports",
+            recipients=[self.pi],
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+
 
     class Meta:
         db_table = "report"

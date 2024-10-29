@@ -657,7 +657,7 @@ You have a request to review a {{ site_name }} application to act on.
                       $(this).popover('hide');
                     });
                   });
-                  $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %}").addClass("active");
+                  $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %},#{{view_name}}").addClass("active");
                   document.addEventListener("htmx:confirm", function(e) {
                     e.preventDefault()
                     // https://github.com/bigskysoftware/htmx/issues/2029

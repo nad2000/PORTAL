@@ -3308,7 +3308,7 @@ class ReportedEffortForm(ModelForm):
 
     class Meta:
         model = models.ReportedEffort
-        exclude = ["member_effort", "state"]
+        exclude = ["member_effort", "state", "person"]
         widgets = {
             "total_fte": forms.widgets.NumberInput(
                 attrs={"step": "0.01"}
@@ -3638,28 +3638,28 @@ class ReportForm(ModelForm):
                             Column("vm_ink", css_class="col-3"),
                             css_id="id_toas_row",
                         ),
-                        Div(
-                            Row(Column("is_vm_na")),
-                            Row(Column("vm_rationale")),
-                            # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
-                            # HTML(
-                            #     """<script>
-                            # $(document).ready(function() {
-                            #     //set initial state.
-                            #     if ($('#id_is_vm_na').is(':checked')) {
-                            #         $('#id_vm_na').show()
-                            #     } else { $('#id_vm_na').hide() };
-                            #     $('#id_is_vm_na').change(function() {
-                            #         if(this.checked) {
-                            #             // var returnVal = confirm("Are you sure?");
-                            #             // $(this).prop("checked", returnVal);
-                            #             $('#id_vm_na').show();
-                            #         } else $('#id_vm_na').hide();
-                            #     });
-                            # });
-                            # </script>"""
-                            # ),
-                        ),
+                        # Div(
+                        #     Row(Column("is_vm_na")),
+                        #     Row(Column("vm_rationale")),
+                        #     # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
+                        #     # HTML(
+                        #     #     """<script>
+                        #     # $(document).ready(function() {
+                        #     #     //set initial state.
+                        #     #     if ($('#id_is_vm_na').is(':checked')) {
+                        #     #         $('#id_vm_na').show()
+                        #     #     } else { $('#id_vm_na').hide() };
+                        #     #     $('#id_is_vm_na').change(function() {
+                        #     #         if(this.checked) {
+                        #     #             // var returnVal = confirm("Are you sure?");
+                        #     #             // $(this).prop("checked", returnVal);
+                        #     #             $('#id_vm_na').show();
+                        #     #         } else $('#id_vm_na').hide();
+                        #     #     });
+                        #     # });
+                        #     # </script>"""
+                        #     # ),
+                        # ),
                     ),
                 )
             if round.has_keywords:
@@ -4279,21 +4279,28 @@ class ReportForm(ModelForm):
     class Meta:
         model = models.Report
         exclude = [
-            "assessor",
             "address",
-            "site",
-            "fund",
-            "org",
-            "application",
-            "number",
-            "submitted_by",
-            "rccs",
-            "fors",
-            "seos",
-            "state",
-            "schedule_entry",
+            "alert_date",
+            "assessed_at",
+            "assessor",
+            "attachment",
+            "category",
+            "comment",
             "contract",
+            "converted_file",
+            "fors",
+            "fund",
+            "number",
+            "org",
             "period",
+            "publications",
+            "rccs",
+            "reported_at",
+            "schedule_entry",
+            "seos",
+            "site",
+            "state",
+            "submitted_by",
             "type",
         ]
         widgets = dict(

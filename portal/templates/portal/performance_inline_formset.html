@@ -13,7 +13,7 @@
     <thead>
       {% if formset.readonly and not formset.queryset.exists %}
       {% else %}
-        
+
         <tr>
           {% comment %}
           {% for field in formset.forms.0 %}
@@ -54,15 +54,15 @@
                     {% crispy_field field 'class' 'custom-select' %}
                 {% else %}
                   <!-- {{ field.value }} -->
-                  <input 
-                    type="hidden" 
-                    name="{{ field.html_name }}" 
-                    id="{{ field.auto_id }}" 
+                  <input
+                    type="hidden"
+                    name="{{ field.html_name }}"
+                    id="{{ field.auto_id }}"
                     value="{% if field.value is None or field.value == 'NA' %}NA{% elif field.value == True or field.value == 'Y' or file.value == 'YES' %}Y{% else %}N{% endif %}">
                   <div class="btn-group three-value-choice" role="group">
                     <button type="button" class="btn btn-{% if field.value != False and field.value != 'N' %}outline-{% endif %}danger" data-toggle="fun" data-title="N">{% trans 'No' %}</button>
                     {% if not field.field.required %}
-                    <button type="button" class="btn btn-{% if field.value is not None and field.value != 'NA' %}outline-{% endif %}secondary" data-toggle="fun" data-title="NA">{% trans 'n/a' %}</button>
+                    <button type="button" class="btn btn-{% if field.value is not None and field.value != 'NA' %}outline-{% endif %}secondary" data-toggle="fun" data-title="NA" style="min-width: 56px;">{% trans 'n/a' %}</button>
                     {% endif %}
                     <button type="button" class="btn btn-{% if field.value != True and field.value != 'Y' %}outline-{% endif %}success" data-toggle="fun" data-title="Y">{% trans 'Yes' %}</button>
                   </div>

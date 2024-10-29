@@ -221,7 +221,7 @@ def pyinfo(request, message=None):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
-    u = User.objects.filter(Q(username=username)|Q(email=username)).first()
+    u = User.objects.filter(Q(username=username) | Q(email=username)).first()
     if request.user.pk != u.pk:
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
     return redirect("start")
@@ -490,7 +490,7 @@ class SingleObjectMixin:
         return self._obj
 
 
-class DetailView(LoginRequiredMixin, DetailView):
+class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
 
     def get_context_data(self, *args, **kwargs):
@@ -1143,7 +1143,16 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.state in ["new", "draft", "submitted", "sent", "bounced", "read", "accepted", "autoreplied"]:
+            if i.state in [
+                "new",
+                "draft",
+                "submitted",
+                "sent",
+                "bounced",
+                "read",
+                "accepted",
+                "autoreplied",
+            ]:
                 if (
                     (i.first_name and not u.first_name)
                     or (i.middle_names and not u.middle_names)
@@ -1941,6 +1950,103 @@ class ReportViewMixin:
             form_kwargs={"duration": duration},
         )
 
+    def get_for_formset(self, *args, **kwargs):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            self.model.fors.through,
+            extra=1,
+            can_delete=True,
+            exclude=[],
+            # fields = ["id", "code", "application", "share"],
+            labels={"code": _("Field of Research")},
+            help_texts={
+                "code": _("Field of Research"),
+                "share": _("Share in %"),
+            },
+            widgets={
+                "code": autocomplete.ModelSelect2(
+                    "for-autocomplete",
+                    attrs={
+                        "data-placeholder": _("Choose a field of research..."),
+                        "placeholder": _("Choose a field of research..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("Field of research is required"),
+                        "oninput": "this.setCustomValidity('')",
+                    },
+                ),
+            },
+        )
+
+        initial_fors = (
+            [
+                dict(
+                    code=r.code_id,
+                    share=r.share,
+                )
+                for r in self.contract.application.fors.all()
+            ]
+            if not (self.object and self.object.pk)
+            else []
+        )
+        # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
+        if self.request.POST:
+            fs = fsc(self.request.POST, instance=self.object)
+        elif not (self.object and self.object.pk):
+            fs = fsc(instance=self.object, initial=initial_fors)
+        else:
+            fs = fsc(instance=self.object)
+        if initial_fors:
+            fs.extra = len(initial_fors)
+
+        return fs
+
+    def get_seo_formset(self, *args, **kwargs):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            self.model.seos.through,
+            # form=forms.RefereeForm,
+            extra=1,
+            can_delete=True,
+            exclude=[],
+            labels={"code": _("Socio-Economic Objective")},
+            help_texts={
+                "code": _("Socio-Economic Objective"),
+                "share": _("Share in %"),
+            },
+            widgets={
+                "code": autocomplete.ModelSelect2(
+                    "seo-autocomplete",
+                    attrs={
+                        "data-placeholder": _("Choose a ..."),
+                        "placeholder": _("Choose a Socio-Economic Objective..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("Socio-Economic Objective is required"),
+                        "oninput": "this.setCustomValidity('')",
+                    },
+                ),
+            },
+        )
+        initial_seos = (
+            [
+                dict(
+                    code=r.code_id,
+                    share=r.share,
+                )
+                for r in self.object.contract.appication.seos.all()
+            ]
+            if not (self.object and self.object.pk)
+            else []
+        )
+        fs = fsc(
+            self.request.POST or None,
+            instance=self.object,
+            initial=initial_seos,
+        )
+        fs.extra = len(initial_seos) or 1
+        return fs
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
@@ -1966,99 +2072,11 @@ class ReportViewMixin:
                 context["needs_attention"].append("report")
 
         if round.has_fors:
-            fsc = forms.inlineformset_factory(
-                self.model,
-                models.ReportFor,
-                extra=1,
-                can_delete=True,
-                exclude=[],
-                # fields = ["id", "code", "application", "share"],
-                labels={"code": _("Field of Research")},
-                help_texts={
-                    "code": _("Field of Research"),
-                    "share": _("Share in %"),
-                },
-                widgets={
-                    "code": autocomplete.ModelSelect2(
-                        "for-autocomplete",
-                        attrs={
-                            "data-placeholder": _("Choose a field of research..."),
-                            "placeholder": _("Choose a field of research..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Field of research is required"),
-                            "oninput": "this.setCustomValidity('')",
-                        },
-                    ),
-                },
-            )
-
-            initial_fors = (
-                [
-                    dict(
-                        code=r.code_id,
-                        share=r.share,
-                    )
-                    for r in models.ApplicationFor.where(application=a)
-                ]
-                if not (self.object and self.object.id)
-                else []
-            )
-            # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST:
-                fs = fsc(self.request.POST, instance=self.object)
-            elif not (self.object and self.object.id):
-                fs = fsc(instance=self.object, initial=initial_fors)
-            else:
-                fs = fsc(instance=self.object)
-            if initial_fors:
-                fs.extra = len(initial_fors)
+            fs = self.get_for_formset()
             context["fors"] = fs
 
         if round.has_seos:
-            fsc = forms.inlineformset_factory(
-                self.model,
-                models.ReportSeo,
-                # form=forms.RefereeForm,
-                extra=1,
-                can_delete=True,
-                exclude=[],
-                labels={"code": _("Socio-Economic Objective")},
-                help_texts={
-                    "code": _("Socio-Economic Objective"),
-                    "share": _("Share in %"),
-                },
-                widgets={
-                    "code": autocomplete.ModelSelect2(
-                        "seo-autocomplete",
-                        attrs={
-                            "data-placeholder": _("Choose a ..."),
-                            "placeholder": _("Choose a Socio-Economic Objective..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Socio-Economic Objective is required"),
-                            "oninput": "this.setCustomValidity('')",
-                        },
-                    ),
-                },
-            )
-            initial_seos = (
-                [
-                    dict(
-                        code=r.code_id,
-                        share=r.share,
-                    )
-                    for r in models.ApplicationSeo.where(application=a)
-                ]
-                if not (self.object and self.object.pk)
-                else []
-            )
-            fs = fsc(
-                self.request.POST or None,
-                instance=self.object,
-                initial=initial_seos,
-            )
-            fs.extra = len(initial_seos) or 1
+            fs = self.get_seo_formset()
             context["seos"] = fs
 
         # Effort:
@@ -2299,6 +2317,7 @@ class ReportViewMixin:
         r = i = form.instance or self.object
         c = r.contract
         a = c.application
+        round = a.round
         u = self.request.user
         # if not i.submitted_by:
         #     i.submitted_by = u
@@ -2313,6 +2332,46 @@ class ReportViewMixin:
         try:
             with transaction.atomic():
                 resp = super().form_valid(form)
+                update_url = i and i.pk and reverse("report-update", kwargs=dict(pk=i.pk))
+
+                if round.has_seos:
+                    seos = self.get_seo_formset()
+                    if not seos.instance or not seos.instance.id:
+                        seos.instance = i
+                    if seos.is_valid():
+                        seos.save()
+                    else:
+                        for f in seos.forms:
+                            if not f.is_valid():
+                                if "__all__" in f.errors:
+                                    messages.error(self.request, f.errors["__all__"])
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
+                        return self.form_invalid(form)
+
+                if round.has_fors:
+                    fors = self.get_for_formset()
+                    if not fors.instance or not fors.instance.id:
+                        fors.instance = i
+                    if fors.is_valid():
+                        fors.save()
+                    else:
+                        for f in fors.forms:
+                            if not f.is_valid():
+                                if "__all__" in f.errors:
+                                    messages.error(self.request, f.errors["__all__"])
+
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
+                        return self.form_invalid(form)
+
+                if "submit_report" in form.data:
+                    i.submit(request=self.request)
+                    i.save()
+
+                if "assess" in form.data:
+                    i.assess(request=self.request)
+                    i.save()
 
         except Exception as ex:
             capture_exception(ex)
@@ -2453,6 +2512,7 @@ class ReportViewMixin:
         #             thread_topic=i.thread_topic,
         #         )
         #         return redirect("report-update", pk=i.pk)
+
 
         if "post_comment" in self.request.POST:
 
