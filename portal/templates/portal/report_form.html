@@ -38,6 +38,10 @@
     <div id="activity-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
       <div id="activity-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
+    <!-- Placeholder for the modal -->
+    <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+      <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
+    </div>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
       <div class="modal-dialog modal-dialog-centered" role="document">
@@ -122,6 +126,8 @@
           $('#reported-funding-modal').modal('show');
         } else if (target_id == "reported-funding-list") {
            $('#reported-funding-modal').modal('hide');
+        } else if (target_id == "form-dialog") {
+           $('#form-modal').modal('show');
         }
         $("[required]").attr("hx-validate", true);
       });

@@ -16,6 +16,8 @@ from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from datetime import timedelta
+import email
+
 
 import pikepdf
 import simple_history
@@ -114,6 +116,9 @@ from common.models import (
 )
 
 from .utils import send_mail, vignere
+
+
+EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 
 
 class CurrentSiteManager(CurrentSiteManager):
@@ -2193,6 +2198,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         default=0,
     )
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
+
+    @cached_property
+    def ci(self):
+        return (
+            (ci := self.members.filter(role="CI").last()) and ci.person.user or self.submitted_by
+        )
 
     @cached_property
     def pi(self):
@@ -7929,6 +7940,18 @@ class ContractComment(Model):
         ordering = ["-id"]
 
 
+class ContractCommentRecipient(Model):
+
+    comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "contract_comment_recipient"
+        verbose_name = _("recipient")
+
+
 class ContractCommentAttachment(Model):
     comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="attachments")
     attachment = PrivateFileField(
@@ -8153,6 +8176,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     def __str__(self):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+
+    @cached_property
+    def ci(self):
+        return (ci := self.members.filter(role="CI").last()) and ci.user or self.application.ci
 
     @cached_property
     def pi(self):
@@ -8919,6 +8946,14 @@ class Report(ReportMixin, PdfFileMixin, Model):
         return self.schedule_entry.due_date
 
     @cached_property
+    def ci(self):
+        return (
+            (ci := self.efforts.filter(role="CI", person__user__isnull=False).last())
+            and ci.person.user
+            or self.contract.ci
+        )
+
+    @cached_property
     def pi(self):
         return (
             (pi := self.efforts.filter(role="PI", person__user__isnull=False).last())
@@ -9215,6 +9250,125 @@ class Report(ReportMixin, PdfFileMixin, Model):
             thread_topic=self.thread_topic,
         )
 
+    def import_email(
+        self, file, file_name=None, notify_author=True, request=None, by=None, reply_to=None
+    ):
+        if isinstance(file, io.BytesIO):
+            msg = email.message_from_binary_file(file)
+        else:
+            msg = email.message_from_file(file)
+
+        to = msg["to"]
+        subject = msg["subject"]
+        sender = msg["from"]
+        if sender and (match := re.search(EMAIL_EX, sender)):
+            sender = match[0].lower()
+        # from_addresses = []
+
+        by = (
+            User.where(Q(email=sender) | Q(emailaddress__email=sender)).first()
+            or by
+            or request
+            and request.user
+        )
+
+        body = msg["body"]
+        if not msg.is_multipart():
+            body = msg.get_payload(decode=True)
+        else:
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type == "multipart/alternative":
+                    for p in part.get_payload():
+                        body = p.get_payload(decode=True)
+                        if p.get_content_type() == "text/html":
+                            break
+
+        attachments = [
+            File(io.BytesIO(a.as_bytes()), name=a.get_filename())
+            for a in msg.walk()
+            if a.get_filename()
+        ]
+
+        def message_ids(msg):
+            headers = [
+                "in-reply-to",
+                "original-message-id",
+                "x-ms-exchange-parent-message-id",
+                "message-id",
+            ]
+            for h in headers:
+                v = msg[h]
+                if v:
+                    yield v
+            for p in msg.walk():
+                for f in headers:
+                    v = p[h]
+                    if v:
+                        yield v
+
+        if by or body:
+            token = get_unique_mail_token()
+            if body:
+                for encoding in ["utf-8", "iso-8859-4"]:
+                    try:
+                        body = body.decode(encoding)
+                        break
+                    except:
+                        pass
+            if not reply_to:
+                for message_id in message_ids(msg):
+                    reply_to = self.comments.model.where(token=message_id).last()
+                    if reply_to:
+                        break
+            comment = self.comments.model.create(
+                report=self,
+                submitted_by=by,
+                comment=body,
+                token=token,
+                reply_to=reply_to,
+                # attachment=attachments and attachments[0] or None,
+            )
+            comment.recipients.model.create(
+                comment=comment,
+                user=reply_to and reply_to.submitted_by or self.pi,
+                email=(
+                    reply_to.submitted_by.email
+                    if reply_to and reply_to.submitted_by
+                    else self.pi.email
+                ),
+            )
+
+            attachments.append(
+                File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
+            )
+
+            # for a in attachments[1:]:
+            for a in attachments:
+                ca = comment.attachments.model(comment=comment)
+                ca.attachment.save(content=a, name=a.name)
+                ca.save()
+
+            domain = to.split("@")[1]
+            recipients = [reply_to and reply_to.submitted_by or self.pi]
+            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+            html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                from_email="reports",
+                subject=f"Comment posted by {by.full_name_with_email} to {self}",
+                html_message=html_message,
+                cc=by and [by.full_email_address],
+                attachments=attachments or None,
+                recipients=recipients,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+                token=token,
+                request=request,
+                site=self.contract.site,
+            )
+            return comment
 
     class Meta:
         db_table = "report"
@@ -9648,6 +9802,16 @@ class ReportComment(Model):
     @property
     def target(self):
         return self.report
+
+    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+        return self.report.import_email(
+            file,
+            file_name=file_name,
+            notify_author=notify_author,
+            request=request,
+            by=by,
+            reply_to=self,
+        )
 
     def __str__(self):
         return f"Submitted by {self.submitted_by} at {self.created_at}"

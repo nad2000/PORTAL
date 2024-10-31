@@ -2513,7 +2513,6 @@ class ReportViewMixin:
         #         )
         #         return redirect("report-update", pk=i.pk)
 
-
         if "post_comment" in self.request.POST:
 
             attachment = form.cleaned_data.get("attachment", None)
@@ -2698,6 +2697,37 @@ class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
     form_class = forms.ReportForm
 
 
+class FileImportForm(Form):
+
+    def __init__(self, label=None, allowed_extensions=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["file"] = FileField(
+            label=label or _("File"),
+            required=True,
+            widget=widgets.ClearableFileInput(
+                attrs={
+                    "placeholder": _("Please upload a file ..."),
+                    "data-placeholder": _("Please upload a file ..."),
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _("The file is required. Please upload a file ..."),
+                    "oninput": "this.setCustomValidity('')",
+                    "accept": (
+                        ",".join(f".{e}" for e in allowed_extensions)
+                        if allowed_extensions
+                        else ".*"
+                    ),
+                }
+            ),
+            validators=allowed_extensions
+            and [FileExtensionValidator(allowed_extensions=allowed_extensions)],
+        )
+        self.helper = FormHelper(self)
+        self.helper.include_media = False
+        self.helper.form_tag = False
+        self.helper.layout = Layout("file")
+
+
 class ReportRisImportForm(Form):
     file = FileField(
         label=_("RIS file"),
@@ -2724,10 +2754,61 @@ class ReportRisImportForm(Form):
         self.helper.layout = Layout("file")
 
 
-class ReportRisImportView(LoginRequiredMixin, FormView):
-    form_class = ReportRisImportForm
+class FileImportView(LoginRequiredMixin, FormView):
+    form_class = FileImportForm
+    template_name = "portal/file_import_form.html"
+    allowed_extensions = ["elm", "msg"]
+    label = gettext_lazy("Message")
+    model = models.Report
+
+    def get_success_url(self):
+        if o := self.object:
+            return o.get_absolute_url()
+        return reverse("report", kwargs=self.kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["allowed_extensions"] = self.allowed_extensions
+        kwargs["label"] = self.label
+        return kwargs
+
+    @cached_property
+    def is_modal(self):
+        return (
+            self.request.GET.get("_modal_dialog")
+            or self.request.GET.get("_popup")
+            or self.request.POST.get("_modal_dialog")
+            or self.request.POST.get("_popup")
+        )
+
+    @property
+    def object(self):
+        if "pk" in self.kwargs:
+            return get_object_or_404(self.model, pk=self.kwargs.get("pk"))
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if self.is_modal:
+            context["modal_dialog"] = True
+        context["object"] = self.object
+        return context
+
+    def get_template_names(self):
+        if self.is_modal:
+            return ["partials/file_import_form.html"]
+        return super().get_template_names()
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+
+class ReportRisImportView(FileImportView):
+    # form_class = ReportRisImportForm
+    form_class = FileImportForm
     template_name = "portal/ris_import_form.html"
     model = models.Report
+    allowed_extensions = ["ris"]
+    label = gettext_lazy("RIS file")
 
     def get_success_url(self):
         return reverse("report", kwargs=self.kwargs)
@@ -2739,10 +2820,7 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
     def get_context_data(self, *args, **kwargs):
         assert self.kwargs.get("pk")
         context = super().get_context_data(*args, **kwargs)
-        if self.request.GET.get("_modal_dialog"):
-            context["modal_dialog"] = True
-        context["report"] = self.report
-        context["object"] = self.report
+        context["report"] = self.object
         return context
 
     def get_template_names(self):
@@ -2752,7 +2830,7 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         form.cleaned_data["file"].file.seek(0)
-        report = self.report
+        report = self.object
         entries = rispy.loads(form.cleaned_data["file"].file.read().decode())
         with transaction.atomic():
             for e in entries:
@@ -2835,20 +2913,55 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
             )
         return super().form_valid(form)
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class=form_class)
-        if not hasattr(form, "helper"):
-            form.helper = FormHelper()
-            form.layout = Layout("file")
-        if not self.request.GET.get("_modal_dialog"):
-            form.helper.layout.append(
-                bootstrap.FormActions(
-                    layout.Submit("import", "Import ..."),
-                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
-                    css_class="float-right",
-                ),
+    # def get_form(self, form_class=None):
+    #     form = super().get_form(form_class=form_class)
+    #     if not hasattr(form, "helper"):
+    #         form.helper = FormHelper()
+    #         form.layout = Layout("file")
+    #     if not self.request.GET.get("_modal_dialog"):
+    #         form.helper.layout.append(
+    #             bootstrap.FormActions(
+    #                 layout.Submit("import", "Import ..."),
+    #                 layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+    #                 css_class="float-right",
+    #             ),
+    #         )
+    #     return form
+
+
+class EmailImportView(FileImportView):
+
+    allowed_extensions = ["elm", "msg"]
+    label = gettext_lazy("Message")
+    model = models.Report
+    extra_context = {"hx_target": "#comments"}
+
+    def form_valid(self, form):
+
+        file_field = form.cleaned_data["file"]
+        file_name = file_field.name
+        file_field.file.seek(0)
+        r = self.object
+
+        if reply_to := self.request.GET.get("reply_to"):
+            reply_to = get_object_or_404(r.comments.model, pk=reply_to)
+        r.import_email(
+            file_field.file,
+            file_name,
+            request=self.request,
+            by=self.request.user,
+            reply_to=reply_to,
+        )
+        messages_list = [
+            messages.Message(
+                messages.constants.INFO, _(f"{file_name} was successfully imported...")
             )
-        return form
+        ]
+        return render(
+            self.request,
+            "partials/comments.html",
+            {"messages": messages_list, "comments": r.comments},
+        )
 
 
 class ReportExportView(ExportView):
@@ -3541,6 +3654,7 @@ def delete_object(request, model, pk):
                         messages.constants.INFO, _(f"The invitation {i} was revoked.")
                     )
                 )
+            o.delete()
         except Exception as ex:
             messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
         name = o._meta.verbose_name.title()
@@ -3556,8 +3670,10 @@ def delete_object(request, model, pk):
 def delete_referee(request, pk):
     if r := pk and models.Referee.where(pk=pk).first():
         return HttpResponse(
-            f"""
-    <div class="alert alert-success">Referee {r.full_name_with_email} successfully deleted<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
+            f"""<div class="alert alert-success">Referee {r.full_name_with_email} successfully deleted
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">×</span>
+    </button></div>
     """
         )
     return HttpResponse(

@@ -159,7 +159,10 @@ urlpatterns = [
                 path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
-                    "<int:pk>/ris-import", views.ReportRisImportView.as_view(), name="ris-import"
+                    "<int:pk>/~ris-import", views.ReportRisImportView.as_view(), name="ris-import"
+                ),
+                path(
+                    "<int:pk>/comments/~email-import", views.EmailImportView.as_view(), name="email-import"
                 ),
                 path(
                     "funding/",

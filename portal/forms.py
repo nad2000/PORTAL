@@ -2018,10 +2018,26 @@ class ContractForm(ModelForm):
                     Fieldset(
                         None,
                         Field("attachment"),
-                        Submit(
-                            "post_comment",
-                            _("Post Comment"),
-                            css_class="btn-primary float-right",
+                        ButtonHolder(
+                            Submit(
+                                "post_comment",
+                                _("Post Comment"),
+                                css_class="btn-primary",
+                            ),
+                            Button(
+                                "import_email_file",
+                                _("Import Email"),
+                                css_class="btn-outline-primary",
+                                hx_get=reverse(
+                                    "email-import", kwargs={"pk": instance and instance.pk}
+                                )
+                                + "?_modal_dialog=1",
+                                hx_target="#form-dialog",
+                                hx_params="none",
+                                data_toggle="tooltip",
+                                title=_("Import an email file as a comment ..."),
+                            ),
+                            css_class="float-right",
                         ),
                     ),
                     HTML(
@@ -4041,10 +4057,26 @@ class ReportForm(ModelForm):
                                 ),
                             )
                             if is_assessor
-                            else Submit(
-                                "post_comment",
-                                _("Post Comment"),
-                                css_class="btn-primary float-right",
+                            else ButtonHolder(
+                                Submit(
+                                    "post_comment",
+                                    _("Post Comment"),
+                                    css_class="btn-primary",
+                                ),
+                                Button(
+                                    "import_email_file",
+                                    _("Import Email"),
+                                    hx_get=reverse(
+                                        "email-import", kwargs={"pk": instance and instance.pk}
+                                    )
+                                    + "?_modal_dialog=1",
+                                    hx_target="#form-dialog",
+                                    hx_params="none",
+                                    data_toggle="tooltip",
+                                    title=_("Import an email file as a comment ..."),
+                                    css_class="btn-outline-primary",
+                                ),
+                                css_class="float-right",
                             )
                         ),
                     ),
