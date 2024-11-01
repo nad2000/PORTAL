@@ -34,6 +34,7 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     path("", include("portal.urls")),
     path("summernote/", include("django_summernote.urls")),
+    path("tinymce/", include("tinymce.urls")),
     path("private-media/", include(private_storage.urls)),
     path("pages/<path:url>", handle_pages, name="flatpage"),
     path("pages/", TemplateView.as_view(template_name="flatpages/list.html"), name="page-list"),
