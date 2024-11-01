@@ -78,6 +78,8 @@ thead th.orderable.desc > a {
     {% breadcrumb "Innovations" "invitation-list" %}
   {% elif view_name == "contract-list" %}
     {% breadcrumb "Contracts" "contract-list" %}
+  {% elif view_name == "report-list" %}
+    {% breadcrumb "Reports" "report-list" %}
   {% else %}
     {% breadcrumb "Applications" "applications" %}
     {% if state == "draft" %}

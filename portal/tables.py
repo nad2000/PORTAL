@@ -47,7 +47,7 @@ class StateColumn(tables.Column):
             )
         elif state in ["new", "draft"]:
             if state == "draft":
-                if isinstance(record, (models.Testimonial, models.Application, models.Contract)):
+                if not isinstance(record, (models.Invitation)):
                     css_classes = "far fa-times-circle text-danger text-center"
                     title = _("Work in progress")
                 else:
@@ -56,7 +56,7 @@ class StateColumn(tables.Column):
                         "The invitation has not been processed yet or it is in draft version"
                     )
             else:
-                if isinstance(record, (models.Testimonial, models.Application, models.Contract)):
+                if not isinstance(record, (models.Invitation)):
                     css_classes = "far fa-times-circle text-danger text-center"
                     title = _("The %(verbose_name)s was just created") % {
                         "verbose_name": _(record._meta.verbose_name)
@@ -109,6 +109,9 @@ class StateColumn(tables.Column):
         elif state == "funded":
             css_classes = "fa fa-heart text-success text-center"
             title = _("The application was funded")
+        elif state == "assessed":
+            css_classes = "fa fa-heart text-success text-center"
+            title = _("The report was assessed")
         else:
             if isinstance(record, (models.Testimonial, models.Application)):
                 return mark_safe(
@@ -295,7 +298,7 @@ class ApplicationTable(tables.Table):
     def before_render(self, request):
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
-            self.columns.hide("contract")
+            self.columns.hide("current_contract")
 
     # def render_latest_contract(self, record, value):
     #     if record.state == "funded" or record.state == "archived" and record.contract:

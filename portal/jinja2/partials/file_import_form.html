@@ -1,0 +1,34 @@
+{% if modal_dialog %}
+  <form
+    hx-post="{{ request.path }}"
+    hx-target="{{ hx_target or '#messages' }}"
+    hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+    class="modal-content"
+    enctype="multipart/form-data"
+  >
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  {% if object and object.pk %}<input type="hidden" name="object" value="{{ object.pk }}">{% endif %}
+  <input type="hidden" name="_modal_dialog" value="1">
+  <div class="modal-header">
+    <h5 class="modal-title">
+      {% if object and object.pk %} {{ object }} - {% endif %} {{ _('Import file') }}
+    </h5>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    {{ crispy(form) }}
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+      {{ _('Cancel') }}
+    </button>
+    <button type="submit" class="btn btn-primary" hx-indicator="#button-spinner">{{ _('Import...') }}
+      <img  id="button-spinner" class="htmx-indicator" src="{{ static('/images/bars.svg') }}"/>
+    </button>
+  </div>
+</form>
+{% else %}
+  {{ crispy(form) }}
+{% endif %}

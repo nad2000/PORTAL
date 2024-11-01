@@ -72,3 +72,32 @@ function formset_set_inputs(prefix="form") {
       }
   })
 };
+
+/* handling toogle with with "three-value-choice"  */
+function toggleOutline(el) {
+  var current=el.attr("class").split(" ")[1];
+  var parts=current.split("-");
+  var newClass=((parts[1]=='outline') ? [parts[0], parts[2]]: [parts[0], 'outline', parts[1]]).join('-');
+  el.removeClass(current);
+  el.addClass(newClass);
+};
+
+function setOutline(el) {
+  var classes=el.attr("class");
+  if (classes.includes("outline")) return;
+  var current=classes.split(" ")[1];
+  var parts=current.split("-");
+  var newClass=([parts[0], 'outline', parts[1]]).join('-');
+  el.removeClass(current);
+  el.addClass(newClass);
+};
+
+function unsetOutline(el) {
+  var classes=el.attr("class");
+  if (!classes.includes("outline")) return;
+  var current=classes.split(" ")[1];
+  var parts=current.split("-");
+  var newClass=([parts[0], parts[2]]).join('-');
+  el.removeClass(current);
+  el.addClass(newClass);
+};

@@ -138,6 +138,9 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.forms",
     "django.contrib.flatpages",
+    "reversion",
+    "reversion_compare",
+    "dbtemplates",
     # "django_mail_admin",
     "captcha",
     "simple_history",
@@ -161,6 +164,7 @@ INSTALLED_APPS = [
     "fsm_admin",
     "django_fsm",
     "django_summernote",
+    "tinymce",
     "django_filters",
     "bootstrap4",
     "explorer",
@@ -298,6 +302,7 @@ TEMPLATES = [
                         "apptemplates.Loader",
                         "django.template.loaders.app_directories.Loader",
                         "django.template.loaders.filesystem.Loader",
+                        "dbtemplates.loader.Loader",
                     ],
                 )
             ],
@@ -315,7 +320,7 @@ TEMPLATES = [
                 # "django.template.context_processors.request",
                 "portal.context_processors.portal_context",
             ],
-            "debug": True,
+            "debug": DEBUG,
         },
     },
     {
@@ -324,6 +329,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "environment": "jinja2_env.environment",
+            "extensions": ["jinja2.ext.i18n"],
         },
     },
 ]
@@ -530,6 +536,12 @@ SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
 DJANGO_TABLES2_TABLE_ATTRS = {"class": "table table-striped table-bordered"}
 DJANGO_TABLES2_TEMPLATE = "django_tables2/bootstrap4-responsive.html"
 # DJANGO_EASY_AUDIT_WATCH_MODEL_EVENTS = False
+DJANGO_EASY_AUDIT_UNREGISTERED_CLASSES_EXTRA = [
+    "explorer.Query",
+    "explorer.QueryLog",
+    "explorer.QueryFavorite",
+    # "explorer.ExplorerValue",
+]
 DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
     r"^/admin/",
     r"^/static/",
@@ -541,8 +553,18 @@ DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
 ]
 
 
+SELECT2_THEME = "bootstrap4"
+
+
 def crud_difference_callbacks(model, *args, **kwargs):
     return not isinstance(model, HistoricalChanges)
 
 
+ADD_REVERSION_ADMIN = True
 DJANGO_EASY_AUDIT_CRUD_DIFFERENCE_CALLBACKS = [crud_difference_callbacks]
+DBTEMPLATES_USE_REVERSION = True
+DBTEMPLATES_USE_REVERSION_COMPARE = True
+DBTEMPLATES_ADD_DEFAULT_SITE = True
+# DBTEMPLATES_AUTO_POPULATE_CONTENT = True
+DBTEMPLATES_USE_CODEMIRROR = True
+# DBTEMPLATES_USE_TINYMCE = True

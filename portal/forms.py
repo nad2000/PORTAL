@@ -2018,14 +2018,30 @@ class ContractForm(ModelForm):
                     Fieldset(
                         None,
                         Field("attachment"),
-                        Submit(
-                            "post_comment",
-                            _("Post Comment"),
-                            css_class="btn-primary float-right",
+                        ButtonHolder(
+                            Submit(
+                                "post_comment",
+                                _("Post Comment"),
+                                css_class="btn-primary",
+                            ),
+                            Button(
+                                "import_email_file",
+                                _("Import Email"),
+                                css_class="btn-outline-primary",
+                                hx_get=reverse(
+                                    "email-import", kwargs={"pk": instance and instance.pk}
+                                )
+                                + "?_modal_dialog=1",
+                                hx_target="#form-dialog",
+                                hx_params="none",
+                                data_toggle="tooltip",
+                                title=_("Import an email file as a comment ..."),
+                            ),
+                            css_class="float-right",
                         ),
                     ),
                     HTML(
-                        '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
+                        '{% include "snippets/comments.html" with comments=object.comments.all %}'
                     ),
                     css_id="correspondence",
                 )
@@ -3234,17 +3250,69 @@ class ScoreSheetForm(ModelForm):
         )
 
 
+class AssessedPerformanceForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["comment"].widget.attrs = {"rows": 3}
+        if instance := kwargs.get("instance"):
+            f = instance.flag
+            self.fields["flag"].label = f.name
+            self.fields["flag"].help_text = f.name
+            self.fields["flag"].widget = forms.HiddenInput()
+            if f.value_choices:
+                choices = [
+                    (e.strip() for e in r.strip().split(":"))
+                    for r in f.value_choices.split(";")
+                    if r.strip()
+                ]
+                self.fields["value"] = forms.ChoiceField(
+                    choices=choices,
+                    required=f.is_optional,
+                )
+            else:
+                # self.fields["value"] = forms.ChoiceField(
+                #     choices=[("YES", _("Yes")), ("NO" , _("No")), ("N/A", _("N/A"))] if f.is_optional else [("YES", _("Yes")), ("NO", _("No"))],
+                #     required=f.is_optional,
+                #     template_name="portal/toggle.html",
+                # )
+                self.fields["value"] = forms.ChoiceField(
+                    required=not f.is_optional,
+                    widget=forms.HiddenInput(),
+                    initial="NA" if f.is_optional else "N",
+                    choices=(
+                        [("Y", _("Yes")), ("N", _("No")), ("NA", _("N/A"))]
+                        if f.is_optional
+                        else [("Y", _("Yes")), ("N", _("No"))]
+                    ),
+                )
+            self.fields["value"].label = False
+
+            # self.helper = FormHelper(self)
+            # self.helper.layout = Layout(
+            #     Field("flag", template="partials/assessed_performance_flag.html"),
+            #     "value" if f.value_choices else Field(
+            #         "value",
+            #         data_toggle="toggle",
+            #         template="portal/toggle.html",
+            #         data_on=_("No"),
+            #         data_off=_("Yes"),
+            #         data_na=_("N/A"),
+            #         data_onstyle="success",
+            #         data_offstyle="danger",
+            #     ),
+            #     "comment",
+            # )
+
+    class Meta:
+        model = models.AssessedPerformance
+        exclude = ["created_at", "updated_at", "created_by", "updated_by"]
+
+
 class ReportedEffortForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if instance := kwargs.get("instance"):
-            fte_total = instance.fte_total
-            self.fields["fte_before"].initial = self.fields["fte_total"].initial = (
-                f"{fte_total:.2f}"
-            )
-            if instance.fte:
-                self.fields["fte_before"].initial = fte_total - instance.fte
         self.helper = FormHelper(self)
 
     role = forms.ModelChoiceField(
@@ -3253,17 +3321,17 @@ class ReportedEffortForm(ModelForm):
         )
     )
     fte_before = forms.DecimalField(widget=forms.HiddenInput(), required=False)
-    fte_total = forms.DecimalField(
-        label=_("Total FTE"),
-        required=False,
-        widget=forms.widgets.NumberInput(
-            attrs={"readonly": True, "disabled": True, "step": "0.01"}
-        ),
-    )
 
     class Meta:
         model = models.ReportedEffort
-        exclude = ["member_effort", "person", "state"]
+        exclude = ["member_effort", "state", "person"]
+        widgets = {
+            "total_fte": forms.widgets.NumberInput(
+                attrs={"step": "0.01"}
+                # attrs={"readonly": True, "disabled": True, "step": "0.01"}
+            ),
+            "person": autocomplete.ModelSelect2(url="person-autocomplete"),
+        }
 
 
 class ReportForm(ModelForm):
@@ -3586,28 +3654,28 @@ class ReportForm(ModelForm):
                             Column("vm_ink", css_class="col-3"),
                             css_id="id_toas_row",
                         ),
-                        Div(
-                            Row(Column("is_vm_na")),
-                            Row(Column("vm_rationale")),
-                            # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
-                            # HTML(
-                            #     """<script>
-                            # $(document).ready(function() {
-                            #     //set initial state.
-                            #     if ($('#id_is_vm_na').is(':checked')) {
-                            #         $('#id_vm_na').show()
-                            #     } else { $('#id_vm_na').hide() };
-                            #     $('#id_is_vm_na').change(function() {
-                            #         if(this.checked) {
-                            #             // var returnVal = confirm("Are you sure?");
-                            #             // $(this).prop("checked", returnVal);
-                            #             $('#id_vm_na').show();
-                            #         } else $('#id_vm_na').hide();
-                            #     });
-                            # });
-                            # </script>"""
-                            # ),
-                        ),
+                        # Div(
+                        #     Row(Column("is_vm_na")),
+                        #     Row(Column("vm_rationale")),
+                        #     # Row(Column("rationale_vm_na"), css_id="id_vm_na"),
+                        #     # HTML(
+                        #     #     """<script>
+                        #     # $(document).ready(function() {
+                        #     #     //set initial state.
+                        #     #     if ($('#id_is_vm_na').is(':checked')) {
+                        #     #         $('#id_vm_na').show()
+                        #     #     } else { $('#id_vm_na').hide() };
+                        #     #     $('#id_is_vm_na').change(function() {
+                        #     #         if(this.checked) {
+                        #     #             // var returnVal = confirm("Are you sure?");
+                        #     #             // $(this).prop("checked", returnVal);
+                        #     #             $('#id_vm_na').show();
+                        #     #         } else $('#id_vm_na').hide();
+                        #     #     });
+                        #     # });
+                        #     # </script>"""
+                        #     # ),
+                        # ),
                     ),
                 )
             if round.has_keywords:
@@ -3695,8 +3763,8 @@ class ReportForm(ModelForm):
                         many activity types from their ORCID profile record.') }}
                     </p>
                 </div>
-                <div id="acitvity-list">
-                {% jinja 'partials/report_publication_list.html' %}
+                <div id="activity-list">
+                {% jinja 'partials/reported_activity_list.html' %}
                 </div>"""
                     ),
                     Div(
@@ -3944,7 +4012,8 @@ class ReportForm(ModelForm):
                                 Column(
                                     Row(
                                         Column(
-                                            HTML("<strong><u>TO</u></strong>:&nbsp;"), css_class="col-1"
+                                            HTML("<strong><u>TO</u></strong>:&nbsp;"),
+                                            css_class="col-1",
                                         ),
                                         Column(
                                             Field(
@@ -3955,7 +4024,8 @@ class ReportForm(ModelForm):
                                     ),
                                     Row(
                                         Column(
-                                            HTML("<strong><u>CC</u></strong>:&nbsp;"), css_class="col-1"
+                                            HTML("<strong><u>CC</u></strong>:&nbsp;"),
+                                            css_class="col-1",
                                         ),
                                         Column(
                                             Field(
@@ -3965,10 +4035,18 @@ class ReportForm(ModelForm):
                                         ),
                                     ),
                                 ),
-                                Column(HTML("<strong>Category</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                Column(
+                                    HTML("<strong>Category</strong>:&nbsp;"),
+                                    css_class="col-1 text-right",
+                                    style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;",
+                                ),
                                 Column("category"),
-                                #"text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
-                                Column(HTML("<strong>Alert date</strong>:&nbsp;"), css_class="col-1 text-right", style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;"),
+                                # "text-align: right; vertical-align: middle; float: right; padding-top: 7px;"
+                                Column(
+                                    HTML("<strong>Alert date</strong>:&nbsp;"),
+                                    css_class="col-1 text-right",
+                                    style="text-align: right; vertical-align: middle; float: right; padding-top: 7px;",
+                                ),
                                 Column(Field("alert_date")),
                                 Column(
                                     Submit(
@@ -3979,10 +4057,26 @@ class ReportForm(ModelForm):
                                 ),
                             )
                             if is_assessor
-                            else Submit(
-                                "post_comment",
-                                _("Post Comment"),
-                                css_class="btn-primary float-right",
+                            else ButtonHolder(
+                                Submit(
+                                    "post_comment",
+                                    _("Post Comment"),
+                                    css_class="btn-primary",
+                                ),
+                                Button(
+                                    "import_email_file",
+                                    _("Import Email"),
+                                    hx_get=reverse(
+                                        "email-import", kwargs={"pk": instance and instance.pk}
+                                    )
+                                    + "?_modal_dialog=1",
+                                    hx_target="#form-dialog",
+                                    hx_params="none",
+                                    data_toggle="tooltip",
+                                    title=_("Import an email file as a comment ..."),
+                                    css_class="btn-outline-primary",
+                                ),
+                                css_class="float-right",
                             )
                         ),
                     ),
@@ -3990,6 +4084,16 @@ class ReportForm(ModelForm):
                         '{% include "snippets/comments.html" with comments=object.comments.all %}'
                     ),
                     css_id="correspondence",
+                )
+            )
+        if is_assessor:
+            tabs.append(
+                Tab(
+                    mark_safe(f'<i class="fas fa-flag"></i> {_("Performance")}'),
+                    TableInlineFormset(
+                        "performance", template="portal/performance_inline_formset.html"
+                    ),
+                    css_id="performance",
                 )
             )
         #     Tab(
@@ -4122,7 +4226,7 @@ class ReportForm(ModelForm):
         #                 ),
         #             ),
         #             HTML(
-        #                 '{% include "snippets/contract_comments.html" with comments=object.comments.all %}'
+        #                 '{% include "snippets/comments.html" with comments=object.comments.all %}'
         #             ),
         #             css_id="correspondence",
         #         )
@@ -4207,21 +4311,28 @@ class ReportForm(ModelForm):
     class Meta:
         model = models.Report
         exclude = [
-            "assessor",
             "address",
-            "site",
-            "fund",
-            "org",
-            "application",
-            "number",
-            "submitted_by",
-            "rccs",
-            "fors",
-            "seos",
-            "state",
-            "schedule_entry",
+            "alert_date",
+            "assessed_at",
+            "assessor",
+            "attachment",
+            "category",
+            "comment",
             "contract",
+            "converted_file",
+            "fors",
+            "fund",
+            "number",
+            "org",
             "period",
+            "publications",
+            "rccs",
+            "reported_at",
+            "schedule_entry",
+            "seos",
+            "site",
+            "state",
+            "submitted_by",
             "type",
         ]
         widgets = dict(

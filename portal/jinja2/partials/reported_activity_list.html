@@ -1,0 +1,158 @@
+<div class="table-responsible">
+<table class="table table-striped">
+{% if report.publicities.count() > 0 %}
+  <tr><th colspan="3" class="table-dark">Publicity</th></tr>
+{% for o in report.publicities.all() %}
+  <tr>
+    <td>{{ o.type }}</td>
+    <td>{{ o.description }}</td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=o._meta.model_name, pk=o.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the publicity record "%s"?') % o }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-publicity-update', pk=o.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#activity-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+{% endif %}
+{% if report.collaborations.count() > 0 %}
+  <tr><th colspan="3" class="table-dark">Collaboration</th></tr>
+{% for o in report.collaborations.all() %}
+  <tr>
+    <td>{{ o.full_name }}</td>
+    <td>{{ o.description }} ({{ o.organisation }}{% if o.country %} - {{ o.country }}{% endif %})</td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=o._meta.model_name, pk=o.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the publicity record "%s"?') % o }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-collaboration-update', pk=o.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#activity-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+{% endif %}
+{% if report.visits.count() > 0 %}
+  <tr><th colspan="3" class="table-dark">Visits</th></tr>
+{% for o in report.visits.all() %}
+  <tr>
+    <td>{{ o.member }}</td>
+    <td>{{ o.full_name }}: {{ o.description }} ({{ o.organisation }}{% if o.country %} - {{ o.country }}{% endif %})</td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=o._meta.model_name, pk=o.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the visit record "%s"?') % o }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-visit-update', pk=o.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#activity-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+{% endif %}
+{% if report.awards.count() > 0 %}
+  <tr><th colspan="3" class="table-dark">Awards</th></tr>
+{% for a in report.awards.all() %}
+  <tr>
+    <td>{{ a.member.full_name }} </td>
+    <td>{{ a.description }} </td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=a._meta.model_name, pk=a.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the award record "%s"?') % a }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-award-update', pk=a.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#activity-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+{% endif %}
+<tr>
+  <td>&nbsp;</td>
+  <!-- td>&nbsp;</td -->
+  <td style="min-width: 200px;" colspan="2">
+    <div class="buttonHolder float-right">
+      <select class="custom-select" style="display:inline-block;width:auto;" name="activity_category" id="id_activity_category">
+        <option value="A">Award</option>
+        <option value="C">Collaboration</option>
+        <option value="P">Publicity</option>
+        <option value="V">Visit</option>
+      </select>
+      <button
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-include="[name='activity_category']"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </div>
+  </td>
+</tr>
+</table>
+</div>

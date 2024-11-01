@@ -109,7 +109,7 @@ def portal_context(request):
             counts = {
                 s: c for s, c in models.Report.user_object_counts(u, request=request)
             }
-            counts = {"total": sum(counts.values()), **{s: counts.get(s, 0) for s in models.Report.STATES}}
+            counts = {"total": sum(counts.values()), **{s: counts.get(s, 0) for (s, _) in models.Report.STATES}}
             cached_context["report_counts"] = counts
 
             # if outstanding_testimonial_requests:

@@ -1,0 +1,93 @@
+{% load crispy_forms_tags tags i18n crispy_forms_utils crispy_forms_field %}
+
+{% specialspaceless %}
+{% if formset_tag %}
+  <form {{ flat_attrs|safe }} method="{{ form_method }}" {% if formset.is_multipart %} enctype="multipart/form-data"{% endif %}>
+  {% endif %}
+  {% if formset_method|lower == 'post' and not disable_csrf %}
+    {% csrf_token %}
+  {% endif %}
+
+  {{ formset.management_form }}
+  <table{% if formset.prefix %} id="{{ formset.prefix }}_table"{% endif%} class="table table-striped table-sm">
+    <thead>
+      {% if formset.readonly and not formset.queryset.exists %}
+      {% else %}
+
+        <tr>
+          {% comment %}
+          {% for field in formset.forms.0 %}
+            {% if not field.is_hidden %}
+              <th class="col-form-label text-center">
+                {% if field.name == "comment" %}{{ field.label|safe }}{% else %}&nbsp;{% endif %}
+              </th>
+            {% endif %}
+          {% endfor %}
+          {% endcomment %}
+          <th class="col-form-label text-center">&nbsp;</th>
+          <th class="col-form-label text-center">&nbsp;</th>
+          <th class="col-form-label text-center">{% trans 'Comment' %}</th>
+        </tr>
+      {% endif %}
+    </thead>
+
+    <tbody id="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}form_set">
+
+      {% for form in formset %}
+        {% autoescape off %}
+          {% if form_show_errors and not form.is_extra %}
+            {% include "bootstrap4/errors.html" %}
+          {% endif %}
+        {% endautoescape %}
+
+        <tr>
+          {% for field in form %}
+            {% if field.name == "flag" %}
+              <td with="25%">
+                {{ field }}
+                <!-- input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}" value="{{ field.value }}" -->
+                <p>{{ field.label|safe }}</p>
+              </td>
+            {% elif field.name == "value" %}
+              <td class="form-group" style="width: 6pc;">
+                {% if field|is_select %}
+                    {% crispy_field field 'class' 'custom-select' %}
+                {% else %}
+                  <!-- {{ field.value }} -->
+                  <input
+                    type="hidden"
+                    name="{{ field.html_name }}"
+                    id="{{ field.auto_id }}"
+                    value="{% if field.value is None or field.value == 'NA' %}NA{% elif field.value == True or field.value == 'Y' or file.value == 'YES' %}Y{% else %}N{% endif %}">
+                  <div class="btn-group three-value-choice" role="group">
+                    <button type="button" class="btn btn-{% if field.value != False and field.value != 'N' %}outline-{% endif %}danger" data-toggle="fun" data-title="N">{% trans 'No' %}</button>
+                    {% if not field.field.required %}
+                    <button type="button" class="btn btn-{% if field.value is not None and field.value != 'NA' %}outline-{% endif %}secondary" data-toggle="fun" data-title="NA" style="min-width: 56px;">{% trans 'n/a' %}</button>
+                    {% endif %}
+                    <button type="button" class="btn btn-{% if field.value != True and field.value != 'Y' %}outline-{% endif %}success" data-toggle="fun" data-title="Y">{% trans 'Yes' %}</button>
+                  </div>
+                {% endif %}
+              </td>
+            {% else %}
+              {% if field.is_hidden %}
+                {{ field }}
+              {% else %}
+                <td>
+                  {% crispy_field field %}
+                </td>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </tr>
+
+      {% endfor %}
+    </tbody>
+    {% block table_footer %}{% endblock table_footer %}
+  </table>
+
+  {% include "bootstrap4/inputs.html" %}
+
+  {% if formset_tag %}</form>{% endif %}
+{% endspecialspaceless %}
+
+{# vim:set ft=htmldjango: #}

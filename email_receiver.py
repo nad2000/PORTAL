@@ -262,6 +262,9 @@ if __name__ == "__main__":
                     # attachment=attachments and attachments[0] or None,
                 )
 
+                attachments.append(
+                    File(io.BytesIO(msg.as_bytes()), name=f"{models.hash_int(comment.pk)}.eml")
+                )
                 # for a in attachments[1:]:
                 for a in attachments:
                     ca = models.ContractCommentAttachment(comment=comment)
@@ -359,6 +362,9 @@ if __name__ == "__main__":
                 comment=comment,
                 user=reply_to.submitted_by,
                 email=reply_to.submitted_by.email,
+            )
+            attachments.append(
+                File(io.BytesIO(msg.as_bytes()), name=f"{models.hash_int(comment.pk)}.eml")
             )
 
             # for a in attachments[1:]:

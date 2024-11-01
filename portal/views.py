@@ -10,6 +10,7 @@ from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 import rispy
 
+from django_select2 import forms as s2forms
 import django.utils.translation
 import django_tables2
 import py7zr
@@ -220,7 +221,7 @@ def pyinfo(request, message=None):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
-    u = User.get(username=username)
+    u = User.objects.filter(Q(username=username) | Q(email=username)).first()
     if request.user.pk != u.pk:
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
     return redirect("start")
@@ -489,7 +490,7 @@ class SingleObjectMixin:
         return self._obj
 
 
-class DetailView(LoginRequiredMixin, DetailView):
+class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
 
     def get_context_data(self, *args, **kwargs):
@@ -1142,7 +1143,16 @@ def check_profile(request, token=None):
                 messages.warning(request, _("There is no invitation with the given token."))
                 return redirect(next_url or "home")
 
-            if i.state in ["new", "draft", "submitted", "sent", "bounced", "read", "accepted"]:
+            if i.state in [
+                "new",
+                "draft",
+                "submitted",
+                "sent",
+                "bounced",
+                "read",
+                "accepted",
+                "autoreplied",
+            ]:
                 if (
                     (i.first_name and not u.first_name)
                     or (i.middle_names and not u.middle_names)
@@ -1554,31 +1564,54 @@ class ReportDetail(DetailView):
 class PersonnelInline(InlineFormSetFactory):
     prefix = "personnel"
     model = models.ReportedEffort
-    # fields = ["first_name", "middle_names", "last_name", "email"]
     form_class = forms.ReportedEffortForm
-    # formset_kwargs = {}
     factory_kwargs = {
         "extra": 1,
         "can_delete": True,
         "labels": {"full_name": _("Name"), "fte": _("FTE from contract")},
     }
-    # exclude=["member_effort", "person", "state"],
 
-    # def delete_existing(self, obj, commit=True):
-    #     if commit:
-    #         for i in models.Invitation.where(member=obj):
-    #             i.revoke(self.request)
-    #             i.save()
-    #         obj.delete()
+    def get_form_class(self):
+        if self.object and self.request and self.object.assessor == self.request.user:
+            return modelform_factory(
+                self.model, form=self.form_class, exclude=["state", "member_effort"]
+            )
+        return self.form_class
 
 
-# def formset_with_prefix(formset_list, prefix):
-#     retur next((fs for fs in formset_list if fs.prefix==prefix), None)
+class AssessedPerformanceInline(InlineFormSetFactory):
+    prefix = "performance"
+    model = models.AssessedPerformance
+    # fields = ["first_name", "middle_names", "last_name", "email"]
+    form_class = forms.AssessedPerformanceForm
+    # formset_kwargs = {}
+    factory_kwargs = {
+        "extra": 0,
+        "can_delete": False,
+    }
 
 
 class ReportViewMixin:
 
     inlines = [PersonnelInline]
+
+    def get_inlines(self):
+        inlines = super().get_inlines()
+        if self.is_assessor and AssessedPerformanceInline not in inlines:
+            inlines.append(AssessedPerformanceInline)
+        return inlines
+
+    @property
+    def is_assessor(self):
+        return self.object and self.request.user == self.object.assessor
+
+    # def forms_valid(self, *args, **kwargs):
+    #     breakpoint()
+    #     return super().forms_valid(*args, **kwargs)
+
+    # def forms_invalid(self, *args, **kwargs):
+    #     breakpoint()
+    #     return super().forms_invalid(*args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -1917,6 +1950,103 @@ class ReportViewMixin:
             form_kwargs={"duration": duration},
         )
 
+    def get_for_formset(self, *args, **kwargs):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            self.model.fors.through,
+            extra=1,
+            can_delete=True,
+            exclude=[],
+            # fields = ["id", "code", "application", "share"],
+            labels={"code": _("Field of Research")},
+            help_texts={
+                "code": _("Field of Research"),
+                "share": _("Share in %"),
+            },
+            widgets={
+                "code": autocomplete.ModelSelect2(
+                    "for-autocomplete",
+                    attrs={
+                        "data-placeholder": _("Choose a field of research..."),
+                        "placeholder": _("Choose a field of research..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("Field of research is required"),
+                        "oninput": "this.setCustomValidity('')",
+                    },
+                ),
+            },
+        )
+
+        initial_fors = (
+            [
+                dict(
+                    code=r.code_id,
+                    share=r.share,
+                )
+                for r in self.contract.application.fors.all()
+            ]
+            if not (self.object and self.object.pk)
+            else []
+        )
+        # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
+        if self.request.POST:
+            fs = fsc(self.request.POST, instance=self.object)
+        elif not (self.object and self.object.pk):
+            fs = fsc(instance=self.object, initial=initial_fors)
+        else:
+            fs = fsc(instance=self.object)
+        if initial_fors:
+            fs.extra = len(initial_fors)
+
+        return fs
+
+    def get_seo_formset(self, *args, **kwargs):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            self.model.seos.through,
+            # form=forms.RefereeForm,
+            extra=1,
+            can_delete=True,
+            exclude=[],
+            labels={"code": _("Socio-Economic Objective")},
+            help_texts={
+                "code": _("Socio-Economic Objective"),
+                "share": _("Share in %"),
+            },
+            widgets={
+                "code": autocomplete.ModelSelect2(
+                    "seo-autocomplete",
+                    attrs={
+                        "data-placeholder": _("Choose a ..."),
+                        "placeholder": _("Choose a Socio-Economic Objective..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("Socio-Economic Objective is required"),
+                        "oninput": "this.setCustomValidity('')",
+                    },
+                ),
+            },
+        )
+        initial_seos = (
+            [
+                dict(
+                    code=r.code_id,
+                    share=r.share,
+                )
+                for r in self.object.contract.appication.seos.all()
+            ]
+            if not (self.object and self.object.pk)
+            else []
+        )
+        fs = fsc(
+            self.request.POST or None,
+            instance=self.object,
+            initial=initial_seos,
+        )
+        fs.extra = len(initial_seos) or 1
+        return fs
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
@@ -1942,99 +2072,11 @@ class ReportViewMixin:
                 context["needs_attention"].append("report")
 
         if round.has_fors:
-            fsc = forms.inlineformset_factory(
-                self.model,
-                models.ReportFor,
-                extra=1,
-                can_delete=True,
-                exclude=[],
-                # fields = ["id", "code", "application", "share"],
-                labels={"code": _("Field of Research")},
-                help_texts={
-                    "code": _("Field of Research"),
-                    "share": _("Share in %"),
-                },
-                widgets={
-                    "code": autocomplete.ModelSelect2(
-                        "for-autocomplete",
-                        attrs={
-                            "data-placeholder": _("Choose a field of research..."),
-                            "placeholder": _("Choose a field of research..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Field of research is required"),
-                            "oninput": "this.setCustomValidity('')",
-                        },
-                    ),
-                },
-            )
-
-            initial_fors = (
-                [
-                    dict(
-                        code=r.code_id,
-                        share=r.share,
-                    )
-                    for r in models.ApplicationFor.where(application=a)
-                ]
-                if not (self.object and self.object.id)
-                else []
-            )
-            # fs = fsc(self.request.POST or None, instance=self.object, initial=initial_fors)
-            if self.request.POST:
-                fs = fsc(self.request.POST, instance=self.object)
-            elif not (self.object and self.object.id):
-                fs = fsc(instance=self.object, initial=initial_fors)
-            else:
-                fs = fsc(instance=self.object)
-            if initial_fors:
-                fs.extra = len(initial_fors)
+            fs = self.get_for_formset()
             context["fors"] = fs
 
         if round.has_seos:
-            fsc = forms.inlineformset_factory(
-                self.model,
-                models.ReportSeo,
-                # form=forms.RefereeForm,
-                extra=1,
-                can_delete=True,
-                exclude=[],
-                labels={"code": _("Socio-Economic Objective")},
-                help_texts={
-                    "code": _("Socio-Economic Objective"),
-                    "share": _("Share in %"),
-                },
-                widgets={
-                    "code": autocomplete.ModelSelect2(
-                        "seo-autocomplete",
-                        attrs={
-                            "data-placeholder": _("Choose a ..."),
-                            "placeholder": _("Choose a Socio-Economic Objective..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("Socio-Economic Objective is required"),
-                            "oninput": "this.setCustomValidity('')",
-                        },
-                    ),
-                },
-            )
-            initial_seos = (
-                [
-                    dict(
-                        code=r.code_id,
-                        share=r.share,
-                    )
-                    for r in models.ApplicationSeo.where(application=a)
-                ]
-                if not (self.object and self.object.pk)
-                else []
-            )
-            fs = fsc(
-                self.request.POST or None,
-                instance=self.object,
-                initial=initial_seos,
-            )
-            fs.extra = len(initial_seos) or 1
+            fs = self.get_seo_formset()
             context["seos"] = fs
 
         # Effort:
@@ -2275,6 +2317,7 @@ class ReportViewMixin:
         r = i = form.instance or self.object
         c = r.contract
         a = c.application
+        round = a.round
         u = self.request.user
         # if not i.submitted_by:
         #     i.submitted_by = u
@@ -2289,6 +2332,46 @@ class ReportViewMixin:
         try:
             with transaction.atomic():
                 resp = super().form_valid(form)
+                update_url = i and i.pk and reverse("report-update", kwargs=dict(pk=i.pk))
+
+                if round.has_seos:
+                    seos = self.get_seo_formset()
+                    if not seos.instance or not seos.instance.id:
+                        seos.instance = i
+                    if seos.is_valid():
+                        seos.save()
+                    else:
+                        for f in seos.forms:
+                            if not f.is_valid():
+                                if "__all__" in f.errors:
+                                    messages.error(self.request, f.errors["__all__"])
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
+                        return self.form_invalid(form)
+
+                if round.has_fors:
+                    fors = self.get_for_formset()
+                    if not fors.instance or not fors.instance.id:
+                        fors.instance = i
+                    if fors.is_valid():
+                        fors.save()
+                    else:
+                        for f in fors.forms:
+                            if not f.is_valid():
+                                if "__all__" in f.errors:
+                                    messages.error(self.request, f.errors["__all__"])
+
+                        if update_url:
+                            return redirect(f"{update_url}#categories")
+                        return self.form_invalid(form)
+
+                if "submit_report" in form.data:
+                    i.submit(request=self.request)
+                    i.save()
+
+                if "assess" in form.data:
+                    i.assess(request=self.request)
+                    i.save()
 
         except Exception as ex:
             capture_exception(ex)
@@ -2517,7 +2600,7 @@ class ReportViewMixin:
                             for ro in c.org.get_ro()
                         ]
                     )
-                
+
                 models.ReportCommentRecipient.bulk_create(report_comment_recipients)
 
                 respond_url = (
@@ -2614,6 +2697,37 @@ class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
     form_class = forms.ReportForm
 
 
+class FileImportForm(Form):
+
+    def __init__(self, label=None, allowed_extensions=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["file"] = FileField(
+            label=label or _("File"),
+            required=True,
+            widget=widgets.ClearableFileInput(
+                attrs={
+                    "placeholder": _("Please upload a file ..."),
+                    "data-placeholder": _("Please upload a file ..."),
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _("The file is required. Please upload a file ..."),
+                    "oninput": "this.setCustomValidity('')",
+                    "accept": (
+                        ",".join(f".{e}" for e in allowed_extensions)
+                        if allowed_extensions
+                        else ".*"
+                    ),
+                }
+            ),
+            validators=allowed_extensions
+            and [FileExtensionValidator(allowed_extensions=allowed_extensions)],
+        )
+        self.helper = FormHelper(self)
+        self.helper.include_media = False
+        self.helper.form_tag = False
+        self.helper.layout = Layout("file")
+
+
 class ReportRisImportForm(Form):
     file = FileField(
         label=_("RIS file"),
@@ -2640,10 +2754,61 @@ class ReportRisImportForm(Form):
         self.helper.layout = Layout("file")
 
 
-class ReportRisImportView(LoginRequiredMixin, FormView):
-    form_class = ReportRisImportForm
+class FileImportView(LoginRequiredMixin, FormView):
+    form_class = FileImportForm
+    template_name = "portal/file_import_form.html"
+    allowed_extensions = ["elm", "msg"]
+    label = gettext_lazy("Message")
+    model = models.Report
+
+    def get_success_url(self):
+        if o := self.object:
+            return o.get_absolute_url()
+        return reverse("report", kwargs=self.kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["allowed_extensions"] = self.allowed_extensions
+        kwargs["label"] = self.label
+        return kwargs
+
+    @cached_property
+    def is_modal(self):
+        return (
+            self.request.GET.get("_modal_dialog")
+            or self.request.GET.get("_popup")
+            or self.request.POST.get("_modal_dialog")
+            or self.request.POST.get("_popup")
+        )
+
+    @property
+    def object(self):
+        if "pk" in self.kwargs:
+            return get_object_or_404(self.model, pk=self.kwargs.get("pk"))
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if self.is_modal:
+            context["modal_dialog"] = True
+        context["object"] = self.object
+        return context
+
+    def get_template_names(self):
+        if self.is_modal:
+            return ["partials/file_import_form.html"]
+        return super().get_template_names()
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+
+class ReportRisImportView(FileImportView):
+    # form_class = ReportRisImportForm
+    form_class = FileImportForm
     template_name = "portal/ris_import_form.html"
     model = models.Report
+    allowed_extensions = ["ris"]
+    label = gettext_lazy("RIS file")
 
     def get_success_url(self):
         return reverse("report", kwargs=self.kwargs)
@@ -2655,10 +2820,7 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
     def get_context_data(self, *args, **kwargs):
         assert self.kwargs.get("pk")
         context = super().get_context_data(*args, **kwargs)
-        if self.request.GET.get("_modal_dialog"):
-            context["modal_dialog"] = True
-        context["report"] = self.report
-        context["object"] = self.report
+        context["report"] = self.object
         return context
 
     def get_template_names(self):
@@ -2668,7 +2830,7 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         form.cleaned_data["file"].file.seek(0)
-        report = self.report
+        report = self.object
         entries = rispy.loads(form.cleaned_data["file"].file.read().decode())
         with transaction.atomic():
             for e in entries:
@@ -2751,20 +2913,55 @@ class ReportRisImportView(LoginRequiredMixin, FormView):
             )
         return super().form_valid(form)
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class=form_class)
-        if not hasattr(form, "helper"):
-            form.helper = FormHelper()
-            form.layout = Layout("file")
-        if not self.request.GET.get("_modal_dialog"):
-            form.helper.layout.append(
-                bootstrap.FormActions(
-                    layout.Submit("import", "Import ..."),
-                    layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
-                    css_class="float-right",
-                ),
+    # def get_form(self, form_class=None):
+    #     form = super().get_form(form_class=form_class)
+    #     if not hasattr(form, "helper"):
+    #         form.helper = FormHelper()
+    #         form.layout = Layout("file")
+    #     if not self.request.GET.get("_modal_dialog"):
+    #         form.helper.layout.append(
+    #             bootstrap.FormActions(
+    #                 layout.Submit("import", "Import ..."),
+    #                 layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+    #                 css_class="float-right",
+    #             ),
+    #         )
+    #     return form
+
+
+class EmailImportView(FileImportView):
+
+    allowed_extensions = ["elm", "msg"]
+    label = gettext_lazy("Message")
+    model = models.Report
+    extra_context = {"hx_target": "#comments"}
+
+    def form_valid(self, form):
+
+        file_field = form.cleaned_data["file"]
+        file_name = file_field.name
+        file_field.file.seek(0)
+        r = self.object
+
+        if reply_to := self.request.GET.get("reply_to"):
+            reply_to = get_object_or_404(r.comments.model, pk=reply_to)
+        r.import_email(
+            file_field.file,
+            file_name,
+            request=self.request,
+            by=self.request.user,
+            reply_to=reply_to,
+        )
+        messages_list = [
+            messages.Message(
+                messages.constants.INFO, _(f"{file_name} was successfully imported...")
             )
-        return form
+        ]
+        return render(
+            self.request,
+            "partials/comments.html",
+            {"messages": messages_list, "comments": r.comments},
+        )
 
 
 class ReportExportView(ExportView):
@@ -3457,6 +3654,7 @@ def delete_object(request, model, pk):
                         messages.constants.INFO, _(f"The invitation {i} was revoked.")
                     )
                 )
+            o.delete()
         except Exception as ex:
             messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
         name = o._meta.verbose_name.title()
@@ -3472,8 +3670,10 @@ def delete_object(request, model, pk):
 def delete_referee(request, pk):
     if r := pk and models.Referee.where(pk=pk).first():
         return HttpResponse(
-            f"""
-    <div class="alert alert-success">Referee {r.full_name_with_email} successfully deleted<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
+            f"""<div class="alert alert-success">Referee {r.full_name_with_email} successfully deleted
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">×</span>
+    </button></div>
     """
         )
     return HttpResponse(
@@ -6724,57 +6924,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return result[0]
 
     def get_queryset(self):
-        q = models.Organisation.objects.all()
-        if (nominator := self.forwarded.get("nominator")) and self.request.site_id in [4, 5]:
-            q = q.filter(Q(research_offices__user_id=nominator))
-        if self.q:
-            s = self.q.lower()
-            s0 = s.split(" ")
-            if s0[0] == "the":
-                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
-            else:
-                s0 = f"the {s}"
-            q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
-            q = (
-                q.filter(
-                    Q(
-                        id__in=models.Organisation.where(
-                            Q(name__istartswith=s) | Q(name__istartswith=s0)
-                        )
-                        .values("name")
-                        .annotate(Min("id"))
-                        .values("id__min")
-                    )
-                )
-                # .order_by("name", "id")
-                .values_list("id", "name")
-            )
-            q = q.union(
-                models.OrgName.where(
-                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
-                    Q(
-                        org_id__in=models.OrgName.where(
-                            Q(name__istartswith=s) | Q(name__istartswith=s0)
-                        )
-                        .values("name")
-                        .annotate(Min("org_id"))
-                        .values("org_id__min")
-                    ),
-                ).values_list("org_id", "name")
-            )
-            # q = (
-            #     q.distinct()
-            #     if django.db.connection.vendor == "sqlite"
-            #     else q.distinct("id", "name")
-            # )
-        else:
-            q = q.filter(
-                id__in=models.Organisation.objects.all()
-                .values("name")
-                .annotate(Min("id"))
-                .values("id__min")
-            ).values_list("id", "name")
-        return q.order_by("name")
+        nominator = self.forwarded.get("nominator") if self.request.site_id in [4, 5] else None
+        return models.Organisation.search_query(self.q, nominator=nominator)
 
 
 class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -6933,6 +7084,7 @@ class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 | Q(email__istartswith=self.q)
                 | Q(last_name__istartswith=self.q)
                 | Q(user__last_name__istartswith=self.q)
+                | Q(user__email__istartswith=self.q)
             )
         return q
 
@@ -9156,16 +9308,16 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
         return resp
 
     def get_context_data(self, *args, **kwargs):
-        data = super().get_context_data(*args, **kwargs)
-        data["yes_label"] = _("Yes")
-        data["no_label"] = _("No")
+        context = super().get_context_data(*args, **kwargs)
+        context["yes_label"] = _("Yes")
+        context["no_label"] = _("No")
 
         round_id = self.kwargs.get("round")
         if round_id and (
             p := models.Panellist.where(user=self.request.user, round_id=round_id).first()
         ):
             if p.has_all_coi_statements_submitted_for(round_id):
-                data["is_all_coi_statements_sumitted"] = True
+                context["is_all_coi_statements_sumitted"] = True
 
             for row in (
                 models.ConflictOfInterest.where(
@@ -9175,12 +9327,12 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
                 .values("has_conflict")
                 .annotate(count=Count("*"))
             ):
-                data[f"has_conflict_{row['has_conflict']}"] = row["count"] != 0
+                context[f"has_conflict_{row['has_conflict']}"] = row["count"] != 0
 
         if round_id:
-            data["round"] = models.Round.get(round_id)
+            context["round"] = models.Round.get(round_id)
 
-        return data
+        return context
 
     def get_queryset(self):
         round_id = self.kwargs["round"]
@@ -9930,6 +10082,9 @@ class PublicationViewMixin:
         # "org": autocomplete.ModelSelect2("org-autocomplete"),
     }
 
+    def get(self, *args, **kwargs):
+        return super().get(*args, **kwargs)
+
     @cached_property
     def report_id(self):
         if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
@@ -10024,13 +10179,39 @@ class ReportedFundingList(LoginRequiredMixin, StateInPathMixin, SingleTableView)
     # filterset_class = filters.ReportFilterSet
 
 
+class OrgWidget(s2forms.ModelSelect2Widget):
+
+    theme = "bootstrap4"
+    model = models.Organisation
+    search_fields = ["name__icontains"]
+
+    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+        return self.model.search_query(term, queryset=queryset)
+
+    def result_from_instance(self, obj, request):
+        return {
+            "id": obj[0],
+            "text": obj[1],
+            # 'extra_data': obj.extra_data,
+        }
+
+
 class ReportedFundingViewMixin:
 
     model = models.ReportedFunding
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
     widgets = {
-        "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        # "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        # "agency": s2forms.ModelSelect2Widget(
+        #     model=models.Organisation,
+        #     search_fields=["name__icontains"],
+        #     attrs={"class": "form-control custom-select", "with": "100%"}
+        # ),
+        "agency": OrgWidget(
+            attrs={"class": "form-control custom-select", "with": "100%"},
+            model=models.Organisation,
+        ),
         "end_date": forms.DateInput(),
         "report": HiddenInput(),
         "start_date": forms.DateInput(),
@@ -10117,6 +10298,227 @@ class ReportedFundingUpdateView(ReportedFundingViewMixin, UpdateView):
 
 class ReportedFundingCreateView(ReportedFundingViewMixin, CreateView):
     pass
+
+
+class ReportedActivityViewMixin:
+
+    # model = models.ReportedActivity
+    fields = "__all__"
+    exclude = ["updated_at", "created_at"]
+    widgets = {
+        # "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        # "agency": s2forms.ModelSelect2Widget(
+        #     model=models.Organisation,
+        #     search_fields=["name__icontains"],
+        #     attrs={"class": "form-control custom-select", "with": "100%"}
+        # ),
+        "org": OrgWidget(
+            attrs={"class": "form-control custom-select", "with": "100%"},
+            model=models.Organisation,
+        ),
+        "end_date": forms.DateInput(),
+        "report": HiddenInput(),
+        "start_date": forms.DateInput(),
+        "url": URLInput(),
+    }
+
+    def get_success_url(self):
+        return ""
+
+    @cached_property
+    def report_id(self):
+        if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
+            return int(report_id)
+
+    @property
+    def report(self):
+        if self.object and self.object.report:
+            return self.object.report
+        if self.report_id:
+            return models.Report.where(pk=self.report_id).first()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.GET.get("_modal_dialog"):
+            context["modal_dialog"] = True
+        if report_id := self.report_id:
+            context["report"] = report_id
+        return context
+
+    def get_initial(self):
+        initial = super().get_initial() or {}
+        initial["report"] = self.report_id
+        initial["title"] = self.report.contract.project_title
+        return initial
+
+    def get_template_names(self):
+        if self.request.GET.get("_modal_dialog") or self.request.GET.get("_popup"):
+            return ["partials/reported_activity_form.html"]
+        return super().get_template_names()
+
+    def get_form_class(self):
+        """Return the form class to use in this view."""
+        return model_forms.modelform_factory(
+            self.model, fields=self.fields, exclude=self.exclude, widgets=self.widgets
+        )
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper = FormHelper()
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            form.helper.form_tag = False
+        return form
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            report = self.report
+            return render(self.request, "partials/reported_activity_list.html", locals())
+        return resp
+
+
+class ReportedAwardViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedAward
+    fields = ["member", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["member"].queryset = self.report.efforts.all().order_by("full_name", "role")
+        form.fields["member"].label = _("Researcher")
+        form.fields["member"].required = True
+        form.fields["description"].label = _("Award")
+        form.fields["description"].required = True
+        # form.helper = FormHelper()
+
+        # if self.request.GET.get("_modal_dialog"):
+        #     form.helper.form_tag = False
+        # form.helper.layout = Layout(
+        #     Field("member", label=_("Researcher")), Field("description", label=_("Award"))
+        # )
+        # if not self.request.GET.get("_modal_dialog"):
+        #     form.helper.layout.append(
+        #         bootstrap.FormActions(
+        #             layout.Submit("save", "Save changes"),
+        #             layout.Button("cancel", "Cancel", css_class="btn btn-secondary"),
+        #             css_class="float-right",
+        #         ),
+        #     )
+        return form
+
+
+class ReportedAwardUpdateView(ReportedAwardViewMixin, UpdateView):
+    pass
+
+
+class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
+    pass
+
+
+class ReportedPublicityViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedPublicity
+    fields = ["type", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["description"].label = _("Details")
+        form.fields["description"].required = True
+        form.fields["type"].label = _("Activity")
+        form.fields["type"].required = True
+        form.fields["type"].widget = widgets.Select(
+            choices=models.Choices(
+                "Conference",
+                "Newsletter",
+                "Newspaper",
+                "Outreach",
+                "Popular Article",
+                "Public Lecture",
+                "Radio",
+                "TV",
+                "Other",
+            )
+        )
+        return form
+
+
+class ReportedPublicityUpdateView(ReportedPublicityViewMixin, UpdateView):
+    pass
+
+
+class ReportedPublicityCreateView(ReportedPublicityViewMixin, CreateView):
+    pass
+
+
+class ReportedCollaborationViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedCollaboration
+    fields = ["full_name", "organisation", "country", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["description"].label = _("Nature of Collaboration")
+        form.fields["full_name"].label = _("Collaborator")
+        form.fields["organisation"].label = _("Institution")
+        return form
+
+
+class ReportedCollaborationUpdateView(ReportedCollaborationViewMixin, UpdateView):
+    pass
+
+
+class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView):
+    pass
+
+
+class ReportedVisitViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedVisit
+    fields = ["member", "full_name", "organisation", "country", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["member"].label = _("Visitor")
+        form.fields["member"].required = True
+        form.fields["member"].queryset = self.report.efforts.all().order_by("full_name", "role")
+        form.fields["description"].label = _("Purpose")
+        form.fields["description"].required = True
+        form.fields["full_name"].label = _("Host")
+        form.fields["organisation"].label = _("Institution")
+        form.fields["organisation"].required = True
+        return form
+
+
+class ReportedVisitUpdateView(ReportedVisitViewMixin, UpdateView):
+    pass
+
+
+class ReportedVisitCreateView(ReportedVisitViewMixin, CreateView):
+    pass
+
+
+class ReportedActivityView(View):
+
+    award_view = staticmethod(ReportedAwardCreateView.as_view())
+    publicity_view = staticmethod(ReportedPublicityCreateView.as_view())
+    collaboration_view = staticmethod(ReportedCollaborationCreateView.as_view())
+    visit_view = staticmethod(ReportedVisitCreateView.as_view())
+    # bar_view = staticmethod(BarView.as_view())
+
+    def dispatch(self, request, *args, **kwargs):
+        category = request.GET.get("activity_category")
+
+        if category == "A":
+            return self.award_view(request, *args, **kwargs)
+        elif category == "P":
+            return self.publicity_view(request, *args, **kwargs)
+        elif category == "C":
+            return self.collaboration_view(request, *args, **kwargs)
+        elif category == "V":
+            return self.visit_view(request, *args, **kwargs)
+        # else:
+        #     return self.bar_view(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 @login_required

@@ -159,7 +159,10 @@ urlpatterns = [
                 path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
-                    "<int:pk>/ris-import", views.ReportRisImportView.as_view(), name="ris-import"
+                    "<int:pk>/~ris-import", views.ReportRisImportView.as_view(), name="ris-import"
+                ),
+                path(
+                    "<int:pk>/comments/~email-import", views.EmailImportView.as_view(), name="email-import"
                 ),
                 path(
                     "funding/",
@@ -179,6 +182,79 @@ urlpatterns = [
                                 "",
                                 views.ReportedFundingList.as_view(),
                                 name="reported-funding-list",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
+                    "activities/~create",
+                    views.ReportedActivityView.as_view(),
+                    name="reported-activity-create",
+                ),
+                path(
+                    "collaboration/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedCollaborationUpdateView.as_view(),
+                                name="reported-collaboration-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
+                    "visits/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedVisitUpdateView.as_view(),
+                                name="reported-visit-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
+                    "publicity/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedPublicityUpdateView.as_view(),
+                                name="reported-publicity-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
+                    "awards/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedAwardCreateView.as_view(),
+                            #     name="reported-award-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedAwardUpdateView.as_view(),
+                                name="reported-award-update",
                             ),
                         ]
                     ),

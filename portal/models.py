@@ -16,6 +16,8 @@ from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from datetime import timedelta
+import email
+
 
 import pikepdf
 import simple_history
@@ -60,6 +62,7 @@ from django.db.models import (
     IntegerField,
     Manager,
     ManyToManyField,
+    Min,
     OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
@@ -113,6 +116,9 @@ from common.models import (
 )
 
 from .utils import send_mail, vignere
+
+
+EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 
 
 class CurrentSiteManager(CurrentSiteManager):
@@ -1142,6 +1148,55 @@ class Organisation(Model):
                     a.number = default_application_number(a)
                     a.save(update_fields=["number"])
 
+    @classmethod
+    def search_query(cls, term, queryset=None, nominator=None):
+        """Organisation search queery for autocomplete and select2."""
+        # def get_queryset(self):
+        q = queryset or cls.objects.all()
+        if nominator:
+            q = q.filter(Q(research_offices__user_id=nominator))
+        if term:
+            s = term.lower()
+            s0 = s.split(" ")
+            if s0[0] == "the":
+                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
+            else:
+                s0 = f"the {s}"
+            q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
+            q = (
+                q.filter(
+                    Q(
+                        id__in=cls.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                        .values("name")
+                        .annotate(Min("id"))
+                        .values("id__min")
+                    )
+                )
+                # .order_by("name", "id")
+                .values_list("id", "name")
+            )
+            q = q.union(
+                OrgName.where(
+                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
+                    Q(
+                        org_id__in=OrgName.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                        .values("name")
+                        .annotate(Min("org_id"))
+                        .values("org_id__min")
+                    ),
+                ).values_list("org_id", "name")
+            )
+            # q = (
+            #     q.distinct()
+            #     if django.db.connection.vendor == "sqlite"
+            #     else q.distinct("id", "name")
+            # )
+        else:
+            q = q.filter(
+                id__in=cls.objects.all().values("name").annotate(Min("id")).values("id__min")
+            ).values_list("id", "name")
+        return q.order_by("name")
+
     class Meta:
         db_table = "organisation"
 
@@ -1409,15 +1464,23 @@ class Person(PersonMixin, Model):
     def protection_patterns(self):
         return ProtectionPatternPerson.get_data(self)
 
-    @lru_cache(1)
+    @cache
     def __str__(self):
         if u := self.user:
-            return (
-                f"{u.name} ({u.username})'s profile"
+            value = (
+                f"{u.name} ({u.username})"
                 if u.name and u.username
-                else f"{u.name or u.username or u.email}'s profile"
+                else f"{u.name or u.username or u.email}"
             )
-        return self.code or self.full_name_with_title
+            if self.code:
+                return f"{self.code}: {value}"
+            return value
+        value = self.full_name_with_title
+        if value:
+            if self.code:
+                return f"{self.code}: {value}"
+            return value
+        return self.code or self.email or self.orcid
 
     def save(self, *args, **kwargs):
         created = not self.id
@@ -2135,6 +2198,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         default=0,
     )
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
+
+    @cached_property
+    def ci(self):
+        return (
+            (ci := self.members.filter(role="CI").last()) and ci.person.user or self.submitted_by
+        )
 
     @cached_property
     def pi(self):
@@ -3572,9 +3641,6 @@ class Member(PersonMixin, MemberMixin, Model):
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
     state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    authorized_at = MonitorField(
-        monitor="state", when=["authorized"], null=True, default=None, blank=True
-    )
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
     )
@@ -5908,6 +5974,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 self.required_contract_documents,
                 self.required_documents,
                 self.templates,
+                self.performance_flags,
             ]:
                 objs = [o for o in m.all()]
                 for o in objs:
@@ -6437,6 +6504,40 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         db_table = "round"
 
 
+class PerformanceFlag(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="performance_flags")
+    name = CharField(max_length=400)
+    value_choices = CharField(
+        max_length=400,
+        null=True,
+        blank=True,
+        help_text="given in the format: 'VALUE1:DESCRIPTION1;VALUE2:DESCRIPTION2;...', otherwise it is 'YES' or 'NO'",
+    )
+    is_optional = BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        created = not self or not self.pk
+        super().save(*args, **kwargs)
+        if created:
+            assessed_permances = [
+                AssessedPerformance(
+                    report=r,
+                    flag=self,
+                    value="N" if not self.is_optional and not self.value_choices else None,
+                )
+                for r in Report.where(
+                    ~Q(state__in=["assessed", "archived"]),
+                    ~Q(performance__flag__in=[self]),
+                    contract__application__round_id=self.round_id,
+                )
+            ]
+            if assessed_permances:
+                AssessedPerformance.bulk_create(assessed_permances)
+
+    class Meta(OrderableModel.Meta):
+        db_table = "performance_flag"
+
+
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
     document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
@@ -6704,6 +6805,19 @@ class Evaluation(EvaluationMixin, Model):
             for s in Score.where(evaluation=self)
         )
 
+    @property
+    def thread_index(self):
+        if self.application_id and (n := Nomination.where(application=self.application_id).last()):
+            idx = n.id
+        else:
+            idx = self.application_id
+        site_id = self.application and self.application.site_id or settings.SITE_ID
+        return base64.b64encode(f"{site_id}:{idx}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        return self.application and self.application.number
+
     @fsm_log
     @transition(field=state, source=["draft", "new"], target="draft", custom=dict(admin=False))
     def save_draft(self, *args, **kwargs):
@@ -6715,6 +6829,32 @@ class Evaluation(EvaluationMixin, Model):
         self.total_score = self.calc_evaluation_score()
         if not self.comment:
             raise ValidationError(_("The review is not completed. Missing an overall comment."))
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="draft",
+        custom=dict(verbose="Request resubmission", button_name="Request resubmission"),
+    )
+    def request_resubmission(self, request=None, by=None, *args, **kwargs):
+        if request:
+            url = request.build_absolute_uri(reverse("evaluation-update", {"pk", self.pk}))
+            subject = __("Please re-evaluate the application and resubmit your scores")
+            body = __("Please re-evaluate the application and resubmit your scores: %s") % url
+
+            send_mail(
+                subject,
+                body,
+                recipients=[self.panellist.email or self.panellist.user.email],
+                fail_silently=False,
+                request=request,
+                reply_to=(
+                    request.user.email if request and request.user else settings.DEFAULT_FROM_EMAIL
+                ),
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
 
     @classmethod
     def user_evaluations(cls, user, state=None, round=None):
@@ -7800,6 +7940,18 @@ class ContractComment(Model):
         ordering = ["-id"]
 
 
+class ContractCommentRecipient(Model):
+
+    comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "contract_comment_recipient"
+        verbose_name = _("recipient")
+
+
 class ContractCommentAttachment(Model):
     comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="attachments")
     attachment = PrivateFileField(
@@ -8026,8 +8178,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
     @cached_property
+    def ci(self):
+        return (ci := self.members.filter(role="CI").last()) and ci.user or self.application.ci
+
+    @cached_property
     def pi(self):
-        return (pi := self.members.filter(role="PI").last()) and pi.user or self.submitted_by or self.application.pi
+        return (
+            (pi := self.members.filter(role="PI").last())
+            and pi.user
+            or self.submitted_by
+            or self.application.pi
+        )
 
     def save(self, *args, **kwargs):
         if (
@@ -8785,8 +8946,20 @@ class Report(ReportMixin, PdfFileMixin, Model):
         return self.schedule_entry.due_date
 
     @cached_property
+    def ci(self):
+        return (
+            (ci := self.efforts.filter(role="CI", person__user__isnull=False).last())
+            and ci.person.user
+            or self.contract.ci
+        )
+
+    @cached_property
     def pi(self):
-        return (pi := self.efforts.filter(role="PI", person__user__isnull=False).last()) and pi.person.user or self.contract.pi
+        return (
+            (pi := self.efforts.filter(role="PI", person__user__isnull=False).last())
+            and pi.person.user
+            or self.contract.pi
+        )
 
     # exported = models.BooleanField(blank=True, null=True)
     # exported_date = models.DateField(blank=True, null=True)
@@ -8897,6 +9070,21 @@ class Report(ReportMixin, PdfFileMixin, Model):
         default=0,
     )
 
+    def create(self, *args, **kwargs):
+        obj = super().create(*args, **kwargs)
+        if r := (obj.contract and obj.contract.application and obj.contract.application.round):
+            AssessedPerformance.bulk_create(
+                [
+                    AssessedPerformance(
+                        report=obj,
+                        flag=f,
+                        value="N" if not f.is_optional and not f.value_choices else None,
+                    )
+                    for f in r.performance_flags.all()
+                ]
+            )
+        return obj
+
     def save(self, *args, **kwargs):
         if se := self.schedule_entry:
             if not self.contract:
@@ -8981,7 +9169,8 @@ class Report(ReportMixin, PdfFileMixin, Model):
             return q
 
         f = (
-            Q(contract__application__submitted_by=user)
+            Q(assessor=user)
+            | Q(contract__application__submitted_by=user)
             # | Q(members__user=user, members__state="authorized")
             # | Q(referees__user=user)
             # | Q(nomination__nominator=user)
@@ -9008,6 +9197,179 @@ class Report(ReportMixin, PdfFileMixin, Model):
     def thread_topic(self):
         return f"REPORT:{self.period}:{self.type}:{self.contract.number}"
 
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "submitted"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="submit"),
+    )
+    def submit(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        if self.assessor:
+            url = self.get_full_detail_url(request=request)
+            link_name = domain_to_macrons(url)
+
+            send_mail(
+                f"Report {self} Submitted",
+                message=f"User {by} submitted the report {self}.",
+                from_email="reports",
+                recipients=[self.assessor],
+                fail_silently=False,
+                request=request,
+                # reply_to=settings.DEFAULT_FROM_EMAIL,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted", "assessed"],
+        target="assessed",
+        custom=dict(verbose="Assess", button_name="assess"),
+    )
+    def assess(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+
+        send_mail(
+            f"Report {self} Assessed",
+            message=f"User {by} submitted the report {self}.",
+            from_email="reports",
+            recipients=[self.pi],
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+
+    def import_email(
+        self, file, file_name=None, notify_author=True, request=None, by=None, reply_to=None
+    ):
+        if isinstance(file, io.BytesIO):
+            msg = email.message_from_binary_file(file)
+        else:
+            msg = email.message_from_file(file)
+
+        to = msg["to"]
+        subject = msg["subject"]
+        sender = msg["from"]
+        if sender and (match := re.search(EMAIL_EX, sender)):
+            sender = match[0].lower()
+        # from_addresses = []
+
+        by = (
+            User.where(Q(email=sender) | Q(emailaddress__email=sender)).first()
+            or by
+            or request
+            and request.user
+        )
+
+        body = msg["body"]
+        if not msg.is_multipart():
+            body = msg.get_payload(decode=True)
+        else:
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type == "multipart/alternative":
+                    for p in part.get_payload():
+                        body = p.get_payload(decode=True)
+                        if p.get_content_type() == "text/html":
+                            break
+
+        attachments = [
+            File(io.BytesIO(a.as_bytes()), name=a.get_filename())
+            for a in msg.walk()
+            if a.get_filename()
+        ]
+
+        def message_ids(msg):
+            headers = [
+                "in-reply-to",
+                "original-message-id",
+                "x-ms-exchange-parent-message-id",
+                "message-id",
+            ]
+            for h in headers:
+                v = msg[h]
+                if v:
+                    yield v
+            for p in msg.walk():
+                for f in headers:
+                    v = p[h]
+                    if v:
+                        yield v
+
+        if by or body:
+            token = get_unique_mail_token()
+            if body:
+                for encoding in ["utf-8", "iso-8859-4"]:
+                    try:
+                        body = body.decode(encoding)
+                        break
+                    except:
+                        pass
+            if not reply_to:
+                for message_id in message_ids(msg):
+                    reply_to = self.comments.model.where(token=message_id).last()
+                    if reply_to:
+                        break
+            comment = self.comments.model.create(
+                report=self,
+                submitted_by=by,
+                comment=body,
+                token=token,
+                reply_to=reply_to,
+                # attachment=attachments and attachments[0] or None,
+            )
+            comment.recipients.model.create(
+                comment=comment,
+                user=reply_to and reply_to.submitted_by or self.pi,
+                email=(
+                    reply_to.submitted_by.email
+                    if reply_to and reply_to.submitted_by
+                    else self.pi.email
+                ),
+            )
+
+            attachments.append(
+                File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
+            )
+
+            # for a in attachments[1:]:
+            for a in attachments:
+                ca = comment.attachments.model(comment=comment)
+                ca.attachment.save(content=a, name=a.name)
+                ca.save()
+
+            domain = to.split("@")[1]
+            recipients = [reply_to and reply_to.submitted_by or self.pi]
+            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+            html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                from_email="reports",
+                subject=f"Comment posted by {by.full_name_with_email} to {self}",
+                html_message=html_message,
+                cc=by and [by.full_email_address],
+                attachments=attachments or None,
+                recipients=recipients,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+                token=token,
+                request=request,
+                site=self.contract.site,
+            )
+            return comment
+
     class Meta:
         db_table = "report"
         unique_together = (("contract", "period", "type"),)
@@ -9019,6 +9381,29 @@ simple_history.register(
     table_name="report_history",
     bases=[ReportMixin, Model],
 )
+
+
+class AssessedPerformance(Model):
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="performance",
+    )
+    flag = ForeignKey(PerformanceFlag, on_delete=CASCADE)
+    # name = CharField(max_length=400)
+    # value_choices = CharField(
+    #     max_length=400,
+    #     help_text="given in the format: 'VALUE1:DESCRIPTION1;VALUE2:DESCRIPTION2;...'",
+    # )
+    # is_optional = BooleanField(default=True)
+    value = CharField(max_length=100, null=True, blank=True)
+    comment = TextField(_("Comment"), max_length=1000, null=True, blank=True)
+
+    history = HistoricalRecords(table_name="assessed_performance_history")
+
+    class Meta:
+        db_table = "assessed_performance"
+        ordering = ["flag__ordering"]
 
 
 class ReportedEffortMixin:
@@ -9071,34 +9456,47 @@ class ReportedEffort(ReportedEffortMixin, Model):
         db_column="role",
     )
     fte = DecimalField(
-        _("FTE"), help_text=_("Full-Time Equivalent"), max_digits=3, decimal_places=2
+        _("FTE"),
+        help_text=_("Full-Time Equivalent from the contract"),
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    total_fte = DecimalField(
+        _("Total FTE"),
+        help_text=_("Total Full-Time Equivalent"),
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
     )
     state = StateField(default="new", verbose_name=_("state"))
 
-    @property
-    def fte_total(self):
-        if self.person:
-            return (
-                self._meta.model.where(
-                    report__contract=self.report.contract,
-                    person=self.person,
-                    # report__period__lt=self.report.period,
-                )
-                .aggregate(Sum("fte", default=0))
-                .get("fte__sum", Decimal("0.00"))
-            )  # + (self.fte or 0.0)
-        elif self.full_name:
-            return (
-                self._meta.model.where(
-                    report__contract=self.report.contract,
-                    full_name=self.full_name,
-                    person=self.person,
-                    # report__period__lt=self.report.period,
-                )
-                .aggregate(Sum("fte", default=0))
-                .get("fte__sum", Decimal("0.00"))
-            )  # + (self.fte or 0.0)
-        return 0.0
+    # @property
+    # def fte_total(self):
+    #     if self.person:
+    #         return (
+    #             self._meta.model.where(
+    #                 report__contract=self.report.contract,
+    #                 person=self.person,
+    #                 # report__period__lt=self.report.period,
+    #             )
+    #             .aggregate(Sum("fte", default=0))
+    #             .get("fte__sum", Decimal("0.00"))
+    #         )  # + (self.fte or 0.0)
+    #     elif self.full_name:
+    #         return (
+    #             self._meta.model.where(
+    #                 report__contract=self.report.contract,
+    #                 full_name=self.full_name,
+    #                 person=self.person,
+    #                 # report__period__lt=self.report.period,
+    #             )
+    #             .aggregate(Sum("fte", default=0))
+    #             .get("fte__sum", Decimal("0.00"))
+    #         )  # + (self.fte or 0.0)
+    #     return 0.0
 
     @cached_property
     def user(self):
@@ -9113,7 +9511,7 @@ class ReportedEffort(ReportedEffortMixin, Model):
             return user.email
         if self.member_effort and self.member_effort.member:
             return self.member_effort.member.email
-    
+
     def save(self, *args, **kwargs):
         if me := self.member_effort:
             if not self.person:
@@ -9123,6 +9521,11 @@ class ReportedEffort(ReportedEffortMixin, Model):
             if not self.role:
                 self.role = me.member.role
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        if self.role:
+            return f"{self.full_name} ({self.role})"
+        return self.full_name
 
     class Meta:
         db_table = "reported_effort"
@@ -9400,6 +9803,16 @@ class ReportComment(Model):
     def target(self):
         return self.report
 
+    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+        return self.report.import_email(
+            file,
+            file_name=file_name,
+            notify_author=notify_author,
+            request=request,
+            by=by,
+            reply_to=self,
+        )
+
     def __str__(self):
         return f"Submitted by {self.submitted_by} at {self.created_at}"
 
@@ -9439,6 +9852,125 @@ class ReportCommentAttachment(Model):
     class Meta:
         db_table = "report_comment_attachment"
         verbose_name = _("attachment")
+
+
+ACTIVITY_CATEGORIES = Choices(
+    ("A", _("Award")),
+    ("C", _("Collaboration")),
+    ("P", _("Publicity")),
+    ("V", _("Visits")),
+)
+
+
+# class ActivityType(Model):
+
+#     category = FixedCharField(max_length=1, choices=ACTIVITY_CATEGORIES)
+#     description = CharField(_("description"), max_length=255, blank=True, null=True)
+
+#     class Meta:
+#         db_table = "activity_type"
+#         # unique_together = (("contract", "period", "type"),)
+
+# # Publicity
+# #     Activity: Radio, TV, Newspaper, Popular Article, Newsletter, Outreach, Public Lecture, Conference, Other
+# #     Details: ... (description)
+
+
+class ReportedActivity(Model):
+    # category = FixedCharField(max_length=1, choices=ACTIVITY_CATEGORIES)
+    type = CharField(max_length=100, null=True, blank=True)
+    orcid = CharField(max_length=20, blank=True, null=True, editable=False)
+    put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
+    start_date = DateField(_("start date"), null=True, blank=True)
+    end_date = DateField(_("end date"), null=True, blank=True)
+    description = TextField(_("description"), max_length=2000, blank=True, null=True)
+    organisation = CharField(
+        _("organisation"), max_length=200, null=True, blank=True
+    )  # entered name
+    org = ForeignKey(
+        Organisation,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("organisation"),
+    )
+    member = ForeignKey(ReportedEffort, null=True, blank=True, on_delete=SET_NULL)
+
+    def __str__(self):
+        return f"{self._meta.verbose_name.title()}: {getattr(self, 'full_name', self.member) or self.organisation or self.type}"
+
+    class Meta:
+        abstract = True
+
+
+class ReportedPublicity(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="publicities")
+
+    class Meta:
+        db_table = "reported_publicity"
+
+
+class ReportedCollaboration(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="collaborations")
+
+    full_name = CharField(_("collaborator"), max_length=400)
+    country = ForeignKey(
+        Country,
+        verbose_name=_("country"),
+        db_column="country",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        default="NZ",
+    )
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="+",
+    )
+
+    class Meta:
+        db_table = "reported_collaboration"
+
+
+class ReportedVisit(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="visits")
+
+    full_name = CharField(_("host"), max_length=400)
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        blank=True,
+        null=True,
+        related_name="+",
+    )
+    country = ForeignKey(
+        Country,
+        verbose_name=_("country"),
+        db_column="country",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        default="NZ",
+    )
+
+    class Meta:
+        db_table = "reported_visit"
+
+
+class ReportedAward(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="awards")
+
+    class Meta:
+        db_table = "reported_award"
 
 
 dummy_for_translations = (

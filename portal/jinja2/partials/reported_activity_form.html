@@ -1,39 +1,54 @@
 {% if modal_dialog %}
   <form
-    hx-post="{{ request.path }}"
-    hx-target="#publication-list"
+    hx-validate="true"
+    hx-post="{{ request.get_full_path() }}"
+    hx-target="#activity-list"
     hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
+    action="{{ request.get_full_path() }}"
+    method="post"
     class="modal-content"
-    enctype="multipart/form-data"
+    id="reported-activity-form"
   >
   <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
   {% if report %}<input type="hidden" name="report" value="{{ report }}">{% endif %}
   <input type="hidden" name="_modal_dialog" value="1">
   <div class="modal-header">
     <h5 class="modal-title">
-      {% if report and report.pk %}
-        {{ report }}
+      {% if instance and instance.pk %}
+        {{ instance }}
+      {% elif object and object.pk %}
+        {{ object }}
       {% else %}
-        {{ _('Import RIS file') }}
+        {{ _('Add a new activity') }}
       {% endif %}
     </h5>
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-      <span aria-hidden="true">×</span>
+      <span aria-hidden="true">&times;</span>
     </button>
   </div>
   <div class="modal-body">
-    {{ crispy(form, form.helper) }}
+    {{ crispy(form) }}
+    {#{ crispy(form, form.helper) }#}
   </div>
   <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-      {{ _('Cancel') }}
-    </button>
-    <button type="submit" class="btn btn-primary">{{ _('Import...') }}</button>
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
+    <!-- button type="submit" class="btn btn-primary">{{ _('Save') }}</button -->
+    <!-- button type="post" class="btn btn-primary">{{ _('Save') }}</button -->
+    <input type="submit" class="btn btn-primary" value="{{ _('Save') }}">
   </div>
 </form>
+{#{ form.media.js }#}
+<!-- script>
+  $("#reported-funding-form").ready(function() {
+    // $('#id_agency').select2();
+    window.__dal__initialize($("#id_agency"));
+    $('#id_start_date,#id_end_date').datepicker();
+    $(".select2-selection__arrow").remove();
+  });
+</script -->
 {#
 {% elif modal %}
-<div class="modal" id="publication-modal" tabindex="-1" role="dialog" _="on closeModal add .closing then wait for animationend then remove me">
+<div class="modal" id="reported-funding-modal" tabindex="-1" role="dialog" _="on closeModal add .closing then wait for animationend then remove me">
   <div class="modal-dialog" role="document">
     <div class="modal-underlay" _="on click trigger closeModal"></div>
     <div class="modal-content">
@@ -42,7 +57,7 @@
           {% if instance and instance.pk %}
             {{ instance }}
           {% else %}
-            {{ _('Add a new publication') }}
+            {{ _('Add a new funding') }}
           {% endif %}
         </h5>
         <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">
@@ -54,6 +69,7 @@
           <div class="modal-body">
             {{ crispy(form, form.helper) }}
           </div>
+            {% render_field form.comment hx-post="/check_comment/" hx-swap="outerHTML"  hx-trigger="keyup" hx-target="#modal_field" class="form__comment" %}
              <div id="modal_field">Count:</div>
             <div class="form__button">
                 <input type="button" value="Cancel" _="on click trigger closeModal"></input>
@@ -62,22 +78,18 @@
         </form>
       <div class="modal-footer">
         {% if instance and instance.pk %}
-        <button type="button" class="btn btn-danger" hx-post="{{ url('remove_movie', pk=instance.pk) }}">Remove</button>
+          <button type="button" class="btn btn-danger" hx-post="{{ url('remove_movie', pk=instance.pk) }}">{{ _('Remove') }}</button>
         <span class="flex-grow-1"></span>
         {% endif %}
         <button type="button" class="btn btn-secondary" data-dismiss="modal">
           Cancel
         </button>
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
       </div>
     </div>
   </div>
 </div>
-<script>
-  {{ form.media.js }}
-</script>
 #}
 {% else %}
 {{ crispy(form, form.helper) }}
 {% endif %}
-

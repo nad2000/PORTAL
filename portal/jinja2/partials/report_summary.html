@@ -13,11 +13,34 @@
           {{ _('Contract Investigator') }}
         </th>
         <td>
-          {{ c.pi }}
+          {{ c.ci }}
           <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
         </td>
       </tr>
 
+      {% if c.pi and c.ci and c.pi != c.ci %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Principal Investigator') }}
+        </th>
+        <td>
+          {{ c.pi }}
+          <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if r.assessor %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Assessor') }}
+        </th>
+        <td>
+          {{ r.assessor  }}
+          <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
+        </td>
+      </tr>
+      {% endif %}
 
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
@@ -53,9 +76,9 @@
           {{ _('Report Due') }}
         </th>
         <td>
-          {% if due_in_days < 0 %}
+          {% if due_in_days < 1 %}
             <strong>
-                <span class="text-danger"> {{ r.due_date }} ({% if due_in_days < 1 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
+                <span class="text-danger"> {{ r.due_date }} ({% if due_in_days == 0 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
             </strong>
           {% elif due_in_days < 4 %}
             <strong>

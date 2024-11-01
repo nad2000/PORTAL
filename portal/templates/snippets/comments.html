@@ -1,35 +1,8 @@
 {% load tags i18n %}
 {% if comments.count > 0 %}
-<div id="comments" class="mt-2">
-  {% for c in comments %}
-
-  <div class="card">
-    <div class="card-header">
-      <a class="card-link" data-toggle="collapse" href="#comment-{{ c.pk }}">
-        <!-- span class="badge badge-primary">{{ forloop.revcounter }}</span -->
-        <i class="fas fa-comment-dots"></i>
-        {% blocktrans with by=c.submitted_by.full_name at=c.created_at.time on=c.created_at.date %}
-        submitted by {{ by }} at {{ at }} on {{ on }}
-        {% endblocktrans %}
-      </a>
-    </div>
-    <div id="comment-{{ c.pk }}" class="collapse{% if forloop.first %} show{% endif %}" data-parent="#comments">
-      <div class="card-body">
-      {% if c.comment %}{{ c.comment|safe }}{% else %}{% trans 'N/A' %}{% endif %}
-      {% if c.attachment %}
-        <hr/>
-        <a class="card-link" href="{{ c.attachment.url }}">{{ c.attachment|basename }}</a>
-      {% endif %}
-      {% for a in c.attachments.all %}
-        {% if not c.attachment and forloop.first %}
-          <hr/>
-        {% endif %}
-        <a class="card-link" href="{{ a.attachment.url }}">{{ a.attachment|basename }}</a>
-      {% endfor %}
-      </div>
-    </div>
-  </div>
-  {% endfor %}
+<div id="comments" class="mt-2"
+  hx-on::after-swap="setTimeout(function() {$('#comments .alert').fadeOut('slow');}, 5000); $('#form-modal').modal('hide');">
+  {% jinja 'partials/comments.html' %}
 </div>
 {% endif %}
 {# vim:set ft=htmldjango: #}

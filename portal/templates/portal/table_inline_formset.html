@@ -1,6 +1,4 @@
-{% load crispy_forms_tags tags i18n %}
-{% load crispy_forms_utils %}
-{% load crispy_forms_field %}
+{% load crispy_forms_tags tags i18n crispy_forms_utils crispy_forms_field %}
 
 {% specialspaceless %}
 {% if formset_tag %}
@@ -28,16 +26,20 @@
       {% else %}
         <tr>
           {% for field in formset.forms.0 %}
-            {% if field.label and not field.is_hidden %}
-              <th for="{{ field.auto_id }}"
-                  class="col-form-label {% if field.field.required %}requiredField{% endif %}"
-                >
-                {% if field.name != "DELETE" %}
-                  <span {% if field.help_text %}
-                     data-toggle="tooltip"
-                     title="{{ field.help_text }}"
-                   {% endif %}>
-                    {{ field.label|safe }}{% if field.field.required and not field|is_checkbox %}<span class="asteriskField">*</span></span>
+            {% if not field.is_hidden %}
+              <th {% if field.label %}for="{{ field.auto_id }}"{% endif %}
+                  class="col-form-label {% if field.label and field.field.required %}requiredField{% endif %}"
+              >
+                {% if field.label and not field.is_hidden %}
+                    {% if field.name != "DELETE" %}
+                      <span {% if field.help_text %}
+                        data-toggle="tooltip"
+                        title="{{ field.help_text }}"
+                      {% endif %}>
+                        {{ field.label|safe }}{% if field.field.required and not field|is_checkbox %}<span class="asteriskField">*</span></span>
+                        {% endif %}
+                    {% else %}
+                      &nbsp;
                     {% endif %}
                 {% endif %}
               </th>
@@ -90,15 +92,20 @@
                   </button>
                 {% else%}
                   <button
-                    type="button" 
-                    class="btn btn-success" 
+                    type="button"
+                    class="btn btn-success"
                     onclick="formset_add_a_row(this, '{{ formset.prefix }}');"
                   >
                     <i class="fa fa-plus" style="width: 12px;"></i>
                   </button>
                 {% endif %}
               </td>
+            {% elif field.name == "flag" and field.template_name %}
+              <td>
+              {{ field|render_field }}
+              </td>
             {% else %}
+              {#% crispy_field field tag "td" form_show_labels False field_class field.field_class %#}
               {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False field_class=field.field_class %}
             {% endif %}
           {% endfor %}

@@ -67,7 +67,8 @@
       <!-- link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" -->
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
-      <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+      <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css" -->
       {#% if domain == "international.royalsociety.org.nz" %#}
       {% if SITE_ID == 5 %}
         <link href="{% static 'css/tawhia.royalsociety.org.nz.css' %}" rel="stylesheet">
@@ -87,6 +88,7 @@
         {% block localcss %}
           <!-- This file stores project-specific CSS -->
           <style>
+.select2-selection__arrow {display: none;}
 tr.htmx-swapping td {opacity: 0; transition: opacity 1s ease-out;}
 table.table .asteriskField,.popover-header {color: gray;}
 .greyAsteriskField { color: $red; font-weight: bold; margin-left: 1.6px; }
@@ -108,16 +110,16 @@ table.table .asteriskField,.popover-header {color: gray;}
   height: auto;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%); 
+  transform: translate(-50%, -50%);
 }
 .htmx-request .spinner-indicator{
   /* display:inline; */
-  display: flex; 
+  display: flex;
   justify-content: center;
 }
 .htmx-request.spinner-indicator{
   /* display:inline; */
-  display: flex; 
+  display: flex;
   justify-content: center;
 }
 </style>
@@ -182,7 +184,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
                       </li>
                       <li class="nav-item" id="reports">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="{% url 'report-list' %}">
                           <i class="fa fa-file"></i> {% trans 'Reporting' %}<!-- span class="sr-only">(current)</span -->
                         </a>
                       </li>
@@ -493,7 +495,7 @@ You have a request to review a {{ site_name }} application to act on.
         {% endif %}
 
           <div class="row">
-            <div class="col-12" id="messages" hx-on::after-swap="setTimeout(function name() {$('#messages .alert').fadeOut('slow');}, 5000);">
+            <div class="col-12" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 5000);">
               {% if messages %}
                 {% for message in messages %}
                   <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -629,7 +631,7 @@ You have a request to review a {{ site_name }} application to act on.
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
         $(document).ready(function(){
-                  // $.fn.select2.defaults.set("theme", "bootstrap");
+                  // $.fn.select2.defaults.set("theme", "bootstrap4");
                   const swalWithBootstrapButtons = Swal.mixin({
                     customClass: {
                       confirmButton: "btn btn-danger ml-1",
@@ -655,7 +657,7 @@ You have a request to review a {{ site_name }} application to act on.
                       $(this).popover('hide');
                     });
                   });
-                  $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %}").addClass("active");
+                  $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %},#{{view_name}}").addClass("active");
                   document.addEventListener("htmx:confirm", function(e) {
                     e.preventDefault()
                     // https://github.com/bigskysoftware/htmx/issues/2029
