@@ -94,6 +94,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import condition, require_http_methods
 from django.views.generic import detail, DetailView, FormView, TemplateView
+from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, SingleTableView
@@ -437,10 +438,11 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
             )
 
 
-class SingleObjectMixin:
+class SingleObjectMixin(ContextMixin):
 
     slug_field = "number"
     slug_url_kwarg = "number"
+    pk_url_kwarg = "pk"
 
     _obj = None
 
@@ -454,27 +456,19 @@ class SingleObjectMixin:
         if queryset is None:
             queryset = self.get_queryset()
 
-        pk = self.kwargs.get(self.pk_url_kwarg)
-        slug = self.kwargs.get(self.slug_url_kwarg)
-        if pk is not None:
-            queryset = queryset.filter(pk=pk)
-
-        if slug is not None and (pk is None or self.query_pk_and_slug):
-            slug_field = self.get_slug_field()
-            queryset = queryset.filter(**{slug_field: slug})
-
-        # If none of those are defined, it's an error.
-        if pk is None and slug is None:
-            raise AttributeError(
-                "Generic detail view %s must be called with either an object "
-                "pk or a slug in the URLconf." % self.__class__.__name__
-            )
+        obj_id = self.kwargs.get(self.pk_url_kwarg) or self.kwargs.get(self.slug_url_kwarg)
+        slug_field = self.get_slug_field()
+        if obj_id is not None:
+            if obj_id.isnumeric():
+                queryset = queryset.filter(pk=int(obj_id))
+            else:
+                queryset = queryset.filter(Q(**{slug_field: obj_id}))
 
         try:
             # Get the single item from the filtered queryset
-            obj = queryset.last()
-            if not obj and slug:
-                an = get_object_or_404(models.ApplicationNumber, **{slug_field: slug})
+            obj = queryset.get()
+            if not obj:
+                an = get_object_or_404(models.ApplicationNumber, **{slug_field: obj_id})
                 obj = an.application
         except queryset.model.DoesNotExist:
             raise Http404(
@@ -3683,7 +3677,7 @@ def delete_referee(request, pk):
     )
 
 
-class ApplicationView(LoginRequiredMixin):
+class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
     model = Application
     form_class = forms.ApplicationForm
 

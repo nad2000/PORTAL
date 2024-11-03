@@ -89,6 +89,7 @@ urlpatterns = [
                 path("accepted", views.ApplicationList.as_view(), name="applications-accepted"),
                 path("in_review", views.ApplicationList.as_view(), name="applications-in_review"),
                 # path("cancelled", views.ApplicationList.as_view(), name="applications-cancelled"),
+                # path("<id>", views.ApplicationDetail.as_view(), name="application"),
                 path("<int:pk>", views.ApplicationDetail.as_view(), name="application"),
                 path("<number>", views.ApplicationDetail.as_view(), name="application-detail"),
                 path("<state>/", views.ApplicationList.as_view(), name="applications-with-state"),
@@ -126,6 +127,11 @@ urlpatterns = [
                     views.ContractCreate.as_view(),
                     name="contract-create",
                 ),
+                # path(
+                #     "<id>/",
+                #     views.ContractDetail.as_view(),
+                #     name="contract",
+                # ),
                 path(
                     "<int:pk>/",
                     views.ContractDetail.as_view(),
