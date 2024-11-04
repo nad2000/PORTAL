@@ -65,6 +65,7 @@ weasyprint==52.5
 django-weasyprint==1.0.1
 html2text==2020.1.16
 pypdf<4.4.0
+rispy<1.0.0
 pikepdf<=8.6.0
 djhacker<=0.3.0
 django-admin-interface<0.30.0
