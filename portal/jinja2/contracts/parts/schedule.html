@@ -9,6 +9,8 @@
   </a>
   <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
 
+  {% include 'jinja2/test.html' %}
+
   <p>
   Programme Title: <strong>{{ c.project_title }}</strong>
   </p>
@@ -76,9 +78,16 @@
                   <td width="154" valign="top" style="width:115.35pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>Contact details</b></p>
                   </td>
-                  <td width="108" valign="top" style="width:81.1pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
+                  {#
+                  <!--td width="108" valign="top" style="width:81.1pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>FTE</b></p>
-                  </td>
+                  </td -->
+                  {% for p in range(1, c.duration+1) %}
+                    <td valign="top" style="width:81.1pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
+                      <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>FTE{{ p }}</b></p>
+                    </td>
+                  {% endfor %}
+                  #}
                 </tr>
 
                 <tr>
@@ -91,9 +100,22 @@
                   <td width="154" valign="top" style="width:115.35pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
                   <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{% if kp.address %}{{ kp.address }}{% else %}&nbsp;{% endif %}</p>
                   </td>
-                  <td width="108" valign="top" style="width:81.1pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
+                  {# <!-- td width="108" valign="top" style="width:81.1pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ '%0.2f' % kp.total_fte|float }}</p>
-                  </td>
+                    </td -->
+                  {% for p in range(1, c.duration+1) %}
+                    {% set fte=kp.fte(p) %}
+                    <td valign="top" style="width:81.1pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
+                      <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">
+                      {% if fte %}
+                        {{ '%0.2f' % fte|float }}
+                      {% else %}
+                        N/A
+                      {% endif %}
+                      </p>
+                    </td>
+                  {% endfor %}
+                    #}
 
                 </tr>
               </tbody>
@@ -117,9 +139,15 @@
                   <td width="189" valign="top" style="width:141.75pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>Role</b></p>
                   </td>
-                  <td width="151" valign="top" style="width:113.4pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
+                  {# <td width="151" valign="top" style="width:113.4pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
                     <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>FTE</b></p>
                   </td>
+                  {% for p in range(1, c.duration+1) %}
+                    <td valign="top" style="width:81.1pt;border:solid windowtext 1.0pt; border-left:none;padding:0in 5.4pt 0in 5.4pt">
+                      <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>FTE{{ p }}</b></p>
+                    </td>
+                  {% endfor %}
+                  #}
                 </tr>
 
                 {% for p in okp %}
@@ -130,9 +158,23 @@
                     <td width="189" valign="top" style="width:141.75pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
                       <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ p.role }}</p>
                     </td>
+                    {#
                     <td width="151" valign="top" style="width:113.4pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
                       <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{{ '%0.2f' % p.total_fte|float }}</p>
                     </td>
+                    {% for i in range(1, c.duration+1) %}
+                      {% set fte=p.fte(i) %}
+                      <td valign="top" style="width:81.1pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
+                        <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">
+                        {% if fte %}
+                          {{ '%0.2f' % fte|float }}
+                        {% else %}
+                          N/A
+                        {% endif %}
+                        </p>
+                      </td>
+                    {% endfor %}
+                    #}
                   </tr>
                 {% endfor %}
 

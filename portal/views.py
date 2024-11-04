@@ -459,7 +459,7 @@ class SingleObjectMixin(ContextMixin):
         obj_id = self.kwargs.get(self.pk_url_kwarg) or self.kwargs.get(self.slug_url_kwarg)
         slug_field = self.get_slug_field()
         if obj_id is not None:
-            if obj_id.isnumeric():
+            if isinstance(obj_id, int) or obj_id.isnumeric():
                 queryset = queryset.filter(pk=int(obj_id))
             else:
                 queryset = queryset.filter(Q(**{slug_field: obj_id}))

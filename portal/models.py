@@ -8693,12 +8693,15 @@ class ContractMember(PersonMixin, Model):
     def total_fte(self):
         return self.efforts.aggregate(aggregates.Avg("fte", default=0)).get("fte__avg")
 
+    def fte(self, period):
+        if me := self.efforts.filter(period=period).first():
+            return me.fte
+        return None
+
     def __getattribute__(self, name):
         if name.startswith("fte_"):
             i = int(name.split("_")[1])
-            if me := self.efforts.filter(period=i).first():
-                return me.fte
-            return None
+            return self.fte(i)
         return super().__getattribute__(name)
 
     def clean(self):
