@@ -28,7 +28,6 @@ class DbLoader(BaseLoader):
             raise TemplateNotFound(template)
         lc = t.last_changed
         pk = t.pk
-        breakpoint()
         return (
             t.content,
             f"{template}::{pk}::{site_id}",

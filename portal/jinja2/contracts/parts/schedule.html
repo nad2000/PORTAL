@@ -9,8 +9,6 @@
   </a>
   <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
 
-  {% include 'jinja2/test.html' %}
-
   <p>
   Programme Title: <strong>{{ c.project_title }}</strong>
   </p>
@@ -223,15 +221,16 @@
     <li>
       <h3>Acknowledgement of Funding</h3>
       <dl><dd>
+          <!-- TODO: adjust per site/schema/round -->
           <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>For the
-          purposes of clause 8.4 of Schedule 2, the phrase that must be used to
+          purposes of clause <!-- NB! -->8.5 of Schedule 2, the phrase that must be used to
           acknowledge the provision of funding and support from the New Zealand Government is
+          <!-- NB! for example -->
         &quot;<i>Supported by the {% if c.fund %}{{ c.fund.description }}{% else %}{{ c.site.name }}
           from Government funding{% endif %},
           administered by the Royal Society Te Ap&#257;rangi&quot;</i>.
           </p>
-
-        </dd></dl>
+      </dd></dl>
     </li>
 
     <li>
@@ -269,17 +268,29 @@
               <col width="225"/>
               <col width="197"/>
               <tr bgcolor="#d0d0d0" valign="middle">
-                <th></th>
-                <th><b>Funding amount</b> (GST inclusive)</th>
-                <th><b>Date of payments</b></th>
+                <th><b>Year</b></th>
+                <th><b>Amount of Funding</b> (GST excl.)</th>
+                <th><b>Purpose of Funding</b></th>
+                <th><b>Payment details</b></th>
               </tr>
-              {% for a in c.allocations.all() %}
-                <tr valign="middle">
-                  <td>Year {{ a.period }}</td>
-                  <td style="text-align: right;">${{ a.allocation }}</td>
-                  <td>[Monthly, on the 2nd Business Day after the 20th of month]</td>
-                </tr>
-              {% endfor %}
+                {% for y, entries in c.allocations_by_years %}
+                  {% for r in entries %}
+                  <tr valign="middle">
+                    {% if not loop.index0 %}
+                      <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
+                    {% endif %}
+                    <td style="text-align: right;">${{ r.allocation }}</td>
+                    <td>{{ r.purpose or '' }}</td>
+                    <td>{{ r.details or '' }}</td>
+                  </tr>
+                  {% endfor %}
+                {% endfor %}
+              <tr valign="middle">
+                <td>TOTAL</td>
+                <td colspan="3" style="text-align: right;">
+                  ${{ '%0.2f' % c.total_allocation }}
+                </td>
+              </tr>
             </table>
 
 
@@ -290,7 +301,7 @@
       <h3>Address for notices</h3>
       <dl><dd>
 
-      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
+      <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="0" width="625"
              style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
         <tr style='height:29.6pt'>
           <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>

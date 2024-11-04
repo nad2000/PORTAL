@@ -8221,6 +8221,19 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         ]
 
     @property
+    def allocations_by_years(self):
+
+        start_year = self.start_date and self.start_date.year or timezone.now().year
+        return [
+            (y, list(entries))
+            for y, entries in groupby(
+                self.allocations.order_by("period", "pk").all(),
+                lambda r: start_year + r.period - 1,
+            )
+        ]
+
+
+    @property
     def thread_index(self):
         return base64.b64encode(
             f"{self.site_id}:{self._meta.model_name}:{self.pk}".encode()
@@ -8743,13 +8756,29 @@ class ContractMemberEffort(Model):
 class Allocation(Model):
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="allocations")
     period = PositiveSmallIntegerField(_("period"))
-    allocation = DecimalField(_("allocation"), max_digits=15, decimal_places=2)
+    purpose = CharField(_("Purpose of Funding"), null=True, blank=True, max_length=1000)
+    details = CharField(
+        _("Payment details"),
+        null=True,
+        blank=True,
+        max_length=1000,
+        help_text=_(
+            "Eg, on the 2nd Businees Day after the 20th day of each  month, "
+            "or receipt of the 2024 interim / final report."
+        ),
+    )
+    allocation = DecimalField(
+        _("allocation"),
+        max_digits=15,
+        decimal_places=2,
+        help_text=_("Amouint of funding (GST excl.)"),
+    )
 
     history = HistoricalRecords(table_name="allocation_history")
 
     class Meta:
         db_table = "allocation"
-        unique_together = (("contract", "period"),)
+        # unique_together = (("contract", "period"),)
 
 
 class ReportingScheduleEntryMixin:
