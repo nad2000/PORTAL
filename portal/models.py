@@ -8298,14 +8298,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         additional_clauses = [c for c in clauses if c.type == "A"]
         ammended_clauses = [c for c in clauses if c.type == "V"]
         agency = self.agency
+        agency_short = "the Society"
 
-        if part in ["cover", "background", "agreement", "schedule"]:
+        if part in ["cover", "background", "agreement", "schedule", "cover_page", "preamble"]:
             template_name = "contracts/part.html"
         else:
             template_name = "contracts/document.html"
 
         template = get_template(template_name)
         user = request and request.user
+        fund = self.fund or self.application.round.scheme.fund
 
         content = template.render(locals())
 

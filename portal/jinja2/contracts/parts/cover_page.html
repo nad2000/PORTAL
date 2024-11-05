@@ -3,7 +3,7 @@
 {% block content %#}
 <div class=WordSection1>
 
-<p class=MsoNormal><b><span style='font-size:12.0pt'>DATED</span></b><span style='font-size:12.0pt'>{{ c and c.start_date.strftime("%d/%m/%Y") or year }}</span></p>
+<p class=MsoNormal><b><span style='font-size:12.0pt'>DATED</span></b><span style='font-size:12.0pt'> {{ c and c.start_date.strftime("%d/%m/%Y") or year }}</span></p>
 
 <p class=MsoNormal align=center style='margin-top:2.5in;margin-right:0in; margin-bottom:60.0pt;margin-left:0in;text-align:center'><b><span
  style='font-size:16.0pt'>AGREEMENT FOR FUNDING FOR
@@ -12,7 +12,7 @@
 
 <p class=MsoNormal align=center style='margin-top:120.0pt;text-align:center'><b><span
 style='font-size:12.0pt'>THE ROYAL SOCIETY OF NEW ZEALAND<br>
-And<br>{{ c.org.name }}</span></b></p>
+And<br>{{ c.host.name }}</span></b></p>
 
 <p class=MsoNormal align=center style='margin-top:240.0pt;text-align:center'><b>Agreement number: {{ c.number }}</b></p>
 

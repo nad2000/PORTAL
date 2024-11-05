@@ -4,7 +4,7 @@
     {% include 'contracts/parts/cover_page.html' with context %}
   {% elif part == "background" %}
     {% include 'contracts/parts/background.html' with context %}
-  {% elif part == "agreement" %}
+  {% elif part == "agreement" or part == "preamble" %}
     {% include 'contracts/parts/agreement.html' with context %}
   {% elif part == "schedule" %}
     {% include 'contracts/parts/schedule.html' with context %}
