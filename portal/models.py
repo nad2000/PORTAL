@@ -6562,7 +6562,7 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         db_table = "required_document"
 
 
-class ContractClause(TimeStampMixin, HelperMixin, OrderableModel):
+class RoundContractClause(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="contract_clauses")
     type = FixedCharField(
         _("Type"), max_length=1, choices=Choices(("A", _("Addition")), ("V", _("Variation")))
@@ -6574,7 +6574,7 @@ class ContractClause(TimeStampMixin, HelperMixin, OrderableModel):
         return f"{self.get_type_display()}: {self.clause}"
 
     class Meta(OrderableModel.Meta):
-        db_table = "contract_clause"
+        db_table = "round_contract_clause"
 
 
 class RoundDocumentTemplate(Model):
@@ -8232,7 +8232,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             )
         ]
 
-
     @property
     def thread_index(self):
         return base64.b64encode(
@@ -8281,16 +8280,24 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")
 
+    @cached_property
+    def agency(self):
+        return Organisation.where(code__in=["RSTA", "NZRS"]).last()
+
+    @property
+    def host(self):
+        return self.org
+
     def get_document(self, request=None, user=None, format="html", part=None):
         """Returns generated part of the contract text from a template."""
 
         year = self.year or self.start_date.year
         current_ts = timezone.now()
         contract = self
-        clauses = list(self.application.round.contract_clauses.all().order_by("type", "ordering"))
+        clauses = list(self.clauses.all().order_by("type", "ordering"))
         additional_clauses = [c for c in clauses if c.type == "A"]
         ammended_clauses = [c for c in clauses if c.type == "V"]
-        agency = Organisation.where(code__in=["RSTA", "NZRS"]).last()
+        agency = self.agency
 
         if part in ["cover", "background", "agreement", "schedule"]:
             template_name = "contracts/part.html"
@@ -8779,6 +8786,21 @@ class Allocation(Model):
     class Meta:
         db_table = "allocation"
         # unique_together = (("contract", "period"),)
+
+
+class ContractClause(TimeStampMixin, HelperMixin, OrderableModel):
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="clauses")
+    type = FixedCharField(
+        _("Type"), max_length=1, choices=Choices(("A", _("Addition")), ("V", _("Variation")))
+    )
+    clause = CharField(_("Clause Number"), max_length=100)
+    term = TextField(_("Term"), max_length=2000)
+
+    def __str__(self):
+        return f"{self.get_type_display()}: {self.clause}"
+
+    class Meta(OrderableModel.Meta):
+        db_table = "contract_clause"
 
 
 class ReportingScheduleEntryMixin:

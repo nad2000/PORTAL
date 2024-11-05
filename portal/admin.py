@@ -2701,11 +2701,11 @@ class RoundAdmin(
         ordering_field_hide_input = True
         classes = ["collapse"]
 
-    class ContractClauseInline(
+    class RoundContractClauseInline(
         SummernoteModelAdminMixin, StaffPermsMixin, OrderableAdmin, admin.TabularInline
     ):
         extra = 0
-        model = models.ContractClause
+        model = models.RoundContractClause
         # autocomplete_fields = ["document_type"]
         view_on_site = False
         ordering_field_hide_input = True
@@ -2729,7 +2729,7 @@ class RoundAdmin(
                 self.CriterionInline,
                 self.PanellistInline,
                 self.RequiredContractDocumentInline,
-                self.ContractClauseInline,
+                self.RoundContractClauseInline,
                 self.PerformanceFlagInline,
             ]
 
@@ -2739,7 +2739,7 @@ class RoundAdmin(
             self.CriterionInline,
             self.PanellistInline,
             self.RequiredContractDocumentInline,
-            self.ContractClauseInline,
+            self.RoundContractClauseInline,
             self.PerformanceFlagInline,
         ]
 
@@ -2891,6 +2891,16 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         view_on_site = False
         classes = ["collapse"]
 
+    class ContractClauseInline(
+        SummernoteModelAdminMixin, StaffPermsMixin, OrderableAdmin, admin.TabularInline
+    ):
+        extra = 0
+        model = models.ContractClause
+        # autocomplete_fields = ["document_type"]
+        view_on_site = False
+        ordering_field_hide_input = True
+        classes = ["collapse"]
+
     class CommentInline(admin.TabularInline):
         model = models.ContractComment
         extra = 0
@@ -2992,6 +3002,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         # EventInline,
         # LogInline,
         CommentInline,
+        ContractClauseInline,
         StateLogInline,
     ]
 
