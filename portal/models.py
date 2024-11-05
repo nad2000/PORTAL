@@ -1111,6 +1111,20 @@ class Organisation(Model):
     website = URLField(max_length=255, blank=True, null=True)
     history = HistoricalRecords(table_name="organisation_history")
 
+    @cached_property
+    def signatory_position(self):
+        return (
+            (
+                a := self.signatory.affiliations.filter(
+                    type="EMP", org=self, end_date__isnull=True
+                )
+                .order_by("-start_date")
+                .first()
+            )
+            and a.role
+            or _("N/A")
+        )
+
     @cache
     def get_ro(self):
         if self.ro_email:
