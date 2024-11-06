@@ -44,8 +44,8 @@ def environment(loader=None, **options):
     if loader:
         options["loader"] = ChoiceLoader(
             [
-                loader,
                 DbLoader(),
+                loader,
             ]
         )
 
