@@ -2052,11 +2052,18 @@ class ContractForm(ModelForm):
                 tabs.append(
                     Tab(
                         mark_safe(f'<i class="far fa-file"></i> {_("Parts")}'),
-                        Row(Column(HTML("""<label for="id_cover">Cover page</lable>"""), css_class="col-12")),
-                        Row(
-                            Column(
-                                HTML(
-                                    """<a
+                        Fieldset(
+                            None,
+                            Row(
+                                Column(
+                                    HTML("""<label for="id_cover">Cover page</lable>"""),
+                                    css_class="col-12",
+                                )
+                            ),
+                            Row(
+                                Column(
+                                    HTML(
+                                        """<a
     href="{%% url 'contract-export' pk=%d  %%}?part=cover&for_download=1&format=html"
     type="button"
     role="button"
@@ -2065,17 +2072,22 @@ class ContractForm(ModelForm):
     data-toggle="tooltip",
     title="Generate the cover page",
     id="generate_cover_button">Generate...</a>"""
-                                    % instance.pk
+                                        % instance.pk
+                                    ),
+                                    css_class="col-2",
                                 ),
-                                css_class="col-2",
+                                Column(Field("cover"), css_class="col-10"),
                             ),
-                            Column(Field("cover"), css_class="col-10"),
-                        ),
-                        Row(Column(HTML("""<label for="id_preamble">Contract Preamble</lable>"""), css_class="col-12")),
-                        Row(
-                            Column(
-                                HTML(
-                                    """<a
+                            Row(
+                                Column(
+                                    HTML("""<label for="id_preamble">Contract Preamble</lable>"""),
+                                    css_class="col-12",
+                                )
+                            ),
+                            Row(
+                                Column(
+                                    HTML(
+                                        """<a
     href="{%% url 'contract-export' pk=%d  %%}?part=preambre&for_download=1&format=html"
     type="button"
     role="button"
@@ -2084,17 +2096,22 @@ class ContractForm(ModelForm):
     data-toggle="tooltip",
     title="Generate the Contract Preamble",
     id="generate_cover_button">Generate...</a>"""
-                                    % instance.pk
+                                        % instance.pk
+                                    ),
+                                    css_class="col-2",
                                 ),
-                                css_class="col-2",
+                                Column(Field("preamble"), css_class="col-10"),
                             ),
-                            Column(Field("preamble"), css_class="col-10"),
-                        ),
-                        Row(Column(HTML("""<label for="id_preamble">Schedule 1</lable>"""), css_class="col-12")),
-                        Row(
-                            Column(
-                                HTML(
-                                    """<a
+                            Row(
+                                Column(
+                                    HTML("""<label for="id_preamble">Schedule 1</lable>"""),
+                                    css_class="col-12",
+                                )
+                            ),
+                            Row(
+                                Column(
+                                    HTML(
+                                        """<a
     href="{%% url 'contract-export' pk=%d  %%}?part=schedule&for_download=1&format=html"
     type="button"
     role="button"
@@ -2103,32 +2120,33 @@ class ContractForm(ModelForm):
     data-toggle="tooltip",
     title="Generate the Schedule 1",
     id="generate_cover_button">Generate...</a>"""
-                                    % instance.pk
+                                        % instance.pk
+                                    ),
+                                    css_class="col-2",
                                 ),
-                                css_class="col-2",
+                                Column(Field("schedule1"), css_class="col-10"),
                             ),
-                            Column(Field("schedule1"), css_class="col-10"),
-                        ),
-                        ButtonHolder(
-                            Submit(
-                                "export_contract",
-                                _("Export Constract"),
-                                css_class="btn-primary",
+                            ButtonHolder(
+                                Submit(
+                                    "export_contract",
+                                    _("Export Constract"),
+                                    css_class="btn-primary",
+                                ),
+                                # Button(
+                                #     "import_email_file",
+                                #     _("Import Email"),
+                                #     hx_get=reverse(
+                                #         "email-import", kwargs={"pk": instance and instance.pk}
+                                #     )
+                                #     + "?_modal_dialog=1",
+                                #     hx_target="#form-dialog",
+                                #     hx_params="none",
+                                #     data_toggle="tooltip",
+                                #     title=_("Import an email file as a comment ..."),
+                                #     css_class="btn-outline-primary",
+                                # ),
+                                css_class="float-right",
                             ),
-                            # Button(
-                            #     "import_email_file",
-                            #     _("Import Email"),
-                            #     hx_get=reverse(
-                            #         "email-import", kwargs={"pk": instance and instance.pk}
-                            #     )
-                            #     + "?_modal_dialog=1",
-                            #     hx_target="#form-dialog",
-                            #     hx_params="none",
-                            #     data_toggle="tooltip",
-                            #     title=_("Import an email file as a comment ..."),
-                            #     css_class="btn-outline-primary",
-                            # ),
-                            css_class="float-right",
                         ),
                         css_id="parts",
                     ),
