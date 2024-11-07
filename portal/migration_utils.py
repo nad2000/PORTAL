@@ -1,4 +1,5 @@
 from .models import DOCUMENT_ROLES, QUALIFICATION_LEVEL
+from django.db.models import F
 from django.conf import settings
 
 
@@ -22,6 +23,18 @@ def set_document_type_format(apps, schema_editor):
     DocumentType = apps.get_model("portal", "DocumentType")
     db_alias = schema_editor.connection.alias
     DocumentType.objects.using(db_alias).filter(name_en__icontains="budget").update(format="S")
+
+
+def set_required_document_format_and_role(apps, schema_editor):
+
+    db_alias = schema_editor.connection.alias
+
+    for model_name in ["RequiredDocument", "RequiredContractDocument"]:
+        model = apps.get_model("portal", model_name)
+        model.objects.using(db_alias).filter(role__isnull=True).update(
+            role=F("document_type__role")
+        )
+        model.objects.using(db_alias).filter(format="-").update(format=F("document_type__format"))
 
 
 def add_title_data(apps, schema_editor):

@@ -1498,7 +1498,7 @@ class Person(PersonMixin, Model):
         return self.code or self.email or self.orcid
 
     def save(self, *args, **kwargs):
-        created = not self.id
+        created = not self.pk
         super().save(*args, **kwargs)
         if created:
             PersonProtectionPattern.objects.bulk_create(
@@ -6555,16 +6555,32 @@ class PerformanceFlag(TimeStampMixin, HelperMixin, OrderableModel):
 
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
+    # TODO: should be removed at some stage
     document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
-    title = CharField(
-        _("Title"), max_length=200, null=True, blank=True, help_text=_("Title (e.g. Dr, Professor")
+    role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
+    # name = CharField(_("Name"), max_length=200, blank=True, default="")
+    format = CharField(
+        choices=Choices(
+            ("I", _("Image")), ("S", _("Spreadsheet")), ("T", _("Text")), ("-", _("N/A"))
+        ),
+        default="-",
+        max_length=1,
     )
+    # TODO: should be removed at some stage or renamend to 'name'
+    title = CharField(_("Title"), max_length=200, null=True, blank=True)
     is_optional = BooleanField(default=False)
     referees_can_access = BooleanField(default=True)
     panellists_can_access = BooleanField(default=True)
     exclude = BooleanField(default=False, help_text=_("Exclude from the final export"))
     min_pages = PositiveSmallIntegerField(null=True, blank=True)
     max_pages = PositiveSmallIntegerField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.role:
+            self.role = self.document_type.role
+        if not self.format:
+            self.format = self.document_type.format
+        super().save(*args, **kwargs)
 
     def __str__(self):
         dt = self.document_type.name
@@ -6696,6 +6712,7 @@ class CurriculumVitaeTemplate(Model):
 
 class ApplicationDocument(PdfFileMixin, Model):
     application = ForeignKey(Application, on_delete=CASCADE, related_name="documents")
+    # TODO: remove at some stage
     document_type = ForeignKey(
         DocumentType, related_name="application_documents", on_delete=CASCADE
     )
@@ -8200,7 +8217,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     )
     cover = PrivateFileField(
         verbose_name="Cover page",
-        null=True, blank=True,
+        null=True,
+        blank=True,
         upload_to="contracts",
         upload_subfolder=lambda instance: [
             hash_int(instance.pk),
@@ -8210,7 +8228,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     )
     preamble = PrivateFileField(
         verbose_name="Contract Preamble",
-        null=True, blank=True,
+        null=True,
+        blank=True,
         upload_to="contracts",
         upload_subfolder=lambda instance: [
             hash_int(instance.pk),
@@ -8220,7 +8239,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     )
     schedule1 = PrivateFileField(
         verbose_name="Schedule 1",
-        null=True, blank=True,
+        null=True,
+        blank=True,
         upload_to="contracts",
         upload_subfolder=lambda instance: [
             hash_int(instance.pk),
@@ -8604,12 +8624,27 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
     document_type = ForeignKey(
         DocumentType, on_delete=CASCADE, related_name="required_contract_documents"
     )
+    role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
+    # name = CharField(_("Name"), max_length=200, blank=True, default="")
+    format = CharField(
+        choices=Choices(("I", _("Image")), ("S", _("Spreadsheet")), ("T", _("Text"))),
+        default="T",
+        max_length=1,
+    )
+    # TODO: should be removed at some stage or renamend to 'name'
     title = CharField(
         _("Title"), max_length=200, null=True, blank=True, help_text=_("Contract document title")
     )
     is_optional = BooleanField(default=False)
     # min_pages = PositiveSmallIntegerField(null=True, blank=True)
     # max_pages = PositiveSmallIntegerField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.role:
+            self.role = self.document_type.role
+        if not self.format:
+            self.format = self.document_type.format
+        super().save(*args, **kwargs)
 
     def __str__(self):
         dt = str(self.document_type)
@@ -8625,6 +8660,7 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
 class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="documents")
     state = StateField(default="new", verbose_name=_("state"))
+    # TODO: remove at some stage
     document_type = ForeignKey(
         DocumentType, related_name="contract_documents", on_delete=SET_NULL, null=True, blank=True
     )
@@ -8649,11 +8685,13 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
                     "docb",
                     "docm",
                     "docx",
+                    "fdot",
                     "dot",
                     "dotm",
                     "dotx",
                     "odm",
                     "odt",
+                    "fodt",
                     "oth",
                     "ott",
                     "pdf",
