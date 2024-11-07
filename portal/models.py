@@ -280,6 +280,7 @@ def fsm_log(func=None, allow_inline=False):
 
 def get_request(*args, **kwargs):
     if "request" in kwargs:
+        kw
         return kwargs["request"]
     for v in args:
         if isinstance(v, HttpRequest):
@@ -8070,6 +8071,21 @@ class ContractManager(CurrentSiteManager):
         return self.get(email=email, contract__number=number)
 
 
+CONTRACT_PART_EXTENSIONS = [
+    "html",
+    "pdf",
+    "fodt",
+    "odt",
+    "ott",
+    "oth",
+    "odm",
+    "doc",
+    "docx",
+    "docm",
+    "docb",
+]
+
+
 class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
@@ -8181,6 +8197,36 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     )
     host_contact_email = EmailField(
         _("host contact email address"), max_length=120, null=True, blank=True
+    )
+    cover = PrivateFileField(
+        verbose_name="Cover page",
+        null=True, blank=True,
+        upload_to="contracts",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+    )
+    preamble = PrivateFileField(
+        verbose_name="Contract Preamble",
+        null=True, blank=True,
+        upload_to="contracts",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+    )
+    schedule1 = PrivateFileField(
+        verbose_name="Schedule 1",
+        null=True, blank=True,
+        upload_to="contracts",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
     )
 
     # "ie-contracts"

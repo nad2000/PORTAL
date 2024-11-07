@@ -1616,9 +1616,8 @@ class ContractForm(ModelForm):
                 part = instance.documents.filter(document_type__role=dr).last()
                 if part:
                     initial[fn] = part.file
-            # if es := models.ContractEthicsStatement.where(contract=instance).last():
-            #     initial["not_applicable"] = es.not_relevant or False
-            #     initial["not_applicable_comment"] = es.comment or ""
+        if not (instance and user and (user.is_superuser or user.is_site_staff)):
+            self._meta.exclude.extend(["cover", "preamble", "schedule1"])
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -1840,7 +1839,7 @@ class ContractForm(ModelForm):
                     ]
                     if self.instance
                     and self.instance.id
-                    and not (user.is_superuser or user.is_staff)
+                    and not (user.is_superuser or user.is_site_staff)
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
                         Row(Column("start_date"), Column("end_date")),
@@ -2046,6 +2045,94 @@ class ContractForm(ModelForm):
                     css_id="correspondence",
                 )
             )
+            if user.is_superuser or user.is_site_staff:
+                self.fields["cover"].label = ""
+                self.fields["preamble"].label = ""
+                self.fields["schedule1"].label = ""
+                tabs.append(
+                    Tab(
+                        mark_safe(f'<i class="far fa-file"></i> {_("Parts")}'),
+                        Row(Column(HTML("""<label for="id_cover">Cover page</lable>"""), css_class="col-12")),
+                        Row(
+                            Column(
+                                HTML(
+                                    """<a
+    href="{%% url 'contract-export' pk=%d  %%}?part=cover&for_download=1&format=html"
+    type="button"
+    role="button"
+    target="_blank"
+    class="btn btn-primary float-right"
+    data-toggle="tooltip",
+    title="Generate the cover page",
+    id="generate_cover_button">Generate...</a>"""
+                                    % instance.pk
+                                ),
+                                css_class="col-2",
+                            ),
+                            Column(Field("cover"), css_class="col-10"),
+                        ),
+                        Row(Column(HTML("""<label for="id_preamble">Contract Preamble</lable>"""), css_class="col-12")),
+                        Row(
+                            Column(
+                                HTML(
+                                    """<a
+    href="{%% url 'contract-export' pk=%d  %%}?part=preambre&for_download=1&format=html"
+    type="button"
+    role="button"
+    target="_blank"
+    class="btn btn-primary float-right"
+    data-toggle="tooltip",
+    title="Generate the Contract Preamble",
+    id="generate_cover_button">Generate...</a>"""
+                                    % instance.pk
+                                ),
+                                css_class="col-2",
+                            ),
+                            Column(Field("preamble"), css_class="col-10"),
+                        ),
+                        Row(Column(HTML("""<label for="id_preamble">Schedule 1</lable>"""), css_class="col-12")),
+                        Row(
+                            Column(
+                                HTML(
+                                    """<a
+    href="{%% url 'contract-export' pk=%d  %%}?part=schedule&for_download=1&format=html"
+    type="button"
+    role="button"
+    target="_blank"
+    class="btn btn-primary float-right"
+    data-toggle="tooltip",
+    title="Generate the Schedule 1",
+    id="generate_cover_button">Generate...</a>"""
+                                    % instance.pk
+                                ),
+                                css_class="col-2",
+                            ),
+                            Column(Field("schedule1"), css_class="col-10"),
+                        ),
+                        ButtonHolder(
+                            Submit(
+                                "export_contract",
+                                _("Export Constract"),
+                                css_class="btn-primary",
+                            ),
+                            # Button(
+                            #     "import_email_file",
+                            #     _("Import Email"),
+                            #     hx_get=reverse(
+                            #         "email-import", kwargs={"pk": instance and instance.pk}
+                            #     )
+                            #     + "?_modal_dialog=1",
+                            #     hx_target="#form-dialog",
+                            #     hx_params="none",
+                            #     data_toggle="tooltip",
+                            #     title=_("Import an email file as a comment ..."),
+                            #     css_class="btn-outline-primary",
+                            # ),
+                            css_class="float-right",
+                        ),
+                        css_id="parts",
+                    ),
+                )
         self.helper.layout = Layout(
             TabHolder(*tabs),
             ButtonHolder(
@@ -2172,6 +2259,11 @@ class ContractForm(ModelForm):
             # round=HiddenInput(),
             letter_of_support_file=forms.ClearableFileInput(
                 attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"}
+            ),
+            cover=forms.ClearableFileInput(
+                attrs={
+                    "accept": ".html,.htm,.fodt,.pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                }
             ),
         )
 

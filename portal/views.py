@@ -6080,6 +6080,10 @@ class ContractViewMixin:
                 )
                 return redirect("contract-update", pk=i.pk)
 
+        if "export_contract" in self.request.POST:
+            # TODO:
+            pass
+
         if "post_comment" in self.request.POST:
             token = models.get_unique_mail_token()
             attachment = form.cleaned_data.get("attachment", None)
@@ -8367,12 +8371,17 @@ class ContractExportView(ExportView):
     def get(self, request, pk):
         c = self.get_object_or_404(pk)
         format = request.GET.get("format") or "html"
+        for_download = request.GET.get("for_download", False)
         part = request.GET.get("part")
         if not format or format in ["html", "htm"]:
-            return HttpResponse(
-                c.get_document(request=self.request, format=format or "html", part=part),
+            content = c.get_document(request=self.request, format=format or "html", part=part)
+            resp = HttpResponse(
+                content,
                 content_type="text/html; charset=utf-8",
             )
+            if not for_download:
+                return resp
+            resp["Content-Length"] = len(content.encode("utf-8"))
         else:
             fn = c.get_document(request=self.request, format=format, part=part)
             content_type, _ = mimetypes.guess_type(fn)
@@ -8386,11 +8395,12 @@ class ContractExportView(ExportView):
                 resp["X-Sendfile"] = fn
                 resp["X-Accel-Redirect"] = fn
             resp["Content-Length"] = os.path.getsize(fn)
-            if part:
-                resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
-            else:
-                resp["Content-Disposition"] = f"attachment; filename={c.number}.{format}"
-            return resp
+
+        if part:
+            resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
+        else:
+            resp["Content-Disposition"] = f"attachment; filename={c.number}.{format}"
+        return resp
 
 
 class RoundExportView(ExportView):
