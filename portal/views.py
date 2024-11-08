@@ -8383,7 +8383,8 @@ class ContractExportView(ExportView):
                 return resp
             resp["Content-Length"] = len(content.encode("utf-8"))
         else:
-            fn = c.get_document(request=self.request, format=format, part=part)
+            # fn = c.get_document(request=self.request, format=format, part=part)
+            fn = c.to_pdf(request=self.request)
             content_type, _ = mimetypes.guess_type(fn)
             if settings.DEBUG:
                 resp = StreamingHttpResponse(

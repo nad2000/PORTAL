@@ -8443,7 +8443,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         #     "LEGALNAME": self.org.name,
         #     "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         # }
-        # schedule_output_path = self.get_schedule_part_odt(request=request)
+        # schedule_output_path = self.get_part_odt(request=request, part="schedule")
         # with open(Path.home() / "Documents" / "RDF contract template.odt", "rb") as infile, open(
         #     Path.home() / "Documents" / "output.odt", "wb"
         # ) as outfile:
@@ -8463,11 +8463,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         #     t.transform(o)
         #     o.close()
 
-    def get_schedule_part_odt(
-        self, request=None, user=None, add_headers=None, skip_excluded=False
+    def get_part_odt(
+        self, request=None, user=None, add_headers=None, skip_excluded=False, part=None
     ):
-        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
-        output_path = Path.home() / "PMSPP" / f"schedule_{self.number}.html"
+        output_path = Path.home() / "PMSPP" / "contracts" / f"schedule_{self.number}.html"
         with open(output_path, "w") as ofile:
             d = self.get_schedule_part(request=request)
             ofile.write(d)
@@ -8492,43 +8491,76 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
         return output_path.with_suffix(".odt")
 
+    def get_part_pdf(self, request=None, user=None, part=None, add_headers=None, skip_excluded=False):
+        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
+        output_dir = Path.home() / "PMSPP" / "contracts"
+        if not (contract_part := getattr(self, part, False)):
+            file_path = output_dir / f"{self.number}_{part}.html"
+            with open(file_path, "w") as ofile:
+                content = self.get_document(request=request, user=user, format="html", part=part)
+                ofile.write(content)
+        else:
+            file_path = contract_part.path
+
+        base, ext = os.path.splitext(file_path)
+        if ext.lower() != ".pdf":
+            cp = subprocess.run(
+                [
+                    "lowriter",
+                    "--headless",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    output_dir,
+                    file_path,
+                ],
+                capture_output=True,
+                env=dict(os.environ, PAPERSIZE="a4"),
+            )
+            if cp.returncode or (
+                (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
+            ):
+                if cp.returncode:
+                    raise Exception(
+                        f"Failed to convert {part} into PDF. "
+                        "Please save your application form into PDF format and try to upload it again."
+                    )
+
+                raise Exception(
+                    (
+                        f"Failed to {part} form into PDF: %s. "
+                        "Please save your application form into PDF format and try to upload it again."
+                    )
+                    % stderr,
+                )
+            file_path = output_dir / f"{os.path.basename(base)}.pdf"
+            return file_path
+
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
-        with open(Path.home() / "PMSPP" / f"schedule_{self.number}.html", "w") as ofile:
-            d = self.get_schedule_part(request=request)
-            ofile.write(d)
-        cp = subprocess.run(
-            [
-                "loffice",
-                "--headless",
-                "--convert-to",
-                "odt",
-                "--outdir",
-                Path.home() / "PMSPP/",
-                # Path.home() / "PMSPP" / f"schedule_{self.number}.fodt",
-                Path.home() / "PMSPP" / f"schedule_{self.number}.html",
-            ],
-            capture_output=True,
-            env=dict(os.environ, PAPERSIZE="a4"),
-        )
-        if cp.returncode or (
-            (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
-        ):
-            if cp.returncode:
-                raise Exception(
-                    _(
-                        "Failed to convert your application form into PDF. "
-                        "Please save your application form into PDF format and try to upload it again."
-                    ),
-                )
-
-            raise Exception(
-                _(
-                    "Failed to convert your application form into PDF: %s. "
-                    "Please save your application form into PDF format and try to upload it again."
-                )
-                % stderr,
-            )
+        output_dir = Path.home() / "PMSPP" / "contracts"
+        parts = {part: self.get_part_pdf(request=request, part=part) for part in ["cover", "preamble", "schedule1"]}
+        merger = PdfMerger(strict=False)
+        # merger.add_metadata(
+        #     {
+        #         "/Title": (
+        #             f"{self}"
+        #             if site_id in [4, 5]
+        #             else f"{self.number}: {self.application_title or r.title}"
+        #         )
+        #     }
+        # )
+        # merger.add_metadata({"/Author": self.lead_with_email})
+        # merger.add_metadata({"/Subject": r.title})
+        # merger.add_metadata({"/Number": self.number})
+        # merger.add_metadata({"/Keywords": r.title})
+        for part in parts.values():
+            # merger.append(a, outline_item=title, import_outline=True)
+            reader = PdfReader(part, strict=False)
+            merger.append(reader)
+        output_filename = output_dir / f"{self.number}.pdf"
+        merger.write(output_filename)
+        return output_filename
 
     def get_schedule_part(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # d = od.Document()
@@ -8574,7 +8606,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             "LEGALNAME": self.org.name,
             "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         }
-        schedule_output_path = self.get_schedule_part_odt(request=request)
+        schedule_output_path = self.get_part_odt(request=request, part="schedule")
         with open(Path.home() / "Documents" / "RDF contract template.odt", "rb") as infile, open(
             Path.home() / "Documents" / "output.odt", "wb"
         ) as outfile:
