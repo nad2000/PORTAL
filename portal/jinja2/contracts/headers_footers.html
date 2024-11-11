@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  text-align: left;
+  padding: 2px;
+}
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  font-size: xx-small;
+  /* background-color: white; */
+}
+@page {
+  /* size: 21cm 29.7cm; */
+  /* size: 21cm 3cm;*/
+  /* size: "A4"; */
+  size: 21cm 29.7cm;
+  margin: 1cm 1cm 1cm 2cm;
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: 11pt;
+}
+.page-header {page-break-after: always;}
+    header {
+        position: fixed;
+        top: 0;
+    }
+footer {
+    position: fixed;
+    bottom: 0;
+    page-break-after: always;
+    break-after: page;
+}
+.footer {
+    position: fixed;
+    bottom: 0;
+    page-break-after: always;
+    break-after: page;
+}
+body {
+    font-family: Arial, "Helvetica Neue", sans-serif;
+    font-size: 11pt;
+}
+    </style>
+  </head>
+  <body>
+    {% set c = contract %}
+    {% set a = c.application %}
+    {% for p in range(1, page_count+1) %}
+
+      <!-- div style="margin-top:36%;border-color:grey;border-width:2px;border-style:solid;margin-left:10%;margin-right:5%;font-size:15px;padding:25px;border-radius:25px;" -->
+
+      {#
+      <div class="page-header">
+        <table border="1px" width="100%">
+          <tbody>
+            <tr>
+              {% if a.research_experience_in_years %}
+                <td>{% trans %}Proposal{% endtrans %}<br/><b>R{{ a.research_experience_in_years }}</b></td>
+              {% endif %}
+              <td>{% trans %}Number{% endtrans %}<br/><b>{{ a.number }}</b></td>
+              <!-- td>{% trans %}Title{% endtrans %}<br/><b>{{ a.application_title or a.round.title }}</b></td -->
+              <td>{% trans %}Applicant{% endtrans %}<br/><b>{{ a.full_name }}</b></td>
+              <td><center>{% trans %}Page{% endtrans %} {{ p }} {% trans %}of{% endtrans %} {{ page_count }}</center></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      #}
+
+      <main>&nbsp;</main>
+      <footer title="footer" style="font-size: 6pt; font-family: Arial; width: 100%;">
+        <font size="1" style="font-size: 6pt; font-family: Arial;" face="Arial">
+        <table border="0" style="border: none; font-size: 6pt; font-family: Arial;" width="100%">
+          <col align="left">
+          <col align="center">
+          <col align="right">
+          <tr>
+            <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: left;" align="left">
+              <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
+                <span lang="en-NZ" style="font-family: Arial; font-size: 6pt;"><small>{{ c.fund.code }} {{ c.number }}</small></span>
+              </font>
+            </td>
+            <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: center;" align="center">
+              <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
+                <span lang="en-NZ"><small>Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ c.start_date.strftime("%d %B, %Y") }}</sdfield></small></span>
+              </font>
+            </td>
+            <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: right;" align="right">
+              <font size="1" style="font-size: 6pt; font-family: Arial" face="Arial">
+                <small>Page <b><sdfield type=PAGE subtype=RANDOM format=PAGE>{{ p }}</sdfield></b> of <b><sdfield type=DOCSTAT subtype=PAGE format=PAGE>{{ page_count }}</sdfield></b></small>
+              </font>
+            </td>
+          </tr>
+        </table>
+        </font>
+      <!-- /footer -->
+      </footer>
+      <!--- /div -->
+
+    {% endfor %}
+
+  </body>
+</html>

@@ -3512,7 +3512,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
             )
             for dp, hp in zip(merger.pages, header_file.pages):
-                dp.pagedata.mergePage(hp)
+                dp.pagedata.merge_page(hp)
 
         if cache and for_panellists:
             pass
@@ -8301,9 +8301,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             return r.schedule2
 
         r = (
-            Round.all_objects.filter(
-                scheme__current_round=F("pk"), schedule2__isnull=False
-            )
+            Round.all_objects.filter(scheme__current_round=F("pk"), schedule2__isnull=False)
             .order_by("-pk")
             .last()
         )
@@ -8438,15 +8436,30 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         year = self.year or self.start_date.year
         current_ts = timezone.now()
         contract = self
-        clauses = list(self.clauses.all().order_by("type", "ordering"))
-        additional_clauses = [c for c in clauses if c.type == "A"]
-        ammended_clauses = [c for c in clauses if c.type == "V"]
-        agency = self.agency
-        agency_short = "Society"
-        stand_alone = True
+        if part != "headers_footers":
+            clauses = list(self.clauses.all().order_by("type", "ordering"))
+            additional_clauses = [c for c in clauses if c.type == "A"]
+            ammended_clauses = [c for c in clauses if c.type == "V"]
+            agency = self.agency
+            agency_short = "Society"
+            stand_alone = True
+        else:
+            page_count = (
+                kwargs.pop("page_count", None) or request and request.GET.get("page_count", 5)
+            )
 
-        if part in ["cover", "background", "agreement", "schedule", "cover_page", "preamble", "toc"]:
+        if part in [
+            "cover",
+            "background",
+            "agreement",
+            "schedule",
+            "cover_page",
+            "preamble",
+            "toc",
+        ]:
             template_name = "contracts/part.html"
+        elif part == "headers_footers":
+            template_name = "contracts/headers_footers.html"
         else:
             template_name = "contracts/document.html"
 
@@ -8570,7 +8583,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         elif part == "schedule2":
             file_path = self.schedule2.path
         else:
-            content = self.get_document(request=request, user=user, format="html", part=part, **kwargs)
+            content = self.get_document(
+                request=request, user=user, format="html", part=part, **kwargs
+            )
             html = HTML(string=content)
             pdf_object = html.write_pdf(presentational_hints=True)
             # converting pdf bytes to stream which is required for pdf merger.
@@ -8619,6 +8634,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
         output_dir = Path.home() / "PMSPP" / "contracts"
+
         parts = {
             part: self.get_part_pdf(request=request, part=part)
             for part in ["cover", "preamble", "schedule1"]
@@ -8628,13 +8644,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         if not isinstance(schedule2, PdfReader):
             schedule2 = PdfReader(schedule2, strict=False)
 
-
         schedule2_toc = pdf_toc(schedule2)
         toc = self.get_part_pdf(
             request=request, part="toc", parts=parts, schedule2_toc=schedule2_toc, page_no=1
         )
         if len(toc.pages) > 1:
-            toc = self_part_pdf(
+            toc = self.get_part_pdf(
                 request=request,
                 part="tok",
                 parts=parts,
@@ -8644,6 +8659,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         parts["toc"] = toc
 
         merger = PdfMerger(strict=False)
+
         # merger.add_metadata(
         #     {
         #         "/Title": (
@@ -8657,7 +8673,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         # merger.add_metadata({"/Subject": r.title})
         # merger.add_metadata({"/Number": self.number})
         # merger.add_metadata({"/Keywords": r.title})
-        for part in parts.values():
+        def part_list():
+            for p in ["cover", "preamble", "schedule1"]:
+                yield parts[p]
+            for d in self.documents.order_by("required_document__ordering"):
+                yield d.pdf_file.path
+
+        for part in part_list():
             # merger.append(a, outline_item=title, import_outline=True)
             if isinstance(part, HTML):
                 merger.append(reader)
@@ -8673,6 +8695,22 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             else:
                 reader = PdfReader(part, strict=False)
                 merger.append(reader)
+
+        template = get_template("contracts/headers_footers.html")
+        html = HTML(
+            string=template.render(
+                {
+                    "page_count": len(merger.pages),
+                    "contract": self,
+                }
+            )
+        )
+        header_file = PdfReader(
+            io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+        )
+        for dp, hp in zip(merger.pages, header_file.pages):
+            dp.pagedata.merge_page(hp)
+
         output_filename = output_dir / f"{self.number}.pdf"
         merger.write(output_filename)
         return output_filename
