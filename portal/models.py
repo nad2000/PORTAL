@@ -134,7 +134,7 @@ CONTRACT_PART_EXTENSIONS = [
 ]
 
 
-def pdf_content(reader: PdfReader) -> Dict[int, str]:
+def pdf_toc(reader: PdfReader) -> dict[str, int]:
     return {
         o["/Title"]: i
         for o in reader.outline
@@ -6330,50 +6330,6 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     def current_rounds(cls):
         return cls.where(id=F("scheme__current_round__id"))
 
-    def get_schedule2(self):
-        if self.schedule2:
-            return self.schedule2
-
-        r = (
-            self._meta.model.where(scheme__current_round=F("pk"), schedule2__isnull=False)
-            .order_by("-pk")
-            .last()
-        )
-        if r.schedule2:
-            return r.schedule2
-
-        r = (
-            self._meta.model.where(
-                # scheme__current_round=F("pk"),
-                schedule2__isnull=False
-            )
-            .order_by("-pk")
-            .last()
-        )
-        if r.schedule2:
-            return r.schedule2
-
-        r = (
-            self._meta.model.all_objects.filter(
-                scheme__current_round=F("pk"), schedule2__isnull=False
-            )
-            .order_by("-pk")
-            .last()
-        )
-        if r.schedule2:
-            return r.schedule2
-
-        r = (
-            self._meta.model.all_objects.filter(
-                # scheme__current_round=F("pk"),
-                schedule2__isnull=False
-            )
-            .order_by("-pk")
-            .last()
-        )
-        if r.schedule2:
-            return r.schedule2
-
     @cached_property
     def survey_server_url(self):
         if self.limesurvey_server_url:
@@ -8320,6 +8276,52 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
     @cached_property
+    def schedule2(self):
+        r = self.application.round
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.where(scheme__current_round=F("pk"), schedule2__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.where(
+                # scheme__current_round=F("pk"),
+                schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.all_objects.filter(
+                scheme__current_round=F("pk"), schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.all_objects.filter(
+                # scheme__current_round=F("pk"),
+                schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+    @cached_property
     def ci(self):
         return (ci := self.members.filter(role="CI").last()) and ci.user or self.application.ci
 
@@ -8430,7 +8432,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     def host(self):
         return self.org
 
-    def get_document(self, request=None, user=None, format="html", part=None):
+    def get_document(self, request=None, user=None, format="html", part=None, **kwargs):
         """Returns generated part of the contract text from a template."""
 
         year = self.year or self.start_date.year
@@ -8443,7 +8445,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         agency_short = "Society"
         stand_alone = True
 
-        if part in ["cover", "background", "agreement", "schedule", "cover_page", "preamble"]:
+        if part in ["cover", "background", "agreement", "schedule", "cover_page", "preamble", "toc"]:
             template_name = "contracts/part.html"
         else:
             template_name = "contracts/document.html"
@@ -8452,7 +8454,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         user = request and request.user
         fund = self.fund or self.application.round.scheme.fund
 
-        content = template.render(locals())
+        context = locals()
+        if kwargs:
+            context.update(kwargs)
+        content = template.render(context)
 
         if not format or format in ["html", "htm"]:
             return content
@@ -8555,13 +8560,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         return output_path.with_suffix(".odt")
 
     def get_part_pdf(
-        self, request=None, user=None, part=None, add_headers=None, skip_excluded=False
+        self, request=None, user=None, part=None, add_headers=None, skip_excluded=False, **kwargs
     ):
 
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
         output_dir = Path.home() / "PMSPP" / "contracts"
-        if not (contract_part := getattr(self, part, False)):
-            content = self.get_document(request=request, user=user, format="html", part=part)
+        if contract_part := getattr(self, part, False):
+            file_path = contract_part.path
+        elif part == "schedule2":
+            file_path = self.schedule2.path
+        else:
+            content = self.get_document(request=request, user=user, format="html", part=part, **kwargs)
             html = HTML(string=content)
             pdf_object = html.write_pdf(presentational_hints=True)
             # converting pdf bytes to stream which is required for pdf merger.
@@ -8572,8 +8581,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             # with open(file_path, "w") as ofile:
             #     content = self.get_document(request=request, user=user, format="html", part=part)
             #     ofile.write(content)
-        else:
-            file_path = contract_part.path
 
         base, ext = os.path.splitext(file_path)
         if ext.lower() != ".pdf":
@@ -8607,7 +8614,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                     % stderr,
                 )
             file_path = output_dir / f"{os.path.basename(base)}.pdf"
-            return file_path
+        return file_path
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
@@ -8616,6 +8623,26 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             part: self.get_part_pdf(request=request, part=part)
             for part in ["cover", "preamble", "schedule1"]
         }
+
+        schedule2 = self.get_part_pdf(request=request, part="schedule2")
+        if not isinstance(schedule2, PdfReader):
+            schedule2 = PdfReader(schedule2, strict=False)
+
+
+        schedule2_toc = pdf_toc(schedule2)
+        toc = self.get_part_pdf(
+            request=request, part="toc", parts=parts, schedule2_toc=schedule2_toc, page_no=1
+        )
+        if len(toc.pages) > 1:
+            toc = self_part_pdf(
+                request=request,
+                part="tok",
+                parts=parts,
+                schedule2_toc=schedule2_toc,
+                page_no=len(toc.pages),
+            )
+        parts["toc"] = toc
+
         merger = PdfMerger(strict=False)
         # merger.add_metadata(
         #     {

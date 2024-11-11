@@ -8,5 +8,7 @@
     {% include 'contracts/parts/agreement.html' with context %}
   {% elif part == "schedule" %}
     {% include 'contracts/parts/schedule.html' with context %}
+  {% elif part == "toc" %}
+    {% include 'contracts/parts/toc.html' with context %}
   {% endif %}
 {% endblock %}

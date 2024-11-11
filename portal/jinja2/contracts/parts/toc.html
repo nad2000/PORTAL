@@ -1,0 +1,41 @@
+<p align="center" style="line-height: 115%; margin-bottom: 0.21cm"> <b>TABLE OF CONTENTS</b></p>
+
+<div id="Table of Contents1" dir="ltr">
+
+  <p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+    <a href="#_Toc170283275"><font color="#000000">Background</font>	{{ page_no + 1 }}</a>
+  </p>
+
+	<p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+  <a href="#_Toc170283276"><font color="#000000">Agreement</font>	{{ page_no + 1 }}</a>
+  </p>
+
+	<p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+    <a href="#_Toc170283277"><font color="#000000">Schedule 1 – Key terms</font>	{{ page_no + 2 }}</a>
+  </p>
+
+  {% set page_no = parts["schedule1"].pages.__len__() + 2 %}
+  {% for d in c.documents.order_by("required_document__ordering" ) %}
+    {% set page_count = d.page_count or d.update_page_count() %}
+    <p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+      <a href="#_Toc170283278A{{ loop.index0 }}"><font color="#000000">APPENDIX {{ loop.index }} – {{ d }}</font>	{{ page_no + 1 }}</a>
+    </p>
+    {% set page_no = page_no + page_count %}
+  {% endfor %}
+
+	<p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+    <a href="#_Toc170283281"><font color="#000000">Schedule 2 – Standard terms and conditions</font>	{{ page_no + 1}}</a>
+  </p>
+
+  {% set page_no = page_no + 1 %}
+  {% for title, page in schedule2_toc.items() %}
+    <p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+      <a href="#_Toc170283278S2{{ loop.index0 }}"><font color="#000000">{{ title }}</font>	{{ page_no + 1 }}</a>
+    </p>
+    {% set page_no = page_no + page + 1 %}
+  {% endfor %}
+
+	<p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
+	<a href="#_Toc170283322"><font color="#000000">APPENDIX A: DECLARATION REGARDING COMPLIANCE WITH THE SOCIETY'S CODE OF PROFESSIONAL STANDARDS AND ETHICS</font>	27</a></p>
+</div>
+
