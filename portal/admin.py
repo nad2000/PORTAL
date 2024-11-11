@@ -2564,9 +2564,10 @@ class RoundAdmin(
                 {
                     # "classes": ("collapse",),
                     "fields": [
-                        "contract_background",
                         "tac_en",
                         "tac_mi",
+                        "contract_background",
+                        "schedule2",
                     ],
                 },
             ),

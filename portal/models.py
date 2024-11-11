@@ -119,6 +119,28 @@ from .utils import send_mail, vignere
 
 
 EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+CONTRACT_PART_EXTENSIONS = [
+    "html",
+    "pdf",
+    "fodt",
+    "odt",
+    "ott",
+    "oth",
+    "odm",
+    "doc",
+    "docx",
+    "docm",
+    "docb",
+]
+
+
+def pdf_content(reader: PdfReader) -> Dict[int, str]:
+    return {
+        o["/Title"]: i
+        for o in reader.outline
+        for i, p in enumerate(reader.pages)
+        if p == o["/Page"]
+    }
 
 
 class CurrentSiteManager(CurrentSiteManager):
@@ -5662,6 +5684,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("Has VMTs"), default=False, help_text=_("Has Vision Mātauranga Theme Categories")
     )
     has_keywords = BooleanField(_("Has keywords"), default=False, help_text=_("Has Keywords"))
+    schedule2 = PrivateFileField(
+        verbose_name="Schedule 2",
+        null=True,
+        blank=True,
+        upload_to="rounds",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+    )
 
     @property
     def previous_round(self):
@@ -6296,6 +6329,50 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     @classmethod
     def current_rounds(cls):
         return cls.where(id=F("scheme__current_round__id"))
+
+    def get_schedule2(self):
+        if self.schedule2:
+            return self.schedule2
+
+        r = (
+            self._meta.model.where(scheme__current_round=F("pk"), schedule2__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            self._meta.model.where(
+                # scheme__current_round=F("pk"),
+                schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            self._meta.model.all_objects.filter(
+                scheme__current_round=F("pk"), schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            self._meta.model.all_objects.filter(
+                # scheme__current_round=F("pk"),
+                schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r.schedule2:
+            return r.schedule2
 
     @cached_property
     def survey_server_url(self):
@@ -8088,21 +8165,6 @@ class ContractManager(CurrentSiteManager):
         return self.get(email=email, contract__number=number)
 
 
-CONTRACT_PART_EXTENSIONS = [
-    "html",
-    "pdf",
-    "fodt",
-    "odt",
-    "ott",
-    "oth",
-    "odm",
-    "doc",
-    "docx",
-    "docm",
-    "docb",
-]
-
-
 class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
@@ -8378,7 +8440,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         additional_clauses = [c for c in clauses if c.type == "A"]
         ammended_clauses = [c for c in clauses if c.type == "V"]
         agency = self.agency
-        agency_short = "the Society"
+        agency_short = "Society"
+        stand_alone = True
 
         if part in ["cover", "background", "agreement", "schedule", "cover_page", "preamble"]:
             template_name = "contracts/part.html"
@@ -8491,14 +8554,24 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             raise Exception(f"Failed to generate schedule: {stderr or cp.returncode}")
         return output_path.with_suffix(".odt")
 
-    def get_part_pdf(self, request=None, user=None, part=None, add_headers=None, skip_excluded=False):
+    def get_part_pdf(
+        self, request=None, user=None, part=None, add_headers=None, skip_excluded=False
+    ):
+
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
         output_dir = Path.home() / "PMSPP" / "contracts"
         if not (contract_part := getattr(self, part, False)):
-            file_path = output_dir / f"{self.number}_{part}.html"
-            with open(file_path, "w") as ofile:
-                content = self.get_document(request=request, user=user, format="html", part=part)
-                ofile.write(content)
+            content = self.get_document(request=request, user=user, format="html", part=part)
+            html = HTML(string=content)
+            pdf_object = html.write_pdf(presentational_hints=True)
+            # converting pdf bytes to stream which is required for pdf merger.
+            pdf_stream = io.BytesIO(pdf_object)
+            return PdfReader(pdf_stream, strict=False)
+
+            # file_path = output_dir / f"{self.number}_{part}.html"
+            # with open(file_path, "w") as ofile:
+            #     content = self.get_document(request=request, user=user, format="html", part=part)
+            #     ofile.write(content)
         else:
             file_path = contract_part.path
 
@@ -8539,7 +8612,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
         output_dir = Path.home() / "PMSPP" / "contracts"
-        parts = {part: self.get_part_pdf(request=request, part=part) for part in ["cover", "preamble", "schedule1"]}
+        parts = {
+            part: self.get_part_pdf(request=request, part=part)
+            for part in ["cover", "preamble", "schedule1"]
+        }
         merger = PdfMerger(strict=False)
         # merger.add_metadata(
         #     {
@@ -8556,8 +8632,20 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         # merger.add_metadata({"/Keywords": r.title})
         for part in parts.values():
             # merger.append(a, outline_item=title, import_outline=True)
-            reader = PdfReader(part, strict=False)
-            merger.append(reader)
+            if isinstance(part, HTML):
+                merger.append(reader)
+                pdf_object = part.write_pdf(presentational_hints=True)
+                # converting pdf bytes to stream which is required for pdf merger.
+                pdf_stream = io.BytesIO(pdf_object)
+                merger.append(
+                    pdf_stream,
+                    import_outline=True,
+                )
+            elif isinstance(part, PdfReader):
+                merger.append(part)
+            else:
+                reader = PdfReader(part, strict=False)
+                merger.append(reader)
         output_filename = output_dir / f"{self.number}.pdf"
         merger.write(output_filename)
         return output_filename
