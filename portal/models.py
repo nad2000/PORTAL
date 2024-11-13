@@ -8823,6 +8823,15 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
     is_optional = BooleanField(default=False)
     # min_pages = PositiveSmallIntegerField(null=True, blank=True)
     # max_pages = PositiveSmallIntegerField(null=True, blank=True)
+    application_required_document = ForeignKey(
+        RequiredDocument,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contract_required_documents",
+        help_text="Application required document corresponding to the contract to",
+        db_comment="Application required document corresponding to the contract to",
+    )
 
     def save(self, *args, **kwargs):
         if not self.role:

@@ -328,7 +328,9 @@ def document_action_button(
         ).last()
     # user = context.get("user")
     form = context.get("form")
-    rd_id = context.get("rd_id") or required_document.pk
+    if not required_document and form and form.instance:
+        required_document = form.instance.required_document
+    rd_id = context.get("rd_id") or required_document and required_document.pk
 
     is_ro = context.get("is_ro")
     action = kwargs.get("action") or context.get("action") or "approve"

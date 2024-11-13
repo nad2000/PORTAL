@@ -2063,16 +2063,27 @@ class ContractForm(ModelForm):
                             Row(
                                 Column(
                                     HTML(
-                                        """<a
-    href="{%% url 'contract-export' pk=%d  %%}?part=cover&for_download=1&format=html"
+                                        """
+<a
+    href="{%% url 'contract-export' pk=%(pk)d  %%}?part=cover&for_download=1&format=odt"
+    type="button"
+    role="button"
+    target="_blank"
+    class="btn btn-primary float-right ml-1"
+    data-toggle="tooltip",
+    title="Generate the cover page (ODF format)",
+    id="generate_cover_button">ODF</a>
+<a
+    href="{%% url 'contract-export' pk=%(pk)d  %%}?part=cover&for_download=1&format=html"
     type="button"
     role="button"
     target="_blank"
     class="btn btn-primary float-right"
     data-toggle="tooltip",
-    title="Generate the cover page",
-    id="generate_cover_button">Generate...</a>"""
-                                        % instance.pk
+    title="Generate the cover page (HTML format)",
+    id="generate_cover_button">HTML</a>
+"""
+                                        % dict(pk=instance.pk)
                                     ),
                                     css_class="col-2",
                                 ),
@@ -2087,16 +2098,26 @@ class ContractForm(ModelForm):
                             Row(
                                 Column(
                                     HTML(
-                                        """<a
-    href="{%% url 'contract-export' pk=%d  %%}?part=preambre&for_download=1&format=html"
+                                        """
+<a
+    href="{%% url 'contract-export' pk=%(pk)d  %%}?part=preambre&for_download=1&format=odt"
+    type="button"
+    role="button"
+    target="_blank"
+    class="btn btn-primary float-right ml-1"
+    data-toggle="tooltip",
+    title="Generate the Contract Preamble (ODF format)",
+    id="generate_cover_button">ODF</a>
+<a
+    href="{%% url 'contract-export' pk=%(pk)d  %%}?part=preambre&for_download=1&format=html"
     type="button"
     role="button"
     target="_blank"
     class="btn btn-primary float-right"
     data-toggle="tooltip",
     title="Generate the Contract Preamble",
-    id="generate_cover_button">Generate...</a>"""
-                                        % instance.pk
+    id="generate_cover_button">HTML</a>"""
+                                        % dict(pk=instance.pk)
                                     ),
                                     css_class="col-2",
                                 ),
@@ -2111,16 +2132,26 @@ class ContractForm(ModelForm):
                             Row(
                                 Column(
                                     HTML(
-                                        """<a
-    href="{%% url 'contract-export' pk=%d  %%}?part=schedule&for_download=1&format=html"
+                                        """
+<a
+    href="{%% url 'contract-export' pk=%(pk)d  %%}?part=schedule&for_download=1&format=odt"
+    type="button"
+    role="button"
+    target="_blank"
+    class="btn btn-primary float-right ml-1"
+    data-toggle="tooltip",
+    title="Generate the Schedule 1 (ODF format)",
+    id="generate_cover_button">ODF</a>
+<a
+    href="{%% url 'contract-export' pk=%(pk)d  %%}?part=schedule&for_download=1&format=html"
     type="button"
     role="button"
     target="_blank"
     class="btn btn-primary float-right"
     data-toggle="tooltip",
-    title="Generate the Schedule 1",
-    id="generate_cover_button">Generate...</a>"""
-                                        % instance.pk
+    title="Generate the Schedule 1 (HTML format)",
+    id="generate_cover_button">HTML</a>"""
+                                        % dict(pk=instance.pk)
                                     ),
                                     css_class="col-2",
                                 ),

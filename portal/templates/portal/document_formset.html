@@ -51,17 +51,17 @@
         {% endautoescape %}
         {% with rd_id=form.required_document.value %}
             {% with field_label=form.form_label form_show_labels=True required_document=required_documents|get_item:rd_id %}
-            {% include 'bootstrap4/field.html' with field=form.file use_custom_control=True %}
-        {% for field in form %}{% if field.name != "file" %}{{ field }}{% endif %}{% endfor %}
+              {% include 'bootstrap4/field.html' with field=form.file use_custom_control=True %}
+              {% for field in form %}{% if field.name != "file" %}{{ field }}{% endif %}{% endfor %}
 
-        {% if form.state %}
-          <div class="buttonHolder float-right">
-            {% if is_staff or user.is_superuser %}
-              {% document_action_button required_document=required_document form=form action="request_correction" %}
-            {% endif %}
-            {% document_action_button required_document=required_document form=form action="approve"  %}
-          </div>
-        {% endif %}
+              {% if form.state %}
+                <div class="buttonHolder float-right">
+                  {% if is_staff or user.is_superuser %}
+                    {% document_action_button required_document=required_document form=form action="request_correction" %}
+                  {% endif %}
+                  {% document_action_button required_document=required_document form=form action="approve"  %}
+                </div>
+              {% endif %}
         </fieldset>
 
       {% endwith %}{% endwith %}

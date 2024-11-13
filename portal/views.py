@@ -800,7 +800,7 @@ def round_required_documents(request, round):
     from itertools import groupby
 
     round = get_object_or_404(models.Round, id=round)
-    required_documents = round.required_documents.all().order_by("ordering")
+    required_documents = round.required_documents.order_by("ordering")
     templates = {
         k: list(g)
         for k, g in groupby(
@@ -5039,7 +5039,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 fs.extra = len(initial_documents)
             context["documents"] = fs
             context["required_documents"] = {
-                rd.id: rd for rd in round.required_documents.all().order_by("ordering")
+                rd.id: rd for rd in round.required_documents.order_by("ordering")
             }
 
         if round.has_fors:
@@ -5854,7 +5854,7 @@ class ContractViewMixin:
 
         self.documents = context["documents"] = self.get_document_formset()
         context["required_documents"] = {
-            rd.id: rd for rd in round.required_contract_documents.all().order_by("ordering")
+            rd.id: rd for rd in round.required_contract_documents.order_by("ordering")
         }
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
@@ -8383,8 +8383,10 @@ class ContractExportView(ExportView):
                 return resp
             resp["Content-Length"] = len(content.encode("utf-8"))
         else:
-            # fn = c.get_document(request=self.request, format=format, part=part)
-            fn = c.to_pdf(request=self.request)
+            if not part and format == "pdf":
+                fn = c.to_pdf(request=self.request)
+            else:
+                fn = c.get_document(request=self.request, format=format, part=part)
             content_type, _ = mimetypes.guess_type(fn)
             if settings.DEBUG:
                 resp = StreamingHttpResponse(
