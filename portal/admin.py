@@ -515,6 +515,7 @@ class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
 class FieldOfResearchAdmin(ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
+    show_close_button = True
 
     @admin.action(description="Toggle STEM")
     def toggle_stem(self, request, queryset, *args, **kwargs):

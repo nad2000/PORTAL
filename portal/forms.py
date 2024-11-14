@@ -1617,7 +1617,7 @@ class ContractForm(ModelForm):
                 if part:
                     initial[fn] = part.file
         if not (instance and user and (user.is_superuser or user.is_site_staff)):
-            self._meta.exclude.extend(["cover", "preamble", "schedule1"])
+            self._meta.exclude.extend(["cover", "preamble", "schedule1", "schedule2"])
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -2049,6 +2049,11 @@ class ContractForm(ModelForm):
                 self.fields["cover"].label = ""
                 self.fields["preamble"].label = ""
                 self.fields["schedule1"].label = ""
+                self.fields["schedule2"].label = ""
+                if not instance.schedule2 and (default_schedule2 := instance.default_schedule2):
+                    self.fields["schedule2"].help_text = (
+                        f"Default: <a href='{ default_schedule2.url }'>{ os.path.basename(default_schedule2.name) }</a>"
+                    )
                 tabs.append(
                     Tab(
                         mark_safe(f'<i class="far fa-file"></i> {_("Parts")}'),
@@ -2063,7 +2068,8 @@ class ContractForm(ModelForm):
                             Row(
                                 Column(
                                     HTML(
-                                        """
+                                        (
+                                            """
 <a
     href="{%% url 'contract-export' pk=%(pk)d  %%}?part=cover&for_download=1&format=odt"
     type="button"
@@ -2078,11 +2084,19 @@ class ContractForm(ModelForm):
     type="button"
     role="button"
     target="_blank"
-    class="btn btn-primary float-right"
+    class="btn btn-primary float-right ml-1"
     data-toggle="tooltip",
     title="Generate the cover page (HTML format)",
     id="generate_cover_button">HTML</a>
 """
+                                            + (
+                                                """
+<input type="submit" name="delete_cover" value="Delete" class="btn btn-danger float-right ml-1" id="submit-id-delete_cover">
+"""
+                                                if instance.cover
+                                                else ""
+                                            )
+                                        )
                                         % dict(pk=instance.pk)
                                     ),
                                     css_class="col-2",
@@ -2098,7 +2112,8 @@ class ContractForm(ModelForm):
                             Row(
                                 Column(
                                     HTML(
-                                        """
+                                        (
+                                            """
 <a
     href="{%% url 'contract-export' pk=%(pk)d  %%}?part=preambre&for_download=1&format=odt"
     type="button"
@@ -2113,10 +2128,19 @@ class ContractForm(ModelForm):
     type="button"
     role="button"
     target="_blank"
-    class="btn btn-primary float-right"
+    class="btn btn-primary float-right ml-1"
     data-toggle="tooltip",
     title="Generate the Contract Preamble",
-    id="generate_cover_button">HTML</a>"""
+    id="generate_cover_button">HTML</a>
+"""
+                                            + (
+                                                """
+<input type="submit" name="delete_preamble" value="Delete" class="btn btn-danger float-right ml-1" id="submit-id-delete_preamble">
+"""
+                                                if instance.preamble
+                                                else ""
+                                            )
+                                        )
                                         % dict(pk=instance.pk)
                                     ),
                                     css_class="col-2",
@@ -2132,7 +2156,8 @@ class ContractForm(ModelForm):
                             Row(
                                 Column(
                                     HTML(
-                                        """
+                                        (
+                                            """
 <a
     href="{%% url 'contract-export' pk=%(pk)d  %%}?part=schedule&for_download=1&format=odt"
     type="button"
@@ -2147,15 +2172,43 @@ class ContractForm(ModelForm):
     type="button"
     role="button"
     target="_blank"
-    class="btn btn-primary float-right"
+    class="btn btn-primary float-right ml-1"
     data-toggle="tooltip",
     title="Generate the Schedule 1 (HTML format)",
-    id="generate_cover_button">HTML</a>"""
+    id="generate_cover_button">HTML</a>
+"""
+                                            + (
+                                                """
+<input type="submit" name="delete_schedule1" value="Delete" class="btn btn-danger float-right ml-1" id="submit-id-delete_schedule1">
+"""
+                                                if instance.schedule1
+                                                else ""
+                                            )
+                                        )
                                         % dict(pk=instance.pk)
                                     ),
                                     css_class="col-2",
                                 ),
                                 Column(Field("schedule1"), css_class="col-10"),
+                            ),
+                            Row(
+                                Column(
+                                    HTML("""<label for="id_preamble"><u>Schedule 2</u></lable>"""),
+                                    css_class="col-12",
+                                )
+                            ),
+                            Row(
+                                Column(
+                                    HTML(
+                                        """
+<input type="submit" name="delete_schedule2" value="Delete" class="btn btn-danger float-right ml-1" id="submit-id-delete_schedule2">
+"""
+                                        if instance.schedule2
+                                        else ""
+                                    ),
+                                    css_class="col-1",
+                                ),
+                                Column(Field("schedule2"), css_class="col-11"),
                             ),
                             ButtonHolder(
                                 Submit(

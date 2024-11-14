@@ -8266,6 +8266,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         ],
         validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
     )
+    schedule2 = PrivateFileField(
+        verbose_name="Schedule 2",
+        null=True,
+        blank=True,
+        upload_to="contracts",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+    )
 
     # "ie-contracts"
     ## total_amount = IntegerField(null=True, blank=True)
@@ -8276,7 +8287,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
     @cached_property
-    def schedule2(self):
+    def default_schedule2(self):
         r = self.application.round
         if r.schedule2:
             return r.schedule2

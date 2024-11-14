@@ -367,3 +367,12 @@ def document_action_button(
     # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
     output = get_template("document_action_button.html").render(locals())
     return Markup(output)
+
+
+@register.filter(is_safe=False)
+def length_is(value, arg):
+    """Return a boolean of whether the value's length is the argument."""
+    try:
+        return len(value) == int(arg)
+    except (ValueError, TypeError):
+        return ''

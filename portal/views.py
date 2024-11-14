@@ -5868,9 +5868,17 @@ class ContractViewMixin:
     #     return super().form_invalid(form)
 
     def form_valid(self, form):
+        i = form.instance
+        if i and i.pk:
+            for part in ["cover", "preamble", "schedule1", "schedule2"]:
+                if f"delete_{part}" in form.data:
+                    getattr(i, part).delete()
+                    setattr(i, part, None)
+                    i.save(update_fields=[part])
+                    return redirect(self.request.META.get("HTTP_REFERER") + "#parts")
+
         a = self.application
         u = self.request.user
-        i = form.instance
         if not i.submitted_by:
             i.submitted_by = u
         if not i.org:

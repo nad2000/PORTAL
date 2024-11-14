@@ -3,14 +3,15 @@
 {% load static i18n %}
 
 {% block extrastyle %}
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <!-- link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" -->
   {% if SITE_ID == 4 or SITE_ID == 3 %}
     <link rel="icon" href="{% static 'images/stlp.royalsociety.org.nz/favicons/favicon.ico' %}">
   {% elif SITE_ID == 2 %}
     <link rel="icon" href="{% static 'images/international.royalsociety.org.nz/favicons/favicon.ico' %}">
+  {% else %}
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}">
   {% endif %}
-  <link href="{% static 'css/admin.css' %}" rel="stylesheet">
+  <!-- link href="{% static 'css/admin.css' %}" rel="stylesheet" -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
   {{ bloc.super }}
 {% endblock %}
@@ -68,7 +69,7 @@
       <a href="{{ site_url }}">
         <i class="fa fa-fw fa-home"></i>
         {% translate 'View site' %}
-      </a> /
+      </a>
   {% endif %}
   {% if user.is_active and user.is_staff %}
       {% url 'django-admindocs-docroot' as docsroot %}
