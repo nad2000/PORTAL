@@ -1,0 +1,7 @@
+{% extends "admin/submit_line.html" %}
+{% load i18n admin_urls %}
+
+{% block submit-row %}
+  {{ block.super }}
+  {% if not show_close and adminform.model_admin.show_close_button %}
+  <a href="{% if request.META.HTTP_REFERER and request.META.HTTP_REFERER != request.build_absolute_uri %}{{ request.META.HTTP_REFERER }}{% else %}{% url opts|admin_urlname:'changelist' %}{% endif %}" class="closelink" data-toggle="tooltip" title="Cancel and close" >{% translate 'Close' %}</a> {% endif %} {% endblock %}
