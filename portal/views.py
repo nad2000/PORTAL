@@ -6089,8 +6089,7 @@ class ContractViewMixin:
                 return redirect("contract-update", pk=i.pk)
 
         if "export_contract" in self.request.POST:
-            # TODO:
-            pass
+            return redirect(self.request.path + "?export=1#parts")
 
         if "post_comment" in self.request.POST:
             token = models.get_unique_mail_token()

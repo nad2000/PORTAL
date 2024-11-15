@@ -76,6 +76,7 @@
 {% endblock content %}
 
 {% block javascript %}
+{% if request.GET.export %}<a style="display: none;" id="id_export_object_link" href="{% url 'contract-export' object.pk %}" trarget="_blank"></a>{% endif %}
 {{ block.super }}
 <!-- JS -->
   <script>
@@ -214,6 +215,18 @@
             return false;
           });
       });
+      {% if request.GET.export %}
+      // export after the load in a new tab:
+      var win = window.open("{% url 'contract-export' object.pk %}", '_blank');
+      if (win) {//Browser has allowed it to be opened
+        win.focus();
+      } else {
+        //Browser has blocked it
+        alert('Please allow popups for this website');
+        // $('#id_export_object_link').click(function(){window.open(this.href); return false; });
+        $('#id_export_object_link').click();
+      }
+      {% endif %}
     });
   </script>
 {% endblock %}
