@@ -6088,6 +6088,9 @@ class ContractViewMixin:
                 )
                 return redirect("contract-update", pk=i.pk)
 
+        if "save_draft" in self.request.POST:
+            return redirect(self.request.path)
+
         if "export_contract" in self.request.POST:
             return redirect(self.request.path + "?export=1#parts")
 

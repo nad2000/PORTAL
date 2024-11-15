@@ -2210,27 +2210,27 @@ class ContractForm(ModelForm):
                                 ),
                                 Column(Field("schedule2"), css_class="col-11"),
                             ),
-                            ButtonHolder(
-                                Submit(
-                                    "export_contract",
-                                    _("Export Constract"),
-                                    css_class="btn-primary",
-                                ),
-                                # Button(
-                                #     "import_email_file",
-                                #     _("Import Email"),
-                                #     hx_get=reverse(
-                                #         "email-import", kwargs={"pk": instance and instance.pk}
-                                #     )
-                                #     + "?_modal_dialog=1",
-                                #     hx_target="#form-dialog",
-                                #     hx_params="none",
-                                #     data_toggle="tooltip",
-                                #     title=_("Import an email file as a comment ..."),
-                                #     css_class="btn-outline-primary",
-                                # ),
-                                css_class="float-right",
-                            ),
+                            # ButtonHolder(
+                            #     Submit(
+                            #         "export_contract",
+                            #         _("Export Constract"),
+                            #         css_class="btn-primary",
+                            #     ),
+                            #     # Button(
+                            #     #     "import_email_file",
+                            #     #     _("Import Email"),
+                            #     #     hx_get=reverse(
+                            #     #         "email-import", kwargs={"pk": instance and instance.pk}
+                            #     #     )
+                            #     #     + "?_modal_dialog=1",
+                            #     #     hx_target="#form-dialog",
+                            #     #     hx_params="none",
+                            #     #     data_toggle="tooltip",
+                            #     #     title=_("Import an email file as a comment ..."),
+                            #     #     css_class="btn-outline-primary",
+                            #     # ),
+                            #     css_class="float-right",
+                            # ),
                         ),
                         css_id="parts",
                     ),
@@ -2256,7 +2256,7 @@ class ContractForm(ModelForm):
                         id="cancel">
                             %s
                         </a>"""
-                        % _("Cancel")
+                        % _("Close")
                     ),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
