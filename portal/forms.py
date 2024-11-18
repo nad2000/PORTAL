@@ -2210,27 +2210,38 @@ class ContractForm(ModelForm):
                                 ),
                                 Column(Field("schedule2"), css_class="col-11"),
                             ),
-                            # ButtonHolder(
-                            #     Submit(
-                            #         "export_contract",
-                            #         _("Export Constract"),
-                            #         css_class="btn-primary",
-                            #     ),
-                            #     # Button(
-                            #     #     "import_email_file",
-                            #     #     _("Import Email"),
-                            #     #     hx_get=reverse(
-                            #     #         "email-import", kwargs={"pk": instance and instance.pk}
-                            #     #     )
-                            #     #     + "?_modal_dialog=1",
-                            #     #     hx_target="#form-dialog",
-                            #     #     hx_params="none",
-                            #     #     data_toggle="tooltip",
-                            #     #     title=_("Import an email file as a comment ..."),
-                            #     #     css_class="btn-outline-primary",
-                            #     # ),
-                            #     css_class="float-right",
-                            # ),
+                            ButtonHolder(
+                                HTML(
+                                    f"""
+                            <a
+                                class="btn btn-primary"
+                                href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}"
+                                target="_blank"
+                                data-toggle="tooltip"
+                                data-html="true"
+                                title="First <b>Save</b> and then export it to create an updated version of the contract document",
+                            > {_("Export Constract")} </a>"""
+                                ),
+                                # Submit(
+                                #     "export_contract",
+                                #     _("Export Constract"),
+                                #     css_class="btn-primary",
+                                # ),
+                                # Button(
+                                #     "import_email_file",
+                                #     _("Import Email"),
+                                #     hx_get=reverse(
+                                #         "email-import", kwargs={"pk": instance and instance.pk}
+                                #     )
+                                #     + "?_modal_dialog=1",
+                                #     hx_target="#form-dialog",
+                                #     hx_params="none",
+                                #     data_toggle="tooltip",
+                                #     title=_("Import an email file as a comment ..."),
+                                #     css_class="btn-outline-primary",
+                                # ),
+                                css_class="float-right",
+                            ),
                         ),
                         css_id="parts",
                     ),

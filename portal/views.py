@@ -6088,7 +6088,7 @@ class ContractViewMixin:
                 )
                 return redirect("contract-update", pk=i.pk)
 
-        if "save_draft" in self.request.POST:
+        if "save_draft" in self.request.POST and form.data.get("current_tab") == "#parts":
             return redirect(self.request.path)
 
         if "export_contract" in self.request.POST:

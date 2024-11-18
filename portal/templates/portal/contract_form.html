@@ -23,6 +23,7 @@
   {% endcomment %}
 
   <form method="post" enctype="multipart/form-data" id="contract-form">
+    <input type="hidden" name="current_tab" id="current_tab" value="">
     <input type="hidden" name="required_doc" id="id_required_doc" value="">
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
@@ -214,6 +215,10 @@
             // Only want to do it once
             return false;
           });
+      });
+      $("#contract-form").on("submit", function() {
+          $("#current_tab").val(location.hash);
+          return true;
       });
       {% if request.GET.export %}
       // export after the load in a new tab:
