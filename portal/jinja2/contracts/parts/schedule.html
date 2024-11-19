@@ -1,37 +1,49 @@
 {#% extends "contracts/base.html" %}
 {% block content %#}
-{% macro org_address_tr(org) %}
+{% macro org_address_tr(c, org) %}
   <tr>
-  <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt; border-top:none;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
-    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>The Royal Society of New Zealand </p>
+  <td width=265 valign=top style='width:198.45pt;border:solid windowtext 1.0pt; border-top:none;padding:6pt 5.4pt 0in 5.4pt;height:29.6pt'>
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ org.name }}</p>
   </td>
-  <td width=360 valign=top style='width:270.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
-    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>[Contact]</p>
-    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ org.contact_phone or '[Phone number]' }}</p>
+  <td width=360 valign=top style='width:270.2pt;border-top:none;border-left: none;border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt; padding:6pt 5.4pt 0in 5.4pt'>
     <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
-  {% if org.address %}{{ org.address.__html__()|safe }}{% else %}[Address / email address]{% endif %}</p>
+    {% if org.code == "RSTA" %}
+      Director - Research Funding
+    {% elif org.contact %}
+      {{ org.contact }}
+    {% elif c.contact %}
+      {{ c.contact }}
+    {% else %}
+      [Contact] 
+    {% endif %}
+    </p>
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{{ org.contact_phone or '[Phone number]' }}</p>
+    {% if org.code == "RSTA" %}
+      <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>Email: {{ c.fund and c.fund.email or org.email }}</p>
+    {% else %}
+      {% if org.email %}<p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>Email: {{ org.email }}</p>{% endif %}
+    {% endif %}
+    <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if org.address %}{{ org.address.__html__()|safe }}{% else %}[Address]{% endif %}</p>
   </td>
   </tr>
 {% endmacro %}
 
 {% set kp=c.key_person %}
-<a name="_Toc_schedule_240101001">
-  <h1 class="western" style="page-break-before: always">
-    SCHEDULE<br>
-  {% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
-  </h1>
-</a>
+<h1 style="page-break-before: always; text-align: center;">
+  SCHEDULE 1 - KEY TERMS<br>
+{% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
+</h1>
 <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
 
 <p>
 Programme Title: <strong>{{ c.project_title }}</strong>
 </p>
-<ol>
+<ol type="1">
 
   <li>
-    <h3>Key dates</h3>
+    <h2>Key dates</h2>
     <dl><dd>
-        <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624
+        <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=624
                style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
           <tr>
             <td width=284 valign=top style='width:212.65pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
@@ -76,9 +88,10 @@ Programme Title: <strong>{{ c.project_title }}</strong>
 
   {% if kp %}
     <li>
-      <h3>Key Contact Person</h3>
+      <h2>Key Contact Person</h2>
       <dl><dd>
-          <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="0" width="620" style="width:464.7pt;margin-left:5.4pt;border-collapse:collapse;border:none">
+          <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width="625" 
+            style="width:464.7pt;margin-left:5.4pt;border-collapse:collapse;border:none">
             <tbody>
               <tr>
                 <td width="207" valign="top" style="width:155.5pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
@@ -139,10 +152,11 @@ Programme Title: <strong>{{ c.project_title }}</strong>
   {% set okp=c.other_key_personnel %}
   {% if okp %}
     <li>
-      <h3>Other Key Personnel</h3>
+      <h2>Other Key Personnel</h2>
       <dl><dd>
 
-          <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="0" width="624" style="width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none">
+          <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width="625" 
+            style="width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none">
             <tbody>
               <tr>
                 <td width="284" valign="top" style="width:212.65pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt">
@@ -199,10 +213,11 @@ Programme Title: <strong>{{ c.project_title }}</strong>
 
 
   <li>
-    <h3>Description of Programme</h3>
+    <h2>Description of Programme</h2>
     <dl><dd>
 
-        <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=624 style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
+        <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 
+          style='width:467.8pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
           <tr>
             <td width=170 valign=top style='width:127.6pt;border:solid windowtext 1.0pt; padding:0in 5.4pt 0in 5.4pt'>
               <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Programme Title</b></p>
@@ -233,7 +248,7 @@ Programme Title: <strong>{{ c.project_title }}</strong>
   </li>
 
   <li>
-    <h3>Acknowledgement of Funding</h3>
+    <h2>Acknowledgement of Funding</h2>
     <dl><dd>
         <!-- TODO: adjust per site/schema/round -->
         <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>For the
@@ -248,11 +263,16 @@ Programme Title: <strong>{{ c.project_title }}</strong>
   </li>
 
   <li>
-    <h3>Reporting dates</h3>
+    <h2>Reporting dates</h2>
     <dl><dd>
 
-        <table border="1" cellpadding="5" cellspacing="0" with="100%">
-          <tr bgcolor="#d0d0d0">
+        <table border="1" cellpadding="5" cellspacing="0" with="625"
+            style="width:467.8pt;margin-left:5.4pt;border-collapse:collapse;">
+          <col width="156"/>
+          <col width="156"/>
+          <col width="318"/>
+          <!-- tr bgcolor="#d0d0d0" -->
+          <tr bgcolor="white" valign="middle">
             <th><b>Year</b></th>
             <th><b>Report</b></th>
             <th><b>Due date</b></th>
@@ -274,14 +294,17 @@ Programme Title: <strong>{{ c.project_title }}</strong>
   </li>
 
   <li>
-    <h3>Funding</h3>
+    <h2>Funding</h2>
     <dl><dd>
 
-        <table border="1" cellpadding="7" cellspacing="0" with="100%">
+        <table border="1" cellpadding="7" cellspacing="0" with="625"
+            style="width:467.8pt;margin-left:5.4pt;border-collapse:collapse;">
           <col width="96"/>
-          <col width="225"/>
-          <col width="197"/>
-          <tr bgcolor="#d0d0d0" valign="middle">
+          <col width="176"/>
+          <col width="176"/>
+          <col width="176"/>
+          <!-- tr bgcolor="#d0d0d0" valign="middle" -->
+          <tr bgcolor="white" valign="middle">
             <th><b>Year</b></th>
             <th><b>Amount of Funding</b> (GST excl.)</th>
             <th><b>Purpose of Funding</b></th>
@@ -300,7 +323,7 @@ Programme Title: <strong>{{ c.project_title }}</strong>
             {% endfor %}
           {% endfor %}
           <tr valign="middle">
-            <td>TOTAL</td>
+            <td><b>TOTAL</b></td>
             <td colspan="3" style="text-align: right;">
               ${{ '%0.2f' % c.total_allocation }}
             </td>
@@ -312,13 +335,13 @@ Programme Title: <strong>{{ c.project_title }}</strong>
   </li>
 
   <li>
-    <h3>Address for notices</h3>
+    <h2>Address for notices</h2>
     <dl><dd>
 
         <table class="MsoNormalTable"
                border="1"
                cellspacing="0"
-               cellpadding="0"
+               cellpadding="1"
                width="625"
                style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
           <tr style='height:29.6pt'>
@@ -331,8 +354,8 @@ Programme Title: <strong>{{ c.project_title }}</strong>
             </td>
           </tr>
           <tr>
-            {{ org_address_tr(c.agency) }}
-            {{ org_address_tr(c.host) }}
+            {{ org_address_tr(c, c.agency) }}
+            {{ org_address_tr(c, c.host) }}
         </table>
 
       </dd></dl>
@@ -340,7 +363,7 @@ Programme Title: <strong>{{ c.project_title }}</strong>
 
   {% if additional_clauses %}
     <li>
-      <h3>Additional terms that apply in addition to the terms in Schedule 2 (if any)</h3>
+      <h2>Additional terms that apply in addition to the terms in Schedule 2</h2>
       <dl><dd>
 
           <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
@@ -371,10 +394,9 @@ Programme Title: <strong>{{ c.project_title }}</strong>
     </li>
   {% endif %}
 
-
   {% if ammended_clauses %}
     <li>
-      <h3>Variations to terms in Schedule 2 (if any)</h3>
+      <h2>Variations to terms in Schedule 2</h2>
       <dl><dd>
           <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
                  style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
@@ -406,7 +428,7 @@ Programme Title: <strong>{{ c.project_title }}</strong>
   {% endif %}
 
   <li>
-    <h3>Appendices attached to Schedule 1</h3>
+    <h2>Appendices attached to Schedule 1</h2>
     <dl><dd>
         <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625
                style='width:468.65pt;margin-left:5.4pt;border-collapse:collapse;border:none'>
@@ -471,6 +493,8 @@ Programme Title: <strong>{{ c.project_title }}</strong>
 #}
 
 </ol>
+
+{#
 <div title="footer" style="font-size: 6pt; font-family: Arial; width: 100%;">
   <font size="1" style="font-size: 6pt; font-family: Arial;" face="Arial">
     <table border="0" style="border: none; font-size: 6pt; font-family: Arial;" width="100%">
@@ -497,4 +521,6 @@ Programme Title: <strong>{{ c.project_title }}</strong>
     </table>
   </font>
 </div>
+#}
+
 {#% endblock %#}

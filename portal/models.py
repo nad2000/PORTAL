@@ -1103,6 +1103,13 @@ class Organisation(Model):
     address = ForeignKey(
         Address, blank=True, null=True, related_name="organisations", on_delete=RESTRICT
     )
+    contact = CharField(
+        _("Contact"),
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text=_("Contact - an organisational role or a person name"),
+    )
     contact_phone = CharField(
         _("Contact phone number"),
         validators=[phone_regex_validator],
@@ -1756,6 +1763,7 @@ class Fund(Model):
     )
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     # history = HistoricalRecords(table_name="fund_history")
+    email = EmailField(_("Contact email address"), blank=True, null=True)
     objects = FundManager()
 
     def __str__(self):
@@ -8447,7 +8455,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         year = self.year or self.start_date.year
         current_ts = timezone.now()
         contract = self
-        if part != "headers_footers":
+        if part not in ["headers_footers", "footers"]:
             clauses = list(self.clauses.all().order_by("type", "ordering"))
             additional_clauses = [c for c in clauses if c.type == "A"]
             ammended_clauses = [c for c in clauses if c.type == "V"]
@@ -8460,15 +8468,18 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if part in [
-            "cover",
-            "background",
             "agreement",
-            "schedule",
+            "background",
+            "cover",
             "cover_page",
             "preamble",
+            "schedule",
+            "schedule1",
             "toc",
         ]:
             template_name = "contracts/part.html"
+        elif part == "footers":
+            template_name = "contracts/footers.html"
         elif part == "headers_footers":
             template_name = "contracts/headers_footers.html"
         else:
@@ -8485,6 +8496,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
         if not format or format in ["html", "htm"]:
             return content
+
+        if format == "pdf":
+            html = HTML(content)
+            return PdfReader(
+                io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+            )
+
 
         hf = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         hf.write(content.encode())
