@@ -8394,20 +8394,25 @@ class ContractExportView(ExportView):
             resp["Content-Length"] = len(content.encode("utf-8"))
         else:
             if not part and format == "pdf":
-                fn = c.to_pdf(request=self.request)
+                output = c.to_pdf(request=self.request)
             else:
-                fn = c.get_document(request=self.request, format=format, part=part)
-            content_type, _ = mimetypes.guess_type(fn)
-            if settings.DEBUG:
-                resp = StreamingHttpResponse(
-                    FileWrapper(open(fn, "rb")), content_type=content_type
-                )
+                output = c.get_document(request=self.request, format=format, part=part)
+            if isinstance(output, PdfReader):
+                resp = FileResponse(output.stream, content_type="application/pdf")
+                resp["Content-Length"] = len(output.stream.getbuffer())
+                output.stream.seek(0)
             else:
-                # works with nginx:
-                resp = HttpResponse(content_type="application/force-download")
-                resp["X-Sendfile"] = fn
-                resp["X-Accel-Redirect"] = fn
-            resp["Content-Length"] = os.path.getsize(fn)
+                content_type, _ = mimetypes.guess_type(output)
+                if settings.DEBUG:
+                    resp = StreamingHttpResponse(
+                        FileWrapper(open(output, "rb")), content_type=content_type
+                    )
+                else:
+                    # works with nginx:
+                    resp = HttpResponse(content_type="application/force-download")
+                    resp["X-Sendfile"] = output
+                    resp["X-Accel-Redirect"] = output
+                resp["Content-Length"] = os.path.getsize(output)
 
         if part:
             resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"

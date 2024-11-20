@@ -8478,8 +8478,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             "toc",
         ]:
             template_name = "contracts/part.html"
+        elif part == "page":
+            template_name = "contracts/page.html"
         elif part == "footers":
             template_name = "contracts/footers.html"
+            # template_name = "headers.html"
+            # application = self.application
         elif part == "headers_footers":
             template_name = "contracts/headers_footers.html"
         else:
@@ -8498,11 +8502,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             return content
 
         if format == "pdf":
-            html = HTML(content)
-            return PdfReader(
-                io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
-            )
-
+            html = HTML(string=content)
+            return PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
 
         hf = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         hf.write(content.encode())
@@ -8610,7 +8611,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         if contract_part := getattr(self, part, False):
             file_path = contract_part.path
         elif part == "schedule2":
-            file_path = self.schedule2.path
+            file_path = self.schedule2.path if self.schedule2 else self.default_schedule2.path
         else:
             content = self.get_document(
                 request=request, user=user, format="html", part=part, **kwargs
@@ -8669,22 +8670,32 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
             for part in ["cover", "preamble", "schedule1"]
         }
 
+        schedule1 = parts["schedule1"]
+        if not isinstance(schedule1, PdfReader):
+            schedule1 = PdfReader(schedule1)
+            parts["schedule1"] = schedule1
+        schedule1_page_count = len(schedule1.pages)
         schedule2 = self.get_part_pdf(request=request, part="schedule2")
         if not isinstance(schedule2, PdfReader):
             schedule2 = PdfReader(schedule2, strict=False)
-
         schedule2_toc = pdf_toc(schedule2)
+        page_no = 2 + schedule1_page_count
+        headers = {}
+        for appendix_no, d in enumerate(self.documents.order_by("required_document__ordering"), 1):
+            headers[page_no] = f"APPENDIX {appendix_no} – {d}"
+            page_no += d.page_count
+
         toc = self.get_part_pdf(
             request=request, part="toc", parts=parts, schedule2_toc=schedule2_toc, page_no=1
         )
-        if len(toc.pages) > 1:
-            toc = self.get_part_pdf(
-                request=request,
-                part="tok",
-                parts=parts,
-                schedule2_toc=schedule2_toc,
-                page_no=len(toc.pages),
-            )
+        # if len(toc.pages) > 1:
+        #     toc = self.get_part_pdf(
+        #         request=request,
+        #         part="tok",
+        #         parts=parts,
+        #         schedule2_toc=schedule2_toc,
+        #         page_no=len(toc.pages),
+        #     )
         parts["toc"] = toc
 
         merger = PdfMerger(strict=False)
@@ -8703,15 +8714,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         # merger.add_metadata({"/Number": self.number})
         # merger.add_metadata({"/Keywords": r.title})
         def part_list():
-            for p in ["cover", "preamble", "schedule1"]:
+            """Change order and add the appences"""
+            for p in ["cover", "toc", "preamble", "schedule1"]:
                 yield parts[p]
             for d in self.documents.order_by("required_document__ordering"):
                 yield d.pdf_file.path
+            yield schedule2
 
         for part in part_list():
             # merger.append(a, outline_item=title, import_outline=True)
             if isinstance(part, HTML):
-                merger.append(reader)
                 pdf_object = part.write_pdf(presentational_hints=True)
                 # converting pdf bytes to stream which is required for pdf merger.
                 pdf_stream = io.BytesIO(pdf_object)
@@ -8725,20 +8737,38 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
                 reader = PdfReader(part, strict=False)
                 merger.append(reader)
 
-        template = get_template("contracts/headers_footers.html")
-        html = HTML(
-            string=template.render(
-                {
-                    "page_count": len(merger.pages),
-                    "contract": self,
-                }
+        # template = get_template("contracts/headers_footers.html")
+        # html = HTML(
+        #     string=template.render(
+        #         {
+        #             "page_count": len(merger.pages),
+        #             "contract": self,
+        #         }
+        #     )
+        # )
+        # header_file = PdfReader(
+        #     io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+        # )
+        pages_to_skip = len(toc.pages) + 1
+        page_count = len(merger.pages) - pages_to_skip
+
+        for pn, dp in enumerate(merger.pages):
+            if pn < pages_to_skip:
+                continue
+            template = get_template("contracts/page.html")
+            page_no = pn - pages_to_skip + 1
+            html = HTML(
+                string=template.render(
+                    {
+                        "page_count": page_count,
+                        "page_no": page_no,
+                        "contract": self,
+                        "header": headers.get(page_no),
+                    }
+                )
             )
-        )
-        header_file = PdfReader(
-            io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
-        )
-        for dp, hp in zip(merger.pages, header_file.pages):
-            dp.pagedata.merge_page(hp)
+            reader = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
+            dp.pagedata.merge_page(reader.pages[0])
 
         output_filename = output_dir / f"{self.number}.pdf"
         merger.write(output_filename)
