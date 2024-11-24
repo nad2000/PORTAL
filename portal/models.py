@@ -302,7 +302,6 @@ def fsm_log(func=None, allow_inline=False):
 
 def get_request(*args, **kwargs):
     if "request" in kwargs:
-        kw
         return kwargs["request"]
     for v in args:
         if isinstance(v, HttpRequest):
@@ -1970,6 +1969,92 @@ class ApplicationKeyword(Model):
         db_table = "application_keyword"
 
 
+class VMTOAModel(Model):
+
+    vm_ecs = PositiveSmallIntegerField(
+        "Indigenous Innovation",
+        help_text=_(
+            "Contributing to Economic Growth through Distinctive R&D. New Zealand needs "
+            "its businesses and for-profit enterprises to perform at an optimum level and "
+            "contribute to economic growth. This theme concerns the development of distinctive "
+            "products, processes, systems and services from Māori knowledge, resources and people. "
+            "Of particular interest are products that may be distinctive in the international marketplace."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_ens = PositiveSmallIntegerField(
+        "Taiao",
+        help_text=_(
+            "Achieving Environmental Sustainability through Iwi and Hapū relationships with land "
+            "and sea. Like all communities, Māori communities aspire to live in sustainable communities "
+            "dwelling in healthy environments. Much general environmental research is relevant to Māori. "
+            "Distinctive environmental research arising in Māori communities relates to the expression of "
+            "iwi and hapū knowledge, culture and experience – including Kaitiakitanga - in New Zealand land and seascapes."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_hsw = PositiveSmallIntegerField(
+        "Hauora/Oranga",
+        help_text=_(
+            "Improving Māori Health and Social Well-being. Distinctive challenges to Māori health "
+            "and social well-being continue to arise within Māori communities disadvantaging them "
+            "in relation to the general population. Research is needed to meet these ongoing needs."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    vm_ink = PositiveSmallIntegerField(
+        "Mātauranga",
+        help_text=_(
+            "Exploring Indigenous Knowledge and RS&T. This exploratory theme aims to develop a body "
+            "of knowledge, as a contribution to RS&T, at the interface between indigenous knowledge "
+            "including mātauranga Māori – and research, science and technology."
+        ),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    is_vm_na = BooleanField(_("Vision Mātauranga N/A"), default=False)
+    vm_rationale = TextField(_("Rationale"), null=True, blank=True)
+
+    toa_basic = PositiveSmallIntegerField(
+        _("Basic"),
+        help_text=_("Pure basic research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_experimental = PositiveSmallIntegerField(
+        _("Experimental"),
+        help_text=_("Experimental development"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_applied = PositiveSmallIntegerField(
+        _("Applied"),
+        help_text=_("Applied research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+    toa_strategic = PositiveSmallIntegerField(
+        _("Strategic"),
+        help_text=_("Strategic basic research"),
+        null=True,
+        blank=True,
+        default=0,
+    )
+
+    class Meta:
+        abstract = True
+
+
 class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # objects = RoundSiteManager()
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
@@ -2767,7 +2852,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
-        pass
+        return Contract.create_from_application(application=self)
 
     @fsm_log
     @transition(
@@ -8129,7 +8214,7 @@ class ContractManager(CurrentSiteManager):
         return self.get(email=email, contract__number=number)
 
 
-class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
+class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
     objects = ContractManager()
@@ -8167,8 +8252,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     requires_approval = BooleanField(
         _("ethical and regulatory approval is required"),
-        # null=True,
-        # blank=True,
+        null=True,
+        blank=True,
         help_text=_("Does your research require ethical and regulatory approval?"),
     )
     requires_approval_comment = TextField(null=True, blank=True)
@@ -8285,6 +8370,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         ],
         validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
     )
+    file = PrivateFileField(
+        verbose_name="Contract File",
+        null=True,
+        blank=True,
+        upload_to="contracts",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
+    )
 
     # "ie-contracts"
     ## total_amount = IntegerField(null=True, blank=True)
@@ -8293,6 +8388,191 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
 
     def __str__(self):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+
+    @classmethod
+    def create_from_application(cls, application=application, budget=0):
+
+        a = application
+        r = a.round
+        number = cls.new_number(application=a)
+        duration = r.duration or 3
+
+        params = dict(
+            application=a,
+            year=a.created_at.year,
+            org=a.org,
+            project_title=a.application_title or a.round.title,
+            start_date=timezone.now(),
+            duration=duration,
+            end_date=duration and (timezone.now() + relativedelta(years=duration)),
+            number=number,
+            fund=a.round.scheme.fund,
+            address=a.address or a.org.address,
+            state="draft",
+            abstract=a.summary,
+        )
+        if r.has_vmts:
+            params.update(
+                dict(
+                    vm_ecs=a.vm_ecs,
+                    vm_ens=a.vm_ens,
+                    vm_hsw=a.vm_hsw,
+                    vm_ink=a.vm_ink,
+                )
+            )
+        if r.has_toas:
+            params.update(
+                dict(
+                    toa_applied=a.toa_applied,
+                    toa_basic=a.toa_basic,
+                    toa_strategic=a.toa_strategic,
+                    toa_experimental=a.toa_experimental,
+                )
+            )
+
+        with transaction.atomic():
+            c = cls.create(**params)
+            c.fors.add(*a.fors.all())
+            c.seos.add(*a.seos.all())
+            c.keywords.add(*a.keywords.all())
+            documents = []
+            for d in a.documents.all():
+                rd = (
+                    r.required_contract_documents.filter(
+                        application_required_document=d.required_document
+                    ).last()
+                    or r.required_contract_documents.filter(
+                        document_type=d.document_type or d.required_document.document_type
+                    ).last()
+                    or RequiredContractDocument.create(
+                        round=r,
+                        document_type=d.document_type or d.required_document.document_type,
+                        role=d.required_document.role or d.required_document.document_type.role,
+                        format=d.required_document.format
+                        or d.required_document.document_type.format,
+                        title=d.required_document.title or d.required_document.document_type.name,
+                        is_optional=d.required_document.is_optional,
+                        application_required_document=d.required_document,
+                    )
+                )
+
+                documents.append(
+                    c.documents.model(
+                        contract=c,
+                        page_count=d.page_count,
+                        document_type=rd
+                        and rd.document_type
+                        or d.document_type
+                        or d.required_document.document_type,
+                        required_document=rd,
+                        file=d.file,
+                    )
+                )
+
+            # TODO: handle the legacy
+            if a.file and not a.documents.filter(document_type__role="AF").exists():
+                rd = RequiredContractDocument.where(
+                    Q(role="AF") | Q(document_type__role="AF")
+                ).last()
+                documents.append(
+                    c.documents.model(
+                        contract=c,
+                        document_type=rd
+                        and rd.document_type
+                        or DocumentType.where(role="AF").last(),
+                        required_document=rd,
+                        file=a.file,
+                    )
+                )
+            if a.budget and not a.documents.filter(document_type__role="B").exists():
+                rd = RequiredContractDocument.where(
+                    Q(role="B") | Q(document_type__role="B")
+                ).last()
+                documents.append(
+                    c.documents.model(
+                        contract=c,
+                        document_type=rd
+                        and rd.document_type
+                        or DocumentType.where(role="B").last(),
+                        required_document=rd,
+                        file=a.budget,
+                    )
+                )
+
+            if documents:
+                c.documents.model.bulk_create(documents)
+
+            members = []
+            for m in a.members.filter(authorized_at__isnull=False):
+                members.append(
+                    ContractMember(
+                        contract=c,
+                        email=m.email,
+                        first_name=m.first_name,
+                        middle_names=m.middle_names,
+                        last_name=m.last_name,
+                        role=m.role,
+                        user=m.user,
+                        address=m.user.person.address,
+                    )
+                )
+                if not a.members.filter(role="PI").exists():
+                    u = a.submitted_by
+                    members.append(
+                        ContractMember(
+                            contract=c,
+                            email=u.email,
+                            first_name=a.first_name,
+                            middle_names=a.middle_names,
+                            last_name=a.last_name,
+                            role="PI",
+                            user=u,
+                            address=a.address or u.person.address,
+                        )
+                    )
+            if members:
+                c.members.model.bulk_create(members)
+
+            efforts = []
+            for m in c.members.all():
+                efforts.extend(
+                    ContractMemberEffort(
+                        member=m,
+                        period=e.period,
+                        fte=e.fte,
+                    )
+                    for e in MemberEffort.where(member__user=m.user, member__application=a)
+                )
+
+            if efforts:
+                MemberEffort.bulk_create(efforts)
+
+            if c.duration:
+                ReportingScheduleEntry.bulk_create(
+                    [
+                        ReportingScheduleEntry(
+                            contract=c,
+                            period=p,
+                            type="A" if p != c.duration else "F",
+                            due_date=c.start_date + relativedelta(years=p),
+                        )
+                        for p in range(1, c.duration + 1)
+                    ]
+                )
+
+                allocation = budget / c.duration if budget else 0.0
+                Allocation.bulk_create(
+                    [
+                        Allocation(
+                            contract=c,
+                            period=p,
+                            allocation=allocation,
+                        )
+                        for p in range(1, duration + 1)
+                    ]
+                )
+
+            return c
 
     @cached_property
     def default_schedule2(self):
@@ -8455,7 +8735,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         year = self.year or self.start_date.year
         current_ts = timezone.now()
         contract = self
-        if part not in ["headers_footers", "footers"]:
+        if part not in ["headers_footers", "footers", "page", "toc"]:
             clauses = list(self.clauses.all().order_by("type", "ordering"))
             additional_clauses = [c for c in clauses if c.type == "A"]
             ammended_clauses = [c for c in clauses if c.type == "V"]
@@ -8682,37 +8962,18 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, Model):
         page_no = 2 + schedule1_page_count
         headers = {}
         for appendix_no, d in enumerate(self.documents.order_by("required_document__ordering"), 1):
-            headers[page_no] = f"APPENDIX {appendix_no} – {d}"
+            headers[page_no] = (
+                f"APPENDIX {appendix_no} – {d.required_document.title or d.required_document.get_role_display()}"
+            )
             page_no += d.page_count
 
         toc = self.get_part_pdf(
             request=request, part="toc", parts=parts, schedule2_toc=schedule2_toc, page_no=1
         )
-        # if len(toc.pages) > 1:
-        #     toc = self.get_part_pdf(
-        #         request=request,
-        #         part="tok",
-        #         parts=parts,
-        #         schedule2_toc=schedule2_toc,
-        #         page_no=len(toc.pages),
-        #     )
         parts["toc"] = toc
 
         merger = PdfMerger(strict=False)
 
-        # merger.add_metadata(
-        #     {
-        #         "/Title": (
-        #             f"{self}"
-        #             if site_id in [4, 5]
-        #             else f"{self.number}: {self.application_title or r.title}"
-        #         )
-        #     }
-        # )
-        # merger.add_metadata({"/Author": self.lead_with_email})
-        # merger.add_metadata({"/Subject": r.title})
-        # merger.add_metadata({"/Number": self.number})
-        # merger.add_metadata({"/Keywords": r.title})
         def part_list():
             """Change order and add the appences"""
             for p in ["cover", "toc", "preamble", "schedule1"]:
@@ -9025,12 +9286,6 @@ class ContractMember(PersonMixin, Model):
         max_length=280,
         help_text=_("Comma separated list of middle names"),
     )
-    last_name = CharField(max_length=150, null=True, blank=True)
-    # role = ForeignKey(
-    #     RoleType,
-    #     on_delete=SET_NULL,
-    #     related_name="contract_members",
-    # )
     last_name = CharField(max_length=150, null=True, blank=True)
     role = ForeignKey(
         RoleType,

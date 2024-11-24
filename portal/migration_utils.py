@@ -1,5 +1,5 @@
 from .models import DOCUMENT_ROLES, QUALIFICATION_LEVEL
-from django.db.models import F
+from django.db.models import F, Q
 from django.conf import settings
 
 
@@ -35,6 +35,9 @@ def set_required_document_format_and_role(apps, schema_editor):
             role=F("document_type__role")
         )
         model.objects.using(db_alias).filter(format="-").update(format=F("document_type__format"))
+        model.objects.using(db_alias).filter(Q(title__isnull=True) | Q(title="")).update(
+            title=F("document_type__name")
+        )
 
 
 def add_title_data(apps, schema_editor):

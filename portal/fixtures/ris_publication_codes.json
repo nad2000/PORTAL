@@ -1,0 +1,684 @@
+[
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ABST",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Abstract",
+    "category": "Journal Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ADVS",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Audiovisual (material)",
+    "category": "Audiovisual Material",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "AGGR",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Aggregated database",
+    "category": "Aggregated Database",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ANCIENT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Ancient text",
+    "category": "Ancient Text",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ART",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Artwork",
+    "category": "Artwork",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "BILL",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Bill/resolution",
+    "category": "Bill (was Bill, Unenacted Bill)",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "BLOG",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Blog",
+    "category": "Blog",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "BOOK",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Book (whole)",
+    "category": "Book",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CASE",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Legal case and case notes",
+    "category": "Case",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CHAP",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Book section/chapter",
+    "category": "Book Section",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CHART",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Chart",
+    "category": "Chart",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CLSWK",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Classical work",
+    "category": "Classical Work",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "COMP",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Computer program",
+    "category": "Computer Program",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CONF",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Conference proceedings",
+    "category": "Conference Proceedings",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CPAPER",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Conference paper",
+    "category": "Conference Paper",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "CTLG",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Catalog",
+    "category": "Catalog",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "DATA",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Data file / dataset",
+    "category": "Dataset (was Data File) AND Computer Program",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "DBASE",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Online database",
+    "category": "Online Database",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "DICT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Dictionary",
+    "category": "Dictionary",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "EBOOK",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Electronic book",
+    "category": "Electronic Book",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ECHAP",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Electronic book section",
+    "category": "Electronic Book Section",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "EDBOOK",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Edited book",
+    "category": "Edited Book",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "EJOUR",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Electronic article",
+    "category": "Electronic Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ELEC",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Web page / electronic citation",
+    "category": "Web Page",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ENCYC",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Encyclopedia",
+    "category": "Encyclopedia",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "EQUA",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Equation",
+    "category": "Equation",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "FIGURE",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Figure",
+    "category": "Figure",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "GEN",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Generic",
+    "category": "Generic",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "GOVDOC",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Government document",
+    "category": "Government Document",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "GRNT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Grant",
+    "category": "Grant",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "HEAR",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Hearing",
+    "category": "Hearing",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "ICOMM",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Internet communication",
+    "category": "Personal Communication",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "INPR",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "In press article",
+    "category": "Journal Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "INTV",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Interview",
+    "category": "Interview",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "JFULL",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Journal/periodical (full)",
+    "category": "Journal Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "JOUR",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Journal/periodical (article)",
+    "category": "Journal Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "LEGAL",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Legal rule (or regulation)",
+    "category": "Legal Rule",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "MANSCPT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Manuscript",
+    "category": "Manuscript",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "MAP",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Map or cartographic data",
+    "category": "Map",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "MGZN",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Magazine (article)",
+    "category": "Magazine Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "MPCT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Film or broadcast / motion picture",
+    "category": "Film or Broadcast",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "MULTI",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Online multimedia",
+    "category": "Online Multimedia",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "MUSIC",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Music (score)",
+    "category": "Music",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "NEWS",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Newspaper (article)",
+    "category": "Newspaper Article",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "PAMP",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Pamphlet",
+    "category": "Pamphlet",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "PAT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Patent",
+    "category": "Patent",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "PCOMM",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Personal communication",
+    "category": "Personal Communication",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "POD",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Podcast",
+    "category": "Podcast",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "PRESS",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Press release",
+    "category": "Press Release",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "RPRT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Report",
+    "category": "Report",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "SER",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Serial (book, monograph)",
+    "category": "Serial",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "SLIDE",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Slide",
+    "category": "Audiovisual Material",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "SOUND",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Sound recording",
+    "category": "Audiovisual Material",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "STAND",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Standard",
+    "category": "Standard",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "STAT",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Statute",
+    "category": "Statute",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "STD",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Generic",
+    "category": null,
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "THES",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Thesis/dissertation",
+    "category": "Thesis",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "UNBILL",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Unenacted bill/resolution",
+    "category": "Bill (was Bill, Unenacted Bill)",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "UNPB",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Unpublished work",
+    "category": "Unpublished Work",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "UNPD",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Unpublished work",
+    "category": "",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "VIDEO",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Video recording",
+    "category": "Audiovisual Material",
+    "type": null
+  }
+},
+{
+  "model": "portal.rispublicationtype",
+  "pk": "WEB",
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "description": "Web page",
+    "category": null,
+    "type": null
+  }
+}
+]

@@ -100,6 +100,36 @@ thead th.orderable.desc > a {
 
 {% block content %}
 
+    <!-- Placeholder for the modal -->
+    <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+      <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" >
+        <div class="modal-content">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Load Outcomes</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+
+            <div class="form-group">
+              <label for="id_outcome_file">Outcome file (.csv or .ods)</label>
+              <input type="file" class="form-control-file" name="outcome_file" id="id_outcome_file" accept=".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv">
+            </div>
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <!-- button type="button" class="btn btn-primary">Save changes</button -->
+            <input class="btn btn-primary" type="submit" value="Submit">
+          </div>
+        </div>
+        </form>
+      </div>
+    </div>
+
   {% if rounds %}
 
     <div style="display: inline-flex;">
@@ -242,6 +272,11 @@ thead th.orderable.desc > a {
     <div class="row">
       <div class="col-md-10">
         {% render_table table %}
+
+        {% if view_name == "applications-accepted" %}
+          <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
+        {% endif %}
+
       </div>
       <div class="col-md-2">
 
@@ -347,7 +382,7 @@ thead th.orderable.desc > a {
 
 {% block javascript %}
   {{ block.super }}
-{% if user.is_saff and filter or user.is_superuser and filter %}
+{% if user.is_site_saff and filter or user.is_superuser and filter %}
 <script>
 // Remember the state of a <details> element.
 //
@@ -398,6 +433,13 @@ $(document).ready(function(){
     }
     this.form.submit();
   });
+  /* htmx.on("htmx:afterSwap", (e) => {
+    // Response targeting #dialog => show the modal
+    if (target_id == "form-dialog") {
+        $('#outcome-form-modal').modal('show');
+    }
+    $("[required]").attr("hx-validate", true);
+  });*/
 });
 {% endif %}
 </script>

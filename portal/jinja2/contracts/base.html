@@ -15,11 +15,22 @@
       <meta name="changed" content="{{ current_ts.isoformat() }}"/>
       <title>{{ c }}</title>
       <style type="text/css">
-@page, @page WordSection1 { font-family: "Arial"; so-language: en-NZ; size: A4 portrait; margin-left: 2.69cm; margin-right: 2.01cm; margin-top: 1.19cm; margin-bottom: 1.19cm }
+{% block style %}
+@page, @page WordSection1 { font-family: "Arial"; so-language: en-NZ; 
+    size: 21cm 29.7cm;
+    margin-left: 4cm; 
+    margin-right: 2cm; 
+    margin-top: 1.19cm; 
+    margin-bottom: 1.19cm }
 /* p { line-height: 115%; margin-bottom: 0.25cm; background: transparent } */
 a:link { color: #000080; text-decoration: underline }
-body { font-family: "Arial"; font-size:10.0pt; so-language: en-NZ; }
+body { font-family: "Arial"; font-size:10.0pt; so-language: en-NZ; line-height: 120%; }
 .WordSection1 { page-break-before: always; }
+h1 { line-height: 120%; font-size:10.0pt; text-align: left; text-transform: uppercase; orphans: 2; widows: 2; margin-top: 20pt; margin-bottom: 8pt; direction: ltr; background: transparent; page-break-after: avoid }
+h2 { font-family: "Arial"; font-size: 10pt; text-align: left; orphans: 2; widows: 2; margin-top: 0.2cm; margin-bottom: 0cm; direction: ltr; background: transparent; page-break-after: avoid  }
+/*p.MsoNormal, li.MsoNormal, div.MsoNormal {margin:0in; font-size:10.0pt; font-family:"Arial"}*/
+p.MsoNormal, li.MsoNormal, div.MsoNormal {font-size:10.0pt; font-family:"Arial"}
+{#
 /* @page, @page WordSection1 { size: 21cm 29.7cm; margin: 1cm 1cm 1cm 2cm } */
 /* @page { size: 21cm 29.7cm; margin: 2cm; } */
 /* @page { size: 21cm 29.7cm; margin-left: 2.54cm; margin-right: 2.54cm; margin-top: 1.19cm; margin-bottom: 1.19cm } */
@@ -28,7 +39,6 @@ p { font-family: "Arial"; font-size:10.0pt; so-language: en-NZ; line-height: 115
 p.western { font-family: "Arial"; so-language: en-NZ }
 p.ctl { font-family: "Times New Roman"; font-size: 10pt }
 /* h1 { line-height: 120%; text-align: left; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent; page-break-before: always; page-break-after: avoid } */
-h1 { line-height: 120%; font-size:10.0pt; text-align: left; text-transform: uppercase; orphans: 2; widows: 2; margin-top: 20pt; margin-bottom: 8pt; direction: ltr; background: transparent; page-break-after: avoid }
 h1.western { font-family: "Arial"; font-size: 10pt; so-language: en-NZ; font-weight: bold }
 h1.cjk { font-size: 10pt; font-weight: bold }
 h1.ctl { font-family: "Georgia-BoldItalic"; font-size: 20pt; font-style: italic; font-weight: bold }
@@ -36,7 +46,7 @@ h2 { font-family: "Arial"; font-size: 10pt; line-height: 100%; text-align: left;
 h2.western { font-family: "Arial"; font-size: 10pt; font-family: "Arial"; so-language: en-AU; font-weight: bold }
 h2.cjk { font-weight: bold }
 h2.ctl { font-family: "Times New Roman"; font-size: 14pt }
-h3 { line-height: 100%; text-align: justify; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent; page-break-after: avoid  }
+h3 { text-align: justify; orphans: 2; widows: 2; margin-top: 0cm; margin-bottom: 0cm; direction: ltr; background: transparent; page-break-after: avoid  }
 h3.western { font-family: "Arial"; so-language: en-NZ; font-weight: normal }
 h3.cjk { font-weight: normal }
 h3.ctl { font-family: "Times New Roman"; font-size: 12pt; so-language: en-US }
@@ -45,7 +55,6 @@ h4.western { font-family: "Arial"; so-language: en-NZ }
 h4.ctl { font-family: "Times New Roman"; font-size: 10pt }
 a:link { color: #0000ff; text-decoration: underline }
 a.sdfendnotesym-western { font-family: "Arial" }
-p.MsoNormal, li.MsoNormal, div.MsoNormal {margin:0in; font-size:10.0pt; font-family:"Arial"}
 .MsoChpDefault {font-size:10.0pt}
 .MsoPapDefault {margin-bottom:8.0pt; line-height:106%}
 div.WordSection1 {page:WordSection1}
@@ -64,6 +73,8 @@ th {
   text-align: center;
   vertical-align: bottom;
 }
+#}
+{% endblock %}
       </style>
     </head>
     <body lang="en-NZ" link="#0000ff" vlink="#800000" dir="ltr" style='word-wrap:break-word'>

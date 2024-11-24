@@ -8,12 +8,11 @@ from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
-import rispy
 
-from django_select2 import forms as s2forms
 import django.utils.translation
 import django_tables2
 import py7zr
+import rispy
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -39,6 +38,7 @@ from django.contrib.sites.models import Site
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.files.base import File
 from django.core.validators import FileExtensionValidator
 from django.db import connection, transaction
 from django.db.models import (
@@ -93,10 +93,11 @@ from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import condition, require_http_methods
-from django.views.generic import detail, DetailView, FormView, TemplateView
+from django.views.generic import DetailView, FormView, TemplateView, detail
 from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
+from django_select2 import forms as s2forms
 from django_tables2 import SingleTableMixin, SingleTableView
 from django_tables2.export import ExportMixin
 from extra_views import (
@@ -5870,7 +5871,7 @@ class ContractViewMixin:
     def form_valid(self, form):
         i = form.instance
         if i and i.pk:
-            for part in ["cover", "preamble", "schedule1", "schedule2"]:
+            for part in ["cover", "preamble", "schedule1", "schedule2", "file"]:
                 if f"delete_{part}" in form.data:
                     getattr(i, part).delete()
                     setattr(i, part, None)
@@ -6091,8 +6092,21 @@ class ContractViewMixin:
         if "save_draft" in self.request.POST and form.data.get("current_tab") == "#parts":
             return redirect(self.request.path)
 
-        if "export_contract" in self.request.POST:
-            return redirect(self.request.path + "?export=1#parts")
+        if "generate_contract" in self.request.POST:
+            output = i.to_pdf(request=self.request)
+            if i.file:
+                i.file.delete()
+
+            if isinstance(output, PdfMerger):
+                pdf_content = io.BytesIO()
+                output.write(pdf_content)
+                pdf_content.seek(0)
+                i.file.save(f"{i.number}.pdf", File(pdf_content))
+            else:
+                with open(output, "rb") as of:
+                    i.file.save(f"{i.number}.pdf", File(of))
+
+            return redirect(self.request.path)
 
         if "post_comment" in self.request.POST:
             token = models.get_unique_mail_token()
@@ -6215,6 +6229,44 @@ class ApplicationList(
     template_name = "table.html"
     filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
+
+    def post(self, request):
+        if "outcome_file" in request.FILES:
+            file = request.FILES["outcome_file"]
+            outcomes = tablib.Dataset()
+            if file.content_type == 'text/csv':
+                first_line = file.readline().decode()
+                file.seek(0)
+                outcomes.load(file.read().decode(), headers = "number" in first_line.lower())
+            funded_count = 0
+            error_messages = []
+            try:
+                with transaction.atomic():
+                    for number,decision,*rest in outcomes:
+                        if  decision in ["y", "Y", "1", "yes", "YES"]:
+                            a = Application.where(number=number).last()
+                            if a:
+                                if a.state != "funded":
+                                    a.fund(request=request, description=f"From '{file.name}' by {request.user}")
+                                    a.save()
+                                    funded_count += 1
+                                if not a.contracts.exists():
+                                    models.Contract.create_from_application(application=a)
+                            else:
+                                error_messages.append(f"Failed to find the application with the number {number}")
+
+                if funded_count:
+                    messages.info(request, f"{funded_count} applications was marked 'funded'")
+                for msg in error_messages:
+                    messages.error(request, msg)
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(request, getattr(ex, "message", str(ex)))
+
+        if funded_count:
+            return redirect("applications-funded")
+
+        return redirect(request.path)
 
     def get_queryset(self, *args, **kwargs):
         u = self.request.user

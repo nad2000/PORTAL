@@ -1617,7 +1617,7 @@ class ContractForm(ModelForm):
                 if part:
                     initial[fn] = part.file
         if not (instance and user and (user.is_superuser or user.is_site_staff)):
-            self._meta.exclude.extend(["cover", "preamble", "schedule1", "schedule2"])
+            self._meta.exclude.extend(["cover", "preamble", "schedule1", "schedule2", "file"])
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -2050,6 +2050,7 @@ class ContractForm(ModelForm):
                 self.fields["preamble"].label = ""
                 self.fields["schedule1"].label = ""
                 self.fields["schedule2"].label = ""
+                self.fields["file"].label = ""
                 if not instance.schedule2 and (default_schedule2 := instance.default_schedule2):
                     self.fields["schedule2"].help_text = (
                         f"Default: <a href='{ default_schedule2.url }'>{ os.path.basename(default_schedule2.name) }</a>"
@@ -2210,7 +2211,33 @@ class ContractForm(ModelForm):
                                 ),
                                 Column(Field("schedule2"), css_class="col-11"),
                             ),
+                            Row(
+                                Column(
+                                    HTML("""<label for="id_file"><u>Contract file</u></lable>"""),
+                                    css_class="col-12",
+                                )
+                            ),
+                            Row(
+                                Column(
+                                    HTML(
+                                        """
+<input type="submit" name="delete_file" value="Delete" class="btn btn-danger float-right ml-1" id="submit-id-delete_file">
+"""
+                                        if instance.file
+                                        else ""
+                                    ),
+                                    css_class="col-1",
+                                ),
+                                Column(Field("file"), css_class="col-11"),
+                            ),
                             ButtonHolder(
+                                Submit(
+                                    "generate_contract",
+                                    _("Generate"),
+                                    data_toggle="tooltip",
+                                    title="Generate or regenerate contract document and store it in the database",
+                                    css_class="btn-primary",
+                                ),
                                 HTML(
                                     f"""
                             <a

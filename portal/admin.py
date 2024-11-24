@@ -1183,7 +1183,7 @@ class ApplicationAdmin(
                     ("email", "main_applicant"),
                     "presentation_url",
                     "is_tac_accepted",
-                ]
+                ],
             },
         ),
         (
@@ -1264,7 +1264,7 @@ class ApplicationAdmin(
                         ("email", "main_applicant"),
                         "presentation_url",
                         "is_tac_accepted",
-                    ]
+                    ],
                 },
             ),
             (
@@ -1343,7 +1343,35 @@ class ApplicationAdmin(
         )
         messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
 
-    actions = ["send_identity_verification_reminder", "request_resubmission", "invite_referees"]
+    @admin.action(description="Initialize a new contract/contracs")
+    def initialize_contracts(self, request, queryset):
+        contract_count = 0
+        contracts = []
+        for a in queryset.filter(
+            state__in=["funded", "accepted", "approved"], contracts__isnull=True
+        ):
+            c = models.Contract.create_from_application(application=a)
+            if c:
+                contracts.append(c)
+            contract_count += 1
+        if contracts:
+            links = ", ".join(
+                f"""<a 
+            href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}" 
+            target="_blank">
+            {c.number}</a>"""
+                for c in contracts
+            )
+            messages.success(
+                request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
+            )
+
+    actions = [
+        "send_identity_verification_reminder",
+        "request_resubmission",
+        "invite_referees",
+        "initialize_contracts",
+    ]
 
     # def get_actions(self, request):
     #     actions = super().get_actions(request)
@@ -1556,8 +1584,6 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     ]
     inlines = [StateLogInline]
 
-
-
     def get_queryset(self, request):
         return (
             super()
@@ -1588,7 +1614,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                     obj.invitation,
                 )
             )
-        return '-'
+        return "-"
 
     def has_testified(self, obj):
         return obj.state == "testified"
@@ -2713,9 +2739,7 @@ class RoundAdmin(
         ordering_field_hide_input = True
         classes = ["collapse"]
 
-    class PerformanceFlagInline(
-        StaffPermsMixin, OrderableAdmin, admin.TabularInline
-    ):
+    class PerformanceFlagInline(StaffPermsMixin, OrderableAdmin, admin.TabularInline):
         extra = 0
         model = models.PerformanceFlag
         view_on_site = False
@@ -3008,6 +3032,7 @@ class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         StateLogInline,
     ]
 
+
 @admin.register(models.Publication)
 class PublicationAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
@@ -3186,7 +3211,6 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         view_on_site = False
         autocomplete_fields = ["agency"]
         classes = ["collapse"]
-
 
     # class ReportingInline(admin.StackedInline):
     #     model = models.ContractReporting
