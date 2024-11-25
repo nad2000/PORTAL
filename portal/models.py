@@ -2841,12 +2841,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     def can_be_funded(self):
-        return (self.site_id != 4 and self.state == "approved") or self.state == "accepted"
+        return (
+            (self.site_id != 4 and self.state == "approved")
+            or self.state == "accepted"
+            or (self.site_id == 5 and self.state == "in_review")
+        )
 
     @fsm_log
     @transition(
         field=state,
-        source=["approved", "accepted"],
+        source=["approved", "accepted", "in_review"],
         target="funded",
         conditions=[can_be_funded],
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),

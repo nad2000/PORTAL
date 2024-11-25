@@ -115,8 +115,8 @@ thead th.orderable.desc > a {
           <div class="modal-body">
 
             <div class="form-group">
-              <label for="id_outcome_file">Outcome file (.csv or .ods)</label>
-              <input type="file" class="form-control-file" name="outcome_file" id="id_outcome_file" accept=".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv">
+              <label for="id_outcome_file">Outcome file (.csv or .xlsx)</label>
+              <input type="file" class="form-control-file" name="outcome_file" id="id_outcome_file" accept=".csv,.xlsx">
             </div>
 
           </div>
@@ -273,7 +273,7 @@ thead th.orderable.desc > a {
       <div class="col-md-10">
         {% render_table table %}
 
-        {% if view_name == "applications-accepted" %}
+        {% if view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
           <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
         {% endif %}
 
