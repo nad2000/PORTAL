@@ -8585,7 +8585,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             .order_by("-pk")
             .last()
         )
-        if r.schedule2:
+        if r and r.schedule2:
             return r.schedule2
 
         r = (
@@ -8596,7 +8596,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             .order_by("-pk")
             .last()
         )
-        if r.schedule2:
+        if r and r.schedule2:
             return r.schedule2
 
         r = (
@@ -8604,7 +8604,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             .order_by("-pk")
             .last()
         )
-        if r.schedule2:
+        if r and r.schedule2:
             return r.schedule2
 
         r = (
@@ -8615,7 +8615,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             .order_by("-pk")
             .last()
         )
-        if r.schedule2:
+        if r and r.schedule2:
             return r.schedule2
 
     @cached_property
