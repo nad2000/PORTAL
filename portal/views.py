@@ -6281,7 +6281,7 @@ class ApplicationList(
                 messages.error(request, getattr(ex, "message", str(ex)))
 
         if funded_count:
-            return redirect("applications-funded")
+            return redirect("applications-with-state", state="funded")
 
         return redirect(request.path)
 
