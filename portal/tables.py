@@ -268,10 +268,11 @@ class ApplicationTable(tables.Table):
             "td": {"class": "text-center"},
         },
     )
+
     current_contract = tables.columns.linkcolumn.BaseLinkColumn(
         verbose_name=gettext_lazy("Contract"),
         text=lambda record: (
-            ""
+            gettext_lazy("Create")
             if record.state != "funded"
             else gettext_lazy("Open") if record.contract else gettext_lazy("Create")
         ),
@@ -295,7 +296,11 @@ class ApplicationTable(tables.Table):
         },
     )
 
-    def before_render(self, request):
+    def before_render(self, request, *args, **kwargs):
+        view_name = (rm := request.resolver_match) and rm.view_name
+        state = rm and rm.kwargs.get("state")
+        if state != "funded":
+            self.columns.hide("current_contract")
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
             self.columns.hide("current_contract")
