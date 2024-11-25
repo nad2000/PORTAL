@@ -1714,6 +1714,7 @@ class Recognition(Model):
 
 class ConvertedFile(HelperMixin, Base):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
+    created_at = DateTimeField(auto_now_add=True, null=True)
     objects = CurrentSiteManager()
     all_objects = Manager()
 
@@ -7751,6 +7752,40 @@ def invite_referees(
         if a.state != state:
             a.save()
     return count
+
+
+def clean_converted_file_cache(dry_run=False):
+    root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
+    cf_count = 0
+    for cf in ConvertedFile.where(created_at__lt=timezone.now() - timedelta(days=-90)):
+        size = os.path.getsize(cf.file.name)
+        print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
+        if not dry_run:
+            cf.file.delete()
+            cf.delete()
+            # os.remove(cf.file.path)
+        cf_count += 1
+
+    for cf in ConvertedFile.all_objects.all():
+        if not Path(cf.file.path).is_file():
+            print(f"*** Deleted file record with missing file: '{cf.file.name}'")
+            if not dry_run:
+                cf.delete()
+            cf_count += 1
+
+    for root, dirs, files in os.walk(root_dir):
+        rel_dir = os.path.relpath(root, root_dir)
+        for rel_name in files:
+            filename = os.path.join(rel_dir, rel_name)
+            if not ConvertedFile.where(file=filename).exists():
+                full_filename = os.path.join(root_dir, filename)
+                size = os.path.getsize(full_filename)
+                if not dry_run:
+                    os.remove(full_filename)
+                print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
+                cf_count += 1
+    if cf_count:
+        print(f"*** Deleted {cf_count} files")
 
 
 def clean_private_fils(dry_run=False):
