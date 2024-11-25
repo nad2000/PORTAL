@@ -6234,26 +6234,43 @@ class ApplicationList(
         if "outcome_file" in request.FILES:
             file = request.FILES["outcome_file"]
             outcomes = tablib.Dataset()
-            if file.content_type == 'text/csv':
+            if file.content_type == "text/csv":
                 first_line = file.readline().decode()
                 file.seek(0)
-                outcomes.load(file.read().decode(), headers = "number" in first_line.lower())
+                outcomes.load(
+                    file.read().decode(), format="csv", headers="number" in first_line.lower()
+                )
+            elif file.content_type == "application/vnd.oasis.opendocument.spreadsheet":
+                outcomes.load(file.file, format="ods")
+            elif (
+                file.content_type
+                == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ):
+                outcomes.load(file.file, format="xlsx")
             funded_count = 0
             error_messages = []
             try:
                 with transaction.atomic():
-                    for number,decision,*rest in outcomes:
-                        if  decision in ["y", "Y", "1", "yes", "YES"]:
+                    for number, decision, *rest in outcomes:
+                        if decision in ["y", "Y", "1", "yes", "YES"]:
                             a = Application.where(number=number).last()
                             if a:
+                                budget = rest[0] if rest else None
                                 if a.state != "funded":
-                                    a.fund(request=request, description=f"From '{file.name}' by {request.user}")
+                                    a.fund(
+                                        request=request,
+                                        description=f"From '{file.name}' by {request.user}",
+                                    )
                                     a.save()
                                     funded_count += 1
                                 if not a.contracts.exists():
-                                    models.Contract.create_from_application(application=a)
+                                    models.Contract.create_from_application(
+                                        application=a, budget=budget
+                                    )
                             else:
-                                error_messages.append(f"Failed to find the application with the number {number}")
+                                error_messages.append(
+                                    f"Failed to find the application with the number {number}"
+                                )
 
                 if funded_count:
                     messages.info(request, f"{funded_count} applications was marked 'funded'")
