@@ -7757,7 +7757,9 @@ def invite_referees(
 def clean_converted_file_cache(dry_run=False):
     root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
     cf_count = 0
-    for cf in ConvertedFile.all_objects.filter(created_at__lt=timezone.now() - timedelta(days=-90)):
+    for cf in ConvertedFile.all_objects.filter(
+        created_at__lt=timezone.now() - timedelta(days=-90)
+    ):
         size = os.path.getsize(cf.file.name)
         print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
         if not dry_run:
@@ -8437,13 +8439,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         duration = r.duration or 3
         address = a.address or a.org.address
         if not address or "DUMMY" in address.address and a.postal_address:
-            city_country = Address.where(Q(city=a.city)|Q(postcode=a.postcode)).last()
+            city_country = Address.where(Q(city=a.city) | Q(postcode=a.postcode)).last()
             country = city_country and city_country.country
             address, _ = Address.get_or_create(
-                    address=a.postal_address,
-                    city=a.city,
-                    postcode=a.postcode,
-                    country=country)
+                address=a.postal_address, city=a.city, postcode=a.postcode, country=country
+            )
 
         params = dict(
             application=a,
@@ -8794,6 +8794,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             page_count = (
                 kwargs.pop("page_count", None) or request and request.GET.get("page_count", 5)
             )
+            page_no = int(kwargs.pop("page_no", None) or request and request.GET.get("page_no", 1))
 
         if part in [
             "agreement",
@@ -8803,9 +8804,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             "preamble",
             "schedule",
             "schedule1",
-            "toc",
         ]:
             template_name = "contracts/part.html"
+        elif part == "toc":
+            template_name = "contracts/parts/toc.html"
         elif part == "page":
             template_name = "contracts/page.html"
         elif part == "footers":
@@ -8816,6 +8818,18 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             template_name = "contracts/headers_footers.html"
         else:
             template_name = "contracts/document.html"
+
+        if part == "toc":
+            if "parts" not in kwargs:
+                parts = {
+                    part: self.get_part_pdf(request=request, part=part)
+                    for part in ["cover", "preamble", "schedule1"]
+                }
+            if "schedule2_toc" not in kwargs:
+                schedule2 = self.get_part_pdf(request=request, part="schedule2")
+                if not isinstance(schedule2, PdfReader):
+                    schedule2 = PdfReader(schedule2, strict=False)
+                schedule2_toc = pdf_toc(schedule2)
 
         template = get_template(template_name)
         user = request and request.user

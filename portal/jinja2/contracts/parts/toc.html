@@ -1,10 +1,92 @@
 {% extends "contracts/base.html" %}
 
+{% block style %}
+  {{ super() }}
+  td {text-transform: uppercase;}
+{% endblock %}
+
 {% block content %}
 <p align="center" style="line-height: 115%; margin-bottom: 0.21cm"> <b>TABLE OF CONTENTS</b></p>
 
 <div id="Table of Contents1" dir="ltr">
 
+  <table border="0">
+    <tr>
+      <td style="text-transform: uppercase;">
+        Background
+      </td>
+      <td align="right">
+        {{ page_no + 1 }}
+      </td>
+    </tr>
+
+    <tr>
+      <td style="text-transform: uppercase;">
+        Agreement
+      </td>
+      <td align="right">
+        {{ page_no + 1 }}
+      </td>
+    </tr>
+
+    <tr>
+      <td style="text-transform: uppercase;">
+        Schedule 1 – Key terms
+      </td>
+      <td align="right">
+        {{ page_no + 2 }}
+      </td>
+    </tr>
+
+    {% set page_no = parts["schedule1"].pages.__len__() + 2 %}
+    {% for d in c.documents.order_by("required_document__ordering" ) %}
+      {% set page_count = d.page_count or d.update_page_count() %}
+      <tr>
+        <td style="text-transform: uppercase;">
+          APPENDIX {{ loop.index }} – {{ d }}
+        </td>
+        <td align="right">
+          {{ page_no + 1 }}
+        </td>
+      </tr>
+      {% set page_no = page_no + page_count %}
+    {% endfor %}
+
+    <tr>
+      <td style="text-transform: uppercase;">
+        Schedule 2 – Standard terms and conditions
+      </td>
+      <td align="right">
+        {{ page_no + 1}}
+      </td>
+    </tr>
+
+    {% set page_no = page_no + 1 %}
+    {% for title, page in schedule2_toc.items() %}
+      <tr>
+        <td style="text-transform: uppercase;">
+          {{ title }}
+        </td>
+        <td align="right">
+          {{ page_no + 1}}
+        </td>
+      </tr>
+      {% set page_no = page_no + page + 1 %}
+    {% endfor %}
+
+    <tr>
+      <td style="text-transform: uppercase;">
+        APPENDIX A: DECLARATION REGARDING COMPLIANCE WITH THE SOCIETY'S CODE OF PROFESSIONAL STANDARDS AND ETHICS
+      </td>
+      <td align="right">
+        {{ page_no + 1}}
+      </td>
+    </tr>
+    
+  </table>
+
+  
+  {#
     <p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
     Background	{{ page_no + 1 }}
     </p>
@@ -41,6 +123,8 @@
     <p style="text-transform: uppercase; line-height: 150%; margin-bottom: 0cm">
     APPENDIX A: DECLARATION REGARDING COMPLIANCE WITH THE SOCIETY'S CODE OF PROFESSIONAL STANDARDS AND ETHICS	27
     </p>
+  #}
+
 </div>
 
 {% endblock %}
