@@ -1510,7 +1510,7 @@ class ContractForm(ModelForm):
     requires_approval_comment = forms.CharField(
         label=_("Comment"),
         widget=forms.Textarea,
-        # required=True
+        required=False
     )
     # requires_approval = forms.ChoiceField(
     #     choices=[(True, _("Yes")), (False, _("No"))],
@@ -1767,6 +1767,7 @@ class ContractForm(ModelForm):
             self.fields["has_child_protection"].disabled = True
             self.fields["requires_approval"].disabled = True
             self.fields["requires_approval_comment"].disabled = True
+            self.fields["requires_approval_comment"].required = False
             # self.fields["not_applicable"].disabled = True
             # self.fields["not_applicable_comment"].disabled = True
             compliance_fields.append(

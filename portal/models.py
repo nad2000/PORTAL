@@ -8435,6 +8435,15 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         r = a.round
         number = cls.new_number(application=a)
         duration = r.duration or 3
+        address = a.address or a.org.address
+        if not address or "DUMMY" in address.address and a.postal_address:
+            city_country = Address.where(Q(city=a.city)|Q(postcode=a.postcode)).last()
+            country = city_country and city_country.country
+            address, _ = Address.get_or_create(
+                    address=a.postal_address,
+                    city=a.city,
+                    postcode=a.postcode,
+                    country=country)
 
         params = dict(
             application=a,
@@ -8446,7 +8455,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             end_date=duration and (timezone.now() + relativedelta(years=duration)),
             number=number,
             fund=a.round.scheme.fund,
-            address=a.address or a.org.address,
+            address=address,
             state="draft",
             abstract=a.summary,
         )
@@ -8926,7 +8935,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
     ):
 
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
-        output_dir = Path.home() / "PMSPP" / "contracts"
+        # output_dir = Path.home() / "PMSPP" / "contracts"
+        output_dir = Path(tempfile.gettempdir())
         if contract_part := getattr(self, part, False):
             file_path = contract_part.path
         elif part == "schedule2":
@@ -8982,7 +8992,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
-        output_dir = Path.home() / "PMSPP" / "contracts"
+        # output_dir = Path.home() / "PMSPP" / "contracts"
+        output_dir = Path(tempfile.gettempdir())
 
         parts = {
             part: self.get_part_pdf(request=request, part=part)
