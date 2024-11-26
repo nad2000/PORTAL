@@ -2243,7 +2243,7 @@ class ContractForm(ModelForm):
                                     f"""
                             <a
                                 class="btn btn-primary"
-                                href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}"
+                                href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
                                 target="_blank"
                                 data-toggle="tooltip"
                                 data-html="true"
