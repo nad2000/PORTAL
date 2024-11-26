@@ -7757,7 +7757,7 @@ def invite_referees(
 def clean_converted_file_cache(dry_run=False):
     root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
     cf_count = 0
-    for cf in ConvertedFile.where(created_at__lt=timezone.now() - timedelta(days=-90)):
+    for cf in ConvertedFile.all_objects.filter(created_at__lt=timezone.now() - timedelta(days=-90)):
         size = os.path.getsize(cf.file.name)
         print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
         if not dry_run:
@@ -7777,7 +7777,7 @@ def clean_converted_file_cache(dry_run=False):
         rel_dir = os.path.relpath(root, root_dir)
         for rel_name in files:
             filename = os.path.join(rel_dir, rel_name)
-            if not ConvertedFile.where(file=filename).exists():
+            if not ConvertedFile.all_objects.filter(file=filename).exists():
                 full_filename = os.path.join(root_dir, filename)
                 size = os.path.getsize(full_filename)
                 if not dry_run:
