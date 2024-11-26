@@ -9004,6 +9004,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             headers[page_no] = (
                 f"APPENDIX {appendix_no} – {d.required_document.title or d.required_document.get_role_display()}"
             )
+            if not d.page_count:
+                d.update_page_count()
             page_no += d.page_count
 
         toc = self.get_part_pdf(

@@ -514,7 +514,9 @@ class ExportView(UserPassesTestMixin, DetailView):
     def get_metadata(self, pk):
         return {"/Title": f"{self.model.get(pk)}"}
 
-    def get_object_or_404(self, pk):
+    def get_object_or_404(self, pk=None):
+        if not pk:
+            pk = self.kwargs.get("pk")
         return get_object_or_404(self.model, pk=pk)
 
     def get_objects(self, pk):
@@ -2966,8 +2968,17 @@ class ReportExportView(ExportView):
     # permission_denied_message = _("Only the round panellist and staff can export the application")
 
     def test_func(self):
-        # TODO
-        return True
+        u = self.request.user
+        return (
+            u.is_superuser
+            or u.is_staff
+            or u.is_site_staff
+            or (c := self.get_object_or_404())
+            and (
+                c.members.filter(user=u, role="PI").exists()
+                or c.org.research_offices.filter(user=u).exists()
+            )
+        )
 
     def get(self, request, pk):
         obj = self.get_object_or_404(pk)
@@ -8444,8 +8455,17 @@ class ContractExportView(ExportView):
     # permission_denied_message = _("Only the round panellist and staff can export the application")
 
     def test_func(self):
-        # TODO
-        return True
+        u = self.request.user
+        return (
+            u.is_superuser
+            or u.is_staff
+            or u.is_site_staff
+            or (c := self.get_object_or_404())
+            and (
+                c.members.filter(user=u, role="PI").exists()
+                or c.org.research_offices.filter(user=u).exists()
+            )
+        )
 
     def get(self, request, pk):
         c = self.get_object_or_404(pk)
