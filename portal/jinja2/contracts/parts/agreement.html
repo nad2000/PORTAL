@@ -1,0 +1,171 @@
+{% extends "contracts/base.html" %}
+
+{% block content %}
+<div class=WordSection1>
+  <table>
+    <tr>
+      <td style="vertical-align: top;" valign=top>
+        <p style="vertical-align: top;"><span style="vertical-align: top;"><b>BETWEEN:&nbsp;</span></p>
+      </td>
+      <td>&nbsp;</td>
+      <td><p><b>{{ agency.name.upper() }}</b>, a body corporate constituted under the Royal
+        Society of New Zealand Act 1997 at
+        {{ ", ".join(agency.address.__str__().split('\n')) }}
+        (<b>{{ agency_short }}</b>)</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="vertical-align: top;" valign=top>
+        <p style="vertical-align: top;"><b>AND:</b></p>
+      </td>
+      <td>&nbsp;</td>
+      <td>
+        <p><b>{{ c.org.name.upper() }}</b>,
+        {{ ", ".join(c.org.address.__str__().split('\n')) if c.org.address else 'N/A' }}
+        (<b>Host Organisation</b>)</p>
+      </td>
+    </tr>
+
+  </table>
+
+  <p class=MsoNormal style='margin-bottom:1.2pt;line-height:115%;'>Each a &quot;<b>party</b>&quot;
+  and together &quot;<b>the parties</b>&quot;</p>
+
+  <!-- p class=BFTOC1><a name="_Toc153445303"></a><a name="_Toc157588003">Background</a></p -->
+  <h1>Background</h1>
+
+  <ol type="A" style="width: 100%;">
+
+    <li style="width: 100%;line-height:normal;">
+      The Ng&#257; Puanga P&#363;taiao Fellowships support M&#257;ori and
+      Pacific Peoples to establish careers in Science, Technology, Engineering and mathematics (<b>STEM</b>) research and create a support network of M&#257;ori
+      and Pacific STEM researchers.  This will enable M&#257;ori and Pacific early- to mid-career STEM researchers to enter into and progress through the Research,
+      Science and Innovation (<b>RSI</b>) workforce and provide the researchers with
+      support to flourish within the RSI system.
+    </li>
+
+    <li style="width: 100%;line-height:normal;">
+      On behalf of MBIE, the Society is responsible for awarding and managing
+      funding for Ngā Puanga Pūtaiao Fellowships.
+    </li>
+
+    <li style="width: 100%;line-height:normal;">
+      The Society has awarded a Fellowship to {{ c.key_person.full_name_with_title }}
+      (<b>Key Contact Person</b>) and, as part of it, will provide funding for the Key
+      Contact Person to undertake a Programme.  The Host Organisation has agreed to host
+      and support the Key Contact Person in relation to that Programme.
+    </li>
+
+    <li style="width: 100%;line-height:normal;">
+      This Agreement records the arrangements reached between the Society and the Host
+      Organisation for the provision of Ngā Puanga Pūtaiao Fellowship
+      funding for the research undertaken by the Key Contact Person and Other Key
+      Personnel.
+    </li>
+
+  </ol>
+
+  <h1>Agreement</h1>
+
+  <p class=MsoNormal style='margin-top:0in;margin-right:0in;margin-bottom:6.0pt;
+  margin-left:.5in;text-indent:-.5in;line-height:115%'>The parties agree to be
+  bound by the terms of this Agreement, which include: </p>
+
+  <p class=MsoNormal style='margin-top:0in;margin-right:0in;margin-bottom:6.0pt;
+  margin-left:.5in;text-indent:-.5in;line-height:115%'>(a)<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  </span>Schedule 1 &mdash; Key terms (including any attached Appendices); and  </p>
+
+  <p class=MsoNormal style='margin-top:0in;margin-right:0in;margin-bottom:6.0pt;
+  margin-left:.5in;text-indent:-.5in;line-height:115%'>(b)<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  </span>Schedule 2 &mdash; Standard Terms and Conditions</p>
+
+  <p class=Legal6 style='margin-left:63.8pt'>(i)<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  </span>Appendix A &mdash; Declaration regarding compliance with the Society's Code of
+  Professional Standards and Ethics. </p>
+
+  <h3>Execution</h3>
+
+  <table border=0 cellspacing=0 cellpadding=0 width=533 style='width:399.85pt;border-collapse:collapse'>
+
+    <tr>
+      <td width=262 valign=top style='width:196.7pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal> <b>SIGNED</b> for and on behalf of <b>{{ agency.name.upper() }}</b> by</p>
+      </td>
+      <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal>)<br/>)<br/>)</p>
+      </td>
+      <td width=16 valign=top style='width:11.8pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal>&nbsp;</p>
+      </td>
+      <td width=227 valign=top style='width:170.1pt;border-bottom: thin solid black; padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal>&nbsp;</p>
+      </td>
+    </tr>
+
+    <tr style="height: 1.5cm;">
+      <td width=262 valign=top style='width:196.7pt;border-bottom: thin solid black; padding:0in 5.4pt 0in 5.4pt'>
+      </td>
+      <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>&nbsp;</td>
+      <td width=16 valign=top style='width:11.8pt;padding:0in 5.4pt 0in 5.4pt'>&nbsp;
+      </td>
+      <td width=227 valign=top style='border-bottom:thin solid black; padding:0in 5.4pt 0in 5.4pt'>
+        <span style='margin:0in;font-size:8.0pt'>Signature</span>
+      </td>
+    </tr>
+
+    <tr>
+      <td width=262 valign=top>
+        <span style='margin:0in;font-size:8.0pt; padding:0in 5.4pt 0in 5.4pt'>Name</span>
+      </td>
+      <td width=28 valign=top>&nbsp;</td>
+      <td width=16 valign=top>&nbsp;</td>
+      <td width=227 valign=top>
+        <span style='margin:0in;font-size:8.0pt; padding:0in 5.4pt 0in 5.4pt'>Position</span>
+      </td>
+    </tr>
+  </table>
+
+  <div>
+
+
+  <table border=0 cellspacing=0 cellpadding=0 width=533 style='width:399.85pt;border-collapse:collapse'>
+
+    <tr>
+      <td width=262 valign=top style='width:196.7pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal><b>SIGNED</b> for and on behalf of <b>{{ c.org.name.upper() }}</b> by</p>
+      </td>
+      <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal>)<br/>)<br/>)</p>
+      </td>
+      <td width=16 valign=top style='width:11.8pt;padding:0in 5.4pt 0in 5.4pt'>&nbsp;</td>
+      <td width=227 valign=top style='width:170.1pt; border-bottom: thin solid black; padding:0in 5.4pt 0in 5.4pt'>&nbsp;</td>
+    </tr>
+
+    <tr style="height: 1.5cm;">
+      <td width=262 valign=top style='width:196.7pt; border-bottom: thin solid black; padding:0in 5.4pt 0in 5.4pt'>&nbsp; </td>
+      <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>&nbsp;</td>
+      <td width=16 valign=top style='width:11.8pt;padding:0in 5.4pt 0in 5.4pt'>&nbsp; </td>
+      <td width=227 valign=top style='width:170.1pt; border-bottom: thin solid black; padding:0in 5.4pt 0in 5.4pt'>
+        <span style='margin:0in;font-size:8.0pt'>Signature</span>
+      </td>
+    </tr>
+
+    <tr>
+      <td width=262 valign=top style='width:196.7pt;padding:0in 5.4pt 0in 5.4pt'>
+        <span style='margin:0in;font-size:8.0pt'>Name</span>
+      </td>
+      <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal>&nbsp;</p>
+      </td>
+      <td width=16 valign=top style='width:11.8pt;padding:0in 5.4pt 0in 5.4pt'>
+        <p class=MsoNormal>&nbsp;</p>
+      </td>
+      <td width=227 valign=top style='width:170.1pt;padding:0in 5.4pt 0in 5.4pt'>
+        <span style='margin:0in;font-size:8.0pt'>Position</span>
+      </td>
+    </tr>
+
+  </table>
+
+{% endblock %}
