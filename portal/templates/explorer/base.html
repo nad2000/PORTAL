@@ -1,5 +1,5 @@
 {% extends "explorer/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block extrastyle %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
@@ -32,6 +32,61 @@
        >
        <i class="fas fa-sitemap"></i> Portal</a>
   </li>
+{% endblock %}
+
+{% block sql_explorer_content_takeover %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
+        <div class="container bd-gutter flex-wrap flex-lg-nowrap">
+            <a class="navbar-brand{% if view_name == 'explorer_index' %} btn btn-outline-light text-white{% endif %}"
+               href="{% url 'explorer_index' %}">{% trans "Explorer Home" %}</a>
+            <ul class="nav nav-pills">
+                {% if can_change %}
+                    <li class="nav-item">
+                        <a class="nav-link{% if not query and view_name == 'query_create' %} active{% endif %}"
+                           href="{% url 'query_create' %}">{% trans "New Query" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if not query and view_name == 'explorer_playground' %} active{% endif %}"
+                           href="{% url 'explorer_playground' %}"><i class="small me-1 bi-code-square"></i>{% trans "Playground" %}</a>
+                    </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link{% if not query and view_name == 'explorer_logs' %} active{% endif %}"
+                       href="{% url 'explorer_logs' %}">{% trans "Logs" %}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link{% if not query and view_name == 'query_favorites' %} active{% endif %}"
+                       href="{% url 'query_favorites' %}"><i class="small me-1 bi-heart"></i>{% trans "Favorites" %}</a>
+                </li>
+                <li class="nav-item" id="admin:index">
+                  <a id="admin-link"
+                     class="nav-link"
+                     href="{% url 'admin:index' %}"
+                     data-toggle="tooltip"
+                     title="Portal Administration"
+                     >
+                     <i class="fas fa-radiation"></i> Portal Admin</a>
+                </li>
+                {% if LIMESURVEY_ADMIN_URL %}
+                  <li class="nav-item" id="limesurvey-admin_id">
+                    <a id="limesurvey-admin-link" class="nav-link" href="{{ LIMESURVEY_ADMIN_URL }}">
+                      <img src="{% static 'images/limesurvey.png' %}" width="19" height="19" class="d-inline-block align-top" alt="LimeSurvey"> LimeSurvey
+                    </a>
+                  </li>
+                {% endif %}
+                <li class="nav-item" id="index">
+                  <a id="admin-link"
+                     class="nav-link"
+                     href="{% url 'index' %}"
+                     data-toggle="tooltip"
+                     title="Portal Administration"
+                     >
+                     <i class="fas fa-sitemap"></i> Portal</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+{% block sql_explorer_content %}{% endblock %}
 {% endblock %}
 
 
