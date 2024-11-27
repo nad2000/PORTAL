@@ -5,13 +5,13 @@
 
   {% if application_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
   <div class="card mb-2">
-    <div class="card-header">
+    <div class="card-header{% if category == "applications" %} bg-primary{% endif %}">
       {% if application_count %}
-      <a href="{% if application_count > 5 or is_staff or u.is_superuser or is_ro or u.is_site_staff %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}">
-        {% trans 'Applications' %} <span class="badge badge-primary">{{ application_count }}</span>
+      <a href="{% if application_count > 5 or is_staff or u.is_superuser or is_ro or u.is_site_staff %}{% url 'applications' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}{% else %}{% url 'index' %}{% endif %}"{% if category == "applications" %} class="text-white"{% endif %}>
+        {% trans 'Applications' %} <span class="badge badge-primary{% if category == "applications" %} bg-secondary{% endif %}">{{ application_count }}</span>
       </a>
     {% else %}
-      {% trans 'Applications' %} <span class="badge badge-primary">0</span>
+      {% trans 'Applications' %} <span class="badge badge-primary{% if category == "applications" %} bg-secondary{% endif %}">0</span>
     {% endif %}
     </div>
     <!-- cat: {{ category }} -->
@@ -157,26 +157,26 @@
   {% if is_ro or user.is_superuser or user.is_site_staff %}
 
   <div class="card mb-2">
-    <div class="card-header">
+    <div class="card-header{% if category == "contracts" %} bg-primary{% endif %}">
       {% if contract_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
-        <a href="{% url 'contract-list' %}" id="contract-list">{% trans 'Contracts' %}</a> <span class="badge badge-primary">{{ contract_count }}</span>
+        <a href="{% url 'contract-list' %}" id="contract-list" class="{% if category == "contracts" %} text-white{% endif %}">
+          {% trans 'Contracts' %}
+        </a> <span class="badge badge-primary{% if category == "contracts" %} bg-secondary{% endif %}">{{ contract_count }}</span>
       {% else %}
       <span data-toggle="tooltip" title="{% trans 'No contracts saved or submitted' %}">
-        {% trans 'Contracts' %} <span class="badge badge-primary">0</span>
+        {% trans 'Contracts' %} <span class="badge badge-primary{% if category == "contracts" %} bg-secondary{% endif %}">0</span>
       </span>
       {% endif %}
     </div>
   </div>
 
   <div class="card mb-2">
-    <div class="card-header">
-      {% if report_counts.total > 0 %}
-        <a href="{% url 'report-list' %}" id="report-list">{% trans 'Reports' %}</a> <span class="badge badge-primary">{{ report_counts.total }}</span>
-      {% else %}
-        <span data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}">
-          {% trans 'Reports' %} <span class="badge badge-primary">0</span>
-        </span>
-      {% endif %}
+    <div class="card-header{% if category == "reports" %} bg-primary{% endif %}">
+        <a href="{% url 'report-list' %}" id="report-list"{% if category == "reports" %} class="text-white"{% endif %}>{% trans 'Reports' %}</a>
+        <span
+          class="badge badge-primary{% if category == "reports" %} bg-secondary{% endif %}"
+          {% if not report_counts.total  %}data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}"{% endif %}
+        >{{ report_counts.total|default:0 }}</span>
     </div>
   </div>
 
@@ -184,16 +184,16 @@
 
   {% if nomination_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
   <div class="card mb-2">
-    <div class="card-header">
-      {% if nomination_count > 0 %}
-        <a href="{% url 'nominations' %}" id="nominations"> {% trans 'Nominations' %}
-          <span class="badge badge-primary">{{ nomination_count }}</span>
+    <div class="card-header{% if category == "nominations" %} bg-primary{% endif %}">
+        <a href="{% url 'nominations' %}" id="nominations"{% if category == "nominations" %} class="text-white"{% endif %}> {% trans 'Nominations' %}
+          <span 
+            class="badge badge-primary{% if category == "nominations" %} bg-secondary{% endif %}"
+            {% if not nomination_count %}
+              data-toggle="tooltip" 
+              title="{% trans 'No nomination saved or submitted' %}"
+            {% endif %}
+          >{{ nomination_count|default:0 }}</span>
         </a>
-      {% else %}
-        <span data-toggle="tooltip" title="{% trans 'No nomination saved or submitted' %}">
-          {% trans 'Nominations' %} <span class="badge badge-primary">0</span>
-        </span>
-      {% endif %}
     </div>
     {% if category == "nominations" %}
       <div class="card-body">

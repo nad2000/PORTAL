@@ -527,7 +527,7 @@ You have a request to review a {{ site_name }} application to act on.
           <div class="row">
             {% if user.is_authenticated %}
               <div class="col-md-3 d-none d-md-block" style="max-width: 18rem;">
-                {% block sidebar %}{% include 'sidebar.html' with category="applications" %}{% endblock sidebar %}
+                {% block sidebar %}{% include 'sidebar.html' %}{% endblock sidebar %}
               </div>
             {% endif %}
             <div class="col-md-9 mt-2 mb-3">
