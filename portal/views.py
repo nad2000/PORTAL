@@ -498,6 +498,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             "site",
         ]
         context["update_view_name"] = f"{self.model.__name__.lower()}-update"
+        context["category"] = self.object._meta.verbose_name_plural
         if hasattr(self.object, "state"):
             context["object_state"] = self.object.state
             context["model_name"] = self.object._meta.model_name
