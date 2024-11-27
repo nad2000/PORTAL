@@ -1356,8 +1356,8 @@ class ApplicationAdmin(
             contract_count += 1
         if contracts:
             links = ", ".join(
-                f"""<a 
-            href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}" 
+                f"""<a
+            href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
             {c.number}</a>"""
                 for c in contracts
@@ -2785,7 +2785,13 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
 
 @admin.register(models.Contract)
-class ContractAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class ContractAdmin(
+    StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin
+):
+    summernote_fields = (
+        "abstract",
+        "notes",
+    )
     save_on_top = True
     show_close_button = True
 

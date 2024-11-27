@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import translation
 from jinja2 import Environment, pass_context, BaseLoader, TemplateNotFound, ChoiceLoader
 from dbtemplates.models import Template
+from django.utils.safestring import mark_safe
 
 
 class DbLoader(BaseLoader):
@@ -40,6 +41,11 @@ def crispy(context, form, helper=None):
     return render_crispy_form(form, helper=getattr(form, "helper", helper), context=context)
 
 
+def summernote(note):
+    """Change relative URLs into the abosolute and make it safe."""
+    return note and mark_safe(note.replace(settings.MEDIA_URL, f"file://{settings.MEDIA_ROOT}/"))
+
+
 def environment(loader=None, **options):
     if loader:
         options["loader"] = ChoiceLoader(
@@ -65,5 +71,6 @@ def environment(loader=None, **options):
         }
     )
     env.filters["basename"] = basename
+    env.filters["summernote"] = summernote
     env.install_gettext_translations(translation)
     return env

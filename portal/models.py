@@ -8956,19 +8956,22 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         elif part == "schedule2":
             file_path = self.schedule2.path if self.schedule2 else self.default_schedule2.path
         else:
-            content = self.get_document(
-                request=request, user=user, format="html", part=part, **kwargs
+            return self.get_document(
+                request=request, user=user, format="pdf", part=part, **kwargs
             )
-            html = HTML(string=content)
-            pdf_object = html.write_pdf(presentational_hints=True)
-            # converting pdf bytes to stream which is required for pdf merger.
-            pdf_stream = io.BytesIO(pdf_object)
-            return PdfReader(pdf_stream, strict=False)
+            # content = self.get_document(
+            #     request=request, user=user, format="html", part=part, **kwargs
+            # )
+            # html = HTML(string=content)
+            # pdf_object = html.write_pdf(presentational_hints=True)
+            # # converting pdf bytes to stream which is required for pdf merger.
+            # pdf_stream = io.BytesIO(pdf_object)
+            # return PdfReader(pdf_stream, strict=False)
 
-            # file_path = output_dir / f"{self.number}_{part}.html"
-            # with open(file_path, "w") as ofile:
-            #     content = self.get_document(request=request, user=user, format="html", part=part)
-            #     ofile.write(content)
+            # # file_path = output_dir / f"{self.number}_{part}.html"
+            # # with open(file_path, "w") as ofile:
+            # #     content = self.get_document(request=request, user=user, format="html", part=part)
+            # #     ofile.write(content)
 
         base, ext = os.path.splitext(file_path)
         if ext.lower() != ".pdf":
@@ -9079,10 +9082,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         pages_to_skip = len(toc.pages) + 1
         page_count = len(merger.pages) - pages_to_skip
 
+        template = get_template("contracts/page.html")
         for pn, dp in enumerate(merger.pages):
             if pn < pages_to_skip:
                 continue
-            template = get_template("contracts/page.html")
+            box = dp.pagedata.mediabox
+            if box.height and box.width:
+                width = int(round(box.width * 0.35277777777777775, 0))  # 2.54/72
+                height = int(round(box.height * 0.35277777777777775, 0))  # 2.54/72
+            else:  # A4 (portait)
+                width = 210
+                height = 297
             page_no = pn - pages_to_skip + 1
             html = HTML(
                 string=template.render(
@@ -9091,6 +9101,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
                         "page_no": page_no,
                         "contract": self,
                         "header": headers.get(page_no),
+                        "width": width,
+                        "height": height,
                     }
                 )
             )

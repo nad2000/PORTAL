@@ -58,7 +58,7 @@
     <li>
       <h2>Key dates</h2>
       <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:468.65pt;margin-left:-12pt;'>
-        <tr>
+        <tr style="page-break-inside: avoid; page-break-after: avoid;">
           <td width=281 valign=top style='width:45%; padding:0in 5.4pt 0in 5.4pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
             <b>Start Date of Agreement</b></p>
@@ -103,7 +103,7 @@
         <h2>Key Contact Person</h2>
         <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width="625" style="width:468.65pt;margin-left:-12pt;">
           <tbody>
-            <tr>
+            <tr style="page-break-inside: avoid; page-break-after: avoid;">
               <td width="250" valign="top" style="width:40%; padding:0in 5.4pt 0in 5.4pt">
                 <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>Name</b></p>
               </td>
@@ -165,7 +165,7 @@
 
         <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width=625 style="width:468.65pt;margin-left:-12pt;">
           <tbody>
-            <tr>
+            <tr style="page-break-inside: avoid; page-break-after: avoid;">
               <td valign="top" style="width:55%; padding:0in 5.4pt 0in 5.4pt">
                 <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%"><b>Name</b></p>
               </td>
@@ -222,7 +222,7 @@
       <h2>Description of Programme</h2>
 
       <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:468.65pt;margin-left:-12pt;'>
-        <tr>
+        <tr style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:35%; padding:0in 5.4pt 0in 5.4pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Programme Title</b></p>
           </td>
@@ -243,7 +243,9 @@
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Overall aim of research</b></p>
           </td>
           <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-          <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.abstract and c.abstract.strip() %}{{ c.abstract|safe }}{% else %}&nbsp;{% endif %}</p>
+          <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.abstract and c.abstract.strip() %}
+          {% if format != "html" %}{{ c.abstract|summernote }}{% else %}{{ c.abstract|safe }}{% endif %}
+          {% else %}&nbsp;{% endif %}</p>
           </td>
         </tr>
       </table>
@@ -274,7 +276,7 @@
         <col width="156"/>
         <col width="318"/>
         <!-- tr bgcolor="#d0d0d0" -->
-        <tr bgcolor="white" valign="middle">
+        <tr bgcolor="white" valign="middle" style="page-break-inside: avoid; page-break-after: avoid;">
           <th><b>Year</b></th>
           <th><b>Report</b></th>
           <th><b>Due date</b></th>
@@ -304,7 +306,7 @@
         <col width="176"/>
         <col width="176"/>
         <!-- tr bgcolor="#d0d0d0" valign="middle" -->
-        <tr bgcolor="white" valign="middle">
+        <tr bgcolor="white" valign="middle" style="page-break-inside: avoid; page-break-after: avoid;">
           <th><b>Year</b></th>
           <th><b>Amount of Funding</b> (GST excl.)</th>
           <th><b>Purpose of Funding</b></th>
@@ -341,7 +343,7 @@
              cellpadding="1"
              width="625"
              style='width:468.65pt;margin-left:-12pt;'>
-        <tr style='height:29.6pt'>
+        <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:40%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%;page-break-after: avoid'><b>Party name</b></p>
           </td>
@@ -361,7 +363,7 @@
         <h2>Additional terms that apply in addition to the terms in Schedule 2</h2>
 
         <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
-          <tr style='height:29.6pt'>
+          <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
             <td valign=top style='width:15%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
               <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause </b></p>
             </td>
@@ -390,7 +392,7 @@
       <li>
         <h2>Variations to terms in Schedule 2</h2>
         <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
-          <tr style='height:29.6pt'>
+          <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
             <td valign=top style='width:15%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
               <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause
                 number</b></p>
@@ -417,7 +419,7 @@
     <li>
       <h2>Appendices attached to Schedule 1</h2>
       <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
-        <tr style='height:29.6pt'>
+        <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:35%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Appendix
               number</b></p>
