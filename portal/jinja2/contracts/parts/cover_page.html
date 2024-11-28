@@ -2,16 +2,18 @@
 
 {% block content %}
 <div class=WordSection1>
-  <table align="center" border="0">
+  <table align="left" border="0">
     <tr>
-      <td align="right" valign="top" height="2cm">
-        <p class=MsoNormal><b><span style='font-size:12.0pt'>DATED</span></b><span style='font-size:12.0pt'> {{ c and c.start_date.strftime("%d/%m/%Y") or year }}</span></p>
+      <td rowspan="4" width="50%" style="width:50%;"> &nbsp; </td>
+      <td align="left" valign="top" height="2cm" width="50%" style="width:50%;">
+        <span style='font-size:12.0pt;width:50%;float:left;' width="50%"><b>DATED</b></span>
+        <span style='font-size:12.0pt;width:50%;float:right;' align="right" width="50%"> {{ c and c.start_date.strftime("%d/%m/%Y") or year }}</span>
       </td>
     </tr>
 
     <tr>
-      <td valign="middle" height="7cm" align=center>
-        <p align=center style='text-align:center;line-height: 240%'><b><span
+      <td valign="middle" height="7cm" align="left">
+        <p align="left" style='text-align:left;line-height: 240%'><b><span
            style='font-size:16.0pt'>AGREEMENT FOR FUNDING FOR
          {% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
           </span></b></p>
@@ -19,16 +21,16 @@
     </tr>
 
     <tr>
-      <td valign="middle" height="10cm" align=center>
-        <p align=center style='text-align:center;line-height: 500%' ><b><span
+      <td valign="middle" height="10cm" align="left">
+        <p align="left" style='text-align:left;line-height: 500%' ><b><span
            style='font-size:12.0pt'>{{ c.agency.name.upper() }}<br>
            And<br>{{ c.host.name.upper() }}</span></b></p>
       </td>
     </tr>
 
-    <tr>
-      <td valign="bottom" height="4cm" align=center>
-        <p align=center style='text-align:center;'><b>Agreement number: {{ c.number }}</b></p>
+    <tr style="position: absolute; bottom: 1cm;">
+      <td valign="bottom" height="4cm" align="left">
+        <p align="left" style='text-align:left;'><b>Agreement number: {{ c.number }}</b></p>
       </td>
     </tr>
 
