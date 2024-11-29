@@ -1,6 +1,6 @@
 import django_filters
 from django.conf import settings
-from django.db.models import Exists, F, OuterRef, Q, Subquery, Sum, Value, Min
+from django.db.models import Exists, F, Min, OuterRef, Q, Sum, Value
 from django.utils import timezone
 from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy
@@ -232,6 +232,7 @@ class ApplicationFilterSet(FilterSet):
 
     def set_filter(self, queryset, name, value):
         if value:
+            value = value.strip()
             return queryset.filter(
                 Q(application_title__icontains=value)
                 | Q(number__icontains=value)
@@ -327,6 +328,7 @@ class TestimonialFilterSet(FilterSet):
 
     def set_filter(self, queryset, name, value):
         if value:
+            value = value.strip()
             return queryset.filter(
                 Q(referee__application__application_title__icontains=value)
                 | Q(referee__first_name__icontains=value)
@@ -405,6 +407,7 @@ class NominationFilterSet(FilterSet):
 
     def set_filter(self, queryset, name, value):
         if value:
+            value = value.strip()
             return queryset.filter(
                 Q(application__application_title__icontains=value)
                 | Q(first_name__icontains=value)
@@ -494,6 +497,7 @@ class ReportFilterSet(FilterSet):
 
     def set_filter(self, queryset, name, value):
         if value:
+            value = value.strip()
             return queryset.filter(
                 Q(contract__application__application_title__icontains=value)
                 | Q(contract__number__icontains=value)
@@ -590,9 +594,11 @@ class ContractFilterSet(FilterSet):
 
     def set_filter(self, queryset, name, value):
         if value:
+            value = value.strip()
             return queryset.filter(
                 Q(application__application_title__icontains=value)
                 | Q(number__icontains=value)
+                | Q(application__number__icontains=value)
                 | Q(project_title__icontains=value)
                 # | Q(contract__last_name__icontains=value)
                 # | Q(contract__email__icontains=value)

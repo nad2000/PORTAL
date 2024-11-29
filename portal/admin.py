@@ -2913,6 +2913,7 @@ class ContractAdmin(
     class ContractDocumentInline(admin.TabularInline):
         model = models.ContractDocument
         # exclude = ["contract_number"]
+        exclude = ["converted_file"]
         extra = 0
         view_on_site = False
         classes = ["collapse"]

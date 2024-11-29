@@ -784,6 +784,12 @@ class SummaryReportTable(tables.Table):
 
 
 class ContractTable(tables.Table):
+    number = tables.Column(
+        verbose_name=gettext_lazy("Contract"),
+        linkify=lambda value, record: reverse(
+            "contract-detail", kwargs=dict(number=record.number)
+        ),
+    )
     application = tables.Column(
         gettext_lazy("Proposal"),
         tables.A("application__number"),
@@ -791,12 +797,6 @@ class ContractTable(tables.Table):
             "application-detail", kwargs=dict(number=record.application.number)
         ),
         order_by="application__number",
-    )
-    number = tables.Column(
-        verbose_name=gettext_lazy("Contract"),
-        linkify=lambda value, record: reverse(
-            "contract-detail", kwargs=dict(number=record.number)
-        ),
     )
     state = StateColumn(gettext_lazy("Status"))
     # contract_pi = tables.Column(linkify=application_link)
@@ -865,7 +865,7 @@ class ContractTable(tables.Table):
 
     class Meta:
         model = models.Contract
-        fields = ("state", "application", "number", "pi", "notes")
+        fields = ("state", "number", "application", "pi", "notes")
 
 
 # class ReportTable(tables.Table):

@@ -101,6 +101,7 @@ thead th.orderable.desc > a {
 {% block content %}
 
     <!-- Placeholder for the modal -->
+    {% if view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
     <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" >
         <div class="modal-content">
@@ -116,7 +117,7 @@ thead th.orderable.desc > a {
 
             <div class="form-group">
               <label for="id_outcome_file">Outcome file (.csv or .xlsx)</label>
-              <input type="file" class="form-control-file" name="outcome_file" id="id_outcome_file" accept=".csv,.xlsx">
+              <input type="file" class="form-control-file" name="outcome_file" required id="id_outcome_file" accept=".csv,.xlsx">
             </div>
 
           </div>
@@ -129,6 +130,7 @@ thead th.orderable.desc > a {
         </form>
       </div>
     </div>
+    {% endif %}
 
   {% if rounds %}
 

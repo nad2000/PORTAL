@@ -5732,8 +5732,8 @@ class ContractViewMixin:
         elif self.request.method != "POST":
             initial = [
                 dict(
-                    required_document=rd,
-                    document_type=rd.document_type,
+                    required_document=rd[0],
+                    document_type=rd[1],
                 )
                 for rd in (
                     round.required_contract_documents.values_list("id", "document_type")
@@ -5751,8 +5751,8 @@ class ContractViewMixin:
 
             def save(self, commit=True):
                 if (
-                    "application_document" in self.cleaned_data
-                    and not self.cleaned_data["file"]
+                    self.cleaned_data.get("application_document")
+                    and not self.cleaned_data.get("file")
                     and (
                         d := models.ApplicationDocument.get(
                             self.cleaned_data["application_document"]
@@ -5763,7 +5763,7 @@ class ContractViewMixin:
                     res.file = d.file
                     res.save()
                     return res
-                elif "file" in self.changed_data:
+                elif "file" in self.changed_data and self.cleaned_data.get("file"):
                     res = super().save(*args, **kwargs)
                     return res
                 return self.instance
@@ -5863,7 +5863,18 @@ class ContractViewMixin:
             self.object and self.object.pk and self.object.members.filter(role="PI").exists()
         )
         if self.object and self.object.pk:
-            context["needs_attention"] = ["research", "finances"]
+            c = self.object
+            needs_attention = []
+            if not (c.start_date and c.end_date):
+                needs_attention = ["summary"]
+            if not (c.project_title and c.abstract):
+                needs_attention.append("research")
+            if not c.members.exists():
+                needs_attention.append("personnel")
+            if not c.reporting_schedule.exists():
+                needs_attention.append("reporting")
+            # TODO:
+            context["needs_attention"] = needs_attention
 
         self.documents = context["documents"] = self.get_document_formset()
         context["required_documents"] = {
@@ -6262,22 +6273,28 @@ class ApplicationList(
             funded_count = 0
             error_messages = []
             try:
+                contracts = []
                 with transaction.atomic():
                     for number, decision, *rest in outcomes:
                         if decision in ["y", "Y", "1", "yes", "YES"]:
                             a = Application.where(number=number).last()
                             if a:
-                                budget = rest[0] if rest else None
+                                awarded_amount = rest[0] if rest else None
                                 if a.state != "funded":
-                                    a.fund(
-                                        request=request,
-                                        description=f"From '{file.name}' by {request.user}",
+                                    contracts.append(
+                                        a.fund(
+                                            request=request,
+                                            awarded_amount=awarded_amount,
+                                            description=f"From '{file.name}' by {request.user}",
+                                        )
                                     )
                                     a.save()
                                     funded_count += 1
                                 if not a.contracts.exists():
-                                    models.Contract.create_from_application(
-                                        application=a, budget=budget
+                                    contracts.append(
+                                        models.Contract.create_from_application(
+                                            application=a, awarded_amount=awarded_amount
+                                        )
                                     )
                             else:
                                 error_messages.append(
@@ -6285,7 +6302,19 @@ class ApplicationList(
                                 )
 
                 if funded_count:
-                    messages.info(request, f"{funded_count} applications was marked 'funded'")
+                    contracts = ", ".join(
+                        f'<a href="{c.detail_url}" target="_blank">{c.number}</a>'
+                        for c in contracts
+                    )
+                    messages.info(
+                        request,
+                        (
+                            f"{funded_count} applications was marked <b>funded</b>."
+                            + f" New contracts initiated: {contracts}"
+                            if contracts
+                            else ""
+                        ),
+                    )
                 for msg in error_messages:
                     messages.error(request, msg)
             except Exception as ex:

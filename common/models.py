@@ -106,16 +106,19 @@ class Model(TimeStampMixin, HelperMixin, Base):
     def model_name(self):
         return self._meta.model_name
 
-    def get_full_detail_url(self, request=None):
-        url = None
+    @property
+    def detail_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
         try:
-            url = reverse(f"{model_name_slug}-detail", args=[str(self.number)])
+            return reverse(f"{model_name_slug}-detail", args=[str(self.number)])
         except:
             try:
-                url = reverse(f"{model_name_slug}-detail", args=[str(self.code)])
+                return reverse(f"{model_name_slug}-detail", args=[str(self.code)])
             except:
-                url = reverse(model_name_slug, args=[str(self.pk)])
+                return reverse(model_name_slug, args=[str(self.pk)])
+
+    def get_full_detail_url(self, request=None):
+        url = self.detail_url
         if url:
             if request:
                 url = request.build_absolute_uri(url)

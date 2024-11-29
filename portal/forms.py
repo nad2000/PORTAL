@@ -2355,18 +2355,19 @@ class ContractForm(ModelForm):
         model = models.Contract
         exclude = [
             "address",
-            "site",
+            "application",
+            "awarded_amount",
+            "fors",
             "fund",
             "host_number",
-            "org",
-            "application",
-            "number",
-            "submitted_by",
-            "rccs",
-            "fors",
-            "seos",
             "keywords",
+            "number",
+            "org",
+            "rccs",
+            "seos",
+            "site",
             "state",
+            "submitted_by",
         ]
         widgets = dict(
             start_date=DateInput(),

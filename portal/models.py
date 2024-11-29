@@ -2857,7 +2857,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
-        return Contract.create_from_application(application=self)
+        return Contract.create_from_application(application=self, *args, **kwargs)
 
     @fsm_log
     @transition(
@@ -8272,6 +8272,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
     application = ForeignKey(
         Application, on_delete=CASCADE, blank=True, null=True, related_name="contracts"
     )
+    awarded_amount =  DecimalField(max_digits=9, decimal_places=2)
     address = ForeignKey(
         Address, blank=True, null=True, related_name="contracts", on_delete=RESTRICT
     )
@@ -8431,7 +8432,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
     @classmethod
-    def create_from_application(cls, application=application, budget=0):
+    def create_from_application(cls, application=application, awarded_amount=None, *args, **kwargs):
 
         a = application
         r = a.round
@@ -8459,6 +8460,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             state="draft",
             abstract=a.summary,
         )
+        if awarded_amount:
+            params["awarded_amount"] = awarded_amount
         if r.has_vmts:
             params.update(
                 dict(
@@ -8608,7 +8611,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
                     ]
                 )
 
-                allocation = budget / c.duration if budget else 0.0
+                allocation = (awarded_amount / c.duration) if awarded_amount else 0.0
                 Allocation.bulk_create(
                     [
                         Allocation(
@@ -8956,9 +8959,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         elif part == "schedule2":
             file_path = self.schedule2.path if self.schedule2 else self.default_schedule2.path
         else:
-            return self.get_document(
-                request=request, user=user, format="pdf", part=part, **kwargs
-            )
+            return self.get_document(request=request, user=user, format="pdf", part=part, **kwargs)
             # content = self.get_document(
             #     request=request, user=user, format="html", part=part, **kwargs
             # )
