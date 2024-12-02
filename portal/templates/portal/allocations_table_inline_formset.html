@@ -5,7 +5,12 @@
 <tfoot>
   <tr>
     <td style="text-align: right; vertical-align: middle;"><strong>{% trans 'Total:' %}</strong></td>
-    <td><span class="rcorners" style="text-align: right;" id="id_{{ formset.prefix }}_total">0</span></td>
+    <td><span class="rcorners" style="text-align: right;" id="id_{{ formset.prefix }}_total">0</span></td
+    {% if formset.instance and formset.instance.pk and formset.instance.awarded_amount %}
+      <td style="text-align: right; vertical-align: middle;"><strong>{% trans 'Awarded Amount:' %}</strong>
+        {{ formset.instance.awarded_amount }}
+      </td>
+    {% endif %}
   </tr>
 </tfoot>
 <script>
