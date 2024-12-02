@@ -2463,7 +2463,7 @@ class RoundAdmin(
         "contract_background",
     )
     save_on_top = True
-    list_display = ["coloured_title", "scheme", "opens_on", "closes_at", "is_active", "ordering"]
+    list_display = ["coloured_title", "scheme", "opens_on", "closes_at", "contract_count", "is_active", "ordering"]
     list_editable = ["ordering"]
     ordering_field_hide_input = True
     list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
@@ -2668,6 +2668,10 @@ class RoundAdmin(
         return actions
 
     @cache
+    def contract_count(self, obj):
+        return models.Contract.where(application__round=obj).count() or 0
+
+    @cache
     def is_active(self, obj):
         return obj.is_active
 
@@ -2812,7 +2816,19 @@ class ContractAdmin(
         "state",
     )
 
-    list_filter = (("fund", admin.RelatedOnlyFieldListFilter), "state")
+    list_filter = (
+        ("fund", admin.RelatedOnlyFieldListFilter), 
+        ("application__round", admin.RelatedOnlyFieldListFilter),
+        "state"
+    )
+    # list_filter = [
+    #     IsActiveRoundApplicationListFilter,
+    #     ("org", admin.RelatedOnlyFieldListFilter),
+    #     ("panel", admin.RelatedOnlyFieldListFilter),
+    #     "state",
+    #     "created_at",
+    #     "updated_at",
+    # ]
     search_fields = ["number", "project_title"]
     autocomplete_fields = [
         # "principal",
