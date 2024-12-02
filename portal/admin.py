@@ -2267,7 +2267,7 @@ class SchemeAdmin(
     TranslationAdmin,
 ):
     save_on_top = True
-    list_display = ["title", "current_round"]
+    list_display = ["code", "title", "current_round"]
     resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
