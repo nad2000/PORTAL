@@ -12,7 +12,9 @@ sudo bash -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
 sudo -u postgres XZ_OPT="-9 --memory=135000000" tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
 psql -U postgres -c "SELECT pg_backup_stop();"
 [ $(date +%d) != '01' ] && NEWER="-N $(date +%Y-%m-01)"
-XZ_OPT="-9 --memory=135000000" tar -C ./prod/private-media/ --exclude ./converted $NEWER -cJf ./backup/${TS_LABEL}_MEDIA.tar.xz ./
+if [ "$(hostname)" != 'mail.prodata.nz' ] ; then
+    XZ_OPT="-9 --memory=135000000" tar -C ./prod/private-media/ --exclude ./converted $NEWER -cJf ./backup/${TS_LABEL}_MEDIA.tar.xz ./
+fi
 # sudo -u chmod g+w ./backup/$TS_LABEL.tar.xz 
 sudo mv ./backup/${TS_LABEL}_*.tar.xz ./archive/ && sudo find ./archive -mtime +0 -exec rm -f {} \;
 
