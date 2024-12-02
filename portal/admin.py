@@ -2589,12 +2589,21 @@ class RoundAdmin(
             (
                 "Terms and Conditions",
                 {
-                    # "classes": ("collapse",),
+                    "classes": ("collapse",),
                     "fields": [
                         "tac_en",
                         "tac_mi",
+                    ],
+                },
+            ),
+            (
+                "Contract Options",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
                         "contract_background",
                         "schedule2",
+                        "appendix_a"
                     ],
                 },
             ),

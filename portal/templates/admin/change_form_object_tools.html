@@ -13,16 +13,27 @@
               Export (for Panellists)
             </a>
           </li>
+        {% elif view_name == 'admin:portal_contract_change' %}
+          <li>
+            <a
+               href="{% url 'contract-export' original.pk %}?format=pdf"
+               target="_blank"
+               title="Export the contract into a consolidated PDF file"
+            >
+              Export
+            </a>
+          </li>
+        {% else %}
+          <li>
+            <a
+              href="{% url 'application-export' original.pk %}"
+              target="_blank"
+              title="Export the application into a consolidated PDF file"
+            >
+              Export
+            </a>
+          </li>
         {% endif %}
-        <li>
-          <a
-             href="{% url 'application-export' original.pk %}"
-             target="_blank"
-             title="Export the application into a consolidated PDF file"
-          >
-            Export
-          </a>
-        </li>
       {% elif SITE_ID == 5 and view_name == 'admin:portal_round_change' %}
         <li>
           <a

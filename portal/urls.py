@@ -168,7 +168,9 @@ urlpatterns = [
                     "<int:pk>/~ris-import", views.ReportRisImportView.as_view(), name="ris-import"
                 ),
                 path(
-                    "<int:pk>/comments/~email-import", views.EmailImportView.as_view(), name="email-import"
+                    "<int:pk>/comments/~email-import",
+                    views.EmailImportView.as_view(),
+                    name="email-import",
                 ),
                 path(
                     "funding/",
@@ -715,11 +717,17 @@ urlpatterns = [
         ),
     ),
     path("impersonate/<username>", views.impersonate),
-    path("demo/", views.demo),
-    path("demo/<int:pk>/", views.demo),
-    path("demo/~create", views.demo_create, name="demo-create"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
+
+if settings.DEBUG:
+    urlpatterns.extend(
+        [
+            path("demo/", views.demo),
+            path("demo/<int:pk>/", views.demo),
+            path("demo/~create", views.demo_create, name="demo-create"),
+        ]
+    )
 
 if settings.SENTRY_DSN:
     from django.contrib.auth.decorators import login_required

@@ -135,11 +135,21 @@ CONTRACT_PART_EXTENSIONS = [
 
 
 def pdf_toc(reader: PdfReader) -> dict[str, int]:
+
+    def flat_outline(outline, level=1):
+        """returns list of tuples (tile, level, page)."""
+        if level < 3:  # don't go deeper than level 2
+            for o in outline:
+                if isinstance(o, list):
+                    yield from flat_outline(o, level + 1)
+                else:
+                    yield (o["/Title"], level, o["/Page"])
+
     return {
-        o["/Title"]: i
-        for o in reader.outline
+        title: i
+        for title, level, page in flat_outline(reader.outline)
         for i, p in enumerate(reader.pages)
-        if p == o["/Page"]
+        if p == page
     }
 
 
@@ -389,9 +399,10 @@ class PdfFileMixin:
             else:
                 pdf_reader = PdfReader(file, strict=False)
                 page_count = len(pdf_reader.pages)
-            if not self.page_count or pdf_reader != self.page_count:
+                
+            if not self.page_count or pdf_reader and page_count != self.page_count:
                 self.page_count = page_count
-                return page_count
+            return page_count
 
     def update_converted_file(self, commit=False):
         """If the attached file is not PDF convert and update the PDF version."""
@@ -5784,6 +5795,19 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     has_keywords = BooleanField(_("Has keywords"), default=False, help_text=_("Has Keywords"))
     schedule2 = PrivateFileField(
         verbose_name="Schedule 2",
+        help_text="Standard terms and conditions (preferably converted into PDF)",
+        null=True,
+        blank=True,
+        upload_to="rounds",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+    )
+    appendix_a = PrivateFileField(
+        verbose_name="Appendix A",
+        help_text="Declaration regarding compliance with the Society's code of professional standards and ethics (preferably converted into PDF)",
         null=True,
         blank=True,
         upload_to="rounds",
@@ -8272,7 +8296,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
     application = ForeignKey(
         Application, on_delete=CASCADE, blank=True, null=True, related_name="contracts"
     )
-    awarded_amount =  DecimalField(max_digits=9, decimal_places=2)
+    awarded_amount = DecimalField(max_digits=9, decimal_places=2)
     address = ForeignKey(
         Address, blank=True, null=True, related_name="contracts", on_delete=RESTRICT
     )
@@ -8432,7 +8456,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
     @classmethod
-    def create_from_application(cls, application=application, awarded_amount=None, *args, **kwargs):
+    def create_from_application(
+        cls, application=application, awarded_amount=None, *args, **kwargs
+    ):
 
         a = application
         r = a.round
@@ -8670,6 +8696,94 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             return r.schedule2
 
     @cached_property
+    def appendix_a(self):
+        r = self.application.round
+        if r.appendix_a:
+            return r.appendix_a
+
+        r = (
+            Round.where(scheme__current_round=F("pk"), appendix_a__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_a:
+            return r.appendix_a
+
+        r = (
+            Round.where(
+                # scheme__current_round=F("pk"),
+                appendix_a__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_a:
+            return r.appendix_a
+
+        r = (
+            Round.all_objects.filter(scheme__current_round=F("pk"), appendix_a__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_a:
+            return r.appendix_a
+
+        r = (
+            Round.all_objects.filter(
+                # scheme__current_round=F("pk"),
+                appendix_a__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_a:
+            return r.appendix_a
+
+    @cached_property
+    def application_link_name(self):
+        r = self.application.round
+        if r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.where(scheme__current_round=F("pk"), schedule2__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.where(
+                # scheme__current_round=F("pk"),
+                schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.all_objects.filter(scheme__current_round=F("pk"), schedule2__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.schedule2:
+            return r.schedule2
+
+        r = (
+            Round.all_objects.filter(
+                # scheme__current_round=F("pk"),
+                schedule2__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.schedule2:
+            return r.schedule2
+
+    @cached_property
     def ci(self):
         return (ci := self.members.filter(role="CI").last()) and ci.user or self.application.ci
 
@@ -8815,8 +8929,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             template_name = "contracts/page.html"
         elif part == "footers":
             template_name = "contracts/footers.html"
-            # template_name = "headers.html"
-            # application = self.application
         elif part == "headers_footers":
             template_name = "contracts/headers_footers.html"
         else:
@@ -8958,6 +9070,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             file_path = contract_part.path
         elif part == "schedule2":
             file_path = self.schedule2.path if self.schedule2 else self.default_schedule2.path
+        elif part == "appendix_a":
+            file_path = self.appendix_a and self.appendix_a.path
         else:
             return self.get_document(request=request, user=user, format="pdf", part=part, **kwargs)
             # content = self.get_document(
@@ -9026,6 +9140,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         schedule2 = self.get_part_pdf(request=request, part="schedule2")
         if not isinstance(schedule2, PdfReader):
             schedule2 = PdfReader(schedule2, strict=False)
+        appendix_a = self.get_part_pdf(request=request, part="appendix_a")
+        if not isinstance(appendix_a, PdfReader):
+            appendix_a = PdfReader(appendix_a, strict=False)
         schedule2_toc = pdf_toc(schedule2)
         page_no = 2 + schedule1_page_count
         headers = {}
@@ -9038,19 +9155,26 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             page_no += d.page_count
 
         toc = self.get_part_pdf(
-            request=request, part="toc", parts=parts, schedule2_toc=schedule2_toc, page_no=1
+            request=request,
+            part="toc",
+            parts=parts,
+            schedule2_toc=schedule2_toc,
+            schedule2=schedule2,
+            appendix_a=appendix_a,
+            page_no=1,
         )
         parts["toc"] = toc
 
         merger = PdfMerger(strict=False)
 
         def part_list():
-            """Change order and add the appences"""
+            """Change order and add the appendices"""
             for p in ["cover", "toc", "preamble", "schedule1"]:
                 yield parts[p]
             for d in self.documents.order_by("required_document__ordering"):
                 yield d.pdf_file.path
             yield schedule2
+            yield appendix_a
 
         for part in part_list():
             # merger.append(a, outline_item=title, import_outline=True)
