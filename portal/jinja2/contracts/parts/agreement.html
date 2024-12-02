@@ -1,6 +1,7 @@
 {% extends "contracts/base.html" %}
 
 {% block content %}
+{% set scheme = c.application.round.scheme %}
 <div class=WordSection1>
   <table>
     <tr>
@@ -38,30 +39,58 @@
   <ol type="A" style="width: 100%;">
 
     <li style="width: 100%;line-height:normal;">
+      {% if SITE_ID == 4 %}
       The Ng&#257; Puanga P&#363;taiao Fellowships support M&#257;ori and
       Pacific Peoples to establish careers in Science, Technology, Engineering and mathematics (<b>STEM</b>) research and create a support network of M&#257;ori
       and Pacific STEM researchers.  This will enable M&#257;ori and Pacific early- to mid-career STEM researchers to enter into and progress through the Research,
       Science and Innovation (<b>RSI</b>) workforce and provide the researchers with
       support to flourish within the RSI system.
+      {% elif SITE_ID == 5 %}
+        {% if s.code == "TTMFL" %}
+          The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships (the Fellowships) is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system. The New Zealand Mana Tūāpapa Future Leader Fellowships support Aotearoa New Zealand’s talented early career researchers to establish the foundations of an excellent and impactful research career. The award is expected to have a significant value in the future career development of the Fellows and help them to establish a foundation on which to embark on an independent research career.
+        {% elif s.code == "TTMRL" %}
+          The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships (the Fellowships) is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system. The New Zealand Mana Tūānuku Research Leader Fellowships support mid-career researchers to firmly establish themselves as experts in their research domain and as leaders within the research landscape.
+        {% elif s.code == "TTMDF" %}
+          The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships (the Fellowships) is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system. The New Zealand Mana Tūārangi Distinguished Researcher Fellowship supports researchers with expansive and international reputations to make contributions that will extend beyond their own career span.
+        {% endif %}
+      {% endif %}
     </li>
 
     <li style="width: 100%;line-height:normal;">
       On behalf of MBIE, the Society is responsible for awarding and managing
-      funding for Ngā Puanga Pūtaiao Fellowships.
+      funding for {{ scheme.title }}.
+      {#% if SITE_ID == 4 %}
+      Ngā Puanga Pūtaiao Fellowships.
+      {% elif SITE_ID == 5 %}
+        {% if s.code == "TTMFL" %}
+        {% elif s.code == "TTMRL" %}
+        {% elif s.code == "TTMDF" %}
+        {% endif %}
+      {% endif %#}
     </li>
 
     <li style="width: 100%;line-height:normal;">
       The Society has awarded a Fellowship to {{ c.key_person.full_name_with_title }}
-      (<b>Key Contact Person</b>) and, as part of it, will provide funding for the Key
-      Contact Person to undertake a Programme.  The Host Organisation has agreed to host
-      and support the Key Contact Person in relation to that Programme.
+      (<b>Key Contact Person</b>) and will provide funding to the Host Organisation for the Programme. The Host Organisation has agreed to host and support the Key Contact Person in relation to that Programme.
     </li>
 
     <li style="width: 100%;line-height:normal;">
-      This Agreement records the arrangements reached between the Society and the Host
-      Organisation for the provision of Ngā Puanga Pūtaiao Fellowship
-      funding for the research undertaken by the Key Contact Person and Other Key
-      Personnel.
+      {% if SITE_ID == 5 %}
+        This Agreement records the arrangements reached between the Society and the Host Organisation for the provision of
+        {% if s.code == "TTMFL" %}
+          New Zealand Mana Tūāpapa Future Leader Fellowship
+        {% elif s.code == "TTMRL" %}
+          New Zealand Mana Tūānuku Research Leader Fellowship
+        {% elif s.code == "TTMDF" %}
+          New Zealand Mana Tūārangi Distinguished Researcher Fellowship
+        {% endif %}
+        funding for the Programme research undertaken by the Key Contact Person.
+      {% else %}
+        This Agreement records the arrangements reached between the Society and the Host
+        Organisation for the provision of Ngā Puanga Pūtaiao Fellowship
+        funding for the research undertaken by the Key Contact Person and Other Key
+        Personnel.
+      {% endif %}
     </li>
 
   </ol>

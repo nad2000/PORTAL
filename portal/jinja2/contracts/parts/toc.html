@@ -38,7 +38,7 @@
         {{ page_no.value + 1 }}
       </td>
     </tr>
-    {% set page_no.value = parts["schedule1"].pages.__len__() + 1 %}
+    {% set page_no.value = page_no.value + parts["schedule1"].pages.__len__() %}
 
     {% for d in c.documents.order_by("required_document__ordering" ) %}
       {% set page_count = d.page_count or d.update_page_count() %}

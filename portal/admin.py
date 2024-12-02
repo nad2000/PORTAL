@@ -2844,7 +2844,7 @@ class ContractAdmin(
                     ("start_date", "end_date", "duration"),
                     # "category",
                     # ("fund", "fund_code"),
-                    "fund",
+                    ("fund", "awarded_amount"),
                     ("fin_received", "fin_supp"),
                     # "code",
                 ],
