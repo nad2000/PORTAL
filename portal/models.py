@@ -399,7 +399,7 @@ class PdfFileMixin:
             else:
                 pdf_reader = PdfReader(file, strict=False)
                 page_count = len(pdf_reader.pages)
-                
+
             if not self.page_count or pdf_reader and page_count != self.page_count:
                 self.page_count = page_count
             return page_count
@@ -8296,7 +8296,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
     application = ForeignKey(
         Application, on_delete=CASCADE, blank=True, null=True, related_name="contracts"
     )
-    awarded_amount = DecimalField(max_digits=9, decimal_places=2)
+    awarded_amount = DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
     address = ForeignKey(
         Address, blank=True, null=True, related_name="contracts", on_delete=RESTRICT
     )
@@ -9584,6 +9584,7 @@ class Allocation(Model):
             "Eg, on the 2nd Businees Day after the 20th day of each  month, "
             "or receipt of the 2024 interim / final report."
         ),
+        default="In equal instalments on the 2nd Business Day after the 20th day of each month."
     )
     allocation = DecimalField(
         _("allocation"),

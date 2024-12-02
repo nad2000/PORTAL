@@ -85,6 +85,10 @@
     var doc_type = null;
     var doc_action = null;
     var required_doc = null;
+    {% if object and object.pk %}
+        var duration = {{ object.duration }};
+        var awarded_amount = {{ object.awarded_amount }};
+    {% endif %}
     function confirmAction(val) {
         $("#id_required_doc").val(required_doc);
         $("#id_doc_role").val(doc_role);

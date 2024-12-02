@@ -5,12 +5,21 @@
 <tfoot>
   <tr>
     <td style="text-align: right; vertical-align: middle;"><strong>{% trans 'Total:' %}</strong></td>
-    <td><span class="rcorners" style="text-align: right;" id="id_{{ formset.prefix }}_total">0</span></td>
+    <td><span class="rcorners" style="text-align: right;" id="id_{{ formset.prefix }}_total">0</span></td
+    {% if formset.instance and formset.instance.pk and formset.instance.awarded_amount %}
+      <td style="text-align: right; vertical-align: middle;"><strong>{% trans 'Awarded Amount:' %}</strong>
+        {{ formset.instance.awarded_amount }}
+      </td>
+    {% endif %}
   </tr>
 </tfoot>
 <script>
 
   //$( "#{{ formset.prefix }}_table input[name$='share']")
+  {% if formset.instance and formset.instance.pk %}
+      // var duration = {{ formset.instance.duration }};
+      var awarded_amount = {{ formset.instance.awarded_amount }};
+  {% endif %}
 
   function totalShares_{{ formset.prefix }}() {
     var sum = 0;
@@ -22,10 +31,11 @@
   function updateTotal_{{ formset.prefix }}() {
     var total = totalShares_{{ formset.prefix }}();
     $("#id_{{ formset.prefix }}_total").text(total.toFixed(2));
-    // if (total !=100) $("#id_{{ formset.prefix }}_total").css({"color": "red", 'font-weight': "bold"});
-    // else $("#id_{{ formset.prefix }}_total").css({"color": "green", 'font-weight': "bold"});
+    {% if formset.instance and formset.instance.pk %}
+      if (total > awarded_amount) $("#id_{{ formset.prefix }}_total").css({"color": "red", 'font-weight': "bold"});
+      else $("#id_{{ formset.prefix }}_total").css({"color": "green", 'font-weight': "bold"});
+    {% endif %}
   };
-
   $(document).ready(function() {
       //set initial state.
       // if ($('#id_is_vm_na').is(':checked')) { $('#id_vm_na').show() } else { $('#id_vm_na').hide() };

@@ -1410,7 +1410,7 @@ class ContractMemberForm(FTEMixin, ModelForm):
 class AllocationForm(ModelForm):
     class Meta:
         model = models.Allocation
-        fields = ["period", "allocation"]
+        fields = ["period", "allocation", "details"]
         widgets = {"period": TextInput(attrs={"readonly": "readonly"})}
 
 
@@ -2357,10 +2357,12 @@ class ContractForm(ModelForm):
             "address",
             "application",
             "awarded_amount",
+            "duration",
             "fors",
             "fund",
             "host_number",
             "keywords",
+            "notes",
             "number",
             "org",
             "rccs",
