@@ -8513,38 +8513,69 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             c.seos.add(*a.seos.all())
             c.keywords.add(*a.keywords.all())
             documents = []
-            for d in a.documents.all():
-                rd = (
-                    r.required_contract_documents.filter(
-                        application_required_document=d.required_document
-                    ).last()
-                    or r.required_contract_documents.filter(
-                        document_type=d.document_type or d.required_document.document_type
-                    ).last()
-                    or RequiredContractDocument.create(
-                        round=r,
-                        document_type=d.document_type or d.required_document.document_type,
-                        role=d.required_document.role or d.required_document.document_type.role,
-                        format=d.required_document.format
-                        or d.required_document.document_type.format,
-                        title=d.required_document.title or d.required_document.document_type.name,
-                        is_optional=d.required_document.is_optional,
-                        application_required_document=d.required_document,
+            for crd in r.required_contract_documents.order_by("ordering"):
+                if crd.application_required_document:
+                    d = (
+                        a.documents.filter(
+                            required_document=crd.application_required_document
+                        ).last()
+                        or a.documents.filter(
+                            document_type=crd.application_required_document.document_type
+                            or crd.document_type
+                        ).last()
                     )
-                )
+                else:
+                    d = (
+                        a.documents.filter(document_type=crd.document_type).last()
+                        or a.documents.filter(required_document__role=crd.role).last()
+                    )
 
-                documents.append(
-                    c.documents.model(
-                        contract=c,
-                        page_count=d.page_count,
-                        document_type=rd
-                        and rd.document_type
-                        or d.document_type
-                        or d.required_document.document_type,
-                        required_document=rd,
-                        file=d.file,
+                if d and d.file:
+                    documents.append(
+                        c.documents.model(
+                            contract=c,
+                            page_count=d.page_count or d.update_page_count(),
+                            document_type=crd.document_type
+                            or d.document_type
+                            or d.required_document.document_type,
+                            required_document=crd,
+                            file=d.file,
+                            converted_file=d.converted_file,
+                        )
                     )
-                )
+
+            # for d in a.documents.all():
+            #     rd = (
+            #         r.required_contract_documents.filter(
+            #             application_required_document=d.required_document
+            #         ).last()
+            #         or r.required_contract_documents.filter(
+            #             document_type=d.document_type or d.required_document.document_type
+            #         ).last()
+            #         or RequiredContractDocument.create(
+            #             round=r,
+            #             document_type=d.document_type or d.required_document.document_type,
+            #             role=d.required_document.role or d.required_document.document_type.role,
+            #             format=d.required_document.format
+            #             or d.required_document.document_type.format,
+            #             title=d.required_document.title or d.required_document.document_type.name,
+            #             is_optional=d.required_document.is_optional,
+            #             application_required_document=d.required_document,
+            #         )
+            #     )
+
+            #     documents.append(
+            #         c.documents.model(
+            #             contract=c,
+            #             page_count=d.page_count,
+            #             document_type=rd
+            #             and rd.document_type
+            #             or d.document_type
+            #             or d.required_document.document_type,
+            #             required_document=rd,
+            #             file=d.file,
+            #         )
+            #     )
 
             # TODO: handle the legacy
             if a.file and not a.documents.filter(document_type__role="AF").exists():
@@ -8559,6 +8590,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
                         or DocumentType.where(role="AF").last(),
                         required_document=rd,
                         file=a.file,
+                        converted_file=a.converted_file,
                     )
                 )
             if a.budget and not a.documents.filter(document_type__role="B").exists():
@@ -8575,6 +8607,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
                         file=a.budget,
                     )
                 )
+
+            for d in documents:
+                if not d.page_count:
+                    d.update_page_count()
 
             if documents:
                 c.documents.model.bulk_create(documents)
@@ -9584,7 +9620,7 @@ class Allocation(Model):
             "Eg, on the 2nd Businees Day after the 20th day of each  month, "
             "or receipt of the 2024 interim / final report."
         ),
-        default="In equal instalments on the 2nd Business Day after the 20th day of each month."
+        default="In equal instalments on the 2nd Business Day after the 20th day of each month.",
     )
     allocation = DecimalField(
         _("allocation"),
