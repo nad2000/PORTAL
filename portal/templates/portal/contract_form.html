@@ -74,6 +74,11 @@
   </form>
   {% endcomment %}
 
+  <div class="alert alert-primary" role="alert" id="wait-message" style="display:none;">
+    <img src="{% static 'images/spinner.png' %}" />
+    {% trans 'We are processing your request. Please be patient.' %}
+  </div>
+
 {% endblock content %}
 
 {% block javascript %}
@@ -87,7 +92,7 @@
     var required_doc = null;
     {% if object and object.pk %}
         var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
-        var awarded_amount = {{ object.awarded_amount }};
+        {% if object.awarded_amount %}var awarded_amount = {{ object.awarded_amount }};{% endif %}
     {% endif %}
     function confirmAction(val) {
         $("#id_required_doc").val(required_doc);
@@ -206,6 +211,18 @@
           };
         };
       }); */
+      $("#contract-form").on("submit", function(e) {
+          if (this.checkValidity()) {
+              $.blockUI({
+                message: $('#wait-message'),
+                css: {
+                  backgroundColor: '#0000',
+                  color: '#0fff',
+                  border: '0px',
+                }
+            });
+          }
+      });
       $('#id_not_applicable').change(function() {
         var label = $('label[for="id_not_applicable_comment"]');
         if ($(this).is(':checked')) {

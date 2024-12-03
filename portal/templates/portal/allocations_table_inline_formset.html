@@ -17,8 +17,8 @@
 
   //$( "#{{ formset.prefix }}_table input[name$='share']")
   {% if formset.instance and formset.instance.pk and formset.instance.awarded_amount %}
-      // var duration = {{ formset.instance.duration }};
-      var awarded_amount = {{ formset.instance.awarded_amount }};
+      var duration = {% if formset.instance.duration %}{{ formset.instance.duration }}{% else %}{{ formset.instance.application.round.duration }}{% endif %};
+      {% if formset.instance.awarded_amount %}var awarded_amount = {{ formset.instance.awarded_amount }};{% endif %}
   {% endif %}
 
   function totalShares_{{ formset.prefix }}() {
