@@ -42,6 +42,7 @@
       // $("#id_{{ formset.prefix }}_total_share").text(totalShares_{{ formset.prefix }}());
       updateTotal_{{ formset.prefix}}();
       $("input[name^='{{ formset.prefix }}-'][name$='allocation']").keyup(updateTotal_{{ formset.prefix}});
+      $("input[name^='{{ formset.prefix }}-'][name$='allocation']").change(updateTotal_{{ formset.prefix}});
       // $("#submit-id-submit").prependEvent("click", function(e) {
       /*
       $("#submit-id-submit").on("click", function(e) {

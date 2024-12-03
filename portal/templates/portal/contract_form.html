@@ -86,7 +86,7 @@
     var doc_action = null;
     var required_doc = null;
     {% if object and object.pk %}
-        var duration = {{ object.duration }};
+        var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
         var awarded_amount = {{ object.awarded_amount }};
     {% endif %}
     function confirmAction(val) {
@@ -112,6 +112,29 @@
       return false;
     });
     $(document).ready(function() {
+      $("#id_start_date").change(
+        function(e) {
+            let val = this.value;
+            if (val) {
+              /* 365.25*24*60*60*1000 */
+              let sd = {% if object.start_date %}new Date('{{ object.start_date }}'){% else %}new Date(){% endif %};
+              let ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
+              let start_date = new Date(val);
+              let delta = start_date - sd;
+              let end_date = new Date(ed.getTime() + delta);
+              $("#id_end_date").val(end_date.toISOString().slice(0,10))
+              {% if reporting_schedule %}
+                  {% for f in reporting_schedule.forms %}
+                    {% if f.due_date.value %}
+                      let dd_{{ forloop.counter }}  = new Date("{{ f.due_date.value }}");
+                      let due_date_{{ forloop.counter }} = new Date(dd_{{ forloop.counter }}.getTime() + delta);
+                      $("#{{ f.due_date.auto_id }}").val(due_date_{{ forloop.counter }}.toISOString().slice(0,10));
+                    {% endif %}
+                  {% endfor %}
+              {% endif %}
+            }
+        }
+      );
       $("#submit-id-submit").click(function(e) {
         $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
           var $t = $(this);
