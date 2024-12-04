@@ -118,7 +118,7 @@ class TelInput(TextInput):
 class ModelForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
-        self.site_id = kwargs.pop("site_id", 0)
+        self.site_id = kwargs.pop("site_id", 0) or int(settings.SITE_ID)
         super().__init__(*args, **kwargs)
 
 

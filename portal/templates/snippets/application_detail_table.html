@@ -3,9 +3,8 @@
   <tbody>
 
     <tr>
-      <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-        {% trans 'Application' %}</th>
-      <td colspan="3">
+      <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">{% trans 'Application' %}</th>
+        <td {% if not a.panel %}colspan="3"{% endif %}>
         {% if u.is_superuser and not export %}
           <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
@@ -17,6 +16,10 @@
             &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
         {% endif %}
       </td>
+      {% if a.panel %}
+        <th class="table-dark" scope="row">{% trans 'Panel' %}</th>
+        <td> {{ a.panel }} </td>
+      {% endif %}
     </tr>
 
       {% if a.preliminary %}

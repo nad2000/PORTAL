@@ -304,6 +304,8 @@ class ApplicationTable(tables.Table):
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
             self.columns.hide("current_contract")
+        if not models.Round.where(scheme__current_round=models.F("pk"), can_specify_panel=True).exists():
+            self.columns.hide("panel")
 
     # def render_latest_contract(self, record, value):
     #     if record.state == "funded" or record.state == "archived" and record.contract:
@@ -349,6 +351,7 @@ class ApplicationTable(tables.Table):
             "email",
             "first_name",
             "last_name",
+            "panel",
             "export",
             # "contract",
         )
