@@ -101,9 +101,9 @@ thead th.orderable.desc > a {
 {% block content %}
 
     <!-- Placeholder for the modal -->
-    {% if view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+    {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
     <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
-      <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" >
+      <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this">
         <div class="modal-content">
         <form method="post" enctype="multipart/form-data">
           {% csrf_token %}
@@ -131,6 +131,39 @@ thead th.orderable.desc > a {
       </div>
     </div>
     {% endif %}
+
+    <div id="contract-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+      <div id="contract-form-dialog" class="modal-dialog modal-lg" hx-target="this">
+        <div class="modal-content">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Initiate a new contract</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="id_duration">Duration</label>
+              <input type="number" class="form-control-file" name="duration" required id="id_duration">
+            </div>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                  <span class="input-group-text">$</span>
+              </div>
+              <input type="text" name="awarded_amount" class="form-control" placeholder="0.00" />
+          </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <!-- button type="button" class="btn btn-primary">Save changes</button -->
+            <input class="btn btn-primary" type="submit" value="Submit">
+          </div>
+        </div>
+        </form>
+      </div>
+    </div>
 
   {% if rounds %}
 
@@ -264,7 +297,7 @@ thead th.orderable.desc > a {
           {% trans 'Clear' %}
         </a>
 
-        {% if view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+        {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
           <button type="button" class="btn btn-primary ml-2" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
         {% endif %}
 
@@ -280,7 +313,7 @@ thead th.orderable.desc > a {
       <div class="col-md-10">
         {% render_table table %}
 
-        {% if view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+        {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
           <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
         {% endif %}
 

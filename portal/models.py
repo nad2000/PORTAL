@@ -2340,6 +2340,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         default=0,
     )
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
+    awarded_amount = DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
 
     @cached_property
     def ci(self):
@@ -2868,6 +2869,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
+        if (awarded_amount := kwargs.get("awarded_amount")):
+            self.awarded_amount = awarded_amount
         return Contract.create_from_application(application=self, *args, **kwargs)
 
     @fsm_log
@@ -8461,6 +8464,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
     ):
 
         a = application
+        if not awarded_amount and a.awarded_amount:
+            awarded_amount = a.awarded_amount
         r = a.round
         number = cls.new_number(application=a)
         duration = r.duration or 3
@@ -8472,10 +8477,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
                 address=a.postal_address, city=a.city, postcode=a.postcode, country=country
             )
 
+        org = a.org
         params = dict(
             application=a,
             year=a.created_at.year,
-            org=a.org,
+            org=org,
             project_title=a.application_title or a.round.title,
             start_date=timezone.now(),
             duration=duration,
@@ -8488,6 +8494,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         )
         if awarded_amount:
             params["awarded_amount"] = awarded_amount
+        if org and (org.ro_email or org.email):
+            params["host_contact_email"] = org.ro_email or org.email
+
         if r.has_vmts:
             params.update(
                 dict(

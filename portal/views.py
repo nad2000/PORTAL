@@ -6112,7 +6112,10 @@ class ContractViewMixin:
                 )
                 return redirect("contract-update", pk=i.pk)
 
-        if "save_draft" in self.request.POST and form.data.get("current_tab") == "#parts":
+        if "save_draft" in self.request.POST and (
+            form.data.get("current_tab") == "#parts"
+            or {"duration", "awarded_amount"}.intersection(form.changed_data)
+        ):
             return redirect(self.request.path)
 
         if "generate_contract" in self.request.POST:

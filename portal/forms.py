@@ -1863,7 +1863,9 @@ class ContractForm(ModelForm):
                     and self.instance.id
                     and not (user.is_superuser or user.is_site_staff)
                     else [
-                        HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
+                        HTML("""<div class="alert alert-dark" role="alert">
+                        Enter the total funding allocation and/or duration and Save. The amount is not allocated over the years.
+                        </div>"""),
                         Row(
                             Column("start_date", css_class="col-1"),
                             Column("end_date", css_class="col-1"),
