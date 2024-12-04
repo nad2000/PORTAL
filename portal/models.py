@@ -6491,9 +6491,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 q = q.filter(pk__in=referees.values_list("pk"))
             fixed_referees = []
             api = self.survey_api
-            for r in q.filter(
-                Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
-            ):
+            q = q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token=""))
+            for r in q:
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:

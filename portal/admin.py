@@ -1101,7 +1101,8 @@ class ApplicationAdmin(
         has_testified.boolean = True
 
         def view_on_site(self, obj):
-            return reverse("application", kwargs={"pk": obj.application_id})
+            # return reverse("application", kwargs={"pk": obj.application_id})
+            return reverse("admin:portal_referee_change", kwargs={"object_id": obj.pk})
 
     class DocumentInline(admin.TabularInline):
         model = models.ApplicationDocument
@@ -1461,6 +1462,46 @@ class ApplicationAdmin(
                 "objects": queryset,
             },
         )
+
+    def save_model(self, request, obj, form, change):
+
+        super().save_model(request, obj, form, change)
+        if change and "round" in form.changed_data:
+            old_number = obj.number
+            obj.number = models.default_application_number(obj)
+            obj.save(update_fields=["number"])
+            models.ApplicationNumber.get_or_create(application=obj, number=old_number)
+
+        r = form.cleaned_data["round"]
+        if r.survey_id:
+            count = r.sync_referee_surveys(request=request)
+            if count > 0:
+                messages.success(request, f"{count} new referee survey invitation(s) sent")
+
+        if change and "file" in form.changed_data and obj.file:
+            try:
+                if cf := obj.update_converted_file():
+                    obj.save()
+                    messages.success(
+                        request,
+                        format_html(
+                            (
+                                "The attachment was converted into PDF file. "
+                                "Please review the converted file version <a href='%s'>%s</a>."
+                            )
+                            % (cf.file.url, os.path.basename(cf.file.name))
+                        ),
+                    )
+
+            except:
+                messages.error(
+                    request,
+                    (
+                        "Failed to convert the attachment form into PDF. "
+                        "Please save your attachment  into PDF format and try to upload it again."
+                    ),
+                )
+                raise
 
 
 admin.site.register(models.Award)
