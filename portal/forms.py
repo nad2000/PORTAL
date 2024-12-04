@@ -1,7 +1,14 @@
 import os
 from functools import partial
 
-from crispy_forms.bootstrap import InlineField, InlineCheckboxes, InlineRadios, Tab, TabHolder
+from crispy_forms.bootstrap import (
+    InlineField,
+    InlineCheckboxes,
+    InlineRadios,
+    PrependedText,
+    Tab,
+    TabHolder,
+)
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -1411,7 +1418,10 @@ class AllocationForm(ModelForm):
     class Meta:
         model = models.Allocation
         fields = ["period", "allocation", "details"]
-        widgets = {"period": TextInput(attrs={"readonly": "readonly"})}
+        widgets = {
+            "period": TextInput(attrs={"readonly": "readonly", "style": "text-align: right;"}),
+            "allocation": TextInput(attrs={"style": "text-align: right;"}),
+        }
 
 
 class ModelSelect2NoPK(autocomplete.ModelSelect2):
@@ -1495,6 +1505,7 @@ class AddressForm(ModelForm):
 
 class ContractForm(ModelForm):
     # fund = forms.ModelChoiceField(queryset=models.Fund.objects.order_by("code"))
+    # Documents that has to be presented on separate tabs from the main document tab.
     part_fields = (
         # ("research_aims", DOCUMENT_ROLES.AIMS),
         # ("project_timeline", DOCUMENT_ROLES.PT),
@@ -1508,9 +1519,7 @@ class ContractForm(ModelForm):
     #     label=_("Comment"), widget=forms.Textarea, required=False
     # )
     requires_approval_comment = forms.CharField(
-        label=_("Comment"),
-        widget=forms.Textarea,
-        required=False
+        label=_("Comment"), widget=forms.Textarea, required=False
     )
     # requires_approval = forms.ChoiceField(
     #     choices=[(True, _("Yes")), (False, _("No"))],
@@ -1617,7 +1626,19 @@ class ContractForm(ModelForm):
                 if part:
                     initial[fn] = part.file
         if not (instance and user and (user.is_superuser or user.is_site_staff)):
-            self._meta.exclude.extend(["cover", "preamble", "schedule1", "schedule2", "file"])
+            self._meta.exclude.extend(
+                [
+                    "awarded_amount",
+                    "cover",
+                    "duration",
+                    "end_date",
+                    "file",
+                    "preamble",
+                    "schedule1",
+                    "schedule2",
+                    "start_date",
+                ]
+            )
 
         super().__init__(*args, **kwargs)
         # language = get_language()
@@ -1835,15 +1856,20 @@ class ContractForm(ModelForm):
                 *(
                     [
                         HTML("{% load tags %}{% contract_summary %}"),
-                        Field("start_date", type="hidden", css_class="hidden"),
-                        Field("end_date", type="hidden", css_class="hidden"),
+                        # Field("start_date", type="hidden", css_class="hidden"),
+                        # Field("end_date", type="hidden", css_class="hidden"),
                     ]
                     if self.instance
                     and self.instance.id
                     and not (user.is_superuser or user.is_site_staff)
                     else [
                         HTML('<div class="alert alert-dark" role="alert">TODO: ...</div>'),
-                        Row(Column("start_date"), Column("end_date")),
+                        Row(
+                            Column("start_date", css_class="col-1"),
+                            Column("end_date", css_class="col-1"),
+                            Column(Field("duration", style="text-align: right; width: 70%;"), css_class="col-1"),
+                            Column(PrependedText(Field("awarded_amount", style="text-align: right; width: 70%;"), "$", placeholder="Awarded amount"), css_class="col-2")
+                        ),
                         SubForm("address_form"),
                     ]
                 ),
@@ -2356,8 +2382,8 @@ class ContractForm(ModelForm):
         exclude = [
             "address",
             "application",
-            "awarded_amount",
-            "duration",
+            # "awarded_amount",
+            # "duration",
             "fors",
             "fund",
             "host_number",

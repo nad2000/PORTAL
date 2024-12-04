@@ -91,8 +91,8 @@
     var doc_action = null;
     var required_doc = null;
     {% if object and object.pk %}
-        var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
-        {% if object.awarded_amount %}var awarded_amount = {{ object.awarded_amount }};{% endif %}
+      var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
+      var awarded_amount = {% if object.awarded_amount %}{{ object.awarded_amount }}{% else %}0{% endif %};
     {% endif %}
     function confirmAction(val) {
         $("#id_required_doc").val(required_doc);
@@ -117,6 +117,25 @@
       return false;
     });
     $(document).ready(function() {
+      $("#id_awarded_amount").change(
+        function(e) {
+          awarded_amount = Number.parseFloat(this.value).toFixed(2);
+          if (!awarded_amount) return;
+          $("#id_total_awarded_amount").html("<strong>{% trans 'Awarded Amount' %}</strong>: " + awarded_amount);
+          let total = Number.parseInt($("#id_allocations_total").text());
+          if (!total) {
+            $("#allocations_table tbody tr:not('.d-none') input[name^='allocations-'][name$='allocation']").each(function() {
+              $(this).val((awarded_amount/duration).toFixed(2));
+            });
+          } else {
+            $("#allocations_table tbody tr:not('.d-none') input[name^='allocations-'][name$='allocation']").each(function() {
+              // $(this).val((awarded_amount/duration).toFixed(2));
+              $(this).val(($(this).val()*awarded_amount/total).toFixed(2));
+            });
+          }
+          $("#id_allocations_total").text(awarded_amount);
+        }
+      );
       $("#id_start_date").change(
         function(e) {
             let val = this.value;
