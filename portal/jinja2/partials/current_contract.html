@@ -1,0 +1,44 @@
+{% if record.contract %}
+  <a
+    href="{{ url("application-contract", pk=record.pk) }}"
+    target="_blank"
+    class="btn btn-primary btn-sm"
+    data-toggle="tooltip"
+    title="{{_('Update the contract')}}"
+    > {{ _("Open") }}</a>
+
+{% elif record.state in ["accepted"] %}
+<button
+    type="button"
+    class="btn btn-primary btn-sm"
+    data-tooltip="tooltip"
+    title="{{_('Mark application funded and create a new contract')}}"
+    data-toggle="modal"
+    data-target="#contract-form-modal"
+    data-application-id={{record.pk}}
+    data-duration={{record.round.duration or 3}}
+    data-start-date={{ now.isoformat()[:10] }}
+    data-end-date="{{ (now + relativedelta(years=(record.round.duration or 3))).isoformat()[:10] }}"
+  >
+  {{ _("Create") }}
+</button>
+
+{% elif record.state == "funded" %}
+<button
+    type="button"
+    class="btn btn-primary btn-sm"
+    data-tooltip="tooltip"
+    title="{{_('Create a new contract')}}"
+    data-toggle="modal"
+    data-target="#contract-form-modal"
+    data-application-id={{record.pk}}
+    data-duration={{record.round.duration or 3}}
+    data-start-date={{ now.isoformat()[:10] }}
+    data-end-date="{{ (now + relativedelta(years=(record.round.duration or 3))).isoformat()[:10] }}"
+  >
+  {{ _("Create") }}
+</button>
+
+{% else %}
+  &mdash;
+{% endif %}
