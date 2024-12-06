@@ -1870,7 +1870,8 @@ class ContractForm(ModelForm):
                             Column("start_date", css_class="col-1"),
                             Column("end_date", css_class="col-1"),
                             Column(Field("duration", style="text-align: right; width: 70%;"), css_class="col-1"),
-                            Column(PrependedText(Field("awarded_amount", style="text-align: right; width: 70%;"), "$", placeholder="Awarded amount"), css_class="col-2")
+                            Column(PrependedText(
+                                Field("awarded_amount", style="text-align: right; width: 70%;", max="9999999"), "$", placeholder="Awarded amount"), css_class="col-2")
                         ),
                         SubForm("address_form"),
                     ]
