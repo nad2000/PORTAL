@@ -2869,7 +2869,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
-        if (awarded_amount := kwargs.get("awarded_amount")):
+        if awarded_amount := kwargs.get("awarded_amount"):
             self.awarded_amount = awarded_amount
         return Contract.create_from_application(application=self, *args, **kwargs)
 
@@ -6491,7 +6491,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 q = q.filter(pk__in=referees.values_list("pk"))
             fixed_referees = []
             api = self.survey_api
-            q = q.filter(Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token=""))
+            q = q.filter(
+                Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
+            )
             for r in q:
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
@@ -8459,15 +8461,26 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
 
     @classmethod
     def create_from_application(
-        cls, application=application, awarded_amount=None, *args, **kwargs
+        cls,
+        application=application,
+        awarded_amount=None,
+        duration=None,
+        start_date=None,
+        end_date=None,
+        *args,
+        **kwargs,
     ):
 
         a = application
-        if not awarded_amount and a.awarded_amount:
+        if awarded_amount:
+            a.awarded_amount = awarded_amount
+            a.save(update_fields=["awarded_amount"])
+        elif not awarded_amount and a.awarded_amount:
             awarded_amount = a.awarded_amount
         r = a.round
         number = cls.new_number(application=a)
-        duration = r.duration or 3
+        if not duration:
+            duration = r.duration or 3
         address = a.address or a.org.address
         if not address or "DUMMY" in address.address and a.postal_address:
             city_country = Address.where(Q(city=a.city) | Q(postcode=a.postcode)).last()
@@ -8482,9 +8495,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             year=a.created_at.year,
             org=org,
             project_title=a.application_title or a.round.title,
-            start_date=timezone.now(),
             duration=duration,
-            end_date=duration and (timezone.now() + relativedelta(years=duration)),
+            start_date=start_date or timezone.now(),
+            end_date=end_date or duration and (timezone.now() + relativedelta(years=duration)),
             number=number,
             fund=a.round.scheme.fund,
             address=address,

@@ -5,7 +5,7 @@
 {% block head_title %}{{ object }}{% endblock %}
 
 {% block css %}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha256-siyOpF/pBWUPgIcQi17TLBkjvNgNQArcmwJB8YvkAgg=" crossorigin="anonymous" />
+  {{ block.super }}
   {{ form.media.css }}
   <style>
   /* #div_id_title,#div_id_country,#div_id_agency span.select2-selection--single {height: 39px;}
@@ -13,9 +13,7 @@
   #div_id_title span.select2-selection--single {height: 39px;}
   #div_id_country span.select2-selection--single {height: 39px;}
   #div_id_agency span.select2-selection--single {height: 39px;}
-  thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {
-    min-width: 5.0rem;
-  }
+  thead tr #id_application_fors-0-share, thead tr #id_application_seos-0-share {min-width: 5.0rem;}
   .datepicker {
       z-index: 1600 !important; /* has to be larger than 1050 to work properly in the modals */
    }
@@ -36,7 +34,6 @@
       display: block;
   }
   </style>
-  {{ block.super }}
   <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 {% endblock %}
 
@@ -99,7 +96,6 @@
 
 {% block javascript %}
   {{ block.super }}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha256-bqVeqGdJ7h/lYPq6xrPv/YGzMEb6dNxlfiTUHSgRCp8=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.18/dist/sweetalert2.all.min.js" integrity="sha256-HutwTOHexZPk7phZTEa350wtMYt10g21BKrAlsStcvw=" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.0/bootbox.min.js" integrity="sha512-8vfyGnaOX2EeMypNMptU+MwwK206Jk1I/tMQV4NkhOz+W8glENoMhGyU6n/6VgQUhQcJH8NqQgHhMtZjJJBv3A==" crossorigin="anonymous"></script>
@@ -141,7 +137,7 @@
         // endDate: '2001-12-31',
         // startDate: $(this).data("min"),
         // endDate: $(this).data("max"),
-        startView: 2,
+        // startView: 2,
         clearBtn: true,
         autoclose: true
       });

@@ -8,6 +8,7 @@ from datetime import timedelta
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
+from decimal import Decimal
 
 import django.utils.translation
 import django_tables2
@@ -85,6 +86,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.decorators import method_decorator
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
@@ -6256,7 +6258,28 @@ class ApplicationList(
     filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
+        if {"duration", "awarded_amount", "application"}.issubset(request.POST):
+            duration = int(request.POST["duration"])
+            application = models.Application.get_or_404(pk=int(request.POST["application"]))
+            awarded_amount = request.POST["awarded_amount"] or None
+            start_date = request.POST["start_date"] or None
+            end_date = request.POST["end_date"] or None
+            if start_date:
+                start_date = parse_date(start_date)
+            if end_date:
+                end_date = parse_date(end_date)
+            contract = models.Contract.create_from_application(
+                application=application,
+                duration=duration,
+                awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            url = reverse("contract-update", kwargs={"pk": contract.pk})
+            messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
+            return redirect(url)
+
         if "outcome_file" in request.FILES:
             file = request.FILES["outcome_file"]
             outcomes = tablib.Dataset()

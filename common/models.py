@@ -8,6 +8,7 @@ from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils.functional import cached_property
 from model_utils import Choices
+from django.shortcuts import get_object_or_404
 
 EmailField.register_lookup(Lower)
 
@@ -137,6 +138,9 @@ class Model(TimeStampMixin, HelperMixin, Base):
             except:
                 return reverse(f"{model_name_slug}-list")
 
+    @classmethod
+    def get_or_404(cls, *args, **kwargs):
+        return get_object_or_404(cls, *args, **kwargs)
 
     class Meta:
         abstract = True

@@ -102,15 +102,15 @@ thead th.orderable.desc > a {
 
     <!-- Placeholder for the modal -->
     {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
-    <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this">
         <div class="modal-content">
         <form method="post" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="modal-header">
             <h5 class="modal-title">Load Outcomes</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
             </button>
           </div>
           <div class="modal-body">
@@ -132,28 +132,80 @@ thead th.orderable.desc > a {
     </div>
     {% endif %}
 
-    <div id="contract-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="contract-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog">
       <div id="contract-form-dialog" class="modal-dialog modal-lg" hx-target="this">
         <div class="modal-content">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post">
           {% csrf_token %}
+          <input type="hidden" id="id_application" name="application">
           <div class="modal-header">
             <h5 class="modal-title">Initiate a new contract</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
             </button>
           </div>
           <div class="modal-body">
-            <div class="form-group">
+
+            <div class="form-group row">
+              <div class="col-6">
               <label for="id_duration">Duration</label>
-              <input type="number" class="form-control-file" name="duration" required id="id_duration">
-            </div>
-            <div class="input-group">
-              <div class="input-group-prepend">
-                  <span class="input-group-text">$</span>
+              <!-- input type="number" class="form-control" name="duration" required id="id_duration" -->
+              <select class="custom-select my-1 mr-sm-2" id="id_duration" name="duration">
+                <option selected="">Choose...</option>
+                <option value="1">One year</option>
+                <option value="2">Two years</option>
+                <option value="3">Three years</option>
+                <option value="4">Four years</option>
+                <option value="3">Five years</option>
+              </select>
               </div>
-              <input type="text" name="awarded_amount" class="form-control" placeholder="0.00" />
-          </div>
+            <!-- /div>
+
+            <div class="form-group" -->
+              <div class="col-6">
+              <label for="id_awarded_amount">Awarded Amount</label>
+              <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">$</span>
+                </div>
+                <input type="text" id="id_awarded_amount" name="awarded_amount" class="form-control" placeholder="0.00" step="0.01">
+              </div>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label for="id_start_date" class="col-2 col-form-label">Start date</label>
+              <div class="col-4"> 
+                <input 
+                  autocomplete="off"
+                  class="form-control"
+                  data-date-end-date="+6y" 
+                  data-date-format="yyyy-mm-dd"
+                  data-date-start-date="0y" 
+                  id="id_start_date"
+                  name="start_date" 
+                  style="z-index: 9999 !important;"
+                  type="text" 
+                > 
+                <small class="form-text text-muted">The contract start date</small>
+              </div> 
+              <label for="id_end_date" class="col-2 col-form-label">End date</label> 
+              <div class="col-4"> 
+                <input 
+                  autocomplete="off"
+                  class="form-control" 
+                  data-date-end-date="+10y"
+                  data-date-format="yyyy-mm-dd"
+                  data-date-start-date="+1y"
+                  id="id_end_date"
+                  name="end_date" 
+                  style="z-index: 9999 !important;"
+                  type="text" 
+                > 
+                <small class="form-text text-muted">The contract end date</small>
+              </div> 
+            </div>
+
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -170,11 +222,11 @@ thead th.orderable.desc > a {
     <div style="display: inline-flex;">
       <div class="dropdown show" style="margin: 1px;">
 
-        <a class="btn btn-outline-primary dropdown-toggle" href="#" role="button" id="active-round-menu-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <a class="btn btn-outline-primary dropdown-toggle" href="#" role="button" id="active-round-menu-link" data-toggle="dropdown">
           {{ round|title }}
         </a>
 
-        <div class="dropdown-menu" aria-labelledby="active-round-menu-link">
+        <div class="dropdown-menu">
           {% for r in rounds %}
             {% if r.id != round.id %}
               <a class="dropdown-item" href="{% url view_name round=r.id %}">{{ r.title }}
@@ -454,9 +506,51 @@ function rememberIfDetailsWasDisclosed(detailsId) {
     details.open = true;
   }
 };
-$(document).ready(function(){
-  rememberIfDetailsWasDisclosed("round-filter");
-  rememberIfDetailsWasDisclosed("year-filter");
+  $(document).ready(function(){
+    $('#contract-form-modal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget) // Button that triggered the modal
+      var recipient = button.data('whatever') // Extract info from data-* attributes
+      // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+      // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+      var modal = $(this)
+      modal.find('.modal-title').text(button.data("originalTitle"));
+      modal.find('.modal-body #id_duration').val(button.data("duration"));
+      $('#id_application').val(button.data("applicationId"));
+      var start_date = button.data("startDate");
+      var end_date = button.data("endDate");
+      $('#id_start_date').val(start_date);
+      $('#id_start_date').datepicker({
+          zIndexOffset: 9999,
+          // inputs: $("#id_start_date"),
+          format: "yyyy-mm-dd",
+          defaultDate: start_date,
+          startDate: start_date,
+          assumeNearbyYear: true,
+          endDate: "+1y",
+          todayBtn: "linked",
+          autoclose: true,
+          todayHighlight: true,
+          immediateUpdates: true,
+          container: "#contract-form-modal .modal-body"
+      }).datepicker("setDate", start_date).on('show.bs.modal', function(event) {event.stopPropagation();}); // .on('hide', function(event) {event.preventDefault(); event.stopPropagation();});
+      $('#id_end_date').val(end_date);
+      $('#id_end_date').datepicker({
+          zIndexOffset: 9999,
+          // inputs: $("#id_end_date"),
+          format: "yyyy-mm-dd",
+          defaultDate: end_date,
+          startDate: "+1y",
+          assumeNearbyYear: true,
+          endDate: "+6y",
+          todayBtn: "linked",
+          autoclose: true,
+          todayHighlight: true,
+          immediateUpdates: true,
+          container: "#contract-form-modal .modal-body"
+      }).datepicker("setDate", end_date).on('show.bs.modal', function(event) {event.stopPropagation();}); // .on('hide', function(event) {event.preventDefault(); event.stopPropagation();});
+  })
+  // rememberIfDetailsWasDisclosed("round-filter");
+  // rememberIfDetailsWasDisclosed("year-filter");
   $("#id_archived_filter").on('change', function() {
     if ($(this).is(':checked')) {
       $(this).attr('value', 'true');

@@ -5,6 +5,7 @@ from django.utils import formats, timezone
 from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+from dateutil.relativedelta import relativedelta
 
 from . import models
 
@@ -242,6 +243,11 @@ class ContractColumn(tables.LinkColumn):
             return super().render(record, value)
 
 
+class SafeTemplateColumn(tables.TemplateColumn):
+    def render(self, record, table, value, bound_column, **kwargs):
+        return mark_safe(super().render(record, table, value, bound_column, **kwargs))
+
+
 class ApplicationTable(tables.Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
@@ -268,8 +274,22 @@ class ApplicationTable(tables.Table):
             "td": {"class": "text-center"},
         },
     )
+    current_contract = SafeTemplateColumn(
+        verbose_name=gettext_lazy("Contract"),
+        template_name="partials/current_contract.html",
+        attrs={
+            "td": {
+                "class": "text-center",
+            },
+        },
+        extra_context={"now": timezone.now(), "relativedelta": relativedelta}
+    )
 
-    current_contract = tables.columns.linkcolumn.BaseLinkColumn(
+    # def render_current_contract(self, value, *args, **kwargs):
+    #     return mark_safe(value)
+
+    _current_contract = tables.columns.linkcolumn.BaseLinkColumn(
+        visible=False,
         verbose_name=gettext_lazy("Contract"),
         text=lambda record: (
             gettext_lazy("Create")
@@ -289,10 +309,12 @@ class ApplicationTable(tables.Table):
             "a": {
                 "class": "btn btn-primary btn-sm",
                 "target": "_blank",
+            },
+            "td": {
+                "class": "text-center",
                 "data-toggle": "tooltip",
                 "title": gettext_lazy("Create or update a contract"),
             },
-            "td": {"class": "text-center"},
         },
     )
 
@@ -304,7 +326,9 @@ class ApplicationTable(tables.Table):
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
             self.columns.hide("current_contract")
-        if not models.Round.where(scheme__current_round=models.F("pk"), can_specify_panel=True).exists():
+        if not models.Round.where(
+            scheme__current_round=models.F("pk"), can_specify_panel=True
+        ).exists():
             self.columns.hide("panel")
 
     # def render_latest_contract(self, record, value):
