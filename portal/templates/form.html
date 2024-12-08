@@ -5,7 +5,6 @@
 {% block head_title %}{{ object }}{% endblock %}
 
 {% block css %}
-  {{ block.super }}
   {{ form.media.css }}
   <style>
   /* #div_id_title,#div_id_country,#div_id_agency span.select2-selection--single {height: 39px;}
@@ -34,6 +33,7 @@
       display: block;
   }
   </style>
+  {{ block.super }}
   <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 {% endblock %}
 

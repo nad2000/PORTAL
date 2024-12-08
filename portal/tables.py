@@ -207,9 +207,9 @@ class TestimonialTable(tables.Table):
 
 def application_link(table, record, value):
     u = table.request.user
-    if u.is_superuser:
-        return reverse("admin:portal_application_change", kwargs={"object_id": record.id})
-    if record.site_id not in [4, 5] and not record.was_submitted and record.is_applicant(u):
+    # if u.is_superuser:
+    #     return reverse("admin:portal_application_change", kwargs={"object_id": record.id})
+    if u.is_superuser or record.site_id not in [4, 5] and not record.was_submitted and record.is_applicant(u):
         return reverse("application-update", kwargs={"pk": record.id})
     return record.get_absolute_url()
 
