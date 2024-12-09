@@ -6306,11 +6306,15 @@ class ApplicationList(
                             a = Application.where(number=number).last()
                             if a:
                                 awarded_amount = rest[0] if rest else None
+                                start_date = parse_date(rest[1]) if len(rest) > 1 else None
+                                end_date = parse_date(rest[2]) if len(rest) > 2 else None
                                 if a.state != "funded":
                                     contracts.append(
                                         a.fund(
                                             request=request,
                                             awarded_amount=awarded_amount,
+                                            start_date=start_date,
+                                            end_date=end_date,
                                             description=f"From '{file.name}' by {request.user}",
                                         )
                                     )
@@ -6319,7 +6323,10 @@ class ApplicationList(
                                 if not a.contracts.exists():
                                     contracts.append(
                                         models.Contract.create_from_application(
-                                            application=a, awarded_amount=awarded_amount
+                                            application=a,
+                                            awarded_amount=awarded_amount,
+                                            start_date=start_date,
+                                            end_date=end_date,
                                         )
                                     )
                             else:
