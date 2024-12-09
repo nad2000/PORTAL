@@ -8481,6 +8481,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         number = cls.new_number(application=a)
         if not duration:
             duration = r.duration or 3
+        breakpoint()
         address = a.address or a.org.address
         if not address or "DUMMY" in address.address and a.postal_address:
             city_country = Address.where(Q(city=a.city) | Q(postcode=a.postcode)).last()
@@ -8488,6 +8489,34 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
             address, _ = Address.get_or_create(
                 address=a.postal_address, city=a.city, postcode=a.postcode, country=country
             )
+        elif address and any(
+            not getattr(a, n, None)
+            and getattr(address, n, None)
+            or getattr(a, n, None) != getattr(address, n, None)
+            for n in ["city", "postcode"]
+        ):
+            address.pk = None
+            for n in ["city", "postcode"]:
+                if getattr(a, n, None):
+                    setattr(address, n, getattr(a, n, None))
+            if any(getattr(address, n, None) for n in ["city", "postcode"]):
+                lines = [l for l in (a.address or address.address).splitlines() if l.strip()][-1]
+                if lines:
+                    last_line = lines[-1]
+                    parts = [p for p in last_line.split() if p.strip()]
+                    country = Country.where(Q(name=parts[0]) | Q(name=last_line)).last()
+                    if country and not address.country:
+                        address.country = country
+                    if len(parts) > 1 and parts[-1].isdecimal():
+                        address.postcode = parts[-1]
+                        address.city = " ".join(parts[:-1])
+            if not address.country:
+                address.country = Country.where(code="NZ").last()
+            address.save()
+        elif not address.country:
+            address.pk = None
+            address.country = Country.where(code="NZ").last()
+            address.save()
 
         org = a.org
         params = dict(
