@@ -8481,7 +8481,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
         number = cls.new_number(application=a)
         if not duration:
             duration = r.duration or 3
-        breakpoint()
         address = a.address or a.org.address
         if not address or "DUMMY" in address.address and a.postal_address:
             city_country = Address.where(Q(city=a.city) | Q(postcode=a.postcode)).last()
