@@ -8262,26 +8262,35 @@ class NominationDetail(DetailView):
             )
         return super().get(request, *args, **kwargs)
 
-    # def post(self, request, *args, **kwargs):
-    #     self.object = self.get_object()
-    #     member = self.object.members.filter(
-    #         has_authorized__isnull=True, user=self.request.user
-    #     ).first()
-    #     if "authorize_team_lead" in request.POST:
-    #         member.has_authorized = True
-    #         member.authorized_at = datetime.now()
-    #         member.save()
-    #     elif "turn_down" in request.POST:
-    #         member.has_authorized = False
-    #         member.save()
-    #         send_mail(
-    #             _("A team member opted out of application"),
-    #             _("Your team member %s has opted out of application") % member,
-    #             settings.DEFAULT_FROM_EMAIL,
-    #             recipients=[self.object.submitted_by.email],
-    #             fail_silently=False,
-    #         )
-    #     return self.get(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        if action == "withdraw":
+            n = self.object = self.get_object()
+            state = n.state
+            resolution = request.POST.get("resolution", f"{request.user} withdrew the nomination")
+            n.withdraw(
+                request=request,
+                by=request.user,
+                description=resolution,
+            )
+            n.save()
+            messages.info(request, f"The nomination {n} has been withdrawn.")
+            if (a := n.application) and a.is_wip:
+                a.cancel(
+                    request=request,
+                    by=request.user,
+                    description=resolution,
+                )
+                a.save()
+                messages.info(request, f"The application {a} has been cancelled.")
+
+            if not state or state in ["new", "draft"]:
+                return redirect("nominations-draft")
+            if state == "submitted":
+                return redirect("nominations-submitted")
+            if state == "accepted":
+                return redirect("nominations-accepted")
+            return redirect("nominations")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

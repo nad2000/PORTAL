@@ -2342,6 +2342,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
     awarded_amount = DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
 
+    @property
+    def is_wip(self):
+        return not self.state or self.state in ["new", "draft"]
+
     @cached_property
     def ci(self):
         return (
@@ -3042,7 +3046,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "draft"],
+        source=["submitted", "draft", "new"],
         target="cancelled",
         custom=dict(verbose="Cancel", button_name="Cancel"),
     )
@@ -7310,6 +7314,7 @@ NOMINATION_STATES = Choices(
     ("new", _("new")),
     ("sent", _("sent")),
     ("submitted", _("submitted")),
+    ("withdrawn", _("withdrawn")),
     (None, None),
 )
 
@@ -7455,6 +7460,11 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(field=state, source=["new", "draft"], target="draft", custom=dict(admin=False))
     def save_draft(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(field=state, source=["*"], target="withdrawn")
+    def withdraw(self, *args, **kwargs):
         pass
 
     def send_invitation(self, *args, **kwargs):

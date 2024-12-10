@@ -55,6 +55,23 @@
     </div>
   {% endif %}
 
+  {% if is_ro and view_name == "nomination-detail" %}
+    <div class="tooltip-wrapper{% if not object.application.is_wip %} disabled{% endif %}"
+
+      {% if not object.application.is_wip %}
+         disabled
+         title="{% trans 'Application was already submitted, the nomination cannot be withdrawn.' %}"
+      {% else %}
+         title="{% trans 'Withdraw the nomination and cancel application if the application was already created.' %}"
+      {% endif %}
+    >
+    <button id="id_withdraw" type="button" class="btn btn-danger" name="withdraw"
+       {% if not object.application.is_wip %} disabled style="pointer-events: none;"
+       {% else %}data-toggle="modal" data-action="withdraw" data-target="#id_resolution_modal"{% endif %} value="withdraw"
+      >{% trans 'Withdraw' %}</button>
+    </div>
+  {% endif %}
+
   {% if export_button_view_name %}
     <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
   {% endif %}

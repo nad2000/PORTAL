@@ -1028,6 +1028,16 @@ class ApplicationAdmin(
     # summernote_fields = ["summary"]
     exclude = ["summary", "summary_en", "summary_mi", "is_bilingual_summary", "site"]
 
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["show_save_and_add_another"] = False
+        return super().change_view(
+            request,
+            object_id,
+            form_url,
+            extra_context=extra_context,
+        )
+
     def complete(self, obj):
         return obj.state == "submitted" or obj.state == "archive"
 
@@ -1329,7 +1339,7 @@ class ApplicationAdmin(
             fieldsets[0][1]["fields"].insert(2, "previous_numbers")
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "STATE")
-        if obj.site_id in [4, 5]:
+        if (obj and obj.site_id or settings.SITE_ID) in [4, 5]:
             fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
 
         return fieldsets
@@ -2514,6 +2524,16 @@ class RoundAdmin(
     ]
     search_fields = ["title"]
     actions = ["create_new_round", "invite_referees", "sync_referee_surveys"]
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["show_save_and_add_another"] = False
+        return super().change_view(
+            request,
+            object_id,
+            form_url,
+            extra_context=extra_context,
+        )
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
