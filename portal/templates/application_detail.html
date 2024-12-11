@@ -212,30 +212,33 @@
                   {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
                   {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
                   {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
-                  {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                  {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
+                  {% elif a.state != "submitted" and a.state != "draft" %}title="{% trans 'Application had not yet been submitted' %}"
+                  {% else %}title="{% trans 'Cancel and withdraw the application' %}"
                   {% endif %}
                   >
                   <input type="submit"
                          class="btn btn-outline-danger"
-                         {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
-                                                                   {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                                                                                                 {% endif %} name="cancel" value="{% trans 'Withdraw' %}">
-            </span>
-              <span class="d-inline-block"
-                    tabindex="0"
+                         {% if a.state != "submitted" and a.state != "draft" %} disabled style="pointer-events: none;"
+                         {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                         {% endif %} name="cancel" value="{% trans 'Withdraw' %}">
+          </span>
+            <span class="d-inline-block"
+                  tabindex="0"
                     data-toggle="tooltip"
                     {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
                     {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
                     {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
                     {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
+                    {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
                     {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
                     {% endif %}
                     >
                     <input type="submit"
                            class="btn btn-outline-warning"
                            {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
-                                                                     {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                                                                                                   {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
+                           {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                           {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
               </span>
                 <span class="d-inline-block"
                       tabindex="0"
@@ -244,6 +247,7 @@
                       {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
                       {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
                       {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
+                      {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
                       {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
                       {% else %}title="{% trans 'Approve the application' %}"
                       {% endif %}
