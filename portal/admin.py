@@ -507,8 +507,8 @@ class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
 
     search_fields = ["description", "definition", "^code"]
     resource_classes = [SocioEconomicObjectiveResource]
-    # list_display = ["code", "description", "definition", "version"]
-    # list_filter = ["version", "two_digit_code"]
+    list_display = ["code", "description", "definition", "version"]
+    list_filter = ["version", "source"]
 
 
 @admin.register(models.FieldOfResearch)
