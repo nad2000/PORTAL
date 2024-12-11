@@ -37,13 +37,34 @@
       {{ block.super }}
     {% endblock %}
     {% crispy form %}
-    {% block javascript %}
-      {{ block.super }}
-      {{ form.media.js }}
-    {% endblock %}
+  {% else %}
+  <form method="post">
+     {% csrf_token %}
+     <input type="hidden" name="action" id="id_action">
   {% endif %}
 
+  {% if is_ro %}
+    {% include 'snippets/resolution_modal.html' %}
+  {% endif %}
 
   {{ block.super }}
+  {% if not form %}</form>{% endif %}
 
 {% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if form %}
+      {{ form.media.js }}
+  {% endif %}
+  <script>
+    $(document).ready(function() {
+      $('#id_resolution_modal').on('show.bs.modal', function (event) {
+        var target = $(event.relatedTarget) // Button that triggered the modal
+        var action = target.data('action')||target.val(); // Extract info from data-* attributes
+        $("#id_action").val(action);
+      });
+    });
+  </script>
+{% endblock javascript %}
+{# vim:set ft=htmldjango: #}
