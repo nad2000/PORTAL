@@ -491,7 +491,7 @@ class SocioEconomicObjectiveAdmin(ImportExportModelAdmin):
 
     class SocioEconomicObjectiveResource(CodeResource):
         class Meta:
-            exclude = ["created_at", "updated_at", "id", "source"]
+            exclude = ["created_at", "updated_at"]
             model = models.SocioEconomicObjective
             import_id_fields = ["code"]
             skip_unchanged = True
