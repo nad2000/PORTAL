@@ -31,7 +31,7 @@ from django.conf import settings
 
 # from crispy_forms.bootstrap import Modal
 from django.core.files.base import File
-from django.forms import FileField, HiddenInput, Widget, inlineformset_factory
+from django.forms import FileField, IntegerField, HiddenInput, Widget, inlineformset_factory
 from django.forms.models import BaseInlineFormSet, modelformset_factory
 from django.forms.widgets import NullBooleanSelect, NumberInput, Select, TextInput
 from django.shortcuts import reverse

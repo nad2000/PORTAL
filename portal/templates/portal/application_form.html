@@ -33,6 +33,7 @@
       </h1>
 
       <form method="post" enctype="multipart/form-data" id="application-form">
+        {% if object.pk %}<input type="hidden" name="pk" id="id_pk" value="{{ object.pk }}">{% endif %}
         {% crispy form form.helper %}
         {% if inlines %}
           <hr />

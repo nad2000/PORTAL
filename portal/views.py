@@ -20,7 +20,7 @@ from allauth.socialaccount.models import SocialAccount, SocialApp
 from crispy_forms import bootstrap, layout
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Field, Fieldset, Layout, Row
-from dal import autocomplete
+from dal import autocomplete, forward
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.apps import apps
@@ -2017,6 +2017,10 @@ class ReportViewMixin:
             widgets={
                 "code": autocomplete.ModelSelect2(
                     "seo-autocomplete",
+                    forward=(
+                        "id",
+                        forward.Const("report", "type"),
+                    ),
                     attrs={
                         "data-placeholder": _("Choose a ..."),
                         "placeholder": _("Choose a Socio-Economic Objective..."),
@@ -2095,6 +2099,7 @@ class ReportViewMixin:
             # widgets={
             #     "code": autocomplete.ModelSelect2(
             #         "seo-autocomplete",
+            #         forward=("pk", "model_name",),
             #         attrs={
             #             "data-placeholder": _("Choose a ..."),
             #             "placeholder": _("Choose a Socio-Economic Objective..."),
@@ -5123,6 +5128,10 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 widgets={
                     "code": autocomplete.ModelSelect2(
                         "seo-autocomplete",
+                        forward=(
+                            "pk",
+                            forward.Const("application", "type"),
+                        ),
                         attrs={
                             "data-placeholder": _("Choose a ..."),
                             "placeholder": _("Choose a Socio-Economic Objective..."),
@@ -7156,12 +7165,20 @@ class FosAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    version = "2.0.0"  # Current version
+
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return False  # request.user.is_authenticated
 
     def get_queryset(self):
-        q = models.FieldOfResearch.objects.filter(version="2.0.0")
+        if (t := self.forwarded.get("type")) and (pk := self.forwarded.get("pk")):
+            q = self.model.objects.filter(
+                Q(version=self.version)
+                | (Q(applications=pk) if t == "application" else Q(reports=pk))
+            )
+        else:
+            q = self.model.objects.filter(version=self.version)
         if self.q:
             if self.q.isdecimal():
                 q = q.filter(code__contains=self.q)
@@ -7172,12 +7189,22 @@ class ForAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class SeoAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    version = "2.0.0"  # Current version
+
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return False  # request.user.is_authenticated
 
     def get_queryset(self):
-        q = models.SocioEconomicObjective.objects.all()
+        # if country := self.forwarded.get("country", "").strip():
+
+        if (t := self.forwarded.get("type")) and (pk := self.forwarded.get("pk")):
+            q = self.model.objects.filter(
+                Q(version=self.version)
+                | (Q(applications=pk) if t == "application" else Q(reports=pk))
+            )
+        else:
+            q = self.model.objects.filter(version=self.version)
         if self.q:
             if self.q.isdecimal():
                 q = q.filter(code__contains=self.q)

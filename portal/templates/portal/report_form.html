@@ -22,6 +22,7 @@
 
   <form method="post" enctype="multipart/form-data" id="contract-form">
 
+    {% if object.pk %}<input type="hidden" name="pk" id="id_pk" value="{{ object.pk }}">{% endif %}
     <input type="hidden" name="required_doc" id="id_required_doc" value="">
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
