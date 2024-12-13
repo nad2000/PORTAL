@@ -420,10 +420,6 @@ class Migration(migrations.Migration):
                 verbose_name="ethical and regulatory approval is required",
             ),
         ),
-        migrations.RunPython(
-            code=portal.migration_utils.set_required_document_format_and_role,
-            reverse_code=portal.migration_utils.dummy,
-        ),
         migrations.AddField(
             model_name="application",
             name="awarded_amount",
@@ -640,4 +636,16 @@ class Migration(migrations.Migration):
                 verbose_name="state",
             ),
         ),
+        # migrations.RunPython(
+        #     code=portal.migration_utils.set_required_document_format_and_role,
+        #     reverse_code=portal.migration_utils.dummy,
+        # ),
+        migrations.RunSQL(";\n".join("""
+            UPDATE %s AS rd 
+                SET "role"=COALESCE(rd."role", dt."role"), 
+                format=COALESCE(rd.format, dt.format, '-'),
+                title=COALESCE(rd.title, dt.name)
+            FROM document_type AS dt 
+            WHERE dt.id=rd.document_type_id
+            """ % tn for tn in ["required_document", "required_contract_document"])),
     ]

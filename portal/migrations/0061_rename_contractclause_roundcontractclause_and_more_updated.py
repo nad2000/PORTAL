@@ -448,8 +448,8 @@ class Migration(migrations.Migration):
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
-        migrations.RunPython(
-            code=portal.migration_utils.set_required_document_format_and_role,
-            reverse_code=portal.migration_utils.dummy,
-        ),
+        # migrations.RunPython(
+        #     code=portal.migration_utils.set_required_document_format_and_role,
+        #     reverse_code=portal.migration_utils.dummy,
+        # ),
     ]
