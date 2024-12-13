@@ -647,5 +647,5 @@ class Migration(migrations.Migration):
                 title=COALESCE(rd.title, dt.name)
             FROM document_type AS dt 
             WHERE dt.id=rd.document_type_id
-            """ % tn for tn in ["required_document", "required_contract_document"])),
+            """ % tn for tn in ["required_document", "required_contract_document"]), ''),
     ]
