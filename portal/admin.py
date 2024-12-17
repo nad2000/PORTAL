@@ -2511,6 +2511,7 @@ class RoundAdmin(
         "description_mi",
         "tac_en",
         "tac_mi",
+        "agent_declaration",
         "contract_background",
     )
     save_on_top = True
@@ -2648,12 +2649,13 @@ class RoundAdmin(
                 },
             ),
             (
-                "Terms and Conditions",
+                "Terms and Conditions and Declarations",
                 {
                     "classes": ("collapse",),
                     "fields": [
                         "tac_en",
                         "tac_mi",
+                        "agent_declaration",
                     ],
                 },
             ),
@@ -2878,7 +2880,7 @@ class ContractAdmin(
     )
 
     list_filter = (
-        ("fund", admin.RelatedOnlyFieldListFilter), 
+        ("fund", admin.RelatedOnlyFieldListFilter),
         ("application__round", admin.RelatedOnlyFieldListFilter),
         "state"
     )

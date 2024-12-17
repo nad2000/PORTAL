@@ -209,7 +209,12 @@ def application_link(table, record, value):
     u = table.request.user
     # if u.is_superuser:
     #     return reverse("admin:portal_application_change", kwargs={"object_id": record.id})
-    if u.is_superuser or record.site_id not in [4, 5] and not record.was_submitted and record.is_applicant(u):
+    if (
+        u.is_superuser
+        or record.site_id not in [4, 5]
+        and not record.was_submitted
+        and record.is_applicant(u)
+    ):
         return reverse("application-update", kwargs={"pk": record.id})
     return record.get_absolute_url()
 
@@ -249,6 +254,7 @@ class SafeTemplateColumn(tables.TemplateColumn):
 
 
 class ApplicationTable(tables.Table):
+    selection = tables.CheckBoxColumn(accessor="pk")
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
     round = tables.Column(linkify=application_round_link)
@@ -282,7 +288,7 @@ class ApplicationTable(tables.Table):
                 "class": "text-center",
             },
         },
-        extra_context={"now": timezone.now(), "relativedelta": relativedelta}
+        extra_context={"now": timezone.now(), "relativedelta": relativedelta},
     )
 
     # def render_current_contract(self, value, *args, **kwargs):
@@ -321,6 +327,8 @@ class ApplicationTable(tables.Table):
     def before_render(self, request, *args, **kwargs):
         view_name = (rm := request.resolver_match) and rm.view_name
         state = rm and rm.kwargs.get("state")
+        if state != "submitted" and view_name != "applications-submitted":
+            self.columns.hide("selection")
         if state != "funded":
             self.columns.hide("current_contract")
         if (u := request.user) and not u.is_superuser and not u.is_staff:

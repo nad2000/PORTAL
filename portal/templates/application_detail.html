@@ -33,7 +33,7 @@
   {% include 'snippets/application_detail_table.html' %}
 </div>
 
-<form method="post">
+<form method="post" id="id_action_form">
   {% csrf_token %}
   <input type="hidden" name="action" id="id_action">
   <div class="buttonHolder mb-5 mt-3 float-right">
@@ -224,7 +224,24 @@
                          {% endif %} name="cancel" value="{% trans 'Withdraw' %}">
           </span>
             <span class="d-inline-block"
-                  tabindex="0"
+              tabindex="0"
+              data-toggle="tooltip"
+              {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+              {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+              {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
+              {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
+              {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
+              {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+              {% endif %}
+            >
+              <input type="submit"
+                      class="btn btn-outline-warning"
+                      {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
+                      {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                      {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
+            </span>
+                <span class="d-inline-block"
+                    tabindex="0"
                     data-toggle="tooltip"
                     {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
                     {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
@@ -232,31 +249,16 @@
                     {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
                     {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
                     {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                    {% else %}title="{% trans 'Approve the application' %}"
                     {% endif %}
-                    >
-                    <input type="submit"
-                           class="btn btn-outline-warning"
-                           {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
-                           {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                           {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
-              </span>
-                <span class="d-inline-block"
-                      tabindex="0"
-                      data-toggle="tooltip"
-                      {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
-                      {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
-                      {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
-                      {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
-                      {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
-                      {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
-                      {% else %}title="{% trans 'Approve the application' %}"
-                      {% endif %}
-                      >
+                >
                       <input type="submit"
-                             class="btn btn-primary"
-                             {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
-                                                                       {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                                                                                                     {% endif %} name="approve" value="{% trans 'Approve' %}">
+                            class="btn btn-primary"
+                            {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
+                            {% elif r.agent_declaration %}data-toggle="modal" data-target="#id_agent_declaration_modal"
+                            {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                            {% endif %} name="approve" value="{% trans 'Approve' %}"
+                      >
                       <!-- button type="button" class="btn btn-primary"
                         {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
                         {% else %}data-toggle="modal" data-target="#id_resolution_modal"
@@ -279,7 +281,7 @@
   $(document).ready(function(){
     $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
     {% if is_ro %}
-      $('#id_resolution_modal').on('shown.bs.modal', function (e) {
+      $('#id_resolution_modal,#id_agent_declaration_modal').on('shown.bs.modal', function (e) {
         $("#id_resolution").focus();
       });
       $("input[type='submit']").on("click", function(e) {
@@ -288,6 +290,25 @@
         $('#id_resolution_modal').modal({keyboard: true});
         return false;
       });
+      {% if object.round.agent_declaration %}
+      const swalWithBootstrapButtons = Swal.mixin({
+        customClass: {
+          confirmButton: "btn btn-danger ml-1",
+          cancelButton: "btn btn-success"
+        },
+        buttonsStyling: false
+      });
+      $("#id_action_form").submit(function(e) {
+        e.preventDefault();
+        if (!$("#id_declaration_accepted_check").is(':checked')) {
+          swalWithBootstrapButtons.fire("{% trans 'Please accept the terms and conditions!' %}").then(function(result) {
+            if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
+          })
+          return false;
+        }
+      });
+
+      {% endif %}
     {% endif %}
   });
 </script>

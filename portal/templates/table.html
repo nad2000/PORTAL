@@ -507,6 +507,9 @@ function rememberIfDetailsWasDisclosed(detailsId) {
   }
 };
   $(document).ready(function(){
+    $("table thead tr th input[type='checkbox']").on("change", function (event) {
+        $("table tbody tr td input[type='checkbox']").prop("checked", this.checked);
+    });
     $("#id_duration").on("change", function (event) {
         let sd = new Date($("#id_start_date").val()||'');
         let ed = new Date(sd.getTime() + (event.target.value*31557600000));

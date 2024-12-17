@@ -5776,6 +5776,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("T&C"), max_length=100000, null=True, blank=True, help_text=_("Terms and Conditions")
     )
     contract_background = TextField(_("contract background"), null=True, blank=True)
+    agent_declaration = TextField(
+        null=True,
+        blank=True,
+        help_text=_("Duly authorised agent (i.e. the research office) declaration."),
+    )
 
     has_online_scoring = BooleanField(default=True)
     score_sheet_template = FileField(
