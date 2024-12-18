@@ -43,6 +43,11 @@ urlpatterns = [
         "applications/",
         include(
             [
+                path(
+                    "agent-declaration",
+                    views.agent_declaration,
+                    name="application-agent-declaration",
+                ),
                 # path(
                 #     "referees/<int:pk>/~delete",
                 #     views.delete_referee,

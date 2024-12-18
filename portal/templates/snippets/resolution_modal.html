@@ -1,12 +1,12 @@
-{% load i18n %}
+{% load i18n tags %}
 {% if r and r.agent_declaration or round and round.agent_declaration %}
   <div class="modal fade" tabindex="-1" role="dialog" id="id_agent_declaration_modal">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">
-          {% blocktrans with pi=object.pi %}
-            Duly authorised agent (i.e. the research office) declaration for {{ pi.full_name }}
+          {% blocktrans with pi=object.pi application=object %}
+            Duly authorised agent (i.e. the research office) declaration for {{ pi }}
           {% endblocktrans %}
           </h5>
           <!-- button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -14,26 +14,20 @@
             </button -->
         </div>
         <div class="modal-body">
-          {% if r %}{{ r.agent_declaration|safe }}
-          {% else %}{{ round.agent_declaration|safe }}
-          {% endif %}
-
-          {% comment %}
-          <div id="div_id_resolution" class="form-group">
-            <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
-            <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
-            <textarea autofocus name="resolution" id="id_resolution" rows="10" style="width: 100%;"></textarea>
-          </div>
-          {% endcomment %}
-          <div id="div_id_resolution" class="form-group">
-            <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
-            <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
-            <textarea autofocus name="resolution" id="id_resolution" rows="10" style="width: 100%;"></textarea>
-          </div>
+          <span id="id_agent_declaration_span" hx-target="this">
+            {% if r %}{% render_jinja r.agent_declaration with application=object round=object.round pi=object.pi org=object.org %}
+            {% else %}{% render_jinja round.agent_declaration with application=object round=object.round pi=object.pi org=object.org %}
+            {% endif %}
+          </span>
 
           <div class="form-group form-check">
-            <input type="checkbox" class="form-check-input" id="id_declaration_accepted_check">
+            <input type="checkbox" class="form-check-input" id="id_declaration_accepted_check" name="agent_declaration_accepted">
             <label class="form-check-label" for="id_accepted_check">{% trans 'I accept the declaration' %}</label>
+          </div>
+
+          <div class="form-group">
+            <textarea autofocus name="resolution" rows="5"
+              style="width: 100%;" placeholder="{% trans 'Resolution or comment (Optional)' %}"></textarea>
           </div>
 
         </div>
@@ -49,17 +43,16 @@
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{% trans 'Resolution or comment' %}</h5>
+        <h5 class="modal-title">{% trans 'Resolution or comment (Optional)' %}</h5>
         <!-- button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
           </button -->
       </div>
       <div class="modal-body">
 
-        <div id="div_id_resolution" class="form-group">
-          <!-- label for="id_postal_address" class=" requiredField">{% trans 'Resolution' %}<span class="asteriskField">*</span> </label -->
-          <!-- input type="text" name="resolution" maxlength="120" class="textinput textInput form-control" required="" id="id_resolution" -->
-          <textarea autofocus name="resolution" id="id_resolution" rows="10" style="width: 100%;"></textarea>
+        <div class="form-group">
+          <textarea autofocus name="resolution" id="id_resolution" rows="10"
+                                                     style="width: 100%;" placeholder="{% trans 'Resolution or comment' %}"></textarea>
         </div>
 
       </div>

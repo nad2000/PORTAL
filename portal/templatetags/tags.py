@@ -11,6 +11,7 @@ from django.template.loader import get_template
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from markupsafe import Markup
+import jinja2
 
 from .. import models as m
 
@@ -272,6 +273,14 @@ def video_id(value):
 @register.filter()
 def user_has_nomination(value, user):
     return value.user_has_nomination(user)
+
+
+@register.simple_tag(takes_context=True)
+def render_jinja(context, template, *args, **kwargs):
+    # request = context.get("request")
+    # site = context.get("site")
+    output = jinja2.Template(template).render(context.flatten())
+    return Markup(output)
 
 
 @register.simple_tag(takes_context=True)

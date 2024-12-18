@@ -14,6 +14,7 @@ import django.utils.translation
 import django_tables2
 import py7zr
 import rispy
+import jinja2
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -3427,13 +3428,13 @@ class ApplicationDetail(DetailView):
                 )
             elif action == "approve":
                 a = self.object
-                a.approve(request)
+                a.approve(request, agent_declaration_accepted=request.POST.get("agent_declaration_accepted"))
                 a.save()
 
                 if a.site_id == 5:
                     url = a.get_full_detail_url(request=request)
                     count = (
-                        self.invite_referees(
+                        a.invite_referees(
                             request=request,
                             dispatch_invitations=(
                                 a.site_id != 5
@@ -10029,6 +10030,25 @@ def application_summary(request, number, lang=None):
     number = vignere.decode(number)
     a = get_object_or_404(models.Application, number=number)
     return HttpResponse(a.summary)
+
+
+@login_required
+def agent_declaration(request, lang=None):
+    user = request.user
+    if (
+        (pks := request.GET.getlist("pk"))
+        and (applications := models.Application.where(pk__in=pks).order_by("number"))
+        and (round := models.Round.where(applications__in=applications.values_list("pk"), agent_declaration__isnull=False).first())
+    ):
+        org = models.Organisation.where(
+            Q(pk__in=applications.values_list("org")),
+            Q(pk__in=user.research_offices.values_list("org")),
+        ).last()
+        if applications.count() == 1:
+            application = applications.first()
+            pi = application.pi
+        return HttpResponse(jinja2.Template(round.agent_declaration).render(locals()))
+    return HttpResponse("")
 
 
 def application_exported_view(request, number, lang=None):

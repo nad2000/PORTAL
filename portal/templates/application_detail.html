@@ -23,11 +23,9 @@
 
 {% block content %}
 
-
-
 {% if form %}{% crispy form %}{% endif %}
 
-{% with a=object u=request.user r=object.round %}
+{% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
 
 <div class="table-responsive">
   {% include 'snippets/application_detail_table.html' %}
@@ -203,7 +201,7 @@
 
 
             {% if is_ro %}
-              {% include 'snippets/resolution_modal.html' %}
+              {% include 'snippets/resolution_modal.html' with application=object round=object.round pi=object.pi org=object.org %}
 
             <span class="d-inline-block"
                   tabindex="0"
@@ -252,11 +250,13 @@
                     {% else %}title="{% trans 'Approve the application' %}"
                     {% endif %}
                 >
-                      <input type="submit"
-                            class="btn btn-primary"
-                            {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
-                            {% elif r.agent_declaration %}data-toggle="modal" data-target="#id_agent_declaration_modal"
-                            {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                      <input class="btn btn-primary"
+                            {% if a.state != "submitted"  %} disabled style="pointer-events: none;" type="submit"
+                            {% elif r.agent_declaration %}data-toggle="modal" data-target="#id_agent_declaration_modal" type="submit"
+                            {% comment %}
+                            {% elif r.agent_declaration %}hx-get="{% url 'application-agent-declaration' %}?pk={{object.pk}}" hx-target="#id_agent_declaration_span" type="button"
+                            {% endcomment %}
+                            {% else %}data-toggle="modal" data-target="#id_resolution_modal" type="submit"
                             {% endif %} name="approve" value="{% trans 'Approve' %}"
                       >
                       <!-- button type="button" class="btn btn-primary"
@@ -281,13 +281,28 @@
   $(document).ready(function(){
     $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
     {% if is_ro %}
+      htmx.on("htmx:afterSwap", (e) => {
+        // Response targeting #dialog => show the modal
+        target_id = e.detail.target.id;
+        if (target_id == "id_agent_declaration_span") {
+           $('#id_agent_declaration_modal').modal('show');
+           $('#id_action').val("approve");
+           $(this).find("textarea[name='resolution']").focus();
+        }
+      })
       $('#id_resolution_modal,#id_agent_declaration_modal').on('shown.bs.modal', function (e) {
-        $("#id_resolution").focus();
+          $(this).find("textarea[name='resolution']").focus();
+          // $("#id_resolution").focus();
       });
       $("input[type='submit']").on("click", function(e) {
         e.preventDefault();
-        $('#id_action').val($(this).attr("name"));
-        $('#id_resolution_modal').modal({keyboard: true});
+        let name = $(this).attr("name");
+        $('#id_action').val(name);
+        {% if object.round.agent_declaration %}
+          if (name == "approve") $('#id_agent_declaration_modal').modal({keyboard: true}); else $('#id_resolution_modal').modal({keyboard: true});
+        {% else %}
+          $('#id_resolution_modal').modal({keyboard: true});
+        {% endif %}
         return false;
       });
       {% if object.round.agent_declaration %}
@@ -299,11 +314,9 @@
         buttonsStyling: false
       });
       $("#id_action_form").submit(function(e) {
-        e.preventDefault();
         if (!$("#id_declaration_accepted_check").is(':checked')) {
-          swalWithBootstrapButtons.fire("{% trans 'Please accept the terms and conditions!' %}").then(function(result) {
-            if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
-          })
+          e.preventDefault();
+          swalWithBootstrapButtons.fire("{% trans 'Please accept the terms and conditions!' %}");
           return false;
         }
       });

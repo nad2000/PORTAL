@@ -2342,6 +2342,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
     awarded_amount = DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
 
+    agent_declaration_accepted_by =  ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        related_name="+",
+    )
+    agent_declaration_accepted_at = DateTimeField(null=True, blank=True)
+
     @property
     def is_wip(self):
         return not self.state or self.state in ["new", "draft"]
@@ -2738,6 +2747,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             resolution = resolution.strip()
         if not by and request:
             by = request.user
+        if agent_declaration_accepted := kwargs.pop("agent_declaration_accepted", None):
+            self.agent_declaration_accepted_by = by
+            self.agent_declaration_accepted_at = timezone.now()
         # approved by the R.O.
         recipients = [self.submitted_by, *self.members.all()]
         url = self.get_full_detail_url(request=request)
