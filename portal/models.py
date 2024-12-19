@@ -8157,6 +8157,15 @@ class ContractSeo(Model):
 
 
 class ContractComment(Model):
+
+    @property
+    def object(self):
+        return self.contract
+
+    @property
+    def object_pk(self):
+        return self.contract_pk
+
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
     reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
@@ -10744,6 +10753,15 @@ REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Othe
 
 
 class ReportComment(Model):
+
+    @property
+    def object(self):
+        return self.report
+
+    @property
+    def object_pk(self):
+        return self.report_pk
+
     report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
     reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)

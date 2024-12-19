@@ -103,8 +103,10 @@ def portal_context(request):
                 cached_context["application_approved_count"] = application_approved_count
                 application_count += application_approved_count
             cached_context["application_count"] = application_count
-            if is_ro or u.is_superuser or u.is_staff or u.is_site_staff:
+            if u.is_superuser or u.is_staff or u.is_site_staff:
                 cached_context["contract_count"] = models.Contract.objects.count()
+            else:
+                cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).count()
 
             counts = {
                 s: c for s, c in models.Report.user_object_counts(u, request=request)

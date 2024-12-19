@@ -12,9 +12,10 @@
         {% trans %}submitted by {{by}} at {{at}} on {{on}}{% endtrans %}
         {% for r in c.recipients.all() %}{% if loop.first %}{{ _('to:') }} {% endif %}{{ r.user }} ({{ r.email}}){% if not loop.last %}, {% endif %}{% endfor %}
       </a>
+      {% if c.model_name == 'reportcomment' %}
       <button
         class="btn btn-outline-primary btn-sm float-right"
-        hx-get="{{ url('email-import', pk=c.report.pk) }}?_modal_dialog=1&reply_to={{ c.pk }}"
+        hx-get="{{ url('email-import', pk=c.object_pk) }}?_modal_dialog=1&reply_to={{ c.pk }}"
         hx-params="none"
         hx-target="#form-dialog"
         data-toggle="tooltip"
@@ -22,6 +23,7 @@
       >
         ...
       </button>
+      {% endif %}
     </div>
     <div id="comment-{{ c.pk }}" class="collapse{% if loop.first %} show{% endif %}" data-parent="#comments">
       <div class="card-body">

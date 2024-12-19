@@ -5529,8 +5529,11 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
     filterset_class = filters.ContractFilterSet
 
     def get_queryset(self, *args, **kwargs):
+        u = self.request.user
         queryset = super().get_queryset(*args, **kwargs)
         queryset = queryset.filter(Q(members__isnull=True) | Q(members__role="PI"))
+        if not (u.is_superuser or u.is_site_staff):
+            queryset = queryset.filter(Q(members__user=u) | Q(org__research_offices__user=u))
         return queryset
 
 
