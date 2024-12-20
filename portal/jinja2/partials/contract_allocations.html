@@ -1,0 +1,40 @@
+{% set c = contract or object %}
+{% set has_purpose = c.allocations.filter(purpose__isnull=False).exists() %}
+<table class="table table-bordered searchable table-striped">
+
+  <thead>
+    <tr class="thead-dark" valign="middle">
+      <th><b>{{ _('Year') }}</b></th>
+      <th><b>{{ _('Amount of Funding') }}</b> (GST excl.)</th>
+      {% if has_purpose %}<th><b>{{ _('Purpose of Funding') }}</b></th>{% endif %}
+      <th><b>{{ _('Payment details') }}</b></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for y, entries in c.allocations_by_years %}
+      {% for r in entries %}
+        <tr valign="middle">
+          {% if not loop.index0 %}
+            <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
+          {% endif %}
+          <td style="text-align: right;">${{ r.allocation }}</td>
+          {% if has_purpose %}<td>{{ r.purpose or '' }}</td>{% endif %}
+          <td>{{ r.details or '' }}</td>
+        </tr>
+      {% endfor %}
+    {% endfor %}
+  </tbody>
+
+  <tfoot>
+    <tr valign="middle">
+      <td><b>{{ _('TOTAL') }}</b></td>
+      <td colspan="{% if has_purpose %}3{% else %}2{% endif %}" style="text-align: right;">
+        <b>
+         ${{ '%0.2f' % c.total_allocation }}
+        </b>
+      </td>
+    </tr>
+  </tfoot>
+
+</table>
