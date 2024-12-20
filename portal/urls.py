@@ -40,6 +40,11 @@ urlpatterns = [
         name="objects-delete",
     ),
     path(
+        "comments/<int:pk>/~email-import",
+        views.EmailImportView.as_view(),
+        name="email-import",
+    ),
+    path(
         "applications/",
         include(
             [
@@ -171,11 +176,6 @@ urlpatterns = [
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
                     "<int:pk>/~ris-import", views.ReportRisImportView.as_view(), name="ris-import"
-                ),
-                path(
-                    "<int:pk>/comments/~email-import",
-                    views.EmailImportView.as_view(),
-                    name="email-import",
                 ),
                 path(
                     "funding/",

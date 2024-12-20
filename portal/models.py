@@ -318,6 +318,129 @@ def get_request(*args, **kwargs):
             return v
 
 
+class CommentMixin:
+
+    def import_email(
+        self, file, file_name=None, notify_author=True, request=None, by=None, reply_to=None
+    ):
+        if isinstance(file, io.BytesIO):
+            msg = email.message_from_binary_file(file)
+        else:
+            msg = email.message_from_file(file)
+
+        to = msg["to"]
+        subject = msg["subject"]
+        sender = msg["from"]
+        if sender and (match := re.search(EMAIL_EX, sender)):
+            sender = match[0].lower()
+        # from_addresses = []
+
+        by = (
+            User.where(Q(email=sender) | Q(emailaddress__email=sender)).first()
+            or by
+            or request
+            and request.user
+        )
+
+        body = msg["body"]
+        if not msg.is_multipart():
+            body = msg.get_payload(decode=True)
+        else:
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type == "multipart/alternative":
+                    for p in part.get_payload():
+                        body = p.get_payload(decode=True)
+                        if p.get_content_type() == "text/html":
+                            break
+
+        attachments = [
+            File(io.BytesIO(a.as_bytes()), name=a.get_filename())
+            for a in msg.walk()
+            if a.get_filename()
+        ]
+
+        def message_ids(msg):
+            headers = [
+                "in-reply-to",
+                "original-message-id",
+                "x-ms-exchange-parent-message-id",
+                "message-id",
+            ]
+            for h in headers:
+                v = msg[h]
+                if v:
+                    yield v
+            for p in msg.walk():
+                for f in headers:
+                    v = p[h]
+                    if v:
+                        yield v
+
+        if by or body:
+            token = get_unique_mail_token()
+            if body:
+                for encoding in ["utf-8", "iso-8859-4"]:
+                    try:
+                        body = body.decode(encoding)
+                        break
+                    except:
+                        pass
+            if not reply_to:
+                for message_id in message_ids(msg):
+                    reply_to = self.comments.model.where(token=message_id).last()
+                    if reply_to:
+                        break
+            comment = self.comments.model.create(
+                report=self,
+                submitted_by=by,
+                comment=body,
+                token=token,
+                reply_to=reply_to,
+                # attachment=attachments and attachments[0] or None,
+            )
+            comment.recipients.model.create(
+                comment=comment,
+                user=reply_to and reply_to.submitted_by or self.pi,
+                email=(
+                    reply_to.submitted_by.email
+                    if reply_to and reply_to.submitted_by
+                    else self.pi.email
+                ),
+            )
+
+            attachments.append(
+                File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
+            )
+
+            # for a in attachments[1:]:
+            for a in attachments:
+                ca = comment.attachments.model(comment=comment)
+                ca.attachment.save(content=a, name=a.name)
+                ca.save()
+
+            domain = to.split("@")[1]
+            recipients = [reply_to and reply_to.submitted_by or self.pi]
+            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+            html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                from_email="reports",
+                subject=f"Comment posted by {by.full_name_with_email} to {self}",
+                html_message=html_message,
+                cc=by and [by.full_email_address],
+                attachments=attachments or None,
+                recipients=recipients,
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+                token=token,
+                request=request,
+                site=self.contract.site,
+            )
+            return comment
+
+
 class PdfFileMixin:
     """Mixin for handling attached file update and conversion to a PDF copy."""
 
@@ -1745,16 +1868,16 @@ class ConvertedFile(HelperMixin, Base):
 
 APPLICATION_STATES = Choices(
     (None, None),
-    ("new", _("new")),
-    ("draft", _("draft")),
+    ("new", _("New")),
+    ("draft", _("Draft")),
     ("tac_accepted", _("TAC accepted")),
-    ("in_review", _("in referee review")),
-    ("submitted", _("submitted")),
-    ("cancelled", _("cancelled")),
-    ("withdrawn", _("withdrawn")),
-    ("approved", _("approved")),
-    ("accepted", _("accepted")),
-    ("funded", _("funded")),
+    ("in_review", _("In referee review")),
+    ("submitted", _("Submitted")),
+    ("cancelled", _("Cancelled")),
+    ("withdrawn", _("Withdrawn")),
+    ("approved", _("Approved")),
+    ("accepted", _("Accepted")),
+    ("funded", _("Funded")),
 )
 
 
@@ -2342,7 +2465,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     panel = ForeignKey("Panel", null=True, blank=True, on_delete=PROTECT)
     awarded_amount = DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
 
-    agent_declaration_accepted_by =  ForeignKey(
+    agent_declaration_accepted_by = ForeignKey(
         User,
         null=True,
         blank=True,
@@ -8320,7 +8443,7 @@ class ContractManager(CurrentSiteManager):
         return self.get(email=email, contract__number=number)
 
 
-class Contract(ContractMixin, PersonMixin, PdfFileMixin, VMTOAModel):
+class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAModel):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
     objects = ContractManager()
@@ -9867,7 +9990,7 @@ class ReportMixin:
     )
 
 
-class Report(ReportMixin, PdfFileMixin, Model):
+class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     schedule_entry = OneToOneField(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
@@ -10237,126 +10360,6 @@ class Report(ReportMixin, PdfFileMixin, Model):
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
-
-    def import_email(
-        self, file, file_name=None, notify_author=True, request=None, by=None, reply_to=None
-    ):
-        if isinstance(file, io.BytesIO):
-            msg = email.message_from_binary_file(file)
-        else:
-            msg = email.message_from_file(file)
-
-        to = msg["to"]
-        subject = msg["subject"]
-        sender = msg["from"]
-        if sender and (match := re.search(EMAIL_EX, sender)):
-            sender = match[0].lower()
-        # from_addresses = []
-
-        by = (
-            User.where(Q(email=sender) | Q(emailaddress__email=sender)).first()
-            or by
-            or request
-            and request.user
-        )
-
-        body = msg["body"]
-        if not msg.is_multipart():
-            body = msg.get_payload(decode=True)
-        else:
-            for part in msg.walk():
-                content_type = part.get_content_type()
-                if content_type == "multipart/alternative":
-                    for p in part.get_payload():
-                        body = p.get_payload(decode=True)
-                        if p.get_content_type() == "text/html":
-                            break
-
-        attachments = [
-            File(io.BytesIO(a.as_bytes()), name=a.get_filename())
-            for a in msg.walk()
-            if a.get_filename()
-        ]
-
-        def message_ids(msg):
-            headers = [
-                "in-reply-to",
-                "original-message-id",
-                "x-ms-exchange-parent-message-id",
-                "message-id",
-            ]
-            for h in headers:
-                v = msg[h]
-                if v:
-                    yield v
-            for p in msg.walk():
-                for f in headers:
-                    v = p[h]
-                    if v:
-                        yield v
-
-        if by or body:
-            token = get_unique_mail_token()
-            if body:
-                for encoding in ["utf-8", "iso-8859-4"]:
-                    try:
-                        body = body.decode(encoding)
-                        break
-                    except:
-                        pass
-            if not reply_to:
-                for message_id in message_ids(msg):
-                    reply_to = self.comments.model.where(token=message_id).last()
-                    if reply_to:
-                        break
-            comment = self.comments.model.create(
-                report=self,
-                submitted_by=by,
-                comment=body,
-                token=token,
-                reply_to=reply_to,
-                # attachment=attachments and attachments[0] or None,
-            )
-            comment.recipients.model.create(
-                comment=comment,
-                user=reply_to and reply_to.submitted_by or self.pi,
-                email=(
-                    reply_to.submitted_by.email
-                    if reply_to and reply_to.submitted_by
-                    else self.pi.email
-                ),
-            )
-
-            attachments.append(
-                File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
-            )
-
-            # for a in attachments[1:]:
-            for a in attachments:
-                ca = comment.attachments.model(comment=comment)
-                ca.attachment.save(content=a, name=a.name)
-                ca.save()
-
-            domain = to.split("@")[1]
-            recipients = [reply_to and reply_to.submitted_by or self.pi]
-            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
-            html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
-            html_message += f":</p>{body}" if body else "."
-            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-            send_mail(
-                from_email="reports",
-                subject=f"Comment posted by {by.full_name_with_email} to {self}",
-                html_message=html_message,
-                cc=by and [by.full_email_address],
-                attachments=attachments or None,
-                recipients=recipients,
-                thread_index=self.thread_index,
-                thread_topic=self.thread_topic,
-                token=token,
-                request=request,
-                site=self.contract.site,
-            )
-            return comment
 
     class Meta:
         db_table = "report"

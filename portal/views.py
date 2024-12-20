@@ -2789,8 +2789,12 @@ class FileImportView(LoginRequiredMixin, FormView):
 
     @property
     def object(self):
+        if model_name := self.request.GET.get("model"):
+            model = models.Report if model_name in ["reportcomment", "report"] else models.Contract
+        else:
+            model = self.model
         if "pk" in self.kwargs:
-            return get_object_or_404(self.model, pk=self.kwargs.get("pk"))
+            return get_object_or_404(model, pk=self.kwargs.get("pk"))
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -2947,11 +2951,11 @@ class EmailImportView(FileImportView):
         file_field = form.cleaned_data["file"]
         file_name = file_field.name
         file_field.file.seek(0)
-        r = self.object
+        o = self.object
 
         if reply_to := self.request.GET.get("reply_to"):
-            reply_to = get_object_or_404(r.comments.model, pk=reply_to)
-        r.import_email(
+            reply_to = get_object_or_404(o.comments.model, pk=reply_to)
+        o.import_email(
             file_field.file,
             file_name,
             request=self.request,
@@ -2966,7 +2970,7 @@ class EmailImportView(FileImportView):
         return render(
             self.request,
             "partials/comments.html",
-            {"messages": messages_list, "comments": r.comments},
+            {"messages": messages_list, "comments": o.comments},
         )
 
 
@@ -3428,7 +3432,10 @@ class ApplicationDetail(DetailView):
                 )
             elif action == "approve":
                 a = self.object
-                a.approve(request, agent_declaration_accepted=request.POST.get("agent_declaration_accepted"))
+                a.approve(
+                    request,
+                    agent_declaration_accepted=request.POST.get("agent_declaration_accepted"),
+                )
                 a.save()
 
                 if a.site_id == 5:
@@ -5866,7 +5873,12 @@ class ContractViewMixin:
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
-        self.allocations = context["allocations"] = self.get_allocation_formset()
+        org = self.object and self.object.org or self.application.org
+        if is_ro := org.research_offices.filter(user=u).exists():
+            context["is_ro"] = is_ro
+        else:
+            self.allocations = context["allocations"] = self.get_allocation_formset()
+
         self.reporting_schedule = context["reporting_schedule"] = (
             self.get_reporting_schedule_formset()
         )
@@ -5920,8 +5932,9 @@ class ContractViewMixin:
         u = self.request.user
         if not i.submitted_by:
             i.submitted_by = u
+        org = i.org or a.org
         if not i.org:
-            i.org = a.org
+            i.org = org
         if not i.application:
             i.application = a
         if not i.number:
@@ -5931,10 +5944,12 @@ class ContractViewMixin:
         try:
             with transaction.atomic():
                 resp = super().form_valid(form)
-                fs = self.get_allocation_formset()
-                fs.instance = self.object
-                if fs.is_valid():
-                    fs.save()
+                if not org.research_offices.filter(user=u).exists():
+                    fs = self.get_allocation_formset()
+                    fs.instance = self.object
+                    if fs.is_valid():
+                        fs.save()
+
                 fs = self.get_reporting_schedule_formset()
                 fs.instance = self.object
                 if fs.is_valid():
@@ -6127,9 +6142,13 @@ class ContractViewMixin:
                 )
                 return redirect("contract-update", pk=i.pk)
 
-        if "save_draft" in self.request.POST and (
-            form.data.get("current_tab") == "#parts"
-            or {"duration", "awarded_amount"}.intersection(form.changed_data)
+        if (
+            "save_draft" in self.request.POST
+            and (
+                form.data.get("current_tab") == "#parts"
+                or {"duration", "awarded_amount"}.intersection(form.changed_data)
+            )
+            or "save" in self.request.POST
         ):
             return redirect(self.request.path)
 
@@ -10041,7 +10060,11 @@ def agent_declaration(request, lang=None):
     if (
         (pks := request.GET.getlist("pk"))
         and (applications := models.Application.where(pk__in=pks).order_by("number"))
-        and (round := models.Round.where(applications__in=applications.values_list("pk"), agent_declaration__isnull=False).first())
+        and (
+            round := models.Round.where(
+                applications__in=applications.values_list("pk"), agent_declaration__isnull=False
+            ).first()
+        )
     ):
         org = models.Organisation.where(
             Q(pk__in=applications.values_list("org")),

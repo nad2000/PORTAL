@@ -1863,15 +1863,30 @@ class ContractForm(ModelForm):
                     and self.instance.id
                     and not (user.is_superuser or user.is_site_staff)
                     else [
-                        HTML("""<div class="alert alert-dark" role="alert">
+                        HTML(
+                            """<div class="alert alert-dark" role="alert">
                         Enter the total funding allocation and/or duration and Save. The amount is not allocated over the years.
-                        </div>"""),
+                        </div>"""
+                        ),
                         Row(
                             Column("start_date", css_class="col-1"),
                             Column("end_date", css_class="col-1"),
-                            Column(Field("duration", style="text-align: right; width: 70%;"), css_class="col-1"),
-                            Column(PrependedText(
-                                Field("awarded_amount", style="text-align: right; width: 70%;", max="9999999"), "$", placeholder="Awarded amount"), css_class="col-2")
+                            Column(
+                                Field("duration", style="text-align: right; width: 70%;"),
+                                css_class="col-1",
+                            ),
+                            Column(
+                                PrependedText(
+                                    Field(
+                                        "awarded_amount",
+                                        style="text-align: right; width: 70%;",
+                                        max="9999999",
+                                    ),
+                                    "$",
+                                    placeholder="Awarded amount",
+                                ),
+                                css_class="col-2",
+                            ),
                         ),
                         SubForm("address_form"),
                     ]
@@ -1967,8 +1982,12 @@ class ContractForm(ModelForm):
                 ),
                 Fieldset(
                     _("Budget Allocation"),
-                    TableInlineFormset(
-                        "allocations", template="portal/allocations_table_inline_formset.html"
+                    (
+                        HTML("<div>{% load tags %}{% jinja 'partials/contract_allocations.html' %}<div>")
+                        if is_ro
+                        else TableInlineFormset(
+                            "allocations", template="portal/allocations_table_inline_formset.html"
+                        )
                     ),
                     css_id="allocations",
                 ),
@@ -2308,6 +2327,13 @@ class ContractForm(ModelForm):
             ButtonHolder(
                 Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
                 Div(
+                    Submit(
+                        "save",
+                        _("Save and continue"),
+                        css_class="btn-secondary",
+                        data_toggle="tooltip",
+                        title=_("Save and continue editing"),
+                    ),
                     Submit(
                         "save_draft",
                         _("Save"),
