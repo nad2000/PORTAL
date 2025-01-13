@@ -358,7 +358,7 @@ thead th.orderable.desc > a {
   {% endblock %}
 
 
-  {% if user.is_saff and filter or user.is_superuser and filter %}
+  {% if user.is_saff and filter or user.is_superuser and filter or is_ro and filter %}
     {#% if filter.form.round_filter or filter.form.year_filter or filter.form.fund_filter %#}
     {% if filter.filters %}
     <div class="row">
@@ -474,8 +474,8 @@ thead th.orderable.desc > a {
 
 {% block javascript %}
   {{ block.super }}
-{% if user.is_site_saff and filter or user.is_superuser and filter %}
 <script>
+{% if user.is_site_saff and filter or user.is_superuser and filter or is_ro and state == "submitted" or is_ro and filter %}
 // Remember the state of a <details> element.
 //
 // If the element is opened and the page is reloaded, the element will
