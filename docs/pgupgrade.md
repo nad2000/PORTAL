@@ -7,11 +7,12 @@ Please follow the steps below:
 1. Dump DB using the current PostgreSQL version **pg_dump**, eg,
   ```bash
   for db in portal allfunds app fm funddb 'ie-contracts' jcf marsdenreports mwf pdp pmspp rdf rfda testdb ; do
-    pg_dump -C -U postgres -d ${db} --column-inserts --rows-per-insert=10000 | xz -e - | pv >~/${db}_$(date -Idate).sql.xz ; done
+    pg_dump -C -U postgres -d ${db} --column-inserts --rows-per-insert=10000 | xz - | pv >~/${db}_$(date -Idate).sql.xz ; done
   ```
 2. Upgrade PostgreSQL package: ``apt update; apt full-upgrade``
 1. Restored DB:
   ```bash
+  psql -p 5433 -d postgres -U postgres -f globals.sql
   for db in portal allfunds app fm funddb 'ie-contracts' jcf marsdenreports mwf pdp pmspp rdf rfda testdb ; do
     xz -d -c ./${db}_*.sql.xz | psql -p 5433 -d postgres -U postgres -f - | tee ${db}_log.log ; done
   ```
