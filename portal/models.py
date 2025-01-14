@@ -8662,8 +8662,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 lines = [l for l in (a.address or address.address).splitlines() if l.strip()][-1]
                 if lines:
                     last_line = lines[-1]
-                    parts = [p for p in last_line.split() if p.strip()]
-                    country = Country.where(Q(name=parts[0]) | Q(name=last_line)).last()
+                    parts = [p for p in last_line.split() if p and p.isalpha()]
+                    country = Country.where(Q(name__in=parts) | Q(name=last_line)).last()
                     if country and not address.country:
                         address.country = country
                     if len(parts) > 1 and parts[-1].isdecimal():
