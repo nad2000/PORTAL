@@ -376,6 +376,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               <b style="text-transform: uppercase;">
                 {{ record.title }}
               </b>
+              {% if not round.is_open %} (<strong class="text-danger">{% trans 'ROUND CLOSED' %}</strong>){% endif %}
             </h5>
             <div class="card-body"{#% if round.colour %} style="background-color: {{ round.colour|color_variant:3.9 }}; color: white;"{% endif %#}>
               {% if record.description %}
@@ -432,6 +433,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   {% endif %}
               {% endwith %}
               </strong>
+              {% if not round.is_open %} (<strong class="text-danger">{% trans 'CLOSED' %}</strong>){% endif %}
               </p>
               {% endif %}
               {% endif %}
@@ -511,6 +513,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    data-title="{% trans 'You are a panellist of this round and cannot apply for it' %}"
                    {% elif not round.is_open %}
                    disabled
+                   data-title="{% trans 'The round of the scheme has been already closed. You cannot apply for this round.' %}"
                    {% if round.will_open %}
                    data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
                    {% else %}
