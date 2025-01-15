@@ -69,7 +69,7 @@
       <a href="{{ site_url }}">
         <i class="fa fa-fw fa-home"></i>
         {% translate 'View site' %}
-      </a>
+      </a> /
   {% endif %}
   {% if user.is_active and user.is_staff %}
       {% url 'django-admindocs-docroot' as docsroot %}

@@ -2399,6 +2399,11 @@ class ContractForm(ModelForm):
                             name=file.name,
                             content=file,
                         )
+                    if part.converted_file:
+                        part.converted_file = None
+                        part.page_count = None
+                        part.save()
+
                 elif file:
                     required_document = r.required_contract_documents.filter(
                         document_type__role=dr
