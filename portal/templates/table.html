@@ -105,7 +105,7 @@ thead th.orderable.desc > a {
     <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this">
         <div class="modal-content">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="id_outcome_form">
           {% csrf_token %}
           <div class="modal-header">
             <h5 class="modal-title">Load Outcomes</h5>
@@ -129,6 +129,10 @@ thead th.orderable.desc > a {
         </div>
         </form>
       </div>
+    </div>
+    <div class="alert alert-primary" role="alert" id="wait-message" style="display:none;">
+      <img src="{% static 'images/spinner.png' %}" />
+      {% trans 'We are processing your request. Please be patient.' %}
     </div>
     {% endif %}
 
@@ -574,6 +578,20 @@ function rememberIfDetailsWasDisclosed(detailsId) {
     }
     this.form.submit();
   });
+  {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+  $("#id_outcome_form").on("submit", function(e) {
+      if (this.checkValidity()) {
+          $.blockUI({
+            message: $('#wait-message'),
+            css: {
+              backgroundColor: '#0000',
+              color: '#0fff',
+              border: '0px',
+            }
+        });
+      }
+  });
+  {% endif %}
   /* htmx.on("htmx:afterSwap", (e) => {
     // Response targeting #dialog => show the modal
     if (target_id == "form-dialog") {

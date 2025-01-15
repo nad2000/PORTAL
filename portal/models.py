@@ -2473,6 +2473,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         related_name="+",
     )
     agent_declaration_accepted_at = DateTimeField(null=True, blank=True)
+    applicant_declaration_accepted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        related_name="+",
+    )
+    # at the time of submission:
+    # applicant_declaration_accepted_at = DateTimeField(null=True, blank=True)
 
     @property
     def is_wip(self):
@@ -5912,6 +5921,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
     contract_background = TextField(_("contract background"), null=True, blank=True)
     agent_declaration = TextField(
+        null=True,
+        blank=True,
+    )
+    applicant_declaration = TextField(
         null=True,
         blank=True,
         help_text=_("Duly authorised agent (i.e. the research office) declaration."),

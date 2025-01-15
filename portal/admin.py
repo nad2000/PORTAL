@@ -2511,6 +2511,7 @@ class RoundAdmin(
         "description_mi",
         "tac_en",
         "tac_mi",
+        "applicant_declaration",
         "agent_declaration",
         "contract_background",
     )
@@ -2655,6 +2656,7 @@ class RoundAdmin(
                     "fields": [
                         "tac_en",
                         "tac_mi",
+                        "applicant_declaration",
                         "agent_declaration",
                     ],
                 },

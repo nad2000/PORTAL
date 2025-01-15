@@ -254,7 +254,7 @@ class SafeTemplateColumn(tables.TemplateColumn):
 
 
 class ApplicationTable(tables.Table):
-    selection = tables.CheckBoxColumn(accessor="pk")
+    # selection = tables.CheckBoxColumn(accessor="pk")
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
     round = tables.Column(linkify=application_round_link)
@@ -327,8 +327,8 @@ class ApplicationTable(tables.Table):
     def before_render(self, request, *args, **kwargs):
         view_name = (rm := request.resolver_match) and rm.view_name
         state = rm and rm.kwargs.get("state")
-        if state != "submitted" and view_name != "applications-submitted":
-            self.columns.hide("selection")
+        # if state != "submitted" and view_name != "applications-submitted":
+        #     self.columns.hide("selection")
         if state != "funded":
             self.columns.hide("current_contract")
         if (u := request.user) and not u.is_superuser and not u.is_staff:

@@ -33,6 +33,41 @@
       </h1>
 
       <form method="post" enctype="multipart/form-data" id="application-form">
+
+        {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
+          <div class="modal fade" tabindex="-1" role="dialog" id="id_applicant_declaration_modal">
+            <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+              <div class="modal-content">
+
+                <div class="modal-header">
+                  <h5 class="modal-title">
+                    {% trans 'Applicant Declaration' %}
+                  </h5>
+                  <!-- button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button -->
+                </div>
+
+                <div class="modal-body">
+                  <span id="id_applicant_declaration_span" hx-target="this">
+                    {{ round.applicant_declaration|safe }}
+                  </span>
+                  <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input" id="id_declaration_accepted_check" name="applicant_declaration_accepted">
+                    <label class="form-check-label" for="id_declaration_accepted_check">{% trans 'I accept the declaration' %}</label>
+                  </div>
+                </div>
+
+                <div class="modal-footer">
+                  <input type="submit" class="btn btn-primary" id="id_applicant_declaration_submit" name="submit" value="{% trans 'Submit' %}">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        {% endif %}{% endif %}
+
         {% if object.pk %}<input type="hidden" name="pk" id="id_pk" value="{{ object.pk }}">{% endif %}
         {% crispy form form.helper %}
         {% if inlines %}
@@ -135,8 +170,27 @@
                           e.preventDefault();  // need for a link
                           return false;
                         };
+                        // Applicant declaration:
+                        {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
+                          if (this.name == "submit" ) {
+                            e.preventDefault();
+                            $('#id_applicant_declaration_modal').modal({keyboard: true});
+                            return false;
+                          }
+                        {% endif %}{% endif %}
                         return true;
                       });
+                      {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
+                      $("#id_applicant_declaration_submit").on("click", function (e) {
+                        if (!$("#id_declaration_accepted_check").is(':checked')) {
+                          e.preventDefault();
+                          swalWithBootstrapButtons.fire("{% trans 'Please accept the terms and conditions!' %}");
+                          return false;
+                        };
+                        $('#id_applicant_declaration_modal').modal('hide');
+                        $(this).closest("form").submit();
+                      });
+                      {% endif %}{% endif %}
                                 {% if not form.is_team_application.value %}$("#members").hide();{% endif %}
                                 $('#id_is_team_application').change(function() {
                                   if (!($(this).prop('checked'))) {
@@ -189,10 +243,10 @@
                                         $.blockUI({
                                           message: $('#wait-message'),
                                           css: {
-                                                      backgroundColor: '#0000',
-                                                      color: '#0fff',
-                                                      border: '0px',
-                                                    }
+                                            backgroundColor: '#0000',
+                                            color: '#0fff',
+                                            border: '0px',
+                                          }
                                       });
                                     }
                                 });

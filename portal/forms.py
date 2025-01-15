@@ -667,7 +667,15 @@ class ApplicationForm(ModelForm):
             and self.instance.round.curriculum_vitae_templates.count() > 0
         ):
             self.instance.cv = None
-
+        if (
+            self.data.get("applicant_declaration_accepted") == "on"
+            and self.instance
+            and self.instance.round
+            and self.instance.round.applicant_declaration
+            and hasattr(self, "initial")
+            and (u := self.initial.get("user"))
+        ):
+            self.instance.applicant_declaration_accepted_by = u
         return super().save(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
@@ -690,7 +698,7 @@ class ApplicationForm(ModelForm):
             self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
 
         self.helper = FormHelper(self)
-        instance = self.instance
+        instance = self.instance or kwargs.get("instance")
         # self.helper.help_text_inline = True
         # self.helper.html5_required = True
 
@@ -1253,14 +1261,10 @@ class ApplicationForm(ModelForm):
                 ).exists()
             )
         )
-        submit_button = Submit(
-            "submit",
-            # "submit_to_referees" if send_out_to_referees else "submit",
-            # _("Submit to referees") if send_out_to_referees else _("Submit"),
-            _("Submit"),
-            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+
+        submit_button_kwargs = dict(
             css_id="submit-id-submit",
-            data_toggle="tooltip",
+            data_tooltip="tooltip",
             title=(
                 _("Only the main applicant or the applicant team can submit the application")
                 if is_ro
@@ -1287,6 +1291,19 @@ class ApplicationForm(ModelForm):
             ),
             css_class="btn-outline-primary",
             disabled=submission_disabled or is_ro,
+        )
+        # if round.applicant_declaration and instance and instance.state in ["new", "draft"]:
+        #     submit_button_kwargs.update(
+        #         {"data_toggle": "modal", "data_target": "#id_applicant_declaration_modal"}
+        #     )
+
+        submit_button = Submit(
+            "submit",
+            # "submit_to_referees" if send_out_to_referees else "submit",
+            # _("Submit to referees") if send_out_to_referees else _("Submit"),
+            _("Submit"),
+            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+            **submit_button_kwargs,
         )
         self.helper.layout = Layout(
             TabHolder(*tabs),
@@ -1346,6 +1363,10 @@ class ApplicationForm(ModelForm):
             "submitted_by",
             "state_changed_at",
             "tac_accepted_at",
+            "awarded_amount",
+            "agent_declaration_accepted_by",
+            "agent_declaration_accepted_at",
+            "applicant_declaration_accepted_by",
         ]
         widgets = dict(
             keywords=autocomplete.ModelSelect2Multiple(
@@ -1983,7 +2004,9 @@ class ContractForm(ModelForm):
                 Fieldset(
                     _("Budget Allocation"),
                     (
-                        HTML("<div>{% load tags %}{% jinja 'partials/contract_allocations.html' %}<div>")
+                        HTML(
+                            "<div>{% load tags %}{% jinja 'partials/contract_allocations.html' %}<div>"
+                        )
                         if is_ro
                         else TableInlineFormset(
                             "allocations", template="portal/allocations_table_inline_formset.html"
