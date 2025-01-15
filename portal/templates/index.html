@@ -411,6 +411,8 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   {% elif is_open and deadline_days < 7 %}
                   class="badge-warning"
                   style="border-radius: 7px; padding: 4px 6px 4px 6px;"
+                  {% elif not is_open %}
+                  class="text-secondary"
                   {% endif %}
                   {% if is_open and deadline_minutes < 10080 %}
                   data-toggle="tooltip"
