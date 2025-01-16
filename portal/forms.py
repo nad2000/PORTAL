@@ -1889,26 +1889,38 @@ class ContractForm(ModelForm):
                         Enter the total funding allocation and/or duration and Save. The amount is not allocated over the years.
                         </div>"""
                         ),
-                        Row(
-                            Column("start_date", css_class="col-1"),
-                            Column("end_date", css_class="col-1"),
-                            Column(
-                                Field("duration", style="text-align: right; width: 70%;"),
-                                css_class="col-1",
+                        Div(
+                            Field("start_date"),
+                            Field("end_date"),
+                            Field("duration", style="text-align: right;", max="10"),
+                            Field(
+                                "awarded_amount",
+                                style="text-align: right; width: 70%;",
+                                max="9999999",
                             ),
-                            Column(
-                                PrependedText(
-                                    Field(
-                                        "awarded_amount",
-                                        style="text-align: right; width: 70%;",
-                                        max="9999999",
-                                    ),
-                                    "$",
-                                    placeholder="Awarded amount",
-                                ),
-                                css_class="col-2",
-                            ),
+                            css_class="d-flex justify-content-start gap-3",
+                            style="gap: 1rem;",
                         ),
+                        # Row(
+                        #     Column("start_date", css_class="col-1"),
+                        #     Column("end_date", css_class="col-1"),
+                        #     Column(
+                        #         Field("duration", style="text-align: right; width: 70%;"),
+                        #         css_class="col-1",
+                        #     ),
+                        #     Column(
+                        #         PrependedText(
+                        #             Field(
+                        #                 "awarded_amount",
+                        #                 style="text-align: right; width: 70%;",
+                        #                 max="9999999",
+                        #             ),
+                        #             "$",
+                        #             placeholder="Awarded amount",
+                        #         ),
+                        #         css_class="col-2",
+                        #     ),
+                        # ),
                         SubForm("address_form"),
                     ]
                 ),
