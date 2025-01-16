@@ -8851,20 +8851,20 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         address=m.user.person.address,
                     )
                 )
-                if not a.members.filter(role="PI").exists():
-                    u = a.submitted_by
-                    members.append(
-                        ContractMember(
-                            contract=c,
-                            email=u.email,
-                            first_name=a.first_name,
-                            middle_names=a.middle_names,
-                            last_name=a.last_name,
-                            role="PI",
-                            user=u,
-                            address=a.address or u.person.address,
-                        )
+            if not a.members.filter(role="PI").exists():
+                u = a.submitted_by
+                members.append(
+                    ContractMember(
+                        contract=c,
+                        email=u.email,
+                        first_name=a.first_name,
+                        middle_names=a.middle_names,
+                        last_name=a.last_name,
+                        role="PI",
+                        user=u,
+                        address=a.address or u.person.address,
                     )
+                )
             if members:
                 c.members.model.bulk_create(members)
 
@@ -8889,7 +8889,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             contract=c,
                             period=p,
                             type="A" if p != c.duration else "F",
-                            due_date=c.start_date + relativedelta(years=p),
+                            due_date=(c.start_date + relativedelta(years=p)).replace(day=1)
+                            + relativedelta(days=-1),
+                            date_first_remind=(c.start_date + relativedelta(years=p)).replace(
+                                day=1
+                            )
+                            + relativedelta(days=-1, months=-1),
                         )
                         for p in range(1, c.duration + 1)
                     ]
