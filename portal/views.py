@@ -6334,6 +6334,7 @@ class ApplicationList(
                 contracts = []
                 with transaction.atomic():
                     for number, decision, *rest in outcomes:
+                        number=number.strip()
                         if decision in ["y", "Y", "1", "yes", "YES"]:
                             a = Application.where(number=number).last()
                             if a:

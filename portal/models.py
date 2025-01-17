@@ -8691,14 +8691,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             address.save()
 
         org = a.org
+        if not start_date:
+            start_date = timezone.now().date().replace(day=1) + relativedelta(months=1)
         params = dict(
             application=a,
             year=a.created_at.year,
             org=org,
             project_title=a.application_title or a.round.title,
             duration=duration,
-            start_date=start_date or timezone.now(),
-            end_date=end_date or duration and (timezone.now() + relativedelta(years=duration)),
+            start_date=start_date,
+            end_date=end_date or duration and (start_date + relativedelta(years=duration, days=-1)),
             number=number,
             fund=a.round.scheme.fund,
             address=address,
@@ -8894,7 +8896,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             date_first_remind=(c.start_date + relativedelta(years=p)).replace(
                                 day=1
                             )
-                            + relativedelta(days=-1, months=-1),
+                             + relativedelta(days=-1, months=-1),
                         )
                         for p in range(1, c.duration + 1)
                     ]

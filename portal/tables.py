@@ -288,7 +288,10 @@ class ApplicationTable(tables.Table):
                 "class": "text-center",
             },
         },
-        extra_context={"now": timezone.now(), "relativedelta": relativedelta},
+        extra_context={
+            "start_date": timezone.now().date().replace(day=1) + relativedelta(months=1),
+            "relativedelta": relativedelta,
+        },
     )
 
     # def render_current_contract(self, value, *args, **kwargs):
