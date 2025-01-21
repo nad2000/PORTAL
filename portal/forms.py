@@ -1430,7 +1430,7 @@ class ContractMemberForm(FTEMixin, ModelForm):
 
     class Meta:
         model = models.ContractMember
-        exclude = ["address"]
+        exclude = ["address", "middle_names"]
         disabled = ["state"]
         widgets = dict(user=HiddenInput(), state=InvitationStateInput(attrs={"readonly": True}))
 
@@ -1975,7 +1975,7 @@ class ContractForm(ModelForm):
                 #     css_id="project_timeline_fieldset",
                 # ),
                 Field("abstract"),
-                Field("notes"),
+                # Field("notes"),
                 css_id="research",
             ),
             Tab(
@@ -3655,7 +3655,7 @@ class ReportedEffortForm(ModelForm):
 
     class Meta:
         model = models.ReportedEffort
-        exclude = ["member_effort", "state", "person"]
+        exclude = ["member_effort", "state", "person", "middle_names"]
         widgets = {
             "total_fte": forms.widgets.NumberInput(
                 attrs={"step": "0.01"}

@@ -44,6 +44,7 @@
     SCHEDULE 1 - KEY TERMS<br>
   {% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
   </h1>
+  <h2>(Application: {{ a.number }})</h2>
   <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
 
   <p>
@@ -322,7 +323,7 @@
         <tr valign="middle">
           <td><b>TOTAL</b></td>
           <td colspan="3" style="text-align: right;">
-            ${{ '%0.2f' % c.total_allocation }}
+            ${{ f'{c.total_allocation:0,.2f}' }}
           </td>
         </tr>
       </table>
