@@ -9214,6 +9214,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         template = get_template(template_name)
         user = request and request.user
         fund = self.fund or self.application.round.scheme.fund
+        SITE_ID = int(settings.SITE_ID)
 
         context = locals()
         if kwargs:

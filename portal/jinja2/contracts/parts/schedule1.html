@@ -30,10 +30,13 @@
       <p style='margin-bottom:6.0pt;'>{{ org.contact_phone or '[Phone number]' }}</p>
       {% if org.code == "RSTA" %}
         <p style='margin-bottom:6.0pt;'>Email: {{ c.fund and c.fund.email or org.email }}</p>
+        <p style='margin-bottom:6.0pt;'>{% if org.address %}{{ org.address.__html__()|safe }}{% else %}[Address]{% endif %}</p>
       {% else %}
-        {% if org.email %}<p class=MsoNormal style='margin-bottom:6.0pt;'>Email: {{ org.email }}</p>{% endif %}
+        {% if c.host_contact_email or org.email %}
+          <p style='margin-bottom:6.0pt;'>Email: {{ c.host_contact_email or org.email }}</p>
+        {% endif %}
+        <p style='margin-bottom:6.0pt;'>{% if c.address or org.address %}{{ (c.address or org.address).__html__()|safe }}{% else %}[Address]{% endif %}</p>
       {% endif %}
-    <p style='margin-bottom:6.0pt;'>{% if org.address %}{{ org.address.__html__()|safe }}{% else %}[Address]{% endif %}</p>
     </td>
   </tr>
 {% endmacro %}
@@ -314,7 +317,7 @@
               {% if not loop.index0 %}
                 <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
               {% endif %}
-              <td style="text-align: right;">${{ r.allocation }}</td>
+              <td style="text-align: right;">${{ '{:0,.2f}'.format(r.allocation) }}</td>
               <td>{{ r.purpose or '' }}</td>
               <td>{{ r.details or '' }}</td>
             </tr>
@@ -323,7 +326,7 @@
         <tr valign="middle">
           <td><b>TOTAL</b></td>
           <td colspan="3" style="text-align: right;">
-            ${{ f'{c.total_allocation:0,.2f}' }}
+            ${{ '{:0,.2f}'.format(c.total_allocation) }}
           </td>
         </tr>
       </table>

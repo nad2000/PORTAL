@@ -1475,19 +1475,18 @@ class AddressForm(ModelForm):
                         "created" if self.instance._state.adding else "changed",
                     )
                 )
-            if self.changed_data and self.instance and self.instance.pk:
+            a = self.instance and self.instance.pk and self._meta.model.where(
+                address=self.instance.address,
+                city=self.instance.city,
+                postcode=self.instance.postcode,
+                country=self.instance.country,
+            ).last()
+            if not a and self.instance and self.instance.pk:
                 self.instance.pk = None
+            elif a:
+                self.instance = a
             if commit:
-                if a := self._meta.model.where(
-                    address=self.instance.address,
-                    city=self.instance.city,
-                    postcode=self.instance.postcode,
-                    country=self.instance.country,
-                ).last():
-                    self.instance = a
-                else:
-                    self.instance.save()
-
+                self.instance.save()
         return self.instance
 
     def __init__(self, *args, **kwargs):
