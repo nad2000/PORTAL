@@ -33,7 +33,7 @@
         <p style='margin-bottom:6.0pt;'>{% if org.address %}{{ org.address.__html__()|safe }}{% else %}[Address]{% endif %}</p>
       {% else %}
         {% if c.host_contact_email or org.email %}
-          <p style='margin-bottom:6.0pt;'>Email: {{ c.host_contact_email or org.email }}</p>
+          <p style='margin-bottom:6.0pt;'>Email: {{ c.host_contact_email or org.email or org.ro_email }}</p>
         {% endif %}
         <p style='margin-bottom:6.0pt;'>{% if c.address or org.address %}{{ (c.address or org.address).__html__()|safe }}{% else %}[Address]{% endif %}</p>
       {% endif %}
