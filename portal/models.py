@@ -8712,7 +8712,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             project_title=a.application_title or a.round.title,
             duration=duration,
             start_date=start_date,
-            end_date=end_date or duration and (start_date + relativedelta(years=duration, days=-1)),
+            end_date=end_date
+            or duration
+            and (start_date + relativedelta(years=duration, days=-1)),
             number=number,
             fund=a.round.scheme.fund,
             address=address,
@@ -8908,7 +8910,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             date_first_remind=(c.start_date + relativedelta(years=p)).replace(
                                 day=1
                             )
-                             + relativedelta(days=-1, months=-1),
+                            + relativedelta(days=-1, months=-1),
                         )
                         for p in range(1, c.duration + 1)
                     ]
@@ -8935,7 +8937,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return r.schedule2
 
         r = (
-            Round.where(scheme__current_round=F("pk"), schedule2__isnull=False)
+            Round.where(~Q(schedule2=""), sscheme__current_round=F("pk"), schedule2__isnull=False)
             .order_by("-pk")
             .last()
         )
@@ -8945,7 +8947,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = (
             Round.where(
                 # scheme__current_round=F("pk"),
-                schedule2__isnull=False
+                ~Q(schedule2=""),
+                schedule2__isnull=False,
             )
             .order_by("-pk")
             .last()
@@ -8954,7 +8957,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return r.schedule2
 
         r = (
-            Round.all_objects.filter(scheme__current_round=F("pk"), schedule2__isnull=False)
+            Round.all_objects.filter(
+                ~Q(schedule2=""), sscheme__current_round=F("pk"), schedule2__isnull=False
+            )
             .order_by("-pk")
             .last()
         )
@@ -8964,7 +8969,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = (
             Round.all_objects.filter(
                 # scheme__current_round=F("pk"),
-                schedule2__isnull=False
+                ~Q(schedule2=""),
+                schedule2__isnull=False,
             )
             .order_by("-pk")
             .last()
@@ -8979,7 +8985,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return r.appendix_a
 
         r = (
-            Round.where(scheme__current_round=F("pk"), appendix_a__isnull=False)
+            Round.where(~Q(appendix_a=""), scheme__current_round=F("pk"), appendix_a__isnull=False)
             .order_by("-pk")
             .last()
         )
@@ -8989,7 +8995,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = (
             Round.where(
                 # scheme__current_round=F("pk"),
-                appendix_a__isnull=False
+                ~Q(appendix_a=""),
+                appendix_a__isnull=False,
             )
             .order_by("-pk")
             .last()
@@ -8998,7 +9005,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return r.appendix_a
 
         r = (
-            Round.all_objects.filter(scheme__current_round=F("pk"), appendix_a__isnull=False)
+            Round.all_objects.filter(
+                ~Q(appendix_a=""), scheme__current_round=F("pk"), appendix_a__isnull=False
+            )
             .order_by("-pk")
             .last()
         )
@@ -9008,7 +9017,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = (
             Round.all_objects.filter(
                 # scheme__current_round=F("pk"),
-                appendix_a__isnull=False
+                ~Q(appendix_a=""),
+                appendix_a__isnull=False,
             )
             .order_by("-pk")
             .last()
@@ -9022,7 +9032,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         if r.appendix_b:
             return r.appendix_b
         r = (
-            Round.where(scheme__current_round=F("pk"), appendix_b__isnull=False)
+            Round.where(~Q(appendix_b=""), scheme__current_round=F("pk"), appendix_b__isnull=False)
             .order_by("-pk")
             .last()
         )
@@ -9031,7 +9041,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = (
             Round.where(
                 # scheme__current_round=F("pk"),
-                appendix_b__isnull=False
+                ~Q(appendix_b=""),
+                appendix_b__isnull=False,
             )
             .order_by("-pk")
             .last()
@@ -9039,7 +9050,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         if r and r.appendix_b:
             return r.appendix_b
         r = (
-            Round.all_objects.filter(scheme__current_round=F("pk"), appendix_b__isnull=False)
+            Round.all_objects.filter(
+                ~Q(appendix_b=""), scheme__current_round=F("pk"), appendix_b__isnull=False
+            )
             .order_by("-pk")
             .last()
         )
@@ -9048,7 +9061,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = (
             Round.all_objects.filter(
                 # scheme__current_round=F("pk"),
-                appendix_b__isnull=False
+                ~Q(appendix_b=""),
+                appendix_b__isnull=False,
             )
             .order_by("-pk")
             .last()
