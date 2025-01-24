@@ -1475,12 +1475,16 @@ class AddressForm(ModelForm):
                         "created" if self.instance._state.adding else "changed",
                     )
                 )
-            a = self.instance and self.instance.pk and self._meta.model.where(
-                address=self.instance.address,
-                city=self.instance.city,
-                postcode=self.instance.postcode,
-                country=self.instance.country,
-            ).last()
+            a = (
+                self.instance
+                and self.instance.pk
+                and self._meta.model.where(
+                    address=self.instance.address,
+                    city=self.instance.city,
+                    postcode=self.instance.postcode,
+                    country=self.instance.country,
+                ).last()
+            )
             if not a and self.instance and self.instance.pk:
                 self.instance.pk = None
             elif a:
@@ -1539,7 +1543,7 @@ class ContractForm(ModelForm):
     #     label=_("Comment"), widget=forms.Textarea, required=False
     # )
     requires_approval_comment = forms.CharField(
-        label=_("Comment"), widget=forms.Textarea, required=False
+        label=_("Comment"), widget=forms.Textarea(attrs={"rows": "5"}), required=False
     )
     # requires_approval = forms.ChoiceField(
     #     choices=[(True, _("Yes")), (False, _("No"))],
@@ -1571,7 +1575,6 @@ class ContractForm(ModelForm):
         ),
     )
     has_child_protection = forms.ChoiceField(
-        # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
         required=False,
@@ -1786,11 +1789,20 @@ class ContractForm(ModelForm):
         if not disabled_compliance:
             compliance_fields.append(
                 HTML(
-                    '<p class="text-warning">%s</p>'
-                    % _(
-                        "It is necessary for the Researcher to notify if children "
-                        "are involved in the research and therefor "
-                        "subject to Section 19 of the Vulnerable Children's Act 2014. All ... TODO:..."
+                    '{%% load static %%}<p class="text-warning">%s</p><p class="text-warning">%s</p>'
+                    % (
+                        _(
+                            "It is necessary for the Researcher to notify if children are involved in the research and therefore "
+                            "subject to Section 19 of the Vulnerable Children’s Act 2014. All people involved in delivery of the service "
+                            "will be safety checked in accordance with Part 3 of the Act. If your organisation has a Child Protection Policy, "
+                            "this will cover the requirements of the Act. However, if your organisation does not have a child protection policy, "
+                            "then the Contractor (your organisation) agrees to comply with the child protection policy of the Royal Society Te Apārangi."
+                        ),
+                        _(
+                            "If your organisation does not have one, The Royal Society Te Apārangi child protection policy will "
+                            "be appended to your contract. This document can be viewed at "
+                            """<a href="{% static 'Child-Protection-Policy.pdf' %}" target='_blank'>Child Protection Policy</a>"""
+                        ),
                     )
                 )
             )
