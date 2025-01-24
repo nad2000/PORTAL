@@ -5977,6 +5977,18 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         ],
         validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
     )
+    appendix_b = PrivateFileField(
+        verbose_name="Appendix B",
+        help_text="Eligibility Criteria (preferably converted into PDF)",
+        null=True,
+        blank=True,
+        upload_to="rounds",
+        upload_subfolder=lambda instance: [
+            hash_int(instance.pk),
+            "parts",
+        ],
+        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+    )
 
     @property
     def previous_round(self):
@@ -9005,6 +9017,46 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return r.appendix_a
 
     @cached_property
+    def appendix_b(self):
+        r = self.application.round
+        if r.appendix_b:
+            return r.appendix_b
+        r = (
+            Round.where(scheme__current_round=F("pk"), appendix_b__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_b:
+            return r.appendix_b
+        r = (
+            Round.where(
+                # scheme__current_round=F("pk"),
+                appendix_b__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_b:
+            return r.appendix_b
+        r = (
+            Round.all_objects.filter(scheme__current_round=F("pk"), appendix_b__isnull=False)
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_b:
+            return r.appendix_b
+        r = (
+            Round.all_objects.filter(
+                # scheme__current_round=F("pk"),
+                appendix_b__isnull=False
+            )
+            .order_by("-pk")
+            .last()
+        )
+        if r and r.appendix_b:
+            return r.appendix_b
+
+    @cached_property
     def application_link_name(self):
         r = self.application.round
         if r.schedule2:
@@ -9338,6 +9390,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             file_path = self.schedule2.path if self.schedule2 else self.default_schedule2.path
         elif part == "appendix_a":
             file_path = self.appendix_a and self.appendix_a.path
+        elif part == "appendix_b":
+            file_path = self.appendix_b and self.appendix_b.path
         else:
             return self.get_document(request=request, user=user, format="pdf", part=part, **kwargs)
             # content = self.get_document(
@@ -9409,6 +9463,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         appendix_a = self.get_part_pdf(request=request, part="appendix_a")
         if not isinstance(appendix_a, PdfReader):
             appendix_a = PdfReader(appendix_a, strict=False)
+        appendix_b = self.get_part_pdf(request=request, part="appendix_b")
+        if not isinstance(appendix_b, PdfReader):
+            appendix_b = PdfReader(appendix_b, strict=False)
         schedule2_toc = pdf_toc(schedule2)
         page_no = 2 + schedule1_page_count
         headers = {}
@@ -9427,6 +9484,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             schedule2_toc=schedule2_toc,
             schedule2=schedule2,
             appendix_a=appendix_a,
+            appendix_b=appendix_b,
             page_no=1,
         )
         parts["toc"] = toc
@@ -9441,6 +9499,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 yield d.pdf_file.path
             yield schedule2
             yield appendix_a
+            yield appendix_b
 
         for part in part_list():
             # merger.append(a, outline_item=title, import_outline=True)

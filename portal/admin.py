@@ -2516,7 +2516,15 @@ class RoundAdmin(
         "contract_background",
     )
     save_on_top = True
-    list_display = ["coloured_title", "scheme", "opens_on", "closes_at", "contract_count", "is_active", "ordering"]
+    list_display = [
+        "coloured_title",
+        "scheme",
+        "opens_on",
+        "closes_at",
+        "contract_count",
+        "is_active",
+        "ordering",
+    ]
     list_editable = ["ordering"]
     ordering_field_hide_input = True
     list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
@@ -2663,12 +2671,13 @@ class RoundAdmin(
             ),
             (
                 "Contract Options",
-                {
+               {
                     "classes": ("collapse",),
                     "fields": [
                         "contract_background",
                         "schedule2",
-                        "appendix_a"
+                        "appendix_a",
+                        "appendix_b",
                     ],
                 },
             ),
@@ -2884,7 +2893,7 @@ class ContractAdmin(
     list_filter = (
         ("fund", admin.RelatedOnlyFieldListFilter),
         ("application__round", admin.RelatedOnlyFieldListFilter),
-        "state"
+        "state",
     )
     # list_filter = [
     #     IsActiveRoundApplicationListFilter,

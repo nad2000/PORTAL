@@ -87,6 +87,18 @@
       </td>
     </tr>
 
+    {% if c.appendix_b %}
+      {% set page_no.value = page_no.value + 1 %}
+      <tr>
+        <td style="text-transform: uppercase;">
+          APPENDIX B: Eligibility Criteria
+        </td>
+        <td align="right">
+          {{ page_no.value }}
+        </td>
+      </tr>
+    {% endif %}
+
   </table>
 
 
