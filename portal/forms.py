@@ -1547,19 +1547,22 @@ class ContractForm(ModelForm):
     #     label=gettext_lazy("Does your research require ethical and regulatory approval?"),
     # )
     has_animal_use = forms.ChoiceField(
-        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        choices=[(True, _("Yes")), (False, _("No"))],
         widget=forms.RadioSelect,
         required=False,
         label=gettext_lazy("Does the proposed research use animals for research or teaching?"),
     )
     is_signatory_to_oa = forms.ChoiceField(
-        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        choices=[(True, _("Yes")), (False, _("No"))],
         widget=forms.RadioSelect,
         required=False,
         label=gettext_lazy("Is your institution a signatory to the ANZCCART Openness Agreement?"),
     )
     involves_childeren = forms.ChoiceField(
-        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        choices=[(True, _("Yes")), (False, _("No"))],
         widget=forms.RadioSelect,
         required=False,
         label=gettext_lazy(
@@ -1568,6 +1571,7 @@ class ContractForm(ModelForm):
         ),
     )
     has_child_protection = forms.ChoiceField(
+        # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
         required=False,
@@ -1714,8 +1718,8 @@ class ContractForm(ModelForm):
                 HTML(
                     """<div class="alert alert-dark" role="alert">%s</div>"""
                     % _(
-                        "Please provide an ethic from. If this is not applicable to your application, "
-                        'click "Not Applicable" and state why in the comment.'
+                        "Indicate if ethical or regulatory approval is "
+                        "required to undertake the proposed research."
                     )
                 ),
             ]
@@ -1743,8 +1747,8 @@ class ContractForm(ModelForm):
                     % (
                         (
                             _(
-                                "Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
-                                "(Please provide serial number, type of approval and date received)"
+                                "Please indicate if you already have, or when you expect to receive, "
+                                "ethical and regulatory approval to conduct the proposed research."
                             )
                             if instance.requires_approval
                             else _(
@@ -1767,8 +1771,9 @@ class ContractForm(ModelForm):
                 HTML(
                     '<p class="text-warning">%s</p>'
                     % _(
-                        "Royal Society Te Apārangi and other institutions are signatories to teh ANZCCART "
-                        "Openness Agreement on Animal Research and Teaching in New Zealand ... TODO:..."
+                        "Royal Society Te Apārangi and other institutions are signatories to the ANZCCART Openness Agreement "
+                        "on Animal Research and Teaching in New Zealand "
+                        "<a href='https://anzccart.org.nz/openness-agreement/' target='_blank'>[link]</a>."
                     )
                 )
             )

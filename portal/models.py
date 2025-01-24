@@ -8874,7 +8874,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         first_name=a.first_name,
                         middle_names=a.middle_names,
                         last_name=a.last_name,
-                        role="PI",
+                        role_id="PI",
                         user=u,
                         address=a.address or u.person.address,
                     )
