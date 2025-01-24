@@ -9205,7 +9205,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def agency(self):
-        return Organisation.where(code__in=["RSTA", "NZRS"]).last()
+        return Organisation.where(code__in=["ROY", "RSTA", "NZRS"]).order_by("code").fist()
 
     @property
     def host(self):

@@ -377,7 +377,7 @@ def add_RSTA(apps, schema_editor):
         country=nz,
     )
     o, created = Organisation.get_or_create(
-        code="RSTA",
+        code="ROY",
         defaults=dict(
             name="Royal Society of New Zealand Te Apārangi",
             signatory=p,
