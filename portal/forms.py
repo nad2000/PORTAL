@@ -2347,11 +2347,11 @@ class ContractForm(ModelForm):
                                 data-toggle="tooltip"
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the contract document",
-                            > {_("Export Constract")} </a>"""
+                            > {_("Export Contract")} </a>"""
                                 ),
                                 # Submit(
                                 #     "export_contract",
-                                #     _("Export Constract"),
+                                #     _("Export Contract"),
                                 #     css_class="btn-primary",
                                 # ),
                                 # Button(

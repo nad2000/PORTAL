@@ -860,7 +860,7 @@ class RoleType(TimeStampMixin, HelperMixin, OrderableModel):
     description = CharField(max_length=255, blank=True, null=True)
     for_application = BooleanField(_("Available for application stage"), default=True)
     for_contracting = BooleanField(_("Available for contracting stage"), default=True)
-    is_key_person = BooleanField(_("Is Key Person"), default=True, null=True, blank=True)
+    is_key_person = BooleanField(_("Is Key Person"), default=True, help_text="The role will be included in the contract key personnel list")
 
     def __str__(self):
         return f"{self.code}: {self.name}"

@@ -2480,12 +2480,12 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
 class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["name", "for_application", "for_contracting", "ordering"]
+    list_display = ["name", "for_application", "for_contracting", "is_key_person", "ordering"]
     list_display_links = ["name"]
     search_fields = ["name_en", "name_mi"]
     # list_editable = ["role", "name_en", "name_mi"]
     # date_hierarchy = "created_at"
-    list_editable = ["ordering", "for_application", "for_contracting"]
+    list_editable = ["ordering", "for_application", "for_contracting", "is_key_person"]
     ordering_field_hide_input = True
     exclude = ["ordering"]
 
