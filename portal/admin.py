@@ -2005,6 +2005,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                 # "classes": ("collapse",),
                 "fields": [
                     ("address", "website"),
+                    "contact",
                     ("email", "contact_phone"),
                     "signatory",
                     "ro_email",
@@ -3002,14 +3003,14 @@ class ContractAdmin(
     #     view_on_site = False
     #     classes = ["collapse"]
 
-    class EthicsStatementInline(admin.StackedInline):
+    class EthicsStatementInline(StaffPermsMixin, admin.StackedInline):
         model = models.ContractEthicsStatement
         # exclude = ["contract_number"]
         extra = 0
         view_on_site = False
         # classes = ["collapse"]
 
-    class ContractDocumentInline(admin.TabularInline):
+    class ContractDocumentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractDocument
         # exclude = ["contract_number"]
         exclude = ["converted_file"]
@@ -3017,7 +3018,7 @@ class ContractAdmin(
         view_on_site = False
         classes = ["collapse"]
 
-    class ReportingScheduleEntryInline(admin.TabularInline):
+    class ReportingScheduleEntryInline(StaffPermsMixin, admin.TabularInline):
         model = models.ReportingScheduleEntry
         extra = 0
         view_on_site = False
@@ -3033,7 +3034,7 @@ class ContractAdmin(
         ordering_field_hide_input = True
         classes = ["collapse"]
 
-    class CommentInline(admin.TabularInline):
+    class CommentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractComment
         extra = 0
         can_delete = False
@@ -3099,13 +3100,13 @@ class ContractAdmin(
     #     exclude = ["contract_number"]
     #     classes = ["collapse"]
 
-    class AllocationInline(admin.TabularInline):
+    class AllocationInline(StaffPermsMixin, admin.TabularInline):
         model = models.Allocation
         extra = 0
         view_on_site = False
         classes = ["collapse"]
 
-    class ForInline(admin.TabularInline):
+    class ForInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractFor
         extra = 0
         view_on_site = False

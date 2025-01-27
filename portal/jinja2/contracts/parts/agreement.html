@@ -10,8 +10,7 @@
       </td>
       <td>&nbsp;</td>
       <td><p><b>{{ agency.name.upper() }}</b>, a body corporate constituted under the Royal
-        Society of New Zealand Act 1997 at
-        {{ ", ".join(agency.address.__str__().split('\n')) }}
+        Society of New Zealand Act 1997 at {{ c.agency_address }}
         (<b>{{ agency_short }}</b>)</p>
       </td>
     </tr>
@@ -22,8 +21,7 @@
       </td>
       <td>&nbsp;</td>
       <td>
-        <p><b>{{ c.org.name.upper() }}</b>,
-        {{ ", ".join((c.address or c.org.address).__str__().split('\n')) if c.org.address else 'N/A' }}
+        <p><b>{{ c.org.name.upper() }}</b>, {{ c.host_address }}
         (<b>Host Organisation</b>)</p>
       </td>
     </tr>
@@ -46,12 +44,14 @@
       Science and Innovation (<b>RSI</b>) workforce and provide the researchers with
       support to flourish within the RSI system.
       {% elif SITE_ID == 5 %}
-        {% if scheme.code == "TTMFL" %}
+        {% if scheme.code in ["MTP", "TTMFL"] %}
           The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships (the Fellowships) is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system. The New Zealand Mana Tūāpapa Future Leader Fellowships support Aotearoa New Zealand’s talented early career researchers to establish the foundations of an excellent and impactful research career. The award is expected to have a significant value in the future career development of the Fellows and help them to establish a foundation on which to embark on an independent research career.
-        {% elif scheme.code == "TTMRL" %}
+        {% elif scheme.code in ["MTN", "TTMRL"] %}
           The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships (the Fellowships) is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system. The New Zealand Mana Tūānuku Research Leader Fellowships support mid-career researchers to firmly establish themselves as experts in their research domain and as leaders within the research landscape.
-        {% elif scheme.code == "TTMDR" %}
+        {% elif scheme.code in ["MTR", "TTMDR"] %}
           The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships (the Fellowships) is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system. The New Zealand Mana Tūārangi Distinguished Researcher Fellowship supports researchers with expansive and international reputations to make contributions that will extend beyond their own career span.
+        {% else %}
+          TODO: Background
         {% endif %}
       {% endif %}
     </li>

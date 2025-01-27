@@ -9240,7 +9240,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         contract = self
         if part not in ["headers_footers", "footers", "page", "toc"]:
             # clauses = list(self.clauses.all().order_by("type", "ordering"))
-            clauses = list(self.application.round.contract_clauses.all().order_by("type", "ordering"))
+            clauses = list(
+                self.application.round.contract_clauses.all().order_by("type", "ordering")
+            )
             additional_clauses = [c for c in clauses if c.type == "A"]
             ammended_clauses = [c for c in clauses if c.type == "V"]
             agency = self.agency
@@ -9648,6 +9650,18 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             )
             t.transform(o)
             o.close()
+
+    @cached_property
+    def host_address(self):
+        return (
+            ", ".join(filter(str.strip, (self.address or self.org.address).__str__().split("\n")))
+            if (self.address or self.org.address)
+            else "N/A"
+        )
+
+    @cached_property
+    def agency_address(self):
+        return ", ".join(filter(str.strip, self.agency.address.__str__().split("\n")))
 
     class Meta:
         db_table = "contract"

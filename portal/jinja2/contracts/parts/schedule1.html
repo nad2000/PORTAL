@@ -89,7 +89,7 @@
           <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
             <b>
-            {% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") if c.end_data else '' }}{% else %}&nbsp;{% endif %}
+            {% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") }}{% else %}&nbsp;{% endif %}
             </b>
             </p>
           </td>
@@ -359,7 +359,7 @@
 
     {#% if additional_clauses %#}
       <li>
-        <h2>Additional terms that apply in addition to the terms in Schedule 2</h2>
+        <h2>Additional terms that apply in addition to the terms in Schedule 2 (if any)</h2>
 
         <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
           <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
@@ -382,6 +382,11 @@
                 {{ cc.term|safe }}
               </td>
             </tr>
+          {% else %}
+            <tr style='height:29.6pt'>
+              <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>&nbsp;</td>
+              <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>&nbsp;</td>
+            </tr>
           {% endfor %}
 
         </table>
@@ -390,7 +395,7 @@
 
     {#% if ammended_clauses %#}
       <li>
-        <h2>Variations to terms in Schedule 2</h2>
+        <h2>Variations to terms in Schedule 2 (if any)</h2>
         <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
           <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
             <td valign=top style='width:15%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
@@ -410,6 +415,11 @@
               <td valign=top style=' padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
                 {{ cc.term|safe }}
               </td>
+            </tr>
+          {% else %}
+            <tr style='height:29.6pt'>
+              <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>&nbsp;</td>
+              <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>&nbsp;</td>
             </tr>
           {% endfor %}
         </table>
