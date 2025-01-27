@@ -2134,13 +2134,17 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                         ):
                             if model is models.Nomination:
                                 continue
-                            bulk_update_with_history(
-                                objects,
-                                model,
-                                [field],
-                                default_user=u,
-                                manager=getattr(model, "all_objects", model._default_manager),
-                            )
+                            if hasattr(model, "history"):
+                                bulk_update_with_history(
+                                    objects,
+                                    model,
+                                    [field],
+                                    default_user=u,
+                                    manager=getattr(model, "all_objects", model._default_manager),
+                                )
+                            else:
+                                manager=getattr(model, "all_objects", model._default_manager)
+                                manager.bulk_update(objects, [field])
 
                         for o in orgs:
                             if not target.alternative_names.filter(name=o.name).exists():
