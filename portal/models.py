@@ -860,6 +860,7 @@ class RoleType(TimeStampMixin, HelperMixin, OrderableModel):
     description = CharField(max_length=255, blank=True, null=True)
     for_application = BooleanField(_("Available for application stage"), default=True)
     for_contracting = BooleanField(_("Available for contracting stage"), default=True)
+    is_key_person = BooleanField(_("Is Key Person"), default=True, null=True, blank=True)
 
     def __str__(self):
         return f"{self.code}: {self.name}"
@@ -1250,7 +1251,7 @@ class Organisation(Model):
         blank=True,
         null=True,
     )
-    email = EmailField(_("Contact email address"), blank=True, null=True)
+    email = EmailField(_("Contracting contact email address"), blank=True, null=True)
     ro_email = EmailField(
         _("RO email address"), help_text=_("Research office email address"), blank=True, null=True
     )
@@ -9185,14 +9186,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def other_key_personnel(self):
-        return list(self.members.filter(~Q(role_id="PI")).all())
+        return list(self.members.filter(~Q(role_id="PI"), role__is_key_person=True).all())
 
     @classmethod
     def new_number(cls, application, org=None, year=None):
         round = application.round
         scheme = round.scheme
         fund = scheme.fund
-        prefix = fund and (fund.code3 or fund.code) or scheme.code
+        if round.site_id == 5:
+            prefix = scheme.code
+        else:
+            prefix = fund and (fund.code3 or fund.code) or scheme.code
         if not org:
             if (n := Nomination.where(application=application).last()) and n.org:
                 org = n.org
@@ -9219,7 +9223,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def agency(self):
-        return Organisation.where(code__in=["ROY", "RSTA", "NZRS"]).order_by("code").fist()
+        return (
+            Organisation.where(code="ROY").first()
+            or Organisation.where(code__in=["RSTA", "NZRS"]).order_by("-pk").first()
+        )
 
     @property
     def host(self):
@@ -9232,7 +9239,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         current_ts = timezone.now()
         contract = self
         if part not in ["headers_footers", "footers", "page", "toc"]:
-            clauses = list(self.clauses.all().order_by("type", "ordering"))
+            # clauses = list(self.clauses.all().order_by("type", "ordering"))
+            clauses = list(self.application.round.contract_clauses.all().order_by("type", "ordering"))
             additional_clauses = [c for c in clauses if c.type == "A"]
             ammended_clauses = [c for c in clauses if c.type == "V"]
             agency = self.agency

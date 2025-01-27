@@ -357,7 +357,7 @@
 
     </li>
 
-    {% if additional_clauses %}
+    {#% if additional_clauses %#}
       <li>
         <h2>Additional terms that apply in addition to the terms in Schedule 2</h2>
 
@@ -367,8 +367,9 @@
               <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause </b></p>
             </td>
             <td valign=top style='width:85%;padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
-              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Additional
-                term</b></p>
+              <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+                <b>Additional term</b>
+              </p>
             </td>
           </tr>
 
@@ -385,9 +386,9 @@
 
         </table>
       </li>
-    {% endif %}
+    {#% endif %#}
 
-    {% if ammended_clauses %}
+    {#% if ammended_clauses %#}
       <li>
         <h2>Variations to terms in Schedule 2</h2>
         <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
@@ -413,7 +414,7 @@
           {% endfor %}
         </table>
       </li>
-    {% endif %}
+    {#% endif %#}
 
     <li>
       <h2>Appendices attached to Schedule 1</h2>

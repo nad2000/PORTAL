@@ -150,7 +150,9 @@
           {% set schedule=c.reporting_schedule.filter(period=a.period).order_by("due_date") %}
           {% set sec=schedule.count() %}
           <td{% if sec %} rowspan="{{ sec }}"{% endif %} style="vertical-align: middle;">{{ _("Year") }} {{ a.period }}:</td>
-          <td{% if sec %} rowspan="{{ sec }}"{% endif %} style="vertical-align: middle;">{{ a.allocation }}</td>
+          <td{% if sec %} rowspan="{{ sec }}"{% endif %} style="vertical-align: middle; text-align: right;">
+            {{ a.allocation and '${:0,.2f}'.format(a.allocation) or _('N/A') }}
+          </td>
           {#% set e=schedule_entries.get(a.period) %#}
           {% if sec %}
             {% for e in schedule %}
@@ -170,7 +172,9 @@
       {% endfor %}
       <tr>
         <td>{{ _("Total") }}:</td>
-        <td style="vertical-align: middle;">{{ '%0.2f' % c.total_allocation }}</td>
+        <td style="vertical-align: middle; text-align: right;">
+            ${{ '{:0,.2f}'.format(c.total_allocation) }}
+        </td>
         <td>&nbsp;</td><td>&nbsp;</td>
       </tr>
     </tbody>
