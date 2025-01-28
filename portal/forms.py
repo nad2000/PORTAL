@@ -1558,8 +1558,7 @@ class ContractForm(ModelForm):
         label=gettext_lazy("Does the proposed research use animals for research or teaching?"),
     )
     is_signatory_to_oa = forms.ChoiceField(
-        # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
-        choices=[(True, _("Yes")), (False, _("No"))],
+        choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         widget=forms.RadioSelect,
         required=False,
         label=gettext_lazy("Is your institution a signatory to the ANZCCART Openness Agreement?"),
