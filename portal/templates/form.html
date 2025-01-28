@@ -229,7 +229,7 @@
       {% endif %}
 
       // Track the changes in the form fields
-      $("form :input").change(function() {
+      $("form :input, form :text").change(function() {
         $(this.form).data("changed", true);
       });
       var confirmationMessage = "{% trans 'Do you want to close the form without saving it?' %}";
@@ -243,11 +243,12 @@
         });
       });
       window.addEventListener("beforeunload", function (e) {
-        if (!$("#application-form").data("changed")
+        if (!$("form[id]").data("changed")
           || (e.target.activeElement.type == "submit")
         ) {
               return undefined;
           }
+          // (e || window.event).originalEvent.returnValue = confirmationMessage;
           (e || window.event).returnValue = confirmationMessage; //Gecko + IE
           return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
       });

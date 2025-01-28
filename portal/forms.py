@@ -1945,6 +1945,19 @@ class ContractForm(ModelForm):
                 css_id="summary",
             ),
             Tab(
+                mark_safe(
+                    '<span data-toggle="tooltip" title="Contact Information">'
+                    f'<i class="far fa-address-book"></i> {_("Contact")}</span>'
+                ),
+                Div(
+                    Field("contact"),
+                    Field("contact_phone"),
+                    Field("host_contact_email"),
+                    SubForm("address_form"),
+                ),
+                css_id="contacts",
+            ),
+            Tab(
                 _("Research"),
                 Field("project_title"),
                 # Fieldset(
@@ -2113,19 +2126,6 @@ class ContractForm(ModelForm):
                     css_id="documents",
                 ),
                 css_id="appendices",
-            ),
-            Tab(
-                mark_safe(
-                    '<span data-toggle="tooltip" title="Contract Information">'
-                    f'<i class="far fa-address-book"></i> {_("Contract")}</span>'
-                ),
-                Div(
-                    Field("contact"),
-                    Field("contact_phone"),
-                    Field("host_contact_email"),
-                    SubForm("address_form"),
-                ),
-                css_id="contacts",
             ),
         ]
 
