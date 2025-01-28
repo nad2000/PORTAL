@@ -8929,6 +8929,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             contract=c,
                             period=p,
                             allocation=allocation,
+                            purpose=(
+                                "To contribute towards the Key Contact Person's salary, "
+                                "Organsiational overheads and Research related expenses."
+                                if a.site_id == 5
+                                else None
+                            ),
                         )
                         for p in range(1, duration + 1)
                     ]
