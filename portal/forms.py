@@ -1438,11 +1438,13 @@ class ContractMemberForm(FTEMixin, ModelForm):
 class AllocationForm(ModelForm):
     class Meta:
         model = models.Allocation
-        fields = ["period", "allocation", "details"]
-        widgets = {
-            "period": TextInput(attrs={"readonly": "readonly", "style": "text-align: right;"}),
-            "allocation": TextInput(attrs={"style": "text-align: right;"}),
-        }
+        fields = ["period", "allocation", "purpose", "details"]
+        # widgets = {
+        #     "period": TextInput(attrs={"readonly": "readonly", "style": "text-align: right;"}),
+        #     "allocation": TextInput(attrs={"style": "text-align: right;"}),
+        #     "purpose": forms.Textarea(attrs={"rows": 3}),
+        #     "details": forms.Textarea(attrs={"rows": 3}),
+        # }
 
 
 class ModelSelect2NoPK(autocomplete.ModelSelect2):
@@ -1565,7 +1567,6 @@ class ContractForm(ModelForm):
     )
     involves_childeren = forms.ChoiceField(
         # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
-        choices=[(True, _("Yes")), (False, _("No"))],
         widget=forms.RadioSelect,
         required=False,
         label=gettext_lazy(
@@ -2053,11 +2054,12 @@ class ContractForm(ModelForm):
                 Fieldset(
                     _("Budget Allocation"),
                     (
-                        HTML(
-                            "<div>{% load tags %}{% jinja 'partials/contract_allocations.html' %}<div>"
-                        )
-                        if is_ro
-                        else TableInlineFormset(
+                        # HTML(
+                        #     "<div>{% load tags %}{% jinja 'partials/contract_allocations.html' %}<div>"
+                        # )
+                        # if is_ro
+                        # else
+                        TableInlineFormset(
                             "allocations", template="portal/allocations_table_inline_formset.html"
                         )
                     ),

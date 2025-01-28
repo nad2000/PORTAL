@@ -67,6 +67,7 @@ from django.forms import (
     HiddenInput,
     IntegerField,
     ModelForm,
+    Textarea,
     TextInput,
     URLInput,
     ValidationError,
@@ -5591,9 +5592,10 @@ class ContractViewMixin:
         )
 
     def get_allocation_formset(self, *args, **kwargs):
-        if self.object and self.object.id:
+        if self.object and self.object.pk:
             extra = 0
             initial_allocations = []
+            duration = self.object.duration or 3
         else:
             a = self.application
             duration = a.round.duration or 3
@@ -5611,6 +5613,15 @@ class ContractViewMixin:
             can_delete=False,
             form=forms.AllocationForm,
             extra=extra,
+            widgets={
+                "period": forms.Select(
+                    choices=[(None, "---"), *((i, _(f"Year {i}")) for i in range(1, duration + 1))]
+                ),
+                # "period": TextInput(attrs={"readonly": "readonly", "style": "text-align: right;"}),
+                "allocation": TextInput(attrs={"style": "text-align: right;"}),
+                "purpose": Textarea(attrs={"rows": 3}),
+                "details": Textarea(attrs={"rows": 3}),
+            },
         )
         return fsc(
             self.request.POST or None,
@@ -5648,7 +5659,7 @@ class ContractViewMixin:
             labels={"date_first_remind": _("First Reminder")},
             widgets={
                 "period": forms.Select(
-                    choices=[(None, "---"), *((i, i) for i in range(1, duration + 1))]
+                    choices=[(None, "---"), *((i, _(f"Year {i}")) for i in range(1, duration + 1))]
                 ),
                 "due_date": forms.DateInput(start_date="-1y", end_date="+10y"),
                 "date_first_remind": forms.DateInput(start_date="-1y", end_date="+10y"),
@@ -5876,8 +5887,9 @@ class ContractViewMixin:
         org = self.object and self.object.org or self.application.org
         if is_ro := org.research_offices.filter(user=u).exists():
             context["is_ro"] = is_ro
-        else:
-            self.allocations = context["allocations"] = self.get_allocation_formset()
+        # else:
+        #     self.allocations = context["allocations"] = self.get_allocation_formset()
+        self.allocations = context["allocations"] = self.get_allocation_formset()
 
         self.reporting_schedule = context["reporting_schedule"] = (
             self.get_reporting_schedule_formset()
@@ -5898,7 +5910,7 @@ class ContractViewMixin:
                 needs_attention.append("research")
             if not c.members.exists():
                 needs_attention.append("personnel")
-            if not c.reporting_schedule.exists():
+            if not c.reporting_schedule.exists() and not is_ro:
                 needs_attention.append("reporting")
             # TODO:
             context["needs_attention"] = needs_attention
