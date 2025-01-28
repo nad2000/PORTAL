@@ -2920,6 +2920,8 @@ class ContractAdmin(
         "rccs",
         "seos",
         # "seo_keywords",
+        "address",
+        "org",
     ]
     fieldsets = [
         (
@@ -2929,7 +2931,6 @@ class ContractAdmin(
                     ("state", "completed_on"),
                     ("number", "refcode", "year"),
                     "project_title",
-                    "host_contact_email",
                     # ("source", "source_code"),
                     ("org", "application"),
                     # ("proposal", "proposal_number"),
@@ -2942,6 +2943,18 @@ class ContractAdmin(
                     ("fund", "awarded_amount"),
                     ("fin_received", "fin_supp"),
                     # "code",
+                ],
+            },
+        ),
+        (
+            "Contact Information",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "address",
+                    "contact",
+                    "contact_phone",
+                    "host_contact_email",
                 ],
             },
         ),
