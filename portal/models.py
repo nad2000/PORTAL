@@ -860,7 +860,11 @@ class RoleType(TimeStampMixin, HelperMixin, OrderableModel):
     description = CharField(max_length=255, blank=True, null=True)
     for_application = BooleanField(_("Available for application stage"), default=True)
     for_contracting = BooleanField(_("Available for contracting stage"), default=True)
-    is_key_person = BooleanField(_("Is Key Person"), default=True, help_text="The role will be included in the contract key personnel list")
+    is_key_person = BooleanField(
+        _("Is Key Person"),
+        default=True,
+        help_text="The role will be included in the contract key personnel list",
+    )
 
     def __str__(self):
         return f"{self.code}: {self.name}"
@@ -5956,7 +5960,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     has_keywords = BooleanField(_("Has keywords"), default=False, help_text=_("Has Keywords"))
     schedule2 = PrivateFileField(
         verbose_name="Schedule 2",
-        help_text="Standard terms and conditions (preferably converted into PDF)",
+        help_text="Standard terms and conditions (preferably converted into PDF with OpenOffice or LibreOffice)",
         null=True,
         blank=True,
         upload_to="rounds",
@@ -5968,7 +5972,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
     appendix_a = PrivateFileField(
         verbose_name="Appendix A",
-        help_text="Declaration regarding compliance with the Society's code of professional standards and ethics (preferably converted into PDF)",
+        help_text="Declaration regarding compliance with the Society's code "
+        "of professional standards and ethics (preferably converted into PDF with OpenOffice or LibreOffice)",
         null=True,
         blank=True,
         upload_to="rounds",
@@ -5980,7 +5985,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
     appendix_b = PrivateFileField(
         verbose_name="Appendix B",
-        help_text="Eligibility Criteria (preferably converted into PDF)",
+        help_text="Eligibility Criteria (preferably converted into PDF with OpenOffice or LibreOffice)",
         null=True,
         blank=True,
         upload_to="rounds",
