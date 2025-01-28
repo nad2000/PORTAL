@@ -1692,7 +1692,11 @@ class ContractForm(ModelForm):
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
             or application.submitted_by == user
         )
-        is_ro = application and application.org.research_offices.filter(user=user).exists()
+        is_ro = (
+            application
+            and application.org.research_offices.filter(user=user).exists()
+            and not (user.is_superuser or user.is_site_staff)
+        )
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!
             _("Submit"),
@@ -1936,7 +1940,6 @@ class ContractForm(ModelForm):
                         #         css_class="col-2",
                         #     ),
                         # ),
-                        SubForm("address_form"),
                     ]
                 ),
                 css_id="summary",
@@ -2007,7 +2010,13 @@ class ContractForm(ModelForm):
                 _("Reporting"),
                 Fieldset(
                     _("Reporting Schedule"),
-                    TableInlineFormset("reporting_schedule"),
+                    (
+                        HTML(
+                            "<div>{% load tags %}{% jinja 'partials/contract_reporting.html' %}<div>"
+                        )
+                        if is_ro
+                        else TableInlineFormset("reporting_schedule")
+                    ),
                     css_id="reporting_schedule",
                 ),
                 css_id="reporting",
@@ -2105,13 +2114,26 @@ class ContractForm(ModelForm):
                 ),
                 css_id="appendices",
             ),
+            Tab(
+                mark_safe(
+                    '<span data-toggle="tooltip" title="Contract Information">'
+                    f'<i class="far fa-address-book"></i> {_("Contract")}</span>'
+                ),
+                Div(
+                    Field("contact"),
+                    Field("contact_phone"),
+                    Field("host_contact_email"),
+                    SubForm("address_form"),
+                ),
+                css_id="contacts",
+            ),
         ]
 
         if instance and instance.pk:
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
-                    Field("host_contact_email"),
+                    # Field("host_contact_email"),
                     Field("comment"),
                     Fieldset(
                         None,

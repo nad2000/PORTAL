@@ -6308,6 +6308,7 @@ class ApplicationList(
                 start_date=start_date,
                 end_date=end_date,
             )
+            reset_cache(self.request)
             url = reverse("contract-update", kwargs={"pk": contract.pk})
             messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
             return redirect(url)
@@ -6334,7 +6335,7 @@ class ApplicationList(
                 contracts = []
                 with transaction.atomic():
                     for number, decision, *rest in outcomes:
-                        number=number.strip()
+                        number = number.strip()
                         if decision in ["y", "Y", "1", "yes", "YES"]:
                             a = Application.where(number=number).last()
                             if a:
@@ -6388,6 +6389,7 @@ class ApplicationList(
                 messages.error(request, getattr(ex, "message", str(ex)))
 
         if funded_count:
+            reset_cache(self.request)
             return redirect("applications-with-state", state="funded")
 
         return redirect(request.path)

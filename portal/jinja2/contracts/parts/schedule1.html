@@ -19,15 +19,19 @@
       <p style='margin-bottom:6.0pt;'>
       {% if org.code in ["ROY", "RSTA", "NZRS"] %}
         Director - Research Funding
-      {% elif org.contact %}
-        {{ org.contact }}
-      {% elif c.contact %}
-        {{ c.contact }}
+      {% elif c.contact or org.contact %}
+        {{ c.contact or org.contact }}
       {% else %}
         [Contact]
       {% endif %}
       </p>
-      <p style='margin-bottom:6.0pt;'>{{ org.contact_phone or '[Phone number]' }}</p>
+      <p style='margin-bottom:6.0pt;'>
+      {% if org.code in ["ROY", "RSTA", "NZRS"] %}
+        {{ org.contact_phone or '[Phone number]' }}
+      {% else %}
+        {{ c.contact_phone or org.contact_phone or '[Phone number]' }}
+      {% endif %}
+      </p>
       {% if org.code in ["ROY", "RSTA", "NZRS"] %}
         <p style='margin-bottom:6.0pt;'>Email: {{ c.fund and c.fund.email or org.email }}</p>
         <p style='margin-bottom:6.0pt;'>{% if org.address %}{{ org.address.__html__()|safe }}{% else %}[Address]{% endif %}</p>
@@ -71,7 +75,7 @@
             </p>
           </td>
         </tr>
-	{# 
+	{#
         <tr>
           <td valign=top style='padding:0in 5.4pt 0in 5.4pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>

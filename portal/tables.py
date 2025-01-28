@@ -253,6 +253,12 @@ class SafeTemplateColumn(tables.TemplateColumn):
         return mark_safe(super().render(record, table, value, bound_column, **kwargs))
 
 
+def default_start_date(record=None):
+    if (record and record.site_id or settings.SITE_ID) == 5:
+        return timezone.now().date().replace(day=1, month=3)
+    return (timezone.now().date().replace(day=1) + relativedelta(months=1))
+
+
 class ApplicationTable(tables.Table):
     # selection = tables.CheckBoxColumn(accessor="pk")
     state = StateColumn(verbose_name=_("Submitted"))
@@ -289,8 +295,9 @@ class ApplicationTable(tables.Table):
             },
         },
         extra_context={
-            "start_date": timezone.now().date().replace(day=1) + relativedelta(months=1),
+            "start_date": default_start_date(),
             "relativedelta": relativedelta,
+            "today": timezone.now().date(),
         },
     )
 

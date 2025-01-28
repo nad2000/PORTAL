@@ -8587,6 +8587,20 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     host_contact_email = EmailField(
         _("host contact email address"), max_length=120, null=True, blank=True
     )
+    contact = CharField(
+        _("Contact"),
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text=_("Contact - an organisational role or a person name"),
+    )
+    contact_phone = CharField(
+        _("Contact phone number"),
+        validators=[phone_regex_validator],
+        max_length=24,
+        blank=True,
+        null=True,
+    )
     cover = PrivateFileField(
         verbose_name="Cover page",
         null=True,
@@ -8710,7 +8724,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         org = a.org
         if not start_date:
-            start_date = timezone.now().date().replace(day=1) + relativedelta(months=1)
+            if a.site_id == 5:
+                start_date = timezone.now().date().replace(day=1, month=3)
+            else:
+                start_date = timezone.now().date().replace(day=1) + relativedelta(months=1)
         params = dict(
             application=a,
             year=a.created_at.year,
@@ -8729,8 +8746,63 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         )
         if awarded_amount:
             params["awarded_amount"] = awarded_amount
-        if org and (org.ro_email or org.email):
-            params["host_contact_email"] = org.ro_email or org.email
+        if host_contact_email := (
+            org
+            and (org.ro_email or org.email)
+            or (
+                hce_contract := cls.where(
+                    ~Q(host_contact_email__isnull=True),
+                    ~Q(host_contact_email=""),
+                    application__round__scheme=a.round.scheme,
+                    org=org,
+                ).last()
+                or cls.where(
+                    ~Q(host_contact_email__isnull=True),
+                    ~Q(host_contact_email=""),
+                    org=org,
+                ).last()
+            )
+            and hce_contract.host_contact_email
+        ):
+            params["host_contact_email"] = host_contact_email
+        if contact := (
+            org
+            and (org.ro_email or org.email)
+            or (
+                contact_contract := cls.where(
+                    ~Q(contact__isnull=True),
+                    ~Q(contact=""),
+                    application__round__scheme=a.round.scheme,
+                    org=org,
+                ).last()
+                or cls.where(
+                    ~Q(contact__isnull=True),
+                    ~Q(contact=""),
+                    org=org,
+                ).last()
+            )
+            and contact_contract.contact
+        ):
+            params["contact"] = contact
+        if contact_phone := (
+            org
+            and (org.ro_email or org.email)
+            or (
+                contact_phone_contract := cls.where(
+                    ~Q(contact_phone__isnull=True),
+                    ~Q(contact_phone=""),
+                    application__round__scheme=a.round.scheme,
+                    org=org,
+                ).last()
+                or cls.where(
+                    ~Q(contact_phone__isnull=True),
+                    ~Q(contact_phone=""),
+                    org=org,
+                ).last()
+            )
+            and contact_phone_contract.contact_phone
+        ):
+            params["contact_phone"] = contact_phone
 
         if r.has_vmts:
             params.update(

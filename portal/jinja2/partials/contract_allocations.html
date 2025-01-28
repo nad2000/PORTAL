@@ -18,7 +18,7 @@
           {% if not loop.index0 %}
             <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
           {% endif %}
-          <td style="text-align: right;">${{ r.allocation }}</td>
+          <td style="text-align: right;">{{ "${:0,.2f}".format(r.allocation) }}</td>
           {% if has_purpose %}<td>{{ r.purpose or '' }}</td>{% endif %}
           <td>{{ r.details or '' }}</td>
         </tr>
@@ -31,7 +31,7 @@
       <td><b>{{ _('TOTAL') }}</b></td>
       <td colspan="{% if has_purpose %}3{% else %}2{% endif %}" style="text-align: right;">
         <b>
-         ${{ '%0.2f' % c.total_allocation }}
+         {{ "${:0,.2f}".format(c.total_allocation) }}
         </b>
       </td>
     </tr>
