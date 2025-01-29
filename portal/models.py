@@ -8761,22 +8761,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         if awarded_amount:
             params["awarded_amount"] = awarded_amount
         if host_contact_email := (
-            (
-                hce_contract := cls.where(
-                    ~Q(host_contact_email__isnull=True),
-                    ~Q(host_contact_email=""),
-                    application__round__scheme=a.round.scheme,
-                    org=org,
-                ).last()
-                or cls.where(
-                    ~Q(host_contact_email__isnull=True),
-                    ~Q(host_contact_email=""),
-                    org=org,
-                ).last()
-                or org
-                and (org.ro_email or org.email)
-            )
-            and hce_contract.host_contact_email
+            (hce_contract := cls.where(
+                ~Q(host_contact_email__isnull=True),
+                ~Q(host_contact_email=""),
+                application__round__scheme=a.round.scheme,
+                org=org,
+            ).last()) and hce_contract.host_contact_email
+            or org and (org.ro_email or org.email)
         ):
             params["host_contact_email"] = host_contact_email
         if contact := (
@@ -8787,15 +8778,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                     application__round__scheme=a.round.scheme,
                     org=org,
                 ).last()
-                or cls.where(
-                    ~Q(contact__isnull=True),
-                    ~Q(contact=""),
-                    org=org,
-                ).last()
-            )
-            and contact_contract.contact
-            or org
-            and org.contact
+            ) and contact_contract.contact
+            or org and org.contact
         ):
             params["contact"] = contact
         if contact_phone := (
@@ -8806,15 +8790,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                     application__round__scheme=a.round.scheme,
                     org=org,
                 ).last()
-                or cls.where(
-                    ~Q(contact_phone__isnull=True),
-                    ~Q(contact_phone=""),
-                    org=org,
-                ).last()
-            )
-            and contact_phone_contract.contact_phone
-            or org
-            and org.contact_phone
+                # or cls.where(
+                #     ~Q(contact_phone__isnull=True),
+                #     ~Q(contact_phone=""),
+                #     org=org,
+                # ).last()
+            ) and contact_phone_contract.contact_phone
+            or org and org.contact_phone
         ):
             params["contact_phone"] = contact_phone
 
