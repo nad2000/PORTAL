@@ -376,7 +376,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               <b style="text-transform: uppercase;">
                 {{ record.title }}
               </b>
-              {% if not round.is_open %} (<strong class="text-danger">{% trans 'ROUND CLOSED' %}</strong>){% endif %}
+              {% if not round.is_open %} (<strong{% if not round.colour %} class="text-danger"{% endif %}>{% trans 'ROUND CLOSED' %}</strong>){% endif %}
             </h5>
             <div class="card-body"{#% if round.colour %} style="background-color: {{ round.colour|color_variant:3.9 }}; color: white;"{% endif %#}>
               {% if record.description %}
