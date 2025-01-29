@@ -527,6 +527,10 @@ function rememberIfDetailsWasDisclosed(detailsId) {
       modal.find('.modal-title').text(button.data("originalTitle"));
       modal.find('.modal-body #id_duration').val(button.data("duration"));
       $('#id_application').val(button.data("applicationId"));
+      var awarded_amount = button.data("awardedAmount");
+      if (awarded_amount) {
+        $('#id_awarded_amount').val(awarded_amount);
+      }
       var start_date = button.data("startDate");
       var end_date = button.data("endDate");
       $('#id_start_date').val(start_date);

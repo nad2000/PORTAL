@@ -132,6 +132,7 @@ CONTRACT_PART_EXTENSIONS = [
     "docm",
     "docb",
 ]
+round_number = round
 
 
 def pdf_toc(reader: PdfReader) -> dict[str, int]:
@@ -3022,7 +3023,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
-        if awarded_amount := kwargs.get("awarded_amount"):
+        if (
+            awarded_amount := kwargs.get("awarded_amount")
+            or self.awarded_amount
+            or self.round.awarded_amount
+        ):
             self.awarded_amount = awarded_amount
         return Contract.create_from_application(application=self, *args, **kwargs)
 
@@ -5906,6 +5911,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     duration = PositiveSmallIntegerField(
         _("Duration"), help_text=_("Default contract duration"), null=True, blank=True
     )
+    awarded_amount = DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Awarded amount / Fellowship total budgets",
+    )
     referee_cv_required = BooleanField(_("Referee CV required"), default=True)
     survey_id = PositiveIntegerField(
         help_text=_("Referee LimeSurvey Survey ID"), null=True, blank=True
@@ -8677,6 +8689,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     ):
 
         a = application
+        if not awarded_amount:
+            awarded_amount = a.round.awarded_amount
         if awarded_amount:
             a.awarded_amount = awarded_amount
             a.save(update_fields=["awarded_amount"])
@@ -8995,12 +9009,15 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 )
 
                 allocation = (awarded_amount / c.duration) if awarded_amount else 0.0
+                allocations = [round_number(allocation, 0)] * c.duration
+                allocations[-1] = awarded_amount - sum(allocations[:-1])
+
                 Allocation.bulk_create(
                     [
                         Allocation(
                             contract=c,
                             period=p,
-                            allocation=allocation,
+                            allocation=allocations[p - 1],
                             purpose=(
                                 "To contribute towards the Key Contact Person's salary, "
                                 "Organsiational overheads and Research related expenses."

@@ -67,6 +67,7 @@ from django.forms import (
     HiddenInput,
     IntegerField,
     ModelForm,
+    NumberInput,
     Textarea,
     TextInput,
     URLInput,
@@ -5615,10 +5616,11 @@ class ContractViewMixin:
             extra=extra,
             widgets={
                 "period": forms.Select(
-                    choices=[(None, "---"), *((i, _(f"Year {i}")) for i in range(1, duration + 1))]
+                    # choices=[(None, "---"), *((i, _(f"Year {i}")) for i in range(1, duration + 1))]
+                    choices=[(i, _(f"Year {i}")) for i in range(1, duration + 1)]
                 ),
                 # "period": TextInput(attrs={"readonly": "readonly", "style": "text-align: right;"}),
-                "allocation": TextInput(attrs={"style": "text-align: right;"}),
+                "allocation": NumberInput(attrs={"style": "text-align: right;", "step": 0.01}),
                 "purpose": Textarea(attrs={"rows": 3}),
                 "details": Textarea(attrs={"rows": 3}),
             },
@@ -5956,6 +5958,17 @@ class ContractViewMixin:
         try:
             is_ro = org.research_offices.filter(user=u).exists()
             with transaction.atomic():
+
+                address_form = self.get_address_form()
+                if address_form.changed_data or not self.object.address:
+                    if address_form.data.get("address") and form.data.get("address").strip():
+                        if not address_form.is_valid():
+                            return self.form_invalid(form)
+                        address = address_form.save()
+                    else:
+                        address = None
+                    form.instance.address = self.object.address = address
+
                 resp = super().form_valid(form)
 
                 fs = self.get_allocation_formset()
@@ -6003,19 +6016,6 @@ class ContractViewMixin:
                                         },
                                     )
                     fs.save(commit=True)
-
-                address_form = self.get_address_form()
-                # instance=self.object.address if self.object and self.object.pk else None)
-                if address_form.changed_data or not self.object.address:
-                    if address_form.data.get("address") and form.data.get("address").strip():
-                        if not address_form.is_valid():
-                            return self.form_invalid(form)
-                        address = address_form.save()
-                    else:
-                        address = None
-                    if self.object.address != address:
-                        self.object.address = address
-                        self.object.save(update_fields=["address"])
 
         except Exception as ex:
             capture_exception(ex)

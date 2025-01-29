@@ -2679,6 +2679,7 @@ class RoundAdmin(
                {
                     "classes": ("collapse",),
                     "fields": [
+                        "awarded_amount",
                         "contract_background",
                         "schedule2",
                         "appendix_a",
