@@ -154,7 +154,6 @@
   </div>
   {% endif %}
 
-  {% if is_ro or user.is_superuser or user.is_site_staff %}
 
   <div class="card mb-2">
     <div class="card-header{% if category == "contracts" %} bg-primary{% endif %}">
@@ -169,6 +168,8 @@
       {% endif %}
     </div>
   </div>
+
+  {% if is_ro or user.is_superuser or user.is_site_staff %}
 
   <div class="card mb-2">
     <div class="card-header{% if category == "reports" %} bg-primary{% endif %}">
@@ -186,10 +187,10 @@
   <div class="card mb-2">
     <div class="card-header{% if category == "nominations" %} bg-primary{% endif %}">
         <a href="{% url 'nominations' %}" id="nominations"{% if category == "nominations" %} class="text-white"{% endif %}> {% trans 'Nominations' %}
-          <span 
+          <span
             class="badge badge-primary{% if category == "nominations" %} bg-secondary{% endif %}"
             {% if not nomination_count %}
-              data-toggle="tooltip" 
+              data-toggle="tooltip"
               title="{% trans 'No nomination saved or submitted' %}"
             {% endif %}
           >{{ nomination_count|default:0 }}</span>

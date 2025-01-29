@@ -8747,9 +8747,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         if awarded_amount:
             params["awarded_amount"] = awarded_amount
         if host_contact_email := (
-            org
-            and (org.ro_email or org.email)
-            or (
+            (
                 hce_contract := cls.where(
                     ~Q(host_contact_email__isnull=True),
                     ~Q(host_contact_email=""),
@@ -8761,6 +8759,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                     ~Q(host_contact_email=""),
                     org=org,
                 ).last()
+                or org
+                and (org.ro_email or org.email)
             )
             and hce_contract.host_contact_email
         ):
@@ -8781,7 +8781,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             )
             and contact_contract.contact
             or org
-            and (org.ro_email or org.email)
+            and org.contact
         ):
             params["contact"] = contact
         if contact_phone := (

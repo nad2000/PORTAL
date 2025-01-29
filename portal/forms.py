@@ -1567,6 +1567,7 @@ class ContractForm(ModelForm):
     )
     involves_childeren = forms.ChoiceField(
         # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
+        choices=[(True, _("Yes")), (False, _("No"))],
         widget=forms.RadioSelect,
         required=False,
         label=gettext_lazy(
@@ -1652,22 +1653,22 @@ class ContractForm(ModelForm):
                 part = instance.documents.filter(document_type__role=dr).last()
                 if part:
                     initial[fn] = part.file
-        if not (instance and user and (user.is_superuser or user.is_site_staff)):
-            self._meta.exclude.extend(
-                [
-                    "awarded_amount",
-                    "cover",
-                    "duration",
-                    "end_date",
-                    "file",
-                    "preamble",
-                    "schedule1",
-                    "schedule2",
-                    "start_date",
-                ]
-            )
-
         super().__init__(*args, **kwargs)
+        if not (instance and user and (user.is_superuser or user.is_site_staff)):
+            for f in [
+                "awarded_amount",
+                "cover",
+                "duration",
+                "start_date",
+                "end_date",
+                "file",
+                "preamble",
+                "schedule1",
+                "schedule2",
+            ]:
+                if f in self.fields:
+                    self.fields.pop(f)
+
         # language = get_language()
         instance = self.instance or instance
         application = instance.application or initial.get("application")

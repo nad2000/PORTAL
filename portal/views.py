@@ -5542,7 +5542,7 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
         queryset = queryset.filter(Q(members__isnull=True) | Q(members__role="PI"))
         if not (u.is_superuser or u.is_site_staff):
             queryset = queryset.filter(Q(members__user=u) | Q(org__research_offices__user=u))
-        return queryset
+        return queryset.distinct()
 
 
 class ContractDetail(DetailView):
@@ -5910,7 +5910,7 @@ class ContractViewMixin:
                 needs_attention.append("research")
             if not c.members.exists():
                 needs_attention.append("personnel")
-            if not c.reporting_schedule.exists() and not is_ro:
+            if not c.reporting_schedule.exists():
                 needs_attention.append("reporting")
             # TODO:
             context["needs_attention"] = needs_attention

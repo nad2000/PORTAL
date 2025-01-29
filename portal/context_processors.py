@@ -106,7 +106,7 @@ def portal_context(request):
             if u.is_superuser or u.is_staff or u.is_site_staff:
                 cached_context["contract_count"] = models.Contract.objects.count()
             else:
-                cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).count()
+                cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
 
             counts = {
                 s: c for s, c in models.Report.user_object_counts(u, request=request)
