@@ -8800,7 +8800,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             )
             and contact_phone_contract.contact_phone
             or org
-            and org.concact_phone
+            and org.contact_phone
         ):
             params["contact_phone"] = contact_phone
 
