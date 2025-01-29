@@ -5954,18 +5954,21 @@ class ContractViewMixin:
         if not i.fund:
             i.fund = models.Fund.last()
         try:
+            is_ro = org.research_offices.filter(user=u).exists()
             with transaction.atomic():
                 resp = super().form_valid(form)
-                if not org.research_offices.filter(user=u).exists():
-                    fs = self.get_allocation_formset()
+
+                fs = self.get_allocation_formset()
+                fs.instance = self.object
+                if fs.is_valid():
+                    fs.save()
+
+                if not is_ro:
+                    fs = self.get_reporting_schedule_formset()
                     fs.instance = self.object
                     if fs.is_valid():
                         fs.save()
 
-                fs = self.get_reporting_schedule_formset()
-                fs.instance = self.object
-                if fs.is_valid():
-                    fs.save()
                 fs = self.get_personnel_formset()
                 fs.instance = self.object
                 if fs.is_valid():

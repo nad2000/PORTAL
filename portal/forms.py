@@ -1654,6 +1654,13 @@ class ContractForm(ModelForm):
                 if part:
                     initial[fn] = part.file
         super().__init__(*args, **kwargs)
+        instance = self.instance or instance
+        application = instance.application or initial.get("application")
+        is_ro = (
+            application
+            and application.org.research_offices.filter(user=user).exists()
+            and not (user.is_superuser or user.is_site_staff)
+        )
         if not (instance and user and (user.is_superuser or user.is_site_staff)):
             for f in [
                 "awarded_amount",
@@ -1670,8 +1677,6 @@ class ContractForm(ModelForm):
                     self.fields.pop(f)
 
         # language = get_language()
-        instance = self.instance or instance
-        application = instance.application or initial.get("application")
         site_id = self.site_id
         if site_id in [4, 5]:
             self.fields["project_title"].label = _("Title of proposed research project")
@@ -1693,11 +1698,6 @@ class ContractForm(ModelForm):
             instance.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
             or application.submitted_by == user
-        )
-        is_ro = (
-            application
-            and application.org.research_offices.filter(user=user).exists()
-            and not (user.is_superuser or user.is_site_staff)
         )
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!

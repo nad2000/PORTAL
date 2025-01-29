@@ -34,6 +34,7 @@
     $("#id_{{ formset.prefix }}_total").text(total.toFixed(2));
     {% if formset.instance and formset.instance.pk and formset.instance.awarded_amount %}
       if (total > awarded_amount) $("#id_{{ formset.prefix }}_total").css({"color": "red", 'font-weight': "bold"});
+      else if (total < awarded_amount) $("#id_{{ formset.prefix }}_total").css({"color": "darkblue", 'font-weight': "bold"});
       else $("#id_{{ formset.prefix }}_total").css({"color": "green", 'font-weight': "bold"});
     {% endif %}
   };
