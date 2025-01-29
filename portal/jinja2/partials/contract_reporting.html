@@ -1,0 +1,39 @@
+{% set c = contract or object %}
+<table class="table table-bordered searchable table-striped">
+
+  <thead>
+    <tr class="thead-dark" valign="middle">
+      <th><b>{{ _('Year') }}</b></th>
+      <th><b>{{ _('Type') }}</b></th>
+      <th><b>{{ _('Due Date') }}</b></th>
+      <th><b>{{ _('First Reminder') }}</b></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for y, entries in c.reporting_schedule_by_years %}
+      {% for r in entries %}
+        <tr valign="middle">
+          {% if not loop.index0 %}
+            <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
+          {% endif %}
+          <td>{{ r.get_type_display() }}</td>
+          <td>{{ r.due_date.isoformat() }}</td>
+          <td>{{ r.date_first_remind and r.date_first_remind.isoformat() or '-' }}</td>
+        </tr>
+      {% endfor %}
+    {% endfor %}
+  </tbody>
+
+  <tfoot>
+    <tr valign="middle">
+      <td><b>{{ _('TOTAL REPORTS') }}</b></td>
+      <td colspan="3">
+        <b>
+         {{ c.reporting_schedule.count() }}
+        </b>
+      </td>
+    </tr>
+  </tfoot>
+
+</table>
