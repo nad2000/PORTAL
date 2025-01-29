@@ -1565,7 +1565,7 @@ class ContractForm(ModelForm):
         required=False,
         label=gettext_lazy("Is your institution a signatory to the ANZCCART Openness Agreement?"),
     )
-    involves_childeren = forms.ChoiceField(
+    involves_children = forms.ChoiceField(
         # choices=[(True, _("Yes")), (False, _("No")), ("", _("N/A"))],
         choices=[(True, _("Yes")), (False, _("No"))],
         widget=forms.RadioSelect,
@@ -1813,7 +1813,7 @@ class ContractForm(ModelForm):
             )
         compliance_fields.extend(
             [
-                InlineRadios("involves_childeren"),
+                InlineRadios("involves_children"),
                 InlineRadios("has_child_protection"),
             ]
         )
@@ -1826,7 +1826,7 @@ class ContractForm(ModelForm):
             self.fields["ethics_statement"].disabled = True
             self.fields["has_animal_use"].disabled = True
             self.fields["is_signatory_to_oa"].disabled = True
-            self.fields["involves_childeren"].disabled = True
+            self.fields["involves_children"].disabled = True
             self.fields["has_child_protection"].disabled = True
             self.fields["requires_approval"].disabled = True
             self.fields["requires_approval_comment"].disabled = True
