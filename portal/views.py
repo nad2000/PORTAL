@@ -5956,7 +5956,7 @@ class ContractViewMixin:
         if not i.fund:
             i.fund = models.Fund.last()
         try:
-            is_ro = org.research_offices.filter(user=u).exists()
+            is_ro = org.research_offices.filter(user=u).exists() and not (u.is_superuser or u.is_site_staff)
             with transaction.atomic():
 
                 address_form = self.get_address_form()
