@@ -353,7 +353,7 @@ thead th.orderable.desc > a {
           {% trans 'Clear' %}
         </a>
 
-        {% if user.is_site_saff or user.is_superuser %}
+        {% if user.is_saff or user.is_superuser or user.is_site_saff %}
           {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
             <button type="button" class="btn btn-primary ml-2" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
           {% endif %}
@@ -362,7 +362,6 @@ thead th.orderable.desc > a {
       </form>
     {% endif %}
   {% endblock %}
-
 
   {% if user.is_saff and filter or user.is_superuser and filter or is_ro and filter %}
     {#% if filter.form.round_filter or filter.form.year_filter or filter.form.fund_filter %#}

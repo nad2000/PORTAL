@@ -34,7 +34,7 @@ def portal_context(request):
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             cached_context = cache.get(cache_key)
         if has_refreshed or not cached_context or view_name == "start":
-            is_ro = u.research_offices.exists()
+            is_ro = u.research_offices.exists() and not (u.is_superuser or u.is_site_staff)
             is_staff = u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
             counts = {
