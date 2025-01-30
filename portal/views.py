@@ -6346,8 +6346,9 @@ class ApplicationList(
                 outcomes.load(file.file, format="xlsx")
             funded_count = 0
             error_messages = []
+            contracts = []
+            applications = []
             try:
-                contracts = []
                 with transaction.atomic():
                     for number, decision, *rest in outcomes:
                         number = number.strip()
@@ -6369,6 +6370,7 @@ class ApplicationList(
                                     )
                                     a.save()
                                     funded_count += 1
+                                    applications.append(a)
                                 if not a.contracts.exists():
                                     contracts.append(
                                         models.Contract.create_from_application(
@@ -6388,15 +6390,30 @@ class ApplicationList(
                         f'<a href="{c.detail_url}" target="_blank">{c.number}</a>'
                         for c in contracts
                     )
-                    messages.info(
-                        request,
-                        (
-                            f"{funded_count} applications was marked <b>funded</b>."
-                            + f" New contracts initiated: {contracts}"
-                            if contracts
-                            else ""
-                        ),
+                    applications = ", ".join(
+                        f'<a href="{a.detail_url}" target="_blank">{a.number}</a>'
+                        for a in applications
                     )
+                    if funded_count == 1:
+                        messages.info(
+                            request,
+                            (
+                                f"{funded_count} application was marked <b>funded</b>: {applications}."
+                                + f" New contract initiated: {contracts}"
+                                if contracts
+                                else ""
+                            ),
+                        )
+                    else:
+                        messages.info(
+                            request,
+                            (
+                                f"{funded_count} applications were marked <b>funded</b>: {applications}."
+                                + f" New contracts initiated: {contracts}"
+                                if contracts
+                                else ""
+                            ),
+                        )
                 for msg in error_messages:
                     messages.error(request, msg)
             except Exception as ex:

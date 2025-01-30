@@ -117,6 +117,13 @@
       return false;
     });
     $(document).ready(function() {
+      $("#id_requires_approval").change( function() {
+        var requires_approval = $(this).prop('checked');
+        $("#id_has_animal_use_0,#id_has_animal_use_1,#id_has_animal_use_2").prop("disabled", !requires_approval);
+        $("#id_is_signatory_to_oa_0,#id_is_signatory_to_oa_1,#id_is_signatory_to_oa_2").prop("disabled", !requires_approval);
+        $("#id_involves_children_0,#id_involves_children_1,#id_involves_children_2").prop("disabled", !requires_approval);
+        $("#id_has_child_protection_0,#id_has_child_protection_1,#id_has_child_protection_2").prop("disabled", !requires_approval);
+      });
       $("#id_awarded_amount").change(
         function(e) {
           awarded_amount = Number.parseFloat(this.value).toFixed(2);

@@ -266,6 +266,10 @@
                         </button -->
                 </span>
               {% endif %}
+  {% if user.is_site_staff or user.is_superuser %}
+  <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
+      {% trans 'Open in Admin' %}
+    </a>{% endif %}
   </div>
 </form>
 

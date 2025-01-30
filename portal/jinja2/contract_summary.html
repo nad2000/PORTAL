@@ -67,6 +67,39 @@
         </td>
       </tr>
 
+      {% if c.contact %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Contact') }}
+        </th>
+        <td>
+          {{ c.contact }}
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if c.contact_phone %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Contact Phone Number') }}
+        </th>
+        <td>
+          {{ c.contact_phone }}
+        </td>
+      </tr>
+      {% endif %}
+
+      {% if c.host_contact_email %}
+      <tr>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Host Contact Email Address') }}
+        </th>
+        <td>
+          {{ c.host_contact_email }}
+        </td>
+      </tr>
+      {% endif %}
+
       {% if c.address %}
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
@@ -84,8 +117,8 @@
 
   <table class="table">
     <tr>
-      <td>{{ _('Contract starts') }}: {{ c.start_date or '-'}} </td>
-      <td>{{ _('Contract ends') }}: {{ c.end_date or '-' }} </td>
+      <td><strong>{{ _('Contract starts') }}</strong>: {{ c.start_date or '-'}} </td>
+      <td><strong>{{ _('Contract ends') }}</strong>: {{ c.end_date or '-' }} </td>
     </tr>
   </table>
 
@@ -171,7 +204,7 @@
         </tr>
       {% endfor %}
       <tr>
-        <td>{{ _("Total") }}:</td>
+        <td><strong>{{ _("Total") }}</strong>:</td>
         <td style="vertical-align: middle; text-align: right;">
             ${{ '{:0,.2f}'.format(c.total_allocation) }}
         </td>

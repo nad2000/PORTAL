@@ -1,4 +1,4 @@
-{% load i18n  %}
+{% load i18n tags %}
 <div class="buttonHolder mb-5 mt-3 float-right">
 
   {% if start_applying %}
@@ -75,6 +75,11 @@
   {% if export_button_view_name %}
     <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
   {% endif %}
+
+  {% if user.is_site_staff or user.is_superuser %}
+  <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
+      {% trans 'Open in Admin' %}
+    </a>{% endif %}
 
 </div>
 {# vim:set ft=htmldjango: #}

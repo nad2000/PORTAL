@@ -1655,6 +1655,8 @@ class ContractForm(ModelForm):
                     initial[fn] = part.file
         super().__init__(*args, **kwargs)
         instance = self.instance or instance
+        if instance and self.data.get("requires_approval") == "on":
+            instance.requires_approval = True
         application = instance.application or initial.get("application")
         is_ro = (
             application
@@ -1759,6 +1761,7 @@ class ContractForm(ModelForm):
                                 "ethical and regulatory approval to conduct the proposed research."
                             )
                             if instance.requires_approval
+                            or self.data.get("requires_approval") == "on"
                             else _(
                                 "Please provide brief reason why ethical or regulatory approval is not required."
                             )

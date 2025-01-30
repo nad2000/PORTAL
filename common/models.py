@@ -98,6 +98,12 @@ class HelperMixin:
     def where(cls, *args, **kwargs):
         return cls.objects.filter(*args, **kwargs)
 
+    @property
+    def admin_url(self):
+        return reverse(
+            f"admin:{self._meta.app_label}_{self._meta.model_name}_change", args=[str(self.id)]
+        )
+
 
 class Model(TimeStampMixin, HelperMixin, Base):
     # TODO: figure out how to make generic table naming:
@@ -167,7 +173,9 @@ class PersonMixin:
         user = self.get_user()
         first_name = getattr(self, "first_name", None) or user and user.first_name
         if middle_names := getattr(self, "middle_names", None) or user and user.middle_names:
-            middle_names = middle_names.replace(",", " ").replace(", ", " ").replace("  ", " ").strip()
+            middle_names = (
+                middle_names.replace(",", " ").replace(", ", " ").replace("  ", " ").strip()
+            )
         last_name = getattr(self, "last_name", None) or user and user.last_name
         full_name = " ".join(s for s in [first_name, middle_names, last_name] if s)
         if hasattr(self, "title") and self.title:

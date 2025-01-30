@@ -19,12 +19,16 @@ register = template.Library()
 
 
 @register.filter(is_safe=True)
-def verbose_name(obj):
+def verbose_name(obj, field_name=None):
+    if field_name:
+        return _(obj._meta.get_field(field_name).verbose_name)
     return _(obj._meta.verbose_name)
 
 
 @register.filter(is_safe=True)
-def verbose_name_plural(obj):
+def verbose_name_plural(obj, field_name=None):
+    if field_name:
+        return _(obj._meta.get_field(field_name).verbose_name_plural)
     return _(obj._meta.verbose_name_plural)
 
 
