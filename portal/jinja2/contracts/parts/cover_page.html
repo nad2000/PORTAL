@@ -15,7 +15,9 @@
       <td valign="middle" height="7cm" align="left">
         <p align="left" style='text-align:left;line-height: 240%'><b><span
            style='font-size:16.0pt'>AGREEMENT FOR FUNDING FOR
-         {% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
+                {% if c.site_id == 5 %}{{ c.application.round.scheme.title|upper }}
+                {% elif fund %}{{ fund.description|upper }}
+                {% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
           </span></b></p>
       </td>
     </tr>
