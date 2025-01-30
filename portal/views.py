@@ -1903,7 +1903,7 @@ class ReportViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
-        duration = a and a.round.duration or 3
+        duration = self.object and self.object.duration or a and a.round.duration or 3
         if self.object and self.object.pk:
             extra = 1
             initial = []
@@ -5634,8 +5634,8 @@ class ContractViewMixin:
 
     def get_reporting_schedule_formset(self, *args, **kwargs):
         a = self.application
-        duration = a.round.duration or 3
-        if self.object and self.object.id:
+        duration = self.object and self.object.duration or a.round.duration or 3
+        if self.object and self.object.pk:
             initial = None
             extra = 1
         else:
@@ -5677,7 +5677,7 @@ class ContractViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
-        duration = a and a.round.duration or 3
+        duration = self.object and self.object.duration or a and a.round.duration or 3
         if self.object and self.object.id:
             extra = 1
             initial = []

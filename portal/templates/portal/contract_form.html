@@ -300,8 +300,14 @@
         alert('Please allow popups for this website');
         // $('#id_export_object_link').click(function(){window.open(this.href); return false; });
         $('#id_export_object_link').click();
-      }
+      };
       {% endif %}
+      $('form input[type="number"][name^="members"]').keydown(function (e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            return false;
+        }
+      });
     });
   </script>
 {% endblock %}

@@ -181,6 +181,10 @@ class FTEMixin:
     def __init__(self, *args, **kwargs):
         duration = kwargs.pop("duration", None)
         super().__init__(*args, **kwargs)
+        if not duration:
+            instance = kwargs.get("instance")
+            contract = instance and instance.contract
+            duration = contract and contract.duration
         if duration:
             for i in range(1, duration + 1):
                 self.fields[f"fte_{i}"] = forms.DecimalField(
@@ -2511,7 +2515,7 @@ class ContractForm(ModelForm):
         ]
         widgets = dict(
             start_date=DateInput(),
-            end_date=DateInput(),
+            end_date=DateInput(end_date="+10y", start_date="+1y"),
             keywords=autocomplete.ModelSelect2Multiple(
                 url="keyword-autocomplete",
                 attrs={

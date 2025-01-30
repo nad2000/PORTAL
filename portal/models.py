@@ -5936,7 +5936,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     tac = TextField(
         _("T&C"), max_length=100000, null=True, blank=True, help_text=_("Terms and Conditions")
     )
-    contract_background = TextField(_("contract background"), null=True, blank=True)
+    contract_background = TextField(
+        _("contract background"),
+        null=True,
+        blank=True,
+        help_text="Contract background information (point '<b>A</b>' in the contract backgroud)",
+    )
     agent_declaration = TextField(
         null=True,
         blank=True,

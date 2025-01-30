@@ -61,6 +61,7 @@ def environment(loader=None, **options):
             "get_messages": messages.get_messages,
             "crispy": crispy,
             "static": static,
+            "mark_safe": mark_safe,
             "url": lambda viewname, urlconf=None, current_app=None, *args, **kwargs: reverse(
                 viewname=viewname,
                 urlconf=urlconf,
@@ -71,6 +72,7 @@ def environment(loader=None, **options):
         }
     )
     env.filters["basename"] = basename
+    env.filters["safe"] = mark_safe
     env.filters["summernote"] = summernote
     env.install_gettext_translations(translation)
     return env
