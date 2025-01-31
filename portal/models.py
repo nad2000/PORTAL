@@ -9750,14 +9750,21 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     @cached_property
     def host_address(self):
         return (
-            ", ".join(filter(str.strip, (self.address or self.org.address).__str__().split("\n")))
+            ", ".join(
+                map(
+                    lambda s: s.strip(" ,\r\t\n"),
+                    (self.address or self.org.address).__str__().splitlines(),
+                )
+            )
             if (self.address or self.org.address)
             else "N/A"
         )
 
     @cached_property
     def agency_address(self):
-        return ", ".join(filter(str.strip, self.agency.address.__str__().split("\n")))
+        return ", ".join(
+            map(lambda s: s.strip(" ,\r\t\n"), self.agency.address.__str__().splitlines())
+        )
 
     class Meta:
         db_table = "contract"
