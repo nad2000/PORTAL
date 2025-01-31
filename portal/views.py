@@ -581,7 +581,7 @@ class CreateView(LoginRequiredMixin, CreateView):
 # class ObjectView(
 #     LoginRequiredMixin, SingleObjectTemplateResponseMixin, ModelFormMixin, ProcessFormView
 # ):
-#     """ViewSet implemetation..."""
+#     """ViewSet implementation..."""
 
 #     def init_object(self, request, *args, **kwargs):
 #         if kwargs and (kwargs.get(self.pk_url_kwarg) or kwargs.get(self.slug_url_kwarg)):
@@ -616,7 +616,7 @@ def survey_webhook(request):
     data = json.loads(request.body)
     # https://puanga.prodata.nz/limesurvey/printanswers/view?surveyid=655512
     # https://puanga.prodata.nz/limesurvey/statistics_user/655512?language=en
-    # capture_message(f"incoming reeust form lime survey:\n{request.body}\n\n\n{data}")
+    # capture_message(f"incoming request form lime survey:\n{request.body}\n\n\n{data}")
     if (token := data.get("token")) and (r := models.Referee.where(survey_token=token).first()):
         if not r.survey_completed_at and (response := data.get("response")):
             if (completed_at := response.get("submitdate")) and not (
@@ -666,7 +666,7 @@ def object_counts(request):
 
 @login_required
 def complete_survey(request):
-    """Handle complition of the surervy"""
+    """Handle completion of the survey"""
     # capture_message(f"COMPLETED:\n{request.GET}\n\n\n{request}")
     token = request.GET.get("token")
     survey_id = request.GET.get("survey_id") or request.GET.get("survey-id")
@@ -4436,7 +4436,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         messages.error(
                             self.request,
                             _(
-                                "Failed to convert your lettter of support form into PDF. "
+                                "Failed to convert your letter of support form into PDF. "
                                 "Please save the letter of support into PDF format and try to upload it again."
                             ),
                         )
@@ -4807,7 +4807,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 elif count:
                     messages.info(
                         self.request,
-                        _(f"{count} new rerefee invitaion(s) were successfully created."),
+                        _(f"{count} new referee invitation(s) were successfully created."),
                     )
 
             except ValidationError as e:
@@ -5282,7 +5282,7 @@ class ApplicationCreate(ApplicationView, CreateView):
                     n.applicatio = a
                     n.accept(
                         by=u,
-                        description="Application in the round was already created; accecpted by default",
+                        description="Application in the round was already created; accepted by default",
                     )
                     n.save()
         if a:
@@ -5314,7 +5314,7 @@ class ApplicationCreate(ApplicationView, CreateView):
     #     return context
 
     def form_valid(self, form):
-        # Extra layer of protection - to prevent dupliate submssion:
+        # Extra layer of protection - to prevent duplicate submission:
         kwargs = self.kwargs
         r = (
             models.Round.get(kwargs["round"])
@@ -5956,7 +5956,9 @@ class ContractViewMixin:
         if not i.fund:
             i.fund = models.Fund.last()
         try:
-            is_ro = org.research_offices.filter(user=u).exists() and not (u.is_superuser or u.is_site_staff)
+            is_ro = org.research_offices.filter(user=u).exists() and not (
+                u.is_superuser or u.is_site_staff
+            )
             with transaction.atomic():
 
                 address_form = self.get_address_form()
@@ -7406,7 +7408,8 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
 
                         if "testimonials" in next_url or "reviews" in next_url:
                             message_text = f"""{message_text}.<br/>
-                                    {_('''Now you can complete the submission of your referee report/testimonial. <br/>Please click on the <strong>Submit</strong> button.''')}"""
+                                    {_('''Now you can complete the submission of your referee report/testimonial.
+                                    <br/>Please click on the <strong>Submit</strong> button.''')}"""
                         messages.info(self.request, message_text)
 
                     return redirect(next_url)
@@ -9222,7 +9225,7 @@ class ConflictOfInterestView(CreateUpdateView):
                     self.request,
                     _(
                         "You have already submitted a evaluation of the application "
-                        "and cannot change the submitted statement of conflict of interst."
+                        "and cannot change the submitted statement of conflict of interest."
                     ),
                 )
                 return redirect("application", pk=coi.application_id)

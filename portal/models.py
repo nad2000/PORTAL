@@ -826,7 +826,7 @@ DOCUMENT_ROLES = Choices(
     ("CV", _("Curriculum Vitae")),
     ("E", _("Ethics Statement")),
     ("F", _("Form")),
-    ("HS", _("Host Suitablity")),
+    ("HS", _("Host Suitability")),
     ("PB", _("Proposal Budget")),
     ("PT", _("Project Timeline")),
 )
@@ -1333,7 +1333,7 @@ class Organisation(Model):
 
     @classmethod
     def search_query(cls, term, queryset=None, nominator=None):
-        """Organisation search queery for autocomplete and select2."""
+        """Organisation search query for autocomplete and select2."""
         # def get_queryset(self):
         q = queryset or cls.objects.all()
         if nominator:
@@ -2893,8 +2893,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         url = self.get_full_detail_url(request=request)
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:
-                resolution = f'The Research Office approved has apprved the application "{self}"'
-            subject = f'The Research Office approved has apprved your application "{self}"'
+                resolution = f'The Research Office approved has approved the application "{self}"'
+            subject = f'The Research Office approved has approved your application "{self}"'
         else:
             if not resolution:
                 resolution = f'The application "{self}" was approved by {by.full_email_address}.'
@@ -2936,7 +2936,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if request:
             messages.success(
                 request,
-                "Successfully sent notificatio to %s"
+                "Successfully sent notification to %s"
                 % ", ".join(u.full_name_with_email for u in recipients),
             )
 
@@ -2962,22 +2962,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         url = request.build_absolute_uri(
             reverse("application-detail", kwargs={"number": self.number})
         )
-        link_name = domain_to_macrons(url)
+        # link_name = domain_to_macrons(url)
         if not resolution:
             resolution = f'The application "{self}" was accepted by {by.full_email_address}.'
-        subject = f'Application "{self}" was ACCEPTED'
-        if not getattr(self, "_change_reason", None):
-            self._change_reason = resolution
+        # subject = f'Application "{self}" was ACCEPTED'
+        # if not getattr(self, "_change_reason", None):
+        #     self._change_reason = resolution
 
-        params = {
-            "user_display": ", ".join(r.full_name for r in recipients),
-            "number": self.number,
-            "user": by and by.full_name_with_email,
-            "title": self.title or self.round.title,
-            "url": url,
-            "link_name": link_name,
-            "resolution": resolution,
-        }
+        # params = {
+        #     "user_display": ", ".join(r.full_name for r in recipients),
+        #     "number": self.number,
+        #     "user": by and by.full_name_with_email,
+        #     "title": self.title or self.round.title,
+        #     "url": url,
+        #     "link_name": link_name,
+        #     "resolution": resolution,
+        # }
         # send_mail(
         #     subject,
         #     (
@@ -3003,7 +3003,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # )
         messages.success(
             request,
-            "Successfully sent notificatio to %s"
+            "Successfully sent notification to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
 
@@ -3104,7 +3104,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         messages.success(
             request,
-            "Successfully sent notificatio to review applicant to %s"
+            "Successfully sent notification to review applicant to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
 
@@ -3115,7 +3115,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         target="submitted",
         conditions=[lambda self: self.site_id == 5],
         custom=dict(
-            verbose="Request reassessment and release the application back to the R.O. for further assessment and editing",
+            verbose="Request reassessment and release the application back to the R.O. "
+            "for further assessment and editing",
             button_name="Request reassessment",
         ),
     )
@@ -3256,7 +3257,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
         messages.success(
             request,
-            "Successfully sent notificatio to review applicant to %s"
+            "Successfully sent notification to review applicant to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
 
@@ -3318,7 +3319,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # )
         messages.success(
             request,
-            "Successfully sent notificatio to review applicant to %s"
+            "Successfully sent notification to review applicant to %s"
             % ", ".join(u.full_name_with_email for u in recipients),
         )
 
@@ -3793,7 +3794,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         super().clean()
         if self.is_preliminary and self.preliminary_id:
             raise ValidationError(
-                _("A prelimenary application cannot have a prelimenary application.")
+                _("A preliminary application cannot have a preliminary application.")
             )
 
     def natural_key(self):
@@ -4413,7 +4414,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     params=OrderedDict(
                         [
                             ("sSessionKey", api.session_key),
-                            ("iSurveyID", survey_id),
+                            ("isurveyD", survey_id),
                             ("aTokenIds", [self.survey_token_id]),
                             ("bEmail", True),
                             ("continueOnError", True),
@@ -4738,7 +4739,7 @@ INVITATION_TYPES = Choices(
 
 INVITATION_STATES = Choices(
     ("accepted", _("accepted")),
-    ("autoreplied", _("autoreplied")),
+    ("autoreplied", _("auto-replied")),
     ("bounced", _("bounced")),
     ("draft", _("draft")),
     ("expired", _("expired")),
@@ -5001,7 +5002,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = Site.objects.get_current()
         site_name = site.name
 
-        # If the inviation has been sent:
+        # If the invitation has been sent:
         if self.state == "sent" or StateLog.objects.for_(self).filter(state="sent").exists():
             subject = "The invitation sent from %(site_name)s portal was revoked" % {
                 "site_name": site_name
@@ -5112,7 +5113,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
             }
-            surveyi_link_name = None
+            survey_link_name = None
             if survey_url := (
                 referee.user
                 and referee.application.round.survey_id
@@ -5124,7 +5125,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 else:
                     survey_url = urljoin(f"https://{site.domain}", survey_url)
                 survey_url = f"{survey_url}?token={self.token}"
-                surveyi_link_name = domain_to_macrons(survey_url)
+                survey_link_name = domain_to_macrons(survey_url)
 
             application_url = reverse(
                 "application-detail", kwargs={"number": referee.application.number}
@@ -5163,7 +5164,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 main_applicant=self.referee.application.submitted_by.full_name,
                 url=url,
                 survey_url=survey_url,
-                surveyi_link_name=surveyi_link_name,
+                survey_link_name=survey_link_name,
                 application_url=application_url,
                 application_link_name=application_link_name,
                 site_name=site_name,
@@ -5180,7 +5181,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "on the portal link below.</p>"
                     "<p><a href='%(guidelines)s'>Referee Guidelines</a></p>"
                     "<p>Please fill out the <strong>referee report/survey</strong> at \n"
-                    "<a href='%(survey_url)s'>%(surveyi_link_name)s</a> "
+                    "<a href='%(survey_url)s'>%(survey_link_name)s</a> "
                     'after reviewing the application at <a href="%(application_url)s">%(application_link_name)s</a>.</p>\n'
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
@@ -5204,7 +5205,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 url=url,
                 link_name=link_name,
                 survey_url=survey_url,
-                surveyi_link_name=surveyi_link_name,
+                survey_link_name=survey_link_name,
                 application_url=application_url,
                 application_link_name=application_link_name,
                 site_name=site_name,
@@ -5940,7 +5941,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         _("contract background"),
         null=True,
         blank=True,
-        help_text="Contract background information (point '<b>A</b>' in the contract backgroud)",
+        help_text="Contract background information (point '<b>A</b>' in the contract background)",
     )
     agent_declaration = TextField(
         null=True,
@@ -6610,7 +6611,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             WITH summary AS (
                 SELECT a.id, count(r.id) AS referee_count,
                     sum(CASE WHEN r.state='testified'
-                    -- OR has_testifed
+                    -- OR has_testified
                     THEN 1 ELSE 0 END) AS submitted_reference_count
                 FROM application AS a
                     LEFT JOIN referee AS r ON r.application_id=a.id
@@ -6715,7 +6716,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 method="list_participants",
                 params={
                     "sSessionKey": api.session_key,
-                    "iSurveyID": self.survey_id,
+                    "isurveyD": self.survey_id,
                     # "bUnused": True,
                     "aAttributes": ["email", "token", "completed", "token", "sent", "emailstatus"],
                     "aConditions": {
@@ -8010,7 +8011,7 @@ def clean_converted_file_cache(dry_run=False):
                 size = os.path.getsize(full_filename)
                 if not dry_run:
                     os.remove(full_filename)
-                print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
+                print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
                 cf_count += 1
     if cf_count:
         print(f"*** Deleted {cf_count} files")
@@ -8046,7 +8047,7 @@ def clean_private_fils(dry_run=False):
                 size = os.path.getsize(full_filename)
                 if not dry_run:
                     os.remove(full_filename)
-                print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
+                print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
                 total += size
 
             # if (
@@ -8061,7 +8062,7 @@ def clean_private_fils(dry_run=False):
             #         and not Application.where(photo_identity=filename).exists()
             #     )
             #     or (
-            #         rel_dir.startswith("score-sheeets/")
+            #         rel_dir.startswith("score-sheets/")
             #         and not ScoreSheet.where(file=filename).exists()
             #     )
             #     or (
@@ -8106,7 +8107,7 @@ def clean_private_fils(dry_run=False):
             #     size = os.path.getsize(full_filename)
             #     if dry_run:
             #         os.remove(full_filename)
-            #     print(f"*** Deleted ofphaned file: '{filename}' ({size} bytes)")
+            #     print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
             #     total += size
 
     if total:
@@ -8163,7 +8164,7 @@ class Panel(PanelMixin, Model):
     code = CharField(_("code"), max_length=3, blank=True, null=True)
     description = CharField(_("description"), max_length=255, blank=True, null=True)
     fund = ForeignKey("Fund", on_delete=SET_NULL, blank=True, null=True)
-    # panellista = models.ManyToManyField(Person, through=Panellist, related_name="panels")
+    # panellists = models.ManyToManyField(Person, through=Panellist, related_name="panels")
 
     objects = PanelManager()
 
@@ -9015,7 +9016,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             allocation=allocations[p - 1],
                             purpose=(
                                 "To contribute towards the Key Contact Person's salary, "
-                                "Organsiational overheads and Research related expenses."
+                                "Organisational overheads and Research related expenses."
                                 if a.site_id == 5
                                 else None
                             ),
@@ -9562,7 +9563,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         return file_path
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
-        # with open(f"/home/rcir178/PMSPP/schedule_{self.number}.fodt", "w") as ofile:
+        # with open(Path.home() / f"schedule_{self.number}.fodt", "w") as ofile:
         # output_dir = Path.home() / "PMSPP" / "contracts"
         output_dir = Path(tempfile.gettempdir())
 
@@ -9659,7 +9660,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             if box.height and box.width:
                 width = int(round(box.width * 0.35277777777777775, 0))  # 2.54/72
                 height = int(round(box.height * 0.35277777777777775, 0))  # 2.54/72
-            else:  # A4 (portait)
+            else:  # A4 (portrait)
                 width = 210
                 height = 297
             page_no = pn - pages_to_skip + 1
@@ -9795,7 +9796,7 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
         default="T",
         max_length=1,
     )
-    # TODO: should be removed at some stage or renamend to 'name'
+    # TODO: should be removed at some stage or renamed to 'name'
     title = CharField(
         _("Title"), max_length=200, null=True, blank=True, help_text=_("Contract document title")
     )
@@ -10037,7 +10038,7 @@ class Allocation(Model):
         blank=True,
         max_length=1000,
         help_text=_(
-            "Eg, on the 2nd Businees Day after the 20th day of each  month, "
+            "E.g., on the 2nd Business Day after the 20th day of each  month, "
             "or receipt of the 2024 interim / final report."
         ),
         default="In equal instalments on the 2nd Business Day after the 20th day of each month.",
@@ -10046,7 +10047,7 @@ class Allocation(Model):
         _("allocation"),
         max_digits=15,
         decimal_places=2,
-        help_text=_("Amouint of funding (GST excl.)"),
+        help_text=_("Amount of funding (GST excl.)"),
     )
 
     history = HistoricalRecords(table_name="allocation_history")
@@ -10334,7 +10335,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             "and sea. Like all communities, Māori communities aspire to live in sustainable communities "
             "dwelling in healthy environments. Much general environmental research is relevant to Māori. "
             "Distinctive environmental research arising in Māori communities relates to the expression of "
-            "iwi and hapū knowledge, culture and experience – including Kaitiakitanga - in New Zealand land and seascapes."
+            "iwi and hapū knowledge, culture and experience – including Kaitiakitanga - in New Zealand "
+            "land and seascapes."
         ),
         null=True,
         blank=True,
@@ -10498,7 +10500,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             # | Q(nomination__nominator=user)
             # | Q(nomination__user=user)
             # | Q(
-            #     Q(contrcat__org__research_offices__user=user),
+            #     Q(contract__org__research_offices__user=user),
             #     Q(
             #         Q(nomination__org=F("org"))
             #         | Q(nomination__nominator__research_offices__org=F("org"))
