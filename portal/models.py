@@ -645,6 +645,25 @@ class PdfFileMixin:
 
             return cf
 
+    @classmethod
+    def refresh_page_counts(cls, commit=True):
+        changed_objects = []
+        for obj in (getattr(cls, "all_objects", None) or cls.objects).all():
+            if hasattr(obj, "page_count"):
+                try:
+                    page_count = obj.page_count
+                    if page_count != obj.update_page_count():
+                        changed_objects.append(obj)
+                except Exception as e:
+                    # capture_message(e)
+                    print(f"Failing to update page count for {obj}: {e}")
+                    pass
+
+        if changed_objects and commit:
+            cls.objects.bulk_update(changed_objects, ["page_count"])
+
+        return len(changed_objects)
+
 
 class StateField(FSMFieldMixin, StatusField):
     def __init__(self, *args, **kwargs):
@@ -8015,6 +8034,17 @@ def clean_converted_file_cache(dry_run=False):
                 cf_count += 1
     if cf_count:
         print(f"*** Deleted {cf_count} files")
+
+
+def refresh_page_counts(dry_run=False):
+    for m in apps.get_models():
+        if (
+            issubclass(m, PdfFileMixin)
+            and not issubclass(m, simple_history.models.HistoricalChanges)
+            and any(f.name == "page_count" for f in m._meta.fields)
+        ):
+            count = m.refresh_page_counts(commit=not dry_run)
+            print(f"*** Refreshed {count} page counts for {m._meta.verbose_name_plural}")
 
 
 def clean_private_fils(dry_run=False):
