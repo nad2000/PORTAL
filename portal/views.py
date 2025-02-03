@@ -4171,6 +4171,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 and f.instance.file
                                 and f.instance.file.path
                             ):
+                                f.instance.page_count = None
                                 try:
                                     cf = f.instance.update_converted_file(commit=True)
                                     if cf:
