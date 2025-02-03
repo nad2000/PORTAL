@@ -335,7 +335,7 @@ class DocumentInlineFormset(TableInlineFormset):
                 if rd:
                     if rd.is_optional:
                         f.fields["file"].widget.attrs["data-required"] = 0
-                    dtf = rd.document_type.format
+                    dtf = rd.format or rd.document_type.format
                     if dtf == "S":
                         f.fields["file"].widget.attrs[
                             "accept"
@@ -1692,7 +1692,7 @@ class ContractForm(ModelForm):
         # r = self.instance.application.round
         # parts = dict((v, v) for f, v in self.part_fields)
         parts = (
-            {p.document_type.role: p for p in instance.documents.prefetch_related("document_type")}
+            {p.document_type.role if p.document_type else p.required_document.role: p for p in instance.documents.prefetch_related("document_type")}
             if instance.pk
             else {}
         )

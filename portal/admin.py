@@ -2522,6 +2522,7 @@ class RoundAdmin(
     )
     save_on_top = True
     list_display = [
+        "scheme__code",
         "coloured_title",
         "scheme",
         "opens_on",
@@ -2537,7 +2538,7 @@ class RoundAdmin(
     exclude = [
         "site",
     ]
-    search_fields = ["title"]
+    search_fields = ["title", "scheme__code"]
     actions = ["create_new_round", "invite_referees", "sync_referee_surveys"]
 
     def change_view(self, request, object_id, form_url="", extra_context=None):

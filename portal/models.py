@@ -844,6 +844,7 @@ DOCUMENT_ROLES = Choices(
     ("B", _("Budget")),
     ("CV", _("Curriculum Vitae")),
     ("E", _("Ethics Statement")),
+    ("EC", _("Eligibility Criteria")),
     ("F", _("Form")),
     ("HS", _("Host Suitability")),
     ("PB", _("Proposal Budget")),
@@ -6022,7 +6023,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
     appendix_b = PrivateFileField(
         verbose_name="Appendix B",
-        help_text="Eligibility Criteria (preferably converted into PDF with OpenOffice or LibreOffice)",
+        help_text="Eligibility Criteria (MUST HAVE EXACTLY 1 PAGE! "
+        "SHOULD BE converted into PDF with OpenOffice or LibreOffice)",
         null=True,
         blank=True,
         upload_to="rounds",
@@ -6030,7 +6032,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             hash_int(instance.pk),
             "parts",
         ],
-        validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
+        validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
     )
 
     @property
@@ -8870,6 +8872,30 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             c.keywords.add(*a.keywords.all())
             documents = []
             for crd in r.required_contract_documents.order_by("ordering"):
+                # Handling Eligibility Criteria:
+                if crd.role == "EC":
+                    if r.appendix_b:
+                        documents.append(
+                            c.documents.model(
+                                contract=c,
+                                page_count=1,
+                                document_type=crd.document_type,
+                                required_document=crd,
+                                file=r.appendix_b,
+                            )
+                        )
+                    else:
+                        documents.append(
+                            c.documents.model(
+                                contract=c,
+                                page_count=1,
+                                document_type=crd.document_type,
+                                required_document=crd,
+                                # file=r.appendix_b,
+                            )
+                        )
+                    continue
+
                 if crd.application_required_document:
                     d = (
                         a.documents.filter(
@@ -9155,6 +9181,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def appendix_b(self):
+        if ec := self.documents.filter(~Q(file__isnull=True), ~Q(file=""), required_document__role="EC").first():
+            return ec.file
         r = self.application.round
         if r.appendix_b:
             return r.appendix_b
@@ -9540,8 +9568,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             file_path = self.schedule2.path if self.schedule2 else self.default_schedule2.path
         elif part == "appendix_a":
             file_path = self.appendix_a and self.appendix_a.path
-        elif part == "appendix_b":
-            file_path = self.appendix_b and self.appendix_b.path
+        # elif part == "appendix_b":
+        #     file_path = self.appendix_b and self.appendix_b.path
         else:
             return self.get_document(request=request, user=user, format="pdf", part=part, **kwargs)
             # content = self.get_document(
@@ -9613,9 +9641,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         appendix_a = self.get_part_pdf(request=request, part="appendix_a")
         if not isinstance(appendix_a, PdfReader):
             appendix_a = PdfReader(appendix_a, strict=False)
-        appendix_b = self.get_part_pdf(request=request, part="appendix_b")
-        if not isinstance(appendix_b, PdfReader):
-            appendix_b = PdfReader(appendix_b, strict=False)
+        # appendix_b = self.get_part_pdf(request=request, part="appendix_b")
+        # if not isinstance(appendix_b, PdfReader):
+        #     appendix_b = PdfReader(appendix_b, strict=False)
         schedule2_toc = pdf_toc(schedule2)
         page_no = 2 + schedule1_page_count
         headers = {}
@@ -9634,7 +9662,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             schedule2_toc=schedule2_toc,
             schedule2=schedule2,
             appendix_a=appendix_a,
-            appendix_b=appendix_b,
+            # appendix_b=appendix_b,
             page_no=1,
         )
         parts["toc"] = toc
@@ -9649,7 +9677,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 yield d.pdf_file.path
             yield schedule2
             yield appendix_a
-            yield appendix_b
+            # yield appendix_b
 
         for part in part_list():
             # merger.append(a, outline_item=title, import_outline=True)
@@ -9824,7 +9852,7 @@ class ContractDocumentMixin:
 class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_contract_documents")
     document_type = ForeignKey(
-        DocumentType, on_delete=CASCADE, related_name="required_contract_documents"
+        DocumentType, on_delete=CASCADE, related_name="required_contract_documents", null=True, blank=True
     )
     role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     # name = CharField(_("Name"), max_length=200, blank=True, default="")
@@ -9858,9 +9886,14 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        dt = str(self.document_type)
+        if self.document_type:
+            dt = str(self.document_type) 
+        elif self.role:
+            dt = self.get_role_display()
+        else:
+            dt = None
         title = self.title or dt
-        if title == dt:
+        if not dt or title == dt:
             return title
         return f"{dt}: {title}"
 
