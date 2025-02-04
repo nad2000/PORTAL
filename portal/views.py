@@ -112,7 +112,7 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from private_storage.views import PrivateStorageDetailView
-from pypdf import PdfMerger, PdfReader
+from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
     api_view,
@@ -539,7 +539,8 @@ class ExportView(UserPassesTestMixin, DetailView):
             objects = self.get_objects(pk)
             template = get_template(self.template)
             attachments = self.get_attachments(pk)
-            merger = PdfMerger()
+            # merger = PdfMerger()
+            merger = PdfWriter()
             merger.add_metadata(self.get_metadata(pk))
 
             html = HTML(string=template.render({"objects": objects}))
@@ -6175,7 +6176,7 @@ class ContractViewMixin:
             if i.file:
                 i.file.delete()
 
-            if isinstance(output, PdfMerger):
+            if isinstance(output, (PdfWriter, PdfMerger)):
                 pdf_content = io.BytesIO()
                 output.write(pdf_content)
                 pdf_content.seek(0)
@@ -8783,7 +8784,7 @@ class RoundExportView(ExportView):
         if not os.path.exists(output_filename) or regenerate:
             numbers = []
             # merger = PdfMerger()
-            merger = PdfMerger(strict=False)
+            merger = PdfWriter()
             merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
             merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
 

@@ -95,7 +95,7 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
-from pypdf import PdfMerger, PdfReader
+from pypdf import PdfMerger, PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
@@ -3637,7 +3637,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         ssl._create_default_https_context = ssl._create_unverified_context
 
-        merger = PdfMerger(strict=False)
+        # merger = PdfMerger(strict=False)
+        merger = PdfWriter()
         merger.add_metadata(
             {
                 "/Title": (
@@ -3803,7 +3804,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
             )
             for dp, hp in zip(merger.pages, header_file.pages):
-                dp.pagedata.merge_page(hp)
+                dp.merge_page(hp)
 
         if cache and for_panellists:
             pass
@@ -8008,10 +8009,15 @@ def clean_converted_file_cache(dry_run=False):
     for cf in ConvertedFile.all_objects.filter(
         created_at__lt=timezone.now() - timedelta(days=-90)
     ):
-        size = os.path.getsize(cf.file.name)
-        print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
+        has_file = Path(cf.file.path).is_file()
+        if has_file:
+            size = os.path.getsize(cf.file.name)
+            print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
+        else:
+            print(f"*** Deleted expired file: '{cf.file.name}' (0 bytes)")
         if not dry_run:
-            cf.file.delete()
+            if has_file:
+                cf.file.delete()
             cf.delete()
             # os.remove(cf.file.path)
         cf_count += 1
@@ -9667,7 +9673,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         )
         parts["toc"] = toc
 
-        merger = PdfMerger(strict=False)
+        # merger = PdfMerger(strict=False)
+        merger = PdfWriter()
 
         def part_list():
             """Change order and add the appendices"""
@@ -9714,7 +9721,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         for pn, dp in enumerate(merger.pages):
             if pn < pages_to_skip:
                 continue
-            box = dp.pagedata.mediabox
+            box = dp.mediabox
             if box.height and box.width:
                 width = int(round(box.width * 0.35277777777777775, 0))  # 2.54/72
                 height = int(round(box.height * 0.35277777777777775, 0))  # 2.54/72
@@ -9735,7 +9742,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 )
             )
             reader = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
-            dp.pagedata.merge_page(reader.pages[0])
+            dp.merge_page(reader.pages[0])
 
         output_filename = output_dir / f"{self.number}.pdf"
         merger.write(output_filename)
@@ -9887,7 +9894,7 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
 
     def __str__(self):
         if self.document_type:
-            dt = str(self.document_type) 
+            dt = str(self.document_type)
         elif self.role:
             dt = self.get_role_display()
         else:

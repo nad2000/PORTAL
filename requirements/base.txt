@@ -64,7 +64,7 @@ jinja2>=2.11.2,<4.0.0
 weasyprint==52.5
 django-weasyprint==1.0.1
 html2text==2020.1.16
-pypdf<4.4.0
+pypdf<6.0.0
 rispy<1.0.0
 pikepdf<=8.6.0
 djhacker<=0.3.0
