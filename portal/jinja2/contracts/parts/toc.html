@@ -87,7 +87,7 @@
       </td>
     </tr>
 
-    {% if c.appendix_b %}
+    {% if not c.documents.filter(required_document__role="EC").exists() and c.appendix_b %}
       {% set page_no.value = page_no.value + 1 %}
       <tr>
         <td style="text-transform: uppercase;">

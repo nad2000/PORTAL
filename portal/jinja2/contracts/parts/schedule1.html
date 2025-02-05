@@ -51,12 +51,9 @@
     SCHEDULE 1 - KEY TERMS<br>
   {% if fund %}{{ fund.description|upper }}{% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
   </h1>
-  <h2>(Application: {{ a.number }})</h2>
+  <!-- h2 style="text-align: center;">(Application: {{ a.number }})</h2 -->
   <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
-
-  <p>
-  Programme Title: <strong>{{ c.project_title }}</strong>
-  </p>
+  <!-- p> Programme Title: <strong>{{ c.project_title }}</strong> </p -->
   <ol type="1">
 
     <li>
@@ -163,8 +160,8 @@
             </tr>
           {% else %}
             <tr style="page-break-inside: avoid !important;">
-              <td width="284" valign="top" style="width:212.65pt;padding:0in 5.4pt 0in 5.4pt;page-break-inside: avoid !important;">&nbsp;</td>
-              <td width="189" valign="top" style="width:141.75pt; padding:0in 5.4pt 0in 5.4pt;page-break-inside: avoid !important;">&nbsp;</td>
+              <td width="284" valign="top" style="width:212.65pt;padding:0in 5.4pt 0in 5.4pt;page-break-inside: avoid !important;height:29.6pt;">&nbsp;</td>
+              <td width="189" valign="top" style="width:141.75pt; padding:0in 5.4pt 0in 5.4pt;page-break-inside: avoid !important;height:29.6pt;">&nbsp;</td>
             </tr>
           {% endfor %}
 
@@ -193,12 +190,13 @@
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><strong>{{ a.number }}</strong></p>
           </td>
         </tr>
-        <tr style='height:4.15pt'>
+        <tr style="page-break-inside: auto;">
           <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Overall aim of research</b></p>
           </td>
           <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
-            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>{% if c.abstract and c.abstract.strip() %}
+            <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
+            {% if c.abstract and c.abstract.strip() %}
             {% if format != "html" %}{{ c.abstract|summernote }}{% else %}{{ c.abstract|safe }}{% endif %}
           {% else %}&nbsp;{% endif %}</p>
           </td>

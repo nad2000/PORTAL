@@ -8011,7 +8011,7 @@ def clean_converted_file_cache(dry_run=False):
     ):
         has_file = Path(cf.file.path).is_file()
         if has_file:
-            size = os.path.getsize(cf.file.name)
+            size = os.path.getsize(cf.file.path)
             print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
         else:
             print(f"*** Deleted expired file: '{cf.file.name}' (0 bytes)")
