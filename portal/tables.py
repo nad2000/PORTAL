@@ -276,6 +276,7 @@ class ApplicationTable(tables.Table):
         "application-export",
         args=[tables.A("pk")],
         text=gettext_lazy("Export"),
+        orderable=False,
         attrs={
             "a": {
                 "class": "btn btn-primary btn-sm",
@@ -434,6 +435,7 @@ class ReportTable(tables.Table):
         "report-export",
         args=[tables.A("pk")],
         text=gettext_lazy("Export"),
+        orderable=False,
         attrs={
             "a": {
                 "class": "btn btn-primary btn-sm",

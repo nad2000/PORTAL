@@ -653,7 +653,7 @@ You have a request to review a {{ site_name }} application to act on.
                     el.html(dt.format(el.data("format") || "YYYY[&#8209;]MM[&#8209;]DD[&nbsp;]HH:mm"));
                   });
                   // $('[data-toggle="tooltip"]').tooltip();
-                  $('[data-toggle="tooltip"],[data-tooltip="tooltip"]').tooltip();
+                  $('[data-toggle="tooltip"],[data-tooltip="tooltip"]').tooltip({ boundary: 'window' });
                   $('[data-toggle="popover"][data-trigger!="manual"]').popover();
                   $('[data-toggle="popover"][data-trigger="manual"]').hover(function() {
                     $(this).popover('show');

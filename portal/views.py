@@ -5539,6 +5539,36 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
     extra_context = {"category": "contracts"}
     filterset_class = filters.ContractFilterSet
 
+    def get_table_kwargs(self):
+        u = self.request.user
+        if u.is_staff or u.is_site_staff:
+            return {
+                "extra_columns": [
+                    (
+                        _("Export"),
+                        django_tables2.LinkColumn(
+                            "contract-export",
+                            args=[django_tables2.A("pk")],
+                            orderable=False,
+                            # kwargs={"format": "pdf", "pk": django_tables2.A("pk")},
+                            text=gettext_lazy("Export"),
+                            attrs={
+                                "a": {
+                                    "class": "btn btn-primary btn-sm",
+                                    # "target": "_blank",
+                                    "data-toggle": "tooltip",
+                                    "title": gettext_lazy(
+                                        "Export the contract into a consolidated PDF file"
+                                    ),
+                                },
+                                "td": {"class": "text-center"},
+                            },
+                        ),
+                    )
+                ]
+            }
+        return {}
+
     def get_queryset(self, *args, **kwargs):
         u = self.request.user
         queryset = super().get_queryset(*args, **kwargs)
@@ -8631,7 +8661,7 @@ class ContractExportView(ExportView):
 
     def get(self, request, pk):
         c = self.get_object_or_404(pk)
-        format = request.GET.get("format") or "html"
+        format = request.GET.get("format") or "pdf"
         for_download = request.GET.get("for_download", False)
         part = request.GET.get("part")
         if not format or format in ["html", "htm"]:
