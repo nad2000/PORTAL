@@ -47,7 +47,7 @@ body {
             </td>
             <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: center; width:33%;" align="center">
               <center>
-                <span lang="en-NZ"><small>Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ c.start_date.strftime("%d %B, %Y") }}</sdfield></small></span>
+                <span lang="en-NZ"><small>Contract	Issued: <sdfield type=DATETIME sdnum="5129;3081;NNNN&quot;&quot;D MMMM YYYY">{{ (c.updated_at or c.created_at or c.start_date).strftime("%d %B %Y") }}</sdfield></small></span>
               </center>
             </td>
             <td border="0" style="border: none; font-family: Arial; font-size: 6pt; text-align: right; width:33%;" align="right">

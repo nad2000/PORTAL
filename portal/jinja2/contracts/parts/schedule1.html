@@ -67,7 +67,7 @@
           <td width=344 valign=top style='width:55%;padding:0in 5.4pt 0in 5.4pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
             <b>
-              {{ c.start_date.strftime("%d %B, %Y") }}
+              {{ c.start_date.strftime("%-d %B %Y") }}
             </b>
             </p>
           </td>
@@ -92,7 +92,7 @@
           <td valign=top style='padding:0in 5.4pt 0in 5.4pt;height:4.15pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
             <b>
-            {% if c.end_date %}{{ c.end_date.strftime("%d %B, %Y") }}{% else %}&nbsp;{% endif %}
+            {% if c.end_date %}{{ c.end_date.strftime("%-d %B %Y") }}{% else %}&nbsp;{% endif %}
             </b>
             </p>
           </td>
@@ -245,7 +245,7 @@
                 <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
               {% endif %}
               <td>{{ r.get_type_display() }} Report (Year {{ r.period }})</td>
-              <td>{{ r.due_date and r.due_date.strftime("%d %B, %Y") or _("N/A") }}</td>
+              <td>{{ r.due_date and r.due_date.strftime("%-d %B %Y") or _("N/A") }}</td>
             </tr>
           {% endfor %}
         {% endfor %}
@@ -275,7 +275,7 @@
               {% if loop.first %}
                 <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
               {% endif %}
-              <td style="text-align: right;">${{ '{:0,.2f}'.format(r.allocation) }}</td>
+              <td style="text-align: right;">${{ '{:0,.0f}'.format(r.allocation) }}</td>
               <td>{{ r.purpose or '' }}</td>
               <td>{{ r.details or '' }}</td>
             </tr>
@@ -284,7 +284,7 @@
         <tr valign="middle">
           <td><b>TOTAL</b></td>
           <td colspan="3" style="text-align: right;">
-            ${{ '{:0,.2f}'.format(c.total_allocation) }}
+            ${{ '{:0,.0f}'.format(c.total_allocation) }}
           </td>
         </tr>
       </table>

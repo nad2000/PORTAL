@@ -25,7 +25,7 @@
       <td>&nbsp;</td>
       <td style="vertical-align: top;" valign=top>
         <!--p><b>{{ c.org.name.upper() }}</b>, {{ c.host_address }} (<b>Host Organisation</b>)</p -->
-        <b>{{ c.org.name.upper() }}</b>, {{ c.host_address }} (<b>Host Organisation</b>)
+        <b>{{ (c.host.legal_name or c.host.name).upper() }}</b>, {{ c.host_address }} (<b>Host Organisation</b>)
       </td>
     </tr>
 
@@ -50,7 +50,7 @@
       Science and Innovation (<b>RSI</b>) workforce and provide the researchers with
       support to flourish within the RSI system.
       {% elif SITE_ID == 5 %}
-        The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system.<br>
+        The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system.
         {% if scheme.code in ["MTP", "TTMFL"] %}
           The New Zealand Mana Tūāpapa Future Leader Fellowship is a scheme under the Aotearoa New Zealand Tāwhia Te Mana Research Fellowships. It supports Aotearoa New Zealand’s talented early career researchers to establish the foundations of an excellent and impactful research career.
         {% elif scheme.code in ["MTN", "TTMRL"] %}
@@ -171,7 +171,7 @@
 
     <tr>
       <td width=262 valign=top style='width:196.7pt;padding:0in 5.4pt 0in 5.4pt'>
-        <p class=MsoNormal><b>SIGNED</b> for and on behalf of <b>{{ c.org.name.upper() }}</b> by</p>
+        <p class=MsoNormal><b>SIGNED</b> for and on behalf of <b>{{ (c.host.legal_name or c.host.name).upper() }}</b> by</p>
       </td>
       <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>
         <p class=MsoNormal>)<br/>)<br/>)</p>
