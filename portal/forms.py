@@ -25,6 +25,7 @@ from crispy_forms.layout import (
     LayoutObject,
     Row,
 )
+from dateutil.relativedelta import relativedelta
 from dal import autocomplete
 from django import forms
 from django.conf import settings
@@ -1680,7 +1681,7 @@ class ContractForm(ModelForm):
                 "schedule2",
             ]:
                 if f in self.fields:
-                    self.fields.pop(f)
+                    self.fields.pop(f, None)
 
         # language = get_language()
         site_id = self.site_id
@@ -1692,7 +1693,10 @@ class ContractForm(ModelForm):
         # r = self.instance.application.round
         # parts = dict((v, v) for f, v in self.part_fields)
         parts = (
-            {p.document_type.role if p.document_type else p.required_document.role: p for p in instance.documents.prefetch_related("document_type")}
+            {
+                p.document_type.role if p.document_type else p.required_document.role: p
+                for p in instance.documents.prefetch_related("document_type")
+            }
             if instance.pk
             else {}
         )
@@ -2444,7 +2448,22 @@ class ContractForm(ModelForm):
 
     def save(self, *args, **kwargs):
         created = not self.instance.pk
+        if "duration" in self.changed_data and "end_date" not in self.changed_data:
+            self.cleaned_data["end_date"] = self.instance.end_date = (
+                self.instance.start_date or self.cleaned_data["start_date"]
+            ) + relativedelta(years=self.cleaned_data["duration"], days=-1)
+
         res = super().save(*args, **kwargs)
+        if "duration" in self.changed_data:
+            c = self.instance
+            duration = c.duration or self.cleaned_data["duration"]
+            c.reporting_schedule.filter(period__gt=duration).delete()
+            c.allocations.filter(period__gt=duration).delete()
+            # if c.reporting_schedule.count() < duration:
+            #     pass
+            c.reporting_schedule.filter(period=duration).update(type="F")
+            models.ContractMemberEffort.where(member__contract=c, period__gt=duration).delete()
+
         r = self.instance.application.round
         for fn, dr in self.part_fields:
             if created or fn in self.changed_data:
@@ -2515,7 +2534,7 @@ class ContractForm(ModelForm):
         ]
         widgets = dict(
             start_date=DateInput(),
-            end_date=DateInput(end_date="+10y", start_date="+1y"),
+            end_date=DateInput(end_date="+12y", start_date="+1y"),
             keywords=autocomplete.ModelSelect2Multiple(
                 url="keyword-autocomplete",
                 attrs={
