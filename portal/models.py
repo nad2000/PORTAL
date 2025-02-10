@@ -646,9 +646,9 @@ class PdfFileMixin:
             return cf
 
     @classmethod
-    def refresh_page_counts(cls, commit=True):
+    def refresh_page_counts(cls, commit=True, queryset=None):
         changed_objects = []
-        for obj in (getattr(cls, "all_objects", None) or cls.objects).all():
+        for obj in (queryset or getattr(cls, "all_objects", None) or cls.objects).all():
             if hasattr(obj, "page_count"):
                 try:
                     page_count = obj.page_count

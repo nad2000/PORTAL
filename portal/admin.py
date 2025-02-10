@@ -954,6 +954,14 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 #         fields = "__all__"
 
 
+@admin.action(description="Refresh Appendices Page Counts")
+def refresh_page_counts(modeladmin, request, queryset):
+    count = 0
+    for obj in queryset:
+        count += modeladmin.model.refresh_page_counts(queryset=obj.documents.all())
+    messages.success(request, f"{count} document page counts refreshed.")
+
+
 @admin.register(models.Application)
 class ApplicationAdmin(
     PdfFileAdminMixin,
@@ -1378,10 +1386,11 @@ class ApplicationAdmin(
             )
 
     actions = [
-        "send_identity_verification_reminder",
-        "request_resubmission",
-        "invite_referees",
         "initialize_contracts",
+        "invite_referees",
+        refresh_page_counts,
+        "request_resubmission",
+        "send_identity_verification_reminder",
     ]
 
     # def get_actions(self, request):
@@ -2143,7 +2152,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
                                     manager=getattr(model, "all_objects", model._default_manager),
                                 )
                             else:
-                                manager=getattr(model, "all_objects", model._default_manager)
+                                manager = getattr(model, "all_objects", model._default_manager)
                                 manager.bulk_update(objects, [field])
 
                         for o in orgs:
@@ -2677,7 +2686,7 @@ class RoundAdmin(
             ),
             (
                 "Contract Options",
-               {
+                {
                     "classes": ("collapse",),
                     "fields": [
                         "awarded_amount",
@@ -3157,6 +3166,7 @@ class ContractAdmin(
         ContractClauseInline,
         StateLogInline,
     ]
+    actions = [refresh_page_counts]
 
 
 @admin.register(models.Publication)
