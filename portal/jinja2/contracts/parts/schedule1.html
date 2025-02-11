@@ -13,7 +13,7 @@
 {% macro org_address_tr(c, org) %}
   <tr>
     <td valign=top style='padding: 6pt 5.4pt 0in 5.4pt;height:29.6pt'>
-      {{ org.name }}
+      {{ org.legal_name or org.name }}
     </td>
     <td valign=top style='padding: 0pt 5.4pt 0in 5.4pt'>
       <p style='margin-bottom:6.0pt;'>
