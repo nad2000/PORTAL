@@ -1903,6 +1903,7 @@ APPLICATION_STATES = Choices(
     ("withdrawn", _("Withdrawn")),
     ("approved", _("Approved")),
     ("accepted", _("Accepted")),
+    ("archived", _("Archived")),
     ("funded", _("Funded")),
 )
 
@@ -2637,6 +2638,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
     )
     def save_draft(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["draft", "new", "tac_accepted", "in_review", "submitted"],
+        target="archived",
+        custom=dict(verbose="Archive", button_name="Archive"),
+    )
+    def archive(self, *args, **kwargs):
         pass
 
     @fsm_log
@@ -8478,14 +8489,14 @@ class ContractMixin:
         ("TER", _("Terminated")),
         ("TRN", _("Transferred")),
         ("WTH", _("Withdrawn")),
-        ("accepted", _("accepted")),
-        ("approved", _("approved")),
-        ("archived", _("archived")),
-        ("cancelled", _("cancelled")),
+        ("accepted", _("Accepted")),
+        ("approved", _("Approved")),
+        ("archived", _("Archived")),
+        ("cancelled", _("Cancelled")),
         ("draft", _("WIP")),
         ("new", _("new")),
-        ("preliminary", _("preliminary")),
-        ("submitted", _("submitted")),
+        ("preliminary", _("Preliminary")),
+        ("submitted", _("Submitted")),
         # ("withdrawn", _("withdrawn")),
     )
 
@@ -9187,7 +9198,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def appendix_b(self):
-        if ec := self.documents.filter(~Q(file__isnull=True), ~Q(file=""), required_document__role="EC").first():
+        if ec := self.documents.filter(
+            ~Q(file__isnull=True), ~Q(file=""), required_document__role="EC"
+        ).first():
             return ec.file
         r = self.application.round
         if r.appendix_b:
@@ -9859,7 +9872,11 @@ class ContractDocumentMixin:
 class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_contract_documents")
     document_type = ForeignKey(
-        DocumentType, on_delete=CASCADE, related_name="required_contract_documents", null=True, blank=True
+        DocumentType,
+        on_delete=CASCADE,
+        related_name="required_contract_documents",
+        null=True,
+        blank=True,
     )
     role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     # name = CharField(_("Name"), max_length=200, blank=True, default="")

@@ -962,6 +962,31 @@ def refresh_page_counts(modeladmin, request, queryset):
     messages.success(request, f"{count} document page counts refreshed.")
 
 
+@admin.action(description="Archive Objects")
+def archive_objects(modeladmin, request, queryset):
+    count = 0
+    objects = []
+    for obj in queryset:
+        if obj.state != "archived":
+            obj.archive(
+                request=request,
+                user=request.user,
+                description=f"Archived by admin ({request.user}).",
+            )
+            objects.append(obj)
+            count += 1
+    if objects:
+        # modeladmin.model.objects.bulk_update(objects)
+        bulk_update_with_history(
+            objects,
+            modeladmin.model,
+            ["state", "state_changed_at", "updated_at"],
+            default_user=request.user,
+            manager=modeladmin.model.objects,
+        )
+    messages.success(request, f"{count} object(s) were archived.")
+
+
 @admin.register(models.Application)
 class ApplicationAdmin(
     PdfFileAdminMixin,
@@ -1391,6 +1416,7 @@ class ApplicationAdmin(
         refresh_page_counts,
         "request_resubmission",
         "send_identity_verification_reminder",
+        archive_objects,
     ]
 
     # def get_actions(self, request):
@@ -3166,7 +3192,7 @@ class ContractAdmin(
         ContractClauseInline,
         StateLogInline,
     ]
-    actions = [refresh_page_counts]
+    actions = [refresh_page_counts, archive_objects]
 
 
 @admin.register(models.Publication)

@@ -6379,16 +6379,19 @@ class ApplicationList(
             ):
                 outcomes.load(file.file, format="xlsx")
             funded_count = 0
+            archived_count = 0
             error_messages = []
             contracts = []
             applications = []
             try:
                 with transaction.atomic():
-                    for number, decision, *rest in outcomes:
+                    for line in outcomes:
+                        number, decision, *rest = line
+                        decision = decision.strip().upper()
                         number = number.strip()
-                        if decision in ["y", "Y", "1", "yes", "YES"]:
-                            a = Application.where(number=number).last()
-                            if a:
+                        a = Application.where(number=number).last()
+                        if a:
+                            if decision in ["Y", "1", "YES"]:
                                 awarded_amount = rest[0] if rest else None
                                 start_date = parse_date(rest[1]) if len(rest) > 1 else None
                                 end_date = parse_date(rest[2]) if len(rest) > 2 else None
@@ -6414,10 +6417,17 @@ class ApplicationList(
                                             end_date=end_date,
                                         )
                                     )
+                            elif decision in ["N", "0", "NO", "NOT"]:
+                                if a.state != "archived":
+                                    a.archive(request=request, description=f"From '{file.name}' by {request.user}")
+                                    archived_count += 1
+                                    a.save()
                             else:
-                                error_messages.append(
-                                    f"Failed to find the application with the number {number}"
-                                )
+                                error_messages.append(f"Incorrect data: {line}")
+                        else:
+                            error_messages.append(
+                                f"Failed to find the application with the number {number}"
+                            )
 
                 if funded_count:
                     contracts = ", ".join(
@@ -6448,6 +6458,8 @@ class ApplicationList(
                                 else ""
                             ),
                         )
+                if archived_count:
+                    messages.info(request, f"{archived_count} application(s) were marked <b>archived</b>.")
                 for msg in error_messages:
                     messages.error(request, msg)
             except Exception as ex:
