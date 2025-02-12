@@ -1,5 +1,6 @@
 import os
 from functools import partial
+from django.utils import timezone
 
 from crispy_forms.bootstrap import (
     InlineField,
@@ -1715,8 +1716,8 @@ class ContractForm(ModelForm):
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
             title=(
-                _("Only P.I. can submit the contract")
-                if not is_pi
+                _("Only P.I. or R.O. can submit the contract")
+                if not (is_pi or is_ro)
                 else (
                     _("Not all the parts/appendices of the contract were approved and/or accepted")
                     if submission_disabled
@@ -2531,6 +2532,7 @@ class ContractForm(ModelForm):
             "site",
             "state",
             "submitted_by",
+            "state_changed_at",
         ]
         widgets = dict(
             start_date=DateInput(),

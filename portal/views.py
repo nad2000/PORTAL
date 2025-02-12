@@ -6003,6 +6003,10 @@ class ContractViewMixin:
                         address = None
                     form.instance.address = self.object.address = address
 
+                if "submit_contract" in form.data:
+                    i.submitted_by = u
+                    # self.instance.state_changed_at = self.instance.submitted_at = timezone.now()
+                    i.submit(request=self.request, user=u)
                 resp = super().form_valid(form)
 
                 fs = self.get_allocation_formset()

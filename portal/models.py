@@ -8569,6 +8569,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         max_length=200, null=True, blank=True, verbose_name=_("project title")
     )
     state = StateField(default="new", verbose_name=_("state"))
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
 
     start_date = DateField(blank=True, null=True)
     end_date = DateField(blank=True, null=True)
@@ -9842,6 +9843,33 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     def agency_address(self):
         return ", ".join(
             map(lambda s: s.strip(" ,\r\t\n"), self.agency.address.__str__().splitlines())
+        )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "submitted"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="submit"),
+    )
+    def submit(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+
+        send_mail(
+            f"Contract {self} Submitted",
+            html_message=f'User {by} submitted the contract {self}: <a href="{link_name}">{link_name}</a>',
+            message=f"User {by} submitted the contract {self}: {link_name}",
+            from_email="contracts",
+            recipients=[self.fund.email] if self.fund and self.fund.email else User.where(staff_of_sites=self.site),
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
         )
 
     class Meta:

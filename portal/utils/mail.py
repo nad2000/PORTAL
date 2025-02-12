@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.urls import reverse
+from django.db.models import query
 import mimetypes
 
 from .. import models
@@ -254,8 +255,7 @@ def send_mail(
     if domain and domain.startswith("xn--"):
         utf_domain = domain.encode().decode("idna")
     root = f"https://{domain}"
-    utf_root = f"https://{domain}"
-    if recipients and isinstance(recipients, (list, tuple)):
+    if recipients and isinstance(recipients, (list, tuple, query.QuerySet)):
         recipients = [
             (
                 r.lower()
