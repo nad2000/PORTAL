@@ -9109,7 +9109,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return r.schedule2
 
         r = (
-            Round.where(~Q(schedule2=""), sscheme__current_round=F("pk"), schedule2__isnull=False)
+            Round.where(~Q(schedule2=""), scheme__current_round=F("pk"), schedule2__isnull=False)
             .order_by("-pk")
             .last()
         )
@@ -9130,7 +9130,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         r = (
             Round.all_objects.filter(
-                ~Q(schedule2=""), sscheme__current_round=F("pk"), schedule2__isnull=False
+                ~Q(schedule2=""), scheme__current_round=F("pk"), schedule2__isnull=False
             )
             .order_by("-pk")
             .last()
