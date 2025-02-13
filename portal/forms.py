@@ -275,7 +275,11 @@ def make_help_text(document_type=None, templates=[], required_document=None):
         ]
 
     if not document_type and required_document:
-        document_type = f"{required_document.document_type}"
+        document_type = (
+            f"{required_document.document_type}"
+            if required_document.document_type
+            else f"{required_document.get_role_display()}"
+        )
 
     if not templates:
         if document_type:
@@ -333,7 +337,11 @@ class DocumentInlineFormset(TableInlineFormset):
                 if not isinstance(rd_id, int):
                     rd_id = rd_id.pk
                 f.fields["file"].help_text = help_texts.get(rd_id)
-                f.fields["file"].label = f.form_label = f"{rd}" if rd else _("Document")
+                label = f"{rd}" if rd else _("Document")
+                state = f.instance and getattr(f.instance, "state", None)
+                if state:
+                    label += f' (<strong style="text-transform: uppercase;">{state}</strong>)'
+                f.form_label = f.fields["file"].label = label
                 if rd:
                     if rd.is_optional:
                         f.fields["file"].widget.attrs["data-required"] = 0
@@ -1702,8 +1710,10 @@ class ContractForm(ModelForm):
             else {}
         )
 
-        submission_disabled = not instance or (
-            instance.submitted_by and instance.submitted_by != user
+        submission_disabled = (
+            not instance
+            or (instance.submitted_by and instance.submitted_by != user)
+            or instance.state not in ["new", "draft"]
         )
         is_pi = instance and (
             instance.submitted_by == user
@@ -1716,12 +1726,18 @@ class ContractForm(ModelForm):
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
             title=(
-                _("Only P.I. or R.O. can submit the contract")
-                if not (is_pi or is_ro)
+                _("Contract was already submitted")
+                if instance.state not in ["new", "draft"]
                 else (
-                    _("Not all the parts/appendices of the contract were approved and/or accepted")
-                    if submission_disabled
-                    else _("Submit the contract")
+                    _("Only P.I. or R.O. can submit the contract")
+                    if not (is_pi or is_ro)
+                    else (
+                        _(
+                            "Not all the parts/appendices of the contract were approved and/or accepted"
+                        )
+                        if submission_disabled
+                        else _("Submit the contract")
+                    )
                 )
             ),
             css_class="btn-outline-primary",
@@ -1881,6 +1897,11 @@ class ContractForm(ModelForm):
             # self.fields["involves_childeren"].disabled = True
             # self.fields["has_child_protection"].disabled = True
 
+        budget = instance.documents.filter(document_type__role="B").last()
+        if budget:
+            self.fields["budget"].label = _(
+                f'Budget (<strong style="text-transform: uppercase;">{budget.state}</strong>)'
+            )
         proposal_budget_file = (
             pb.file
             if application and (pb := application.documents.filter(document_type__role="B").last())
@@ -2108,29 +2129,33 @@ class ContractForm(ModelForm):
                     if proposal_budget_file
                     else None
                 ),
-                Fieldset(
-                    None,
-                    # Field("award_budget", label=""),
-                    Field("budget", label=""),
-                    ButtonHolder(
-                        Submit(
-                            "request_budget_correction",
-                            _("Request Correction"),
-                            css_class="btn-primary",
-                            data_document_action="request_correction",
-                            # data_document_role="PB",
-                            data_document_role="B",
+                (
+                    Field("budget", label="")
+                    if is_pi
+                    else Fieldset(
+                        None,
+                        # Field("award_budget", label=""),
+                        Field("budget", label=""),
+                        ButtonHolder(
+                            Submit(
+                                "request_budget_correction",
+                                _("Request Correction"),
+                                css_class="btn-primary",
+                                data_document_action="request_correction",
+                                # data_document_role="PB",
+                                data_document_role="B",
+                            ),
+                            Submit(
+                                "approve_budget",
+                                _("Approve") if is_ro else _("Accept"),
+                                css_class="btn-secondary",
+                                data_document_action=("approve" if is_ro or is_pi else "accept"),
+                                # data_document_role="AB",
+                                data_document_role="B",
+                            ),
+                            css_class="float-right",
                         ),
-                        Submit(
-                            "approve_budget",
-                            _("Awaiting Approval"),
-                            css_class="btn-secondary",
-                            data_document_action="awaiting_approval",
-                            # data_document_role="AB",
-                            data_document_role="B",
-                        ),
-                        css_class="float-right",
-                    ),
+                    )
                 ),
                 css_id="finances",
             ),

@@ -510,6 +510,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         context["update_button_name"] = _("Edit")
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{self.model.__name__.lower()}-export"
+        u = self.request.user
+        if u.is_superuser or u.is_site_staff:
+            context["can_edit"] = True
         return context
 
 
@@ -5932,8 +5935,8 @@ class ContractViewMixin:
         a = self.application
         context["application"] = a
         context["round"] = round = a.round
-        context["is_pi"] = (a.submitted_by == u) or (
-            self.object and self.object.pk and self.object.members.filter(role="PI").exists()
+        context["is_pi"] = (
+            self.object and self.object.pk and self.object.members.filter(role="PI", user=u).exists()
         )
         if self.object and self.object.pk:
             c = self.object
@@ -5966,6 +5969,8 @@ class ContractViewMixin:
 
     def form_valid(self, form):
         i = form.instance
+        site = i and i.site or self.request.site
+        contract_state = i.state
         if i and i.pk:
             for part in ["cover", "preamble", "schedule1", "schedule2", "file"]:
                 if f"delete_{part}" in form.data:
@@ -6061,26 +6066,35 @@ class ContractViewMixin:
             return super().form_invalid(form)
 
         is_host = (
-            a.org.research_offices.filter(user=u).exists()
+            org.research_offices.filter(user=u).exists()
+            or i.submitted_by == u
             or a.submitted_by == u
+            or i.members.filter(user=u).exists()
             or a.members.filter(user=u).exists()
         )
-        recipients = (
-            (
-                (
-                    i.host_contact_email
-                    or [u for u in Site.objects.get_current().staff_users.all()]
-                    or [u for u in User.where(is_superuser=True)]
-                )
-                if is_host
-                else [ro.user for ro in a.org.research_offices.all()]
-                or [u for u in User.where(Q(applications=a) | Q(members__application=a))]
-            )
-            if self.request.POST.get("doc_role")
+        if (
+            self.request.POST.get("doc_role")
             or self.request.POST.get("doc_type")
             or "post_comment" in self.request.POST
-            else []
-        )
+        ):
+            if is_host:
+                if i.fund and i.fund.email:
+                    recipients = [i.fund.email]
+                else:
+                    recipients = [u for u in site.staff_users.all()] or [
+                        u for u in User.where(is_superuser=True)
+                    ]
+            else:
+                if i.host_contact_email:
+                    recipients = [i.host_contact_email]
+                elif org.email or org.ro_email:
+                    recipients = [org.email or org.ro_email]
+                else:
+                    recipients = [ro.user for ro in a.org.research_offices.all()] or [
+                        u for u in User.where(Q(applications=a) | Q(members__application=a))
+                    ]
+        else:
+            recipients = []
         recipient_list = ", ".join(
             [
                 r.full_name_with_email if isinstance(r, models.User) else r
@@ -6099,12 +6113,12 @@ class ContractViewMixin:
             resolution = (form.data.get("resolution") or "").strip()
             if (document_role in models.DOCUMENT_ROLES or document_type or required_document) and (
                 d := (
-                    i.documents.filter(required_document=required_document).order_by("id").last()
+                    i.documents.filter(required_document=required_document).order_by("-pk").first()
                     if required_document
                     else (
-                        i.documents.filter(
-                            required_document__document_type__role=document_role
-                        ).last()
+                        i.documents.filter(required_document__document_type__role=document_role)
+                        .order_by("-pk")
+                        .first()
                         if document_role
                         else (
                             i.documents.filter(
@@ -6141,11 +6155,27 @@ class ContractViewMixin:
                             )
                     if d.state != previous_state:
                         messages.info(self.request, _("The document %s was %s") % (d, _(d.state)))
+                elif document_action == "accept":
+                    if d.state != "accepted":
+                        d.accept(
+                            request=self.request, description=resolution or f"accepted by {u}"
+                        )
+                    else:
+                        messages.warning(
+                            self.request, _("The document was already %s") % _(d.state)
+                        )
                 elif document_action == "request_correction":
                     d.save_draft(
                         request=self.request,
                         description=resolution or f"requested corrections by {u}",
                     )
+                    i.save_draft(
+                        self.request,
+                        user=self.request.user,
+                        description=f"requested corrections of {d} by {u}",
+                    )
+                    if contract_state != "draft":
+                        i.save(update_fields=["state", "state_changed_at", "updated_at"])
                 if previous_state != d.state:
                     d.save()
 
@@ -6184,15 +6214,16 @@ class ContractViewMixin:
                         self.request,
                         _("The request to approve the %s was sent to %s") % (d, recipient_list),
                     )
-                send_mail(
-                    request=self.request,
-                    subject=subject,
-                    html_message=html_message,
-                    cc=[u.full_email_address],
-                    recipients=recipients,
-                    thread_index=i.thread_index,
-                    thread_topic=i.thread_topic,
-                )
+                if not document_action or document_action != "accept":
+                    send_mail(
+                        request=self.request,
+                        subject=subject,
+                        html_message=html_message,
+                        cc=[u.full_email_address],
+                        recipients=recipients,
+                        thread_index=i.thread_index,
+                        thread_topic=i.thread_topic,
+                    )
                 return redirect("contract-update", pk=i.pk)
 
         if (
@@ -6423,7 +6454,10 @@ class ApplicationList(
                                     )
                             elif decision in ["N", "0", "NO", "NOT"]:
                                 if a.state != "archived":
-                                    a.archive(request=request, description=f"From '{file.name}' by {request.user}")
+                                    a.archive(
+                                        request=request,
+                                        description=f"From '{file.name}' by {request.user}",
+                                    )
                                     archived_count += 1
                                     a.save()
                             else:
@@ -6463,7 +6497,9 @@ class ApplicationList(
                             ),
                         )
                 if archived_count:
-                    messages.info(request, f"{archived_count} application(s) were marked <b>archived</b>.")
+                    messages.info(
+                        request, f"{archived_count} application(s) were marked <b>archived</b>."
+                    )
                 for msg in error_messages:
                     messages.error(request, msg)
             except Exception as ex:

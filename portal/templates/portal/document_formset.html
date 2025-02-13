@@ -54,12 +54,16 @@
               {% include 'bootstrap4/field.html' with field=form.file use_custom_control=True %}
               {% for field in form %}{% if field.name != "file" %}{{ field }}{% endif %}{% endfor %}
 
-              {% if form.state %}
+              {% if form.state and not is_pi %}
                 <div class="buttonHolder float-right">
                   {% if is_staff or user.is_superuser %}
                     {% document_action_button required_document=required_document form=form action="request_correction" %}
                   {% endif %}
-                  {% document_action_button required_document=required_document form=form action="approve"  %}
+                  {% if is_ro %}
+                    {% document_action_button required_document=required_document form=form action="approve"  %}
+                  {% elif not is_pi %}
+                    {% document_action_button required_document=required_document form=form action="accept" %}
+                  {% endif %}
                 </div>
               {% endif %}
         </fieldset>

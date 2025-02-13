@@ -5,7 +5,7 @@
     <tr>
       <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">{% trans 'Application' %}</th>
         <td {% if not a.panel %}colspan="3"{% endif %}>
-        {% if u.is_superuser and not export %}
+        {% if user.is_superuser and not export %}
           <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
           </a>
@@ -96,7 +96,7 @@
           <ul>
             {% for m in a.members.all %}
               <li>
-                {% if u.is_staff or u.is_superuser %}
+                {% if user.is_staff or user.is_superuser %}
                   <a href="{% url 'admin:portal_member_change' object_id=m.id %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}
                   {{ m | person_with_email }}
@@ -117,7 +117,15 @@
           {% trans 'Organisation' %}
         {% endif %}
       </th>
-    <td>{% if a.org %}{{ a.org }}{% else %}{{ a.organisation|default:'' }}{% endif %}</td>
+      <td>{% if a.org %}
+        {% if user.is_superuser and not export %}
+          <a href="{% url 'admin:portal_organisation_change' object_id=a.org.pk %}" target="_blank">
+          {{ a.org }}
+        {% else %}
+          {{ a.org }}
+        {% endif %}
+
+      {% else %}{{ a.organisation|default:'' }}{% endif %}</td>
     <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Position' %}</th>
     <td>{{ a.position|default:'' }}</td>
     </tr>
@@ -306,7 +314,7 @@
 
     {% endif %}
 
-    {% if u.is_staff or u.is_superuser %}
+    {% if user.is_staff or user.is_superuser %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Photo Identity' %}</th>
         <td colspan="3">
@@ -351,7 +359,7 @@
 	  {% endwith %}
     {% endif %}
 
-    {% if SITE_ID != 5 or not is_ro or u.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
+    {% if SITE_ID != 5 or not is_ro or user.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Referees' %}</th>
         <td colspan="3">

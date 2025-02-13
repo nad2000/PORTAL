@@ -354,7 +354,11 @@ def document_action_button(
     if not document_file:
         if action == "approve":
             disabled_tooltip_text = _(
-                f"Please upload { required_document } before  before approving it"
+                f"Please upload { required_document } before approving it"
+            )
+        elif action == "accept":
+            disabled_tooltip_text = _(
+                f"Please upload { required_document } before accepting it"
             )
         else:
             disabled_tooltip_text = _(
@@ -362,23 +366,25 @@ def document_action_button(
             )
     else:
         state = (document and document.state) or form.instance.state
-        if not is_ro or state == "accepted":
+        if not is_ro and state == "accepted":
             disabled_tooltip_text = _(f"{ required_document } was already accepted")
-        elif state == "approved":
-            disabled_tooltip_text = _(f"{ required_document } was already approved")
+        elif is_ro:
+            if state == "approved":
+                disabled_tooltip_text = _(f"{ required_document } was already approved")
+            elif state == "accepted":
+                disabled_tooltip_text = _(f"{ required_document } was already accepted")
     if action == "approve":
-        if is_ro:
-            enabled_tooltip_text = _(f"Approve { required_document }")
-            button_label = _("Approve")
-        else:
-            enabled_tooltip_text = _(f"Accept { required_document }")
-            button_label = _("Accept")
+        enabled_tooltip_text = _(f"Approve { required_document }")
+        button_label = _("Approve")
+    elif action == "accept":
+        enabled_tooltip_text = _(f"Accept { required_document }")
+        button_label = _("Accept")
     else:
         enabled_tooltip_text = _(f"Request correction of { required_document }")
         button_label = _("Request Correction")
 
     # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
-    output = get_template("document_action_button.html").render(locals())
+    output = get_template("partials/document_action_button.html").render(locals())
     return Markup(output)
 
 

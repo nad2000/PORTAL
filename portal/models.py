@@ -8497,6 +8497,7 @@ class ContractMixin:
         ("new", _("new")),
         ("preliminary", _("Preliminary")),
         ("submitted", _("Submitted")),
+        ("released", _("Released")),
         # ("withdrawn", _("withdrawn")),
     )
 
@@ -9846,6 +9847,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         )
 
     @fsm_log
+    @transition(field=state, source=["*"], target="draft", custom=dict(admin=False))
+    def save_draft(self, request=None, by=None, description=None, *args, **kwargs):
+        pass
+
+    @fsm_log
     @transition(
         field=state,
         source=["new", "draft", "submitted"],
@@ -10016,7 +10022,7 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["released", "approved"], target="accepted")
+    @transition(field=state, source=["released", "approved", "draft", "new"], target="accepted")
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
         pass
 

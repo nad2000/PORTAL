@@ -143,7 +143,12 @@
           <tr>
             <td>{{ rd }}</td>
             <td>{% if d.state == 'approved' or d.state == 'accepted' %}{{ _('Approved') }}{% else %}{{ _('WIP') }}{% endif %}</td>
-          <td>{% if d.state == 'accepted' %}{{ _('Approved') }}{% elif d.state == 'draft' %}{{ _('Awaiting Submission') }}{% else %}{{ _('To Review') }}{% endif %}</td>
+            <td>
+              {% if d.state == 'accepted' %}{{ _('Accepted') }}
+              {% elif d.state == 'draft' %}{{ _('Awaiting Submission') }}
+              {% else %}{{ _('To Review') }}
+              {% endif %}
+            </td>
           </tr>
         {% else %}
           <td>{{ rd }}</td>

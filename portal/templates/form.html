@@ -229,7 +229,7 @@
       {% endif %}
 
       // Track the changes in the form fields
-      $("form :input, form :text").change(function() {
+      $("form :input, form :text").not("#id_resolution").change(function() {
         $(this.form).data("changed", true);
       });
       var confirmationMessage = "{% trans 'Do you want to close the form without saving it?' %}";
