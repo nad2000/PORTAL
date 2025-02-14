@@ -1,4 +1,4 @@
-{% load static i18n compress django_bootstrap_breadcrumbs %}<!DOCTYPE html>{% get_current_language as LANGUAGE_CODE %}
+{% load static i18n compress django_bootstrap_breadcrumbs cache %}<!DOCTYPE html>{% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="utf-8">
@@ -170,6 +170,7 @@ table.table .asteriskField,.popover-header {color: gray;}
 
                 <ul class="navbar-nav mr-auto">
                   {% if user.is_authenticated %}
+                    {% cache 600 navbar user.pk %}
                     <li class="nav-item" id="home">
                       <a class="nav-link" href="{% url 'home' %}">
                         <i class="fa fa-fw fa-home"></i> {% trans 'Home' %}<span class="sr-only">(current)</span>
@@ -243,12 +244,14 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
                       </li>
                     {% endif %}
+                    {% endcache %}
                   {% endif %}
                 </ul>
 
                 <ul class="navbar-nav ml-auto">
 
                   {% if user.is_authenticated %}
+                    {% cache 600 gravatar user.pk %}
                     {% with orcid=user.get_orcid %}
                     <img alt="GRAVATAR"
                          src="{{ user.avatar }}"
@@ -260,9 +263,18 @@ table.table .asteriskField,.popover-header {color: gray;}
                          data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ user.email }}<br/>
                                 <b>{% trans 'Name' %}:&nbsp</b>{{ user.name|default:'N/A' }}<br/>
                                 <b>{% trans 'Username' %}:&nbsp</b>{{ user.username }}
-                                {% if orcid %}<br/><b>ORCID:&nbsp</b>{{ orcid }}{% endif %}</p>"
+                                {% if orcid %}<br/><b>ORCID:&nbsp</b>{{ orcid }}{% endif %}
+                                {% if is_ro or is_staff or user.is_superuser %}
+                                <br/>{% trans 'Permissions' %}:<br/>
+                                <ul>
+                                  {% if is_staff %}<li>{% trans 'Staff' %}</li>{% endif %}
+                                  {% if user.is_superuser %}<li>{% trans 'Superuser' %}</li>{% endif %}
+                                  {% if is_ro %}<li>{% trans 'R.O.' %}</li>{% endif %}
+                                </ul>
+                                {% endif %}</p>"
                     >
                     {% endwith %}
+                    {% endcache %}
                     <li class="nav-item dropdown" id="profile">
                       <a class="nav-link dropdown-toggle"
                          data-toggle="dropdown"

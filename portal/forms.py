@@ -1722,18 +1722,19 @@ class ContractForm(ModelForm):
         )
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!
-            _("Submit"),
+            _("Release"),
             # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
             data_toggle="tooltip",
             title=(
                 _("Contract was already submitted")
                 if instance.state not in ["new", "draft"]
                 else (
-                    _("Only P.I. or R.O. can submit the contract")
+                    _("Only R.O. can submit the contract")
                     if not (is_pi or is_ro)
                     else (
                         _(
-                            "Not all the parts/appendices of the contract were approved and/or accepted"
+                            # "Not all the parts/appendices of the contract were approved and/or accepted"
+                            "Not all the parts/appendices of the contract were approved and/or released"
                         )
                         if submission_disabled
                         else _("Submit the contract")
@@ -1741,7 +1742,7 @@ class ContractForm(ModelForm):
                 )
             ),
             css_class="btn-outline-primary",
-            disabled=submission_disabled or not is_pi,
+            disabled=submission_disabled or not (is_pi or is_ro),
         )
         # if is_pi or is_ro:
         #     pass
@@ -2147,9 +2148,9 @@ class ContractForm(ModelForm):
                             ),
                             Submit(
                                 "approve_budget",
-                                _("Approve") if is_ro else _("Accept"),
+                                _("Release") if is_ro else _("Accept"),
                                 css_class="btn-secondary",
-                                data_document_action=("approve" if is_ro or is_pi else "accept"),
+                                data_document_action=("release" if is_ro or is_pi else "accept"),
                                 # data_document_role="AB",
                                 data_document_role="B",
                             ),

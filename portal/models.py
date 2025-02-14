@@ -8901,6 +8901,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                                 document_type=crd.document_type,
                                 required_document=crd,
                                 file=r.appendix_b,
+                                state="released",
                             )
                         )
                     else:
@@ -8942,6 +8943,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             required_document=crd,
                             file=d.file,
                             converted_file=d.converted_file,
+                            state="released",
                         )
                     )
 
@@ -8992,6 +8994,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         required_document=rd,
                         file=a.file,
                         converted_file=a.converted_file,
+                        state="released",
                     )
                 )
             if a.budget and not a.documents.filter(document_type__role="B").exists():
@@ -9302,6 +9305,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             or self.submitted_by
             or self.application.pi
         )
+
+    @property
+    def host_emails(self):
+        if self.host_contact_email:
+            return [self.host_contact_email]
+        if self.org and self.org.email:
+            return [self.org.email]
+        if self.org and (commisars := (self.org.research_offices.all())) and commisars.count():
+            return commisars
+        return []
 
     def save(self, *args, **kwargs):
         if (
@@ -9870,7 +9883,41 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             html_message=f'User {by} submitted the contract {self}: <a href="{link_name}">{link_name}</a>',
             message=f"User {by} submitted the contract {self}: {link_name}",
             from_email="contracts",
-            recipients=[self.fund.email] if self.fund and self.fund.email else User.where(staff_of_sites=self.site),
+            recipients=(
+                [self.fund.email]
+                if self.fund and self.fund.email
+                else User.where(staff_of_sites=self.site)
+            ),
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "submitted", "released"],
+        target="released",
+        custom=dict(verbose="Release", button_name="release"),
+    )
+    def release(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+
+        send_mail(
+            f"Contract {self} Released",
+            html_message=f'User {by} release the contract {self}: <a href="{link_name}">{link_name}</a>',
+            message=f"User {by} release the contract {self}: {link_name}",
+            recipients=(
+                [self.fund.email]
+                if self.fund and self.fund.email
+                else User.where(staff_of_sites=self.site)
+            ),
             fail_silently=False,
             request=request,
             # reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -9892,14 +9939,14 @@ simple_history.register(
 
 class ContractDocumentMixin:
     STATES = Choices(
-        ("accepted", _("accepted")),
-        ("approved", _("approved")),
-        ("archived", _("archived")),
-        ("cancelled", _("cancelled")),
+        ("accepted", _("Accepted")),
+        ("approved", _("Approved")),
+        ("archived", _("Archived")),
+        ("cancelled", _("Cancelled")),
         ("draft", _("WIP")),
-        ("new", _("new")),
-        ("released", _("released")),
-        ("submitted", _("submitted")),
+        ("new", _("New")),
+        ("released", _("Released")),
+        ("submitted", _("Submitted")),
     )
 
 
@@ -10030,6 +10077,38 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
     @transition(field=state, source=["*"], target="draft", custom=dict(admin=False))
     def save_draft(self, request=None, by=None, description=None, *args, **kwargs):
         pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft", "submitted"],
+        target="released",
+        custom=dict(verbose="Release", button_name="release"),
+    )
+    def release(self, *args, **kwargs):
+        request = kwargs.get("request")
+        by = kwargs.get("by") or request and request.user
+
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(f"{url}#documents")
+        c = self.contract
+
+        send_mail(
+            f"Contract {c} document/appendix {self} released",
+            html_message=f'User {by} release the contract {c} document {self}: <a href="{link_name}">{link_name}</a>',
+            message=f"User {by} release the contract {self}: {link_name}",
+            recipients=(
+                [self.fund.email]
+                if self.fund and self.fund.email
+                else User.where(staff_of_sites=self.site)
+            ),
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,
+            thread_index=c.thread_index,
+            thread_topic=c.thread_topic,
+        )
+
 
     def save(self, *args, **kwargs):
         if not self.file.name:

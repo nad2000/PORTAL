@@ -5980,7 +5980,8 @@ class ContractViewMixin:
                     return redirect(self.request.META.get("HTTP_REFERER") + "#parts")
 
         a = self.application
-        u = self.request.user
+        request = self.request
+        u = request.user
         if not i.submitted_by:
             i.submitted_by = u
         org = i.org or a.org
@@ -6035,6 +6036,7 @@ class ContractViewMixin:
                     fs.save(commit=False)
                     for f in fs.forms:
                         if "file" in f.changed_data:
+                            i.save_draft(request=request, user=u)
                             if f.instance.file.name.lower().endswith(".pdf"):
                                 doc_file = f.instance.file.open()
                                 f.instance.update_page_count(doc_file)

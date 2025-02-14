@@ -35,7 +35,7 @@ def portal_context(request):
             cached_context = cache.get(cache_key)
         if has_refreshed or not cached_context or view_name == "start":
             is_ro = u.research_offices.exists() and not (u.is_superuser or u.is_site_staff)
-            is_staff = u.staff_of_sites.filter(id=site_id).exists()
+            is_staff = u.is_staff or u.staff_of_sites.filter(id=site_id).exists()
             score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
             counts = {
                 s: c for s, c in models.Application.user_application_counts(u, request=request)
@@ -70,6 +70,7 @@ def portal_context(request):
             )
             cached_context = {
                 "is_staff": is_staff,
+                "is_site_staff": is_staff,
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_draft_count": application_draft_count,
                 "application_submitted_count": application_submitted_count,
@@ -103,7 +104,7 @@ def portal_context(request):
                 cached_context["application_approved_count"] = application_approved_count
                 application_count += application_approved_count
             cached_context["application_count"] = application_count
-            if u.is_superuser or u.is_staff or u.is_site_staff:
+            if u.is_superuser or is_staff:
                 cached_context["contract_count"] = models.Contract.objects.count()
             else:
                 cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
@@ -116,7 +117,7 @@ def portal_context(request):
 
             # if outstanding_testimonial_requests:
             #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
-            if not (u.is_superuser or u.is_staff):
+            if not (u.is_superuser or is_staff):
                 with connection.cursor() as cursor:
                     cursor.execute(
                         """

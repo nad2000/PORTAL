@@ -134,6 +134,7 @@
         <th scope="col">
           {{ _('Society Status') }}
         </th>
+        {% if not export %}<th scope="col">{{ _('Document') }}</th>{% endif %}
       </tr>
 
     </thead>
@@ -142,18 +143,34 @@
         {% for d in rd.documents.all() %}
           <tr>
             <td>{{ rd }}</td>
-            <td>{% if d.state == 'approved' or d.state == 'accepted' %}{{ _('Approved') }}{% else %}{{ _('WIP') }}{% endif %}</td>
+            <td>
+              {% if d.state == 'approved' or d.state == 'accepted' %}{{ _('Approved') }}
+              {% elif d.state == 'released' %}{{ _('Released') }}
+              {% else %}{{ _('WIP') }}
+              {% endif %}
+            </td>
             <td>
               {% if d.state == 'accepted' %}{{ _('Accepted') }}
               {% elif d.state == 'draft' %}{{ _('Awaiting Submission') }}
               {% else %}{{ _('To Review') }}
               {% endif %}
             </td>
+            {% if not export %}
+              <td>
+                <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a> 
+                {% if d.convert_file %}
+                  (<a href="{{ d.convert_file.url }}">{{ d.convert_file.name|basename }}</a>)
+                {% endif %}
+              </td>
+            {% endif %}
           </tr>
         {% else %}
-          <td>{{ rd }}</td>
-          <td>-</td>
-          <td>-</td>
+          <tr>
+            <td>{{ rd }}</td>
+            <td>-</td>
+            <td>-</td>
+            {% if not export %}<td>-</td>{% endif %}
+          </tr>
         {% endfor %}
       {% endfor %}
       <!-- tr>
