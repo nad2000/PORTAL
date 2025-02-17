@@ -336,7 +336,8 @@ class DocumentInlineFormset(TableInlineFormset):
                 rd = required_documents.get(rd_id, None)
                 if not isinstance(rd_id, int):
                     rd_id = rd_id.pk
-                f.fields["file"].help_text = help_texts.get(rd_id)
+                if f.instance and f.instance.pk and not f.instance.file and f.instance.file.strip != '':
+                    f.fields["file"].help_text = help_texts.get(rd_id)
                 label = f"{rd}" if rd else _("Document")
                 state = f.instance and getattr(f.instance, "state", None)
                 if state:
