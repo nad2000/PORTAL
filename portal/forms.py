@@ -2137,7 +2137,14 @@ class ContractForm(ModelForm):
                         None,
                         # Field("award_budget", label=""),
                         Field("budget", label=""),
-                        ButtonHolder(
+                        Submit(
+                            "approve_budget",
+                            _("Release") if is_ro else _("Accept"),
+                            css_class="btn-secondary float-right",
+                            data_document_action=("release" if is_ro or is_pi else "accept"),
+                            # data_document_role="AB",
+                            data_document_role="B",
+                        ) if is_ro else ButtonHolder(
                             Submit(
                                 "request_budget_correction",
                                 _("Request Correction"),

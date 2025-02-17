@@ -6174,13 +6174,17 @@ class ContractViewMixin:
                 )
             ):
                 previous_state = d.state
-                if document_action == "approve":
+                if document_action in ["approve", "release"]:
                     if is_host:
-                        if d.state not in ["accepted", "approved"]:
-                            d.approve(
-                                request=self.request, description=resolution or f"approved by {u}"
-                            )
-                            # d.save()
+                        if d.state not in ["accepted", "approved", "released"]:
+                            if document_action == "release":
+                                d.release(
+                                    request=self.request, description=resolution or f"released by {u}"
+                                )
+                            else:
+                                d.approve(
+                                    request=self.request, description=resolution or f"approved by {u}"
+                                )
                         else:
                             messages.warning(
                                 self.request, _("The document was already %s") % _(d.state)
@@ -6190,7 +6194,6 @@ class ContractViewMixin:
                             d.accept(
                                 request=self.request, description=resolution or f"accepted by {u}"
                             )
-                            # d.save()
                         else:
                             messages.warning(
                                 self.request, _("The document was already %s") % _(d.state)
@@ -6231,14 +6234,7 @@ class ContractViewMixin:
                 elif document_role or document_type or required_document:
                     respond_url += "#appendices"
 
-                if not document_action or document_action == "approve":
-                    # TODO: notify about approvals after all documents got approved:
-                    html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
-                    html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-                    html_message += f":</p>{resolution}" if resolution else "."
-                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
-                    subject = f"Contract {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}"
-                elif document_action == "request_correction":
+                if document_action == "request_correction":
                     html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}'
                     html_message += f":</p>{resolution}" if resolution else ".</p>"
                     html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
@@ -6256,6 +6252,14 @@ class ContractViewMixin:
                         self.request,
                         _("The request to approve the %s was sent to %s") % (d, recipient_list),
                     )
+                else:
+                    # if not document_action or document_action in ["approve", "release"]:
+                    # TODO: notify about approvals after all documents got approved:
+                    html_message = f'<p>The contract record <data value="{i.number}">{i}</data> was update by {u.full_name_with_email}:</p>'
+                    html_message += f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+                    html_message += f":</p>{resolution}" if resolution else "."
+                    html_message += f'<hr/>To review the entry, please, click here: <a href="{respond_url}">{i}</a>'
+                    subject = f"Contract {i} {d.document_type} {d} was {d.state} by {u.full_name_with_email}"
                 if not document_action or document_action != "accept":
                     send_mail(
                         request=self.request,
