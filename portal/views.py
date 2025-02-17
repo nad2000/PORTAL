@@ -5587,8 +5587,25 @@ class ContractDetail(DetailView):
     slug_field = "number"
     slug_url_kwarg = "number"
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        u = self.request.user
+        if (
+            u.is_superuser
+            or u.is_staff
+            or u.is_site_staff
+            or (
+                self.object
+                and (org := self.object.org or self.object.application.org)
+                and org.research_offices.filter(user=u).exists()
+            )
+        ):
+            context["can_edit"] = True
+        return context
+
     def get_queryset(self):
-        return (
+        u = self.request.user
+        qs = (
             super()
             .get_queryset()
             .prefetch_related(
@@ -5603,6 +5620,9 @@ class ContractDetail(DetailView):
                 ),
             )
         )
+        if not (u.is_superuser or u.is_site_staff):
+            qs = qs.filter(Q(members__user=u) | Q(org__research_offices__user=u)).distinct()
+        return qs
 
 
 class ContractViewMixin:
@@ -5769,7 +5789,9 @@ class ContractViewMixin:
         initial = []
         if not (self.object and self.object.id):
             for d in self.application.documents.filter(
-                ~Q(document_type__role__in=exclued_document_roles)
+                ~Q(document_type__role__in=exclued_document_roles),
+                ~Q(required_document__role__in=exclued_document_roles),
+                ~Q(required_document__role="EC"),
             ):
                 dt, dtr, df = d.document_type, d.document_type.role, d.file
                 role = dtr
@@ -5810,6 +5832,8 @@ class ContractViewMixin:
                     .filter(
                         ~Q(id__in=self.object.documents.values("required_document_id")),
                         ~Q(document_type__role__in=exclued_document_roles),
+                        ~Q(role__in=exclued_document_roles),
+                        ~Q(role="EC"),
                     )
                     .order_by("ordering")
                 )
@@ -5875,17 +5899,31 @@ class ContractViewMixin:
         # exclude budgets
         class fsc(fsc):
             def get_queryset(self):
-                qs = super().get_queryset()
-                return qs.filter(~Q(document_type__role__in=exclued_document_roles))
+                qs = (
+                    super()
+                    .get_queryset()
+                    .filter(
+                        ~Q(document_type__role__in=exclued_document_roles),
+                        ~Q(required_document__role__in=exclued_document_roles),
+                        ~Q(required_document__role="EC"),
+                    )
+                )
+                return qs
 
+        # qs = self.object.documents.filter(
+        #     ~Q(document_type__role__in=exclued_document_roles),
+        #     ~Q(required_document__role="EC"),
+        # )
         if self.request.POST:
             fs = fsc(
                 self.request.POST or None,
                 self.request.FILES or None,
                 instance=self.object,
+                # queryset=qs,
                 # initial=initial,
             )
         else:
+            # fs = fsc(instance=self.object, queryset=qs, initial=initial)
             fs = fsc(instance=self.object, initial=initial)
         if initial:
             fs.extra = len(initial)
@@ -5936,7 +5974,9 @@ class ContractViewMixin:
         context["application"] = a
         context["round"] = round = a.round
         context["is_pi"] = (
-            self.object and self.object.pk and self.object.members.filter(role="PI", user=u).exists()
+            self.object
+            and self.object.pk
+            and self.object.members.filter(role="PI", user=u).exists()
         )
         if self.object and self.object.pk:
             c = self.object

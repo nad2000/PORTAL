@@ -7,12 +7,14 @@
     {{ object }}
   </h1>
 
+  {% block buttons_above %}
   <div class="row">
     <div class="col-12">
       <hr />
         {% include 'snippets/detail_buttons.html' %}
     </div>
   </div>
+  {% endblock buttons_above %}
 
   {% block object_details %}
   <div class="table-responsive">
@@ -100,7 +102,9 @@
   {% endblock extra_object %}
 
   <hr />
+  {% block buttons_bellow %}
   {% include 'snippets/detail_buttons.html' %}
+  {% endblock buttons_bellow %}
 
 {% endblock %}
 

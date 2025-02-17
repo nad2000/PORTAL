@@ -16,10 +16,10 @@
          {% if object.referee and object.referee.survey_completed_at %}
            disabled
            data-html="true"
-          title="{% blocktrans with completed_at=object.referee.survey_completed_at %}Referee report was completed at <b>{{ completed_at }}</b>{% endblocktrans %}"
+           title="{% blocktrans with completed_at=object.referee.survey_completed_at %}Referee report was completed at <b>{{ completed_at }}</b>{% endblocktrans %}"
        {% elif object.state == "submitted" %}
            disabled
-         data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
+           title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
        {% elif object.state == "accepted" %}
            disabled
          title="{% trans 'You cannot alter a nomination that has been submitted. If you feel a need to do this, please email pmscienceprizes@royalsociety.org.nz with a reason and we may be able to enable.' %}"
