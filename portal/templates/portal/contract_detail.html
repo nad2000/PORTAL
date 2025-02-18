@@ -21,6 +21,10 @@
          <a class="btn btn-primary{% if not can_edit %} disabled{% endif %}" href="{% url 'contract-update' object.pk %}">{% trans 'Edit' %}</a>
         </div>
       <a class="btn btn-primary" href="{% url 'contract-export' object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
+      {% if user.is_site_staff or user.is_superuser %}
+      <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
+          {% trans 'Open in Admin' %}
+        </a>{% endif %}
       </div>
     <hr />
   </div>
