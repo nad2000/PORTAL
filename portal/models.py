@@ -10089,17 +10089,17 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         request = kwargs.get("request")
         by = kwargs.get("by") or request and request.user
 
-        url = self.get_full_detail_url(request=request)
-        link_name = domain_to_macrons(f"{url}#documents")
         c = self.contract
+        url = c.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(f"{url}#documents")
 
         send_mail(
             f"Contract {c} document/appendix {self} released",
             html_message=f'User {by} release the contract {c} document {self}: <a href="{link_name}">{link_name}</a>',
             message=f"User {by} release the contract {self}: {link_name}",
             recipients=(
-                [self.fund.email]
-                if self.fund and self.fund.email
+                [c.fund.email]
+                if c.fund and c.fund.email
                 else User.where(staff_of_sites=self.site)
             ),
             fail_silently=False,

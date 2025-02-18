@@ -356,6 +356,10 @@ def document_action_button(
             disabled_tooltip_text = _(
                 f"Please upload { required_document } before approving it"
             )
+        elif action == "release":
+            disabled_tooltip_text = _(
+                f"Please upload { required_document } before releasing it"
+            )
         elif action == "accept":
             disabled_tooltip_text = _(
                 f"Please upload { required_document } before accepting it"
@@ -373,9 +377,14 @@ def document_action_button(
                 disabled_tooltip_text = _(f"{ required_document } was already approved")
             elif state == "accepted":
                 disabled_tooltip_text = _(f"{ required_document } was already accepted")
+            elif state == "released":
+                disabled_tooltip_text = _(f"{ required_document } was already released")
     if action == "approve":
         enabled_tooltip_text = _(f"Approve { required_document }")
         button_label = _("Approve")
+    elif action == "release":
+        enabled_tooltip_text = _(f"Release { required_document }")
+        button_label = _("Release")
     elif action == "accept":
         enabled_tooltip_text = _(f"Accept { required_document }")
         button_label = _("Accept")

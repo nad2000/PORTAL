@@ -1713,7 +1713,8 @@ class ContractForm(ModelForm):
 
         submission_disabled = (
             not instance
-            or (instance.submitted_by and instance.submitted_by != user)
+            or (instance.submitted_by and instance.submitted_by != user and not is_ro)
+            or instance.documents.filter(~Q(state__in=["released", "approved", "accepted"]), ~Q(required_document__role="EC")).exists()
             or instance.state not in ["new", "draft"]
         )
         is_pi = instance and (

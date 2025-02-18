@@ -60,7 +60,8 @@
                     {% document_action_button required_document=required_document form=form action="request_correction" %}
                   {% endif %}
                   {% if is_ro %}
-                    {% document_action_button required_document=required_document form=form action="approve"  %}
+                    {% document_action_button required_document=required_document form=form action="release"  %}
+                    {#% document_action_button required_document=required_document form=form action="approve"  %#}
                   {% elif not is_pi %}
                     {% document_action_button required_document=required_document form=form action="accept" %}
                   {% endif %}
