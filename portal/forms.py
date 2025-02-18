@@ -1683,7 +1683,7 @@ class ContractForm(ModelForm):
             and application.org.research_offices.filter(user=user).exists()
             and not (user.is_superuser or user.is_site_staff)
         )
-        if_staff = user and (user.is_superuser or user.is_staff or user.is_site_staff)
+        is_staff = user and (user.is_superuser or user.is_staff or user.is_site_staff)
         if not (instance and is_staff):
             for f in [
                 "awarded_amount",
