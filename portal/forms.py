@@ -336,7 +336,12 @@ class DocumentInlineFormset(TableInlineFormset):
                 rd = required_documents.get(rd_id, None)
                 if not isinstance(rd_id, int):
                     rd_id = rd_id.pk
-                if f.instance and f.instance.pk and not f.instance.file and f.instance.file.strip != '':
+                if (
+                    f.instance
+                    and f.instance.pk
+                    and not f.instance.file
+                    and f.instance.file.strip != ""
+                ):
                     f.fields["file"].help_text = help_texts.get(rd_id)
                 label = f"{rd}" if rd else _("Document")
                 state = f.instance and getattr(f.instance, "state", None)
@@ -1678,7 +1683,8 @@ class ContractForm(ModelForm):
             and application.org.research_offices.filter(user=user).exists()
             and not (user.is_superuser or user.is_site_staff)
         )
-        if not (instance and user and (user.is_superuser or user.is_site_staff)):
+        if_staff = user and (user.is_superuser or user.is_staff or user.is_site_staff)
+        if not (instance and is_staff):
             for f in [
                 "awarded_amount",
                 "cover",
@@ -1714,13 +1720,15 @@ class ContractForm(ModelForm):
         submission_disabled = (
             not instance
             or (instance.submitted_by and instance.submitted_by != user and not is_ro)
-            or instance.documents.filter(~Q(state__in=["released", "approved", "accepted"]), ~Q(required_document__role="EC")).exists()
+            or instance.documents.filter(
+                ~Q(state__in=["released", "approved", "accepted"]),
+                ~Q(required_document__role="EC"),
+            ).exists()
             or instance.state not in ["new", "draft"]
         )
         is_pi = instance and (
-            instance.submitted_by == user
+            application.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
-            or application.submitted_by == user
         )
         submit_button = Submit(
             "submit_contract",  # NB! Never call a button 'submit'!
@@ -1739,7 +1747,7 @@ class ContractForm(ModelForm):
                             "Not all the parts/appendices of the contract were approved and/or released"
                         )
                         if submission_disabled
-                        else _("Submit the contract")
+                        else _("Release the contract")
                     )
                 )
             ),
@@ -2134,36 +2142,42 @@ class ContractForm(ModelForm):
                 ),
                 (
                     Field("budget", label="")
-                    if is_pi
+                    if is_pi and not is_ro and not is_staff
                     else Fieldset(
                         None,
                         # Field("award_budget", label=""),
                         Field("budget", label=""),
-                        Submit(
-                            "approve_budget",
-                            _("Release") if is_ro else _("Accept"),
-                            css_class="btn-secondary float-right",
-                            data_document_action=("release" if is_ro or is_pi else "accept"),
-                            # data_document_role="AB",
-                            data_document_role="B",
-                        ) if is_ro else ButtonHolder(
-                            Submit(
-                                "request_budget_correction",
-                                _("Request Correction"),
-                                css_class="btn-primary",
-                                data_document_action="request_correction",
-                                # data_document_role="PB",
-                                data_document_role="B",
-                            ),
+                        (
                             Submit(
                                 "approve_budget",
                                 _("Release") if is_ro else _("Accept"),
-                                css_class="btn-secondary",
+                                css_class="btn-secondary float-right",
                                 data_document_action=("release" if is_ro or is_pi else "accept"),
                                 # data_document_role="AB",
                                 data_document_role="B",
-                            ),
-                            css_class="float-right",
+                            )
+                            if is_ro
+                            else ButtonHolder(
+                                Submit(
+                                    "request_budget_correction",
+                                    _("Request Correction"),
+                                    css_class="btn-primary",
+                                    data_document_action="request_correction",
+                                    # data_document_role="PB",
+                                    data_document_role="B",
+                                ),
+                                Submit(
+                                    "approve_budget",
+                                    _("Release") if is_ro else _("Accept"),
+                                    css_class="btn-secondary",
+                                    data_document_action=(
+                                        "release" if is_ro or is_pi else "accept"
+                                    ),
+                                    # data_document_role="AB",
+                                    data_document_role="B",
+                                ),
+                                css_class="float-right",
+                            )
                         ),
                     )
                 ),

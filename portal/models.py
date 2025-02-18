@@ -9060,10 +9060,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                     )
                     for e in MemberEffort.where(member__user=m.user, member__application=a)
                 )
-            # pi = c.pi
-            # if pi and len() < c.duration:
-            #     for p in range(
-
 
             if efforts:
                 MemberEffort.bulk_create(efforts)
