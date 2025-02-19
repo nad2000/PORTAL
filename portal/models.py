@@ -10092,15 +10092,14 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         c = self.contract
         url = c.get_full_detail_url(request=request)
         link_name = domain_to_macrons(f"{url}#documents")
+        site = getattr(self, "site", None) or c.site or settings.SITE_ID
 
         send_mail(
             f"Contract {c} document/appendix {self} released",
             html_message=f'User {by} release the contract {c} document {self}: <a href="{link_name}">{link_name}</a>',
             message=f"User {by} release the contract {self}: {link_name}",
             recipients=(
-                [c.fund.email]
-                if c.fund and c.fund.email
-                else User.where(staff_of_sites=self.site)
+                [c.fund.email] if c.fund and c.fund.email else User.where(staff_of_sites=site)
             ),
             fail_silently=False,
             request=request,
@@ -10108,7 +10107,6 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
             thread_index=c.thread_index,
             thread_topic=c.thread_topic,
         )
-
 
     def save(self, *args, **kwargs):
         if not self.file.name:

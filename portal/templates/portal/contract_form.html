@@ -115,7 +115,7 @@
       required_doc = this.dataset["requiredDocument"];
       $("#id_confirm_action").text(
         doc_action == "request_correction" ? "{% trans 'Request Correction' %}" : (
-        doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : "{% trans 'Approve' %}")
+        doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : this.value||"{% trans 'Approve' %}")
       );
       $('#id_resolution_modal').modal('show');
       return false;

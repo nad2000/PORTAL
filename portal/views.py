@@ -6179,11 +6179,15 @@ class ContractViewMixin:
                         if d.state not in ["accepted", "approved", "released"]:
                             if document_action == "release":
                                 d.release(
-                                    request=self.request, description=resolution or f"released by {u}"
+                                    request=self.request,
+                                    description=resolution or f"released by {u}",
+                                    user=u,
                                 )
                             else:
                                 d.approve(
-                                    request=self.request, description=resolution or f"approved by {u}"
+                                    request=self.request,
+                                    description=resolution or f"approved by {u}",
+                                    user=u,
                                 )
                         else:
                             messages.warning(
@@ -6192,7 +6196,9 @@ class ContractViewMixin:
                     else:
                         if d.state != "accepted":
                             d.accept(
-                                request=self.request, description=resolution or f"accepted by {u}"
+                                request=self.request,
+                                description=resolution or f"accepted by {u}",
+                                user=u,
                             )
                         else:
                             messages.warning(
