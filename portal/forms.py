@@ -2215,7 +2215,7 @@ class ContractForm(ModelForm):
                                 hx_get=reverse(
                                     "email-import", kwargs={"pk": instance and instance.pk}
                                 )
-                                + "?_modal_dialog=1",
+                                + "?_modal_dialog=1&model=contract",
                                 hx_target="#form-dialog",
                                 hx_params="none",
                                 data_toggle="tooltip",

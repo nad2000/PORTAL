@@ -121,6 +121,42 @@
       return false;
     });
     $(document).ready(function() {
+      htmx.on("htmx:afterSwap", (e) => {
+        // Response targeting #dialog => show the modal
+        target_id = e.detail.target.id;
+        if (target_id == "activity-dialog") {
+            $('#id_start_date,#id_end_date').datepicker({
+              format: "yyyy-mm-dd",
+              todayBtn: "linked",
+              autoclose: true,
+              todayHighlight: true
+            });
+           $('#activity-modal').modal('show');
+        } else if (target_id == "activity-list") {
+           $('#activity-modal').modal('hide');
+        } else if (target_id == "publication-dialog") {
+           $('#publication-modal').modal('show');
+        } else if (target_id == "publication-list") {
+           $('#publication-modal').modal('hide');
+        } else if (target_id == "reported-funding-dialog") {
+          // $('#id_agency').select2();
+          // window.__dal__initialize($("#id_agency"));
+          $('#id_start_date,#id_end_date').datepicker({
+            format: "yyyy-mm-dd",
+            todayBtn: "linked",
+            autoclose: true,
+            todayHighlight: true
+          });
+          $("#id_agency").siblings(".select2").width("100%");
+          $(".select2-selection__arrow").remove();
+          $('#reported-funding-modal').modal('show');
+        } else if (target_id == "reported-funding-list") {
+           $('#reported-funding-modal').modal('hide');
+        } else if (target_id == "form-dialog") {
+           $('#form-modal').modal('show');
+        }
+        $("[required]").attr("hx-validate", true);
+      });
       $("#id_requires_approval").change( function() {
         var requires_approval = $(this).prop('checked');
         $("#id_has_animal_use_0,#id_has_animal_use_1,#id_has_animal_use_2").prop("disabled", !requires_approval);

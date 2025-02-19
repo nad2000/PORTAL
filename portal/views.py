@@ -2776,6 +2776,11 @@ class FileImportView(LoginRequiredMixin, FormView):
     def get_success_url(self):
         if o := self.object:
             return o.get_absolute_url()
+        if model_name := self.request.GET.get("model"):
+            if model_name in ["reportcomment", "report"]:
+                return reverse("report", kwargs=self.kwargs)
+            else:
+                return reverse("contract", kwargs=self.kwargs)
         return reverse("report", kwargs=self.kwargs)
 
     def get_form_kwargs(self):
@@ -2806,6 +2811,8 @@ class FileImportView(LoginRequiredMixin, FormView):
         context = super().get_context_data(*args, **kwargs)
         if self.is_modal:
             context["modal_dialog"] = True
+        if model_name := self.request.GET.get("model"):
+            context["model"] = model_name
         context["object"] = self.object
         return context
 

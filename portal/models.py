@@ -392,12 +392,13 @@ class CommentMixin:
                     reply_to = self.comments.model.where(token=message_id).last()
                     if reply_to:
                         break
+            kwargs = {"report": self} if isinstance(self, Report) else {"contract": self}
             comment = self.comments.model.create(
-                report=self,
                 submitted_by=by,
                 comment=body,
                 token=token,
                 reply_to=reply_to,
+                **kwargs,
                 # attachment=attachments and attachments[0] or None,
             )
             comment.recipients.model.create(
@@ -422,12 +423,16 @@ class CommentMixin:
 
             domain = to.split("@")[1]
             recipients = [reply_to and reply_to.submitted_by or self.pi]
-            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+            if isinstance(self, Report):
+                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+            else:
+                respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=self.pk))}#correspondence"
             html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
             html_message += f":</p>{body}" if body else "."
             html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            site = getattr(self, "site", None) or settings.SITE_ID
             send_mail(
-                from_email="reports",
+                from_email="reports" if isinstance(self, Report) else "contracts",
                 subject=f"Comment posted by {by.full_name_with_email} to {self}",
                 html_message=html_message,
                 cc=by and [by.full_email_address],
@@ -437,7 +442,7 @@ class CommentMixin:
                 thread_topic=self.thread_topic,
                 token=token,
                 request=request,
-                site=self.contract.site,
+                site=site,
             )
             return comment
 
@@ -8385,7 +8390,7 @@ class ContractComment(Model):
 
     @property
     def object_pk(self):
-        return self.contract_pk
+        return self.contract_id
 
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
     reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
@@ -11181,7 +11186,7 @@ class ReportComment(Model):
 
     @property
     def object_pk(self):
-        return self.report_pk
+        return self.report_id
 
     report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
     reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
