@@ -327,7 +327,8 @@ class StateInPathMixin:
     @cached_property
     def state(self):
         state = (
-            self.request.GET.get("state")
+            self.request.GET.get("state_filter")
+            or self.request.GET.get("state")
             or self.request.path.split("/")[-1]
             or self.request.path.split("/")[-2]
         )
@@ -5581,11 +5582,13 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
 
     def get_queryset(self, *args, **kwargs):
         u = self.request.user
-        queryset = super().get_queryset(*args, **kwargs)
-        queryset = queryset.filter(Q(members__isnull=True) | Q(members__role="PI"))
-        if not (u.is_superuser or u.is_site_staff):
-            queryset = queryset.filter(Q(members__user=u) | Q(org__research_offices__user=u))
-        return queryset.distinct()
+        # queryset = queryset.filter(Q(members__isnull=True) | Q(members__role="PI"))
+        # if not (u.is_superuser or u.is_site_staff):
+        #     queryset = queryset.filter(Q(members__user=u) | Q(org__research_offices__user=u))
+        # return queryset.distinct()
+        return self.model.user_objects(
+            queryset=super().get_queryset(*args, **kwargs), user=u, request=self.request
+        ).distinct()
 
 
 class ContractDetail(DetailView):

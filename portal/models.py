@@ -8739,6 +8739,58 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
 
     @classmethod
+    def user_object_counts(
+        cls, user, state=None, round=None, request=None, queryset=None, *args, **kwargs
+    ):
+        return (
+            cls.user_objects(
+                user=user, state=state, round=round, select_related=False, request=request
+            )
+            .values_list("state")
+            .annotate(total=Count("state"))
+            .order_by()
+        )
+
+    @classmethod
+    def user_objects(
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        request=None,
+        queryset=None,
+        *args,
+        **kwargs,
+    ):
+        q = queryset or cls.objects.all()
+
+        if select_related:
+            prefetch_related_objects(q, "application__round")
+
+        if state:
+            if isinstance(state, (list, tuple)):
+                q = q.filter(state__in=state)
+            else:
+                q = q.filter(state=state)
+        else:
+            q = q.filter(~Q(state="archived"))
+
+        if user.is_staff or user.is_superuser or user.is_site_staff:
+            return q
+
+        f = (
+            Q(submitted_by=user)
+            | Q(application__submitted_by=user)
+            | Q(members__user=user)
+            | Q(org__research_offices__user=user)
+        )
+        q = q.filter(f)
+        q = q.distinct()
+
+        return q
+
+    @classmethod
     def create_from_application(
         cls,
         application=application,

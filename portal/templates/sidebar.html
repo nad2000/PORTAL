@@ -160,13 +160,39 @@
       {% if contract_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
         <a href="{% url 'contract-list' %}" id="contract-list" class="{% if category == "contracts" %} text-white{% endif %}">
           {% trans 'Contracts' %}
-        </a> <span class="badge badge-primary{% if category == "contracts" %} bg-secondary{% endif %}">{{ contract_count }}</span>
+        </a> <span class="badge badge-primary{% if category == "contracts" %} bg-secondary{% endif %}">{{ contract_count|default:0 }}</span>
       {% else %}
       <span data-toggle="tooltip" title="{% trans 'No contracts saved or submitted' %}">
         {% trans 'Contracts' %} <span class="badge badge-primary{% if category == "contracts" %} bg-secondary{% endif %}">0</span>
       </span>
       {% endif %}
     </div>
+    {% if category == 'contracts' %}
+      <div class="card-body">
+        <ul class="nav nav-pills flex-column">
+          {% for s, count, sn in contract_counts %}
+          <!-- {{ s }} - {{ count }} -->
+          {% if s != 'total' and count > 0 %}
+          <li class="nav-item" id="nominations-draft">
+            {% if count > 0 %}
+              <a class="nav-link{% if category == 'contracts' and state == s %} active{% endif %}"
+                 id="contracts-{{ s }}"
+                 href="{% url 'contract-list' %}?state_filter={{ s }}&state={{ s }}">
+                {{ sn }}
+                <span class="badge badge-primary{% if category == "contracts" and s == state %} bg-secondary{% endif %}">{{ count }}</span>
+              </a>
+            {% else %}
+              <span class="nav-link" title="{% trans 'No contracts' %}" data-toggle="tooltip">
+                {{ sn }}
+                <span class="badge badge-primary">{{ count|default:0 }}</span>
+              </span>
+            {% endif %}
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
   </div>
 
   {% if is_ro or user.is_superuser or user.is_site_staff %}

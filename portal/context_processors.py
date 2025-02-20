@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.db.models import Max, F, Q, Subquery
 from django.utils import timezone
+from django.utils.translation import gettext_lazy
 from multisite.models import Alias
 
 from . import models
@@ -104,10 +105,11 @@ def portal_context(request):
                 cached_context["application_approved_count"] = application_approved_count
                 application_count += application_approved_count
             cached_context["application_count"] = application_count
-            if u.is_superuser or is_staff:
-                cached_context["contract_count"] = models.Contract.objects.count()
-            else:
-                cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
+
+            # if u.is_superuser or is_staff:
+            #     cached_context["contract_count"] = models.Contract.objects.count()
+            # else:
+            #     cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
 
             counts = {
                 s: c for s, c in models.Report.user_object_counts(u, request=request)
@@ -115,6 +117,13 @@ def portal_context(request):
             counts = {"total": sum(counts.values()), **{s: counts.get(s, 0) for (s, _) in models.Report.STATES}}
             cached_context["report_counts"] = counts
 
+            counts = [
+                (s, c, models.Contract.STATES[s]) for s, c in models.Contract.user_object_counts(u, request=request)
+            ]
+            total = sum(i[1] for i in counts)
+            counts.append(("total", total, gettext_lazy("Total")))
+            cached_context["contract_counts"] = counts
+            cached_context["contract_count"] = total
             # if outstanding_testimonial_requests:
             #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or is_staff):
