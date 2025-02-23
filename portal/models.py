@@ -10713,7 +10713,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
                 ).values("pk")
             )
             .values_list("state")
-            .annotate(total=Count("state"))
+            .annotate(total=Count("pk", distinct=True))
             .order_by()
         )
 
