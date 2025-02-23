@@ -8747,7 +8747,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 user=user, state=state, round=round, select_related=False, request=request
             )
             .values_list("state")
-            .annotate(total=Count("state"))
+            .annotate(total=Count("pk", distinct=True))
             .order_by()
         )
 
