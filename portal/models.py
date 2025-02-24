@@ -6371,12 +6371,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         with transaction.atomic():
             nr.save()
+            # NB! Keep the order
             for m in [
                 self.application_form_templates,
                 self.contract_clauses,
                 self.curriculum_vitae_templates,
-                self.required_contract_documents,
                 self.required_documents,
+                self.required_contract_documents,
                 self.templates,
                 self.performance_flags,
             ]:
@@ -6384,6 +6385,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 for o in objs:
                     o.pk = None
                     o.round = nr
+
+                if isinstance(m, RequiredContractDocument):
+                    for o in objs:
+                        rd = nr.required_documents.filter(
+                            document_type=o.application_required_document.document_type,
+                            role=o.application_required_document.role,
+                            format=o.application_required_document.format,
+                            title=o.application_required_document.title,
+                        ).last()
+                        if rd:
+                            o.application_required_document = rd
 
                 m.field.model.objects.bulk_create(objs)
 
