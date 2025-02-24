@@ -912,6 +912,19 @@ class CareerStage(Model):
         db_table = "career_stage"
         ordering = ["code"]
 
+class VarianRequestCategory(Model):
+
+    code = CharField(max_length=2, null=True, blank=True)
+    description = CharField(max_length=40)
+    definition = TextField(max_length=200, null=True, blank=True)
+
+    def __str__(self):
+        return self.description
+
+    class Meta:
+        db_table = "variant_request_category"
+        ordering = ["description"]
+
 
 class PersonIdentifierType(Model):
     code = CharField(max_length=2, null=True, blank=True)
