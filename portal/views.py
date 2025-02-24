@@ -5643,6 +5643,14 @@ class ContractViewMixin:
         return kwargs
 
     @cached_property
+    def is_ro(self):
+        u = self.request.user
+        org = self.object and self.object.org or self.application.org
+        return org.research_offices.filter(user=u).exists() and not (
+            u.is_superuser or u.is_site_staff
+        )
+
+    @cached_property
     def application(self):
         if self.object and self.object.application_id:
             return self.object.application
@@ -5694,7 +5702,7 @@ class ContractViewMixin:
             self.request.POST or None,
             instance=self.object,
             initial=initial_allocations,
-            # form_kwargs={"duration": duration},
+            form_kwargs={"is_ro": self.is_ro},
         )
 
     def get_reporting_schedule_formset(self, *args, **kwargs):

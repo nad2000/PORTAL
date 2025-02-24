@@ -304,6 +304,7 @@
       // $('#id_resolution_modal').on('shown.bs.modal', function () {$('#id_resolution').focus();});
       // $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('input:visible:enabled:first', this).focus();});
       $('body').on('shown.bs.modal', '#id_resolution_modal', function () {$('textarea:visible:enabled:first', this).focus();});
+      /*
       $('#id_requires_approval').change(function() {
         if (!($(this).prop('checked'))) {
           $("#id_requires_approval_comment_help").text(
@@ -313,6 +314,7 @@
             "{% trans 'Please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. (Please provide serial number, type of approval and date received)' %}");
         };
       });
+      */
       // Focus on the first tab with invalid input:
       $('#submit-id-save_draft,#submit-id-submit').click(function () {
           $('input:invalid,textarea:invalid').each(function () {

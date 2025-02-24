@@ -1456,6 +1456,15 @@ class ContractMemberForm(FTEMixin, ModelForm):
 
 
 class AllocationForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        is_ro = kwargs.pop("is_ro", False)
+        super().__init__(*args, **kwargs)
+        if is_ro:
+            self.fields["purpose"].disabled = True
+            # self.fields["purpose"].widget.attrs = {"readonly": 1}
+            self.fields["details"].disabled = True
+
     class Meta:
         model = models.Allocation
         fields = ["period", "allocation", "purpose", "details"]
@@ -1785,31 +1794,31 @@ class ContractForm(ModelForm):
                     data_onstyle="success",
                     data_offstyle="warning",
                 ),
-                # "not_applicable",
-                # "not_applicable_comment",
-                not disabled_compliance
-                and HTML(
-                    '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
-                    % (
-                        (
-                            _(
-                                "Please indicate if you already have, or when you expect to receive, "
-                                "ethical and regulatory approval to conduct the proposed research."
-                            )
-                            if instance.requires_approval
-                            or self.data.get("requires_approval") == "on"
-                            else _(
-                                "Please provide brief reason why ethical or regulatory approval is not required."
-                            )
-                        )
-                        if instance and instance.pk
-                        else _(
-                            "If YES, please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
-                            "(Please provide serial number, type of approval and date received) "
-                            "if NOT, please provide brief reason why ethical or regulatory approval is not required."
-                        )
-                    )
-                ),
+                "not_applicable",
+                "not_applicable_comment",
+                # not disabled_compliance
+                # and HTML(
+                #     '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
+                #     % (
+                #         (
+                #             _(
+                #                 "Please indicate if you already have, or when you expect to receive, "
+                #                 "ethical and regulatory approval to conduct the proposed research."
+                #             )
+                #             if instance.requires_approval
+                #             or self.data.get("requires_approval") == "on"
+                #             else _(
+                #                 "Please provide brief reason why ethical or regulatory approval is not required."
+                #             )
+                #         )
+                #         if instance and instance.pk
+                #         else _(
+                #             "If YES, please provide numbers of relevant approval(s) needed to undertake the proposed research has been obtained. "
+                #             "(Please provide serial number, type of approval and date received) "
+                #             "if NOT, please provide brief reason why ethical or regulatory approval is not required."
+                #         )
+                #     )
+                # ),
                 "requires_approval_comment",
             ]
         )
