@@ -7473,6 +7473,19 @@ class PersonAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return q
 
 
+class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        return False
+
+    def get_queryset(self):
+
+        q = super().get_queryset()
+        if round := self.forwarded.get("round"):
+            # select only people affiliated with the org
+            return q.filter(round=round)
+        return q
+
+
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
     model = models.CurriculumVitae
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)

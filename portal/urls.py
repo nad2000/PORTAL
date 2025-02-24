@@ -523,6 +523,11 @@ urlpatterns = [
                     name="city-autocomplete",
                 ),
                 path(
+                    "required_document/",
+                    views.RequiredDocumentAutocomplete.as_view(model=models.RequiredDocument),
+                    name="required-document-autocomplete",
+                ),
+                path(
                     "reporting-schedule-entry-autocomplete/",
                     views.ReportingScheduleEntryAutocomplete.as_view(
                         model=models.ReportingScheduleEntry

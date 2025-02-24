@@ -64,6 +64,19 @@ djhacker.formfield(
     ),
 )
 
+djhacker.formfield(
+    models.RequiredContractDocument.application_required_document,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="required-document-autocomplete",
+        forward=[
+            dal.forward.Field("round", "round"),
+            # dal.forward.Field("contract", "contract"),
+            # dal.forward.Const("1", "exclude_taken"),
+        ],
+    ),
+)
+
 
 # class QueryField(forms.ChoiceField):
 
@@ -2538,14 +2551,30 @@ class TitleAdmin(ExportActionMixin, ImportExportMixin, StaffPermsMixin, Translat
 
 
 class RequiredContractDocumentForm(forms.ModelForm):
-    def __init__(self, instance=None, **kwargs):
-        super().__init__(instance=instance, **kwargs)
-        if instance:
-            queryset = self.fields["application_required_document"].queryset.filter(round=instance.round)
-            self.fields["application_required_document"].queryset = queryset
-        else:
-            self.fields["application_required_document"].disabled = True
-        pass
+    # application_required_document = forms.ModelChoiceField(
+    #     widget=autocomplete.ModelSelect2(
+    #         url="required-document-autocomplete",
+    #         forward=[
+    #             dal.forward.Field("round", "round"),
+    #             # dal.forward.Const("1", "exclude_taken"),
+    #         ],
+    #     )
+    # )
+    # def __init__(self, instance=None, **kwargs):
+    #     super().__init__(instance=instance, **kwargs)
+    #     self.fields["application_required_document"].widget = autocomplete.ModelSelect2(
+    #         url="required-document-autocomplete",
+    #         forward=[
+    #             dal.forward.Field("round", "round"),
+    #             # dal.forward.Const("1", "exclude_taken"),
+    #         ],
+    #     )
+    #     # if instance:
+    #     #     queryset = self.fields["application_required_document"].queryset.filter(round=instance.round)
+    #     #     self.fields["application_required_document"].queryset = queryset
+    #     # else:
+    #     #     self.fields["application_required_document"].disabled = True
+    #     # pass
 
     class Meta:
         exclude = ["document_type"]
@@ -2839,7 +2868,6 @@ class RoundAdmin(
         autocomplete_fields = ["document_type"]
         view_on_site = False
         ordering_field_hide_input = True
-
 
     class TemplateInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
