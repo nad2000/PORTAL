@@ -9012,7 +9012,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             required_document=crd,
                             file=d.file,
                             converted_file=d.converted_file,
-                            state="released",
+                            state="draft",
                         )
                     )
 
@@ -9063,7 +9063,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         required_document=rd,
                         file=a.file,
                         converted_file=a.converted_file,
-                        state="released",
+                        state="draft",
                     )
                 )
             if a.budget and not a.documents.filter(document_type__role="B").exists():
