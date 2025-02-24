@@ -2537,6 +2537,21 @@ class TitleAdmin(ExportActionMixin, ImportExportMixin, StaffPermsMixin, Translat
     list_editable = ["name_en", "name_mi"]
 
 
+class RequiredContractDocumentForm(forms.ModelForm):
+    def __init__(self, instance=None, **kwargs):
+        super().__init__(instance=instance, **kwargs)
+        if instance:
+            queryset = self.fields["application_required_document"].queryset.filter(round=instance.round)
+            self.fields["application_required_document"].queryset = queryset
+        else:
+            self.fields["application_required_document"].disabled = True
+        pass
+
+    class Meta:
+        exclude = ["document_type"]
+        model = models.RequiredContractDocument
+
+
 @admin.register(models.Round)
 class RoundAdmin(
     SummernoteModelAdminMixin,
@@ -2825,6 +2840,7 @@ class RoundAdmin(
         view_on_site = False
         ordering_field_hide_input = True
 
+
     class TemplateInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.RoundDocumentTemplate
@@ -2853,7 +2869,8 @@ class RoundAdmin(
     ):
         extra = 0
         model = models.RequiredContractDocument
-        autocomplete_fields = ["document_type"]
+        form = RequiredContractDocumentForm
+        # autocomplete_fields = ["document_type"]
         view_on_site = False
         ordering_field_hide_input = True
         classes = ["collapse"]
