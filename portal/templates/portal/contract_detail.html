@@ -27,7 +27,6 @@
           {% trans 'Open in Admin' %}
         </a>{% endif %}
       </div>
-    <hr />
   </div>
 </div>
 {% endblock buttons_bellow %}
@@ -35,8 +34,12 @@
 
 {% block object_details %}
 
-<div class="table-responsive">
-  {% contract_summary %}
-</div>
+  <hr />
+
+  <div class="row">
+    <div class="col-12">
+      <div class="table-responsive"> {% contract_summary %} </div>
+    </div>
+  </div>
 
 {% endblock %}
