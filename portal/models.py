@@ -912,19 +912,6 @@ class CareerStage(Model):
         db_table = "career_stage"
         ordering = ["code"]
 
-class VarianRequestCategory(Model):
-
-    code = CharField(max_length=2, null=True, blank=True)
-    description = CharField(max_length=40)
-    definition = TextField(max_length=200, null=True, blank=True)
-
-    def __str__(self):
-        return self.description
-
-    class Meta:
-        db_table = "variant_request_category"
-        ordering = ["description"]
-
 
 class PersonIdentifierType(Model):
     code = CharField(max_length=2, null=True, blank=True)
@@ -11471,6 +11458,88 @@ class ReportedAward(ReportedActivity):
 
     class Meta:
         db_table = "reported_award"
+
+
+class VariantRequestCategory(Model):
+
+    code = CharField(max_length=2, null=True, blank=True)
+    description = CharField(max_length=40)
+    definition = TextField(max_length=200, null=True, blank=True)
+
+    def __str__(self):
+        return self.description
+
+    class Meta:
+        db_table = "variant_request_category"
+        ordering = ["description"]
+
+
+class VariantRequestMixin:
+    STATES = Choices(
+        ("accepted", _("accepted")),
+        ("acknowledged", _("acknowledged")),
+        ("approved", _("approved")),
+        ("application", _("application")),
+        ("archived", _("archived")),
+        ("cancelled", _("cancelled")),
+        ("draft", _("draft")),
+        ("submitted", _("submitted")),
+        ("withdrawn", _("withdrawn")),
+    )
+
+
+class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
+
+    state = StateField(default="new", verbose_name=_("state"))
+    category = ManyToManyField(
+        VariantRequestCategory,
+        db_table="variant_request_variant_request_category",
+        verbose_name=_("Category"),
+    )
+    contract = ForeignKey(Contract, on_delete=CASCADE)
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        related_name="variant_requests",
+    )
+    description = TextField(null=True, blank=True)
+    file = PrivateFileField(
+        verbose_name=_("Request Letter"),
+        blank=True,
+        null=True,
+        upload_to="variant",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.contract_id),
+        ],
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+    )
+
+    class Meta:
+        db_table = "variant_request"
 
 
 dummy_for_translations = (
