@@ -654,6 +654,19 @@ class OrgIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     resource_classes = [OrgIdentifierTypeResource]
 
 
+@admin.register(models.VariantRequestCategory)
+class VariantRequestCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
+    save_on_top = True
+    view_on_site = False
+
+    class VariantRequestCategoryResource(CodeResource):
+        class Meta:
+            model = models.VariantRequestCategory
+
+    search_fields = ["description", "definition"]
+    resource_classes = [VariantRequestCategoryResource]
+
+
 @admin.register(models.ApplicationDecision)
 class ApplicationDecisionAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
@@ -3553,5 +3566,21 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
                 obj.period = obj.schedule_entry.period
         super().save_model(request, obj, form, change)
 
+
+
+@admin.register(models.VariantRequest)
+class VariantRequestAdmin(
+    StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin
+):
+    summernote_fields = (
+        "description",
+    )
+    save_on_top = True
+    show_close_button = True
+
+    list_display = (
+        "contract__number",
+        "state",
+    )
 
 # vim:set ft=python.django:

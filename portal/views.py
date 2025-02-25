@@ -7494,6 +7494,11 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         return q
 
 
+class VariantRequestCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def has_add_permission(self, request):
+        return False
+
+
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
     model = models.CurriculumVitae
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
@@ -10980,6 +10985,124 @@ class ReportedActivityView(View):
         # else:
         #     return self.bar_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
+
+class VariantRequestViewMixin:
+
+    model = models.VariantRequest
+    # template_name = "profile_form.html"
+    form_class = forms.VariantRequestForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    @cached_property
+    def contract(self):
+        if hasattr(self.object, "contract"):
+            return self.object.contract
+        contract_pk = self.kwargs.get("pk")
+        return get_object_or_404(models.Contract, pk=contract_pk)
+
+
+class VariantRequestCreateView(VariantRequestViewMixin, CreateView):
+
+    def get_initial(self):
+        initial =  super().get_initial()
+        initial["contract"] = self.contract
+        return initial
+
+
+class VariantRequestUpdateView(LoginRequiredMixin, VariantRequestViewMixin, UpdateView):
+    pass
+
+
+class VariantRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterView):
+    table_class = tables.VariantRequestTable
+    model = models.VariantRequest
+    template_name = "table.html"
+    extra_context = {"category": "variants"}
+    filterset_class = filters.VariantRequestFilterSet
+
+    # def get_table_kwargs(self):
+    #     u = self.request.user
+    #     if u.is_staff or u.is_site_staff:
+    #         return {
+    #             "extra_columns": [
+    #                 (
+    #                     _("Export"),
+    #                     django_tables2.LinkColumn(
+    #                         "contract-export",
+    #                         args=[django_tables2.A("pk")],
+    #                         orderable=False,
+    #                         # kwargs={"format": "pdf", "pk": django_tables2.A("pk")},
+    #                         text=gettext_lazy("Export"),
+    #                         attrs={
+    #                             "a": {
+    #                                 "class": "btn btn-primary btn-sm",
+    #                                 # "target": "_blank",
+    #                                 "data-toggle": "tooltip",
+    #                                 "title": gettext_lazy(
+    #                                     "Export the contract into a consolidated PDF file"
+    #                                 ),
+    #                             },
+    #                             "td": {"class": "text-center"},
+    #                         },
+    #                     ),
+    #                 )
+    #             ]
+    #         }
+    #     return {}
+
+    def get_queryset(self, *args, **kwargs):
+        u = self.request.user
+        return self.model.user_objects(
+            queryset=super().get_queryset(*args, **kwargs), user=u, request=self.request
+        ).distinct()
+
+
+class VariantRequestDetail(DetailView):
+    template_name = "detail.html"
+    model = models.VariantRequest
+    # slug_field = "number"
+    # slug_url_kwarg = "number"
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        u = self.request.user
+        if (
+            u.is_superuser
+            or u.is_staff
+            or u.is_site_staff
+            or (
+                self.object
+                and (org := self.object.contract.org or self.object.contract.application.org)
+                and org.research_offices.filter(user=u).exists()
+            )
+        ):
+            context["can_edit"] = True
+        return context
+
+    # def get_queryset(self):
+    #     u = self.request.user
+    #     qs = (
+    #         super()
+    #         .get_queryset()
+    #         .prefetch_related(
+    #             Prefetch(
+    #                 "allocations", queryset=models.Allocation.objects.all().order_by("period")
+    #             ),
+    #             Prefetch(
+    #                 "reporting_schedule",
+    #                 queryset=models.ReportingScheduleEntry.objects.all().order_by(
+    #                     "period", "due_date"
+    #                 ),
+    #             ),
+    #         )
+    #     )
+    #     if not (u.is_superuser or u.is_site_staff):
+    #         qs = qs.filter(Q(members__user=u) | Q(org__research_offices__user=u)).distinct()
+    #     return qs
 
 
 @login_required

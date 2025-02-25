@@ -854,65 +854,32 @@ class ContractTable(tables.Table):
     )
     notes = StateColumn()
 
-    # email = tables.Column(
-    #     linkify=lambda table, record, value: reverse(
-    #         "admin:users_user_change", kwargs={"object_id": record.submitted_by_id}
-    #     )
-    #     if (table.request.user.is_staff or table.request.user.is_superuser)
-    #     and record.submitted_by_id
-    #     else None
-    # )
-    # export = tables.LinkColumn(
-    #     "application-export",
-    #     args=[tables.A("pk")],
-    #     text=gettext_lazy("Export"),
-    #     attrs={
-    #         "a": {
-    #             "class": "btn btn-primary btn-sm",
-    #             "target": "_blank",
-    #             "data-toggle": "tooltip",
-    #             "title": gettext_lazy("Export the application into a consolidated PDF file"),
-    #         },
-    #         "td": {"style": "padding: 6px 0 0 16px;"},
-    #     },
-    # )
-
-    # def before_render(self, request):
-    #     if (u := request.user) and not u.is_superuser and not u.is_staff:
-    #         self.columns.hide("export")
-
-    # def render_number(self, record, value):
-    #     if (
-    #         record.state in ["draft", "new"]
-    #         and (deadline_days := record.deadline_days)
-    #         and record.deadline_days < 5
-    #     ):
-    #         r = record.round
-    #         return format_html(
-    #             """<span
-    #                 data-toggle="tooltip"
-    #                 title="%s"
-    #             >
-    #                 <i class="fas fa-exclamation-circle text-danger"
-    #                 ></i> %s
-    #             </span>"""
-    #             % (
-    #                 _("The round is closing in %s day(s) on %s by %s")
-    #                 % (
-    #                     deadline_days,
-    #                   # formats.date_format(r.closes_at, "d-m-Y"),
-    #                   # formats.date_format(r.closes_at, "P"),
-    #                     r.closes_at.strftime("%d-%m-%Y"),
-    #                     r.closes_at.strftime("%I:%M %P"),
-    #                 ),
-    #                 value,
-    #             )
-    #         )
-    #     return value
-
     class Meta:
         model = models.Contract
         fields = ("state", "number", "application", "pi", "notes")
+
+
+class VariantRequestTable(tables.Table):
+    state = StateColumn(gettext_lazy("Status"))
+    number = tables.Column(
+        accessor="pk",
+        verbose_name=gettext_lazy("ID"),
+        linkify=lambda value, record: reverse(
+            "variant-request", kwargs=dict(pk=record.pk)
+        ),
+        order_by="pk",
+    )
+    contract = tables.Column(
+        verbose_name=gettext_lazy("Contract"),
+        linkify=lambda value, record: reverse(
+            "contract-detail", kwargs=dict(number=record.contract.number)
+        ),
+        order_by="contract__number",
+    )
+
+    class Meta:
+        model = models.VariantRequest
+        fields = ("state", "number", "contract", "description")
 
 
 # class ReportTable(tables.Table):

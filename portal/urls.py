@@ -162,6 +162,38 @@ urlpatterns = [
                     views.ContractExportView.as_view(),
                     name="contract-export",
                 ),
+                path(
+                    "<int:pk>/variant-request/~create",
+                    views.VariantRequestCreateView.as_view(),
+                    name="variant-request-create",
+                ),
+                path(
+                    "variant-requests/<int:pk>/~update",
+                    views.VariantRequestUpdateView.as_view(),
+                    name="variant-request-update",
+                ),
+            ]
+        ),
+    ),
+    path(
+        "variants/",
+        include(
+            [
+                path(
+                    "requests/",
+                    include(
+                        [
+                            path(
+                                "<int:pk>",
+                                views.VariantRequestDetail.as_view(),
+                                name="variant-request",
+                            ),
+                            path(
+                                "", views.VariantRequestList.as_view(), name="variant-request-list"
+                            ),
+                        ]
+                    ),
+                ),
             ]
         ),
     ),
@@ -533,6 +565,13 @@ urlpatterns = [
                         model=models.ReportingScheduleEntry
                     ),
                     name="reporting-schedule-entry-autocomplete",
+                ),
+                path(
+                    "variant-request-category-autocomplete/",
+                    views.VariantRequestCategoryAutocomplete.as_view(
+                        model=models.VariantRequestCategory
+                    ),
+                    name="variant-request-category-autocomplete",
                 ),
             ]
         ),

@@ -4822,4 +4822,79 @@ class ReportForm(ModelForm):
         )
 
 
+class VariantRequestForm(ModelForm):
+
+    description = forms.CharField(
+        # label="",
+        required=False,
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
+    file = FileField(
+        required=False,
+        # label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        initial = kwargs.get("initial", {})
+        if initial:
+            kwargs["initial"] = initial
+        user = kwargs.pop("user", None) or initial and initial.get("user")
+
+        super().__init__(*args, **kwargs)
+        # language = get_language()
+        instance = self.instance or instance
+        contract = instance and instance.pk and instance.contract or initial and initial.get("contract")
+        org = contract and contract.org
+        is_ro = org and org.research_offices.filter(user=user).exists()
+        submission_disabled = not instance or not is_ro
+
+    def save(self, *args, **kwargs):
+        instance = self.instance
+        created = not self.instance.pk
+        if not instance.contract_id:
+            instance.contract = self.initial.get("contract")
+        res = super().save(*args, **kwargs)
+        return res
+
+    class Meta:
+        model = models.VariantRequest
+        exclude = [
+            "contract",
+            "submitted_by",
+            "state",
+            "state_changed_at",
+            "converted_file",
+        ]
+        widgets = dict(
+            start_date=DateInput(),
+            end_date=DateInput(),
+            keywords=autocomplete.ModelSelect2Multiple(
+                url="variant-request-category",
+            ),
+            host_contact_email=ModelSelect2NoPK(
+                url="org-email-autocomplete",
+                attrs={
+                    "data-placeholder": _("Select an email addrss or create a new one ..."),
+                },
+            ),
+            panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
+            panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
+            abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
+            assessment=SummernoteInplaceWidget(
+                attrs={
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
+                    "oninput": "this.setCustomValidity('')",
+                    "summernote": {"width": "100%", "height": "200px"},
+                }
+            ),
+        )
+
+
 # vim:set ft=python.django:

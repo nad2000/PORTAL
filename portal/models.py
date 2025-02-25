@@ -11472,6 +11472,7 @@ class VariantRequestCategory(Model):
     class Meta:
         db_table = "variant_request_category"
         ordering = ["description"]
+        verbose_name_plural = _("variant request categories")
 
 
 class VariantRequestMixin:
@@ -11490,7 +11491,8 @@ class VariantRequestMixin:
 
 class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
 
-    state = StateField(default="new", verbose_name=_("state"))
+    state = StateField(default="draft", verbose_name=_("state"))
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     category = ManyToManyField(
         VariantRequestCategory,
         db_table="variant_request_variant_request_category",
@@ -11537,6 +11539,61 @@ class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
+
+    @classmethod
+    def user_object_counts(
+        cls, user, state=None, round=None, request=None, queryset=None, *args, **kwargs
+    ):
+        return (
+            cls.user_objects(
+                user=user, state=state, round=round, select_related=False, request=request
+            )
+            .values_list("state")
+            .annotate(total=Count("pk", distinct=True))
+            .order_by()
+        )
+
+    @classmethod
+    def user_objects(
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        request=None,
+        queryset=None,
+        *args,
+        **kwargs,
+    ):
+        q = queryset or cls.objects.all()
+
+        if select_related:
+            prefetch_related_objects(q, "contract__application__round")
+
+        if state:
+            if isinstance(state, (list, tuple)):
+                q = q.filter(state__in=state)
+            else:
+                q = q.filter(state=state)
+        else:
+            q = q.filter(~Q(state="archived"))
+
+        if user.is_staff or user.is_superuser or user.is_site_staff:
+            return q
+
+        f = (
+            Q(submitted_by=user)
+            | Q(contract__submitted_by=user)
+            | Q(contract__members__user=user)
+            | Q(contract__org__research_offices__user=user)
+        )
+        q = q.filter(f)
+        q = q.distinct()
+
+        return q
+
+    def __str__(self):
+        return f"{self.contract.number}:{self.pk}"
 
     class Meta:
         db_table = "variant_request"
