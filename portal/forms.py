@@ -4831,7 +4831,7 @@ class VariantRequestForm(ModelForm):
     )
     file = FileField(
         required=False,
-        # label="",
+        label="Varian request letter",
         widget=forms.ClearableFileInput(
             attrs={
                 "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
@@ -4873,9 +4873,8 @@ class VariantRequestForm(ModelForm):
         widgets = dict(
             start_date=DateInput(),
             end_date=DateInput(),
-            keywords=autocomplete.ModelSelect2Multiple(
-                url="variant-request-category",
-            ),
+            categories=autocomplete.ModelSelect2Multiple(url="variant-category"),
+            types=autocomplete.ModelSelect2Multiple(url="variant-type"),
             host_contact_email=ModelSelect2NoPK(
                 url="org-email-autocomplete",
                 attrs={

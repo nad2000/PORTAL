@@ -567,6 +567,13 @@ urlpatterns = [
                     name="reporting-schedule-entry-autocomplete",
                 ),
                 path(
+                    "variant-type/",
+                    views.VariantTypeAutocomplete.as_view(
+                        model=models.VariantType
+                    ),
+                    name="variant-type-autocomplete",
+                ),
+                path(
                     "variant-category/",
                     views.VariantCategoryAutocomplete.as_view(
                         model=models.VariantCategory
