@@ -560,18 +560,18 @@ urlpatterns = [
                     name="required-document-autocomplete",
                 ),
                 path(
-                    "reporting-schedule-entry-autocomplete/",
+                    "reporting-schedule-entry/",
                     views.ReportingScheduleEntryAutocomplete.as_view(
                         model=models.ReportingScheduleEntry
                     ),
                     name="reporting-schedule-entry-autocomplete",
                 ),
                 path(
-                    "variant-request-category-autocomplete/",
-                    views.VariantRequestCategoryAutocomplete.as_view(
-                        model=models.VariantRequestCategory
+                    "variant-category/",
+                    views.VariantCategoryAutocomplete.as_view(
+                        model=models.VariantCategory
                     ),
-                    name="variant-request-category-autocomplete",
+                    name="variant-category-autocomplete",
                 ),
             ]
         ),

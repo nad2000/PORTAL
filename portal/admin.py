@@ -654,17 +654,36 @@ class OrgIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     resource_classes = [OrgIdentifierTypeResource]
 
 
-@admin.register(models.VariantRequestCategory)
-class VariantRequestCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
+@admin.register(models.VariantType)
+class VariantTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
-    class VariantRequestCategoryResource(CodeResource):
+    class CategoryInline(admin.TabularInline):
+        model = models.VariantCategory
+        extra = 0
+        view_on_site = False
+
+    class VariantTypeResource(CodeResource):
         class Meta:
-            model = models.VariantRequestCategory
+            model = models.VariantType
 
     search_fields = ["description", "definition"]
-    resource_classes = [VariantRequestCategoryResource]
+    resource_classes = [VariantTypeResource]
+    inlines = [CategoryInline]
+
+
+@admin.register(models.VariantCategory)
+class VariantCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
+    save_on_top = True
+    view_on_site = False
+
+    class VariantCategoryResource(CodeResource):
+        class Meta:
+            model = models.VariantCategory
+
+    search_fields = ["description", "definition"]
+    resource_classes = [VariantCategoryResource]
 
 
 @admin.register(models.ApplicationDecision)

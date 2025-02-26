@@ -11460,7 +11460,7 @@ class ReportedAward(ReportedActivity):
         db_table = "reported_award"
 
 
-class VariantRequestCategory(Model):
+class VariantType(Model):
 
     code = CharField(max_length=2, null=True, blank=True)
     description = CharField(max_length=40)
@@ -11470,9 +11470,25 @@ class VariantRequestCategory(Model):
         return self.description
 
     class Meta:
-        db_table = "variant_request_category"
+        db_table = "variant_type"
         ordering = ["description"]
-        verbose_name_plural = _("variant request categories")
+
+
+class VariantCategory(Model):
+
+    type = ForeignKey(VariantType, on_delete=CASCADE)
+    code = CharField(max_length=2, null=True, blank=True)
+    description = CharField(max_length=40)
+    definition = TextField(max_length=200, null=True, blank=True)
+    parent = ForeignKey("self", on_delete=CASCADE)
+
+    def __str__(self):
+        return self.description
+
+    class Meta:
+        db_table = "variant_category"
+        ordering = ["description"]
+        verbose_name_plural = _("variant categories")
 
 
 class VariantRequestMixin:
@@ -11493,10 +11509,17 @@ class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
 
     state = StateField(default="draft", verbose_name=_("state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    category = ManyToManyField(
-        VariantRequestCategory,
-        db_table="variant_request_variant_request_category",
-        verbose_name=_("Category"),
+    types = ManyToManyField(
+        VariantType,
+        db_table="variant_request_variant_type",
+        verbose_name=_("Types"),
+        related_name="variant_requests",
+    )
+    categories = ManyToManyField(
+        VariantCategory,
+        db_table="variant_request_variant_category",
+        verbose_name=_("Categories"),
+        related_name="variant_requests",
     )
     contract = ForeignKey(Contract, on_delete=CASCADE)
     submitted_by = ForeignKey(

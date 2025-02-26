@@ -7494,7 +7494,7 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         return q
 
 
-class VariantRequestCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+class VariantCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         return False
 

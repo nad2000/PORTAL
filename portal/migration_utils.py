@@ -61,6 +61,34 @@ def add_title_data(apps, schema_editor):
     )
 
 
+def add_varinat_type(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    VariantType = apps.get_model("portal", "VariantType")
+    db_alias = schema_editor.connection.alias
+    types = {
+        "Description",
+        "Extension",
+        "Extension & Budget Revision",
+        "Budget Revision",
+        "Changes to Personnel",
+        "Termination of Contract",
+        "Transfer of Contract",
+        "Issues",
+        "Suspension",
+        "Other",
+    }.difference(VariantType.objects.using(db_alias).values_list("description", flat=True))
+    if types:
+        VariantType.objects.using(db_alias).bulk_create(
+            [VariantType(description=t) for t in types],
+            # update_conflicts=True,
+            update_fields=["description"],
+            unique_fields=["description"],
+        )
+
+
 def add_role_type_data(apps, schema_editor):
     """
     Add to the migrations:
