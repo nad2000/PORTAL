@@ -4873,8 +4873,8 @@ class VariantRequestForm(ModelForm):
         widgets = dict(
             start_date=DateInput(),
             end_date=DateInput(),
-            categories=autocomplete.ModelSelect2Multiple(url="variant-category"),
-            types=autocomplete.ModelSelect2Multiple(url="variant-type"),
+            categories=autocomplete.ModelSelect2Multiple(url="variant-category-autocomplete"),
+            types=autocomplete.ModelSelect2Multiple(url="variant-type-autocomplete"),
             host_contact_email=ModelSelect2NoPK(
                 url="org-email-autocomplete",
                 attrs={

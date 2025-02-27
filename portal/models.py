@@ -11520,6 +11520,7 @@ class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
         db_table="variant_request_variant_category",
         verbose_name=_("Categories"),
         related_name="variant_requests",
+        blank=True,
     )
     contract = ForeignKey(Contract, on_delete=CASCADE)
     submitted_by = ForeignKey(
