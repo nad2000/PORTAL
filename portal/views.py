@@ -503,14 +503,15 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             "org",
             "site",
         ]
-        context["update_view_name"] = f"{self.model.__name__.lower()}-update"
+        model_name_slug = self.object._meta.db_table.replace("_", "-").lower()
+        context["update_view_name"] = f"{model_name_slug}-update"
         context["category"] = self.object._meta.verbose_name_plural
         if hasattr(self.object, "state"):
             context["object_state"] = self.object.state
             context["model_name"] = self.object._meta.model_name
         context["update_button_name"] = _("Edit")
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
-            context["export_button_view_name"] = f"{self.model.__name__.lower()}-export"
+            context["export_button_view_name"] = f"{model_name_slug}-export"
         u = self.request.user
         if u.is_superuser or u.is_site_staff:
             context["can_edit"] = True
@@ -5611,6 +5612,7 @@ class ContractDetail(DetailView):
             )
         ):
             context["can_edit"] = True
+            context["change_request_form"] = forms.ChangeRequestForm(initial={"contract": self.object})
         return context
 
     def get_queryset(self):
@@ -7494,14 +7496,30 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         return q
 
 
-class VariantTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+class ChangeTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         return False
 
 
-class VariantCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+class ChangeCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         return False
+
+    def get_queryset(self):
+
+        q = super().get_queryset()
+        if types := self.forwarded.get("types"):
+            q = q.filter(type__in=types)
+        if parents := self.forwarded.get("parents"):
+            q = q.filter(parent__in=parents)
+        if level := self.forwarded.get("level"):
+            if level == "1":
+                q = q.filter(parent__isnull=True)
+            if level == "2":
+                q = q.filter(parent__parent__isnull=True)
+            else:
+                q = q.filter(parent__parent__parent__isnull=True)
+        return q
 
 
 class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
@@ -10991,11 +11009,34 @@ class ReportedActivityView(View):
         #     return self.bar_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
 
-class VariantRequestViewMixin:
 
-    model = models.VariantRequest
+class ChangeRequestViewMixin:
+
+    model = models.ChangeRequest
     # template_name = "profile_form.html"
-    form_class = forms.VariantRequestForm
+    form_class = forms.ChangeRequestForm
+
+    @cached_property
+    def is_modal(self):
+        return (
+            self.request.GET.get("modal")
+            or self.request.GET.get("_modal_dialog")
+            or self.request.GET.get("_popup")
+            or self.request.POST.get("_modal_dialog")
+            or self.request.POST.get("_popup")
+        )
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if self.is_modal:
+            context["modal_dialog"] = True
+            context["modal"] = True
+        return context
+
+    def get_template_names(self):
+        if self.is_modal:
+            return ["partials/change_request_form.html"]
+        return super().get_template_names()
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -11010,24 +11051,24 @@ class VariantRequestViewMixin:
         return get_object_or_404(models.Contract, pk=contract_pk)
 
 
-class VariantRequestCreateView(VariantRequestViewMixin, CreateView):
+class ChangeRequestCreateView(ChangeRequestViewMixin, CreateView):
 
     def get_initial(self):
-        initial =  super().get_initial()
+        initial = super().get_initial()
         initial["contract"] = self.contract
         return initial
 
 
-class VariantRequestUpdateView(LoginRequiredMixin, VariantRequestViewMixin, UpdateView):
+class ChangeRequestUpdateView(LoginRequiredMixin, ChangeRequestViewMixin, UpdateView):
     pass
 
 
-class VariantRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterView):
-    table_class = tables.VariantRequestTable
-    model = models.VariantRequest
+class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterView):
+    table_class = tables.ChangeRequestTable
+    model = models.ChangeRequest
     template_name = "table.html"
     extra_context = {"category": "variants"}
-    filterset_class = filters.VariantRequestFilterSet
+    filterset_class = filters.ChangeRequestFilterSet
 
     # def get_table_kwargs(self):
     #     u = self.request.user
@@ -11066,9 +11107,9 @@ class VariantRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin,
         ).distinct()
 
 
-class VariantRequestDetail(DetailView):
+class ChangeRequestDetail(DetailView):
     template_name = "detail.html"
-    model = models.VariantRequest
+    model = models.ChangeRequest
     # slug_field = "number"
     # slug_url_kwarg = "number"
 

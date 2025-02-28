@@ -107,7 +107,7 @@ class FilterSet(django_filters.FilterSet):
             round_field_name = "contract__application__round"
         elif model is models.Contract:
             round_field_name = "application__round"
-        elif model is models.VariantRequest:
+        elif model is models.ChangeRequest:
             round_field_name = "contract__application__round"
         else:
             round_field_name = "round"
@@ -569,7 +569,7 @@ class ContractFilterSet(FilterSet):
         fields = ["contract_filter", "archived_filter", "active_filter"]
 
 
-class VariantRequestFilterSet(FilterSet):
+class ChangeRequestFilterSet(FilterSet):
 
     object_filter = django_filters.CharFilter(
         method="set_filter", label=gettext_lazy("Request Filter")

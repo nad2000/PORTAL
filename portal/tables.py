@@ -859,15 +859,15 @@ class ContractTable(tables.Table):
         fields = ("state", "number", "application", "pi", "notes")
 
 
-class VariantRequestTable(tables.Table):
+class ChangeRequestTable(tables.Table):
     state = StateColumn(gettext_lazy("Status"))
     number = tables.Column(
-        accessor="pk",
-        verbose_name=gettext_lazy("ID"),
+        # accessor="pk",
+        # verbose_name=gettext_lazy("ID"),
         linkify=lambda value, record: reverse(
             "variant-request", kwargs=dict(pk=record.pk)
         ),
-        order_by="pk",
+        # order_by="pk",
     )
     contract = tables.Column(
         verbose_name=gettext_lazy("Contract"),
@@ -878,7 +878,7 @@ class VariantRequestTable(tables.Table):
     )
 
     class Meta:
-        model = models.VariantRequest
+        model = models.ChangeRequest
         fields = ("state", "number", "contract", "description")
 
 

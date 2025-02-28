@@ -3,9 +3,23 @@
 
 {% block content %}
 
+  <!-- Placeholder for the modal -->
+  <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
+  </div>
+
   <h1>
-    {{ object }}
+    {% block content_header %}
+    {% if object.number %}
+      {{ object.number }}{% if object.contract %}
+      - <a href="{{ object.contract.get_absolute_url }}" target="_blank">{{ object.contract }}
+    </a> {% endif %}
+    {% else %}
+      {{ object|title }}
+    {% endif %}
+    {% endblock %}
   </h1>
+
 
   {% block buttons_above %}
   <div class="row">
@@ -32,7 +46,7 @@
             <td>
               {% if not value and value != 0 %}
                 {% trans 'N/A' %}
-              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" %}
+              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description" %}
                 {{ value|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>
@@ -113,6 +127,15 @@
   <script>
     $(document).ready(function(){
         $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
-    });
+        /*
+        htmx.on("htmx:afterSwap", (e) => {
+          // Response targeting #dialog => show the modal
+          target_id = e.detail.target.id;
+          if (target_id == "form-dialog") {
+            $('#form-modal').modal('show');
+          }
+          $("[required]").attr("hx-validate", true);
+        });*/
+      });
   </script>
 {% endblock javascript %}

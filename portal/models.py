@@ -11460,7 +11460,7 @@ class ReportedAward(ReportedActivity):
         db_table = "reported_award"
 
 
-class VariantType(Model):
+class ChangeType(Model):
 
     code = CharField(max_length=2, null=True, blank=True)
     description = CharField(max_length=40)
@@ -11470,13 +11470,13 @@ class VariantType(Model):
         return self.description
 
     class Meta:
-        db_table = "variant_type"
+        db_table = "change_type"
         ordering = ["description"]
 
 
-class VariantCategory(Model):
+class ChangeCategory(Model):
 
-    type = ForeignKey(VariantType, on_delete=CASCADE)
+    type = ForeignKey(ChangeType, on_delete=CASCADE)
     code = CharField(max_length=2, null=True, blank=True)
     description = CharField(max_length=40)
     definition = TextField(max_length=200, null=True, blank=True)
@@ -11486,12 +11486,12 @@ class VariantCategory(Model):
         return self.description
 
     class Meta:
-        db_table = "variant_category"
+        db_table = "change_category"
         ordering = ["description"]
         verbose_name_plural = _("variant categories")
 
 
-class VariantRequestMixin:
+class ChangeRequestMixin:
     STATES = Choices(
         ("accepted", _("accepted")),
         ("acknowledged", _("acknowledged")),
@@ -11505,38 +11505,40 @@ class VariantRequestMixin:
     )
 
 
-class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
+class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
 
+    number = CharField(_("number"), max_length=24, null=True, blank=True, unique=True, editable=False)
     state = StateField(default="draft", verbose_name=_("state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     types = ManyToManyField(
-        VariantType,
-        db_table="variant_request_variant_type",
+        ChangeType,
+        db_table="change_request_change_type",
         verbose_name=_("Types"),
-        related_name="variant_requests",
+        related_name="change_requests",
     )
     categories = ManyToManyField(
-        VariantCategory,
-        db_table="variant_request_variant_category",
+        ChangeCategory,
+        db_table="change_request_change_category",
         verbose_name=_("Categories"),
-        related_name="variant_requests",
+        related_name="change_requests",
         blank=True,
     )
-    contract = ForeignKey(Contract, on_delete=CASCADE)
+    contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
     submitted_by = ForeignKey(
         User,
         null=True,
         blank=True,
         on_delete=SET_NULL,
-        related_name="variant_requests",
+        related_name="change_requests",
     )
     description = TextField(null=True, blank=True)
     file = PrivateFileField(
         verbose_name=_("Request Letter"),
         blank=True,
         null=True,
-        upload_to="variant",
+        upload_to="changes",
         upload_subfolder=lambda instance: [
+            "requests",
             # hash_int(instance.application_id),
             hash_int(instance.contract_id),
         ],
@@ -11560,9 +11562,7 @@ class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
             )
         ],
     )
-    converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
-    )
+    converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
 
     @classmethod
     def user_object_counts(
@@ -11619,8 +11619,30 @@ class VariantRequest(PdfFileMixin, VariantRequestMixin, Model):
     def __str__(self):
         return f"{self.contract.number}:{self.pk}"
 
+    def save(self, *args, **kwargs):
+        if not self.number:
+            self.number = self.get_number(self.contract)
+        super().save(*args, **kwargs)
+        if not self.number:
+            self.number = self.new_number(self.contract)
+            self.save(update_fields=["number"])
+
+    def get_number(self, contract=None):
+        if self.number:
+            return self.number
+
+        if not contract and self.pk and self.contract_id:
+            contract = self.contract
+
+        q = ChangeRequest.objects.filter(~Q(number=''), number__isnull=False, contract=contract)
+        if self.pk:
+            q = q.exclude(pk=self.pk)
+        v = max([0, *[int(n.split(":")[-1]) for n in q.values_list("number", flat=True) if n and n.strip()]]) + 1
+        self.number = f"{contract.number}:{v:1d}"
+        return self.number
+
     class Meta:
-        db_table = "variant_request"
+        db_table = "change_request"
 
 
 dummy_for_translations = (
