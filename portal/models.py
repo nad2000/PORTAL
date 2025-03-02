@@ -8699,7 +8699,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
     )
     preamble = PrivateFileField(
-        verbose_name="Contract Preamble",
+        verbose_name="Preamble",
         null=True,
         blank=True,
         upload_to="contracts",

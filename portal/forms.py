@@ -2300,7 +2300,7 @@ class ContractForm(ModelForm):
                             ),
                             Row(
                                 Column(
-                                    HTML("""<label for="id_preamble">Contract Preamble</lable>"""),
+                                    HTML("""<label for="id_preamble">Preamble</lable>"""),
                                     css_class="col-12",
                                 )
                             ),
