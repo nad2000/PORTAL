@@ -4879,11 +4879,23 @@ class ChangeRequestForm(ModelForm):
         widgets = dict(
             start_date=DateInput(),
             end_date=DateInput(),
+            new_host=autocomplete.ModelSelect2(
+                "org-autocomplete",
+                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
+            ),
             categories=autocomplete.ModelSelect2Multiple(
                 url="change-category-autocomplete",
                 forward=[
                     "types",
                     forward.Const("1", "level"),
+                ],
+            ),
+            subcategories=autocomplete.ModelSelect2Multiple(
+                url="change-category-autocomplete",
+                forward=[
+                    "types",
+                    "categories",
+                    forward.Const("2", "level"),
                 ],
             ),
             types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),

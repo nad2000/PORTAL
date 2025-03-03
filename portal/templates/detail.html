@@ -36,6 +36,7 @@
     <tbody>
 
       {% for field in object|fields %}
+        <!-- {{ field }} // {{ exclude }} -->
         {% if field.name != 'id' and exclude is None or field.name not in exclude %}
           {% if not object|field_is_empty:field.name %}
           {% with value=object|field_value:field.name %}

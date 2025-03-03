@@ -11535,6 +11535,8 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
     new_host = ForeignKey(
         Organisation,
+        null=True,
+        blank=True,
         on_delete=CASCADE,
         related_name="change_requests",
         help_text="New host organisation",
