@@ -11507,7 +11507,9 @@ class ChangeRequestMixin:
 
 class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
 
-    number = CharField(_("number"), max_length=24, null=True, blank=True, unique=True, editable=False)
+    number = CharField(
+        _("number"), max_length=24, null=True, blank=True, unique=True, editable=False
+    )
     state = StateField(default="draft", verbose_name=_("state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     types = ManyToManyField(
@@ -11523,7 +11525,20 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         related_name="change_requests",
         blank=True,
     )
+    subcategories = ManyToManyField(
+        ChangeCategory,
+        db_table="change_request_change_subcategory",
+        verbose_name=_("Subcategories"),
+        related_name="+",
+        blank=True,
+    )
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
+    new_host = ForeignKey(
+        Organisation,
+        on_delete=CASCADE,
+        related_name="change_requests",
+        help_text="New host organisation",
+    )
     submitted_by = ForeignKey(
         User,
         null=True,
@@ -11634,10 +11649,22 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         if not contract and self.pk and self.contract_id:
             contract = self.contract
 
-        q = ChangeRequest.objects.filter(~Q(number=''), number__isnull=False, contract=contract)
+        q = ChangeRequest.objects.filter(~Q(number=""), number__isnull=False, contract=contract)
         if self.pk:
             q = q.exclude(pk=self.pk)
-        v = max([0, *[int(n.split(":")[-1]) for n in q.values_list("number", flat=True) if n and n.strip()]]) + 1
+        v = (
+            max(
+                [
+                    0,
+                    *[
+                        int(n.split(":")[-1])
+                        for n in q.values_list("number", flat=True)
+                        if n and n.strip()
+                    ],
+                ]
+            )
+            + 1
+        )
         self.number = f"{contract.number}:{v:1d}"
         return self.number
 

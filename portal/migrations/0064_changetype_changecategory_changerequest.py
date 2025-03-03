@@ -159,9 +159,28 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    "subcategories",
+                    models.ManyToManyField(
+                        blank=True,
+                        db_table="change_request_change_subcategory",
+                        related_name="+",
+                        to="portal.changecategory",
+                        verbose_name="Subcategories",
+                    ),
+                ),
+                (
                     "contract",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE, to="portal.contract"
+                    ),
+                ),
+                (
+                    "new_host",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="portal.organisation",
                     ),
                 ),
                 (
