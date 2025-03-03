@@ -1,5 +1,5 @@
 {% load tags i18n %}
-{% if comments.count > 0 %}
+{% if comments %}
 <div id="comments" class="mt-2"
   hx-on::after-swap="setTimeout(function() {$('#comments .alert').fadeOut('slow');}, 5000); $('#form-modal').modal('hide');">
   {% jinja 'partials/comments.html' %}
