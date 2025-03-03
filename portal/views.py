@@ -2771,7 +2771,7 @@ class ReportRisImportForm(Form):
 class FileImportView(LoginRequiredMixin, FormView):
     form_class = FileImportForm
     template_name = "portal/file_import_form.html"
-    allowed_extensions = ["elm", "msg"]
+    allowed_extensions = ["eml", "msg"]
     label = gettext_lazy("Message")
     model = models.Report
 
@@ -2956,7 +2956,7 @@ class ReportRisImportView(FileImportView):
 
 class EmailImportView(FileImportView):
 
-    allowed_extensions = ["elm", "msg"]
+    allowed_extensions = ["eml", "msg"]
     label = gettext_lazy("Message")
     model = models.Report
     extra_context = {"hx_target": "#comments"}
