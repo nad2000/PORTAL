@@ -163,33 +163,35 @@ urlpatterns = [
                     name="contract-export",
                 ),
                 path(
-                    "<int:pk>/variant-request/~create",
-                    views.VariantRequestCreateView.as_view(),
-                    name="variant-request-create",
+                    "<int:pk>/change-request/~create",
+                    views.ChangeRequestCreateView.as_view(),
+                    name="change-request-create",
                 ),
                 path(
-                    "variant-requests/<int:pk>/~update",
-                    views.VariantRequestUpdateView.as_view(),
-                    name="variant-request-update",
+                    "change-requests/<int:pk>/~update",
+                    views.ChangeRequestUpdateView.as_view(),
+                    name="change-request-update",
                 ),
-            ]
-        ),
-    ),
-    path(
-        "variants/",
-        include(
-            [
                 path(
-                    "requests/",
+                    "changes/",
                     include(
                         [
                             path(
-                                "<int:pk>",
-                                views.VariantRequestDetail.as_view(),
-                                name="variant-request",
-                            ),
-                            path(
-                                "", views.VariantRequestList.as_view(), name="variant-request-list"
+                                "requests/",
+                                include(
+                                    [
+                                        path(
+                                            "<int:pk>",
+                                            views.ChangeRequestDetail.as_view(),
+                                            name="change-request",
+                                        ),
+                                        path(
+                                            "",
+                                            views.ChangeRequestList.as_view(),
+                                            name="change-request-list",
+                                        ),
+                                    ]
+                                ),
                             ),
                         ]
                     ),
@@ -567,18 +569,14 @@ urlpatterns = [
                     name="reporting-schedule-entry-autocomplete",
                 ),
                 path(
-                    "variant-type/",
-                    views.VariantTypeAutocomplete.as_view(
-                        model=models.VariantType
-                    ),
-                    name="variant-type-autocomplete",
+                    "change-type/",
+                    views.ChangeTypeAutocomplete.as_view(model=models.ChangeType),
+                    name="change-type-autocomplete",
                 ),
                 path(
-                    "variant-category/",
-                    views.VariantCategoryAutocomplete.as_view(
-                        model=models.VariantCategory
-                    ),
-                    name="variant-category-autocomplete",
+                    "change-category/",
+                    views.ChangeCategoryAutocomplete.as_view(model=models.ChangeCategory),
+                    name="change-category-autocomplete",
                 ),
             ]
         ),

@@ -27,7 +27,7 @@ from crispy_forms.layout import (
     Row,
 )
 from dateutil.relativedelta import relativedelta
-from dal import autocomplete
+from dal import autocomplete, forward
 from django import forms
 from django.conf import settings
 
@@ -4822,7 +4822,7 @@ class ReportForm(ModelForm):
         )
 
 
-class VariantRequestForm(ModelForm):
+class ChangeRequestForm(ModelForm):
 
     description = forms.CharField(
         # label="",
@@ -4831,7 +4831,7 @@ class VariantRequestForm(ModelForm):
     )
     file = FileField(
         required=False,
-        label="Varian request letter",
+        label="Request letter",
         widget=forms.ClearableFileInput(
             attrs={
                 "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
@@ -4848,21 +4848,27 @@ class VariantRequestForm(ModelForm):
         super().__init__(*args, **kwargs)
         # language = get_language()
         instance = self.instance or instance
-        contract = instance and instance.pk and instance.contract or initial and initial.get("contract")
+        contract = (
+            instance and instance.pk and instance.contract or initial and initial.get("contract")
+        )
         org = contract and contract.org
         is_ro = org and org.research_offices.filter(user=user).exists()
         submission_disabled = not instance or not is_ro
 
     def save(self, *args, **kwargs):
         instance = self.instance
-        created = not self.instance.pk
-        if not instance.contract_id:
-            instance.contract = self.initial.get("contract")
+        # created = not self.instance.pk
+        contract = self.initial.get("contract")
+        if isinstance(contract, int):
+            contract = models.Contract.get(pk=contract)
+        if not instance.contract_id and contract:
+            instance.contract = contract
+            instance.number = self.instance.get_number(contract)
         res = super().save(*args, **kwargs)
         return res
 
     class Meta:
-        model = models.VariantRequest
+        model = models.ChangeRequest
         exclude = [
             "contract",
             "submitted_by",
@@ -4873,8 +4879,14 @@ class VariantRequestForm(ModelForm):
         widgets = dict(
             start_date=DateInput(),
             end_date=DateInput(),
-            categories=autocomplete.ModelSelect2Multiple(url="variant-category"),
-            types=autocomplete.ModelSelect2Multiple(url="variant-type"),
+            categories=autocomplete.ModelSelect2Multiple(
+                url="change-category-autocomplete",
+                forward=[
+                    "types",
+                    forward.Const("1", "level"),
+                ],
+            ),
+            types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
             host_contact_email=ModelSelect2NoPK(
                 url="org-email-autocomplete",
                 attrs={

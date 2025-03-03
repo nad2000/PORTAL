@@ -61,12 +61,12 @@ def add_title_data(apps, schema_editor):
     )
 
 
-def add_varinat_type(apps, schema_editor):
+def add_change_type(apps, schema_editor):
     """
     Add to the migrations:
     migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
     """
-    VariantType = apps.get_model("portal", "VariantType")
+    ChangeType = apps.get_model("portal", "ChangeType")
     db_alias = schema_editor.connection.alias
     types = {
         "Description",
@@ -79,10 +79,10 @@ def add_varinat_type(apps, schema_editor):
         "Issues",
         "Suspension",
         "Other",
-    }.difference(VariantType.objects.using(db_alias).values_list("description", flat=True))
+    }.difference(ChangeType.objects.using(db_alias).values_list("description", flat=True))
     if types:
-        VariantType.objects.using(db_alias).bulk_create(
-            [VariantType(description=t) for t in types],
+        ChangeType.objects.using(db_alias).bulk_create(
+            [ChangeType(description=t) for t in types],
             # update_conflicts=True,
             update_fields=["description"],
             unique_fields=["description"],

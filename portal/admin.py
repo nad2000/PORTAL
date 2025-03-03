@@ -654,36 +654,36 @@ class OrgIdentifierTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     resource_classes = [OrgIdentifierTypeResource]
 
 
-@admin.register(models.VariantType)
-class VariantTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
+@admin.register(models.ChangeType)
+class ChangeTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
     class CategoryInline(admin.TabularInline):
-        model = models.VariantCategory
+        model = models.ChangeCategory
         extra = 0
         view_on_site = False
 
-    class VariantTypeResource(CodeResource):
+    class ChangeTypeResource(CodeResource):
         class Meta:
-            model = models.VariantType
+            model = models.ChangeType
 
     search_fields = ["description", "definition"]
-    resource_classes = [VariantTypeResource]
+    resource_classes = [ChangeTypeResource]
     inlines = [CategoryInline]
 
 
-@admin.register(models.VariantCategory)
-class VariantCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
+@admin.register(models.ChangeCategory)
+class ChangeCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
 
-    class VariantCategoryResource(CodeResource):
+    class ChangeCategoryResource(CodeResource):
         class Meta:
-            model = models.VariantCategory
+            model = models.ChangeCategory
 
     search_fields = ["description", "definition"]
-    resource_classes = [VariantCategoryResource]
+    resource_classes = [ChangeCategoryResource]
 
 
 @admin.register(models.ApplicationDecision)
@@ -3587,8 +3587,8 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
 
 
-@admin.register(models.VariantRequest)
-class VariantRequestAdmin(
+@admin.register(models.ChangeRequest)
+class ChangeRequestAdmin(
     StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin
 ):
     summernote_fields = (

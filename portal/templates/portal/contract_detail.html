@@ -1,5 +1,12 @@
 {% extends 'detail.html' %}
-{% load i18n tags %}
+{% load i18n tags static crispy_forms_tags %}
+
+{% if change_request_form %}
+{% block css %}
+  {{ block.super }}
+  {{ change_request_form.media.css }}
+{% endblock %}
+{% endif %}
 
 {% block buttons_above %}
 {% block buttons_bellow %}
@@ -21,7 +28,16 @@
          <a class="btn btn-primary{% if not can_edit %} disabled{% endif %}" href="{% url 'contract-update' object.pk %}">{% trans 'Edit' %}</a>
         </div>
       <a class="btn btn-primary" href="{% url 'contract-export' object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
-      <a class="btn btn-danger" href="{% url 'variant-request-create' object.pk %}" target="_blank">{% trans 'Request Changes' %}</a>
+      <!-- a class="btn btn-danger" href="{% url 'change-request-create' object.pk %}" target="_blank">{% trans 'Request Changes' %}</a-->
+        <!-- a class="btn btn-danger" hx-get="{% url 'change-request-create' object.pk %}?modal=1" hx-target="#form-modal">
+          {% trans 'Request Changes' %}
+        </a -->
+      <!-- a class="btn btn-danger" hx-get="{% url 'change-request-create' object.pk %}?modal=1" hx-target="#form-modal">{% trans 'Request Changes' %}</a -->
+      {% if change_request_form %}
+        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#change-request-form-modal">
+            {% trans 'Request Changes' %}
+        </button>
+      {% endif %}
       {% if user.is_site_staff or user.is_superuser %}
       <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
           {% trans 'Open in Admin' %}
@@ -38,8 +54,106 @@
 
   <div class="row">
     <div class="col-12">
-      <div class="table-responsive"> {% contract_summary %} </div>
+      {% if object.change_requests.exists %}
+        <ul class="nav nav-tabs">
+          <li class="nav-item"><a class="nav-link active" href="#contract" data-toggle="tab">{% trans 'Contract' %}</a></li>
+          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">{% trans 'Change Request(s)' %}</a></li>
+        </ul>
+
+        <div class="tab-content card-body">
+          <div id="contract" class="tab-pane active">
+            <div class="table-responsive"> {% contract_summary %} </div>
+          </div>
+          <div id="change_requests" class="tab-pane">
+            <div class="table-responsive">
+
+              <table class="table table-bordered searchable table-striped">
+
+                <thead>
+                  <tr class="thead-dark">
+                    <th scope="col">
+                      {% trans 'Number' %}
+                    </th>
+                    <th scope="col">
+                      {% trans 'Submit By' %}
+                    </th>
+                    <th scope="col">
+                      {% trans 'Type(s)' %}
+                    </th>
+                    <th scope="col">{% trans 'Letter' %}</th>
+                    <th scope="col">&nbsp;</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {% for cr in object.change_requests.all %}
+                    <tr>
+                      <td>{{ cr.number }}</td>
+                      <td>{{ cr.submitted_by }}</td>
+                      <td>{% for t in cr.types.all %}{{ t }}{% if not forloop.last %}, {% endif %}{% empty %}&nbsp;{% endfor %}</td>
+                      <td>
+                        {% if cr.file %}
+                          <a href="{{ cr.file.url }}" target="_blank">{{ cr.file.name|basename }}</a>
+                        {% else %}
+                          &nbsp;
+                        {% endif %}
+                      </td>
+                      <td>
+                        <a class="btn btn-primary" href="{% url 'change-request-update' cr.pk %}" target="_blank">
+                          {% trans 'Edit' %}
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+
+              </table>
+
+            </div>
+          </div>
+        </div>
+
+      {% else %}
+        <div class="table-responsive"> {% contract_summary %} </div>
+      {% endif %}
     </div>
   </div>
 
+  <!-- Placeholder for the modal -->
+  {% if change_request_form %}
+  <div id="change-request-form-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" >
+      <form method="post" enctype="multipart/form-data" id="object_form" action="{% url 'change-request-create' pk=object.pk %}?contract={{ object.pk }}">
+        {% csrf_token %}
+
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">Submit a contract variant or transfer request</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        {{ change_request_form|crispy }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <input type="submit" class="btn btn-primary" value="Submit">
+      </div>
+    </div>
+    </form>
+
+    </div>
+  </div>
+  {% endif %}
+
 {% endblock %}
+
+{% if change_request_form %}
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'js/project.js' %}"></script>
+  {{ change_request_form.media.js }}
+{% endblock %}
+{% endif %}
+{# vim:set ft=htmldjango: #}
