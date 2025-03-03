@@ -1,8 +1,10 @@
 {% load tags i18n %}
-{% if comments.count > 0 %}
 <div id="comments" class="mt-2"
   hx-on::after-swap="setTimeout(function() {$('#comments .alert').fadeOut('slow');}, 5000); $('#form-modal').modal('hide');">
-  {% jinja 'partials/comments.html' %}
+    {% if comments.count > 1 %}
+      {% jinja 'partials/comments.html' %}
+    {% endif %}
 </div>
+{% if comments %}
 {% endif %}
 {# vim:set ft=htmldjango: #}

@@ -33,11 +33,13 @@
           {% trans 'Request Changes' %}
         </a -->
       <!-- a class="btn btn-danger" hx-get="{% url 'change-request-create' object.pk %}?modal=1" hx-target="#form-modal">{% trans 'Request Changes' %}</a -->
+      {% comment %}
       {% if change_request_form %}
         <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#change-request-form-modal">
             {% trans 'Request Changes' %}
         </button>
       {% endif %}
+      {% endcomment %}
       {% if user.is_site_staff or user.is_superuser %}
       <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
           {% trans 'Open in Admin' %}
