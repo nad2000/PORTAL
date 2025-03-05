@@ -4832,7 +4832,7 @@ class ChangeRequestForm(ModelForm):
     file = FileField(
         required=False,
         label="Request letter",
-        widget=forms.ClearableFileInput(
+        widget=forms.FileInput(
             attrs={
                 "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
             }
@@ -4844,16 +4844,31 @@ class ChangeRequestForm(ModelForm):
         if initial:
             kwargs["initial"] = initial
         user = kwargs.pop("user", None) or initial and initial.get("user")
+        if initial and user and "submitted_by" not in initial:
+            initial["submitted_by"] = user
 
         super().__init__(*args, **kwargs)
-        # language = get_language()
-        instance = self.instance or instance
+        instance = self.instance or kwargs.get("instance")
         contract = (
             instance and instance.pk and instance.contract or initial and initial.get("contract")
         )
         org = contract and contract.org
         is_ro = org and org.research_offices.filter(user=user).exists()
+        if is_ro:
+            del self.fields["categories"]
+            del self.fields["subcategories"]
         submission_disabled = not instance or not is_ro
+        self.helper = FormHelper(self)
+        self.helper.use_custom_control = True
+        if not submission_disabled:
+            self.helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
+            self.helper.add_input(Submit("submit", _("Submit"), css_class="btn-primary"))
+        else:
+            self.helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
+            self.helper.add_input(
+                Submit("resubmit", _("Resubmit"), css_class="btn-outline-danger")
+            )
+            self.helper.add_input(Submit("accept", _("Accept"), css_class="btn-success"))
 
     def save(self, *args, **kwargs):
         instance = self.instance
@@ -4871,14 +4886,18 @@ class ChangeRequestForm(ModelForm):
         model = models.ChangeRequest
         exclude = [
             "contract",
-            "submitted_by",
+            # "submitted_by",
             "state",
             "state_changed_at",
             "converted_file",
         ]
         widgets = dict(
-            start_date=DateInput(),
-            end_date=DateInput(),
+            submitted_by=HiddenInput(),
+            file=forms.FileInput(
+                attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+            ),
+            # start_date=DateInput(),
+            # end_date=DateInput(),
             new_host=autocomplete.ModelSelect2(
                 "org-autocomplete",
                 attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
@@ -4899,24 +4918,6 @@ class ChangeRequestForm(ModelForm):
                 ],
             ),
             types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
-            host_contact_email=ModelSelect2NoPK(
-                url="org-email-autocomplete",
-                attrs={
-                    "data-placeholder": _("Select an email addrss or create a new one ..."),
-                },
-            ),
-            panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
-            panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
-            abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            assessment=SummernoteInplaceWidget(
-                attrs={
-                    "data-required": 1,
-                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
-                    "oninput": "this.setCustomValidity('')",
-                    "summernote": {"width": "100%", "height": "200px"},
-                }
-            ),
         )
 
 

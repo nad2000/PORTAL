@@ -77,6 +77,55 @@ djhacker.formfield(
     ),
 )
 
+djhacker.formfield(
+    models.ChangeRequest.types,
+    forms.ModelMultipleChoiceField,
+    widget=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
+)
+
+
+djhacker.formfield(
+    models.ChangeRequest.categories,
+    forms.ModelMultipleChoiceField,
+    widget=autocomplete.ModelSelect2Multiple(
+        url="change-category-autocomplete",
+        forward=[
+            dal.forward.Field("types", "types"),
+            dal.forward.Const("1", "level"),
+        ],
+    ),
+)
+
+
+djhacker.formfield(
+    models.ChangeRequest.subcategories,
+    forms.ModelMultipleChoiceField,
+    widget=autocomplete.ModelSelect2Multiple(
+        url="change-category-autocomplete",
+        forward=[
+            dal.forward.Field("types", "types"),
+            "categories",
+            dal.forward.Const("2", "level"),
+        ],
+    ),
+)
+
+# categories=autocomplete.ModelSelect2Multiple(
+#     url="change-category-autocomplete",
+#     forward=[
+#         "types",
+#         forward.Const("1", "level"),
+#     ],
+# ),
+# subcategories=autocomplete.ModelSelect2Multiple(
+#     url="change-category-autocomplete",
+#     forward=[
+#         "types",
+#         "categories",
+#         forward.Const("2", "level"),
+#     ],
+# ),
+# types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
 
 # class QueryField(forms.ChoiceField):
 
@@ -3586,20 +3635,20 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         super().save_model(request, obj, form, change)
 
 
-
 @admin.register(models.ChangeRequest)
 class ChangeRequestAdmin(
     StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin
 ):
-    summernote_fields = (
-        "description",
-    )
+    summernote_fields = ("description",)
     save_on_top = True
     show_close_button = True
+    # autocomplete_fields = ["new_host", "types"]
+    autocomplete_fields = ["new_host"]
 
     list_display = (
         "contract__number",
         "state",
     )
+
 
 # vim:set ft=python.django:

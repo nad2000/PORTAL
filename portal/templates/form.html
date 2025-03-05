@@ -72,7 +72,16 @@
           {% if helper %}
             {% crispy form helper %}
           {% else %}
-            {% crispy form form.helper %}
+            {% if form.helper.form_tag %}
+              <form method="post" enctype="multipart/form-data" id="object_form">{% csrf_token %}
+                {% block resolution %}
+                  {% include 'snippets/resolution_modal.html' %}
+                {% endblock %}
+                {% crispy form form.helper %}
+              </form>
+            {% else %}
+              {% crispy form form.helper %}
+            {% endif %}
           {% endif %}
         {% else %}
           <form method="post" enctype="multipart/form-data" id="object_form">{% csrf_token %}

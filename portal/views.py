@@ -5612,7 +5612,9 @@ class ContractDetail(DetailView):
             )
         ):
             context["can_edit"] = True
-            context["change_request_form"] = forms.ChangeRequestForm(initial={"contract": self.object})
+            context["change_request_form"] = forms.ChangeRequestForm(
+                initial={"contract": self.object}
+            )
         return context
 
     def get_queryset(self):
@@ -5629,6 +5631,10 @@ class ContractDetail(DetailView):
                     queryset=models.ReportingScheduleEntry.objects.all().order_by(
                         "period", "due_date"
                     ),
+                ),
+                Prefetch(
+                    "change_requests",
+                    queryset=models.ChangeRequest.objects.all().order_by("number"),
                 ),
             )
         )
@@ -7508,10 +7514,10 @@ class ChangeCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySe
     def get_queryset(self):
 
         q = super().get_queryset()
-        if types := self.forwarded.get("types"):
-            q = q.filter(type__in=types)
         if parents := self.forwarded.get("parents"):
             q = q.filter(parent__in=parents)
+        elif types := self.forwarded.get("types"):
+            q = q.filter(type__in=types)
         if level := self.forwarded.get("level"):
             if level == "1":
                 q = q.filter(parent__isnull=True)
@@ -11031,6 +11037,9 @@ class ChangeRequestViewMixin:
         if self.is_modal:
             context["modal_dialog"] = True
             context["modal"] = True
+        context["is_transfer"] = (
+            self.object and self.object.pk and self.object.types.filter(code="TR").exists()
+        )
         return context
 
     def get_template_names(self):
@@ -11049,6 +11058,112 @@ class ChangeRequestViewMixin:
             return self.object.contract
         contract_pk = self.kwargs.get("pk")
         return get_object_or_404(models.Contract, pk=contract_pk)
+
+    def form_valid(self, form):
+
+        u = models.User.get(self.request.user.pk)
+        org = self.object and self.object.contract and self.object.contract.org
+        is_ro = (
+            org
+            and org.research_offices.filter(user=u).exists()
+            or not (u.is_site_staff or u.is_superuser)
+        )
+
+        try:
+            with transaction.atomic():
+
+                i = form.instance
+                if (action := form.data.get("action")):
+                    if action == "submit":
+                        i.submit()
+                    elif action == "approve":
+                        i.approve()
+                    elif action == "reject":
+                        i.reject()
+                    elif action == "cancel":
+                        i.cancel()
+                    elif action in ["request_resubmission", "resubmit"]:
+                        i.save_draft()
+
+                if i and not i.submitted_by and is_ro:
+                    form.instance.submitte_by = u
+
+                resp = super().form_valid(form)
+
+                if action in [
+                    "submit",
+                    "approve",
+                    "reject",
+                    "cancel",
+                    "request_resubmission",
+                    "resubmit",
+                ]:
+                    if not org:
+                        org = i.contract.org
+                        is_ro = org.research_offices.filter(user=u).exists()
+                    if is_ro:
+                        fund = i.contract.fund
+                        recipients = (
+                            [fund.email]
+                            if fund and fund.email
+                            else i.contract.site.staff_users.all()
+                        )
+                    else:
+                        recipients = (
+                            [i.submitted_by]
+                            if i.submitted_by
+                            else [ro.user for ro in i.contract.org.research_offices.all()]
+                        )
+                    url = reverse("change-request-update", args=[i.pk])
+                    url = self.request.build_absolute_uri(url)
+                    contract_url = self.request.build_absolute_uri(reverse("contract", args=[i.contract.pk]))
+                    if action == "submit":
+                        subject = f"Change Request {i.number} submitted by {u}"
+                    elif action in ["request_resubmission", "resubmit", "reject", "cancel"]:
+                        subject = f"Change Request {i.number} required resubmission"
+                    elif action == "approved":
+                        subject = f"Change Request {i.number} approved by {u}"
+                    else:
+                        subject = f"Change Request {i.number} updated by {u}"
+
+                    if action == "submit":
+                        html_body = (
+                            "<p>Tēnā koe,</p>"
+                            f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
+                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                            "<p>Please review the change request.</p>"
+                        )
+                    else:
+                        html_body = (
+                            "<p>Tēnā koe,</p>"
+                            f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
+                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                            "<p>Please review the changes and update the request.</p>"
+                        )
+
+                    send_mail(
+                        subject,
+                        html_message=html_body,
+                        recipients=recipients,
+                        fail_silently=False,
+                        from_email="contracts",
+                        request=self.request,
+                        reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
+                        thread_index=i.contract.thread_index,
+                        thread_topic=i.contract.thread_topic,
+                    )
+
+                    emails = [getattr(r, "email", r) or str(r) for r in recipients]
+                    messages.success(
+                        self.request,
+                        f"Notification of change request {i.number} sent to {', '.join(emails)}.",
+                    )
+
+            return resp
+
+        except Exception as ex:
+            form.add_error(None, ex)
+            return self.form_invalid(form)
 
 
 class ChangeRequestCreateView(ChangeRequestViewMixin, CreateView):

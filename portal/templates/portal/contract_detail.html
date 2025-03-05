@@ -54,10 +54,17 @@
 
   <div class="row">
     <div class="col-12">
-      {% if object.change_requests.exists %}
+      {% with object.change_requests.all as crs %}
+      {% if can_edit and crs.exists %}
         <ul class="nav nav-tabs">
           <li class="nav-item"><a class="nav-link active" href="#contract" data-toggle="tab">{% trans 'Contract' %}</a></li>
-          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">{% trans 'Change Request(s)' %}</a></li>
+          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">
+              {% if crs.count > 1 %}
+                {% trans 'Change Requests' %}
+              {% else %}
+                {% trans 'Change Request' %}
+              {% endif %}
+            </a></li>
         </ul>
 
         <div class="tab-content card-body">
@@ -67,47 +74,7 @@
           <div id="change_requests" class="tab-pane">
             <div class="table-responsive">
 
-              <table class="table table-bordered searchable table-striped">
-
-                <thead>
-                  <tr class="thead-dark">
-                    <th scope="col">
-                      {% trans 'Number' %}
-                    </th>
-                    <th scope="col">
-                      {% trans 'Submit By' %}
-                    </th>
-                    <th scope="col">
-                      {% trans 'Type(s)' %}
-                    </th>
-                    <th scope="col">{% trans 'Letter' %}</th>
-                    <th scope="col">&nbsp;</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {% for cr in object.change_requests.all %}
-                    <tr>
-                      <td>{{ cr.number }}</td>
-                      <td>{{ cr.submitted_by }}</td>
-                      <td>{% for t in cr.types.all %}{{ t }}{% if not forloop.last %}, {% endif %}{% empty %}&nbsp;{% endfor %}</td>
-                      <td>
-                        {% if cr.file %}
-                          <a href="{{ cr.file.url }}" target="_blank">{{ cr.file.name|basename }}</a>
-                        {% else %}
-                          &nbsp;
-                        {% endif %}
-                      </td>
-                      <td>
-                        <a class="btn btn-primary" href="{% url 'change-request-update' cr.pk %}" target="_blank">
-                          {% trans 'Edit' %}
-                        </a>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-
-              </table>
+              {% jinja 'partials/change_request_table.html' objects=crs  %}
 
             </div>
           </div>
@@ -116,6 +83,7 @@
       {% else %}
         <div class="table-responsive"> {% contract_summary %} </div>
       {% endif %}
+      {% endwith %}
     </div>
   </div>
 

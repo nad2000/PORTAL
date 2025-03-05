@@ -49,7 +49,7 @@
           </button -->
       </div>
       <div class="modal-body">
-
+        <input type="hidden" name="action" id="id_action" value="">
         <div class="form-group">
           <textarea autofocus name="resolution" id="id_resolution" rows="10"
                                                      style="width: 100%;" placeholder="{% trans 'Resolution or comment' %}"></textarea>
@@ -57,7 +57,7 @@
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick='$(this).closest("form").submit();'>{% trans 'Commit' %}</button>
+        <button type="submit" class="btn btn-primary" onclick='$(this).closest("form").submit();' id="id_commit_button">{% trans 'Commit' %}</button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
       </div>
     </div>

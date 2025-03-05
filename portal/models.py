@@ -11462,7 +11462,7 @@ class ReportedAward(ReportedActivity):
 
 class ChangeType(Model):
 
-    code = CharField(max_length=2, null=True, blank=True)
+    code = FixedCharField(max_length=2, primary_key=True)
     description = CharField(max_length=40)
     definition = TextField(max_length=200, null=True, blank=True)
 
@@ -11476,11 +11476,19 @@ class ChangeType(Model):
 
 class ChangeCategory(Model):
 
-    type = ForeignKey(ChangeType, on_delete=CASCADE)
-    code = CharField(max_length=2, null=True, blank=True)
+    type = ForeignKey(ChangeType, on_delete=CASCADE, db_column="type")
+    code = CharField(max_length=2, primary_key=True)
     description = CharField(max_length=40)
     definition = TextField(max_length=200, null=True, blank=True)
-    parent = ForeignKey("self", on_delete=CASCADE)
+    parent = ForeignKey(
+        "self",
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
+        related_name="subcategories",
+        db_column="category",
+        help_text="Parent category",
+    )
 
     def __str__(self):
         return self.description
@@ -11669,6 +11677,53 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         )
         self.number = f"{contract.number}:{v:1d}"
         return self.number
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="draft",
+        custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
+    )
+    def save_draft(self, *args, **kwargs):
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="archived",
+        custom=dict(verbose="Archive", button_name="Archive"),
+    )
+    def archive(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="submitted",
+        custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
+    )
+    def submit(self, *args, **kwargs):
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="accepted",
+        custom=dict(verbose="Accept", button_name="Accept", admin=False),
+    )
+    def accept(self, *args, **kwargs):
+        pass
 
     class Meta:
         db_table = "change_request"
