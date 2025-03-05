@@ -11463,7 +11463,7 @@ class ReportedAward(ReportedActivity):
 class ChangeType(Model):
 
     code = FixedCharField(max_length=2, primary_key=True)
-    description = CharField(max_length=40)
+    description = CharField(max_length=100)
     definition = TextField(max_length=200, null=True, blank=True)
 
     def __str__(self):
@@ -11478,7 +11478,7 @@ class ChangeCategory(Model):
 
     type = ForeignKey(ChangeType, on_delete=CASCADE, db_column="type")
     code = CharField(max_length=2, primary_key=True)
-    description = CharField(max_length=40)
+    description = CharField(max_length=100)
     definition = TextField(max_length=200, null=True, blank=True)
     parent = ForeignKey(
         "self",

@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                     "code",
                     common.models.FixedCharField(max_length=2, primary_key=True, serialize=False),
                 ),
-                ("description", models.CharField(max_length=40)),
+                ("description", models.CharField(max_length=100)),
                 ("definition", models.TextField(blank=True, max_length=200, null=True)),
             ],
             options={
@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
                 ("updated_at", models.DateTimeField(auto_now=True, null=True)),
                 ("code", models.CharField(max_length=2, primary_key=True, serialize=False)),
-                ("description", models.CharField(max_length=40)),
+                ("description", models.CharField(max_length=100)),
                 ("definition", models.TextField(blank=True, max_length=200, null=True)),
                 (
                     "parent",
