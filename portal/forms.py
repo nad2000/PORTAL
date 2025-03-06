@@ -4866,6 +4866,8 @@ class ChangeRequestForm(ModelForm):
                 f"or <a href='{educations_url}' target='_blank'>education records</a> "
             )
         )
+        if contract and (pi := contract.pi):
+            self.fields["new_host"].widget.forward.append(forward.Const(pi.pk, "user"))
         submission_disabled = not instance or not is_ro
         self.helper = FormHelper(self)
         self.helper.use_custom_control = True
@@ -4894,7 +4896,7 @@ class ChangeRequestForm(ModelForm):
     class Meta:
         model = models.ChangeRequest
         exclude = [
-            "contract",
+            # "contract",
             # "submitted_by",
             "state",
             "state_changed_at",
@@ -4902,6 +4904,7 @@ class ChangeRequestForm(ModelForm):
         ]
         widgets = dict(
             submitted_by=HiddenInput(),
+            contract=HiddenInput(),
             file=forms.FileInput(
                 attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
             ),
@@ -4909,6 +4912,7 @@ class ChangeRequestForm(ModelForm):
             # end_date=DateInput(),
             new_host=autocomplete.ModelSelect2(
                 "org-autocomplete",
+                forward=["contract"],
                 attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
             ),
             categories=autocomplete.ModelSelect2Multiple(

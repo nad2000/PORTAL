@@ -7308,6 +7308,14 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         nominator = self.forwarded.get("nominator") if self.request.site_id in [4, 5] else None
         user = self.forwarded.get("user")
+        contract = self.forwarded.get("contract")
+        try:
+            if not user and contract:
+                if not isinstance(contract, models.Contract):
+                    contract = models.Contract.get(contract)
+                user = contract.pi
+        except:
+            pass
         return models.Organisation.search_query(self.q, nominator=nominator, user=user)
 
 
