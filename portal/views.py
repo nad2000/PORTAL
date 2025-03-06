@@ -7307,7 +7307,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         nominator = self.forwarded.get("nominator") if self.request.site_id in [4, 5] else None
-        return models.Organisation.search_query(self.q, nominator=nominator)
+        user = self.forwarded.get("user")
+        return models.Organisation.search_query(self.q, nominator=nominator, user=user)
 
 
 class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -11022,6 +11023,18 @@ class ChangeRequestViewMixin:
     # template_name = "profile_form.html"
     form_class = forms.ChangeRequestForm
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper.include_media = False
+
+        if (contract := self.contract) and (pi := contract.pi):
+            form.fields["new_host"].widget = autocomplete.ModelSelect2(
+                "org-autocomplete",
+                forward=[forward.Const(pi.pk, "user")],
+                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
+            )
+        return form
+
     @cached_property
     def is_modal(self):
         return (
@@ -11073,7 +11086,7 @@ class ChangeRequestViewMixin:
             with transaction.atomic():
 
                 i = form.instance
-                if (action := form.data.get("action")):
+                if action := form.data.get("action"):
                     if action == "submit":
                         i.submit()
                     elif action == "approve":
@@ -11116,7 +11129,9 @@ class ChangeRequestViewMixin:
                         )
                     url = reverse("change-request-update", args=[i.pk])
                     url = self.request.build_absolute_uri(url)
-                    contract_url = self.request.build_absolute_uri(reverse("contract", args=[i.contract.pk]))
+                    contract_url = self.request.build_absolute_uri(
+                        reverse("contract", args=[i.contract.pk])
+                    )
                     if action == "submit":
                         subject = f"Change Request {i.number} submitted by {u}"
                     elif action in ["request_resubmission", "resubmit", "reject", "cancel"]:

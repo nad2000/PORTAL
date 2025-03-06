@@ -4857,6 +4857,15 @@ class ChangeRequestForm(ModelForm):
         if is_ro:
             del self.fields["categories"]
             del self.fields["subcategories"]
+        employments_url = reverse("profile-employments")
+        educations_url = reverse("profile-educations")
+        self.fields["new_host"].help_text = mark_safe(
+            _(
+                "New host organisation. Make sure that PI is affiliated with the new host organisation: "
+                f"<a href='{employments_url}' target='_blank'>employment records</a> "
+                f"or <a href='{educations_url}' target='_blank'>education records</a> "
+            )
+        )
         submission_disabled = not instance or not is_ro
         self.helper = FormHelper(self)
         self.helper.use_custom_control = True
