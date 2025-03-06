@@ -4896,7 +4896,7 @@ class ChangeRequestForm(ModelForm):
     class Meta:
         model = models.ChangeRequest
         exclude = [
-            # "contract",
+            "contract",
             # "submitted_by",
             "state",
             "state_changed_at",
