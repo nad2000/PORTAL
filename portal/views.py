@@ -11028,11 +11028,7 @@ class ChangeRequestViewMixin:
         form.helper.include_media = False
 
         if (contract := self.contract) and (pi := contract.pi):
-            form.fields["new_host"].widget = autocomplete.ModelSelect2(
-                "org-autocomplete",
-                forward=[forward.Const(pi.pk, "user")],
-                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
-            )
+            form.fields["new_host"].widget.forward.append(forward.Const(pi.pk, "user"))
         return form
 
     @cached_property

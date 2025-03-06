@@ -1363,8 +1363,8 @@ class Organisation(Model):
         q = queryset or cls.objects.all()
         if nominator:
             q = q.filter(Q(research_offices__user_id=nominator))
-        # if user:
-        #     q = q.filter(Q(affiliations__person__user=user))
+        if user:
+            q = q.filter(Q(affiliations__person__user=user, affiliations__end_date__isnull=True))
         if term:
             s = term.lower()
             s0 = s.split(" ")
