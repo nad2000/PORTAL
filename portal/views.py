@@ -2572,7 +2572,7 @@ class ReportViewMixin:
 
                 report_comment_recipients = [
                     (
-                        models.ReportCommentRecipient(user, email=e, comment=comment)
+                        comment.recipients.model(email=e, comment=comment)
                         if isinstance(e, str)
                         else models.ReportCommentRecipient(user=e, email=e.email, comment=comment)
                     )
@@ -2581,7 +2581,7 @@ class ReportViewMixin:
                 report_comment_recipients.extend(
                     [
                         (
-                            models.ReportCommentRecipient(email=e, comment=comment, is_cced=True)
+                            comment.recipients.model(email=e, comment=comment, is_cced=True)
                             if isinstance(e, str)
                             else models.ReportCommentRecipient(
                                 user=e, email=e.email, comment=comment, is_cced=True
@@ -2593,7 +2593,7 @@ class ReportViewMixin:
                 if "RO" in _recipients:
                     report_comment_recipients.extend(
                         [
-                            models.ReportCommentRecipient(
+                            comment.recipients.model(
                                 user=ro if not isinstance(ro, str) else None,
                                 email=ro.email if not isinstance(ro, str) else ro,
                                 comment=comment,
@@ -2605,7 +2605,7 @@ class ReportViewMixin:
                 if "RO" in _cc_recipients:
                     report_comment_recipients.extend(
                         [
-                            models.ReportCommentRecipient(
+                            comment.recipients.model(
                                 user=ro if not isinstance(ro, str) else None,
                                 email=ro.email if not isinstance(ro, str) else ro,
                                 comment=comment,
@@ -2615,7 +2615,7 @@ class ReportViewMixin:
                         ]
                     )
 
-                models.ReportCommentRecipient.bulk_create(report_comment_recipients)
+                comment.recipients.model.objects.bulk_create(report_comment_recipients)
 
                 respond_url = (
                     self.request.build_absolute_uri(self.request.path) + "#correspondence"
@@ -5612,7 +5612,9 @@ class ContractDetail(DetailView):
             )
         ):
             context["can_edit"] = True
-            context["change_request_form"] = forms.ChangeRequestForm(initial={"contract": self.object})
+            context["change_request_form"] = forms.ChangeRequestForm(
+                initial={"contract": self.object}
+            )
         return context
 
     def get_queryset(self):
@@ -6331,32 +6333,45 @@ class ContractViewMixin:
                 body = body.strip()
 
             if body or attachment:
-                i.comments.model.create(
+                comment = i.comments.model.create(
                     contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
                 )
 
-            respond_url = (
-                self.request.build_absolute_uri(reverse("contract-update", kwargs=dict(pk=i.pk)))
-                + "#correspondence"
-            )
-            html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
-            html_message += f":</p>{body}" if body else "."
-            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-            send_mail(
-                request=self.request,
-                from_email="contracts",
-                subject=f"Comment posted by {u.full_name_with_email} to {i}",
-                html_message=html_message,
-                cc=[u.full_email_address],
-                attachments=attachment and [attachment],
-                recipients=recipients,
-                thread_index=i.thread_index,
-                thread_topic=i.thread_topic,
-                token=token,
-            )
-            return redirect(
-                reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
-            )
+                respond_url = (
+                    self.request.build_absolute_uri(
+                        reverse("contract-update", kwargs=dict(pk=i.pk))
+                    )
+                    + "#correspondence"
+                )
+                html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+                html_message += f":</p>{body}" if body else "."
+                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                send_mail(
+                    request=self.request,
+                    from_email="contracts",
+                    subject=f"Comment posted by {u.full_name_with_email} to {i}",
+                    html_message=html_message,
+                    cc=[u.full_email_address],
+                    attachments=attachment and [attachment],
+                    recipients=recipients,
+                    thread_index=i.thread_index,
+                    thread_topic=i.thread_topic,
+                    token=token,
+                )
+
+                comment.recipients.model.objects.bulk_create(
+                    [
+                        (
+                            comment.recipients.model(comment=comment, user=r, email=r.email)
+                            if isinstance(r, models.User)
+                            else comment.recipients.model(comment=comment, email=r)
+                        )
+                        for r in recipients
+                    ]
+                )
+                return redirect(
+                    reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
+                )
         return resp
 
 
