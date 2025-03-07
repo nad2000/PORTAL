@@ -1060,6 +1060,7 @@ class ApplicationAdmin(
         "application_title",
         "full_name",
         "org",
+        "state",
         "is_active_round",
     ]
     list_filter = [
