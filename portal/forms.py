@@ -4897,6 +4897,7 @@ class ChangeRequestForm(ModelForm):
         model = models.ChangeRequest
         exclude = [
             "contract",
+            "derivative",
             # "submitted_by",
             "state",
             "state_changed_at",

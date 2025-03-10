@@ -3644,7 +3644,16 @@ class ChangeRequestAdmin(
     save_on_top = True
     show_close_button = True
     # autocomplete_fields = ["new_host", "types"]
-    autocomplete_fields = ["new_host"]
+    autocomplete_fields = [
+        "new_host",
+        "contract",
+        "derivative",
+        "submitted_by",
+        "converted_file",
+    ]
+
+    def view_on_site(self, obj):
+        return obj.get_absolute_url()
 
     list_display = (
         "contract__number",
