@@ -11105,15 +11105,17 @@ class ChangeRequestViewMixin:
                 i = form.instance
                 if action := form.data.get("action"):
                     if action == "submit":
-                        i.submit()
+                        i.submit(user=u, request=self.request)
                     elif action == "approve":
-                        i.approve()
+                        i.approve(user=u, request=self.request)
+                    elif action == "accept":
+                        i.accept(user=u, request=self.request)
                     elif action == "reject":
-                        i.reject()
+                        i.reject(user=u, request=self.request)
                     elif action == "cancel":
-                        i.cancel()
+                        i.cancel(user=u, request=self.request)
                     elif action in ["request_resubmission", "resubmit"]:
-                        i.save_draft()
+                        i.save_draft(user=u, request=self.request)
 
                 if i and not i.submitted_by and is_ro:
                     form.instance.submitte_by = u
@@ -11121,12 +11123,13 @@ class ChangeRequestViewMixin:
                 resp = super().form_valid(form)
 
                 if action in [
-                    "submit",
+                    "accept",
                     "approve",
-                    "reject",
                     "cancel",
+                    "reject",
                     "request_resubmission",
                     "resubmit",
+                    "submit",
                 ]:
                     if not org:
                         org = i.contract.org

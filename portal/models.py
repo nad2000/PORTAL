@@ -8743,6 +8743,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         ],
         validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
     )
+    is_variation = BooleanField(
+        help_text="Is this a variation of another contract?", default=False
+    )
+    source = ForeignKey(
+        "self", on_delete=SET_NULL, null=True, blank=True, related_name="derivatives"
+    )
 
     # "ie-contracts"
     ## total_amount = IntegerField(null=True, blank=True)
@@ -11543,6 +11549,14 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         blank=True,
     )
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
+    derivative = ForeignKey(
+        Contract,
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
+        related_name="originated_by",
+        help_text="Derivative contract (variation or extension)",
+    )
     new_host = ForeignKey(
         Organisation,
         null=True,
