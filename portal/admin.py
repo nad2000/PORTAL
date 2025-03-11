@@ -3169,7 +3169,7 @@ class ContractAdmin(
     class CommentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractComment
         extra = 0
-        can_delete = False
+        can_delete = True
         view_on_site = False
         fields = ["created_at", "submitted_by", "html_comment", "attachment_link"]
         readonly_fields = ["created_at", "html_comment", "submitted_by", "attachment_link"]
