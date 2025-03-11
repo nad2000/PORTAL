@@ -8355,7 +8355,7 @@ def add_title_data(apps, schema_editor):
 
 
 class ContractKeyword(Model):
-    application = ForeignKey("Contract", on_delete=CASCADE)
+    contract = ForeignKey("Contract", on_delete=CASCADE)
     keyword = ForeignKey(Keyword, on_delete=CASCADE)
 
     class Meta:

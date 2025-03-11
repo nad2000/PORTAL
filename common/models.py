@@ -1,8 +1,9 @@
+import copy
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import checks, validators
 from django.db import connection, connections, models, router
-from django.db.models import CharField, DateTimeField, EmailField
+from django.db.models import CharField, DateTimeField, EmailField, ForeignObjectRel
 from django.db.models import Model as Base
 from django.db.models.functions import Lower
 from django.urls import reverse
@@ -54,6 +55,32 @@ class TimeStampMixin(Base):
 
 
 class HelperMixin:
+
+    def clone(self, exclude_related_models=None, *args, **kwargs):
+        clone = copy.copy(self)
+        clone.pk = None
+        if kwargs:
+            for k, v in kwargs.items():
+                setattr(clone, k, v)
+        clone.save()
+        for field in self._meta.get_fields():
+            if (
+                not isinstance(field, ForeignObjectRel)
+                or exclude_related_models
+                and field.related_model in exclude_related_models
+            ):
+                continue
+            model = field.related_model
+            related = list(model.objects.filter(*{field.remote_field.name: self}))
+            if not related:
+                continue
+            for o in related:
+                o.pk = None
+                setattr(o, field.remote_field.name, clone)
+            model.objects.bulk_create(related)
+
+        return clone
+
     @property
     def can_export_to_pdf(self):
         return hasattr(self, "to_pdf")

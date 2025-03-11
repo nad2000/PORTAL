@@ -2762,7 +2762,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="contractkeyword",
-            name="application",
+            name="contract",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE, to="portal.contract"
             ),
