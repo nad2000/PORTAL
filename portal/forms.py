@@ -2164,6 +2164,18 @@ class ContractForm(ModelForm):
                                 data_document_action=("release" if is_ro or is_pi else "accept"),
                                 # data_document_role="AB",
                                 data_document_role="B",
+                                disabled=not budget
+                                or budget.state in ["released", "approved", "accepted"],
+                                data_tooltip="tooltip",
+                                title=(
+                                    "Upload and release the budget"
+                                    if not budget
+                                    else (
+                                        "Release the budget"
+                                        if budget.state not in ["released", "approved", "accepted"]
+                                        else "Budget was already released or approved"
+                                    )
+                                ),
                             )
                             if is_ro
                             else ButtonHolder(
