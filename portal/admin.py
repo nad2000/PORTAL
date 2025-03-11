@@ -17,14 +17,13 @@ from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse
-from django.utils import timezone
 from django.utils.html import format_html, html_safe
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
 from fsm_admin.mixins import FSMTransitionMixin
-from import_export import fields, resources
+from import_export import fields
 from import_export.admin import (
     ExportActionMixin,
     ImportExportMixin,
@@ -38,7 +37,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
-from . import models, views
+from . import models
 
 djhacker.formfield(
     models.Organisation.signatory,
@@ -1044,7 +1043,7 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 #             "keywords": autocomplete.ModelSelect2Multiple(
 #                 url="keyword-autocomplete",
 #             )
-#         }
+#         
 #         fields = "__all__"
 
 
@@ -1200,7 +1199,8 @@ class ApplicationAdmin(
         # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
 
-        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role", "user", "state", "state_changed_at", "authorized_at"]
+        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role", 
+        # "user", "state", "state_changed_at", "authorized_at"]
 
         # def is_complete(self, obj):
         #     if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
