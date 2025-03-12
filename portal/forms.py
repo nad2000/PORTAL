@@ -1793,6 +1793,7 @@ class ContractForm(ModelForm):
                     data_off=_("No"),
                     data_onstyle="success",
                     data_offstyle="warning",
+                    *({"disabled": 1} if disabled_compliance else {}),
                 ),
                 "not_applicable",
                 "not_applicable_comment",
