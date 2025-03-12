@@ -8601,8 +8601,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     requires_approval = BooleanField(
         _("ethical and regulatory approval is required"),
-        null=True,
-        blank=True,
+        default=False,
+        # null=True, blank=True,
         help_text=_("Does your research require ethical and regulatory approval?"),
     )
     requires_approval_comment = TextField(null=True, blank=True)
