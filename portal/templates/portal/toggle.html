@@ -1,8 +1,10 @@
-<div class="checkbox">
+{% if field.disabled %}<!-- disabled -->{% endif %}
+<div class="checkbox{% if field.disabled %} disabled{% endif %}{% if field.errors %} has-error{% endif %}">
   <input
     type="checkbox"
     {% if field.value %}checked{% endif %}
     {% if flat_attrs %}{{ flat_attrs }}{% else %}data-toggle="toggle"{% endif %}
+    {% if field.disabled %} disabled{% endif %}
     name="{{ field.html_name }}"
     id="{% if field.auto_id %}{{ field.auto_id }}{% else %}has_protection_patterns{% endif %}">
   {% if field.label %}

@@ -8355,7 +8355,7 @@ def add_title_data(apps, schema_editor):
 
 
 class ContractKeyword(Model):
-    application = ForeignKey("Contract", on_delete=CASCADE)
+    contract = ForeignKey("Contract", on_delete=CASCADE)
     keyword = ForeignKey(Keyword, on_delete=CASCADE)
 
     class Meta:
@@ -8601,8 +8601,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     requires_approval = BooleanField(
         _("ethical and regulatory approval is required"),
-        null=True,
-        blank=True,
+        default=False,
+        # null=True, blank=True,
         help_text=_("Does your research require ethical and regulatory approval?"),
     )
     requires_approval_comment = TextField(null=True, blank=True)
@@ -8742,6 +8742,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             hash_int(instance.pk),
         ],
         validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
+    )
+    is_variation = BooleanField(
+        help_text="Is this a variation of another contract?", default=False
+    )
+    source = ForeignKey(
+        "self", on_delete=SET_NULL, null=True, blank=True, related_name="derivatives"
     )
 
     # "ie-contracts"
@@ -11543,6 +11549,14 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         blank=True,
     )
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
+    derivative = ForeignKey(
+        Contract,
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
+        related_name="originated_by",
+        help_text="Derivative contract (variation or extension)",
+    )
     new_host = ForeignKey(
         Organisation,
         null=True,
