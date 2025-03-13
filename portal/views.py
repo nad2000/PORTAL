@@ -6128,6 +6128,13 @@ class ContractViewMixin:
                                     )
                     fs.save(commit=True)
 
+                if "budget" in form.changed_data and (
+                    budget := i.documents.filter(required_document__role="B").last()
+                ):
+                    budget.save_draft(request=request, user=u)
+                    budget.converted_file = None
+                    budget.save(update_fields=["converted_file", "state", "updated_at"])
+
         except Exception as ex:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
@@ -6184,7 +6191,10 @@ class ContractViewMixin:
                     i.documents.filter(required_document=required_document).order_by("-pk").first()
                     if required_document
                     else (
-                        i.documents.filter(required_document__document_type__role=document_role)
+                        i.documents.filter(
+                            Q(required_document__document_type__role=document_role)
+                            | Q(document_type__role=document_role)
+                        )
                         .order_by("-pk")
                         .first()
                         if document_role
