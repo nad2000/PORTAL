@@ -168,11 +168,6 @@ urlpatterns = [
                     name="change-request-create",
                 ),
                 path(
-                    "change-requests/<int:pk>/~update",
-                    views.ChangeRequestUpdateView.as_view(),
-                    name="change-request-update",
-                ),
-                path(
                     "changes/",
                     include(
                         [
@@ -184,6 +179,11 @@ urlpatterns = [
                                             "<int:pk>",
                                             views.ChangeRequestDetail.as_view(),
                                             name="change-request",
+                                        ),
+                                        path(
+                                            "<int:pk>/~update",
+                                            views.ChangeRequestUpdateView.as_view(),
+                                            name="change-request-update",
                                         ),
                                         path(
                                             "",

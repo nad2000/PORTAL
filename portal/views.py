@@ -11194,6 +11194,10 @@ class ChangeRequestViewMixin:
                         f"Notification of change request {i.number} sent to {', '.join(emails)}.",
                     )
 
+                    reset_cache(self.request)
+                    if action == "accept":
+                        return redirect(reverse("contract-update", args=[i.derivative.pk]))
+
             return resp
 
         except Exception as ex:
