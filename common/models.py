@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from model_utils import Choices
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 EmailField.register_lookup(Lower)
 
@@ -59,10 +60,13 @@ class HelperMixin:
     def clone(self, exclude_related_models=None, *args, **kwargs):
         clone = copy.copy(self)
         clone.pk = None
+        setattr(clone, "created_at", timezone.now())
+        setattr(clone, "updated_at", None)
         if kwargs:
             for k, v in kwargs.items():
                 setattr(clone, k, v)
         clone.save()
+
         for field in self._meta.get_fields():
             if (
                 not isinstance(field, ForeignObjectRel)
@@ -70,8 +74,9 @@ class HelperMixin:
                 and field.related_model in exclude_related_models
             ):
                 continue
+
             model = field.related_model
-            related = list(model.objects.filter(*{field.remote_field.name: self}))
+            related = list(model.objects.filter(**{field.remote_field.name: self}))
             if not related:
                 continue
             for o in related:

@@ -8,6 +8,18 @@
 {% endblock %}
 {% endif %}
 
+{% if object.source %}
+{% block content_header %}
+
+  {% if object.is_variation %}
+  Variation {{ object.number }} of <a href="{{ object.source.get_absolute_url }}" target="_blank">{{ object.source }}</a>
+  {% else %}
+  Transferred contract {{ object.number }} of <a href="{{ object.source.get_absolute_url }}" target="_blank">{{ object.source }}</a>
+  {% endif %}
+  
+{% endblock %}
+{% endif %}
+
 {% block buttons_above %}
 {% block buttons_bellow %}
 <div class="row">

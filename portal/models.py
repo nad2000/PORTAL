@@ -6363,7 +6363,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         return self
 
-    def clone(self):
+    def clone(self, *args, **kwargs):
         nr = Round(scheme=self.scheme)
         nr.init_from_last_round(last_round=self)
         if not nr.title:
@@ -10002,6 +10002,46 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             thread_topic=self.thread_topic,
         )
 
+    def clone(self, is_variation=None, change_request=None, *args, **kwargs):
+        """Clone the contract to create a variation of a transfer."""
+
+        if not change_request:
+            change_request = (
+                self.change_requests.filter(derivative__isnull=True).order_by("-pk").first()
+            )
+        assert change_request, "Change request is required to clone a contract"
+
+        if is_variation is None:
+            is_variation = not change_request.types.filter(code="TR").exists()
+
+        if is_variation:
+            number = change_request.number
+        else:
+            assert change_request.new_host != self.org, (
+                "Transfrer must have and organisation and "
+                "it should be a different organisation from the original contract"
+            )
+            number = self.__class__.new_number(self.application, org=change_request.new_host)
+
+        with transaction.atomic():
+
+            nc = super().clone(
+                exclude_related_models=[ContractComment, Contract, Report, ChangeRequest],
+                is_variation=is_variation,
+                number=number,
+                source=self,
+                **(
+                    {
+                        "org": change_request.new_host,
+                        "state": "draft",
+                    }
+                    if not is_variation
+                    else {}
+                ),
+            )
+
+            return nc
+
     class Meta:
         db_table = "contract"
 
@@ -11734,12 +11774,37 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted"],
+        source=["*"],
         target="accepted",
         custom=dict(verbose="Accept", button_name="Accept", admin=False),
     )
-    def accept(self, *args, **kwargs):
-        pass
+    def accept(self, request=None, by=None, description=None, *args, **kwargs):
+
+        assert self.contract, "Contract is required to accept a change request."
+
+        is_variation = not self.types.filter(code="TR").exists()
+        try:
+            new_contract = self.contract.clone(
+                change_request=self,
+                is_variation=is_variation,
+            )
+            self.derivative = new_contract
+
+            if request:
+                url = reverse("contract", args=[new_contract.pk])
+                messages.success(
+                    request,
+                    (
+                        f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
+                        if is_variation
+                        else f'Tranfered contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                    ),
+                )
+        except Exception as e:
+            if request:
+                messages.error(request, f"Failed to accept the change request: {e}")
+            capture_message(e)
+            raise
 
     class Meta:
         db_table = "change_request"
