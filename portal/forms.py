@@ -4890,9 +4890,33 @@ class ChangeRequestForm(ModelForm):
         else:
             self.helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
             self.helper.add_input(
-                Submit("resubmit", _("Resubmit"), css_class="btn-outline-danger")
+                Submit(
+                    "resubmit",
+                    _("Resubmit"),
+                    css_class="btn-outline-danger",
+                    data_tooltip="tooltip",
+                    title=_("Request resubmission of the change request"),
+                )
             )
-            self.helper.add_input(Submit("accept", _("Accept"), css_class="btn-success"))
+            self.helper.add_input(
+                Submit(
+                    "accept",
+                    _("Accept"),
+                    css_class="btn-success",
+                    data_tooltip="tooltip",
+                    title=_(
+                        "Accept the change request and convert it to a new contract or a contract variation"
+                    ),
+                )
+            )
+        self.helper.add_input(
+            Button(
+                "close",
+                _("Close"),
+                css_class="btn-outline-secondary",
+                onclick=f"window.location='{instance.get_absolute_url()}';",
+            )
+        )
 
     def save(self, *args, **kwargs):
         instance = self.instance

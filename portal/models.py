@@ -10029,11 +10029,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 exclude_related_models=[ContractComment, Contract, Report, ChangeRequest],
                 is_variation=is_variation,
                 number=number,
+                state="draft",
                 source=self,
                 **(
                     {
                         "org": change_request.new_host,
-                        "state": "draft",
                     }
                     if not is_variation
                     else {}

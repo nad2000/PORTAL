@@ -5612,9 +5612,12 @@ class ContractDetail(DetailView):
             )
         ):
             context["can_edit"] = True
-            context["change_request_form"] = forms.ChangeRequestForm(
-                initial={"contract": self.object}
+            change_request_form = forms.ChangeRequestForm(
+                initial={"contract": self.object},
             )
+            change_request_form.fields.pop("categories")
+            change_request_form.fields.pop("subcategories")
+            context["change_request_form"] = change_request_form
         return context
 
     def get_queryset(self):
@@ -11113,7 +11116,12 @@ class ChangeRequestViewMixin:
             with transaction.atomic():
 
                 i = form.instance
+                if i and not i.submitted_by and is_ro:
+                    form.instance.submitte_by = u
+                resp = super().form_valid(form)
+
                 if action := form.data.get("action"):
+                    action = action.lower()
                     if action == "submit":
                         i.submit(user=u, request=self.request)
                     elif action == "approve":
@@ -11126,11 +11134,7 @@ class ChangeRequestViewMixin:
                         i.cancel(user=u, request=self.request)
                     elif action in ["request_resubmission", "resubmit"]:
                         i.save_draft(user=u, request=self.request)
-
-                if i and not i.submitted_by and is_ro:
-                    form.instance.submitte_by = u
-
-                resp = super().form_valid(form)
+                    i.save()
 
                 if action in [
                     "accept",

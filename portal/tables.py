@@ -865,7 +865,7 @@ class ChangeRequestTable(tables.Table):
         # accessor="pk",
         # verbose_name=gettext_lazy("ID"),
         linkify=lambda value, record: reverse(
-            "variant-request", kwargs=dict(pk=record.pk)
+            "change-request", kwargs=dict(pk=record.pk)
         ),
         # order_by="pk",
     )
@@ -876,6 +876,11 @@ class ChangeRequestTable(tables.Table):
         ),
         order_by="contract__number",
     )
+
+    def render_description(self, record, value):
+        if not value:
+            return 'N/A'
+        return mark_safe(value)
 
     class Meta:
         model = models.ChangeRequest
