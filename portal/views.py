@@ -5612,9 +5612,12 @@ class ContractDetail(DetailView):
             )
         ):
             context["can_edit"] = True
-            context["change_request_form"] = forms.ChangeRequestForm(
-                initial={"contract": self.object}
+            change_request_form = forms.ChangeRequestForm(
+                initial={"contract": self.object},
             )
+            change_request_form.fields.pop("categories")
+            change_request_form.fields.pop("subcategories")
+            context["change_request_form"] = change_request_form
         return context
 
     def get_queryset(self):
@@ -5644,6 +5647,8 @@ class ContractDetail(DetailView):
 
 
 class ContractViewMixin:
+
+    extra_context = {"category": "contracts"}
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -6024,6 +6029,7 @@ class ContractViewMixin:
         }
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
+        context["state"] = self.object and self.object.state or "draft"
 
         return context
 
@@ -6128,6 +6134,13 @@ class ContractViewMixin:
                                     )
                     fs.save(commit=True)
 
+                if "budget" in form.changed_data and (
+                    budget := i.documents.filter(required_document__role="B").last()
+                ):
+                    budget.save_draft(request=request, user=u)
+                    budget.converted_file = None
+                    budget.save(update_fields=["converted_file", "state", "updated_at"])
+
         except Exception as ex:
             capture_exception(ex)
             messages.error(self.request, getattr(ex, "message", str(ex)))
@@ -6184,7 +6197,10 @@ class ContractViewMixin:
                     i.documents.filter(required_document=required_document).order_by("-pk").first()
                     if required_document
                     else (
-                        i.documents.filter(required_document__document_type__role=document_role)
+                        i.documents.filter(
+                            Q(required_document__document_type__role=document_role)
+                            | Q(document_type__role=document_role)
+                        )
                         .order_by("-pk")
                         .first()
                         if document_role
@@ -6380,6 +6396,7 @@ class ContractViewMixin:
 
 
 class ContractCreate(ContractViewMixin, CreateView):
+
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -6447,6 +6464,7 @@ class ContractCreate(ContractViewMixin, CreateView):
 
 
 class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
+
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -11043,6 +11061,7 @@ class ChangeRequestViewMixin:
     model = models.ChangeRequest
     # template_name = "profile_form.html"
     form_class = forms.ChangeRequestForm
+    extra_context = {"category": "change_requests"}
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -11103,7 +11122,12 @@ class ChangeRequestViewMixin:
             with transaction.atomic():
 
                 i = form.instance
+                if i and not i.submitted_by and is_ro:
+                    form.instance.submitte_by = u
+                resp = super().form_valid(form)
+
                 if action := form.data.get("action"):
+                    action = action.lower()
                     if action == "submit":
                         i.submit(user=u, request=self.request)
                     elif action == "approve":
@@ -11116,11 +11140,7 @@ class ChangeRequestViewMixin:
                         i.cancel(user=u, request=self.request)
                     elif action in ["request_resubmission", "resubmit"]:
                         i.save_draft(user=u, request=self.request)
-
-                if i and not i.submitted_by and is_ro:
-                    form.instance.submitte_by = u
-
-                resp = super().form_valid(form)
+                    i.save()
 
                 if action in [
                     "accept",
@@ -11221,7 +11241,7 @@ class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, 
     table_class = tables.ChangeRequestTable
     model = models.ChangeRequest
     template_name = "table.html"
-    extra_context = {"category": "variants"}
+    extra_context = {"category": "change_requests"}
     filterset_class = filters.ChangeRequestFilterSet
 
     # def get_table_kwargs(self):
@@ -11281,6 +11301,7 @@ class ChangeRequestDetail(DetailView):
             )
         ):
             context["can_edit"] = True
+        context["category"] = "change_requests"
         return context
 
     # def get_queryset(self):

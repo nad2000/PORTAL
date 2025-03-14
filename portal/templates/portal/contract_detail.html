@@ -8,17 +8,19 @@
 {% endblock %}
 {% endif %}
 
-{% if object.source %}
 {% block content_header %}
 
+{% if object.source %}
   {% if object.is_variation %}
   Variation {{ object.number }} of <a href="{{ object.source.get_absolute_url }}" target="_blank">{{ object.source }}</a>
   {% else %}
   Transferred contract {{ object.number }} of <a href="{{ object.source.get_absolute_url }}" target="_blank">{{ object.source }}</a>
   {% endif %}
-  
-{% endblock %}
+{% else %}
+  {{ block.super }}
 {% endif %}
+
+{% endblock %}
 
 {% block buttons_above %}
 {% block buttons_bellow %}
@@ -117,8 +119,9 @@
         {{ change_request_form|crispy }}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <input type="submit" class="btn btn-primary" value="Submit">
+        <input type="submit" class="btn btn-secondary" value="Save">
+        <input type="submit" class="btn btn-primary" name="action" value="Submit">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
       </div>
     </div>
     </form>
@@ -134,6 +137,17 @@
   {{ block.super }}
   <script src="{% static 'js/project.js' %}"></script>
   {{ change_request_form.media.js }}
+  <script>
+    $(document).ready(function() {
+        $("#div_id_new_host").hide();
+        $("#id_types").on("select2:unselect", function(event) {
+              if (event.params.data.id == 'TR') $("#div_id_new_host").hide();
+        });
+        $("#id_types").on("select2:select", function(event) {
+              if (event.params.data.id == 'TR') $("#div_id_new_host").show();
+        });
+    });
+  </script>
 {% endblock %}
 {% endif %}
 {# vim:set ft=htmldjango: #}

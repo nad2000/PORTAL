@@ -15,6 +15,7 @@
          {{ _('Type(s)') }}
       </th>
       <th scope="col"> {{ _('Letter') }}</th>
+      <th scope="col"> {{ _('New Contract or Variation') }}</th>
       <th scope="col">&nbsp;</th>
     </tr>
   </thead>
@@ -43,6 +44,20 @@
           &nbsp;
         {% endif %}
       </td>
+
+      <td>
+        {% if o.derivative %}
+          {% if not is_ro or o.derivative.org.research_offices.filter(user=user).exists() %}
+            <a href="{{ url('contract', pk=o.derivative.pk) }}" target="_blank">{{ o.derivative.number }}</a>
+          {% else %}
+            {{ o.derivative.number }}
+          {% endif %}
+        {% else %}
+          &nbsp;
+        {% endif %}
+      </td>
+
+
       <td>
         {% if not is_ro or o.state == 'draft' %}
           <a class="btn btn-primary" href="{{ url('change-request-update', pk=o.pk) }}" target="_blank">

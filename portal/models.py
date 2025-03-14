@@ -10029,11 +10029,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 exclude_related_models=[ContractComment, Contract, Report, ChangeRequest],
                 is_variation=is_variation,
                 number=number,
+                state="draft",
                 source=self,
                 **(
                     {
                         "org": change_request.new_host,
-                        "state": "draft",
                     }
                     if not is_variation
                     else {}
@@ -11549,15 +11549,15 @@ class ChangeCategory(Model):
 
 class ChangeRequestMixin:
     STATES = Choices(
-        ("accepted", _("accepted")),
-        ("acknowledged", _("acknowledged")),
-        ("approved", _("approved")),
-        ("application", _("application")),
-        ("archived", _("archived")),
-        ("cancelled", _("cancelled")),
-        ("draft", _("draft")),
-        ("submitted", _("submitted")),
-        ("withdrawn", _("withdrawn")),
+        ("accepted", _("Accepted")),
+        ("acknowledged", _("Acknowledged")),
+        ("approved", _("Approved")),
+        ("application", _("Application")),
+        ("archived", _("Archived")),
+        ("cancelled", _("Cancelled")),
+        ("draft", _("WIP")),
+        ("submitted", _("Submitted")),
+        ("withdrawn", _("Withdrawn")),
     )
 
 

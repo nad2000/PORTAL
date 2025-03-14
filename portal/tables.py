@@ -81,9 +81,12 @@ class StateColumn(tables.Column):
             if isinstance(record, models.Application):
                 css_classes = "fas fa-star text-success text-center"
                 title = _("The application was accepted")
-            else:
+            elif isinstance(record, models.Invitation):
                 css_classes = "far fa-envelope-open text-success text-center"
                 title = _("The invitation was accepted")
+            else:
+                css_classes = "fas fa-check-double text-success text-center"
+                title = _("The %s was accepted") % record._meta.verbose_name
         elif state == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
             title = _("The testimonial was submitted")
@@ -110,6 +113,9 @@ class StateColumn(tables.Column):
         elif state == "funded":
             css_classes = "fa fa-heart text-success text-center"
             title = _("The application was funded")
+        elif state == "assessed":
+            css_classes = "fa fa-heart text-success text-center"
+            title = _("The report was assessed")
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
             title = _("The report was assessed")
@@ -865,7 +871,7 @@ class ChangeRequestTable(tables.Table):
         # accessor="pk",
         # verbose_name=gettext_lazy("ID"),
         linkify=lambda value, record: reverse(
-            "variant-request", kwargs=dict(pk=record.pk)
+            "change-request", kwargs=dict(pk=record.pk)
         ),
         # order_by="pk",
     )
@@ -876,6 +882,11 @@ class ChangeRequestTable(tables.Table):
         ),
         order_by="contract__number",
     )
+
+    def render_description(self, record, value):
+        if not value:
+            return 'N/A'
+        return mark_safe(value)
 
     class Meta:
         model = models.ChangeRequest
