@@ -185,7 +185,7 @@ class FTEMixin:
         super().__init__(*args, **kwargs)
         if not duration:
             instance = kwargs.get("instance")
-            contract = instance and instance.contract
+            contract = instance and getattr(instance, "contract", None)
             duration = contract and contract.duration
         if duration:
             for i in range(1, duration + 1):
