@@ -14,7 +14,6 @@
       {% trans 'Applications' %} <span class="badge badge-primary{% if category == "applications" %} bg-secondary{% endif %}">0</span>
     {% endif %}
     </div>
-    <!-- cat: {{ category }} -->
     {% if not category or category == "applications" and application_count %}
       <div class="card-body">
         <ul class="nav nav-pills flex-column">
@@ -156,6 +155,7 @@
 
 
   <div class="card mb-2">
+    <!-- {{ category }} -->
     <div class="card-header{% if category == "contracts" %} bg-primary{% endif %}">
       {% if contract_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
         <a href="{% url 'contract-list' %}" id="contract-list" class="{% if category == "contracts" %} text-white{% endif %}">
@@ -175,7 +175,7 @@
           {% if s != 'total' and count > 0 %}
           <li class="nav-item" id="nominations-draft">
             {% if count > 0 %}
-              <a class="nav-link{% if category == 'contracts' and state == s %} active{% endif %}"
+              <a class="nav-link{% if state == s or object and object.state == s %} active{% endif %}"
                  id="contracts-{{ s }}"
                  href="{% url 'contract-list' %}?state_filter={{ s }}&state={{ s }}">
                 {{ sn }}
@@ -196,6 +196,52 @@
   </div>
 
   {% if is_ro or user.is_superuser or user.is_site_staff %}
+
+    {% if change_request_count %}
+    <div class="card mb-2">
+
+      <div class="card-header{% if category == "change_requests" %} bg-primary{% endif %}">
+        {% if change_request_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
+          <a href="{% url 'change-request-list' %}" id="change_request-list" class="{% if category == "change_requests" %} text-white{% endif %}">
+            {% trans 'Change Requests' %}
+          </a> <span class="badge badge-primary{% if category == "change_requests" %} bg-secondary{% endif %}">{{ change_request_count|default:0 }}</span>
+        {% else %}
+        <span data-toggle="tooltip" title="{% trans 'No change requests saved or submitted' %}">
+          {% trans 'Change Requests' %} <span class="badge badge-primary{% if category == "change_requests" %} bg-secondary{% endif %}">0</span>
+        </span>
+        {% endif %}
+      </div>
+
+      {% if category == 'change_requests' %}
+        <div class="card-body">
+          <ul class="nav nav-pills flex-column">
+            {% for s, count, sn in change_request_counts %}
+            <!-- {{ s }} - {{ count }} -->
+            {% if s != 'total' and count > 0 %}
+            <li class="nav-item" id="nominations-draft">
+              {% if count > 0 %}
+                <a class="nav-link{% if state == s or object and object.state == s %} active{% endif %}"
+                  id="change-request-{{ s }}"
+                  href="{% url 'change-request-list' %}?state_filter={{ s }}&state={{ s }}">
+                  {{ sn }}
+                  <span class="badge badge-primary{% if category == "change_requests" and s == state %} bg-secondary{% endif %}">{{ count }}</span>
+                </a>
+              {% else %}
+                <span class="nav-link" title="{% trans 'No Change Requests' %}" data-toggle="tooltip">
+                  {{ sn }}
+                  <span class="badge badge-primary">{{ count|default:0 }}</span>
+                </span>
+              {% endif %}
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
 
   <div class="card mb-2">
     <div class="card-header{% if category == "reports" %} bg-primary{% endif %}">

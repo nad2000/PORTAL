@@ -2,7 +2,7 @@
 {% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
 
 {% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
-{% block sidebar %}{% include 'sidebar.html' with category="contacts" %}{% endblock sidebar %}
+{% block sidebar %}{% include 'sidebar.html' with category="contracts" %}{% endblock sidebar %}
 {% block head_title %}{{ object }}{% endblock %}
 
 {% block css %}{{ block.super }}{% endblock %}

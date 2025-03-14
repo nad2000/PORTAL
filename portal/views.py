@@ -5648,6 +5648,8 @@ class ContractDetail(DetailView):
 
 class ContractViewMixin:
 
+    extra_context = {"category": "contracts"}
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
@@ -6027,6 +6029,7 @@ class ContractViewMixin:
         }
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
+        context["state"] = self.object and self.object.state or "draft"
 
         return context
 
@@ -6393,6 +6396,7 @@ class ContractViewMixin:
 
 
 class ContractCreate(ContractViewMixin, CreateView):
+
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -6460,6 +6464,7 @@ class ContractCreate(ContractViewMixin, CreateView):
 
 
 class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
+
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -11056,6 +11061,7 @@ class ChangeRequestViewMixin:
     model = models.ChangeRequest
     # template_name = "profile_form.html"
     form_class = forms.ChangeRequestForm
+    extra_context = {"category": "change_requests"}
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -11235,7 +11241,7 @@ class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, 
     table_class = tables.ChangeRequestTable
     model = models.ChangeRequest
     template_name = "table.html"
-    extra_context = {"category": "variants"}
+    extra_context = {"category": "change_requests"}
     filterset_class = filters.ChangeRequestFilterSet
 
     # def get_table_kwargs(self):
@@ -11295,6 +11301,7 @@ class ChangeRequestDetail(DetailView):
             )
         ):
             context["can_edit"] = True
+        context["category"] = "change_requests"
         return context
 
     # def get_queryset(self):

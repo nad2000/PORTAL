@@ -124,6 +124,16 @@ def portal_context(request):
             counts.append(("total", total, gettext_lazy("Total")))
             cached_context["contract_counts"] = counts
             cached_context["contract_count"] = total
+
+            if is_ro or u.is_superuser or is_staff:
+                counts = [
+                    (s, c, models.ChangeRequest.STATES[s]) for s, c in models.ChangeRequest.user_object_counts(u, request=request)
+                ]
+                total = sum(i[1] for i in counts)
+                counts.append(("total", total, gettext_lazy("Total")))
+                cached_context["change_request_counts"] = counts
+                cached_context["change_request_count"] = total
+
             # if outstanding_testimonial_requests:
             #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or is_staff):

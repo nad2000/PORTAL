@@ -2,7 +2,7 @@
 {% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
 
 {% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
-{% block sidebar %}{% include 'sidebar.html' with category="contacts" %}{% endblock sidebar %}
+{% block sidebar %}{% include 'sidebar.html' with category="contracts" %}{% endblock sidebar %}
 {% block head_title %}{{ object }}{% endblock %}
 
 {% block css %}
@@ -63,10 +63,10 @@
       {% crispy form form.helper %}
     {% else %}
       {{ form|crispy }}
-      <div class="float-right"> 
-        <!-- input type="submit" name="save" value="Save" class="btn btn-primary" id="submit-id-save_draft" data-toggle="tooltip" title="..." --> 
+      <div class="float-right">
+        <!-- input type="submit" name="save" value="Save" class="btn btn-primary" id="submit-id-save_draft" data-toggle="tooltip" title="..." -->
         <input type="submit" name="submit" value="{% trans 'Save' %}" class="btn btn-outline-primary" id="submit-id-submit" data-toggle="tooltip" title="{% trans 'Save publication' %}">
-        <a href="{#% url 'publication-detail' pk=object.pk %#}/" type="button" role="button" class="btn btn-secondary" id="cancel"> {% trans 'Cancel' %} </a> 
+        <a href="{#% url 'publication-detail' pk=object.pk %#}/" type="button" role="button" class="btn btn-secondary" id="cancel"> {% trans 'Cancel' %} </a>
       </div>
     {% endif %}
 
