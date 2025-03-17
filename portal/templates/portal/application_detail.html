@@ -25,6 +25,10 @@
 
 {% if form %}{% crispy form %}{% endif %}
 
+{% if tag_form %}
+{{ tag_form|crispy }}
+{% endif %}
+
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
 
 <div class="table-responsive">

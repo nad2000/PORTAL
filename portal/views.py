@@ -494,6 +494,13 @@ class SingleObjectMixin(ContextMixin):
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
 
+    def tag_form(self, *args, **kwargs):
+
+        form = modelform_factory(self.model, fields=["tags"])(
+            self.request.POST, instance=self.object
+        )
+        return form
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context["exclude"] = [
@@ -515,6 +522,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         u = self.request.user
         if u.is_superuser or u.is_site_staff:
             context["can_edit"] = True
+
+        if hasattr(self.model, "tags"):
+            context["tag_form"] = self.tag_form()
         return context
 
 
@@ -3326,7 +3336,7 @@ class AuthorizationForm(Form):
 
 class ApplicationDetail(DetailView):
     model = Application
-    template_name = "application_detail.html"
+    template_name = "portal/application_detail.html"
 
     # def last_modified(self, request, *args, **kwargs):
     #     if (
@@ -3337,6 +3347,7 @@ class ApplicationDetail(DetailView):
     #     ):
     #         # return f"u.username:o.updated_at.strftime('%s')"
     #         return f"o.updated_at.strftime('%s')"
+
 
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
@@ -3665,6 +3676,8 @@ class ApplicationDetail(DetailView):
                 Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
             ).last():
                 context["referee"] = referee
+
+        context["tag_form"] = self.tag_form()
 
         return context
 

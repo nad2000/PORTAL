@@ -101,6 +101,7 @@ from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
 from taggit.models import TagBase
+from taggit.managers import TaggableManager
 from weasyprint import HTML
 
 from common.models import (
@@ -2229,6 +2230,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
+    tags = TaggableManager()
 
     is_preliminary = BooleanField(_("is preliminary"), null=True, blank=True, default=False)
     preliminary = ForeignKey(
@@ -8566,6 +8568,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
     objects = ContractManager()
     all_objects = Manager()
+    tags = TaggableManager()
 
     number = CharField(_("number"), max_length=40, unique=True)
     host_number = CharField(_("host_number"), max_length=100, null=True, blank=True)
@@ -10525,6 +10528,7 @@ class ReportMixin:
 
 
 class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
+    tags = TaggableManager()
     schedule_entry = OneToOneField(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
@@ -11563,6 +11567,7 @@ class ChangeRequestMixin:
 
 class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
 
+    tags = TaggableManager()
     number = CharField(
         _("number"), max_length=24, null=True, blank=True, unique=True, editable=False
     )
