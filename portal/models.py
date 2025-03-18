@@ -10271,14 +10271,15 @@ class ContractMember(PersonMixin, Model):
         if not (c := getattr(self, "contract", None)):
             raise ValidationError(_("Missing contract"))
         member_id = getattr(self, "id", None)
-        q = c.members.filter(email=self.email)
-        if member_id:
-            q = q.filter(~Q(id=member_id))
-        if q.exists():
-            raise ValidationError(
-                _("Team member with the email address %(email)s was already added"),
-                params={"email": self.email},
-            )
+        if self.email and self.email.strip():
+            q = c.members.filter(email=self.email)
+            if member_id:
+                q = q.filter(~Q(id=member_id))
+            if q.exists():
+                raise ValidationError(
+                    _("Team member with the email address %(email)s was already added"),
+                    params={"email": self.email},
+                )
 
     def __str__(self):
         return self.full_name_with_email
