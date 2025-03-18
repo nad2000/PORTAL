@@ -6115,6 +6115,12 @@ class ContractViewMixin:
                 fs.instance = self.object
                 if fs.is_valid():
                     fs.save()
+                else:
+                    for f in fs.forms:
+                        if f.errors:
+                            form.errors.update(f.errors)
+                    return self.form_invalid(form)
+
                 fs = self.get_document_formset()
                 fs.instance = self.object
                 if fs.is_valid():

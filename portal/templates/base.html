@@ -693,6 +693,7 @@ You have a request to review a {{ site_name }} application to act on.
                       if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
                     })
                   });
+                  setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 7000);
                 });
       </script>
 <!-- script type="module">

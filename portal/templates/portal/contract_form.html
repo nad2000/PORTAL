@@ -320,7 +320,8 @@
       });
       */
       // Focus on the first tab with invalid input:
-      $('#submit-id-save_draft,#submit-id-submit').click(function () {
+      // $('#submit-id-save_draft,#submit-id-submit').click(function () {
+      $('input[type="submit"]').click(function () {
           $('input:invalid,textarea:invalid').each(function () {
             // Find the tab-pane that this element is inside, and get the id
             var $closest = $(this).closest('.tab-pane');

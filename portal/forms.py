@@ -1441,7 +1441,7 @@ class ApplicationForm(ModelForm):
 
 
 class ContractMemberForm(FTEMixin, ModelForm):
-    # role =Field(queryset
+
     role = forms.ModelChoiceField(
         queryset=models.RoleType.where(for_application=True).order_by(
             models.Coalesce("name", "code")
