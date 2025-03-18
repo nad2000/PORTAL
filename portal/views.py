@@ -496,9 +496,36 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
     def tag_form(self, *args, **kwargs):
 
-        form = modelform_factory(self.model, fields=["tags"])(
-            self.request.POST, instance=self.object
+        form = modelform_factory(
+            self.model,
+            fields=["tags"],
+            labels={"tags": ""},
+            help_texts={"tags": ""},
+            widgets={
+                "tags": autocomplete.TagSelect2(
+                    url="tag-autocomplete",
+                    attrs={
+                        "data-placeholder": _(
+                            "Please enter a tag or multiple tags. You can select multiple tags..."
+                        ),
+                    },
+                )
+            },
+        )(self.request.POST, instance=self.object)
+        helper = FormHelper(form)
+        helper.help_text_inline = False
+        helper.html5_required = False
+        helper.form_show_labels = False
+        helper.use_custom_control = False
+        helper.include_media = False
+        helper.layout = Layout(
+            Row(
+                Column("tags", css_class="col-11"),
+                Column(Submit("save", _("Save"), css_class="btn-primary"), css_class="col-1"),
+                css_class="row",
+            )
         )
+        form.helper = helper
         return form
 
     def get_context_data(self, *args, **kwargs):
@@ -526,6 +553,15 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if hasattr(self.model, "tags"):
             context["tag_form"] = self.tag_form()
         return context
+
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if hasattr(self.model, "tags"):
+            form = self.tag_form()
+            if form.is_valid():
+                form.save()
+        return self.get(request, *args, **kwargs)
 
 
 class ExportView(UserPassesTestMixin, DetailView):
@@ -7228,6 +7264,13 @@ class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             )
         lang = self.request.LANGUAGE_CODE
         return q.order_by(f"name_{lang or 'en'}")
+
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return True  # request.user.is_authenticated
+
+
+class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def has_add_permission(self, request):
         # Authenticated users can add new records

@@ -4,6 +4,7 @@ from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
+from taggit.models import Tag
 from django.shortcuts import redirect
 
 from . import apis, models, views
@@ -577,6 +578,11 @@ urlpatterns = [
                     "change-category/",
                     views.ChangeCategoryAutocomplete.as_view(model=models.ChangeCategory),
                     name="change-category-autocomplete",
+                ),
+                path(
+                    "tag/",
+                    views.TagAutocomplete.as_view(model=Tag, create_field="name"),
+                    name="tag-autocomplete",
                 ),
             ]
         ),

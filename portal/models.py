@@ -100,7 +100,7 @@ from pypdf.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
-from taggit.models import TagBase
+from taggit.models import TagBase, Tag
 from taggit.managers import TaggableManager
 from weasyprint import HTML
 

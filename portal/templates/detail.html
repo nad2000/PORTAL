@@ -1,5 +1,18 @@
 {% extends 'base.html' %}
-{% load i18n tags %}
+{% load i18n tags crispy_forms_tags %}
+
+{% if tag_form %}
+{% block css %}
+{{ tag_form.media.css }}
+{{ block.super }}
+<style>
+.select2-selection__arrow {display: none;}
+.select2-container { min-width: initial; }
+.select2-container .select2-selection--single, .select2-container--default .select2-selection--single .select2-selection__rendered {height: auto !important;}
+.modelselect2multiple,.modelselect2nopk {height: auto !important;}
+</style>
+{% endblock %}
+{% endif %}
 
 {% block content %}
 
@@ -31,6 +44,17 @@
   {% endblock buttons_above %}
 
   {% block object_details %}
+  {% if tag_form %}
+  <div class="row">
+    <div class="col-12">
+    {% if tag_form.helper %}
+      {% crispy tag_form tag_form.helper %}
+    {% else %}
+      {{ tag_form|crispy }}
+    {% endif %}
+    </div>
+  </div>
+  {% endif %}
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -139,4 +163,5 @@
         });*/
       });
   </script>
+  {% if tag_form %}{{ tag_form.media.js }}{% endif %}
 {% endblock javascript %}
