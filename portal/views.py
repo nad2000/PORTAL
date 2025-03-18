@@ -3348,7 +3348,6 @@ class ApplicationDetail(DetailView):
     #         # return f"u.username:o.updated_at.strftime('%s')"
     #         return f"o.updated_at.strftime('%s')"
 
-
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
         if hasattr(self, "object"):
@@ -3708,9 +3707,10 @@ def delete_object(request, model, pk):
         except Exception as ex:
             # messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
             return render(
-                  request, 
-                  "partials/messages.html", 
-                  {"messages": [messages.Message(messages.constants.ERROR, str(ex))]})
+                request,
+                "partials/messages.html",
+                {"messages": [messages.Message(messages.constants.ERROR, str(ex))]},
+            )
         name = o._meta.verbose_name.title()
         messages_list.append(
             messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted"))
@@ -3718,9 +3718,17 @@ def delete_object(request, model, pk):
         return render(request, "partials/messages.html", {"messages": messages_list})
     # raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
     return render(
-        request, 
-        "partials/messages.html", 
-        {"messages": [messages.Message(messages.constants.ERROR, f"No matches the given query - mode: {model}, PK: {pk}")]})
+        request,
+        "partials/messages.html",
+        {
+            "messages": [
+                messages.Message(
+                    messages.constants.ERROR,
+                    f"No matches the given query - mode: {model}, PK: {pk}",
+                )
+            ]
+        },
+    )
 
 
 @login_required
