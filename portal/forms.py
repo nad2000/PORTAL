@@ -1795,8 +1795,8 @@ class ContractForm(ModelForm):
                     data_offstyle="warning",
                     *({"disabled": 1} if disabled_compliance else {}),
                 ),
-                "not_applicable",
-                "not_applicable_comment",
+                # "not_applicable",
+                # "not_applicable_comment",
                 # not disabled_compliance
                 # and HTML(
                 #     '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
