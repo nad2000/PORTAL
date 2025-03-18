@@ -1044,6 +1044,7 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 #                 url="keyword-autocomplete",
 #             )
 #
+#         
 #         fields = "__all__"
 
 
@@ -1205,7 +1206,7 @@ class ApplicationAdmin(
         # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
 
-        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role",
+        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role", 
         # "user", "state", "state_changed_at", "authorized_at"]
 
         # def is_complete(self, obj):
@@ -3225,7 +3226,7 @@ class ContractAdmin(
     class CommentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractComment
         extra = 0
-        can_delete = False
+        can_delete = True
         view_on_site = False
         fields = ["created_at", "submitted_by", "html_comment", "attachment_link"]
         readonly_fields = ["created_at", "html_comment", "submitted_by", "attachment_link"]
