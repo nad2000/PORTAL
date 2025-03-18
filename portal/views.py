@@ -3679,8 +3679,8 @@ class ItemFormSetView(ModelFormSetView):
 @login_required
 @require_http_methods(["DELETE"])
 def delete_object(request, model, pk):
-    model = apps.all_models["portal"].get(model)
     messages_list = []
+    model = apps.all_models["portal"].get(model)
     if model and (o := pk and get_object_or_404(model, pk=pk)):
         try:
             if i := getattr(o, "invitation", None):
@@ -3693,13 +3693,21 @@ def delete_object(request, model, pk):
                 )
             o.delete()
         except Exception as ex:
-            messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
+            # messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
+            return render(
+                  request, 
+                  "partials/messages.html", 
+                  {"messages": [messages.Message(messages.constants.ERROR, str(ex))]})
         name = o._meta.verbose_name.title()
         messages_list.append(
             messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted"))
         )
         return render(request, "partials/messages.html", {"messages": messages_list})
-    raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
+    # raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
+    return render(
+        request, 
+        "partials/messages.html", 
+        {"messages": [messages.Message(messages.constants.ERROR, f"No matches the given query - mode: {model}, PK: {pk}")]})
 
 
 @login_required
