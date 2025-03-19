@@ -43,7 +43,7 @@
   </div>
   {% endblock buttons_above %}
 
-  {% block object_details %}
+  {% block tags %}
   {% if tag_form %}
   <div class="row">
     <div class="col-12">
@@ -55,6 +55,9 @@
     </div>
   </div>
   {% endif %}
+  {% endblock %}
+
+  {% block object_details %}
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -163,5 +166,9 @@
         });*/
       });
   </script>
-  {% if tag_form %}{{ tag_form.media.js }}{% endif %}
+  {% if tag_form %}
+  <!-- tag_form JS media -->
+    {{ tag_form.media.js }}
+  <!-- end: tag_form JS media -->
+  {% endif %}
 {% endblock javascript %}

@@ -124,6 +124,8 @@ class HelperMixin:
 
     @classmethod
     def get_or_create(cls, defaults=None, **kwargs):
+        if o := cls.objects.filter(**kwargs).order_by("-pk").first():
+            return o, False
         return cls.objects.get_or_create(defaults, **kwargs)
 
     @classmethod
@@ -270,6 +272,35 @@ class PersonMixin:
 
     def __str__(self):
         return self.full_name
+
+    def get_org_email(self, org=None):
+        if org:
+            if hasattr(self, "org") and self.org == org and hasattr(self, "email") and self.email:
+                return self.email
+            if hasattr(self, "person"):
+                if (
+                    affiliation := self.person.affiliations.filter(org=org)
+                    .order_by("-pk")
+                    .first()
+                ):
+                    email = affiliation.email
+                    if email:
+                        return email
+            if hasattr(self, "user"):
+                if (
+                    affiliation := self.user.person.affiliations.filter(org=org)
+                    .order_by("-pk")
+                    .first()
+                ):
+                    email = affiliation.email
+                    if email:
+                        return email
+        email = getattr(self, "email", None)
+        if not email and (user := self.get_user()):
+            email = (
+                user and user.email or user and user.emailaddress_set.filter(primary=True).last()
+            )
+        return email
 
 
 class EmailField(models.EmailField):

@@ -2613,6 +2613,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 ),
             )
 
+    def create_contract(self, *args, **kwargs):
+        return Contract.create_from_application(application=self, *args, **kwargs)
+
     @cache
     def can_only_update_referees(self, user):
         return bool(
@@ -9101,16 +9104,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
             members = []
             for m in a.members.filter(authorized_at__isnull=False):
+                u = m.user
                 members.append(
                     ContractMember(
                         contract=c,
-                        email=m.email,
-                        first_name=m.first_name,
-                        middle_names=m.middle_names,
-                        last_name=m.last_name,
+                        email=m.email and m.email.strip() or m.get_org_email(org=a.org),
+                        first_name=m.first_name or u and u.first_name,
+                        middle_names=m.middle_names or u and u.middle_names,
+                        last_name=m.last_name or u and u.last_name,
                         role=m.role,
-                        user=m.user,
-                        address=m.user.person.address,
+                        user=u,
+                        address=u and u.person and u.person.address,
                     )
                 )
             if not a.members.filter(role="PI").exists():

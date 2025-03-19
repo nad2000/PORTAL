@@ -521,7 +521,16 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         helper.layout = Layout(
             Row(
                 Column("tags", css_class="col-11"),
-                Column(Submit("save", _("Save"), css_class="btn-primary"), css_class="col-1"),
+                Column(
+                    Submit(
+                        "save_tags",
+                        _("Save Tags"),
+                        css_class="btn-primary",
+                        data_tooltip="tooltip",
+                        title=_("Save tags"),
+                    ),
+                    css_class="col-1",
+                ),
                 css_class="row",
             )
         )
@@ -554,14 +563,13 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             context["tag_form"] = self.tag_form()
         return context
 
-
     def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
         if hasattr(self.model, "tags"):
+            self.object = self.get_object()
             form = self.tag_form()
-            if form.is_valid():
+            if "save_tags" in form.data and form.is_valid():
                 form.save()
-        return self.get(request, *args, **kwargs)
+        return redirect(request.path)
 
 
 class ExportView(UserPassesTestMixin, DetailView):
@@ -3457,6 +3465,9 @@ class ApplicationDetail(DetailView):
 
     @method_decorator(csrf_protect)
     def post(self, request, *args, **kwargs):
+        if "save_tags" in request.POST and hasattr(self.model, "tags"):
+            return super().post(request, *args, **kwargs)
+
         self.object = self.get_object()
         if member := self.get_member():
             if not member.user:
@@ -5682,6 +5693,7 @@ class ContractDetail(DetailView):
             )
             change_request_form.fields.pop("categories")
             change_request_form.fields.pop("subcategories")
+            change_request_form.fields.pop("tags")
             context["change_request_form"] = change_request_form
         return context
 
@@ -7272,9 +7284,19 @@ class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
+    # def get_queryset(self):
+    #     qs = models.Tag.objects.all()
+
+    #     if self.q:
+    #         qs = qs.filter(name__istartswith=self.q)
+
+    #     return qs
+
     def has_add_permission(self, request):
-        # Authenticated users can add new records
         return True  # request.user.is_authenticated
+
+    # def get_create_option(self, context, q):
+    #     return []
 
 
 class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):

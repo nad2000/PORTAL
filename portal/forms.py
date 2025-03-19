@@ -4838,7 +4838,6 @@ class ReportForm(ModelForm):
 class ChangeRequestForm(ModelForm):
 
     description = forms.CharField(
-        # label="",
         required=False,
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
@@ -4870,6 +4869,7 @@ class ChangeRequestForm(ModelForm):
         if is_ro:
             del self.fields["categories"]
             del self.fields["subcategories"]
+            del self.fields["tags"]
         employments_url = reverse("profile-employments")
         educations_url = reverse("profile-educations")
         self.fields["new_host"].help_text = mark_safe(
@@ -4940,6 +4940,7 @@ class ChangeRequestForm(ModelForm):
             "state_changed_at",
             "converted_file",
         ]
+        help_texts = {"tags": ""}
         widgets = dict(
             submitted_by=HiddenInput(),
             contract=HiddenInput(),
@@ -4969,6 +4970,14 @@ class ChangeRequestForm(ModelForm):
                 ],
             ),
             types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
+            tags=autocomplete.TagSelect2(
+                url="tag-autocomplete",
+                attrs={
+                    "data-placeholder": _(
+                        "Please enter a tag or multiple tags. You can select multiple tags..."
+                    ),
+                },
+            )
         )
 
 
