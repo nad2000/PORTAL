@@ -2225,6 +2225,69 @@ class VMTOAModel(Model):
         abstract = True
 
 
+def get_unique_invitation_token():
+    while True:
+        token = secrets.token_urlsafe(8)
+        if not Invitation.objects.filter(token=token).exists():
+            return token
+
+
+class CommentModel(Model):
+
+    @property
+    def object_pk(self):
+        return self.object_id
+
+    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_subfolder=lambda instance: [
+            instance.object.model_name,
+            hash_int(instance.object_pk),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+    )
+    alert_date = CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+    )
+
+    @property
+    def target(self):
+        return self.object
+
+    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+        return self.object.import_email(
+            file,
+            file_name=file_name,
+            notify_author=notify_author,
+            request=request,
+            by=by,
+            reply_to=self,
+        )
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    class Meta:
+        verbose_name = _("comment")
+        verbose_name_plural = _("comments")
+        ordering = ["-id"]
+        abstract = True
+
+
 class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # objects = RoundSiteManager()
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
@@ -4764,13 +4827,6 @@ class ConflictOfInterest(Model):
     class Meta:
         db_table = "conflict_of_interest"
         verbose_name_plural = _("conflicts of interest")
-
-
-def get_unique_invitation_token():
-    while True:
-        token = secrets.token_urlsafe(8)
-        if not Invitation.objects.filter(token=token).exists():
-            return token
 
 
 INVITATION_TYPES = Choices(
@@ -11818,6 +11874,85 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
 
     class Meta:
         db_table = "change_request"
+
+
+class ChangeRequestComment(CommentModel):
+
+    @property
+    def object(self):
+        return self.change_request
+
+    @property
+    def object_pk(self):
+        return self.change_request_id
+
+    change_request = ForeignKey(ChangeRequest, on_delete=CASCADE, related_name="comments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="change_requests",
+        upload_subfolder=lambda instance: [
+            # "change_requests",
+            # hash_int(instance.application_id),
+            hash_int(instance.change_request_id),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+        related_name="change_request_comments",
+    )
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    @property
+    def target(self):
+        return self.change_request
+
+    class Meta(CommentModel.Meta):
+        db_table = "change_request_comment"
+        verbose_name = _("comment")
+        ordering = ["-id"]
+
+
+class ChangeRequestCommentRecipient(Model):
+
+    comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "change_request_comment_recipient"
+        verbose_name = _("recipient")
+
+
+class ChangeRequestCommentAttachment(Model):
+    comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="attachments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="change_requests",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.comment.change_request_id),
+            "comments",
+            hash_int(instance.comment_id),
+            "attachments",
+        ],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "change_request_comment_attachment"
+        verbose_name = _("attachment")
+
 
 
 dummy_for_translations = (
