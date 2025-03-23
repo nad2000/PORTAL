@@ -11620,13 +11620,15 @@ class ChangeRequestMixin:
         ("application", _("Application")),
         ("archived", _("Archived")),
         ("cancelled", _("Cancelled")),
+        ("declined", _("Declined")),
         ("draft", _("WIP")),
-        ("submitted", _("Submitted")),
+        ("submitted", _("Under Review")),
+        # ("submitted", _("Submitted")),
         ("withdrawn", _("Withdrawn")),
     )
 
 
-class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
+class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
     tags = TaggableManager(blank=True)
     number = CharField(
@@ -11863,7 +11865,7 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
                     (
                         f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
                         if is_variation
-                        else f'Tranfered contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                        else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
                     ),
                 )
         except Exception as e:
@@ -11871,6 +11873,15 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
                 messages.error(request, f"Failed to accept the change request: {e}")
             capture_message(e)
             raise
+
+    @property
+    def agency_recipients(self):
+        c = self.contract
+        return [c.fund.email] if c.fund and c.fund.email else c.site.staff_users.all()
+
+    @property
+    def host_recipients(self):
+        return self.contract.host_emails
 
     class Meta:
         db_table = "change_request"
@@ -11952,7 +11963,6 @@ class ChangeRequestCommentAttachment(Model):
     class Meta:
         db_table = "change_request_comment_attachment"
         verbose_name = _("attachment")
-
 
 
 dummy_for_translations = (

@@ -150,6 +150,65 @@ class ReadOnlyFieldsMixin:
     #     return super().clean()
 
 
+class FormWithCommentMixin:
+    pass
+
+
+class CommentForm(FormWithCommentMixin, forms.Form):
+
+    comment = forms.CharField(
+        label="",
+        required=False,
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
+    attachment = FileField(
+        required=False,
+        label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": (
+                    ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                )
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+        helper = getattr(self, "helper", None) or FormHelper(self)
+        # helper.include_media = False
+        # helper.form_tag = False
+        helper.layout = Layout(
+            Field("comment"),
+            Fieldset(
+                None,
+                Field("attachment"),
+                ButtonHolder(
+                    Submit(
+                        "post_comment",
+                        _("Post Comment"),
+                        css_class="btn-primary",
+                    ),
+                    Button(
+                        "import_email_file",
+                        _("Import Email"),
+                        hx_get=reverse("email-import", kwargs={"pk": instance and instance.pk})
+                        + "?_modal_dialog=1",
+                        hx_target="#form-dialog",
+                        hx_params="none",
+                        data_toggle="tooltip",
+                        title=_("Import an email file as a comment ..."),
+                        css_class="btn-outline-primary",
+                    ),
+                    css_class="float-right",
+                ),
+            ),
+        )
+        self.helper = helper
+
+
 class FormWithStateFieldMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -4882,14 +4941,14 @@ class ChangeRequestForm(ModelForm):
         if contract and (pi := contract.pi):
             self.fields["new_host"].widget.forward.append(forward.Const(pi.pk, "user"))
         submission_disabled = not instance or not is_ro
-        self.helper = FormHelper(self)
-        self.helper.use_custom_control = True
+        helper = FormHelper(self)
+        helper.use_custom_control = True
         if not submission_disabled:
-            self.helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
-            self.helper.add_input(Submit("submit", _("Submit"), css_class="btn-primary"))
+            helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
+            helper.add_input(Submit("submit", _("Submit"), css_class="btn-primary"))
         else:
-            self.helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
-            self.helper.add_input(
+            helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
+            helper.add_input(
                 Submit(
                     "resubmit",
                     _("Resubmit"),
@@ -4898,7 +4957,7 @@ class ChangeRequestForm(ModelForm):
                     title=_("Request resubmission of the change request"),
                 )
             )
-            self.helper.add_input(
+            helper.add_input(
                 Submit(
                     "accept",
                     _("Accept"),
@@ -4909,7 +4968,7 @@ class ChangeRequestForm(ModelForm):
                     ),
                 )
             )
-        self.helper.add_input(
+        helper.add_input(
             Button(
                 "close",
                 _("Close"),
@@ -4917,6 +4976,17 @@ class ChangeRequestForm(ModelForm):
                 onclick=f"window.location='{instance.get_absolute_url()}';",
             )
         )
+        if instance and instance.pk:
+            helper.layout = Layout()
+            # helper.add_input(
+            #     Button(
+            #         "delete",
+            #         _("Delete"),
+            #         css_class="btn-outline-danger",
+            #         onclick=f"window.location='{instance.get_delete_url()}';",
+            #     )
+            # )
+        self.helper = helper
 
     def save(self, *args, **kwargs):
         instance = self.instance
@@ -4977,7 +5047,7 @@ class ChangeRequestForm(ModelForm):
                         "Please enter a tag or multiple tags. You can select multiple tags..."
                     ),
                 },
-            )
+            ),
         )
 
 

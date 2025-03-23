@@ -511,7 +511,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                     },
                 )
             },
-        )(self.request.POST, instance=self.object)
+        )(self.request.POST or None, instance=self.object)
         helper = FormHelper(form)
         helper.help_text_inline = False
         helper.html5_required = False
@@ -537,15 +537,14 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         form.helper = helper
         return form
 
+    def get_comment_form(self):
+        return forms.CommentForm(
+            self.request.POST or None, self.request.FILES, instance=self.object
+        )
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context["exclude"] = [
-            "id",
-            "created_at",
-            "updated_at",
-            "org",
-            "site",
-        ]
+        context["exclude"] = ["id", "created_at", "updated_at", "org", "site", "comments"]
         model_name_slug = self.object._meta.db_table.replace("_", "-").lower()
         context["update_view_name"] = f"{model_name_slug}-update"
         context["category"] = self.object._meta.verbose_name_plural
@@ -561,7 +560,78 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
         if hasattr(self.model, "tags"):
             context["tag_form"] = self.tag_form()
+
+        if hasattr(self.model, "comments"):
+            context["has_comments"] = True
+            context["comments"] = self.object.comments.all()
+            context["comment_form"] = self.get_comment_form()
+
         return context
+
+    def post_comment(self, request, *args, **kwargs):
+
+        form = self.get_comment_form()
+        if not form.is_valid():
+            return self.get(request, *args, **kwargs)
+
+        token = models.get_unique_mail_token()
+        attachment = form.cleaned_data.get("attachment", None)
+        if body := form.cleaned_data.get("comment", None):
+            body = body.strip()
+
+        i = self.object
+        c = i.contract
+        u = request.user
+        is_ro = c.org.research_offices.filter(user=u).exists()
+        recipients = i.host_recipients if is_ro else i.agency_recipients
+
+        if body or attachment:
+            comment = i.comments.model(
+                submitted_by=u,
+                comment=body,
+                attachment=attachment,
+                token=token,
+            )
+
+            i.comments.add(
+                comment,
+                bulk=False,
+            )
+
+            respond_url = self.request.build_absolute_uri(i.get_absolute_url()) + "#correspondence"
+            html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                request=self.request,
+                from_email="variations",
+                subject=f"Comment posted by {u.full_name_with_email} to {i}",
+                html_message=html_message,
+                cc=[u.full_email_address],
+                attachments=attachment and [attachment],
+                recipients=recipients,
+                thread_index=i.thread_index,
+                thread_topic=i.thread_topic,
+                token=token,
+            )
+
+            comment.recipients.model.objects.bulk_create(
+                [
+                    (
+                        comment.recipients.model(comment=comment, user=r, email=r.email)
+                        if isinstance(r, models.User)
+                        else comment.recipients.model(
+                            comment=comment,
+                            email=r,
+                            user=User.where(
+                                Q(email__iexact=r) | Q(emailaddress__email__iexact=r)
+                            ).first(),
+                        )
+                    )
+                    for r in recipients
+                ]
+            )
+            return redirect(request.path.split("#")[0] + "#correspondence")
 
     def post(self, request, *args, **kwargs):
         if hasattr(self.model, "tags"):
@@ -569,6 +639,11 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             form = self.tag_form()
             if "save_tags" in form.data and form.is_valid():
                 form.save()
+
+        if "post_comment" in request.POST and hasattr(self.model, "comments"):
+            self.object = self.get_object()
+            return self.post_comment(request, *args, **kwargs)
+
         return redirect(request.path)
 
 
@@ -6475,6 +6550,7 @@ class ContractViewMixin:
                 return redirect(
                     reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
                 )
+
         return resp
 
 

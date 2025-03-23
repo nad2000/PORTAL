@@ -33,6 +33,8 @@
     {% endblock %}
   </h1>
 
+  <div class="row">
+    <div class="col-12">
 
   {% block buttons_above %}
   <div class="row">
@@ -58,6 +60,24 @@
   {% endblock %}
 
   {% block object_details %}
+
+      {% if has_comments %}
+        <ul class="nav nav-tabs">
+          <li class="nav-item active">
+            <a class="nav-link active" href="#details" data-target="#details" data-toggle="tab">{% trans 'Details' %}</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="#correspondence" data-target="#correspondence" data-toggle="tab">
+                <i class="fas fa-comments"></i> {% trans 'Correspondence' %}
+              </a>
+          </li>
+        </ul>
+
+        <div class="tab-content card-body">
+          <div id="details" class="tab-pane active">
+
+      {% endif %}
+
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -95,6 +115,21 @@
     </tbody>
   </table>
   </div>
+
+
+  {% if has_comments %}
+
+    </div>
+
+    <div id="correspondence" class="tab-pane">
+      {% crispy comment_form comment_form.helper %}
+      {% include 'snippets/comments.html' %}
+    </div>
+
+    </div>
+
+  {% endif %}
+
   {% endblock object_details %}
 
   {% block extra_object %}
@@ -148,12 +183,23 @@
   {% include 'snippets/detail_buttons.html' %}
   {% endblock buttons_bellow %}
 
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block javascript %}
   {{ block.super }}
   <script>
     $(document).ready(function(){
+        // Keep track of the active tab
+        $(document.body).on("click", "a[data-toggle='tab']", function(event) {
+          location.hash = this.getAttribute("href");
+        });
+        // Jump to the last active tab:
+        if (location.hash) {
+            $('.nav a[href="' + location.hash + '"]').tab('show');
+        }
         $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
         /*
         htmx.on("htmx:afterSwap", (e) => {

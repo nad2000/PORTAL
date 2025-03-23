@@ -1,4 +1,5 @@
 import copy
+import base64
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import checks, validators
@@ -85,6 +86,18 @@ class HelperMixin:
             model.objects.bulk_create(related)
 
         return clone
+
+    @property
+    def thread_index(self):
+        if site_id := getattr(self, "site_id", None):
+            return base64.b64encode(f"{site_id}:{self.pk}".encode()).decode()
+        return base64.b64encode(f"{self.pk}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        if hasattr(self, "number"):
+            return self.number
+        return str(self)
 
     @property
     def can_export_to_pdf(self):
@@ -278,11 +291,7 @@ class PersonMixin:
             if hasattr(self, "org") and self.org == org and hasattr(self, "email") and self.email:
                 return self.email
             if hasattr(self, "person"):
-                if (
-                    affiliation := self.person.affiliations.filter(org=org)
-                    .order_by("-pk")
-                    .first()
-                ):
+                if affiliation := self.person.affiliations.filter(org=org).order_by("-pk").first():
                     email = affiliation.email
                     if email:
                         return email
