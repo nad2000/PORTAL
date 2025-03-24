@@ -2487,6 +2487,12 @@ class SchemeAdmin(
         if obj.current_round_id:
             return f"{reverse('applications')}?round={obj.current_round_id}"
 
+    def save_model(self, request, obj, form, change):
+        if obj and obj.fund and obj.fund.site != obj.site:
+            messages.warning(request, f"The schema created in a different 'site' form the fund's site: {obj.fund.site}. "
+                "You might need to reassing the fund to the current site.")
+        super().save_model(request, obj, form, change)
+
     class RoundInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Round

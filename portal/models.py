@@ -5787,8 +5787,8 @@ class Scheme(Model):
         return self.code
 
     def save(self, *args, **kwargs):
-        if self.fund and self.fund.site and self.site != self.fund.site:
-            self.site = self.fund.site
+        # if self.fund and self.fund.site and self.site != self.fund.site:
+        #     self.site = self.fund.site
         if not self.code:
             self.code = default_scheme_code(self.title)
         super().save(*args, **kwargs)
