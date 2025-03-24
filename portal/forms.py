@@ -154,7 +154,7 @@ class FormWithCommentMixin:
     pass
 
 
-class CommentForm(FormWithCommentMixin, forms.Form):
+class CommentForm(FormWithCommentMixin, ModelForm):
 
     comment = forms.CharField(
         label="",

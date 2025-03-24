@@ -16,6 +16,10 @@
 
 {% block content %}
 
+  {% if transitions %}
+    {% include 'snippets/resolution_modal.html' %}
+  {% endif %}
+
   <!-- Placeholder for the modal -->
   <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
     <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
@@ -71,6 +75,12 @@
                 <i class="fas fa-comments"></i> {% trans 'Correspondence' %}
               </a>
           </li>
+          <li class="nav-item">
+              <a class="nav-link" href="#attachments" data-target="#attachments" data-toggle="tab">
+                <i class="fas fa-paperclip"></i> {% trans 'Attachment(s)' %}
+              </a>
+          </li>
+        </ul>
         </ul>
 
         <div class="tab-content card-body">
@@ -121,10 +131,14 @@
 
     </div>
 
-    <div id="correspondence" class="tab-pane">
-      {% crispy comment_form comment_form.helper %}
-      {% include 'snippets/comments.html' %}
-    </div>
+	    <div id="correspondence" class="tab-pane">
+	      {% crispy comment_form comment_form.helper %}
+	      {% include 'snippets/comments.html' %}
+	    </div>
+
+	    <div id="attachments" class="tab-pane">
+	    	TODO: list of all the attachments ...
+	    </div>
 
     </div>
 

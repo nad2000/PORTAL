@@ -262,7 +262,7 @@ class SafeTemplateColumn(tables.TemplateColumn):
 def default_start_date(record=None):
     if (record and record.site_id or settings.SITE_ID) == 5:
         return timezone.now().date().replace(day=1, month=3)
-    return (timezone.now().date().replace(day=1) + relativedelta(months=1))
+    return timezone.now().date().replace(day=1) + relativedelta(months=1)
 
 
 class ApplicationTable(tables.Table):
@@ -870,9 +870,7 @@ class ChangeRequestTable(tables.Table):
     number = tables.Column(
         # accessor="pk",
         # verbose_name=gettext_lazy("ID"),
-        linkify=lambda value, record: reverse(
-            "change-request", kwargs=dict(pk=record.pk)
-        ),
+        linkify=lambda value, record: reverse("change-request", kwargs=dict(pk=record.pk)),
         # order_by="pk",
     )
     contract = tables.Column(
@@ -882,15 +880,20 @@ class ChangeRequestTable(tables.Table):
         ),
         order_by="contract__number",
     )
+    pi = tables.Column(
+        gettext_lazy("Contract PI"),
+        tables.A("contract__pi__full_name_with_email"),
+        orderable=False,
+    )
 
     def render_description(self, record, value):
         if not value:
-            return 'N/A'
+            return "N/A"
         return mark_safe(value)
 
     class Meta:
         model = models.ChangeRequest
-        fields = ("state", "number", "contract", "description")
+        fields = ("state", "number", "contract", "pi")
 
 
 # class ReportTable(tables.Table):

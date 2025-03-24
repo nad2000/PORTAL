@@ -28,7 +28,19 @@
          <a class="btn btn-primary{% if object.state == "submitted" or object.state == "accepted" or object.referee.survey_completed_at  %} disabled{% endif %}"
             href="{{ survey_url }}" target="_blank">{% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong></a>
     </div>
+  {% endif %}
 
+  {% if transitions %}
+    {% for t in transitions %}
+      <button id="id_{{ t.0 }}"
+              type="button"
+              class="btn btn-outline-primary"
+              name="{{ t.0 }}"
+              data-toggle="modal"
+              data-action="{{ t.0 }}"
+              data-target="#id_resolution_modal"
+              value="{{ t.0 }}"> {{ t.1 }}</button>
+    {% endfor %}
   {% endif %}
 
   {% if update_view_name %}
@@ -66,10 +78,12 @@
          title="{% trans 'Withdraw the nomination and cancel application if the application was already created.' %}"
       {% endif %}
     >
+    {% if not transitions %}
     <button id="id_withdraw" type="button" class="btn btn-danger" name="withdraw"
        {% if not object.application.is_wip %} disabled style="pointer-events: none;"
        {% else %}data-toggle="modal" data-action="withdraw" data-target="#id_resolution_modal"{% endif %} value="withdraw"
       >{% trans 'Withdraw' %}</button>
+    {% endif %}
     </div>
   {% endif %}
 

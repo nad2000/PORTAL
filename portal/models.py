@@ -11639,7 +11639,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     types = ManyToManyField(
         ChangeType,
         db_table="change_request_change_type",
-        verbose_name=_("Types"),
+        verbose_name=_("Type(s)"),
         related_name="change_requests",
     )
     categories = ManyToManyField(
@@ -11712,6 +11712,12 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
+
+    def is_ro(self, user):
+        return self.contract and self.contract.org.research_offices.filter(user=user).exists()
+
+    def is_admin(self, user):
+        return user.is_staff or user.is_superuser or user.is_site_staff
 
     @classmethod
     def user_object_counts(
@@ -11830,9 +11836,25 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         field=state,
         source=["*"],
         target="submitted",
-        custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
+        custom=dict(verbose="Submit", button_name="Submit for review", admin=False),
+        permission=lambda instance, user: instance.is_ro(user),
     )
     def submit(self, *args, **kwargs):
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["draft", "submitted"],
+        target="withdrawn",
+        custom=dict(verbose="Withdraw", button_name="Withdraw"),
+        permission=lambda instance, user: instance.is_ro(user),
+    )
+    def withdraw(self, *args, **kwargs):
         if not self.submitted_by:
             by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
             if not (by.is_superuser or by.is_site_staff):
@@ -11845,6 +11867,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         source=["*"],
         target="accepted",
         custom=dict(verbose="Accept", button_name="Accept", admin=False),
+        permission=lambda instance, user: instance.is_admin(user),
     )
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
 
@@ -11872,6 +11895,43 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             if request:
                 messages.error(request, f"Failed to accept the change request: {e}")
             capture_message(e)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="declined",
+        custom=dict(verbose="Decline", button_name="Decline", admin=False),
+        permission=lambda instance, user: instance.is_admin(user),
+    )
+    def decline(self, request=None, by=None, description=None, *args, **kwargs):
+
+        assert self.contract, "Contract is required to accept a change request."
+
+        is_variation = not self.types.filter(code="TR").exists()
+        try:
+            new_contract = self.contract.clone(
+                change_request=self,
+                is_variation=is_variation,
+            )
+            self.derivative = new_contract
+
+            if request:
+                url = reverse("contract", args=[new_contract.pk])
+                messages.success(
+                    request,
+                    (
+                        f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
+                        if is_variation
+                        else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                    ),
+                )
+        except Exception as e:
+            if request:
+                messages.error(request, f"Failed to accept the change request: {e}")
+            capture_message(e)
+            raise
+
             raise
 
     @property

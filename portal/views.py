@@ -494,6 +494,24 @@ class SingleObjectMixin(ContextMixin):
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
 
+    def get_transitions(self):
+        model_name = self.object._meta.model_name
+
+        def button_name(transition):
+            if hasattr(transition, "custom") and "button_name" in transition.custom:
+                return transition.custom["button_name"]
+            else:
+                # Make the function name the button title, but prettier
+                return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
+
+        if not getattr(self, "object", None):
+            self.object = self.get_object()
+        return [
+            (t.name, button_name(t))
+            for t in self.object.get_available_user_state_transitions(self.request.user)
+            if t.name not in ["submit", "archive", "save_draft"]
+        ]
+
     def tag_form(self, *args, **kwargs):
 
         form = modelform_factory(
@@ -538,9 +556,27 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         return form
 
     def get_comment_form(self):
-        return forms.CommentForm(
-            self.request.POST or None, self.request.FILES, instance=self.object
+
+        CommentForm = modelform_factory(
+            self.model.comments.rel.model,
+            form=forms.CommentForm,
+            fields=["comment", "attachment"],
+            exclude=["report", "token", "contract", "change_request", "object"],
         )
+        return CommentForm(
+            self.request.POST or None, self.request.FILES or None, instance=self.object
+        )
+        # model,
+        # form=ModelForm,
+        # fields=None,
+        # exclude=None,
+        # formfield_callback=None,
+        # widgets=None,
+        # localized_fields=None,
+        # labels=None,
+        # help_texts=None,
+        # error_messages=None,
+        # field_classes=None,
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -565,6 +601,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             context["has_comments"] = True
             context["comments"] = self.object.comments.all()
             context["comment_form"] = self.get_comment_form()
+
+        if hasattr(self.model, "state") and self.object.state != "arhcived":
+            context["transitions"] = self.get_transitions()
 
         return context
 
