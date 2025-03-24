@@ -4845,7 +4845,7 @@ class ChangeRequestForm(ModelForm):
     file = FileField(
         required=False,
         label="Request letter",
-        widget=forms.FileInput(
+        widget=forms.ClearableFileInput(
             attrs={
                 "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
             }
@@ -4943,7 +4943,7 @@ class ChangeRequestForm(ModelForm):
         widgets = dict(
             submitted_by=HiddenInput(),
             contract=HiddenInput(),
-            file=forms.FileInput(
+            file=forms.ClearableFileInput(
                 attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
             ),
             # start_date=DateInput(),
