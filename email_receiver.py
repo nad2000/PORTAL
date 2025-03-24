@@ -219,8 +219,19 @@ if __name__ == "__main__":
         else:
             message_id = None
 
-    if to and (to.startswith("contracts") or to.startswith("comments")) and message_id:
-        if contract := models.Contract.all_objects.filter(comments__token=message_id).last():
+    if to and message_id and (to.startswith("contracts") or to.startswith("comments") or to.startswith("change-requests")):
+        if to.startswith("change-requests"):
+            reply_to = models.ChangeRequestComment.where(token=message_id).order_by("-pk").first()
+        else:
+            reply_to = models.ContractComment.where(token=message_id).last()
+        if not reply_to:
+            pass
+
+        o = reply_to.object
+        if contract := (
+                reply_to.object.contract if to.startswith("change-requests") else
+                models.Contract.all_objects.filter(comments__token=message_id).last() else models.ChangeRequest.where(token=message_id).first()):
+
             if site := contract.site:
                 settings.SITE_ID = site.pk
 
@@ -312,7 +323,7 @@ if __name__ == "__main__":
 
     if (
         to
-        and (to.startswith("reports") or to.startswith("reports"))
+        and to.startswith("reports")
         and message_id
         and (reply_to := models.ReportComment.where(token=message_id).last())
     ):

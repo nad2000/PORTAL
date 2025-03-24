@@ -150,6 +150,65 @@ class ReadOnlyFieldsMixin:
     #     return super().clean()
 
 
+class FormWithCommentMixin:
+    pass
+
+
+class CommentForm(FormWithCommentMixin, ModelForm):
+
+    comment = forms.CharField(
+        label="",
+        required=False,
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
+    attachment = FileField(
+        required=False,
+        label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": (
+                    ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                )
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+        helper = getattr(self, "helper", None) or FormHelper(self)
+        # helper.include_media = False
+        # helper.form_tag = False
+        helper.layout = Layout(
+            Field("comment"),
+            Fieldset(
+                None,
+                Field("attachment"),
+                ButtonHolder(
+                    Submit(
+                        "post_comment",
+                        _("Post Comment"),
+                        css_class="btn-primary",
+                    ),
+                    Button(
+                        "import_email_file",
+                        _("Import Email"),
+                        hx_get=reverse("email-import", kwargs={"pk": instance and instance.pk})
+                        + "?_modal_dialog=1",
+                        hx_target="#form-dialog",
+                        hx_params="none",
+                        data_toggle="tooltip",
+                        title=_("Import an email file as a comment ..."),
+                        css_class="btn-outline-primary",
+                    ),
+                    css_class="float-right",
+                ),
+            ),
+        )
+        self.helper = helper
+
+
 class FormWithStateFieldMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1441,7 +1500,7 @@ class ApplicationForm(ModelForm):
 
 
 class ContractMemberForm(FTEMixin, ModelForm):
-    # role =Field(queryset
+
     role = forms.ModelChoiceField(
         queryset=models.RoleType.where(for_application=True).order_by(
             models.Coalesce("name", "code")
@@ -1795,8 +1854,8 @@ class ContractForm(ModelForm):
                     data_offstyle="warning",
                     *({"disabled": 1} if disabled_compliance else {}),
                 ),
-                "not_applicable",
-                "not_applicable_comment",
+                # "not_applicable",
+                # "not_applicable_comment",
                 # not disabled_compliance
                 # and HTML(
                 #     '<p id="id_requires_approval_comment_help" class="text-warning">%s</p>'
@@ -4838,7 +4897,6 @@ class ReportForm(ModelForm):
 class ChangeRequestForm(ModelForm):
 
     description = forms.CharField(
-        # label="",
         required=False,
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
@@ -4870,6 +4928,7 @@ class ChangeRequestForm(ModelForm):
         if is_ro:
             del self.fields["categories"]
             del self.fields["subcategories"]
+            del self.fields["tags"]
         employments_url = reverse("profile-employments")
         educations_url = reverse("profile-educations")
         self.fields["new_host"].help_text = mark_safe(
@@ -4882,14 +4941,14 @@ class ChangeRequestForm(ModelForm):
         if contract and (pi := contract.pi):
             self.fields["new_host"].widget.forward.append(forward.Const(pi.pk, "user"))
         submission_disabled = not instance or not is_ro
-        self.helper = FormHelper(self)
-        self.helper.use_custom_control = True
+        helper = FormHelper(self)
+        helper.use_custom_control = True
         if not submission_disabled:
-            self.helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
-            self.helper.add_input(Submit("submit", _("Submit"), css_class="btn-primary"))
+            helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
+            helper.add_input(Submit("submit", _("Submit"), css_class="btn-primary"))
         else:
-            self.helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
-            self.helper.add_input(
+            helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
+            helper.add_input(
                 Submit(
                     "resubmit",
                     _("Resubmit"),
@@ -4898,7 +4957,7 @@ class ChangeRequestForm(ModelForm):
                     title=_("Request resubmission of the change request"),
                 )
             )
-            self.helper.add_input(
+            helper.add_input(
                 Submit(
                     "accept",
                     _("Accept"),
@@ -4909,7 +4968,7 @@ class ChangeRequestForm(ModelForm):
                     ),
                 )
             )
-        self.helper.add_input(
+        helper.add_input(
             Button(
                 "close",
                 _("Close"),
@@ -4917,6 +4976,17 @@ class ChangeRequestForm(ModelForm):
                 onclick=f"window.location='{instance.get_absolute_url()}';",
             )
         )
+        if instance and instance.pk:
+            helper.layout = Layout()
+            # helper.add_input(
+            #     Button(
+            #         "delete",
+            #         _("Delete"),
+            #         css_class="btn-outline-danger",
+            #         onclick=f"window.location='{instance.get_delete_url()}';",
+            #     )
+            # )
+        self.helper = helper
 
     def save(self, *args, **kwargs):
         instance = self.instance
@@ -4940,6 +5010,7 @@ class ChangeRequestForm(ModelForm):
             "state_changed_at",
             "converted_file",
         ]
+        help_texts = {"tags": ""}
         widgets = dict(
             submitted_by=HiddenInput(),
             contract=HiddenInput(),
@@ -4969,6 +5040,14 @@ class ChangeRequestForm(ModelForm):
                 ],
             ),
             types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
+            tags=autocomplete.TagSelect2(
+                url="tag-autocomplete",
+                attrs={
+                    "data-placeholder": _(
+                        "Please enter a tag or multiple tags. You can select multiple tags..."
+                    ),
+                },
+            ),
         )
 
 

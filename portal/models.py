@@ -100,7 +100,8 @@ from pypdf.errors import PdfReadError
 from sentry_sdk import capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
-from taggit.models import TagBase
+from taggit.models import TagBase, Tag
+from taggit.managers import TaggableManager
 from weasyprint import HTML
 
 from common.models import (
@@ -2224,11 +2225,75 @@ class VMTOAModel(Model):
         abstract = True
 
 
+def get_unique_invitation_token():
+    while True:
+        token = secrets.token_urlsafe(8)
+        if not Invitation.objects.filter(token=token).exists():
+            return token
+
+
+class CommentModel(Model):
+
+    @property
+    def object_pk(self):
+        return self.object_id
+
+    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_subfolder=lambda instance: [
+            instance.object.model_name,
+            hash_int(instance.object_pk),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+    )
+    alert_date = CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+    )
+
+    @property
+    def target(self):
+        return self.object
+
+    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+        return self.object.import_email(
+            file,
+            file_name=file_name,
+            notify_author=notify_author,
+            request=request,
+            by=by,
+            reply_to=self,
+        )
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    class Meta:
+        verbose_name = _("comment")
+        verbose_name_plural = _("comments")
+        ordering = ["-id"]
+        abstract = True
+
+
 class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # objects = RoundSiteManager()
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
+    tags = TaggableManager(blank=True)
 
     is_preliminary = BooleanField(_("is preliminary"), null=True, blank=True, default=False)
     preliminary = ForeignKey(
@@ -2610,6 +2675,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     role_id="PI",
                 ),
             )
+
+    def create_contract(self, *args, **kwargs):
+        return Contract.create_from_application(application=self, *args, **kwargs)
 
     @cache
     def can_only_update_referees(self, user):
@@ -4759,13 +4827,6 @@ class ConflictOfInterest(Model):
     class Meta:
         db_table = "conflict_of_interest"
         verbose_name_plural = _("conflicts of interest")
-
-
-def get_unique_invitation_token():
-    while True:
-        token = secrets.token_urlsafe(8)
-        if not Invitation.objects.filter(token=token).exists():
-            return token
 
 
 INVITATION_TYPES = Choices(
@@ -8566,6 +8627,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
     objects = ContractManager()
     all_objects = Manager()
+    tags = TaggableManager(blank=True)
 
     number = CharField(_("number"), max_length=40, unique=True)
     host_number = CharField(_("host_number"), max_length=100, null=True, blank=True)
@@ -9098,16 +9160,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
             members = []
             for m in a.members.filter(authorized_at__isnull=False):
+                u = m.user
                 members.append(
                     ContractMember(
                         contract=c,
-                        email=m.email,
-                        first_name=m.first_name,
-                        middle_names=m.middle_names,
-                        last_name=m.last_name,
+                        email=m.email and m.email.strip() or m.get_org_email(org=a.org),
+                        first_name=m.first_name or u and u.first_name,
+                        middle_names=m.middle_names or u and u.middle_names,
+                        last_name=m.last_name or u and u.last_name,
                         role=m.role,
-                        user=m.user,
-                        address=m.user.person.address,
+                        user=u,
+                        address=u and u.person and u.person.address,
                     )
                 )
             if not a.members.filter(role="PI").exists():
@@ -10319,14 +10382,15 @@ class ContractMember(PersonMixin, Model):
         if not (c := getattr(self, "contract", None)):
             raise ValidationError(_("Missing contract"))
         member_id = getattr(self, "id", None)
-        q = c.members.filter(email=self.email)
-        if member_id:
-            q = q.filter(~Q(id=member_id))
-        if q.exists():
-            raise ValidationError(
-                _("Team member with the email address %(email)s was already added"),
-                params={"email": self.email},
-            )
+        if self.email and self.email.strip():
+            q = c.members.filter(email=self.email)
+            if member_id:
+                q = q.filter(~Q(id=member_id))
+            if q.exists():
+                raise ValidationError(
+                    _("Team member with the email address %(email)s was already added"),
+                    params={"email": self.email},
+                )
 
     def __str__(self):
         return self.full_name_with_email
@@ -10525,6 +10589,7 @@ class ReportMixin:
 
 
 class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
+    tags = TaggableManager(blank=True)
     schedule_entry = OneToOneField(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
@@ -11555,14 +11620,17 @@ class ChangeRequestMixin:
         ("application", _("Application")),
         ("archived", _("Archived")),
         ("cancelled", _("Cancelled")),
+        ("declined", _("Declined")),
         ("draft", _("WIP")),
-        ("submitted", _("Submitted")),
+        ("submitted", _("Under Review")),
+        # ("submitted", _("Submitted")),
         ("withdrawn", _("Withdrawn")),
     )
 
 
-class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
+class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
+    tags = TaggableManager(blank=True)
     number = CharField(
         _("number"), max_length=24, null=True, blank=True, unique=True, editable=False
     )
@@ -11571,7 +11639,7 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
     types = ManyToManyField(
         ChangeType,
         db_table="change_request_change_type",
-        verbose_name=_("Types"),
+        verbose_name=_("Type(s)"),
         related_name="change_requests",
     )
     categories = ManyToManyField(
@@ -11644,6 +11712,12 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
+
+    def is_ro(self, user):
+        return self.contract and self.contract.org.research_offices.filter(user=user).exists()
+
+    def is_admin(self, user):
+        return user.is_staff or user.is_superuser or user.is_site_staff
 
     @classmethod
     def user_object_counts(
@@ -11762,9 +11836,25 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         field=state,
         source=["*"],
         target="submitted",
-        custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
+        custom=dict(verbose="Submit", button_name="Submit for review", admin=False),
+        permission=lambda instance, user: instance.is_ro(user),
     )
     def submit(self, *args, **kwargs):
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["draft", "submitted"],
+        target="withdrawn",
+        custom=dict(verbose="Withdraw", button_name="Withdraw"),
+        permission=lambda instance, user: instance.is_ro(user),
+    )
+    def withdraw(self, *args, **kwargs):
         if not self.submitted_by:
             by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
             if not (by.is_superuser or by.is_site_staff):
@@ -11777,6 +11867,7 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         source=["*"],
         target="accepted",
         custom=dict(verbose="Accept", button_name="Accept", admin=False),
+        permission=lambda instance, user: instance.is_admin(user),
     )
     def accept(self, request=None, by=None, description=None, *args, **kwargs):
 
@@ -11797,7 +11888,42 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
                     (
                         f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
                         if is_variation
-                        else f'Tranfered contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                        else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                    ),
+                )
+        except Exception as e:
+            if request:
+                messages.error(request, f"Failed to accept the change request: {e}")
+            capture_message(e)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="declined",
+        custom=dict(verbose="Decline", button_name="Decline", admin=False),
+        permission=lambda instance, user: instance.is_admin(user),
+    )
+    def decline(self, request=None, by=None, description=None, *args, **kwargs):
+
+        assert self.contract, "Contract is required to accept a change request."
+
+        is_variation = not self.types.filter(code="TR").exists()
+        try:
+            new_contract = self.contract.clone(
+                change_request=self,
+                is_variation=is_variation,
+            )
+            self.derivative = new_contract
+
+            if request:
+                url = reverse("contract", args=[new_contract.pk])
+                messages.success(
+                    request,
+                    (
+                        f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
+                        if is_variation
+                        else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
                     ),
                 )
         except Exception as e:
@@ -11806,8 +11932,97 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
             capture_message(e)
             raise
 
+            raise
+
+    @property
+    def agency_recipients(self):
+        c = self.contract
+        return [c.fund.email] if c.fund and c.fund.email else c.site.staff_users.all()
+
+    @property
+    def host_recipients(self):
+        return self.contract.host_emails
+
     class Meta:
         db_table = "change_request"
+
+
+class ChangeRequestComment(CommentModel):
+
+    @property
+    def object(self):
+        return self.change_request
+
+    @property
+    def object_pk(self):
+        return self.change_request_id
+
+    change_request = ForeignKey(ChangeRequest, on_delete=CASCADE, related_name="comments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="change_requests",
+        upload_subfolder=lambda instance: [
+            # "change_requests",
+            # hash_int(instance.application_id),
+            hash_int(instance.change_request_id),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("submitted by"),
+        related_name="change_request_comments",
+    )
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    @property
+    def target(self):
+        return self.change_request
+
+    class Meta(CommentModel.Meta):
+        db_table = "change_request_comment"
+        verbose_name = _("comment")
+        ordering = ["-id"]
+
+
+class ChangeRequestCommentRecipient(Model):
+
+    comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "change_request_comment_recipient"
+        verbose_name = _("recipient")
+
+
+class ChangeRequestCommentAttachment(Model):
+    comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="attachments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="change_requests",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.comment.change_request_id),
+            "comments",
+            hash_int(instance.comment_id),
+            "attachments",
+        ],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "change_request_comment_attachment"
+        verbose_name = _("attachment")
 
 
 dummy_for_translations = (

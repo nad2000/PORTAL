@@ -1043,6 +1043,7 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 #             "keywords": autocomplete.ModelSelect2Multiple(
 #                 url="keyword-autocomplete",
 #             )
+#
 #         
 #         fields = "__all__"
 
@@ -1110,6 +1111,7 @@ class ApplicationAdmin(
         "org",
         "state",
         "is_active_round",
+        # "tag_list",
     ]
     list_filter = [
         IsActiveRoundApplicationListFilter,
@@ -1163,6 +1165,11 @@ class ApplicationAdmin(
             object_id,
             form_url,
             extra_context=extra_context,
+        )
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request).prefetch_related("tags").select_related("round", "org")
         )
 
     def complete(self, obj):
@@ -1322,6 +1329,7 @@ class ApplicationAdmin(
                     ("email", "main_applicant"),
                     "presentation_url",
                     "is_tac_accepted",
+                    "tags",
                 ],
             },
         ),
@@ -3218,7 +3226,7 @@ class ContractAdmin(
     class CommentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractComment
         extra = 0
-        can_delete = False
+        can_delete = True
         view_on_site = False
         fields = ["created_at", "submitted_by", "html_comment", "attachment_link"]
         readonly_fields = ["created_at", "html_comment", "submitted_by", "attachment_link"]

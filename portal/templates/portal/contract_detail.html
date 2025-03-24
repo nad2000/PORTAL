@@ -136,7 +136,9 @@
 {% block javascript %}
   {{ block.super }}
   <script src="{% static 'js/project.js' %}"></script>
+  <!-- change_request_form JS media -->
   {{ change_request_form.media.js }}
+  <!-- end: change_request_form JS media -->
   <script>
     $(document).ready(function() {
         $("#div_id_new_host").hide();

@@ -1,7 +1,24 @@
 {% extends 'base.html' %}
-{% load i18n tags %}
+{% load i18n tags crispy_forms_tags %}
+
+{% if tag_form %}
+{% block css %}
+{{ tag_form.media.css }}
+{{ block.super }}
+<style>
+.select2-selection__arrow {display: none;}
+.select2-container { min-width: initial; }
+.select2-container .select2-selection--single, .select2-container--default .select2-selection--single .select2-selection__rendered {height: auto !important;}
+.modelselect2multiple,.modelselect2nopk {height: auto !important;}
+</style>
+{% endblock %}
+{% endif %}
 
 {% block content %}
+
+  {% if transitions %}
+    {% include 'snippets/resolution_modal.html' %}
+  {% endif %}
 
   <!-- Placeholder for the modal -->
   <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
@@ -20,6 +37,8 @@
     {% endblock %}
   </h1>
 
+  <div class="row">
+    <div class="col-12">
 
   {% block buttons_above %}
   <div class="row">
@@ -30,7 +49,45 @@
   </div>
   {% endblock buttons_above %}
 
+  {% block tags %}
+  {% if tag_form %}
+  <div class="row">
+    <div class="col-12">
+    {% if tag_form.helper %}
+      {% crispy tag_form tag_form.helper %}
+    {% else %}
+      {{ tag_form|crispy }}
+    {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endblock %}
+
   {% block object_details %}
+
+      {% if has_comments %}
+        <ul class="nav nav-tabs">
+          <li class="nav-item active">
+            <a class="nav-link active" href="#details" data-target="#details" data-toggle="tab">{% trans 'Details' %}</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="#correspondence" data-target="#correspondence" data-toggle="tab">
+                <i class="fas fa-comments"></i> {% trans 'Correspondence' %}
+              </a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="#attachments" data-target="#attachments" data-toggle="tab">
+                <i class="fas fa-paperclip"></i> {% trans 'Attachment(s)' %}
+              </a>
+          </li>
+        </ul>
+        </ul>
+
+        <div class="tab-content card-body">
+          <div id="details" class="tab-pane active">
+
+      {% endif %}
+
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -68,6 +125,25 @@
     </tbody>
   </table>
   </div>
+
+
+  {% if has_comments %}
+
+    </div>
+
+	    <div id="correspondence" class="tab-pane">
+	      {% crispy comment_form comment_form.helper %}
+	      {% include 'snippets/comments.html' %}
+	    </div>
+
+	    <div id="attachments" class="tab-pane">
+	    	TODO: list of all the attachments ...
+	    </div>
+
+    </div>
+
+  {% endif %}
+
   {% endblock object_details %}
 
   {% block extra_object %}
@@ -121,12 +197,23 @@
   {% include 'snippets/detail_buttons.html' %}
   {% endblock buttons_bellow %}
 
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block javascript %}
   {{ block.super }}
   <script>
     $(document).ready(function(){
+        // Keep track of the active tab
+        $(document.body).on("click", "a[data-toggle='tab']", function(event) {
+          location.hash = this.getAttribute("href");
+        });
+        // Jump to the last active tab:
+        if (location.hash) {
+            $('.nav a[href="' + location.hash + '"]').tab('show');
+        }
         $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
         /*
         htmx.on("htmx:afterSwap", (e) => {
@@ -139,4 +226,9 @@
         });*/
       });
   </script>
+  {% if tag_form %}
+  <!-- tag_form JS media -->
+    {{ tag_form.media.js }}
+  <!-- end: tag_form JS media -->
+  {% endif %}
 {% endblock javascript %}

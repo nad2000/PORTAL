@@ -494,15 +494,93 @@ class SingleObjectMixin(ContextMixin):
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
 
+    def get_transitions(self):
+        model_name = self.object._meta.model_name
+
+        def button_name(transition):
+            if hasattr(transition, "custom") and "button_name" in transition.custom:
+                return transition.custom["button_name"]
+            else:
+                # Make the function name the button title, but prettier
+                return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
+
+        if not getattr(self, "object", None):
+            self.object = self.get_object()
+        return [
+            (t.name, button_name(t))
+            for t in self.object.get_available_user_state_transitions(self.request.user)
+            if t.name not in ["submit", "archive", "save_draft"]
+        ]
+
+    def tag_form(self, *args, **kwargs):
+
+        form = modelform_factory(
+            self.model,
+            fields=["tags"],
+            labels={"tags": ""},
+            help_texts={"tags": ""},
+            widgets={
+                "tags": autocomplete.TagSelect2(
+                    url="tag-autocomplete",
+                    attrs={
+                        "data-placeholder": _(
+                            "Please enter a tag or multiple tags. You can select multiple tags..."
+                        ),
+                    },
+                )
+            },
+        )(self.request.POST or None, instance=self.object)
+        helper = FormHelper(form)
+        helper.help_text_inline = False
+        helper.html5_required = False
+        helper.form_show_labels = False
+        helper.use_custom_control = False
+        helper.include_media = False
+        helper.layout = Layout(
+            Row(
+                Column("tags", css_class="col-11"),
+                Column(
+                    Submit(
+                        "save_tags",
+                        _("Save Tags"),
+                        css_class="btn-primary",
+                        data_tooltip="tooltip",
+                        title=_("Save tags"),
+                    ),
+                    css_class="col-1",
+                ),
+                css_class="row",
+            )
+        )
+        form.helper = helper
+        return form
+
+    def get_comment_form(self):
+
+        CommentForm = modelform_factory(
+            self.model.comments.rel.model,
+            form=forms.CommentForm,
+            fields=["comment", "attachment"],
+            exclude=["report", "token", "contract", "change_request", "object"],
+        )
+        return CommentForm(
+            self.request.POST or None, self.request.FILES or None, instance=self.object
+        )
+        # model,
+        # form=ModelForm,
+        # fields=None,
+        # exclude=None,
+        # formfield_callback=None,
+        # widgets=None,
+        # localized_fields=None,
+        # labels=None,
+        # help_texts=None,
+        # error_messages=None,
+        # field_classes=None,
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context["exclude"] = [
-            "id",
-            "created_at",
-            "updated_at",
-            "org",
-            "site",
-        ]
+        context["exclude"] = ["id", "created_at", "updated_at", "org", "site", "comments"]
         model_name_slug = self.object._meta.db_table.replace("_", "-").lower()
         context["update_view_name"] = f"{model_name_slug}-update"
         context["category"] = self.object._meta.verbose_name_plural
@@ -515,7 +593,97 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         u = self.request.user
         if u.is_superuser or u.is_site_staff:
             context["can_edit"] = True
+
+        if hasattr(self.model, "tags"):
+            context["tag_form"] = self.tag_form()
+
+        if hasattr(self.model, "comments"):
+            context["has_comments"] = True
+            context["comments"] = self.object.comments.all()
+            context["comment_form"] = self.get_comment_form()
+
+        if hasattr(self.model, "state") and self.object.state != "arhcived":
+            context["transitions"] = self.get_transitions()
+
         return context
+
+    def post_comment(self, request, *args, **kwargs):
+
+        form = self.get_comment_form()
+        if not form.is_valid():
+            return self.get(request, *args, **kwargs)
+
+        token = models.get_unique_mail_token()
+        attachment = form.cleaned_data.get("attachment", None)
+        if body := form.cleaned_data.get("comment", None):
+            body = body.strip()
+
+        i = self.object
+        c = i.contract
+        u = request.user
+        is_ro = c.org.research_offices.filter(user=u).exists()
+        recipients = i.host_recipients if is_ro else i.agency_recipients
+
+        if body or attachment:
+            comment = i.comments.model(
+                submitted_by=u,
+                comment=body,
+                attachment=attachment,
+                token=token,
+            )
+
+            i.comments.add(
+                comment,
+                bulk=False,
+            )
+
+            respond_url = self.request.build_absolute_uri(i.get_absolute_url()) + "#correspondence"
+            html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                request=self.request,
+                from_email="variations",
+                subject=f"Comment posted by {u.full_name_with_email} to {i}",
+                html_message=html_message,
+                cc=[u.full_email_address],
+                attachments=attachment and [attachment],
+                recipients=recipients,
+                thread_index=i.thread_index,
+                thread_topic=i.thread_topic,
+                token=token,
+            )
+
+            comment.recipients.model.objects.bulk_create(
+                [
+                    (
+                        comment.recipients.model(comment=comment, user=r, email=r.email)
+                        if isinstance(r, models.User)
+                        else comment.recipients.model(
+                            comment=comment,
+                            email=r,
+                            user=User.where(
+                                Q(email__iexact=r) | Q(emailaddress__email__iexact=r)
+                            ).first(),
+                        )
+                    )
+                    for r in recipients
+                ]
+            )
+            return redirect(request.path.split("#")[0] + "#correspondence")
+
+    def post(self, request, *args, **kwargs):
+        if hasattr(self.model, "tags"):
+            self.object = self.get_object()
+            form = self.tag_form()
+            if "save_tags" in form.data and form.is_valid():
+                form.save()
+
+        if "post_comment" in request.POST and hasattr(self.model, "comments"):
+            self.object = self.get_object()
+            return self.post_comment(request, *args, **kwargs)
+
+        return redirect(request.path)
 
 
 class ExportView(UserPassesTestMixin, DetailView):
@@ -3326,7 +3494,7 @@ class AuthorizationForm(Form):
 
 class ApplicationDetail(DetailView):
     model = Application
-    template_name = "application_detail.html"
+    template_name = "portal/application_detail.html"
 
     # def last_modified(self, request, *args, **kwargs):
     #     if (
@@ -3411,6 +3579,9 @@ class ApplicationDetail(DetailView):
 
     @method_decorator(csrf_protect)
     def post(self, request, *args, **kwargs):
+        if "save_tags" in request.POST and hasattr(self.model, "tags"):
+            return super().post(request, *args, **kwargs)
+
         self.object = self.get_object()
         if member := self.get_member():
             if not member.user:
@@ -3666,6 +3837,8 @@ class ApplicationDetail(DetailView):
             ).last():
                 context["referee"] = referee
 
+        context["tag_form"] = self.tag_form()
+
         return context
 
 
@@ -3679,8 +3852,8 @@ class ItemFormSetView(ModelFormSetView):
 @login_required
 @require_http_methods(["DELETE"])
 def delete_object(request, model, pk):
-    model = apps.all_models["portal"].get(model)
     messages_list = []
+    model = apps.all_models["portal"].get(model)
     if model and (o := pk and get_object_or_404(model, pk=pk)):
         try:
             if i := getattr(o, "invitation", None):
@@ -3693,13 +3866,30 @@ def delete_object(request, model, pk):
                 )
             o.delete()
         except Exception as ex:
-            messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
+            # messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
+            return render(
+                request,
+                "partials/messages.html",
+                {"messages": [messages.Message(messages.constants.ERROR, str(ex))]},
+            )
         name = o._meta.verbose_name.title()
         messages_list.append(
             messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted"))
         )
         return render(request, "partials/messages.html", {"messages": messages_list})
-    raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
+    # raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
+    return render(
+        request,
+        "partials/messages.html",
+        {
+            "messages": [
+                messages.Message(
+                    messages.constants.ERROR,
+                    f"No matches the given query - mode: {model}, PK: {pk}",
+                )
+            ]
+        },
+    )
 
 
 @login_required
@@ -5617,6 +5807,7 @@ class ContractDetail(DetailView):
             )
             change_request_form.fields.pop("categories")
             change_request_form.fields.pop("subcategories")
+            change_request_form.fields.pop("tags")
             context["change_request_form"] = change_request_form
         return context
 
@@ -6102,6 +6293,12 @@ class ContractViewMixin:
                 fs.instance = self.object
                 if fs.is_valid():
                     fs.save()
+                else:
+                    for f in fs.forms:
+                        if f.errors:
+                            form.errors.update(f.errors)
+                    return self.form_invalid(form)
+
                 fs = self.get_document_formset()
                 fs.instance = self.object
                 if fs.is_valid():
@@ -6392,6 +6589,7 @@ class ContractViewMixin:
                 return redirect(
                     reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
                 )
+
         return resp
 
 
@@ -7197,6 +7395,23 @@ class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return True  # request.user.is_authenticated
+
+
+class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    # def get_queryset(self):
+    #     qs = models.Tag.objects.all()
+
+    #     if self.q:
+    #         qs = qs.filter(name__istartswith=self.q)
+
+    #     return qs
+
+    def has_add_permission(self, request):
+        return True  # request.user.is_authenticated
+
+    # def get_create_option(self, context, q):
+    #     return []
 
 
 class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
