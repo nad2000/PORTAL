@@ -16,6 +16,7 @@
       $("#id_types").on("select2:select", function(event) {
             if (event.params.data.id == 'TR') $("#div_id_new_host").show();
       });
+        /*
       $('input[type="submit"]').not('[name="save"]').on("click", function(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -24,6 +25,7 @@
         $('#id_resolution_modal').modal('show');
         return false;
       });
+      */
       if ($("#id_types").find("option[value='TR']").length) $("#div_id_new_host").show(); else $("#div_id_new_host").hide();
       {% if is_transfer %}$("#div_id_new_host").show();{% else %}$("#div_id_new_host").hide();{% endif %}
     });
