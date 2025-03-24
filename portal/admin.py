@@ -2736,7 +2736,7 @@ class RoundAdmin(
 
     def get_form(self, request, obj=None, change=False, **kwargs):
         form = super().get_form(request, obj=obj, change=change, **kwargs)
-        if obj.pk:
+        if obj and obj.pk:
             if obj.get_guidelines():
                 if not obj.applicant_guidelines:
                     url = obj.get_applicant_guidelines()
