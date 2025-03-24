@@ -10039,7 +10039,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     @transition(
         field=state,
         source=["new", "draft", "submitted", "released"],
-        target="released",
+        # target="released",
+        target="submitted",
         custom=dict(verbose="Release", button_name="release"),
     )
     def release(self, *args, **kwargs):

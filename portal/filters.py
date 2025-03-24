@@ -560,6 +560,9 @@ class ContractFilterSet(FilterSet):
                 | Q(number__icontains=value)
                 | Q(application__number__icontains=value)
                 | Q(project_title__icontains=value)
+                | Q(Q(Q(members__last_name__icontains=value)|Q(members__first_name__icontains=value),members__role="PI")
+                    |Q(submitted_by__last_name__icontains=value)
+                    |Q(submitted_by__first_name__icontains=value))
             ).distinct()
         else:
             return queryset
