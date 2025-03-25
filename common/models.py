@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from model_utils import Choices
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 EmailField.register_lookup(Lower)
 
