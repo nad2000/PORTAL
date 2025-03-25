@@ -333,6 +333,7 @@ class CommentMixin:
         to = msg["to"]
         subject = msg["subject"]
         sender = msg["from"]
+        sent_at = (msg["date"] and email.utils.parsedate_to_datetime(msg["date"]) or timezone.now()).replace(tzinfo=None)
         if sender and (match := re.search(EMAIL_EX, sender)):
             sender = match[0].lower()
         # from_addresses = []
@@ -408,6 +409,7 @@ class CommentMixin:
                     comment=body,
                     token=token,
                     reply_to=reply_to,
+                    created_at=sent_at,
                     **kwargs,
                     # attachment=attachments and attachments[0] or None,
                 )
