@@ -600,9 +600,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if hasattr(self.model, "comments"):
             context["has_comments"] = True
             context["comments"] = self.object.comments.all()
+            context["attachments"] = self.object.attached_files
             context["comment_form"] = self.get_comment_form()
 
-        if hasattr(self.model, "state") and self.object.state != "arhcived":
+        if hasattr(self.model, "state") and self.object.state != "archived":
             context["transitions"] = self.get_transitions()
 
         return context
@@ -2949,6 +2950,8 @@ class FileImportView(LoginRequiredMixin, FormView):
         if model_name := self.request.GET.get("model"):
             if model_name in ["reportcomment", "report"]:
                 return reverse("report", kwargs=self.kwargs)
+            elif model_name in ["changerequest", "changerequestcomment"]:
+                return reverse("change-request", kwargs=self.kwargs)
             else:
                 return reverse("contract", kwargs=self.kwargs)
         return reverse("report", kwargs=self.kwargs)
@@ -2971,7 +2974,12 @@ class FileImportView(LoginRequiredMixin, FormView):
     @property
     def object(self):
         if model_name := self.request.GET.get("model"):
-            model = models.Report if model_name in ["reportcomment", "report"] else models.Contract
+            if model_name in ["reportcomment", "report"]:
+                model = models.Report
+            elif model_name in ["changerequest", "changerequestcomment"]:
+                model = models.ChangeRequest
+            else:
+                model = models.Contract
         else:
             model = self.model
         if "pk" in self.kwargs:

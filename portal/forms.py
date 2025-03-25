@@ -186,6 +186,12 @@ class CommentForm(FormWithCommentMixin, ModelForm):
                 None,
                 Field("attachment"),
                 ButtonHolder(
+                    Button(
+                        "toggle_message_folding",
+                        _("Expand/Collapse All"),
+                        css_class="btn-outline-secondary",
+                        onclick="toggleMessageFolding(this)",
+                    ),
                     Submit(
                         "post_comment",
                         _("Post Comment"),
@@ -195,7 +201,7 @@ class CommentForm(FormWithCommentMixin, ModelForm):
                         "import_email_file",
                         _("Import Email"),
                         hx_get=reverse("email-import", kwargs={"pk": instance and instance.pk})
-                        + "?_modal_dialog=1",
+                        + "?_modal_dialog=1&model=changerequest",
                         hx_target="#form-dialog",
                         hx_params="none",
                         data_toggle="tooltip",
@@ -4959,12 +4965,12 @@ class ChangeRequestForm(ModelForm):
             )
             helper.add_input(
                 Submit(
-                    "accept",
-                    _("Accept"),
+                    "approve",
+                    _("Approve"),
                     css_class="btn-success",
                     data_tooltip="tooltip",
                     title=_(
-                        "Accept the change request and convert it to a new contract or a contract variation"
+                        "Approve the change request and convert it to a new contract or a contract variation"
                     ),
                 )
             )

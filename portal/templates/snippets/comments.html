@@ -5,4 +5,13 @@
       {% jinja 'partials/comments.html' %}
     {% endif %}
 </div>
+<script>
+  function toggleMessageFolding() {
+      if ($("#comments .collapse.show").length == $("#comments .collapse").length) {
+          $('#comments .collapse').each( function() { $(this).removeClass( "show" ) } );
+      } else {
+          $('#comments .collapse').each( function() { $(this).addClass( "show" ) } );
+      }
+  }
+</script>
 {# vim:set ft=htmldjango: #}
