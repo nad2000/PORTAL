@@ -393,7 +393,14 @@ class CommentMixin:
                     reply_to = self.comments.model.where(token=message_id).last()
                     if reply_to:
                         break
-            kwargs = {"report": self} if isinstance(self, Report) else {"contract": self}
+            if isinstance(self, ChangeRequest):
+                kwargs = {"change_request": self}
+            elif isinstance(self, Report):
+                kwargs = {"report": self}
+            elif isinstance(self, Contract):
+                kwargs = {"contract": self}
+            else:
+                kwargs = {"report": self}
             comment = self.comments.model.create(
                 submitted_by=by,
                 comment=body,
@@ -431,7 +438,9 @@ class CommentMixin:
             html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
             html_message += f":</p>{body}" if body else "."
             html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-            site = getattr(self, "site", None) or settings.SITE_ID
+            site = getattr(self, "site", None) or Site.objects.get_current()
+
+            settings.SITE_ID
             send_mail(
                 from_email="reports" if isinstance(self, Report) else "contracts",
                 subject=f"Comment posted by {by.full_name_with_email} to {self}",
@@ -446,6 +455,16 @@ class CommentMixin:
                 site=site,
             )
             return comment
+
+    @property
+    def attached_files(self):
+        attachments = [(a.created_at, a.attachment) for a in self.comments.model.attachments.rel.related_model.objects.filter(
+            comment__change_request_id=self.pk
+        )]
+        attachments.extend((a.created_at, a.attachment) for a in self.comments.filter(~Q(attachment="")))
+        if attachments:
+            sorted(attachments, key=lambda a: a[0])
+        return attachments
 
 
 class PdfFileMixin:
@@ -11719,6 +11738,10 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
     def is_admin(self, user):
         return user.is_staff or user.is_superuser or user.is_site_staff
+
+    @cached_property
+    def pi(self):
+        return self.contract and self.contract.pi
 
     @classmethod
     def user_object_counts(
