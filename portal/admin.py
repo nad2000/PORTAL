@@ -341,6 +341,22 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
     date_hierarchy = "created_at"
 
 
+@admin.register(models.ContractDocument)
+class ContractDocumentAdmin(StaffPermsMixin, SimpleHistoryAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["contract__number", "required_document", "file", "state", "created_at", "updated_at"]
+    list_display_links = ["file", "contract__number"]
+    list_filter = ["created_at", "updated_at", "state", 
+        ("contract", admin.RelatedOnlyFieldListFilter),
+        ("required_document", admin.RelatedOnlyFieldListFilter)]
+    search_fields = ["file", "contract__number"]
+    date_hierarchy = "created_at"
+    autocomplete_fields = ["contract", "converted_file", "required_document"]
+    # exclude = ["converted_file"]
+    exclude = ["document_type"]
+
+
 @admin.register(models.Country)
 class CountryAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
     view_on_site = False
@@ -2543,6 +2559,12 @@ class SchemeAdmin(
     def view_on_site(self, obj):
         if obj.current_round_id:
             return f"{reverse('applications')}?round={obj.current_round_id}"
+
+    def save_model(self, request, obj, form, change):
+        if obj and obj.fund and obj.fund.site != obj.site:
+            messages.warning(request, f"The schema created in a different 'site' form the fund's site: {obj.fund.site}. "
+                "You might need to reassing the fund to the current site.")
+        super().save_model(request, obj, form, change)
 
     class RoundInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
