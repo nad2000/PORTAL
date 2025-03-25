@@ -352,7 +352,8 @@ class ContractDocumentAdmin(StaffPermsMixin, SimpleHistoryAdmin):
         ("required_document", admin.RelatedOnlyFieldListFilter)]
     search_fields = ["file", "contract__number"]
     date_hierarchy = "created_at"
-    autocomplete_fields = ["contract", "converted_file", "required_document"]
+    # autocomplete_fields = ["contract", "converted_file", "required_document"]
+    autocomplete_fields = ["contract", "converted_file"]
     # exclude = ["converted_file"]
     exclude = ["document_type"]
 
