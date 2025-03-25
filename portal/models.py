@@ -97,7 +97,7 @@ from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
-from sentry_sdk import capture_message
+from sentry_sdk import capture_message, capture_exception
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
 from taggit.models import TagBase
@@ -400,60 +400,65 @@ class CommentMixin:
                 kwargs = {"contract": self}
             else:
                 kwargs = {"report": self}
-            comment = self.comments.model.create(
-                submitted_by=by,
-                comment=body,
-                token=token,
-                reply_to=reply_to,
-                **kwargs,
-                # attachment=attachments and attachments[0] or None,
-            )
-            comment.recipients.model.create(
-                comment=comment,
-                user=reply_to and reply_to.submitted_by or self.pi,
-                email=(
-                    reply_to.submitted_by.email
-                    if reply_to and reply_to.submitted_by
-                    else self.pi.email
-                ),
-            )
 
-            attachments.append(
-                File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
-            )
+            try:
+                comment = self.comments.model.create(
+                    submitted_by=by,
+                    comment=body,
+                    token=token,
+                    reply_to=reply_to,
+                    **kwargs,
+                    # attachment=attachments and attachments[0] or None,
+                )
+                comment.recipients.model.create(
+                    comment=comment,
+                    user=reply_to and reply_to.submitted_by or self.pi,
+                    email=(
+                        reply_to.submitted_by.email
+                        if reply_to and reply_to.submitted_by
+                        else self.pi.email
+                    ) or by and by.email,
+                )
 
-            # for a in attachments[1:]:
-            for a in attachments:
-                ca = comment.attachments.model(comment=comment)
-                ca.attachment.save(content=a, name=a.name)
-                ca.save()
+                attachments.append(
+                    File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
+                )
 
-            domain = to.split("@")[1]
-            recipients = [reply_to and reply_to.submitted_by or self.pi]
-            if isinstance(self, Report):
-                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
-            else:
-                respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=self.pk))}#correspondence"
-            html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
-            html_message += f":</p>{body}" if body else "."
-            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-            site = getattr(self, "site", None) or Site.objects.get_current()
+                # for a in attachments[1:]:
+                for a in attachments:
+                    ca = comment.attachments.model(comment=comment)
+                    ca.attachment.save(content=a, name=a.name)
+                    ca.save()
 
-            settings.SITE_ID
-            send_mail(
-                from_email="reports" if isinstance(self, Report) else "contracts",
-                subject=f"Comment posted by {by.full_name_with_email} to {self}",
-                html_message=html_message,
-                cc=by and [by.full_email_address],
-                attachments=attachments or None,
-                recipients=recipients,
-                thread_index=self.thread_index,
-                thread_topic=self.thread_topic,
-                token=token,
-                request=request,
-                site=site,
-            )
-            return comment
+                domain = to.split("@")[1]
+                recipients = [reply_to and reply_to.submitted_by or self.pi]
+                if isinstance(self, Report):
+                    respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+                else:
+                    respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=self.pk))}#correspondence"
+                html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
+                html_message += f":</p>{body}" if body else "."
+                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                site = getattr(self, "site", None) or Site.objects.get_current()
+
+                settings.SITE_ID
+                send_mail(
+                    from_email="reports" if isinstance(self, Report) else "contracts",
+                    subject=f"Comment posted by {by.full_name_with_email} to {self}",
+                    html_message=html_message,
+                    cc=by and [by.full_email_address],
+                    attachments=attachments or None,
+                    recipients=recipients,
+                    thread_index=self.thread_index,
+                    thread_topic=self.thread_topic,
+                    token=token,
+                    request=request,
+                    site=site,
+                )
+                return comment
+            except Exception as ex:
+                capture_exception(ex)
+                raise
 
     @property
     def attached_files(self):

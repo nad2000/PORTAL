@@ -2970,18 +2970,26 @@ class EmailImportView(FileImportView):
 
         if reply_to := self.request.GET.get("reply_to"):
             reply_to = get_object_or_404(o.comments.model, pk=reply_to)
-        o.import_email(
-            file_field.file,
-            file_name,
-            request=self.request,
-            by=self.request.user,
-            reply_to=reply_to,
-        )
-        messages_list = [
-            messages.Message(
-                messages.constants.INFO, _(f"{file_name} was successfully imported...")
+        try:
+            o.import_email(
+                file_field.file,
+                file_name,
+                request=self.request,
+                by=self.request.user,
+                reply_to=reply_to,
             )
-        ]
+            messages_list = [
+                messages.Message(
+                    messages.constants.INFO, _(f"{file_name} was successfully imported...")
+                )
+            ]
+        except Exception as ex:
+            messages_list = [
+                messages.Message(
+                    messages.constants.ERROR, _(f"Failed to import {file_name}: {ex}")
+                )
+            ]
+
         return render(
             self.request,
             "partials/comments.html",
