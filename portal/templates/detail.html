@@ -18,7 +18,10 @@
 {% block content %}
 
   {% if transitions %}
-    {% include 'snippets/resolution_modal.html' %}
+    <form method="post">
+      {% csrf_token %}
+      {% include 'snippets/resolution_modal.html' %}
+    </form>
   {% endif %}
 
   <!-- Placeholder for the modal -->
@@ -269,6 +272,18 @@
 
         {% endif %}
         {% endcomment %}
+        $('button[data-action]').not('[name="save"]').on("click", function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          $('#id_action').val(event.target.name);
+          $('#id_commit_button').text(event.target.outerText||'{% trans "Commit" %}');
+          $('#id_resolution_modal').modal('show');
+          $('#id_resolution').trigger('focus');
+          return false;
+        });
+        $('#id_resolution_modal').on('shown.bs.modal', function () {
+          $('#id_resolution').trigger('focus');
+        });
       });
   </script>
   {% if tag_form %}

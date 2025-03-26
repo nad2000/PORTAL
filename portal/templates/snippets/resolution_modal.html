@@ -39,7 +39,7 @@
     </div>
   </div>
 {% endif %}
-<div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
+<div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal" data-backdrop="static" data-keyboard="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -51,8 +51,12 @@
       <div class="modal-body">
         <input type="hidden" name="action" id="id_action" value="">
         <div class="form-group">
-          <textarea autofocus name="resolution" id="id_resolution" rows="10"
-                                                     style="width: 100%;" placeholder="{% trans 'Resolution or comment' %}"></textarea>
+          <textarea autofocus
+                    rows="10"
+                    name="resolution"
+                    id="id_resolution"
+                    style="width: 100%;"
+                    placeholder="{% trans 'Resolution or comment' %}"></textarea>
         </div>
 
       </div>

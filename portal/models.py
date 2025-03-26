@@ -333,7 +333,9 @@ class CommentMixin:
         to = msg["to"]
         subject = msg["subject"]
         sender = msg["from"]
-        sent_at = (msg["date"] and email.utils.parsedate_to_datetime(msg["date"]) or timezone.now()).replace(tzinfo=None)
+        sent_at = (
+            msg["date"] and email.utils.parsedate_to_datetime(msg["date"]) or timezone.now()
+        ).replace(tzinfo=None)
         if sender and (match := re.search(EMAIL_EX, sender)):
             sender = match[0].lower()
         # from_addresses = []
@@ -420,11 +422,15 @@ class CommentMixin:
                         reply_to.submitted_by.email
                         if reply_to and reply_to.submitted_by
                         else self.pi.email
-                    ) or by and by.email,
+                    )
+                    or by
+                    and by.email,
                 )
 
                 attachments.append(
-                    File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
+                    File(
+                        io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml"
+                    )
                 )
 
                 # for a in attachments[1:]:
@@ -444,7 +450,6 @@ class CommentMixin:
                 html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
                 site = getattr(self, "site", None) or Site.objects.get_current()
 
-                settings.SITE_ID
                 send_mail(
                     from_email="reports" if isinstance(self, Report) else "contracts",
                     subject=f"Comment posted by {by.full_name_with_email} to {self}",
@@ -466,10 +471,15 @@ class CommentMixin:
 
     @property
     def attached_files(self):
-        attachments = [(a.created_at, a.attachment) for a in self.comments.model.attachments.rel.related_model.objects.filter(
-            comment__change_request_id=self.pk
-        )]
-        attachments.extend((a.created_at, a.attachment) for a in self.comments.filter(~Q(attachment="")))
+        attachments = [
+            (a.created_at, a.attachment)
+            for a in self.comments.model.attachments.rel.related_model.objects.filter(
+                comment__change_request_id=self.pk
+            )
+        ]
+        attachments.extend(
+            (a.created_at, a.attachment) for a in self.comments.filter(~Q(attachment=""))
+        )
         if attachments:
             sorted(attachments, key=lambda a: a[0])
         return attachments
@@ -11893,40 +11903,61 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 self.submitted_by = by
         pass
 
+    def create_new_contract(self, request=None, by=None, description=None, *args, **kwargs):
+        is_variation = not self.types.filter(code="TR").exists()
+        new_contract = self.contract.clone(
+            change_request=self,
+            is_variation=is_variation,
+        )
+        self.derivative = new_contract
+
+        if request:
+            url = reverse("contract", args=[new_contract.pk])
+            messages.success(
+                request,
+                (
+                    f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
+                    if is_variation
+                    else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                ),
+            )
+        return new_contract
+
     @fsm_log
     @transition(
         field=state,
-        source=["*"],
-        target="accepted",
-        custom=dict(verbose="Accept", button_name="Accept", admin=False),
+        source=["submitted"],
+        target="approved",
+        custom=dict(verbose="Approve", button_name="Approve"),
         permission=lambda instance, user: instance.is_admin(user),
     )
-    def accept(self, request=None, by=None, description=None, *args, **kwargs):
-
-        assert self.contract, "Contract is required to accept a change request."
-
-        is_variation = not self.types.filter(code="TR").exists()
+    def approve(self, request=None, by=None, description=None, *args, **kwargs):
+        assert self.contract, "Contract is required to approve the change request."
         try:
-            new_contract = self.contract.clone(
-                change_request=self,
-                is_variation=is_variation,
+            self.create_new_contract(
+                request=request, by=by, description=description, *args, **kwargs
             )
-            self.derivative = new_contract
-
-            if request:
-                url = reverse("contract", args=[new_contract.pk])
-                messages.success(
-                    request,
-                    (
-                        f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
-                        if is_variation
-                        else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
-                    ),
-                )
         except Exception as e:
             if request:
-                messages.error(request, f"Failed to accept the change request: {e}")
+                messages.error(request, f"Failed to approve the change request: {e}")
             capture_message(e)
+
+    # @fsm_log
+    # @transition(
+    #     field=state,
+    #     source=["*"],
+    #     target="accepted",
+    #     custom=dict(verbose="Accept", button_name="Accept", admin=False),
+    #     permission=lambda instance, user: instance.is_admin(user),
+    # )
+    # def accept(self, request=None, by=None, description=None, *args, **kwargs):
+    #     assert self.contract, "Contract is required to accept the change request."
+    #     try:
+    #         self.create_new_contract(request=request, by=by, description=description, *args, **kwargs)
+    #     except Exception as e:
+    #         if request:
+    #             messages.error(request, f"Failed to accept the change request: {e}")
+    #         capture_message(e)
 
     @fsm_log
     @transition(
@@ -11937,34 +11968,35 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         permission=lambda instance, user: instance.is_admin(user),
     )
     def decline(self, request=None, by=None, description=None, *args, **kwargs):
-
-        assert self.contract, "Contract is required to accept a change request."
-
-        is_variation = not self.types.filter(code="TR").exists()
-        try:
-            new_contract = self.contract.clone(
-                change_request=self,
-                is_variation=is_variation,
+        if not by and request:
+            by = request.user
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+        html_message = (
+            f"<p>Kia ora {self.submitted_by.full_name}</p>"
+            f'<p>The change request <a href="{url}">{link_name}'
+            "</a> was declined by {by}.</p>"
+        )
+        recipients = self.host_recipients
+        if description:
+            html_message += f"<p>Reason:<p><pre>{description}</pre>"
+        send_mail(
+            from_email="variations",
+            subject=f"Change request was declined by {by.full_name_with_email}",
+            html_message=html_message,
+            cc=by.email,
+            recipients=self.host_recipients,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+            request=request,
+            site=self.contract.site,
+        )
+        if request:
+            messages.info(
+                request,
+                "Notification was sent to "
+                f"{', '.join(r if isinstance(r, str) else r.full_name_with_email for r in recipients)}.",
             )
-            self.derivative = new_contract
-
-            if request:
-                url = reverse("contract", args=[new_contract.pk])
-                messages.success(
-                    request,
-                    (
-                        f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
-                        if is_variation
-                        else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
-                    ),
-                )
-        except Exception as e:
-            if request:
-                messages.error(request, f"Failed to accept the change request: {e}")
-            capture_message(e)
-            raise
-
-            raise
 
     @property
     def agency_recipients(self):

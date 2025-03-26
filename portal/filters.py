@@ -92,7 +92,7 @@ class FilterSet(django_filters.FilterSet):
             start_year := first_year(request and getattr(request, "site_id", None))
         ) and start_year != year_now:
             self.filters["year_filter"] = self.year_filter = YearChoiceFilter(
-                label=gettext_lazy("Year"),
+                label=gettext_lazy("By Year"),
                 widget=django_filters.widgets.LinkWidget,
                 choices=[(v, v) for v in range(year_now, start_year, -1)],
                 # method="set_filter",
@@ -100,6 +100,7 @@ class FilterSet(django_filters.FilterSet):
             )
             self.year_filter.model = model
             self.year_filter.parent = self
+            self.year_filter.side_bar = True
 
         if model is models.Testimonial:
             round_field_name = "referee__application__round"
@@ -118,7 +119,7 @@ class FilterSet(django_filters.FilterSet):
             self.filters["round_filter"] = self.round_filter = (
                 RelatedOnlyModelChoiceFilter(  # django_filters.ModelChoiceFilter(
                     #     "round",
-                    label=gettext_lazy("Round"),
+                    label=gettext_lazy("By Round"),
                     widget=django_filters.widgets.LinkWidget,
                     # widget=LinkWidget,
                     field_name=round_field_name,
@@ -131,6 +132,7 @@ class FilterSet(django_filters.FilterSet):
             )
             self.round_filter.model = model
             self.round_filter.parent = self
+            self.round_filter.side_bar = True
 
         if model and "fund" in model._meta.fields_map:
             self.filters["fund_filter"] = self.fund_filter = (
@@ -145,10 +147,11 @@ class FilterSet(django_filters.FilterSet):
             )
             self.fund_filter.model = model
             self.fund_filter.parent = self
+            self.fund_filter.side_bar = True
 
         if model and hasattr(model, "state"):
             self.filters["state_filter"] = self.state_filter = django_filters.ChoiceFilter(
-                label=gettext_lazy("Status"),
+                label=gettext_lazy("By State"),
                 field_name="state",
                 widget=django_filters.widgets.LinkWidget,
                 choices=[
@@ -159,11 +162,12 @@ class FilterSet(django_filters.FilterSet):
             )
             self.state_filter.model = model
             self.state_filter.parent = self
+            self.state_filter.side_bar = True
 
         if model:
             if hasattr(model, "org"):
                 org_field = "org"
-            elif model is models.Report:
+            elif model is models.Report or model is models.ChangeRequest:
                 org_field = "contract__org"
             elif model is models.Testimonial:
                 org_field = "application__org"
@@ -171,11 +175,12 @@ class FilterSet(django_filters.FilterSet):
                 org_field = "org"
 
             self.filters["org_filter"] = self.org_filter = RelatedOnlyModelChoiceFilter(
-                label=gettext_lazy("Source"),
-                field_name="org" if hasattr(model, "org") else "contract__org",
+                label=gettext_lazy("By Source"),
+                field_name=org_field,
                 widget=django_filters.widgets.LinkWidget,
                 queryset=models.Organisation.objects.all(),
             )
+            self.org_filter.side_bar = True
             self.org_filter.model = model
             self.org_filter.parent = self
 
@@ -560,9 +565,15 @@ class ContractFilterSet(FilterSet):
                 | Q(number__icontains=value)
                 | Q(application__number__icontains=value)
                 | Q(project_title__icontains=value)
-                | Q(Q(Q(members__last_name__icontains=value)|Q(members__first_name__icontains=value),members__role="PI")
-                    |Q(submitted_by__last_name__icontains=value)
-                    |Q(submitted_by__first_name__icontains=value))
+                | Q(
+                    Q(
+                        Q(members__last_name__icontains=value)
+                        | Q(members__first_name__icontains=value),
+                        members__role="PI",
+                    )
+                    | Q(submitted_by__last_name__icontains=value)
+                    | Q(submitted_by__first_name__icontains=value)
+                )
             ).distinct()
         else:
             return queryset
@@ -588,14 +599,14 @@ class ChangeRequestFilterSet(FilterSet):
     def filter_archived(self, queryset, name, value):
         if not value:
             return queryset.filter(
-                application__round__scheme__current_round=F("application__round")
+                contract__application__round__scheme__current_round=F("contract__application__round")
             )
         return queryset
 
     def filter_active(self, queryset, name, value):
         if value:
             return queryset.filter(
-                application__round__scheme__current_round=F("application__round")
+                contract__application__round__scheme__current_round=F("contract__application__round")
             )
         return queryset
 
@@ -607,6 +618,15 @@ class ChangeRequestFilterSet(FilterSet):
                 | Q(contract__number__icontains=value)
                 | Q(contract__application__number__icontains=value)
                 | Q(contract__project_title__icontains=value)
+                | Q(
+                    Q(
+                        Q(contract__members__last_name__icontains=value)
+                        | Q(contract__members__first_name__icontains=value),
+                        contract__members__role="PI",
+                    )
+                    | Q(contract__submitted_by__last_name__icontains=value)
+                    | Q(contract__submitted_by__first_name__icontains=value)
+                )
             ).distinct()
         else:
             return queryset

@@ -79,6 +79,11 @@ def get_item(hashable, key):
     return hashable.get(key) or isinstance(key, str) and key.isdigit() and hashable.get(int(key))
 
 
+@register.filter
+def form_field(form, field_name):
+    return form[field_name]
+
+
 @register.filter()
 def collapsible(value):
     """collapsible if the text length exceeds ML and remainder is more then 20% of the text."""

@@ -684,6 +684,13 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             self.object = self.get_object()
             return self.post_comment(request, *args, **kwargs)
 
+        action, description = request.POST.get("action"), request.POST.get("resolution")
+        if action and (method := getattr(self.object, action)):
+            method(request=request, description=description, by=request.user)
+            self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
+            state = self.object.state
+            messages.success(request, _(f"The change request was {state}."))
+
         return redirect(request.path)
 
 
@@ -11504,6 +11511,11 @@ class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, 
     #             ]
     #         }
     #     return {}
+
+    # def get(self, *args, **kwargs):
+    #     resp = super().get(*args, **kwargs)
+    #     breakpoint()
+    #     return resp
 
     def get_queryset(self, *args, **kwargs):
         u = self.request.user

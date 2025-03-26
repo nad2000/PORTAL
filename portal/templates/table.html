@@ -391,6 +391,16 @@ thead th.orderable.desc > a {
             <!-- h5 class="card-title">Light card title</h5 -->
             <p class="card-text">
               <!-- details data-filter-title="round" open="" -->
+              {% for n, f in filter.filters.items %}
+              <!-- {{ n }}: {{ f }} -->
+              {% if f.side_bar %}
+                <details data-filter-title="{{ f.label }}" id="{{ n }}">
+                  <summary>{{ f.label }}</summary>
+                    {{ filter.form|form_field:n }}
+                </details>
+              {% endif %}
+              {% endfor %}
+              {% comment %}
               {% if filter.form.fund_filter %}
                 <details data-filter-title="fund" id="fund-filter">
                   <summary>{% trans 'By fund' %}</summary>
@@ -432,6 +442,7 @@ thead th.orderable.desc > a {
                   <!-- button class="btn btn-primary ml-1">{% trans 'Filter' %}</button -->
                 </details>
               {% endif %}
+              {% endcomment %}
             </p>
           </div>
           <!-- /form -->
@@ -494,30 +505,26 @@ thead th.orderable.desc > a {
 //
 // Pass the ID of the <details> element after the page has loaded.
 //
-function rememberIfDetailsWasDisclosed(detailsId) {
-  var localStorageKey = "detailsWasDisclosed_" + detailsId;
+function rememberIfDetailsWasFolded(el) {
+  var key = el.id + ":wasFolded";
 
-  var details = document.getElementById(detailsId);
-
-  // Listen to the toggle event, which fires whenever the <details>
-  // is opened or closed.  The event fires after the state has changed,
-  // so looking it up will tell us the current value.
-  // See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details#Events
-  details.addEventListener("toggle", event => {
-    if (details.open) {
-      localStorage.setItem(localStorageKey, true);
+  el.addEventListener("toggle", event => {
+    if (el.open) {
+      localStorage.setItem(key, true);
     } else {
-      localStorage.removeItem(localStorageKey);
+      localStorage.removeItem(key);
     }
   });
 
-  // If the stored value tells us the <details> was open the last time we
-  // opened the page, re-open it now.
-  if (localStorage.getItem(localStorageKey)) {
-    details.open = true;
+  if (localStorage.getItem(key)) {
+    el.open = true;
   }
 };
+
   $(document).ready(function(){
+    $("details[data-filter-title]").each(function() {
+      rememberIfDetailsWasFolded(this);
+    });
     $("table thead tr th input[type='checkbox']").on("change", function (event) {
         $("table tbody tr td input[type='checkbox']").prop("checked", this.checked);
     });
@@ -571,8 +578,6 @@ function rememberIfDetailsWasDisclosed(detailsId) {
           container: "#contract-form-modal .modal-body"
       }).datepicker("setDate", end_date).on('show.bs.modal', function(event) {event.stopPropagation();}); // .on('hide', function(event) {event.preventDefault(); event.stopPropagation();});
   })
-  // rememberIfDetailsWasDisclosed("round-filter");
-  // rememberIfDetailsWasDisclosed("year-filter");
   $("#id_archived_filter").on('change', function() {
     if ($(this).is(':checked')) {
       $(this).attr('value', 'true');
