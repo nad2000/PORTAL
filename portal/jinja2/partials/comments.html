@@ -1,7 +1,7 @@
 {% if messages %}
   {% include "partials/messages.html" %}
 {% endif %}
-{% for c in comments.order_by("-reply_to_id", "-id") %}
+{% for c in comments.order_by("-reply_to_id", "-created_at") %}
   {% with by=c.submitted_by.full_name, at=c.created_at.time(), on=c.created_at.date() %}
   <div class="card">
     <div class="card-header">

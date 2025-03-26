@@ -48,7 +48,7 @@ def domain_to_macrons(url):
 
 class TimeStampMixin(Base):
     # created_at = DateTimeField(auto_now_add=True, null=True)
-    created_at = DateTimeField(null=True, default=timezone.now)
+    created_at = DateTimeField(null=True, default=timezone.now, editable=False)
     updated_at = DateTimeField(auto_now=True, null=True)
 
     class Meta:
