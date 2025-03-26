@@ -3167,6 +3167,7 @@ class EmailImportView(FileImportView):
                 )
             ]
         except Exception as ex:
+            capture_exception(ex)
             messages_list = [
                 messages.Message(
                     messages.constants.ERROR, _(f"Failed to import {file_name}: {ex}")

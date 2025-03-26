@@ -2277,6 +2277,7 @@ class CommentModel(Model):
 
     reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
     token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    subject = CharField(max_length=1000, null=True, blank=True)
     comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
     attachment = PrivateFileField(
         _("attachment"),
@@ -8494,7 +8495,7 @@ class ContractSeo(Model):
         verbose_name_plural = _("contract SEOs")
 
 
-class ContractComment(Model):
+class ContractComment(CommentModel):
 
     @property
     def object(self):
@@ -8505,21 +8506,21 @@ class ContractComment(Model):
         return self.contract_id
 
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
-    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
-    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
-    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
-    attachment = PrivateFileField(
-        _("attachment"),
-        upload_to="contracts",
-        upload_subfolder=lambda instance: [
-            # "contracts",
-            # hash_int(instance.application_id),
-            hash_int(instance.contract_id),
-            "comments",
-        ],
-        null=True,
-        blank=True,
-    )
+    # reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    # token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    # comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    # attachment = PrivateFileField(
+    #     _("attachment"),
+    #     upload_to="contracts",
+    #     upload_subfolder=lambda instance: [
+    #         # "contracts",
+    #         # hash_int(instance.application_id),
+    #         hash_int(instance.contract_id),
+    #         "comments",
+    #     ],
+    #     null=True,
+    #     blank=True,
+    # )
     submitted_by = ForeignKey(
         User,
         null=True,
@@ -8536,10 +8537,11 @@ class ContractComment(Model):
     def target(self):
         return self.contract
 
-    class Meta:
+    class Meta(CommentModel.Meta):
         db_table = "contract_comment"
         verbose_name = _("comment")
-        ordering = ["-id"]
+        ordering = ["-created_at"]
+
 
 
 class ContractCommentRecipient(Model):
