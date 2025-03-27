@@ -412,6 +412,7 @@ class CommentMixin:
                     token=token,
                     reply_to=reply_to,
                     created_at=sent_at,
+                    subject=subject,
                     **kwargs,
                     # attachment=attachments and attachments[0] or None,
                 )
@@ -2294,6 +2295,7 @@ class CommentModel(Model):
         null=True,
         blank=True,
         on_delete=SET_NULL,
+        # related_name="%(class)ss",
         verbose_name=_("submitted by"),
     )
     alert_date = CharField(
@@ -2322,7 +2324,7 @@ class CommentModel(Model):
     class Meta:
         verbose_name = _("comment")
         verbose_name_plural = _("comments")
-        ordering = ["-id"]
+        ordering = ["-created_at"]
         abstract = True
 
 
@@ -8521,27 +8523,25 @@ class ContractComment(CommentModel):
     #     null=True,
     #     blank=True,
     # )
-    submitted_by = ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        verbose_name=_("submitted by"),
-        related_name="contract_comments",
-    )
+    # submitted_by = ForeignKey(
+    #     User,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=SET_NULL,
+    #     verbose_name=_("submitted by"),
+    #     related_name="contract_comments",
+    # )
 
-    def __str__(self):
-        return f"Submitted by {self.submitted_by} at {self.created_at}"
+    # def __str__(self):
+    #     return f"Submitted by {self.submitted_by} at {self.created_at}"
 
-    @property
-    def target(self):
-        return self.contract
+    # @property
+    # def target(self):
+    #     return self.contract
 
     class Meta(CommentModel.Meta):
         db_table = "contract_comment"
-        verbose_name = _("comment")
-        ordering = ["-created_at"]
-
+        default_related_name = "contract_comments"
 
 
 class ContractCommentRecipient(Model):
@@ -11395,7 +11395,7 @@ class PublicationLink(Model):
 REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Other")))
 
 
-class ReportComment(Model):
+class ReportComment(CommentModel):
 
     @property
     def object(self):
@@ -11406,27 +11406,27 @@ class ReportComment(Model):
         return self.report_id
 
     report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
-    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
-    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
-    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
-    attachment = PrivateFileField(
-        _("attachment"),
-        upload_to="reports",
-        upload_subfolder=lambda instance: [
-            hash_int(instance.report_id),
-            "comments",
-        ],
-        null=True,
-        blank=True,
-    )
-    submitted_by = ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        verbose_name=_("submitted by"),
-        related_name="report_comments",
-    )
+    # reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    # token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    # comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    # attachment = PrivateFileField(
+    #     _("attachment"),
+    #     upload_to="reports",
+    #     upload_subfolder=lambda instance: [
+    #         hash_int(instance.report_id),
+    #         "comments",
+    #     ],
+    #     null=True,
+    #     blank=True,
+    # )
+    # submitted_by = ForeignKey(
+    #     User,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=SET_NULL,
+    #     verbose_name=_("submitted by"),
+    #     related_name="report_comments",
+    # )
     category = FixedCharField(
         choices=REPORT_COMMENT_CATEGORIES,
         max_length=1,
@@ -11439,27 +11439,26 @@ class ReportComment(Model):
         blank=True,
     )
 
-    @property
-    def target(self):
-        return self.report
+    # @property
+    # def target(self):
+    #     return self.report
 
-    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
-        return self.report.import_email(
-            file,
-            file_name=file_name,
-            notify_author=notify_author,
-            request=request,
-            by=by,
-            reply_to=self,
-        )
+    # def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+    #     return self.report.import_email(
+    #         file,
+    #         file_name=file_name,
+    #         notify_author=notify_author,
+    #         request=request,
+    #         by=by,
+    #         reply_to=self,
+    #     )
 
-    def __str__(self):
-        return f"Submitted by {self.submitted_by} at {self.created_at}"
+    # def __str__(self):
+    #     return f"Submitted by {self.submitted_by} at {self.created_at}"
 
-    class Meta:
+    class Meta(CommentModel.Meta):
         db_table = "report_comment"
-        verbose_name = _("comment")
-        ordering = ["-id"]
+        default_related_name = "report_comments"
 
 
 class ReportCommentRecipient(Model):
@@ -12024,38 +12023,37 @@ class ChangeRequestComment(CommentModel):
         return self.change_request_id
 
     change_request = ForeignKey(ChangeRequest, on_delete=CASCADE, related_name="comments")
-    attachment = PrivateFileField(
-        _("attachment"),
-        upload_to="change_requests",
-        upload_subfolder=lambda instance: [
-            # "change_requests",
-            # hash_int(instance.application_id),
-            hash_int(instance.change_request_id),
-            "comments",
-        ],
-        null=True,
-        blank=True,
-    )
-    submitted_by = ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        verbose_name=_("submitted by"),
-        related_name="change_request_comments",
-    )
+    # attachment = PrivateFileField(
+    #     _("attachment"),
+    #     upload_to="change_requests",
+    #     upload_subfolder=lambda instance: [
+    #         # "change_requests",
+    #         # hash_int(instance.application_id),
+    #         hash_int(instance.change_request_id),
+    #         "comments",
+    #     ],
+    #     null=True,
+    #     blank=True,
+    # )
+    # submitted_by = ForeignKey(
+    #     User,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=SET_NULL,
+    #     verbose_name=_("submitted by"),
+    #     related_name="change_request_comments",
+    # )
 
-    def __str__(self):
-        return f"Submitted by {self.submitted_by} at {self.created_at}"
+    # def __str__(self):
+    #     return f"Submitted by {self.submitted_by} at {self.created_at}"
 
-    @property
-    def target(self):
-        return self.change_request
+    # @property
+    # def target(self):
+    #     return self.change_request
 
     class Meta(CommentModel.Meta):
         db_table = "change_request_comment"
-        verbose_name = _("comment")
-        ordering = ["-id"]
+        default_related_name = "change_request_comments"
 
 
 class ChangeRequestCommentRecipient(Model):

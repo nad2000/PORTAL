@@ -107,6 +107,9 @@ class StateColumn(tables.Column):
         elif state == "cancelled":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("The application was cancelled")
+        elif state == "declined":
+            css_classes = "fa fa-ban text-danger text-center"
+            title = _("Cancelled")
         elif state == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
             title = _("The application was approved")

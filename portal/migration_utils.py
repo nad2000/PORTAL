@@ -87,13 +87,7 @@ def add_change_types(apps, schema_editor):
         )
 
 
-def add_change_categories(apps, schema_editor):
-    """
-    Add to the migrations:
-    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
-    """
-    ChangeCategory = apps.get_model("portal", "ChangeCategory")
-    db_alias = schema_editor.connection.alias
+def add_change_categories_data(manager):
     categories = [
         # code, type, description, parent_code
         ("10", "P", "Changes to Investigator Team (PI, co-PI, AI)", None),
@@ -120,15 +114,25 @@ def add_change_categories(apps, schema_editor):
         ("31", "O", "Other", "18"),
         ("32", "P", "Restructuring of Personnel", "10"),
     ]
-    ChangeCategory.objects.using(db_alias).bulk_create(
+    manager.bulk_create(
         [
-            ChangeCategory(code=c, type_id=t, description=d, parent_id=p)
+            manager.model(code=c, type_id=t, description=d, parent_id=p)
             for (c, t, d, p) in categories
         ],
         update_conflicts=True,
         update_fields=["description", "parent", "type"],
         unique_fields=["code"],
     )
+
+
+def add_change_categories(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    ChangeCategory = apps.get_model("portal", "ChangeCategory")
+    db_alias = schema_editor.connection.alias
+    add_change_categories_data(ChangeCategory.objects.using(db_alias))
 
 
 def add_role_type_data(apps, schema_editor):
