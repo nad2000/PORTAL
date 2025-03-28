@@ -146,13 +146,22 @@ def field_value(value, name, *args, **kwargs):
         if isinstance(v, m.User):
             return v.full_name_with_email
         if name in ["state", "status"]:
+            method = getattr(value, f"get_{name}_display", None)
+            dv = method and method()
             if state_changed_at := getattr(value, "state_changed_at", None):
                 return mark_safe(
                     f"""<span data-toggle="tooltip"
                     title="{_('(the state was updated at %s)') % state_changed_at.strftime('%d-%m-%Y %H:%m')}
-                    ">&lt;<b>{v.upper()}</b>&gt</span>"""
+                    ">&lt;<b>{dv or v.upper()}</b>&gt</span>"""
                 )
-            return mark_safe(f"&lt;<b>{v.upper()}</b>&gt;")
+            changed_at = value.updated_at or value.created_at
+            if changed_at:
+                return mark_safe(
+                    f"""<span data-toggle="tooltip"
+                    title="{_('(the record was updated at %s)') % changed_at.strftime('%d-%m-%Y %H:%m')}
+                    ">&lt;<b>{dv or v.upper()}</b>&gt</span>"""
+                )
+            return mark_safe(f"&lt;<b>{dv or v.upper()}</b>&gt;")
     if isinstance(v, bool):
         return _("yes") if v else _("no")
     f = value._meta.get_field(name)
