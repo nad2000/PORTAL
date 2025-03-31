@@ -5831,7 +5831,7 @@ class ContractDetail(DetailView):
             )
             change_request_form.fields.pop("categories")
             change_request_form.fields.pop("subcategories")
-            change_request_form.fields.pop("tags")
+            change_request_form.fields.pop("tags", None)
             context["change_request_form"] = change_request_form
         return context
 

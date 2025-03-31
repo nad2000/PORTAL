@@ -472,10 +472,16 @@ class CommentMixin:
 
     @property
     def attached_files(self):
+        if isinstance(self, ChangeRequest):
+            kwargs = {"comment__change_request_id": self.pk}
+        else:
+            kwargs = {f"comment__{self.model_name}_id": self.pk}
+        
         attachments = [
             (a.created_at, a.attachment)
             for a in self.comments.model.attachments.rel.related_model.objects.filter(
-                comment__change_request_id=self.pk
+                **kwargs
+                # comment__change_request_id=self.pk
             )
         ]
         attachments.extend(
