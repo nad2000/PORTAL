@@ -80,13 +80,12 @@
               </a>
           </li>
           {% if attachments %}
-          <li class="nav-item">
-              <a class="nav-link" href="#attachments" data-target="#attachments" data-toggle="tab">
-                <i class="fas fa-paperclip"></i> {% trans 'Attachment(s)' %}
-              </a>
-          </li>
-        {% endif %}
-        </ul>
+            <li class="nav-item">
+                <a class="nav-link" href="#attachments" data-target="#attachments" data-toggle="tab">
+                  <i class="fas fa-paperclip"></i> {% trans 'Attachment(s)' %}
+                </a>
+            </li>
+          {% endif %}
         </ul>
 
         <div class="tab-content card-body">
@@ -100,12 +99,16 @@
 
       {% for field in object|fields %}
         <!-- {{ field }} // {{ exclude }} -->
-        {% if field.name != 'id' and exclude is None or field.name not in exclude %}
+        {% if field.name != 'id' and exclude is None or field.name not in exclude and field.name != "tagged_items" %}
           {% if not object|field_is_empty:field.name %}
           {% with value=object|field_value:field.name %}
           <tr>
             <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {{ field.verbose_name|title }}
+              {% if field.name == "tags" %}
+                {% trans 'Tags' %}
+              {% else %}
+                {{ field.verbose_name|title }}
+              {% endif %}
             </th>
             <td>
               {% if not value and value != 0 %}
@@ -118,7 +121,14 @@
                 <a href="{{ object.converted_file|field_file_url }}" target="_blank">
                   {{ object.converted_file|field_file_name|basename }}
                 </a>
+              {% elif field.name == "tags" %}
+                {% for tag in object.tags.all %}
+                  <span class="badge badge-secondary">{{ tag }}</span>
+                {% empty %}
+                  {% trans 'N/A' %}
+                {% endfor %}
               {% else %}
+        <!-- {{ field.name }} // {{ value }} -->
                 {{ value }}
               {% endif %}
             </td>
@@ -127,6 +137,34 @@
           {% endif %}
         {% endif %}
       {% endfor %}
+
+      {% if extra_details %}
+        {% for name, value in extra_details.items %}
+          <!-- {{ name }}: {{ value }} -->
+            <tr>
+              <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                {% if name.isupper %}{{ name }}{% else %}{{ name|title }}{% endif %}
+              </th>
+              <td>
+                {% if not value and value != 0 %}
+                  {% trans 'N/A' %}
+                {% elif name == "summary" or name == "abstract" or name == "notes" or name == "assessment" or name == "description" %}
+                  {{ value|safe }}
+                {% elif value|is_file_field %}
+                  <a href="{{ value.url }}" target="_blank">{{ value|basename }}</a>
+                {% elif name == "tags" %}
+                  {% for tag in value.all %}
+                    <span class="badge badge-secondary">{{ tag }}</span>
+                  {% empty %}
+                    {% trans 'N/A' %}
+                  {% endfor %}
+                {% else %}
+                  {{ value }}
+                {% endif %}
+              </td>
+            </tr>
+        {% endfor %}
+      {% endif %}
 
     </tbody>
   </table>

@@ -4951,20 +4951,32 @@ class ChangeRequestForm(ModelForm):
         helper.use_custom_control = True
         if not submission_disabled:
             helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
-            helper.add_input(Submit("submit", _("Submit"), css_class="btn-primary"))
+            helper.add_input(
+                Button(
+                    "submit",
+                    _("Submit"),
+                    css_class="btn-primary",
+                    data_toggle="modal",
+                    data_target="#id_resolution_modal",
+                    data_action="submit",
+                )
+            )
         else:
             helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
             helper.add_input(
-                Submit(
+                Button(
                     "resubmit",
                     _("Resubmit"),
                     css_class="btn-outline-danger",
                     data_tooltip="tooltip",
                     title=_("Request resubmission of the change request"),
+                    data_toggle="modal",
+                    data_target="#id_resolution_modal",
+                    data_action="resubmit",
                 )
             )
             helper.add_input(
-                Submit(
+                Button(
                     "approve",
                     _("Approve"),
                     css_class="btn-success",
@@ -4972,6 +4984,9 @@ class ChangeRequestForm(ModelForm):
                     title=_(
                         "Approve the change request and convert it to a new contract or a contract variation"
                     ),
+                    data_toggle="modal",
+                    data_target="#id_resolution_modal",
+                    data_action="approve",
                 )
             )
         helper.add_input(
@@ -4982,16 +4997,16 @@ class ChangeRequestForm(ModelForm):
                 onclick=f"window.location='{instance.get_absolute_url()}';",
             )
         )
-        if instance and instance.pk:
-            helper.layout = Layout()
-            # helper.add_input(
-            #     Button(
-            #         "delete",
-            #         _("Delete"),
-            #         css_class="btn-outline-danger",
-            #         onclick=f"window.location='{instance.get_delete_url()}';",
-            #     )
-            # )
+        # if instance and instance.pk:
+        #     helper.layout = Layout()
+        #     # helper.add_input(
+        #     #     Button(
+        #     #         "delete",
+        #     #         _("Delete"),
+        #     #         css_class="btn-outline-danger",
+        #     #         onclick=f"window.location='{instance.get_delete_url()}';",
+        #     #     )
+        #     # )
         self.helper = helper
 
     def save(self, *args, **kwargs):
@@ -5009,6 +5024,7 @@ class ChangeRequestForm(ModelForm):
     class Meta:
         model = models.ChangeRequest
         exclude = [
+            "tags",
             "contract",
             "derivative",
             # "submitted_by",

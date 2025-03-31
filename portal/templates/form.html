@@ -68,6 +68,8 @@
 
         {% block more_info %}{% endblock %}
 
+        <!-- HELPER: {{ form.helper }} -->
+
         {% if helper or form.helper %}
           {% if helper %}
             {% crispy form helper %}
@@ -299,6 +301,18 @@
             $(this).siblings("button").each(function() {setOutline($(this));});
           }
           $(this).parent().siblings("input[type='hidden']").prop("value", sel);
+      });
+      $('button[data-action],input[data-action]').not('[name="save"]').on("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        $('#id_action').val(event.target.name);
+        $('#id_commit_button').text(event.target.value||event.target.outerText||'{% trans "Commit" %}');
+        $('#id_resolution_modal').modal('show');
+        $('#id_resolution').trigger('focus');
+        return false;
+      });
+      $('#id_resolution_modal').on('shown.bs.modal', function () {
+        $('#id_resolution').trigger('focus');
       });
     });
   </script>

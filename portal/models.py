@@ -8857,7 +8857,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     ## currency = IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+        # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+        return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
 
     @classmethod
     def user_object_counts(
@@ -11867,9 +11868,10 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["*"],
+        source=["accepted", "approved", "declined"],
         target="archived",
         custom=dict(verbose="Archive", button_name="Archive"),
+        permission=lambda instance, user: instance.is_admin(user),
     )
     def archive(self, *args, **kwargs):
         pass
@@ -11877,7 +11879,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["*"],
+        source=["new", "draft"],
         target="submitted",
         custom=dict(verbose="Submit", button_name="Submit for review", admin=False),
         permission=lambda instance, user: instance.is_ro(user),
@@ -11892,17 +11894,23 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "submitted"],
+        source=["draft", "submitted", "accepted", "approved"],
         target="withdrawn",
         custom=dict(verbose="Withdraw", button_name="Withdraw"),
         permission=lambda instance, user: instance.is_ro(user),
     )
     def withdraw(self, *args, **kwargs):
+        request = kwargs.get("request")
         if not self.submitted_by:
             by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
             if not (by.is_superuser or by.is_site_staff):
                 self.submitted_by = by
-        pass
+        if d := self.derivative:
+            d.delete()
+            if request:
+                messages.info(
+                    request, f"The contract variation and/or transfer record {d} was deleted."
+                )
 
     def create_new_contract(self, request=None, by=None, description=None, *args, **kwargs):
         is_variation = not self.types.filter(code="TR").exists()
@@ -11934,14 +11942,15 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     )
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
         assert self.contract, "Contract is required to approve the change request."
-        try:
-            self.create_new_contract(
-                request=request, by=by, description=description, *args, **kwargs
-            )
-        except Exception as e:
-            if request:
-                messages.error(request, f"Failed to approve the change request: {e}")
-            capture_message(e)
+        if not self.derivative:
+            try:
+                self.create_new_contract(
+                    request=request, by=by, description=description, *args, **kwargs
+                )
+            except Exception as e:
+                if request:
+                    messages.error(request, f"Failed to approve the change request: {e}")
+                capture_message(e)
 
     # @fsm_log
     # @transition(
@@ -11963,7 +11972,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["*"],
+        source=["draft", "submitted"],
         target="declined",
         custom=dict(verbose="Decline", button_name="Decline", admin=False),
         permission=lambda instance, user: instance.is_admin(user),
@@ -11975,6 +11984,8 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         link_name = domain_to_macrons(url)
         html_message = (
             f"<p>Kia ora {self.submitted_by.full_name}</p>"
+            if self.submitted_by
+            else "<p>Kia ora!</p>"
             f'<p>The change request <a href="{url}">{link_name}'
             "</a> was declined by {by}.</p>"
         )

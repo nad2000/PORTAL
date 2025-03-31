@@ -877,7 +877,9 @@ class ChangeRequestTable(tables.Table):
         # order_by="pk",
     )
     contract = tables.Column(
-        verbose_name=gettext_lazy("Contract"),
+        _("Contract"),
+        tables.A("contract__number"),
+        # verbose_name=gettext_lazy("Contract"),
         linkify=lambda value, record: reverse(
             "contract-detail", kwargs=dict(number=record.contract.number)
         ),
@@ -887,6 +889,15 @@ class ChangeRequestTable(tables.Table):
         gettext_lazy("Contract PI"),
         tables.A("contract__pi__full_name_with_email"),
         orderable=False,
+    )
+    title = tables.Column(
+        _("Title"),
+        tables.A("contract__project_title"),
+        # verbose_name=gettext_lazy("Contract"),
+        linkify=lambda value, record: reverse(
+            "contract-detail", kwargs=dict(number=record.contract.number)
+        ),
+        order_by="contract__project_title",
     )
 
     def render_description(self, record, value):

@@ -509,7 +509,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         return [
             (t.name, button_name(t))
             for t in self.object.get_available_user_state_transitions(self.request.user)
-            if t.name not in ["submit", "archive", "save_draft"]
+            if t.name not in ["save_draft"]
         ]
 
     def tag_form(self, *args, **kwargs):
@@ -594,8 +594,8 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if u.is_superuser or u.is_site_staff:
             context["can_edit"] = True
 
-        if hasattr(self.model, "tags"):
-            context["tag_form"] = self.tag_form()
+        # if hasattr(self.model, "tags"):
+        #     context["tag_form"] = self.tag_form()
 
         if hasattr(self.model, "comments"):
             context["has_comments"] = True
@@ -11546,6 +11546,10 @@ class ChangeRequestDetail(DetailView):
         ):
             context["can_edit"] = True
         context["category"] = "change_requests"
+        context["extra_details"] = {
+            "PI": self.object.contract.pi,
+            _("Project Title"): self.object.contract.project_title,
+        }
         return context
 
     # def get_queryset(self):
