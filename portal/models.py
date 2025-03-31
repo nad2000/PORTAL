@@ -476,7 +476,7 @@ class CommentMixin:
             kwargs = {"comment__change_request_id": self.pk}
         else:
             kwargs = {f"comment__{self.model_name}_id": self.pk}
-        
+
         attachments = [
             (a.created_at, a.attachment)
             for a in self.comments.model.attachments.rel.related_model.objects.filter(
@@ -11660,7 +11660,7 @@ class ChangeCategory(Model):
 
 class ChangeRequestMixin:
     STATES = Choices(
-        ("accepted", _("Accepted")),
+        ("accepted", _("Under Review")),
         ("acknowledged", _("Acknowledged")),
         ("approved", _("Approved")),
         ("application", _("Application")),
@@ -11668,7 +11668,7 @@ class ChangeRequestMixin:
         ("cancelled", _("Cancelled")),
         ("declined", _("Declined")),
         ("draft", _("WIP")),
-        ("submitted", _("Under Review")),
+        ("submitted", _("Received")),
         # ("submitted", _("Submitted")),
         ("withdrawn", _("Withdrawn")),
     )
