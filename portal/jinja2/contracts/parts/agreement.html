@@ -49,7 +49,7 @@
       and Pacific STEM researchers.  This will enable M&#257;ori and Pacific early- to mid-career STEM researchers to enter into and progress through the Research,
       Science and Innovation (<b>RSI</b>) workforce and provide the researchers with
       support to flourish within the RSI system.
-      {% elif SITE_ID == 5 %}
+      {% elif SITE_ID in [2, 5] %}
         The Aotearoa New Zealand Tāwhia Te Mana Research Fellowships is an MBIE initiative that aims to develop the future leaders of the New Zealand Science, Innovation and Technology (SI&amp;T) system. The Fellowships will support researchers at different career stages to produce excellent and impactful research and to develop into leaders in their fields, their respective host organisations and across the whole of the Aotearoa New Zealand SI&amp;T system.
         {% if scheme.code in ["MTP", "TTMFL"] %}
           The New Zealand Mana Tūāpapa Future Leader Fellowship is a scheme under the Aotearoa New Zealand Tāwhia Te Mana Research Fellowships. It supports Aotearoa New Zealand’s talented early career researchers to establish the foundations of an excellent and impactful research career.
@@ -68,7 +68,7 @@
       funding for {{ scheme.title }}.
       {#% if SITE_ID == 4 %}
       Ngā Puanga Pūtaiao Fellowships.
-      {% elif SITE_ID == 5 %}
+      {% elif SITE_ID in [2, 5] %}
         {% if s.code == "TTMFL" %}
         {% elif s.code == "TTMRL" %}
         {% elif s.code == "TTMDF" %}
@@ -82,7 +82,7 @@
     </li>
 
     <li style="width: 100%;line-height:normal;">
-      {% if SITE_ID == 5 %}
+      {% if SITE_ID in [2, 5] %}
         This Agreement records the arrangements reached between the Society and the Host Organisation for the provision of
         {% if scheme.code == "TTMFL" %}
           New Zealand Mana Tūāpapa Future Leader Fellowship

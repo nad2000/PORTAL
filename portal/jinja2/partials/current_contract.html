@@ -1,4 +1,4 @@
-{% set start_date=today.replace(day=1, month=3) if record.site_id == 5 else start_date %}
+{% set start_date=today.replace(day=1, month=3) if record.site_id in [2, 5] else start_date %}
 {% if record.contract %}
   <a
     href="{{ url("application-contract", pk=record.pk) }}"

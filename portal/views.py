@@ -179,7 +179,7 @@ def handler413(request, *args, **argv):
 
 def favicon(request):
     site_id = request.site_id
-    if site_id in [3, 4, 5]:
+    if site_id in [2, 3, 4, 5]:
         return redirect(
             staticfiles_storage.url("images/stlp.royalsociety.org.nz/favicon.ico"),
             permanent=True,
@@ -379,7 +379,7 @@ class StateInPathMixin:
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
-                    if (site_id := self.request.site_id) in [4, 5] and (
+                    if (site_id := self.request.site_id) in [2, 4, 5] and (
                         u.is_superuser or u.staff_of_sites.filter(id=site_id)
                     ):
                         if state == "submitted":
@@ -1116,7 +1116,7 @@ def index(request):
         raise Exception(request.GET["error"])
     user = request.user
     is_ro = models.ResearchOffice.where(user=user).exists()
-    if site_id in [4, 5]:
+    if site_id in [2, 4, 5]:
         has_ro = (
             models.ResearchOffice.where(
                 Q(
@@ -1136,7 +1136,7 @@ def index(request):
         )
     outstanding_invitations = models.Invitation.outstanding_invitations(user)
     if user.is_approved:
-        if is_ro and site_id not in [4, 5] and request.resolver_match.view_name == "index0":
+        if is_ro and site_id not in [2, 4, 5] and request.resolver_match.view_name == "index0":
             return render(request, "research_office_index.html", locals())
         outstanding_authorization_requests = models.Member.outstanding_requests(user)
         outstanding_testimonial_requests = models.Referee.outstanding_requests(user)
@@ -1148,7 +1148,7 @@ def index(request):
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
-        if site_id not in [4, 5, 7] or not (user.is_superuser or user.is_site_staff):
+        if site_id not in [2, 4, 5, 7] or not (user.is_superuser or user.is_site_staff):
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
@@ -1188,7 +1188,7 @@ def index(request):
             if pa.previous_application_id
         ]
         if (
-            site_id in [4, 5]
+            site_id in [2, 4, 5]
             and request.method == "POST"
             and (message := request.POST.get("message", "").strip())
             and (round_id := request.POST.get("round"))
@@ -1421,7 +1421,7 @@ def check_profile(request, token=None):
                                 _(
                                     "Please review the application details and submit referee report."
                                 )
-                                if i.site_id in [4, 5]
+                                if i.site_id in [2, 4, 5]
                                 else _(
                                     "Please review the application details and submit testimonial."
                                 )
@@ -3648,15 +3648,15 @@ class ApplicationDetail(DetailView):
                 )
                 a.save()
 
-                if a.site_id == 5:
+                if a.site_id in [2, 5]:
                     url = a.get_full_detail_url(request=request)
                     count = (
                         a.invite_referees(
                             request=request,
                             dispatch_invitations=(
-                                a.site_id != 5
+                                a.site_id not in [2, 5]
                                 or (
-                                    a.site_id == 5
+                                    a.site_id in [2, 5]
                                     and a.round.closes_at
                                     and a.round.closes_at <= timezone.now()
                                 )
@@ -3667,7 +3667,7 @@ class ApplicationDetail(DetailView):
                     if count and request:
 
                         closes_at = a.round.closes_at
-                        if a.site_id != 5 or closes_at and closes_at <= timezone.now():
+                        if a.site_id not in [2, 5] or closes_at and closes_at <= timezone.now():
                             messages.info(
                                 self.request,
                                 _(
@@ -3699,7 +3699,7 @@ class ApplicationDetail(DetailView):
         a = context["application"] = self.object
         r = a.round
         site_id = a.site_id
-        if a and site_id == 5:
+        if a and site_id in [2, 5]:
             context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
         if n := models.Nomination.where(application=a).last():
@@ -3717,7 +3717,7 @@ class ApplicationDetail(DetailView):
                 _("Please review the application and authorize your team representative."),
             )
             context["form"] = AuthorizationForm()
-        is_ro = site_id in [4, 5] and (
+        is_ro = site_id in [2, 4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
             or a.org.where(research_offices__user=u).exists()
@@ -3733,7 +3733,7 @@ class ApplicationDetail(DetailView):
             )
         )
 
-        if site_id == 5 and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
+        if site_id in [2, 5] and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
             context["update_button_name"] = _("Edit referee list")
         if p := r.panellists.filter(user=u).first():
             context["is_panellist"] = True
@@ -3761,7 +3761,7 @@ class ApplicationDetail(DetailView):
             context["for_panellists"] = for_panellists
 
         if is_owner or is_ro or u.is_superuser or u.is_site_staff:
-            if site_id == 5 and for_panellists:
+            if site_id in [2, 5] and for_panellists:
                 referees = a.referees.order_by("testified_at")
                 if r.required_referees:
                     referees = referees[: r.required_referee]
@@ -3778,10 +3778,10 @@ class ApplicationDetail(DetailView):
         ]
         context["can_update"] = (
             can_only_update_referees
-            or (site_id != 5 and a.state not in ["submitted", "approved", "cancelled", "accepted"])
-            or (site_id == 5 and is_ro and a.state in ["submitted", "new", "draft"])
+            or (site_id not in [2, 5] and a.state not in ["submitted", "approved", "cancelled", "accepted"])
+            or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
             or (
-                site_id == 5 and is_owner and a.state in ["new", "submitted", "draft", "in_review"]
+                site_id in [2, 5] and is_owner and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
 
@@ -3794,7 +3794,7 @@ class ApplicationDetail(DetailView):
                 or u.is_superuser
                 or is_ro
                 or u.is_site_staff
-                or (site_id not in [4, 5] and a.referees.filter(user=u).exists())
+                or (site_id not in [2, 4, 5] and a.referees.filter(user=u).exists())
                 or r.panellists.filter(user=u).exists()
                 # or models.ConflictOfInterest.where(
                 #     Q(has_conflict=False) | Q(has_conflict__isnull=False),
@@ -3808,7 +3808,7 @@ class ApplicationDetail(DetailView):
                 .order_by("-id")
                 .first()
             ):
-                if site_id == 5:
+                if site_id in [2, 5]:
                     context["export_enabled"] = True
                 context["testimonial"] = t
                 if t.state != "submitted":
@@ -3827,14 +3827,14 @@ class ApplicationDetail(DetailView):
                                 )
                             ),
                         )
-                    elif site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                    elif site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()):
                         messages.info(
                             self.request,
                             (
                                 _(
                                     "Please review the application details and submit referee report."
                                 )
-                                if site_id in [4, 5]
+                                if site_id in [2, 4, 5]
                                 else _(
                                     "Please review the application details and submit testimonial."
                                 )
@@ -3995,7 +3995,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 r = a.round
                 if not (
                     a.is_applicant(u)
-                    or (a.site_id in [4, 5] and a.org.where(research_offices__user=u).exists())
+                    or (a.site_id in [2, 4, 5] and a.org.where(research_offices__user=u).exists())
                 ):
                     messages.error(
                         request, _("You do not have permissions to edit this application.")
@@ -4016,7 +4016,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     return redirect("application", pk=pk)
 
                 if a.state and (
-                    a.site_id != 5
+                    a.site_id not in [2, 5]
                     and (
                         a.state not in ["new", "draft", "in_review"]
                         or (
@@ -4346,7 +4346,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 has_deleted = False
                 a = form.instance or self.object
                 # dispatch invitation to the referees or defer until the application round is closed
-                dispatch_invitations = site_id != 5 or (
+                dispatch_invitations = site_id not in [2, 5] or (
                     a.state in ["approved", "accepted", "in_review"]
                     and round.closes_at
                     and round.closes_at <= timezone.now()
@@ -4451,7 +4451,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         if (
                             not (
                                 a.file
-                                or site_id in [4, 5]
+                                or site_id in [2, 4, 5]
                                 and (
                                     (
                                         not has_required_documents
@@ -4469,7 +4469,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                             )
                             and a.referees.count()
                         ):
-                            if site_id == 5:
+                            if site_id in [2, 5]:
                                 messages.info(
                                     self.request,
                                     _(
@@ -4788,7 +4788,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
                     if (
                         not update_only_referees
-                        and site_id not in [4, 5]
+                        and site_id not in [2, 4, 5]
                         and not (
                             a.file
                             or (
@@ -4842,7 +4842,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         if not url:
                             url = self.continue_url("id-verification")
 
-                    if site_id == 5 or "submit_to_referees" in self.request.POST:
+                    if site_id in [2, 5] or "submit_to_referees" in self.request.POST:
                         if (
                             a.round.required_referees
                             and a.referees.filter(~Q(state__in=["bounced", "opted_out"])).count()
@@ -4860,7 +4860,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                             a.round.required_referees
                             and a.referees.filter(
                                 ~Q(state__in=["bounced", "opted_out"])
-                                if site_id in [4, 5]
+                                if site_id in [2, 4, 5]
                                 else Q(state="testified")
                             ).count()
                             < a.round.required_referees
@@ -4869,7 +4869,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 self.request,
                                 (
                                     _("You need to nominate at least %d referee(s).")
-                                    if site_id in [4, 5]
+                                    if site_id in [2, 4, 5]
                                     else _(
                                         "You need to procure reviews of your application from at least %d referees."
                                     )
@@ -4910,7 +4910,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
                     if (
                         not update_only_referees
-                        and site_id == 5
+                        and site_id in [2, 5]
                         and a.round.has_seos
                         and a.application_seos.count() > 5
                     ):
@@ -4966,7 +4966,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                     "Your application has been successfully submitted. "
                                     "The Research Office will be in touch if there is anything more needed. Good luck."
                                 )
-                                if site_id in [4, 5]
+                                if site_id in [2, 4, 5]
                                 else _(
                                     "Your application has been successfully submitted. "
                                     "The Prize secretariat will be in touch if there is anything more needed. "
@@ -5012,9 +5012,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                             )
 
                 if "submit_to_referees" in self.request.POST or (
-                    site_id != 5 or a.state in ["approved", "accepted"]
+                    site_id not in [2, 5] or a.state in ["approved", "accepted"]
                 ):
-                    if site_id != 5:
+                    if site_id not in [2, 5]:
                         count = a.invite_referees(
                             request=self.request, dispatch_invitations=dispatch_invitations
                         )
@@ -5432,7 +5432,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
             kwargs["initial"].update(
                 {
                     "application_title": (
-                        "" if self.request.site_id in [4, 5] else self.round.title
+                        "" if self.request.site_id in [2, 4, 5] else self.round.title
                     ),
                     # "email": user.email,
                     # "first_name": user.first_name,
@@ -7562,7 +7562,7 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
-        return not ("nominator" in self.forwarded and self.request.site_id in [4, 5])
+        return not ("nominator" in self.forwarded and self.request.site_id in [2, 4, 5])
         # return True  # request.user.is_authenticated
 
     def get_result_label(self, result):
@@ -7576,7 +7576,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return result[0]
 
     def get_queryset(self):
-        nominator = self.forwarded.get("nominator") if self.request.site_id in [4, 5] else None
+        nominator = self.forwarded.get("nominator") if self.request.site_id in [2, 4, 5] else None
         user = self.forwarded.get("user")
         contract = self.forwarded.get("contract")
         try:
@@ -8297,7 +8297,7 @@ class NominationView(CreateUpdateView):
 
         if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
             if (
-                self.request.site_id not in [4, 5]
+                self.request.site_id not in [2, 4, 5]
                 and self.round.nomination_form_required
                 and not n.file
             ):
@@ -8574,7 +8574,7 @@ class TestimonialView(CreateUpdateView):
                                     "Your referee report form was converted into PDF file. "
                                     "Please review the converted referee report form version <a href='%s'>%s</a>."
                                 )
-                                if site_id in [4, 5]
+                                if site_id in [2, 4, 5]
                                 else _(
                                     "Your testimonial form was converted into PDF file. "
                                     "Please review the converted testimonial form version <a href='%s'>%s</a>."
@@ -8631,7 +8631,7 @@ class TestimonialView(CreateUpdateView):
                     ).exists()
                     and not a.referees.filter(~Q(state="testified")).exists()
                 ):
-                    if t.site_id == 5 and a.state == "in_review":
+                    if t.site_id in [2, 5] and a.state == "in_review":
                         pass
                         # a.submit(request=self.request)
                         # a.save()
@@ -8677,7 +8677,7 @@ class TestimonialView(CreateUpdateView):
                             reply_to=settings.DEFAULT_FROM_EMAIL,
                         )
 
-                if t.site_id in (4, 5):
+                if t.site_id in (2, 4, 5):
                     # TODO: ????
                     messages.info(
                         self.request,
@@ -8736,7 +8736,7 @@ class TestimonialView(CreateUpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         a = context["application"] = self.application
-        if a and a.site_id == 5:
+        if a and a.site_id in [2, 5]:
             context["documents"] = a.user_documents_dict(self.request.user)
 
         if not self.referee:
@@ -8813,7 +8813,7 @@ class NominationDetail(DetailView):
             nominator = self.object.nominator
             button_label = (
                 _("Start Application")
-                if self.request.site_id in [4, 5]
+                if self.request.site_id in [2, 4, 5]
                 else _("Start Prize Application")
             )
             messages.info(
@@ -8922,7 +8922,7 @@ class TestimonialDetail(DetailView):
         if a:
             context["extra_object"] = a
             context["application"] = a
-            if a.site_id == 5:
+            if a.site_id in [2, 5]:
                 context["documents"] = a.documents_dict
 
         survey_url = (
@@ -8931,7 +8931,7 @@ class TestimonialDetail(DetailView):
         if survey_url:
             context["survey_url"] = survey_url
         if (
-            a.site_id != 5
+            a.site_id not in [2, 5]
             or r.testimonials_required
             or r.required_submitted_testimonials
             and not r.survey_id
@@ -8941,13 +8941,13 @@ class TestimonialDetail(DetailView):
                 context["update_view_name"] = f"{self.model.__name__.lower()}-create"
                 context["update_button_name"] = (
                     mark_safe(_("Add <strong>Referee Report</strong>"))
-                    if t.site_id in [4, 5]
+                    if t.site_id in [2, 4, 5]
                     else _("Add Testimonial")
                 )
             else:
                 context["update_button_name"] = (
                     mark_safe(_("Edit <strong>Referee Report</strong>"))
-                    if t.site_id in [4, 5]
+                    if t.site_id in [2, 4, 5]
                     else _("Edit Testimonial")
                 )
 
@@ -8981,12 +8981,12 @@ class TestimonialDetail(DetailView):
                             )
                         ),
                     )
-                elif r.site_id != 5 or (closes_at and closes_at <= timezone.now()):
+                elif r.site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()):
                     messages.info(
                         self.request,
                         (
                             _("Please review the application details and submit referee report.")
-                            if t.site_id in [4, 5]
+                            if t.site_id in [2, 4, 5]
                             else _("Please review the application details and submit testimonial.")
                         ),
                     )
@@ -9051,7 +9051,7 @@ class ApplicationExportView(ExportView):
         attachments = []
         app = self.model.get(id=pk)
         u = self.request.user
-        if app.site_id in [4, 5] and app.is_applicant(u):
+        if app.site_id in [2, 4, 5] and app.is_applicant(u):
             return attachments
 
         if app.file:
@@ -9206,7 +9206,7 @@ class RoundExportView(ExportView):
         # for a in self.round.applications.all().order_by("number"):
         applications = (
             self.round.applications.filter(state__in=["accepted", "in_review"])
-            if site_id in [4, 5]
+            if site_id in [2, 4, 5]
             else self.round.applications.filter(state__in=["submitted", "approved"])
         ).order_by("number")
 
@@ -9216,7 +9216,7 @@ class RoundExportView(ExportView):
                 with open(filename, "wb") as output:
                     a.to_pdf(
                         request,
-                        skip_excluded=(site_id in [4, 5]),
+                        skip_excluded=(site_id in [2, 4, 5]),
                         for_panellists=for_panellists,
                     ).write(output)
 
@@ -9274,7 +9274,7 @@ class RoundExportView(ExportView):
                     reader,
                     outline_item=(
                         f"{a}"
-                        if a.site_id in [4, 5]
+                        if a.site_id in [2, 4, 5]
                         else f"{a.number}: {a.application_title or round.title}"
                     ),
                     import_outline=True,
@@ -10610,7 +10610,7 @@ def application_exported_view(request, number, lang=None):
     logo = None
     if site_id == 2:
         logo = f"{settings.STATIC_URL}images/{domain}/alt_logo_small.png"
-    elif site_id in [4, 5]:
+    elif site_id in [2, 4, 5]:
         # logo_1 = request.build_absolute_uri(f"{settings.STATIC_URL}images/MBIE_logo.jpg")
         # logo_2 = request.build_absolute_uri(f"{settings.STATIC_URL}images/RS_logo.png")
         logo_1 = f"{settings.STATIC_URL}images/MBIE_logo.jpg"
@@ -10618,7 +10618,7 @@ def application_exported_view(request, number, lang=None):
     elif site_id == 7:
         logo = f"{settings.STATIC_URL}images/pmspace-logo_small.jpg"
 
-    if site_id == 5:
+    if site_id in [2, 5]:
         referees = application.referees.order_by("testified_at")
         if round.required_referees:
             referees = referees[: round.required_referees]

@@ -111,7 +111,7 @@
 
     <tr>
       <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">
-        {% if SITE_ID == 5 %}
+        {% if SITE_ID == 2 or SITE_ID == 5 %}
           {% trans 'Host Organisation' %}
         {% else %}
           {% trans 'Organisation' %}
@@ -130,7 +130,7 @@
     <td>{{ a.position|default:'' }}</td>
     </tr>
 
-    {% if SITE_ID == 5 %}
+    {% if SITE_ID == 2 or SITE_ID == 5 %}
         <tr>
           <th class="table-dark" scope="row">{% trans 'Project Title' %}</th>
           <td colspan="3">
@@ -269,7 +269,7 @@
 
       {% endif %}
 
-      {% if a.site_id != 4 and a.site_id != 5 %}
+      {% if a.site_id != 2 and a.site_id != 4 and a.site_id != 5 %}
         <tr>
           <th class="table-dark" scope="row">
             {% trans 'Completed Application Form' %}
@@ -359,7 +359,7 @@
 	  {% endwith %}
     {% endif %}
 
-    {% if SITE_ID != 5 or not is_ro or user.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
+    {% if SITE_ID != 2 or SITE_ID != 5 or not is_ro or user.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Referees' %}</th>
         <td colspan="3">
