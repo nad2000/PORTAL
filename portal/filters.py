@@ -284,7 +284,7 @@ class TestimonialFilterSet(FilterSet):
         label=lazy(
             lambda: (
                 "Referee Report Filter"
-                if settings.SITE_ID in [4, 5]
+                if settings.SITE_ID in [2, 4, 5]
                 else gettext_lazy("Testimonial Filter")
             )
         )(),

@@ -54,7 +54,7 @@ def portal_context(request):
             application_submitted_count = counts.get("submitted", 0) + counts.get("canceled", 0)
             application_in_review_count = counts.get("in_review", 0)
             if (
-                site_id not in [4, 5] or (not is_staff and not u.is_superuser)
+                site_id not in [2, 4, 5] or (not is_staff and not u.is_superuser)
             ) and "approved" in counts:
                 application_submitted_count += counts["approved"]
             application_accepted_count = counts.get("accepted", 0)
@@ -96,9 +96,9 @@ def portal_context(request):
                 "score_sheet_count": score_sheet_count,
                 "is_ro": is_ro,
             }
-            if site_id == 5:
+            if site_id in [2, 5]:
                 cached_context["application_in_review_count"] = application_in_review_count
-            if site_id in [4, 5] and (is_staff or u.is_superuser):
+            if site_id in [2, 4, 5] and (is_staff or u.is_superuser):
                 application_approved_count = models.Application.user_application_count(
                     u, "approved"
                 )
@@ -190,7 +190,7 @@ def portal_context(request):
                         panellist__round__schema__current_round=F("panellist__round"),
                     ).exists()
                 )
-                if site_id in [4, 5] and (u.is_superuser or u.is_site_staff):
+                if site_id in [2, 4, 5] and (u.is_superuser or u.is_site_staff):
                     cached_context["LIMESURVEY_ADMIN_URL"] = (
                         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
                     )

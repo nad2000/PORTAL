@@ -298,7 +298,7 @@ class ContractDocumentAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     save_on_top = True
     list_display = ["contract__number", "required_document", "file", "state", "created_at", "updated_at"]
     list_display_links = ["file", "contract__number"]
-    list_filter = ["created_at", "updated_at", "state", 
+    list_filter = ["created_at", "updated_at", "state",
         ("contract", admin.RelatedOnlyFieldListFilter),
         ("required_document", admin.RelatedOnlyFieldListFilter)]
     search_fields = ["file", "contract__number"]
@@ -1011,7 +1011,7 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 #             "keywords": autocomplete.ModelSelect2Multiple(
 #                 url="keyword-autocomplete",
 #             )
-#         
+#
 #         fields = "__all__"
 
 
@@ -1167,7 +1167,7 @@ class ApplicationAdmin(
         # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
 
-        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role", 
+        # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role",
         # "user", "state", "state_changed_at", "authorized_at"]
 
         # def is_complete(self, obj):
@@ -1193,7 +1193,7 @@ class ApplicationAdmin(
 
         def get_exclude(self, request, obj=None):
             exclude = super().get_exclude(request, obj)
-            if settings.SITE_ID in [4, 5]:
+            if settings.SITE_ID in [2, 4, 5]:
                 exclude.extend(["survey_completed_at", "survey_url"])
             return exclude
 
@@ -1435,7 +1435,7 @@ class ApplicationAdmin(
             fieldsets[0][1]["fields"].insert(2, "previous_numbers")
         if obj and obj.round.can_nominate and models.Nomination.where(application=obj).exists():
             fieldsets[0][1]["fields"][0] = ("nomination_url", "STATE")
-        if (obj and obj.site_id or settings.SITE_ID) in [4, 5]:
+        if (obj and obj.site_id or settings.SITE_ID) in [2, 4, 5]:
             fieldsets[0][1]["fields"].insert(2, "research_experience_in_years")
 
         return fieldsets
@@ -1484,7 +1484,7 @@ class ApplicationAdmin(
 
     # def get_actions(self, request):
     #     actions = super().get_actions(request)
-    #     if settings.SITE_ID != 5 and "invite_referees" in actions:
+    #     if settings.SITE_ID not in [2, 5] and "invite_referees" in actions:
     #         del actions["invite_referees"]
     #     return actions
 
@@ -2688,7 +2688,7 @@ class RoundAdmin(
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
-        if (site_id := settings.SITE_ID) and site_id in [4, 5]:
+        if (site_id := settings.SITE_ID) and site_id in [2, 4, 5]:
             exclude = exclude and exclude.copy() or []
             exclude.extend(
                 [
@@ -2733,7 +2733,7 @@ class RoundAdmin(
                         ("title_en", "title_mi", "colour"),
                         (
                             ("opens_on", "closes_at", "testimonial_submission_closes_at")
-                            if site_id == 5
+                            if site_id in [2, 5]
                             else ("opens_on", "closes_at")
                         ),
                         "description_en",
@@ -2832,7 +2832,7 @@ class RoundAdmin(
                         ]
                     },
                 )
-                if site_id in [4, 5]
+                if site_id in [2, 4, 5]
                 else (
                     "Templates",
                     {
@@ -2879,7 +2879,7 @@ class RoundAdmin(
 
     def get_actions(self, request):
         actions = super().get_actions(request)
-        if settings.SITE_ID != 5 and "invite_referees" in actions:
+        if settings.SITE_ID not in [2, 5] and "invite_referees" in actions:
             del actions["invite_referees"]
         return actions
 
@@ -2977,7 +2977,7 @@ class RoundAdmin(
         classes = ["collapse"]
 
     def get_inlines(self, request, obj):
-        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [4, 5]:
+        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [2, 4, 5]:
             return [
                 self.RequiredDocumentInline,
                 self.TemplateInline,

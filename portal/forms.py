@@ -636,7 +636,7 @@ class ApplicationForm(ModelForm):
                 round.applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0
                 and not (self.cleaned_data.get("cv_file") or self.instance.cv)
-                and self.site_id not in [4, 5]
+                and self.site_id not in [2, 4, 5]
             ):
                 raise forms.ValidationError(
                     _("Need to attach a CV before submitting the application."),
@@ -712,7 +712,7 @@ class ApplicationForm(ModelForm):
         language = get_language()
         site_id = self.site_id
 
-        if site_id in [4, 5]:
+        if site_id in [2, 4, 5]:
             self.fields["application_title"].label = _("Title of proposed research")
             self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
@@ -1062,7 +1062,7 @@ class ApplicationForm(ModelForm):
                                 % guidelines,
                             )
                         )
-                        if site_id in [4, 5]
+                        if site_id in [2, 4, 5]
                         else (
                             '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
                             % (
@@ -1082,7 +1082,7 @@ class ApplicationForm(ModelForm):
                 ),
             )
         if round.has_referees:
-            if site_id in [4, 5]:
+            if site_id in [2, 4, 5]:
                 referee_information_text = "\n".join(
                     f"<p>{line}</p>"
                     for line in [
@@ -1182,7 +1182,7 @@ class ApplicationForm(ModelForm):
 
         if not instance.submitted_by or instance.submitted_by == user:
             if not (tac_text := round.tac):
-                if site_id in [4, 5]:
+                if site_id in [2, 4, 5]:
                     tac_text = "\n".join(
                         f"<p>{l}</p>"
                         for l in [
@@ -1270,11 +1270,11 @@ class ApplicationForm(ModelForm):
             and instance.submitted_by
             and instance.submitted_by != user
         )
-        # send_out_to_referees = site_id == 5 and instance.state in ["new", "draft", "in_review"]
+        # send_out_to_referees = site_id in [2, 5] and instance.state in ["new", "draft", "in_review"]
         is_ro = (
             instance
             and instance.pk
-            and (site_id == 5)
+            and (site_id in [2, 5])
             and (
                 models.Nomination.where(
                     Q(nominator=user) | Q(org__research_offices__user=user), application=instance
@@ -1298,7 +1298,7 @@ class ApplicationForm(ModelForm):
                         if submission_disabled
                         else (
                             ("Submit the application to the Research Office")
-                            if site_id in [4, 5]
+                            if site_id in [2, 4, 5]
                             else ("Submit the application")
                         )
                         # else (
@@ -1710,7 +1710,7 @@ class ContractForm(ModelForm):
 
         # language = get_language()
         site_id = self.site_id
-        if site_id in [4, 5]:
+        if site_id in [2, 4, 5]:
             self.fields["project_title"].label = _("Title of proposed research project")
             # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
             # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
@@ -1736,7 +1736,7 @@ class ContractForm(ModelForm):
             or instance.state not in ["new", "draft"]
         )
         is_pi = instance and (
-            application.submitted_by == user
+            application and application.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
         )
         submit_button = Submit(
@@ -2988,10 +2988,10 @@ class NominationForm(ModelForm):
         is_single_org_ro = False
         if nominator:
             if (
-                is_single_org_ro := (site_id in [4, 5] and nominator.research_offices.count() == 1)
+                is_single_org_ro := (site_id in [2, 4, 5] and nominator.research_offices.count() == 1)
             ) and (ro_org := models.Organisation.where(research_offices__user=nominator).last()):
                 org_id = initial["org"] = ro_org.pk
-            elif site_id in [4, 5] and (
+            elif site_id in [2, 4, 5] and (
                 nominator_org := models.Organisation.where(research_offices__user=nominator).last()
             ):
                 org_id = initial["org"] = nominator_org.pk
@@ -3018,7 +3018,7 @@ class NominationForm(ModelForm):
                     _(
                         "Nominee - details of the person you are nominating to apply for the round of the scheme"
                     )
-                    if site_id in [4, 5]
+                    if site_id in [2, 4, 5]
                     else _(
                         "Nominee - details of the person you are nominating to receive this award"
                     )
@@ -3056,7 +3056,7 @@ class NominationForm(ModelForm):
                 placeholder="e.g., +64 4 472 7421",
             ),
         ]
-        if site_id == 5:
+        if site_id in [2, 5]:
             self.fields["contact_phone"].help_text = _("The Research Office contact phone number")
         else:
             self.fields["contact_phone"].help_text = _("Your (nominator) contact phone number")
@@ -3250,7 +3250,7 @@ class TestimonialForm(ModelForm):
             fields.append(
                 Field("file", data_toggle="tooltip", title=self.fields["file"].help_text)
             )
-            if site_id in [4, 5]:
+            if site_id in [2, 4, 5]:
                 self.fields["file"].label = ""
             if round.referee_template:
                 help_text = _(
@@ -3260,7 +3260,7 @@ class TestimonialForm(ModelForm):
                 self.fields["file"].help_text = help_text
             self.fields["file"].required = True
         # fields = [
-        #     Fieldset(_("Referee Report") if site_id in [4, 5] else _("Testimonial"), *fields),
+        #     Fieldset(_("Referee Report") if site_id in [2, 4, 5] else _("Testimonial"), *fields),
         # ]
 
         self.helper.layout = Layout(
@@ -3283,7 +3283,7 @@ class TestimonialForm(ModelForm):
                     "turn_down",
                     (
                         _("I do not wish to provide a report")
-                        if site_id in [4, 5]
+                        if site_id in [2, 4, 5]
                         else _("I do not wish to provide a testimonial")
                     ),
                     css_class="btn-outline-danger",
@@ -3422,7 +3422,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not (self.instance and self.instance.site_id or self.site_id) in (4, 5):
+        if not (self.instance and self.instance.site_id or self.site_id) in (2, 4, 5):
             self.fields.pop("panel")
             self.fields.pop("role")
             self.fields.pop("is_active")
@@ -3861,7 +3861,7 @@ class ReportForm(ModelForm):
         application = contract.application or initial.get("application")
         round = application and application.round or initial.get("round")
         # site_id = self.site_id
-        # if site_id in [4, 5]:
+        # if site_id in [2, 4, 5]:
         #     self.fields["project_title"].label = _("Title of proposed research project")
         #     # self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
         #     # self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'

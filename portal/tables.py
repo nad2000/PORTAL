@@ -211,7 +211,7 @@ def application_link(table, record, value):
     #     return reverse("admin:portal_application_change", kwargs={"object_id": record.id})
     if (
         u.is_superuser
-        or record.site_id not in [4, 5]
+        or record.site_id not in [2, 4, 5]
         and not record.was_submitted
         and record.is_applicant(u)
     ):
@@ -254,7 +254,7 @@ class SafeTemplateColumn(tables.TemplateColumn):
 
 
 def default_start_date(record=None):
-    if (record and record.site_id or settings.SITE_ID) == 5:
+    if (record and record.site_id or settings.SITE_ID) in [2, 5]:
         return timezone.now().date().replace(day=1, month=3)
     return (timezone.now().date().replace(day=1) + relativedelta(months=1))
 
@@ -404,7 +404,7 @@ def report_link(table, record, value):
     u = table.request.user
     if u.is_superuser:
         return reverse("admin:portal_report_change", kwargs={"object_id": record.id})
-    if record.site_id not in [4, 5] and not record.was_submitted and record.is_applicant(u):
+    if record.site_id not in [2, 4, 5] and not record.was_submitted and record.is_applicant(u):
         return reverse("report-update", kwargs={"pk": record.id})
     return record.get_absolute_url()
 
