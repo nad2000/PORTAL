@@ -172,7 +172,7 @@ def __(s):
 def site_contact_email(site_id=None):
     if site_id == 4 or settings.SITE_ID == 4:
         return "puanga@royalsociety.org.nz"
-    elif site_id == 5 or settings.SITE_ID == 5:
+    elif site_id in [2, 5] or settings.SITE_ID in [2, 5]:
         return "tawhia@royalsociety.org.nz"
     return "pmscienceprizes@royalsociety.org.nz"
 
@@ -2734,7 +2734,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 user.is_superuser
                 or user.is_site_staff
                 or (
-                    self.site_id in [4, 5]
+                    self.site_id in [2, 4, 5]
                     and self.org
                     and (
                         self.org.research_offices.filter(user=user).exists()
@@ -2909,19 +2909,19 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["tac_accepted", "submitted", "approved", "accepted", "in_review"],
         target="in_review",
-        conditions=[lambda self: self.site_id != 5 or self.state in ["accepted", "in_review"]],
+        conditions=[lambda self: self.site_id not in [2, 5] or self.state in ["accepted", "in_review"]],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
     )
     def send_out_to_referees(self, exclude_sender=False, *args, **kwargs):
         try:
             request = kwargs.get("request")
-            self.is_completed(skip_testimonials=(self.site_id == 5), *args, **kwargs)
+            self.is_completed(skip_testimonials=(self.site_id in [2, 5]), *args, **kwargs)
             return self.invite_referees(
                 request=request,
                 dispatch_invitations=(
-                    self.site_id != 5
+                    self.site_id not in [2, 5]
                     or (
-                        self.site_id == 5
+                        self.site_id in [2, 5]
                         and self.round.closes_at
                         and self.round.closes_at <= timezone.now()
                     )
@@ -2938,11 +2938,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["new", "draft", "tac_accepted", "submitted"],
         target="submitted",
-        conditions=[lambda self: self.site_id == 5 or self.state != "submitted"],
+        conditions=[lambda self: self.site_id in [2, 5] or self.state != "submitted"],
         custom=dict(verbose="Submit", button_name="Submit"),
     )
     def submit(self, *args, **kwargs):
-        self.is_completed(skip_testimonials=(self.site_id == 5), *args, **kwargs)
+        self.is_completed(skip_testimonials=(self.site_id in [2, 5]), *args, **kwargs)
         request = kwargs.get("request")
         round = self.round
 
@@ -2962,7 +2962,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # url = domain_to_macrons(url)
             url = self.get_full_detail_url(request=request)
             link_name = domain_to_macrons(url)
-            if self.site_id == 5:
+            if self.site_id in [2, 5]:
                 html_message = (
                     "<p>Kia ora %(nominator)s</p>"
                     '<p>The nominee has submitted an application <a href="%(url)s">%(number)s: '
@@ -3163,7 +3163,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return (
             (self.site_id != 4 and self.state == "approved")
             or self.state == "accepted"
-            or (self.site_id == 5 and self.state == "in_review")
+            or (self.site_id in [2, 5] and self.state == "in_review")
         )
 
     @fsm_log
@@ -3265,7 +3265,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["approved", "accepted", "in_review"],
         target="submitted",
-        conditions=[lambda self: self.site_id == 5],
+        conditions=[lambda self: self.site_id in [2, 5]],
         custom=dict(
             verbose="Request reassessment and release the application back to the R.O. "
             "for further assessment and editing",
@@ -3643,7 +3643,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         cvs = []
         if not for_panellists and request:
             for_panellists = request.GET.get("for_panellists", False)
-        include_header_page = not (site_id == 5 and for_panellists)
+        include_header_page = not (site_id in [2, 5] and for_panellists)
         if self.file:
             attachments.append(
                 (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
@@ -3713,7 +3713,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-        if site_id not in [4, 5] and not is_referee and not self.is_applicant(user):
+        if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
             if (
                 user.is_superuser
                 or self.is_applicant(user)
@@ -3752,7 +3752,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if site_id in [4, 5] and not (
+        if site_id in [2, 4, 5] and not (
             (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
         ):
@@ -3775,7 +3775,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             {
                 "/Title": (
                     f"{self}"
-                    if site_id in [4, 5]
+                    if site_id in [2, 4, 5]
                     else f"{self.number}: {self.application_title or r.title}"
                 )
             }
@@ -3794,7 +3794,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
                 logo_url = f"file://{logo_path}"
 
-        elif site_id in [4, 5]:
+        elif site_id in [2, 4, 5]:
             if logo_path := finders.find("images/MBIE_logo.jpg"):
                 logo_1_url = f"file://{logo_path}"
 
@@ -3817,7 +3817,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             number = vignere.encode(self.number)
             url = reverse("application-exported-view", kwargs={"number": number})
-            if site_id == 5 and for_panellists:
+            if site_id in [2, 5] and for_panellists:
                 url = f"{url}?for_panellists=1"
             if request:
                 summary_url = request.build_absolute_uri(url)
@@ -3841,7 +3841,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "for_panellists": for_panellists,
             }
             if for_panellists and (user.is_superuser or user.is_site_staff):
-                if site_id == 5:
+                if site_id in [2, 5]:
                     referees = self.referees.order_by("testified_at")
                     if r.required_referees:
                         referees = referees[: r.required_referees]
@@ -5294,7 +5294,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "If you have any further questions, please contact: %(contact_email)s\n\n"
                     "Ngā mihi nui"
                 )
-                if survey_url and site_id != 5
+                if survey_url and site_id not in [2, 5]
                 else (
                     "Tēnā koe,\n\n"
                     "You have been invited to be a referee for %(inviter)s's application to "
@@ -5332,7 +5332,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "<p>If you have any further questions, please contact "
                     "<a href='%(contact_email)s'>%(contact_email)s</a></p>"
                 )
-                if survey_url and site_id != 5
+                if survey_url and site_id not in [2, 5]
                 else (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
                     "for %(main_applicant)s's application to the "
@@ -5698,7 +5698,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
                 self.referee._change_reason = description
             if commit:
                 self.referee.save()
-        if self.site_id == 5:
+        if self.site_id in [2, 5]:
             pass
 
     @classmethod
@@ -5732,7 +5732,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     def __str__(self):
         if self.referee_id:
-            if self.site_id in [4, 5]:
+            if self.site_id in [2, 4, 5]:
                 return _("Referee report by {0} for {1}").format(
                     self.referee, self.referee.application
                 )
@@ -5743,7 +5743,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
 
     def title_page(self):
 
-        if self.site_id == 5:
+        if self.site_id in [2, 5]:
             tp = {
                 "TITLES": [_("Referee Report")],
                 # _("Submitted At"): self.updated_at or self.created_at,
@@ -6459,7 +6459,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         if self.title_mi == scheme.title_mi and self.opens_on:
             self.title_mi = f"{self.title_mi} {self.opens_on.year}"
 
-        if self.site_id in [4, 5]:
+        if self.site_id in [2, 4, 5]:
             for f in [
                 "applicant_cv_required",
                 "direct_application_allowed",
@@ -6614,7 +6614,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             if "site" not in kwargs:
                 kwargs["site"] = scheme.site
 
-            if self.site_id in [4, 5] or settings.SITE_ID in [4, 5]:
+            if self.site_id in [2, 4, 5] or settings.SITE_ID in [2, 4, 5]:
                 for f in [
                     "applicant_cv_required",
                     "direct_application_allowed",
@@ -7785,7 +7785,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             nominator = self.nominator
         site_id = self.site_id
 
-        if site_id in [4, 5] and nominator.research_offices.count():
+        if site_id in [2, 4, 5] and nominator.research_offices.count():
             return Organisation.where(research_offices__user=nominator).order_by("-pk")
         q = (
             Organisation.where(
@@ -8114,7 +8114,7 @@ def invite_referees(
         applications = Application.where(round__in=rounds.values_list("pk"))
     if not applications:
         applications = Application.where(round__scheme__current_round=F("round"))
-    if site_id in [5]:
+    if site_id in [2, 5]:
         applications = applications.filter(state__in=["accepted", "in_review"])
     elif site_id in [1, 4, 7]:
         applications = applications.filter(
@@ -8131,7 +8131,7 @@ def invite_referees(
         if not by:
             ah = a.history.filter(state="submitted").order_by("-history_id").first()
             by = ah and ah.history_user or by
-        if site_id in [5] and a.state != "in_review":
+        if site_id in [2, 5] and a.state != "in_review":
             count += a.send_out_to_referees(by=by, request=request, exclude_sender=True)
         else:
             count += a.invite_referees(by=by, request=request, exclude_sender=True)
@@ -8980,7 +8980,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         org = a.org
         if not start_date:
-            if a.site_id == 5:
+            if a.site_id in [2, 5]:
                 start_date = timezone.now().date().replace(day=1, month=3)
             else:
                 start_date = timezone.now().date().replace(day=1) + relativedelta(months=1)
@@ -9281,7 +9281,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             purpose=(
                                 "To contribute towards the Key Contact Person's salary, "
                                 "Organisational overheads and Research related expenses."
-                                if a.site_id == 5
+                                if a.site_id in [2, 5]
                                 else None
                             ),
                         )
@@ -9293,8 +9293,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def default_schedule2(self):
-        r = self.application.round
-        if r.schedule2:
+        r = self.application and self.application.round
+        if r and r.schedule2:
             return r.schedule2
 
         r = (
@@ -9567,7 +9567,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         round = application.round
         scheme = round.scheme
         fund = scheme.fund
-        if round.site_id == 5:
+        if round.site_id in [2, 5]:
             prefix = scheme.code
         else:
             prefix = fund and (fund.code3 or fund.code) or scheme.code
@@ -9591,6 +9591,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     def get_required_documents(self):
         """Returns the required documents with prefetched linked documents to the contract."""
+        if not self.application:
+            return RequiredContractDocument.objects.none()
         return self.application.round.required_contract_documents.prefetch_related(
             Prefetch("documents", queryset=ContractDocument.where(contract=self))
         ).order_by("ordering")

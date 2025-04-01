@@ -80,16 +80,16 @@
   <a
     class="btn btn-outline-primary"
     target="_blank"
-    href="{{ url('round-application-export', pk=round.id) }}{% if round.site_id ==5 %}?format=7z{% if user.is_superuser or user.is_site_staff %}&for_panellists=1{% endif %}{% endif %}"
+    href="{{ url('round-application-export', pk=round.id) }}{% if round.site_id in [2, 5] %}?format=7z{% if user.is_superuser or user.is_site_staff %}&for_panellists=1{% endif %}{% endif %}"
     data-toggle="tooltip"
-    {% if round.site_id == 5 and (user.is_superuser or user.is_site_staff) %}
+    {% if round.site_id in [2, 5] and (user.is_superuser or user.is_site_staff) %}
       title="Export all the applications of the round for the panellist scoring"
     {% else %}
         title="{{ _('Export all the applications of the round') }}{% if round.site_id == 4 %}{{ _(' (only ACCEPTED)') }}{% endif %}"
     {% endif %}
     role="button"
   >
-    {% if round.site_id == 5 and (user.is_superuser or user.is_site_staff) %}
+    {% if round.site_id in [2, 5] and (user.is_superuser or user.is_site_staff) %}
       {{ _("Export Applications") }}
     {% else %}
       {{ _("Export PDF") }}

@@ -101,7 +101,7 @@ thead th.orderable.desc > a {
 {% block content %}
 
     <!-- Placeholder for the modal -->
-    {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+    {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
     <div id="outcome-form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this">
         <div class="modal-content">
@@ -261,7 +261,7 @@ thead th.orderable.desc > a {
           href="{% url 'round-application-export' pk=round.id %}"
           trarget="_blank"
           data-toggle="tooltip"
-          {% if SITE_ID == 5 %}
+          {% if SITE_ID == 2 or SITE_ID == 5 %}
             title="Export all the applications of the round for the panellist scoring"
           {% else %}
             title="{% trans 'Export all the applications of the round' %}"
@@ -269,7 +269,7 @@ thead th.orderable.desc > a {
           role="button"
           style="margin: 1px;"
       >
-        {% if SITE_ID == 5 %}
+        {% if SITE_ID == 2 or SITE_ID == 5 %}
           {% trans "Export Applications" %}
         {% else %}
           {% trans "Export PDF" %}
@@ -360,7 +360,7 @@ thead th.orderable.desc > a {
         </a>
 
         {% if user.is_staff or user.is_superuser or user.is_site_staff %}
-          {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+          {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
             <button type="button" class="btn btn-primary ml-2" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
           {% endif %}
         {% endif %}
@@ -376,7 +376,7 @@ thead th.orderable.desc > a {
       <div class="col-md-10">
         {% render_table table %}
 
-        {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+        {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
           <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
         {% endif %}
 
@@ -594,7 +594,7 @@ function rememberIfDetailsWasFolded(el) {
     }
     this.form.submit();
   });
-  {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 5 and view_name == "applications-in_review" %}
+  {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
   $("#id_outcome_form").on("submit", function(e) {
       if (this.checkValidity()) {
           $.blockUI({

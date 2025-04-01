@@ -1,6 +1,6 @@
 {% set c=contract %}
 {% set a=c.application %}
-{% set application_number=a.number %}
+{% set application_number=a and a.number or _("N/A") %}
 <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -10,7 +10,11 @@
           {{ _('Application Number') }}
         </th>
         <td>
-          <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
+          {% if a %}
+            <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
+          {% else %}
+            {{ _("N/A") }}
+          {% endif %}
         </td>
       </tr>
 

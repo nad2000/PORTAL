@@ -3,7 +3,7 @@
 {% block object-tools-items %}
   {% if original %}
      {% if original.can_export_to_pdf %}
-        {% if SITE_ID == 5 and view_name == 'admin:portal_application_change' %}
+        {% if SITE_ID == 2 and view_name == 'admin:portal_application_change' or SITE_ID == 5 and view_name == 'admin:portal_application_change' %}
           <li>
             <a
                href="{% url 'application-export' original.pk %}?for_panellists=1"
@@ -34,7 +34,7 @@
             </a>
           </li>
         {% endif %}
-      {% elif SITE_ID == 5 and view_name == 'admin:portal_round_change' %}
+      {% elif SITE_ID == 2 and view_name == 'admin:portal_round_change' or SITE_ID == 5 and view_name == 'admin:portal_round_change' %}
         <li>
           <a
              href="{% url 'round-application-export' original.pk %}?for_panellists=1&format=7z"

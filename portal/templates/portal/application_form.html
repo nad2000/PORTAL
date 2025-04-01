@@ -100,7 +100,7 @@
         {#{ form.media.js }#}
         <!-- JS -->
         <script>
-          {% if SITE_ID != 5 %}
+          {% if SITE_ID != 2 and SITE_ID != 5 %}
             function activateRefereeTab() {
               $("#submit-id-save_draft").val("{% trans 'Save and send new invitation(s)' %}");
               $("#submit-id-save_draft").attr("name", "send_invitations");
@@ -283,14 +283,14 @@
                                 {% elif "verification" in request.GET %}
                                   $('.nav a[href="#id-verification"]').tab('show');
                                 {% elif "referees" in request.GET %}
-                                  $('.nav a[href="#referees"]').tab('show');{% if SITE_ID != 5 %} activateRefereeTab();{% endif %}
+                                  $('.nav a[href="#referees"]').tab('show');{% if SITE_ID != 2 and SITE_ID != 5 %} activateRefereeTab();{% endif %}
                                 {% elif "summary" in request.GET %}
                                   $('.nav a[href="#summary"]').tab('show');
                                 {% else %}
                                   // Jump to the last active tab:
                                   if (location.hash) {
                                       if (location.hash != "#members") $('.nav a[href="' + location.hash + '"]').tab('show');
-                                      {% if SITE_ID != 5 %}if (location.hash == "#referees") activateRefereeTab();{% endif %}
+                                      {% if SITE_ID != 2 and SITE_ID != 5 %}if (location.hash == "#referees") activateRefereeTab();{% endif %}
                                   };
                                   if (!location.hash || location.hash == "#applicant") {
                                     $("#button-id-previous").hide();
@@ -302,7 +302,7 @@
 
                                 /* $("#div_id_title").parent().css("min-width", "4rem");
                                    $("#id_title").parent().css({"padding-left":"1px", "padding-right":"1px"}); */
-                                {% if SITE_ID != 5 %}
+                                {% if SITE_ID != 2 and SITE_ID != 5 %}
                                   $('a[data-toggle="tab"][href="#referees"]').on('show.bs.tab', activateRefereeTab);
                                   $('a[data-toggle="tab"][href="#referees"]').on('hide.bs.tab', function (e) {
                                     $("#submit-id-save_draft").val("{% trans 'Save' %}");
