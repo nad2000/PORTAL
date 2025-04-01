@@ -4934,7 +4934,8 @@ class ChangeRequestForm(ModelForm):
         if is_ro:
             del self.fields["categories"]
             del self.fields["subcategories"]
-            del self.fields["tags"]
+            # del self.fields["tags"]
+            self.fields.pop("tags", None)
         employments_url = reverse("profile-employments")
         educations_url = reverse("profile-educations")
         self.fields["new_host"].help_text = mark_safe(
