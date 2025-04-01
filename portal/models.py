@@ -5886,8 +5886,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
-    colour = ColorField(
+    background = ColorField(
         null=True, blank=True, help_text="Colour used for text headers and back-grounds"
+    )
+    foreground = ColorField(
+        null=True, blank=True, help_text="Colour used for text headers and fore-grounds"
     )
 
     opens_on = DateField(_("opens on"), null=True, blank=True)

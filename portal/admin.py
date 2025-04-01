@@ -2730,7 +2730,7 @@ class RoundAdmin(
                 {
                     "fields": [
                         "scheme",
-                        ("title_en", "title_mi", "colour"),
+                        ("title_en", "title_mi", "foreground", "background"),
                         (
                             ("opens_on", "closes_at", "testimonial_submission_closes_at")
                             if site_id in [2, 5]
@@ -2895,12 +2895,26 @@ class RoundAdmin(
 
     @admin.display(description=_("tittle"), ordering="title")
     def coloured_title(self, obj):
-        if obj.colour:
-            return format_html(
-                '<span style="background-color: {}; color: white;">{}</span>',
-                obj.colour,
-                obj.title,
-            )
+        if obj.foreground or obj.background:
+            if obj.foreground and obj.background:
+                return format_html(
+                    '<span style="background-color: {}; color: {};">{}</span>',
+                    obj.background,
+                    obj.foreground,
+                    obj.title,
+                )
+            elif obj.foreground:
+                return format_html(
+                    '<span color: {};">{}</span>',
+                    obj.foreground,
+                    obj.title,
+                )
+            else:
+                return format_html(
+                    '<span style="background-color: {}; filter: invert(1);">{}</span>',
+                    obj.background,
+                    obj.title,
+                )
         return obj.title
 
     def view_on_site(self, obj):
