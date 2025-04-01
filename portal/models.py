@@ -7591,7 +7591,7 @@ class SchemeApplication(Model):
                 pa.application_title AS previous_application_title,
                 pa.created_on AS previous_application_created_on
             FROM scheme AS s
-            LEFT JOIN round AS r ON r.id = s.current_round_id AND r.site_id = %s
+            /*LEFT */JOIN round AS r ON r.id = s.current_round_id AND r.site_id = %s
             LEFT JOIN (
                 SELECT
                     max(a.id) AS id,

@@ -1110,7 +1110,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 def index(request):
 
     site_id = request.site_id
-    if request.resolver_match.view_name == "start":
+    if request.resolver_match.view_name in ["start", "home"]:
         reset_cache(request)
     if "error" in request.GET:
         raise Exception(request.GET["error"])
