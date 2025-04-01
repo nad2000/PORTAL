@@ -2968,7 +2968,7 @@ class RoundAdmin(
                 )
             else:
                 return format_html(
-                    '<span style="background-color: {}; filter: invert(1);">{}</span>',
+                    '<span style="background-color: {}; color: white;">{}</span>',
                     obj.background,
                     obj.title,
                 )
