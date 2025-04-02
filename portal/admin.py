@@ -1061,7 +1061,6 @@ class IsActiveRoundApplicationListFilter(admin.SimpleListFilter):
 #                 url="keyword-autocomplete",
 #             )
 #
-#
 #         fields = "__all__"
 
 
