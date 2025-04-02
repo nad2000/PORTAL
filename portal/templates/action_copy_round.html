@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+  <form action="" method="post">
+
+    {% csrf_token %}
+    <input type="hidden" name="action" value="copy_round">
+    <input type="hidden" name="select_across" value="0">
+    <input type="hidden" name="index" value="0">
+    {% for o in objects %}
+      <input type="hidden" name="_selected_action" value="{{ o.id }}">
+    {% endfor %}
+
+    <input type="hidden" name="do_action" value="yes">
+
+    <label for="target">Target Scheme</label>
+    <select id="target" name="target">
+
+      {% comment %}
+      {% for o in objects %}
+        <option value="{{ o.id }}"{% if forloop.first %} selected{% endif %}>{{ o.code }}: {{ o }}</option>
+      {% endfor %}
+      {% endcomment %}
+
+      {% for s in schemes %}
+      <option value="{{ s.pk }}"{% if first_round %}{% if first_round.scheme == s %} selected{% endif %}{% else %}{% if forloop.first %} selected{% endif %}{% endif %}>{{ s.code }}: {{ s }}</option>
+      {% endfor %}
+
+    </select>
+
+    <div>
+      <input type="submit" class="default" style="float: none" value="Copy">
+    </div>
+
+  </form>
+{% endblock %}
