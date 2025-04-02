@@ -16,7 +16,7 @@ def first_year(site_id=None):
         site_id = settings.SITE_ID
     if not __first_year.get(site_id):
         if data := models.Round.objects.aggregate(Min("opens_on__year"), Min("closes_at__year")):
-            __first_year[site_id] = min(data.values())
+            __first_year[site_id] = min(v for v in data.values() if v)
     return __first_year[site_id]
 
 

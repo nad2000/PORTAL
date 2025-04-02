@@ -7711,7 +7711,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(_("last name"), max_length=150)
     position = CharField(
@@ -10390,7 +10390,7 @@ class ContractMember(PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     role = ForeignKey(

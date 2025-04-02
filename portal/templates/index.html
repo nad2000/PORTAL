@@ -68,40 +68,31 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
         <table class="table table-bordered searchable table-striped">
           <tbody>
             <tr>
-              <th style="width: 32%; min-width: 180px; max-width: 200px;">...</th>
-              <td>...</td>
+              <th style="width: 32%; min-width: 180px; max-width: 200px;">...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
           </tbody>
         </span>
@@ -617,16 +608,21 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
               {% else %}
               {% if request.user.is_superuser %}
-              <a href="{% url 'admin:portal_round_change' object_id=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
-                                                                                                         > {% trans "Edit" %} <b>{% trans "Round" %}</b>
+              <a href="{% url 'admin:portal_round_change' object_id=round.id %}"
+                 class="btn btn-primary"
+                 style="text-transform: uppercase;"
+                 data-tooltip="tooltip"
+                 title="{% trans 'Open and edit the round in the admin interface' %}"
+              > {% trans "Edit" %} <b>{% trans "Round" %}</b>
               </a>
               {% endif %}
               {% endif %}
 
               {% if request.user.is_site_staff %}
-              <a href="{% url 'panellist-invite' round=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
-                                                                                            > {% trans "Invite" %}
-                                                                                            <b>{% trans "Panellist" %}</b>
+              <a href="{% url 'panellist-invite' round=round.id %}"
+                 class="btn btn-primary" style="text-transform: uppercase;"
+              > {% trans "Invite" %}
+                <b>{% trans "Panellist" %}</b>
               </a>
               {% endif %}
 
