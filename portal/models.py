@@ -2909,7 +2909,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["tac_accepted", "submitted", "approved", "accepted", "in_review"],
         target="in_review",
-        conditions=[lambda self: self.site_id not in [2, 5] or self.state in ["accepted", "in_review"]],
+        conditions=[
+            lambda self: self.site_id not in [2, 5] or self.state in ["accepted", "in_review"]
+        ],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
     )
     def send_out_to_referees(self, exclude_sender=False, *args, **kwargs):
@@ -6425,17 +6427,24 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         if last_round:
 
             for f in [f.name for f in self._meta.fields]:
-                if f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]:
+                if (
+                    f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]
+                    or getattr(self, f, None) is not None
+                ):
                     continue
                 v = getattr(last_round, f)
                 setattr(self, f, v)
                 # if v is not None and getattr(self, f) is None:
 
-            if not self.opens_on and last_round.opens_on:
-                self.opens_on = last_round.opens_on + relativedelta(years=1)
+            if not self.scheme or self.scheme != last_round.scheme:
+                if not self.opens_on and last_round.opens_on:
+                    self.opens_on = last_round.opens_on + relativedelta(years=1)
 
-            if not self.closes_at and last_round.closes_at:
-                self.closes_at = last_round.closes_at + relativedelta(years=1)
+                if not self.closes_at and last_round.closes_at:
+                    self.closes_at = last_round.closes_at + relativedelta(years=1)
+            else:
+                self.opens_on = last_round.opens_on
+                self.closes_at = last_round.closes_at
 
         if not self.opens_on:
             self.opens_on = timezone.now()
@@ -6473,8 +6482,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         return self
 
-    def clone(self, *args, **kwargs):
-        nr = Round(scheme=self.scheme)
+    def clone(self, scheme=None, *args, **kwargs):
+        nr = Round(scheme=scheme or self.scheme)
         nr.init_from_last_round(last_round=self)
         if not nr.title:
             nr.title = self.scheme.title

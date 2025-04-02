@@ -1199,7 +1199,7 @@ class ApplicationAdmin(
         if obj.state:
             sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
             return mark_safe(
-                f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
+                f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
             )
 
     @admin.display(description="Previous Numbers")
@@ -2731,7 +2731,7 @@ class RoundAdmin(
         "site",
     ]
     search_fields = ["title", "scheme__code"]
-    actions = ["create_new_round", "invite_referees", "sync_referee_surveys"]
+    actions = ["create_new_round", "invite_referees", "sync_referee_surveys", "copy_round"]
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
@@ -2940,6 +2940,57 @@ class RoundAdmin(
             del actions["invite_referees"]
         return actions
 
+    @admin.action(description="Copy and link to another scheme")
+    def copy_round(self, request, queryset):
+
+        if "do_action" in request.POST:
+            errors = []
+            if target_id := request.POST.get("target"):
+                target = models.Scheme.get(target_id)
+                rounds = list(queryset.filter(~Q(scheme_id=target_id)))
+                new_rounds = []
+
+                try:
+                    with transaction.atomic():
+
+                        for r in rounds:
+                            nr = r.clone(scheme=target)
+                            new_rounds.append(nr)
+                            target.current_round = nr
+                            target.save(update_fields=["current_round", "updated_at"])
+
+                except Exception as ex:
+                    capture_exception(ex)
+                    errors.append(ex)
+
+            if len(new_rounds) == 1:
+                messages.success(
+                    request,
+                    f'Round {new_rounds[0]} copied and linked to the scheme {target}',
+                )
+            else:
+                messages.success(
+                    request,
+                    f'{len(new_rounds)} rounds copied and linked to the scheme {target}: {", ".join(new_rounds)}',
+                )
+
+            if errors:
+                for e in errors:
+                    messages.error(request, e)
+
+            return
+
+        return render(
+            request,
+            "action_copy_round.html",
+            {
+                "title": "Choose target scheme",
+                "objects": queryset,
+                "first_round": queryset.first(),
+                "schemes": models.Scheme.objects.order_by("code", "title").all(),
+            },
+        )
+
     @cache
     def contract_count(self, obj):
         return models.Contract.where(application__round=obj).count() or 0
@@ -2968,7 +3019,7 @@ class RoundAdmin(
                 )
             else:
                 return format_html(
-                    '<span style="background-color: {}; filter: invert(1);">{}</span>',
+                    '<span style="background-color: {}; color: white;">{}</span>',
                     obj.background,
                     obj.title,
                 )
