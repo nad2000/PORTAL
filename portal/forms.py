@@ -815,14 +815,14 @@ class ApplicationForm(ModelForm):
                 Column(
                     Field(
                         "daytime_phone",
-                        pattern=r"\\+?[0-9- ]+",
+                        pattern=r"\+?[0123456789 ]+",
                         placeholder="e.g., +64 4 472 7421",
                     )
                 ),
                 Column(
                     Field(
                         "mobile_phone",
-                        pattern=r"\\+?[0-9-]+",
+                        pattern=r"\+?[0123456789 ]+",
                         placeholder="e.g., +64 4 472 7421",
                     )
                 ),
@@ -3117,7 +3117,7 @@ class NominationForm(ModelForm):
             ),
             Field(
                 "contact_phone",
-                pattern=r"\\+?[0-9- ]+",
+                pattern=r"\+?[0123456789 ]+",
                 placeholder="e.g., +64 4 472 7421",
             ),
         ]

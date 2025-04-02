@@ -1156,9 +1156,9 @@ class PersonCareerStage(Model):
 ORCID_ID_REGEX = re.compile(r"^([X\d]{4}-?){3}[X\d]{4}$")
 
 phone_regex_validator = RegexValidator(
-    regex=r"^\+?1?\d{9,15}$",
+    regex=r"\+?[0123456789 ]{9,15}$",
     message=_(
-        "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+        "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed: %(value)s."
     ),
 )
 
