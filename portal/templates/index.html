@@ -362,7 +362,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       <div class="row">
         <div class="col mb-3">
           <div class="card"{% if round.background %} style="border-top-color: {{ round.background }}; border-right-color: {{ round.background }}; border-bottom-color: {{ round.background }}; border-left-color: {{ round.background }};"{% endif %}>
-            <h5 class="card-header"{% if round.background %} style="background-color: {{ round.background }}; color: {% if round.foreground %}{{ round.foreground }}{% else %} white;"{% endif %}{% endif %}>
+            <h5 class="card-header"{% if round.background or round.foreground %} style="{% if round.background %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}

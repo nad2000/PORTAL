@@ -240,7 +240,10 @@
                       class="btn btn-outline-warning"
                       {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
                       {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                      {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
+                      {% endif %} 
+                      name="request_resubmission" 
+                      data-action="request_resubmission" 
+                      value="{% trans 'Request Resubmission' %}">
             </span>
                 <span class="d-inline-block"
                     tabindex="0"

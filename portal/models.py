@@ -11808,7 +11808,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         *args,
         **kwargs,
     ):
-        q = queryset or cls.objects.all()
+        q = (queryset or cls.objects.all()).filter(contract__site_id=settings.SITE_ID)
 
         if select_related:
             prefetch_related_objects(q, "contract__application__round")

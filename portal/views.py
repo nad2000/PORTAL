@@ -3861,7 +3861,7 @@ class ApplicationDetail(DetailView):
             ).last():
                 context["referee"] = referee
 
-        context["tag_form"] = self.tag_form()
+        # context["tag_form"] = self.tag_form()
 
         return context
 
