@@ -4171,7 +4171,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 {
                     "title": user.title
                     or nomination
-                    and nomination.title
+                    and nomination.title,
                     # "email": user.email or nomination and nomination.email,
                     "first_name": user.first_name
                     or nomination
