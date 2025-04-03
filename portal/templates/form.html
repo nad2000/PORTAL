@@ -68,14 +68,13 @@
 
         {% block more_info %}{% endblock %}
 
-        <!-- HELPER: {{ form.helper }} -->
-
         {% if helper or form.helper %}
           {% if helper %}
             {% crispy form helper %}
           {% else %}
             {% if form.helper.form_tag %}
-              <form method="post" enctype="multipart/form-data" id="object_form">{% csrf_token %}
+            <form method="post" enctype="multipart/form-data" id="{{ form.helper.form_id|default:'object_form' }}">{% csrf_token %}
+                {% block modals %}{% endblock %}
                 {% block resolution %}
                   {% include 'snippets/resolution_modal.html' %}
                 {% endblock %}
