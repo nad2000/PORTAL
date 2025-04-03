@@ -3347,6 +3347,8 @@ def invite_team_members(request, application):
     members = list(
         models.Member.where(
             ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
+            ~Q(state="authorized"),
+            authorized_at__isnull=False,
             application=application,
         )
     )

@@ -5960,7 +5960,11 @@ class Scheme(Model):
 
 def round_template_path(instance, filename):
     r = instance if hasattr(instance, "title") else instance.round
+    if r.opens_on:
+        return f"rounds/{r.scheme.code}-{r.opens_on.year}/{filename}"
     title = (r.title or r.scheme.title).lower().replace(" ", "-")
+    if len(title) > 50:
+        title = hashlib.shake_256(title.encode()).hexdigest(9)
     return f"rounds/{title}/{filename}"
 
 
