@@ -5431,7 +5431,6 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
         if self.request.method == "GET" and initial:
             if self.request.site_id not in [2, 4, 5]:
-                else self.round.title
                 initial["application_title"] = self.round.title
             if "nomination" in self.kwargs and self.nomination and self.nomination.org:
                 initial["org"] = self.nomination.org.id
