@@ -2699,8 +2699,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     def save(self, *args, **kwargs):
 
-        if not self.application_title:
-            self.application_title = self.round.title
+        if self.application_title is None:
+            self.application_title = "" if self.site_id in [2, 4, 5] else self.round.title
         if not self.number:
             self.number = default_application_number(self)
             if self.is_preliminary:

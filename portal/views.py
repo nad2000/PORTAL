@@ -4172,8 +4172,6 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     "title": user.title
                     or nomination
                     and nomination.title
-                    or application_with_title
-                    and application_with_title.title,
                     # "email": user.email or nomination and nomination.email,
                     "first_name": user.first_name
                     or nomination
@@ -5408,6 +5406,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         kwargs = super().get_form_kwargs()
         update_only_referees = self.update_only_referees()
         user = self.request.user
+        initial = kwargs.get("initial", {})
 
         if update_only_referees:
             kwargs["update_only_referees"] = True
@@ -5430,21 +5429,12 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         if n := self.nomination:
             kwargs["nomination"] = n
 
-        if self.request.method == "GET" and "initial" in kwargs:
-            kwargs["initial"].update(
-                {
-                    "application_title": (
-                        "" if self.request.site_id in [2, 4, 5] else self.round.title
-                    ),
-                    # "email": user.email,
-                    # "first_name": user.first_name,
-                    # "last_name": user.last_name,
-                    # "middle_names": user.middle_names,
-                    # "title": user.title,
-                }
-            )
+        if self.request.method == "GET" and initial:
+            if self.request.site_id not in [2, 4, 5]:
+                else self.round.title
+                initial["application_title"] = self.round.title
             if "nomination" in self.kwargs and self.nomination and self.nomination.org:
-                kwargs["initial"]["org"] = self.nomination.org.id
+                initial["org"] = self.nomination.org.id
 
         return kwargs
 
