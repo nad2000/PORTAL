@@ -334,7 +334,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
           {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
           data-toggle="tooltip"{% endif %}>{{ a }}</a>
 
-        {% if user.is_site_staff or user.is_superuser %}
+        {% if is_admin %}
         <a
             href="{% url 'application-export' pk=a.pk %}"
             style="padding-top: 1px; padding-bottom: 0px;"
@@ -431,12 +431,13 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {% endif %}
               {% endif %}
 
-              {% if request.user.can_apply %}
+              {#% if request.user.can_apply %}{% else %}{% endif %#}
                 {% if scheme.guidelines %}
-                <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
-                  {% blocktrans %}Read <b>More</b>{% endblocktrans %}
-                </a>
+                    <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
+                      {% blocktrans %}Read <b>More</b>{% endblocktrans %}
+                    </a>
                 {% endif %}
+
                 {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
                   <div class="tooltip-wrapper{% if not round.is_open %} disabled{% endif %}"
                    {% if not round.is_open %}
@@ -444,7 +445,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on|date:'o-m-d'}}"{% endif %}
                    {% else %}data-title="{% trans 'Required documents and templates' %}"
                    {% endif %}>
-                        <button type="button" class="btn btn-outline-primary{% if not round.is_open %} disabled{% endif %}"
+                      <button type="button" class="btn {% if is_admin %}btn-secondary{% else %}btn-outline-primary{% if not round.is_open %} disabled{% endif %}{% endif %}"
                                               {% if round.is_open %}
                                               data-toggle="modal"
                                               data-target="#id_required_documents_modal"
@@ -462,7 +463,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                       </span -->
                   </div>
                 {% endif %}
-              {% else %}
+                {% if is_admin %}
               <button type="button" class="btn btn-outline-primary"
                                     data-toggle="modal"
                                     data-target="#roundDetail"
@@ -474,7 +475,6 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                     style="text-transform: uppercase;">
                 {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
               </button>
-              {% endif %}
 
               {% if round %}
               {% if request.user.can_apply %}
@@ -618,7 +618,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {% endif %}
               {% endif %}
 
-              {% if request.user.is_site_staff %}
+              {% if is_admin %}
               <a href="{% url 'panellist-invite' round=round.id %}"
                  class="btn btn-primary" style="text-transform: uppercase;"
               > {% trans "Invite" %}
@@ -626,7 +626,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               </a>
               {% endif %}
 
-              {% if request.user.is_site_staff %}
+              {% if is_admin %}
               <a href="{% url 'round-coi-list' round=round.id %}" class="btn btn-outline-primary" style="text-transform: uppercase;"
 
                                                                                                   > {% trans "Conflicts of" %}

@@ -72,6 +72,7 @@ def portal_context(request):
             cached_context = {
                 "is_staff": is_staff,
                 "is_site_staff": is_staff,
+                "is_admin": is_staff or u.is_superuser,
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_draft_count": application_draft_count,
                 "application_submitted_count": application_submitted_count,
