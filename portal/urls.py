@@ -580,6 +580,11 @@ urlpatterns = [
                     name="change-category-autocomplete",
                 ),
                 path(
+                    "document-type/",
+                    views.DocumentTypeAutocomplete.as_view(model=models.DocumentType),
+                    name="document-type-autocomplete",
+                ),
+                path(
                     "tag/",
                     views.TagAutocomplete.as_view(model=Tag, create_field="name"),
                     name="tag-autocomplete",

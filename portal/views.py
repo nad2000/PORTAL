@@ -2,19 +2,20 @@ import io
 import json
 import mimetypes
 import os
+import re
 import shutil
 import traceback
 from datetime import timedelta
+from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
-from decimal import Decimal
 
 import django.utils.translation
 import django_tables2
+import jinja2
 import py7zr
 import rispy
-import jinja2
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -3780,10 +3781,15 @@ class ApplicationDetail(DetailView):
         ]
         context["can_update"] = (
             can_only_update_referees
-            or (site_id not in [2, 5] and a.state not in ["submitted", "approved", "cancelled", "accepted"])
+            or (
+                site_id not in [2, 5]
+                and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+            )
             or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
             or (
-                site_id in [2, 5] and is_owner and a.state in ["new", "submitted", "draft", "in_review"]
+                site_id in [2, 5]
+                and is_owner
+                and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
 
@@ -4169,9 +4175,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
             )
             initial.update(
                 {
-                    "title": user.title
-                    or nomination
-                    and nomination.title,
+                    "title": user.title or nomination and nomination.title,
                     # "email": user.email or nomination and nomination.email,
                     "first_name": user.first_name
                     or nomination
@@ -7391,6 +7395,24 @@ class ProfileProfessionalFormSetView(ProfileAffiliationsFormSetView):
 
 class Unaccent(Func):
     function = "unaccent"
+
+
+class DocumentTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        q = self.model.objects.all()
+        if scheme := self.forwarded.get("scheme"):
+            q = q.filter(required_documents__round__scheme_id=scheme)
+        if (referer := self.request.META.get("HTTP_REFERER")) and (
+            m := re.search(r"round/(\d+)/change", referer)
+        ):
+            q = q.filter(required_documents__round_id=m.group(1))
+        if self.q:
+            q = q.filter(name__istartswith=self.q)
+        return q.order_by("name").distinct()
+
+    def has_add_permission(self, request):
+        return False
 
 
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):

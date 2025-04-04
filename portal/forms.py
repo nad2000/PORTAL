@@ -840,6 +840,7 @@ class ApplicationForm(ModelForm):
         round = (
             models.Round.get(self.initial["round"]) if "round" in self.initial else instance.round
         )
+        breakpoint()
         self.has_required_documents = has_required_documents = round.required_documents.count() > 0
         if round.scheme.team_can_apply:
             fields.extend(

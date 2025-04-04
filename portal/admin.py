@@ -52,6 +52,17 @@ djhacker.formfield(
 )
 
 djhacker.formfield(
+    models.RoundDocumentTemplate.document_type,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="document-type-autocomplete",
+        forward=[
+            dal.forward.Field("scheme", "scheme"),
+        ],
+    ),
+)
+
+djhacker.formfield(
     models.Report.schedule_entry,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(
@@ -3049,7 +3060,7 @@ class RoundAdmin(
     class TemplateInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.RoundDocumentTemplate
-        autocomplete_fields = ["document_type"]
+        # autocomplete_fields = ["document_type"]
         view_on_site = False
 
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
