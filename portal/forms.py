@@ -341,7 +341,7 @@ def make_help_text(document_type=None, templates=[], required_document=None):
 
     if not document_type and required_document:
         document_type = (
-            f"{required_document.document_type}"
+            f"{required_document.document_type.name}"
             if required_document.document_type
             else f"{required_document.get_role_display()}"
         )
@@ -401,13 +401,13 @@ class DocumentInlineFormset(TableInlineFormset):
                 rd = required_documents.get(rd_id, None)
                 if not isinstance(rd_id, int):
                     rd_id = rd_id.pk
-                if (
-                    f.instance
-                    and f.instance.pk
-                    and not f.instance.file
-                    and f.instance.file.strip != ""
-                ):
-                    f.fields["file"].help_text = help_texts.get(rd_id)
+                # if (
+                #     f.instance
+                #     and f.instance.pk
+                #     and not f.instance.file
+                #     and f.instance.file.strip != ""
+                # ):
+                f.fields["file"].help_text = help_texts.get(rd_id)
                 label = f"{rd}" if rd else _("Document")
                 state = f.instance and getattr(f.instance, "state", None)
                 if state:
@@ -840,7 +840,6 @@ class ApplicationForm(ModelForm):
         round = (
             models.Round.get(self.initial["round"]) if "round" in self.initial else instance.round
         )
-        breakpoint()
         self.has_required_documents = has_required_documents = round.required_documents.count() > 0
         if round.scheme.team_can_apply:
             fields.extend(
