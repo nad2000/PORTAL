@@ -1736,6 +1736,12 @@ class ContractForm(ModelForm):
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
 
+    # change_request_reply = forms.CharField(
+    #     label="Reply to the change request",
+    #     required=False,
+    #     widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    # )
+
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
         if initial:
@@ -1801,7 +1807,8 @@ class ContractForm(ModelForm):
             or instance.state not in ["new", "draft"]
         )
         is_pi = instance and (
-            application and application.submitted_by == user
+            application
+            and application.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
         )
         submit_button = Submit(
@@ -2330,6 +2337,9 @@ class ContractForm(ModelForm):
                 tabs.append(
                     Tab(
                         mark_safe(f'<i class="far fa-file"></i> {_("Parts")}'),
+                        user.is_admin
+                        and instance.is_variation
+                        and SubForm("change_request_reply_form"),
                         Fieldset(
                             None,
                             Row(
@@ -2507,11 +2517,28 @@ class ContractForm(ModelForm):
                                     "generate_contract",
                                     _("Generate"),
                                     data_toggle="tooltip",
-                                    title="Generate or regenerate contract document and store it in the database",
+                                    title=(
+                                        "Generate or regenerate variation letter"
+                                        if instance.is_variation
+                                        else "Generate or regenerate contract document and store it in the database"
+                                    ),
                                     css_class="btn-primary",
                                 ),
-                                HTML(
-                                    f"""
+                                (
+                                    HTML(
+                                        f"""
+                            <a
+                                class="btn btn-primary"
+                                href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
+                                target="_blank"
+                                data-toggle="tooltip"
+                                data-html="true"
+                                title="First <b>Save</b> and then export it to create an updated version of the variation letter",
+                            > {_("Export Variation Letter")} </a>"""
+                                    )
+                                    if instance.is_variation
+                                    else HTML(
+                                        f"""
                             <a
                                 class="btn btn-primary"
                                 href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
@@ -2520,6 +2547,7 @@ class ContractForm(ModelForm):
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the contract document",
                             > {_("Export Contract")} </a>"""
+                                    )
                                 ),
                                 # Submit(
                                 #     "export_contract",
@@ -2669,6 +2697,7 @@ class ContractForm(ModelForm):
             "state",
             "submitted_by",
             "state_changed_at",
+            "is_variation",
         ]
         widgets = dict(
             start_date=DateInput(),
@@ -3053,7 +3082,9 @@ class NominationForm(ModelForm):
         is_single_org_ro = False
         if nominator:
             if (
-                is_single_org_ro := (site_id in [2, 4, 5] and nominator.research_offices.count() == 1)
+                is_single_org_ro := (
+                    site_id in [2, 4, 5] and nominator.research_offices.count() == 1
+                )
             ) and (ro_org := models.Organisation.where(research_offices__user=nominator).last()):
                 org_id = initial["org"] = ro_org.pk
             elif site_id in [2, 4, 5] and (

@@ -9664,6 +9664,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             template_name = "contracts/footers.html"
         elif part == "headers_footers":
             template_name = "contracts/headers_footers.html"
+        elif part == "letter":
+            template_name = "variations/letter.html"
         else:
             template_name = "contracts/document.html"
 
@@ -9857,6 +9859,15 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 )
             file_path = output_dir / f"{os.path.basename(base)}.pdf"
         return file_path
+
+    def variation_to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+
+        output_dir = Path(tempfile.gettempdir())
+
+        output_filename = output_dir / f"{self.number}.pdf"
+        merger.write(output_filename)
+        return output_filename
+
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(Path.home() / f"schedule_{self.number}.fodt", "w") as ofile:
@@ -11692,6 +11703,7 @@ class ChangeRequestMixin:
     )
 
 
+# TODO: add history
 class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
     tags = TaggableManager(blank=True)
@@ -11776,6 +11788,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
+    reply = TextField(null=True, blank=True, default='<p style="font-family: Arial; font-size: 10px;"></p>')
 
     def is_ro(self, user):
         return self.contract and self.contract.org.research_offices.filter(user=user).exists()

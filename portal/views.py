@@ -10,6 +10,7 @@ from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
+from django_summernote.widgets import SummernoteInplaceWidget
 
 import django.utils.translation
 import django_tables2
@@ -6197,9 +6198,30 @@ class ContractViewMixin:
             or {"country": "NZ"},
         )
 
+    def get_change_request_reply_form(self):
+        i = self.object
+        u = self.request.user
+
+        if i.is_variation and u.is_admin and (cr := i.originated_by.last()):
+            form = model_forms.modelform_factory(
+                models.ChangeRequest,
+                fields=("reply",),
+                widgets={
+                    "reply": SummernoteInplaceWidget(
+                        attrs={"summernote": {"width": "100%", "height": "200px"}}
+                    )
+                },
+                labels={"reply": _("Reply to the change request")},
+            )(self.request.POST or None, instance=cr, prefix="change_request")
+            form.helper = forms.FormHelper(form)
+            form.helper.form_tag = False
+            form.helper.include_media = False
+            return form
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
+        i = self.object
         org = self.object and self.object.org or self.application.org
         if is_ro := org.research_offices.filter(user=u).exists():
             context["is_ro"] = is_ro
@@ -6240,6 +6262,8 @@ class ContractViewMixin:
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
         context["state"] = self.object and self.object.state or "draft"
+        if i.is_variation and u.is_admin and i.originated_by.exists():
+            context["change_request_reply_form"] = self.get_change_request_reply_form()
 
         return context
 
@@ -6356,6 +6380,11 @@ class ContractViewMixin:
                     budget.save_draft(request=request, user=u)
                     budget.converted_file = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
+
+                if i.is_variation and u.is_admin and i.originated_by.exists():
+                    reply_form = self.get_change_request_reply_form()
+                    if reply_form.changed_data and reply_form.is_valid():
+                        reply_form.save()
 
         except Exception as ex:
             capture_exception(ex)
