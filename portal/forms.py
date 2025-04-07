@@ -324,8 +324,9 @@ class SubForm(LayoutObject):
             self.template = template
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
-        form = context[self.form_name_in_context]
-        return render_to_string(self.template, {"form": form})
+        if form := context.get(self.form_name_in_context):
+            return render_to_string(self.template, {"form": form})
+        return ''
 
 
 def make_help_text(document_type=None, templates=[], required_document=None):
@@ -5063,6 +5064,7 @@ class ChangeRequestForm(ModelForm):
             "state",
             "state_changed_at",
             "converted_file",
+            "reply",
         ]
         help_texts = {"tags": ""}
         widgets = dict(

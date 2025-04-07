@@ -439,14 +439,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                 {% endif %}
 
                 {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
-                  <div class="tooltip-wrapper{% if not round.is_open %} disabled{% endif %}"
-                   {% if not round.is_open %}
+                  <div class="tooltip-wrapper{% if not round.is_open and not is_admin %} disabled{% endif %}"
+                   {% if not round.is_open and not is_admin %}
                    disabled
                    {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on|date:'o-m-d'}}"{% endif %}
                    {% else %}data-title="{% trans 'Required documents and templates' %}"
                    {% endif %}>
-                      <button type="button" class="btn {% if is_admin %}btn-secondary{% else %}btn-outline-primary{% if not round.is_open %} disabled{% endif %}{% endif %}"
-                                              {% if round.is_open %}
+                      <button type="button" class="btn {% if is_admin %}btn-secondary{% else %}btn-outline-primary{% if not round.is_open and not is_admin %} disabled{% endif %}{% endif %}"
+                                              {% if round.is_open or is_admin %}
                                               data-toggle="modal"
                                               data-target="#id_required_documents_modal"
                                               data-round-id="{{ round.id }}"

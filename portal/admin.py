@@ -3198,7 +3198,7 @@ class ContractAdmin(
             None,
             {
                 "fields": [
-                    ("state", "completed_on"),
+                    ("state", "completed_on", "is_variation"),
                     ("number", "refcode", "year"),
                     "project_title",
                     # ("source", "source_code"),
