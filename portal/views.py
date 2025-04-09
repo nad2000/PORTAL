@@ -145,6 +145,12 @@ def reset_cache(request):
     cache.delete(f"{request.user.username}:{request.site_id}")
 
 
+def csrf_failure(request, reason=None):
+    if reason:
+        messages.error(request, f"Error occurred handing the form: {reason}")
+    return redirect("start")
+
+
 def handler500(request, *args, **kwargs):
     trace = traceback.format_exc()
     e = kwargs.get("e")
