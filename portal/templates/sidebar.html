@@ -446,8 +446,8 @@
 {% endif %}
 
 <div class="card mb-2">
-  <div class="card-header">
-    <a href="{% url 'my-profile' %}" id="profile">
+  <div class="card-header{% if category == "profile" %} bg-primary{% endif %}">
+    <a href="{% url 'my-profile' %}" id="profile"{% if category == "profile" %} class="text-white"{% endif %}>
       {% trans 'Profile' %}
     </a>
   </div>
@@ -504,8 +504,8 @@
 </div>
 
 <div class="card mb-2">
-  <div class="card-header">
-    <a href="{% url 'account' %}" id="account">
+  <div class="card-header{% if category == "account" %} bg-primary{% endif %}">
+    <a href="{% url 'account' %}" id="account"{% if category == "account" %} class="text-white"{% endif %}>
       {% trans 'Account' %}
     </a>
   </div>

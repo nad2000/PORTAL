@@ -442,7 +442,7 @@ class ProfileForm(ModelForm):
         ]
         widgets = dict(
             gender=forms.RadioSelect(attrs={"style": "display: inline-block"}),
-            date_of_birth=DateInput(start_date="-100y", end_date="-6y"),
+            date_of_birth=DateInput(start_date="-100y", end_date="-8y"),
             ethnicities=autocomplete.ModelSelect2Multiple(
                 url="ethnicity-autocomplete",
                 attrs={
