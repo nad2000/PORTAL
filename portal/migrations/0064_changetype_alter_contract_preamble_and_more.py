@@ -1777,6 +1777,10 @@ class Migration(migrations.Migration):
                 "db_table": "research_priority",
             },
         ),
+        migrations.RunPython(
+            code=portal.migration_utils.add_research_priorities,
+            reverse_code=portal.migration_utils.dummy,
+        ),
         migrations.AlterField(
             model_name="contract",
             name="contact_phone",
