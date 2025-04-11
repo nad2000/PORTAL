@@ -326,7 +326,7 @@ class SubForm(LayoutObject):
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
         if form := context.get(self.form_name_in_context):
             return render_to_string(self.template, {"form": form})
-        return ''
+        return ""
 
 
 def make_help_text(document_type=None, templates=[], required_document=None):
@@ -1057,6 +1057,18 @@ class ApplicationForm(ModelForm):
                         Field("keywords"),
                     )
                 )
+            if round.priorities.exists():
+                category_fields.append(
+                    Fieldset(
+                        _("Research Priorities"),
+                        Field("priorities"),
+                    )
+                )
+                self.fields["priorities"].widget = autocomplete.TaggitSelect2(
+                    url="research-priority-autocomplete",
+                    forward=[forward.Const(round.pk, "round"), forward.Const("application", "model")],
+                )
+
             tabs.append(
                 Tab(
                     _("Categories"),
@@ -1453,6 +1465,7 @@ class ApplicationForm(ModelForm):
             "agent_declaration_accepted_by",
             "agent_declaration_accepted_at",
             "applicant_declaration_accepted_by",
+            "tags",
         ]
         widgets = dict(
             keywords=autocomplete.ModelSelect2Multiple(
@@ -1497,7 +1510,11 @@ class ApplicationForm(ModelForm):
                 }
             ),
         )
-        labels = {"keywords": ""}
+        labels = {
+            "keywords": "",
+            "priorities": "",
+            "is_tac_accepted": _("I have read and accept the Terms and Conditions"),
+        }
         help_texts = {
             "vm_ecs": None,
             "vm_ens": None,

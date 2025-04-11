@@ -589,6 +589,11 @@ urlpatterns = [
                     views.TagAutocomplete.as_view(model=Tag, create_field="name"),
                     name="tag-autocomplete",
                 ),
+                path(
+                    "research-priority/",
+                    views.ResearchPriorityAutocomplete.as_view(model=models.ResearchPriority, create_field="name"),
+                    name="research-priority-autocomplete",
+                ),
             ]
         ),
     ),

@@ -61,6 +61,49 @@ def add_title_data(apps, schema_editor):
     )
 
 
+def add_research_priorities(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    ResearchPriority = apps.get_model("portal", "ResearchPriority")
+    db_alias = schema_editor.connection.alias
+    add_research_priority_entries(ResearchPriority.objects.using(db_alias))
+
+
+def add_research_priority_entries(manager):
+
+    priorities = [
+        "Antarctic Research",
+        "Artificial Intelligence",
+        "Biotechnologies",
+        "Economic",
+        "Environment",
+        "Environmental Science",
+        "Food Science",
+        "Health and Biomedical Sciences",
+        "Health and Biomedicine",
+        "Health",
+        "Other",
+        "Quantum Technology",
+        "Space and Earth Observations",
+    ]
+    for p in priorities:
+        p = p.strip()
+        if not p:
+            continue
+        manager.get_or_create(
+            name=p,
+            defaults=dict(slug=p.lower().replace(" ", "-")),
+        )
+    # manager.bulk_create(
+    #     [manager.model(name=p) for p in priorities],
+    #     update_conflicts=True,
+    #     update_fields=["name", "slug"],
+    #     unique_fields=["name"],
+    # )
+
+
 def add_change_types(apps, schema_editor):
     """
     Add to the migrations:

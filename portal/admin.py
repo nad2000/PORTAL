@@ -51,6 +51,22 @@ djhacker.formfield(
     ),
 )
 
+# for m in [models.Round, models.Application, models.Contract, models.Report]:
+#     m.priorities.field = lambda: m.prioritie
+#     djhacker.formfield(
+#         m.priorities,
+#         forms.ModelMultipleChoiceField,
+#         widget=autocomplete.ModelSelect2Multiple(
+#             url="research-priority-autocomplete",
+#             forward=[
+#                 dal.forward.Field("round", "round"),
+#                 dal.forward.Field("application", "application"),
+#                 dal.forward.Field("contract", "contract"),
+#                 # dal.forward.Const(m.model_name(), "model"),
+#             ],
+#         ),
+#     )
+
 djhacker.formfield(
     models.RoundDocumentTemplate.document_type,
     forms.ModelChoiceField,
@@ -356,11 +372,22 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 class ContractDocumentAdmin(StaffPermsMixin, SimpleHistoryAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["contract__number", "required_document", "file", "state", "created_at", "updated_at"]
+    list_display = [
+        "contract__number",
+        "required_document",
+        "file",
+        "state",
+        "created_at",
+        "updated_at",
+    ]
     list_display_links = ["file", "contract__number"]
-    list_filter = ["created_at", "updated_at", "state",
+    list_filter = [
+        "created_at",
+        "updated_at",
+        "state",
         ("contract", admin.RelatedOnlyFieldListFilter),
-        ("required_document", admin.RelatedOnlyFieldListFilter)]
+        ("required_document", admin.RelatedOnlyFieldListFilter),
+    ]
     search_fields = ["file", "contract__number"]
     date_hierarchy = "created_at"
     # autocomplete_fields = ["contract", "converted_file", "required_document"]
@@ -408,6 +435,20 @@ class AddressAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, Simple
 
 @admin.register(models.Keyword)
 class KeywordAdmin(ExportActionMixin, ImportExportModelAdmin):
+    show_close_button = True
+
+    # class KeywordedItemInline(admin.StackedInline):
+    #     model = models.KeywordedItem
+
+    # inlines = [KeywordedItemInline]
+    list_display = ["name", "slug"]
+    ordering = ["name", "slug"]
+    search_fields = ["name"]
+    prepopulated_fields = {"slug": ["name"]}
+
+
+@admin.register(models.ResearchPriority)
+class ResearchPriorityAdmin(ExportActionMixin, ImportExportModelAdmin):
     show_close_button = True
 
     # class KeywordedItemInline(admin.StackedInline):
@@ -1356,7 +1397,7 @@ class ApplicationAdmin(
                     ("email", "main_applicant"),
                     "presentation_url",
                     "is_tac_accepted",
-                    "tags",
+                    ("tags", "priorities"),
                 ],
             },
         ),
@@ -1438,6 +1479,7 @@ class ApplicationAdmin(
                         ("email", "main_applicant"),
                         "presentation_url",
                         "is_tac_accepted",
+                        ("tags", "priorities"),
                     ],
                 },
             ),
@@ -1539,6 +1581,16 @@ class ApplicationAdmin(
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
+            url="research-priority-autocomplete",
+            forward=[
+                dal.forward.Field("round", "round"),
+                dal.forward.Const("application", "model")],
+        )
+        return form
 
     actions = [
         "initialize_contracts",
@@ -2573,8 +2625,11 @@ class SchemeAdmin(
 
     def save_model(self, request, obj, form, change):
         if obj and obj.fund and obj.fund.site != obj.site:
-            messages.warning(request, f"The schema created in a different 'site' form the fund's site: {obj.fund.site}. "
-                "You might need to reassing the fund to the current site.")
+            messages.warning(
+                request,
+                f"The schema created in a different 'site' form the fund's site: {obj.fund.site}. "
+                "You might need to reassing the fund to the current site.",
+            )
         super().save_model(request, obj, form, change)
 
     class RoundInline(StaffPermsMixin, admin.TabularInline):
@@ -2786,6 +2841,12 @@ class RoundAdmin(
                     form.base_fields["panellist_guidelines"].help_text = mark_safe(
                         f'{form.base_fields["panellist_guidelines"].help_text}<br>(DEFAULT: <a href="{url}">{url}</a>)'
                     )
+        form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
+            url="research-priority-autocomplete",
+            forward=[
+                dal.forward.Const("round", "model")
+            ],
+        )
         return form
 
     def get_fieldsets(self, request, obj=None):
@@ -2819,6 +2880,7 @@ class RoundAdmin(
                 "Options",
                 {
                     "fields": [
+                        "priorities",
                         [
                             f
                             for f in [
@@ -2976,7 +3038,7 @@ class RoundAdmin(
             if len(new_rounds) == 1:
                 messages.success(
                     request,
-                    f'Round {new_rounds[0]} copied and linked to the scheme {target}',
+                    f"Round {new_rounds[0]} copied and linked to the scheme {target}",
                 )
             else:
                 messages.success(

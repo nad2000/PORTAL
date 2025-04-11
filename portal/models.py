@@ -100,7 +100,7 @@ from pypdf.errors import PdfReadError
 from sentry_sdk import capture_message, capture_exception
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
-from taggit.models import TagBase, Tag
+from taggit.models import GenericTaggedItemBase, TagBase, Tag
 from taggit.managers import TaggableManager
 from weasyprint import HTML
 
@@ -2158,6 +2158,31 @@ class Keyword(TagBase):
         db_table = "keyword"
 
 
+class ResearchPriority(HelperMixin, TagBase):
+
+    def natural_key(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Research Priority")
+        verbose_name_plural = _("Research Priorities")
+        db_table = "research_priority"
+
+
+class ResearchPriorityItem(GenericTaggedItemBase):
+
+    tag = ForeignKey(
+        ResearchPriority,
+        on_delete=CASCADE,
+        related_name="items",
+    )
+
+    class Meta:
+        verbose_name = _("item with research priorities")
+        verbose_name_plural = _("items with research priorities")
+        db_table = "research_priority_item"
+
+
 # class KeywordItem(GenericTaggedItemBase, TaggedItemBase):
 
 #     tag = ForeignKey(
@@ -2469,9 +2494,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     state = StateField(default="new", verbose_name=_("application state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    is_tac_accepted = BooleanField(
-        default=False, verbose_name=_("I have read and accept the Terms and Conditions")
-    )
+    is_tac_accepted = BooleanField(default=False, verbose_name=_("the T&Cs were accepted"))
     tac_accepted_at = MonitorField(
         monitor="state",
         when=["tac_accepted"],
@@ -2527,6 +2550,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         through=ApplicationKeyword,
         blank=True,
         related_name="applications",
+    )
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Priorities"),
+        help_text=_("Research priorities"),
+        through=ResearchPriorityItem,
     )
     vm_ecs = PositiveSmallIntegerField(
         "Indigenous Innovation",
@@ -5984,6 +6013,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Available priorities"),
+        help_text=_("Available research priorities"),
+        through=ResearchPriorityItem,
+    )
     testimonial_submission_closes_at = DateTimeField(
         null=True, blank=True, verbose_name="Testimonial submission closes at"
     )
@@ -6496,6 +6531,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         with transaction.atomic():
             nr.save()
+            nr.tags.add(*self.tags.all())
+            nr.priorities.add(*self.priorities.all())
+
             # NB! Keep the order
             for m in [
                 self.application_form_templates,
@@ -8779,6 +8817,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         blank=True,
         related_name="contracts",
     )
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Priorities"),
+        help_text=_("Research priorities"),
+        through=ResearchPriorityItem,
+    )
     fund = ForeignKey(Fund, on_delete=CASCADE, blank=True, null=True)
     # seo_keyword_list = models.CharField(max_length=800, blank=True, null=True)
     # seo_keywords = models.ManyToManyField(
@@ -9868,7 +9912,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         merger.write(output_filename)
         return output_filename
 
-
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(Path.home() / f"schedule_{self.number}.fodt", "w") as ofile:
         # output_dir = Path.home() / "PMSPP" / "contracts"
@@ -10777,6 +10820,12 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         through=ReportKeyword,
         blank=True,
         related_name="reports",
+    )
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Priorities"),
+        help_text=_("Research priorities"),
+        through=ResearchPriorityItem,
     )
     vm_ecs = PositiveSmallIntegerField(
         "Indigenous Innovation",
@@ -11788,7 +11837,9 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
-    reply = TextField(null=True, blank=True, default='<p style="font-family: Arial; font-size: 10px;"></p>')
+    reply = TextField(
+        null=True, blank=True, default='<p style="font-family: Arial; font-size: 10px;"></p>'
+    )
 
     def is_ro(self, user):
         return self.contract and self.contract.org.research_offices.filter(user=user).exists()

@@ -11,6 +11,7 @@ from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 from django_summernote.widgets import SummernoteInplaceWidget
+from django.contrib.contenttypes.models import ContentType
 
 import django.utils.translation
 import django_tables2
@@ -7481,6 +7482,48 @@ class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def has_add_permission(self, request):
         return True  # request.user.is_authenticated
+
+    # def get_create_option(self, context, q):
+    #     return []
+
+
+class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        qs = self.model.objects.all()
+
+        round = self.forwarded.get("round", "")
+        if round and isinstance(round, str):
+            round = round.strip()
+        if not round:
+            if application := self.forwarded.get("application", "").strip():
+                round = (
+                    models.Application.where(pk=application).values_list("round_id", flat=True).first()
+                )
+            elif contract := self.forwarded.get("contract", "").strip():
+                round = (
+                    models.Contract.where(pk=contract)
+                    .values_list("application__round_id", flat=True)
+                    .first()
+                )
+
+        if round:
+            qs = (
+                qs.filter(
+                    items__content_type=ContentType.objects.get_for_model(models.Round),
+                    items__object_id=round,
+                )
+                .distinct()
+                .order_by("name")
+            )
+
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+
+        return qs
+
+    def has_add_permission(self, request):
+        return request.user.is_admin
 
     # def get_create_option(self, context, q):
     #     return []
