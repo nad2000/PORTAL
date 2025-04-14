@@ -1347,6 +1347,10 @@ def check_profile(request, token=None):
                 "accepted",
                 "autoreplied",
             ]:
+                if i.type:
+                    request.sesssion["invitation_type"] = i.type
+                    request.session.modified = True
+
                 if (
                     (i.first_name and not u.first_name)
                     or (i.middle_names and not u.middle_names)
@@ -1800,11 +1804,9 @@ class ReportViewMixin:
         return self.object and self.request.user == self.object.assessor
 
     # def forms_valid(self, *args, **kwargs):
-    #     breakpoint()
     #     return super().forms_valid(*args, **kwargs)
 
     # def forms_invalid(self, *args, **kwargs):
-    #     breakpoint()
     #     return super().forms_invalid(*args, **kwargs)
 
     def get_form_kwargs(self):
@@ -3289,18 +3291,44 @@ class ProfileCreate(ProfileViewMixin, CreateView):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         u = self.request.user
         if models.Person.where(user=u).exists():
             messages.error(self.request, _("The profile was aready created."))
             return redirect("profile-update")
 
         # Start profile wizard:
-        if not self.request.session.get("wizard"):
-            self.request.session["wizard"] = True
-            self.request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+        if not request.session.get("wizard"):
+            if request.site_id in [1, 7] and not request.session.get("scheme"):
+                rounds = models.Round.where(scheme__current_round=F("pk")).order_by("ordering")
+                return render(request, "preselect_scheme.html", locals())
+
+            if not (
+                request.site_id in [1, 7]
+                and (code := request.session.get("scheme"))
+                and (pk := request.session.get("round"))
+                and (round := models.Round.where(pk=pk).first())
+                and round.is_partial_profile_allowed
+            ):
+                self.request.session["wizard"] = True
+                self.request.session["wizard-views"] = (
+                    ProfileSectionFormSetView.section_views.copy()
+                )
+                self.request.session.modified = True
+
+
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if (round_pk := request.POST.get("round")) and (
+            round := models.Round.where(pk=round_pk).first()
+        ):
+            self.request.session["scheme"] = round.scheme.code or round.scheme.pk
+            self.request.session["round"] = round.pk
             self.request.session.modified = True
-        return super().get(*args, **kwargs)
+            return redirect(request.path_info)
+
+        return super().post(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
@@ -7026,7 +7054,11 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
             if not request.session.get("wizard"):
                 request.session["wizard"] = True
-                request.session["wizard-views"] = self.section_views.copy()
+                if request.site_id in [1, 7]:
+                    section_views = self.section_views.copy()
+                    request.session["wizard-views"] = section_views
+                else:
+                    request.session["wizard-views"] = self.section_views.copy()
                 request.session.modified = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
@@ -7498,7 +7530,9 @@ class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         if not round:
             if application := self.forwarded.get("application", "").strip():
                 round = (
-                    models.Application.where(pk=application).values_list("round_id", flat=True).first()
+                    models.Application.where(pk=application)
+                    .values_list("round_id", flat=True)
+                    .first()
                 )
             elif contract := self.forwarded.get("contract", "").strip():
                 round = (
@@ -11606,7 +11640,6 @@ class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, 
 
     # def get(self, *args, **kwargs):
     #     resp = super().get(*args, **kwargs)
-    #     breakpoint()
     #     return resp
 
     def get_queryset(self, *args, **kwargs):
