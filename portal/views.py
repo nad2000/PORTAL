@@ -10,8 +10,6 @@ from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
-from django_summernote.widgets import SummernoteInplaceWidget
-from django.contrib.contenttypes.models import ContentType
 
 import django.utils.translation
 import django_tables2
@@ -37,6 +35,7 @@ from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
 )
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
 from django.contrib.flatpages.views import flatpage
 from django.contrib.sites.models import Site
@@ -106,6 +105,7 @@ from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
 from django_select2 import forms as s2forms
+from django_summernote.widgets import SummernoteInplaceWidget
 from django_tables2 import SingleTableMixin, SingleTableView
 from django_tables2.export import ExportMixin
 from extra_views import (
