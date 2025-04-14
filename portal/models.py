@@ -6023,6 +6023,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         null=True, blank=True, verbose_name="Testimonial submission closes at"
     )
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
+    is_partial_profile_allowed = BooleanField(
+        help_text=_(
+            "Partial profile allowed, applicant is not required "
+            "to provide a complete user profile"
+        ),
+        default=False,
+    )
 
     guidelines = URLField(
         _("round guidelines"),
