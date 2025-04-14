@@ -7529,6 +7529,15 @@ class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
     #     return []
 
 
+class UserAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    search_fields = ["^email", "^first_name", "^last_name"]
+
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return False  # request.user.is_authenticated
+
+
 class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Don't forget to filter out results depending on the visitor !

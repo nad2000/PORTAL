@@ -51,6 +51,12 @@ djhacker.formfield(
     ),
 )
 
+djhacker.formfield(
+    models.Panellist.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+)
+
 # for m in [models.Round, models.Application, models.Contract, models.Report]:
 #     m.priorities.field = lambda: m.prioritie
 #     djhacker.formfield(

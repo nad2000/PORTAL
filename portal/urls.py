@@ -467,6 +467,11 @@ urlpatterns = [
         include(
             [
                 path(
+                    "user/",
+                    views.UserAutocomplete.as_view(model=models.User),
+                    name="user-autocomplete",
+                ),
+                path(
                     "keyword/",
                     views.KeywordAutocomplete.as_view(model=models.Keyword, create_field="name"),
                     name="keyword-autocomplete",
