@@ -170,7 +170,7 @@ class FilterSet(django_filters.FilterSet):
             elif model is models.Report or model is models.ChangeRequest:
                 org_field = "contract__org"
             elif model is models.Testimonial:
-                org_field = "application__org"
+                org_field = "referee__application__org"
             else:
                 org_field = "org"
 
