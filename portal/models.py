@@ -6538,7 +6538,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         with transaction.atomic():
             nr.save()
-            nr.tags.add(*self.tags.all())
+            # nr.tags.add(*self.tags.all())
             nr.priorities.add(*self.priorities.all())
 
             # NB! Keep the order
