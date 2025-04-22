@@ -255,7 +255,7 @@ def shoud_be_onboarded(function):
     def wrap(request, *args, **kwargs):
         user = request.user
         person = Person.where(user=user).last()
-        if not person or request.session.get("wizard") or ("wizard_views" in request.session):
+        if not person or request.session.get("wizard") or ("wizard-views" in request.session):
             wizard_views = request.session.get("wizard-views")
             view_name = person and "profile-update" or "profile-create"
             if person and wizard_views is not None:
@@ -3315,7 +3315,6 @@ class ProfileCreate(ProfileViewMixin, CreateView):
                     ProfileSectionFormSetView.section_views.copy()
                 )
                 self.request.session.modified = True
-
 
         return super().get(request, *args, **kwargs)
 
@@ -7137,7 +7136,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             "profile-academic-records": _("Academic Records"),
             "profile-recognitions": _("Prizes and/or Medals"),
         }.get(url_name)
-        if self.request.session.get("wizard"):
+        if self.request.session.get("wizard") or site_id in (1, 7):
             view_idx = self.section_views.index(url_name)
             if view_idx > 0:
                 previous_step = self.section_views[view_idx - 1]
@@ -7155,12 +7154,14 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         return context
 
     def get_success_url(self):
-        if self.request.session.get("wizard"):
+        if self.request.session.get("wizard") or self.request.site_id in (1, 7):
             view_idx = self.section_views.index(self.request.resolver_match.url_name)
             if "previous" in self.request.POST:
                 return reverse(self.section_views[view_idx - 1])
             if "next" in self.request.POST and view_idx < len(self.section_views) - 1:
                 return reverse(self.section_views[view_idx + 1])
+            if self.request.site_id in (1, 7):
+                return reverse("start")
             return reverse("profile-protection-patterns")
         return super().get_success_url()
 
