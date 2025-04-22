@@ -154,8 +154,8 @@
   {% endif %}
 
 
+  {% if SITE_ID != 1 and SITE_ID != 7 %}
   <div class="card mb-2">
-    <!-- {{ category }} -->
     <div class="card-header{% if category == "contracts" %} bg-primary{% endif %}">
       {% if contract_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
         <a href="{% url 'contract-list' %}" id="contract-list" class="{% if category == "contracts" %} text-white{% endif %}">
@@ -194,6 +194,7 @@
       </div>
     {% endif %}
   </div>
+  {% endif %}
 
   {% if is_ro or user.is_superuser or user.is_site_staff %}
 
@@ -243,6 +244,7 @@
     {% endif %}
 
 
+  {% if SITE_ID != 1 and SITE_ID != 7 %}
   <div class="card mb-2">
     <div class="card-header{% if category == "reports" %} bg-primary{% endif %}">
         <a href="{% url 'report-list' %}" id="report-list"{% if category == "reports" %} class="text-white"{% endif %}>{% trans 'Reports' %}</a>
@@ -252,6 +254,7 @@
         >{{ report_counts.total|default:0 }}</span>
     </div>
   </div>
+  {% endif %}
 
   {% endif %}
 
