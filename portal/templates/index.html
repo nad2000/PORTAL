@@ -499,7 +499,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    </a>
               </div>
               {% else %}
-              <div class="tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %} disabled{% endif %}"
+              <div class="tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %} disabled{% endif %}"
                    {% if is_ro %}
                    disabled
                    data-title="{% trans 'You are a research officer of this round and cannot apply for it' %}"
@@ -520,12 +520,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    disabled
                    data-html="true"
                    data-title="{% trans 'You need to be nominated in order to apply for this round' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}. {% trans 'Please contact your Research Office' %}{% endif %}."
+                   {% elif not has_profile %}
+                   disabled
+                   data-title="{% trans 'You need to fill in your profile data before apply for the round' %}"
                    {% else %}
                    data-title="{% trans 'Start a new application' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}.{% if not round.direct_application_allowed %} {% trans 'You have been nominated for this round' %}.{% endif %}{% endif %}"
                    {% endif %}>
                 <a href="{% url 'application-create' round=round.id %}"
-                   class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}"
-
+                   class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %}disabled{% endif %}"
                    style="text-transform: uppercase;"
                    {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
                    {% if record.previous_application %}

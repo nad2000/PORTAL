@@ -2898,7 +2898,7 @@ class RoundAdmin(
                                 "has_online_scoring",
                                 "has_referees",
                                 "has_title",
-                                "is_partial_profile_allowed",
+                                # "is_partial_profile_allowed",
                                 "letter_of_support_required",
                                 "nomination_form_required",
                                 "nominator_cv_required",

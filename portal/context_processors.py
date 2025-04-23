@@ -205,6 +205,7 @@ def portal_context(request):
                     cached_context["LIMESURVEY_ADMIN_URL"] = (
                         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
                     )
+                cached_context["has_profile"] = models.Person.where(user=u).exists()
             cache.set(cache_key, cached_context)
         context.update(cached_context)
     return context
