@@ -85,6 +85,17 @@ djhacker.formfield(
 )
 
 djhacker.formfield(
+    models.RoundDocumentTemplate.document_type,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="document-type-autocomplete",
+        forward=[
+            dal.forward.Field("scheme", "scheme"),
+        ],
+    ),
+)
+
+djhacker.formfield(
     models.Report.schedule_entry,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(

@@ -1,4 +1,5 @@
 import base64
+import email
 import hashlib
 import io
 import os
@@ -9,15 +10,12 @@ import subprocess
 import tempfile
 import time
 from collections import OrderedDict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
-from datetime import timedelta
-import email
-
 
 import pikepdf
 import simple_history
@@ -87,8 +85,8 @@ from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from django_fsm_log.models import StateLog
-from limesurveyrc2api.limesurvey import LimeSurvey
 from limesurveyrc2api.exceptions import LimeSurveyError
+from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from ooopy import Transforms
@@ -97,11 +95,11 @@ from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
-from sentry_sdk import capture_message, capture_exception
+from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
-from taggit.models import GenericTaggedItemBase, TagBase, Tag
 from taggit.managers import TaggableManager
+from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
 
 from common.models import (
@@ -117,7 +115,6 @@ from common.models import (
 )
 
 from .utils import send_mail, vignere
-
 
 EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 CONTRACT_PART_EXTENSIONS = [
@@ -7128,7 +7125,9 @@ class PerformanceFlag(TimeStampMixin, HelperMixin, OrderableModel):
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
     # TODO: should be removed at some stage
-    document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
+    document_type = ForeignKey(
+        DocumentType, on_delete=CASCADE, related_name="required_documents", null=True, blank=True
+    )
     role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     # name = CharField(_("Name"), max_length=200, blank=True, default="")
     format = CharField(
@@ -7182,7 +7181,18 @@ class RoundContractClause(TimeStampMixin, HelperMixin, OrderableModel):
 
 class RoundDocumentTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="templates")
-    document_type = ForeignKey(DocumentType, on_delete=CASCADE)
+    document_type = ForeignKey(
+        DocumentType, on_delete=SET_NULL, null=True, blank=True, related_name="templates"
+    )
+    required_document = ForeignKey(
+        RequiredDocument,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="templates",
+        help_text="NB! Save the round with the required documents "
+        "before assigning the themplates to the required documents!",
+    )
     file = FileField(
         upload_to=round_template_path,
         verbose_name=_("Template"),
@@ -8684,6 +8694,7 @@ class ContractMixin:
         ("preliminary", _("Preliminary")),
         ("submitted", _("Submitted")),
         ("released", _("Released")),
+        ("current", _("Current ")),
         # ("withdrawn", _("withdrawn")),
     )
 
@@ -10190,6 +10201,16 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted", "released"],
+        target="current",
+        custom=dict(verbose="Make Current", button_name="Make Current"),
+    )
+    def make_current(self, *args, **kwargs):
+        pass
 
     def clone(self, is_variation=None, change_request=None, *args, **kwargs):
         """Clone the contract to create a variation of a transfer."""

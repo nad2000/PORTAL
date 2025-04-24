@@ -40,6 +40,30 @@ def set_required_document_format_and_role(apps, schema_editor):
         )
 
 
+def set_document_template_required_document(apps, schema_editor):
+    db_alias = schema_editor.connection.alias
+    RoundDocumentTemplate = apps.get_model("portal", "RoundDocumentTemplate")
+    db_alias = schema_editor.connection.alias
+    manager = RoundDocumentTemplate.objects.using(db_alias)
+    update_document_template_required_document(manager)
+
+
+def update_document_template_required_document(manager):
+
+    templates = []
+    for t in manager.filter(
+        required_document__isnull=True,
+        document_type__isnull=False,
+    ).distinct():
+        rd = t.document_type.required_documents.last()
+        if rd:
+            t.required_document = rd
+            templates.append(t)
+
+    if templates:
+        manager.bulk_update(templates, fields=["required_document"])
+
+
 def add_title_data(apps, schema_editor):
     """
     Add to the migrations:
