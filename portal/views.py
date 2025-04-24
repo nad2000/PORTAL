@@ -359,12 +359,17 @@ class StateInPathMixin:
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         if state := self.state:
-            if self.model is models.Testimonial:
+            if self.model is models.Contract:
+                if state == "draft":
+                    queryset = queryset.filter(state__in=["draft", "new"])
+                else:
+                    queryset = queryset.filter(state=state)
+            elif self.model is models.Testimonial:
                 if state == "draft":
                     queryset = queryset.filter(evaluations__state__in=["draft", "new"])
                 else:
                     queryset = queryset.filter(evaluations__state=state)
-            if self.model is models.Nomination:
+            elif self.model is models.Nomination:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
                 else:
