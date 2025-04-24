@@ -7921,6 +7921,10 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         if round := self.forwarded.get("round"):
             # select only people affiliated with the org
             return q.filter(round=round)
+        elif (referer := self.request.META.get("HTTP_REFERER")) and (
+            m := re.search(r"round/(\d+)/change", referer)
+        ):
+            q = q.filter(required_documents__round_id=m.group(1))
         return q
 
 
