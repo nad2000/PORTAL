@@ -1,11 +1,11 @@
 from hashlib import md5
 from urllib.parse import urlencode
 
-from common.models import HelperMixin, PersonMixin, Title
 from allauth.socialaccount.models import SocialAccount, SocialToken
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.db.models import (
@@ -21,7 +21,9 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
-from django.contrib.auth.validators import UnicodeUsernameValidator
+
+from common.models import HelperMixin, PersonMixin, Title
+
 
 class User(HelperMixin, PersonMixin, AbstractUser):
 
@@ -30,12 +32,12 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         _("username"),
         max_length=150,
         unique=True,
-        help_text=_(
-            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
-        ),
+        help_text=_("Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."),
         validators=[username_validator],
         error_messages={
-            "unique": _("The username is already taken and not available. Please choose a different username."),
+            "unique": _(
+                "The username is already taken and not available. Please choose a different username."
+            ),
         },
     )
     # title = CharField(max_length=40, null=True, blank=True, choices=TITLES)
@@ -91,6 +93,12 @@ class User(HelperMixin, PersonMixin, AbstractUser):
             site_id=self.current_site_id, user=self
         ).exists()
 
+    @cached_property
+    @admin.display(description=_("is admin"), boolean=True)
+    def is_admin(self):
+        """Test if the user is staff member or superuser"""
+        return self.is_superuser or self.is_staff or self.is_site_staff
+
     @property
     def can_apply(self):
         """Admin nor staff cannot apply nor nominate other user."""
@@ -134,7 +142,9 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         orcid = self.orcid
         if not orcid and (sa := SocialAccount.objects.filter(user=self, provider="orcid").last()):
             orcid = sa.uid
-        if not orcid and (ppi := self.person.person_identifiers.filter(code_id="02", person__user=self).last()):
+        if not orcid and (
+            ppi := self.person.person_identifiers.filter(code_id="02", person__user=self).last()
+        ):
             orcid = ppi.value
         return orcid
 

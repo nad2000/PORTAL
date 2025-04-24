@@ -1,4 +1,5 @@
 import base64
+import email
 import hashlib
 import io
 import os
@@ -9,15 +10,12 @@ import subprocess
 import tempfile
 import time
 from collections import OrderedDict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
-from datetime import timedelta
-import email
-
 
 import pikepdf
 import simple_history
@@ -87,8 +85,8 @@ from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from django_fsm_log.models import StateLog
-from limesurveyrc2api.limesurvey import LimeSurvey
 from limesurveyrc2api.exceptions import LimeSurveyError
+from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from ooopy import Transforms
@@ -97,10 +95,11 @@ from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
-from sentry_sdk import capture_message, capture_exception
+from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
-from taggit.models import TagBase
+from taggit.managers import TaggableManager
+from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
 
 from common.models import (
@@ -116,7 +115,6 @@ from common.models import (
 )
 
 from .utils import send_mail, vignere
-
 
 EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 CONTRACT_PART_EXTENSIONS = [
@@ -332,7 +330,9 @@ class CommentMixin:
         to = msg["to"]
         subject = msg["subject"]
         sender = msg["from"]
-        sent_at = (msg["date"] and email.utils.parsedate_to_datetime(msg["date"]) or timezone.now()).replace(tzinfo=None)
+        sent_at = (
+            msg["date"] and email.utils.parsedate_to_datetime(msg["date"]) or timezone.now()
+        ).replace(tzinfo=None)
         if sender and (match := re.search(EMAIL_EX, sender)):
             sender = match[0].lower()
         # from_addresses = []
@@ -409,6 +409,7 @@ class CommentMixin:
                     token=token,
                     reply_to=reply_to,
                     created_at=sent_at,
+                    subject=subject,
                     **kwargs,
                     # attachment=attachments and attachments[0] or None,
                 )
@@ -419,11 +420,15 @@ class CommentMixin:
                         reply_to.submitted_by.email
                         if reply_to and reply_to.submitted_by
                         else self.pi.email
-                    ) or by and by.email,
+                    )
+                    or by
+                    and by.email,
                 )
 
                 attachments.append(
-                    File(io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml")
+                    File(
+                        io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml"
+                    )
                 )
 
                 # for a in attachments[1:]:
@@ -443,7 +448,6 @@ class CommentMixin:
                 html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
                 site = getattr(self, "site", None) or Site.objects.get_current()
 
-                settings.SITE_ID
                 send_mail(
                     from_email="reports" if isinstance(self, Report) else "contracts",
                     subject=f"Comment posted by {by.full_name_with_email} to {self}",
@@ -458,16 +462,28 @@ class CommentMixin:
                     site=site,
                 )
                 return comment
+
             except Exception as ex:
                 capture_exception(ex)
                 raise
 
     @property
     def attached_files(self):
-        attachments = [(a.created_at, a.attachment) for a in self.comments.model.attachments.rel.related_model.objects.filter(
-            comment__change_request_id=self.pk
-        )]
-        attachments.extend((a.created_at, a.attachment) for a in self.comments.filter(~Q(attachment="")))
+        if isinstance(self, ChangeRequest):
+            kwargs = {"comment__change_request_id": self.pk}
+        else:
+            kwargs = {f"comment__{self.model_name}_id": self.pk}
+
+        attachments = [
+            (a.created_at, a.attachment)
+            for a in self.comments.model.attachments.rel.related_model.objects.filter(
+                **kwargs
+                # comment__change_request_id=self.pk
+            )
+        ]
+        attachments.extend(
+            (a.created_at, a.attachment) for a in self.comments.filter(~Q(attachment=""))
+        )
         if attachments:
             sorted(attachments, key=lambda a: a[0])
         return attachments
@@ -1137,9 +1153,9 @@ class PersonCareerStage(Model):
 ORCID_ID_REGEX = re.compile(r"^([X\d]{4}-?){3}[X\d]{4}$")
 
 phone_regex_validator = RegexValidator(
-    regex=r"^\+?1?\d{9,15}$",
+    regex=r"\+?[0123456789 ]{9,15}$",
     message=_(
-        "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+        "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed: %(value)s."
     ),
 )
 
@@ -1383,12 +1399,14 @@ class Organisation(Model):
                     a.save(update_fields=["number"])
 
     @classmethod
-    def search_query(cls, term, queryset=None, nominator=None):
+    def search_query(cls, term, queryset=None, nominator=None, user=None):
         """Organisation search query for autocomplete and select2."""
         # def get_queryset(self):
         q = queryset or cls.objects.all()
         if nominator:
             q = q.filter(Q(research_offices__user_id=nominator))
+        if user:
+            q = q.filter(Q(affiliations__person__user=user, affiliations__end_date__isnull=True))
         if term:
             s = term.lower()
             s0 = s.split(" ")
@@ -2137,6 +2155,31 @@ class Keyword(TagBase):
         db_table = "keyword"
 
 
+class ResearchPriority(HelperMixin, TagBase):
+
+    def natural_key(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Research Priority")
+        verbose_name_plural = _("Research Priorities")
+        db_table = "research_priority"
+
+
+class ResearchPriorityItem(GenericTaggedItemBase):
+
+    tag = ForeignKey(
+        ResearchPriority,
+        on_delete=CASCADE,
+        related_name="items",
+    )
+
+    class Meta:
+        verbose_name = _("item with research priorities")
+        verbose_name_plural = _("items with research priorities")
+        db_table = "research_priority_item"
+
+
 # class KeywordItem(GenericTaggedItemBase, TaggedItemBase):
 
 #     tag = ForeignKey(
@@ -2248,11 +2291,77 @@ class VMTOAModel(Model):
         abstract = True
 
 
+def get_unique_invitation_token():
+    while True:
+        token = secrets.token_urlsafe(8)
+        if not Invitation.objects.filter(token=token).exists():
+            return token
+
+
+class CommentModel(Model):
+
+    @property
+    def object_pk(self):
+        return self.object_id
+
+    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    subject = CharField(max_length=1000, null=True, blank=True)
+    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_subfolder=lambda instance: [
+            instance.object.model_name,
+            hash_int(instance.object_pk),
+            "comments",
+        ],
+        null=True,
+        blank=True,
+    )
+    submitted_by = ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        # related_name="%(class)ss",
+        verbose_name=_("submitted by"),
+    )
+    alert_date = CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+    )
+
+    @property
+    def target(self):
+        return self.object
+
+    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+        return self.object.import_email(
+            file,
+            file_name=file_name,
+            notify_author=notify_author,
+            request=request,
+            by=by,
+            reply_to=self,
+        )
+
+    def __str__(self):
+        return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    class Meta:
+        verbose_name = _("comment")
+        verbose_name_plural = _("comments")
+        ordering = ["-created_at"]
+        abstract = True
+
+
 class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # objects = RoundSiteManager()
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
     all_objects = Manager()
+    tags = TaggableManager(blank=True)
 
     is_preliminary = BooleanField(_("is preliminary"), null=True, blank=True, default=False)
     preliminary = ForeignKey(
@@ -2382,9 +2491,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     state = StateField(default="new", verbose_name=_("application state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    is_tac_accepted = BooleanField(
-        default=False, verbose_name=_("I have read and accept the Terms and Conditions")
-    )
+    is_tac_accepted = BooleanField(default=False, verbose_name=_("the T&Cs were accepted"))
     tac_accepted_at = MonitorField(
         monitor="state",
         when=["tac_accepted"],
@@ -2440,6 +2547,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         through=ApplicationKeyword,
         blank=True,
         related_name="applications",
+    )
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Priorities"),
+        help_text=_("Research priorities"),
+        through=ResearchPriorityItem,
     )
     vm_ecs = PositiveSmallIntegerField(
         "Indigenous Innovation",
@@ -2612,8 +2725,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     def save(self, *args, **kwargs):
 
-        if not self.application_title:
-            self.application_title = self.round.title
+        if self.application_title is None:
+            self.application_title = "" if self.site_id in [2, 4, 5] else self.round.title
         if not self.number:
             self.number = default_application_number(self)
             if self.is_preliminary:
@@ -2634,6 +2747,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     role_id="PI",
                 ),
             )
+
+    def create_contract(self, *args, **kwargs):
+        return Contract.create_from_application(application=self, *args, **kwargs)
 
     @cache
     def can_only_update_referees(self, user):
@@ -2819,7 +2935,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["tac_accepted", "submitted", "approved", "accepted", "in_review"],
         target="in_review",
-        conditions=[lambda self: self.site_id not in [2, 5] or self.state in ["accepted", "in_review"]],
+        conditions=[
+            lambda self: self.site_id not in [2, 5] or self.state in ["accepted", "in_review"]
+        ],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
     )
     def send_out_to_referees(self, exclude_sender=False, *args, **kwargs):
@@ -4785,13 +4903,6 @@ class ConflictOfInterest(Model):
         verbose_name_plural = _("conflicts of interest")
 
 
-def get_unique_invitation_token():
-    while True:
-        token = secrets.token_urlsafe(8)
-        if not Invitation.objects.filter(token=token).exists():
-            return token
-
-
 INVITATION_TYPES = Choices(
     ("A", _("apply")),
     ("J", _("join")),
@@ -5875,7 +5986,11 @@ class Scheme(Model):
 
 def round_template_path(instance, filename):
     r = instance if hasattr(instance, "title") else instance.round
+    if r.opens_on:
+        return f"rounds/{r.scheme.code}-{r.opens_on.year}/{filename}"
     title = (r.title or r.scheme.title).lower().replace(" ", "-")
+    if len(title) > 50:
+        title = hashlib.shake_256(title.encode()).hexdigest(9)
     return f"rounds/{title}/{filename}"
 
 
@@ -5895,10 +6010,23 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Available priorities"),
+        help_text=_("Available research priorities"),
+        through=ResearchPriorityItem,
+    )
     testimonial_submission_closes_at = DateTimeField(
         null=True, blank=True, verbose_name="Testimonial submission closes at"
     )
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
+    is_partial_profile_allowed = BooleanField(
+        help_text=_(
+            "Partial profile allowed, applicant is not required "
+            "to provide a complete user profile"
+        ),
+        default=False,
+    )
 
     guidelines = URLField(
         _("round guidelines"),
@@ -6342,17 +6470,24 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         if last_round:
 
             for f in [f.name for f in self._meta.fields]:
-                if f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]:
+                if (
+                    f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]
+                    or getattr(self, f, None) is not None
+                ):
                     continue
                 v = getattr(last_round, f)
                 setattr(self, f, v)
                 # if v is not None and getattr(self, f) is None:
 
-            if not self.opens_on and last_round.opens_on:
-                self.opens_on = last_round.opens_on + relativedelta(years=1)
+            if not self.scheme or self.scheme != last_round.scheme:
+                if not self.opens_on and last_round.opens_on:
+                    self.opens_on = last_round.opens_on + relativedelta(years=1)
 
-            if not self.closes_at and last_round.closes_at:
-                self.closes_at = last_round.closes_at + relativedelta(years=1)
+                if not self.closes_at and last_round.closes_at:
+                    self.closes_at = last_round.closes_at + relativedelta(years=1)
+            else:
+                self.opens_on = last_round.opens_on
+                self.closes_at = last_round.closes_at
 
         if not self.opens_on:
             self.opens_on = timezone.now()
@@ -6390,8 +6525,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         return self
 
-    def clone(self):
-        nr = Round(scheme=self.scheme)
+    def clone(self, scheme=None, *args, **kwargs):
+        nr = Round(scheme=scheme or self.scheme)
         nr.init_from_last_round(last_round=self)
         if not nr.title:
             nr.title = self.scheme.title
@@ -6400,6 +6535,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         with transaction.atomic():
             nr.save()
+            # nr.tags.add(*self.tags.all())
+            nr.priorities.add(*self.priorities.all())
+
             # NB! Keep the order
             for m in [
                 self.application_form_templates,
@@ -6987,7 +7125,9 @@ class PerformanceFlag(TimeStampMixin, HelperMixin, OrderableModel):
 class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="required_documents")
     # TODO: should be removed at some stage
-    document_type = ForeignKey(DocumentType, on_delete=CASCADE, related_name="required_documents")
+    document_type = ForeignKey(
+        DocumentType, on_delete=CASCADE, related_name="required_documents", null=True, blank=True
+    )
     role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     # name = CharField(_("Name"), max_length=200, blank=True, default="")
     format = CharField(
@@ -7041,7 +7181,18 @@ class RoundContractClause(TimeStampMixin, HelperMixin, OrderableModel):
 
 class RoundDocumentTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="templates")
-    document_type = ForeignKey(DocumentType, on_delete=CASCADE)
+    document_type = ForeignKey(
+        DocumentType, on_delete=SET_NULL, null=True, blank=True, related_name="templates"
+    )
+    required_document = ForeignKey(
+        RequiredDocument,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="templates",
+        help_text="NB! Save the round with the required documents "
+        "before assigning the themplates to the required documents!",
+    )
     file = FileField(
         upload_to=round_template_path,
         verbose_name=_("Template"),
@@ -7511,7 +7662,7 @@ class SchemeApplication(Model):
                 pa.application_title AS previous_application_title,
                 pa.created_on AS previous_application_created_on
             FROM scheme AS s
-            LEFT JOIN round AS r ON r.id = s.current_round_id AND r.site_id = %s
+            /*LEFT */JOIN round AS r ON r.id = s.current_round_id AND r.site_id = %s
             LEFT JOIN (
                 SELECT
                     max(a.id) AS id,
@@ -7619,7 +7770,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(_("last name"), max_length=150)
     position = CharField(
@@ -8423,7 +8574,7 @@ class ContractSeo(Model):
         verbose_name_plural = _("contract SEOs")
 
 
-class ContractComment(Model):
+class ContractComment(CommentModel):
 
     @property
     def object(self):
@@ -8434,41 +8585,40 @@ class ContractComment(Model):
         return self.contract_id
 
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="comments")
-    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
-    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
-    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
-    attachment = PrivateFileField(
-        _("attachment"),
-        upload_to="contracts",
-        upload_subfolder=lambda instance: [
-            # "contracts",
-            # hash_int(instance.application_id),
-            hash_int(instance.contract_id),
-            "comments",
-        ],
-        null=True,
-        blank=True,
-    )
-    submitted_by = ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        verbose_name=_("submitted by"),
-        related_name="contract_comments",
-    )
+    # reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    # token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    # comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    # attachment = PrivateFileField(
+    #     _("attachment"),
+    #     upload_to="contracts",
+    #     upload_subfolder=lambda instance: [
+    #         # "contracts",
+    #         # hash_int(instance.application_id),
+    #         hash_int(instance.contract_id),
+    #         "comments",
+    #     ],
+    #     null=True,
+    #     blank=True,
+    # )
+    # submitted_by = ForeignKey(
+    #     User,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=SET_NULL,
+    #     verbose_name=_("submitted by"),
+    #     related_name="contract_comments",
+    # )
 
-    def __str__(self):
-        return f"Submitted by {self.submitted_by} at {self.created_at}"
+    # def __str__(self):
+    #     return f"Submitted by {self.submitted_by} at {self.created_at}"
 
-    @property
-    def target(self):
-        return self.contract
+    # @property
+    # def target(self):
+    #     return self.contract
 
-    class Meta:
+    class Meta(CommentModel.Meta):
         db_table = "contract_comment"
-        verbose_name = _("comment")
-        ordering = ["-id"]
+        default_related_name = "contract_comments"
 
 
 class ContractCommentRecipient(Model):
@@ -8544,6 +8694,7 @@ class ContractMixin:
         ("preliminary", _("Preliminary")),
         ("submitted", _("Submitted")),
         ("released", _("Released")),
+        ("current", _("Current ")),
         # ("withdrawn", _("withdrawn")),
     )
 
@@ -8593,6 +8744,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     panel = ForeignKey(Panel, on_delete=SET_NULL, null=True, blank=True)
     objects = ContractManager()
     all_objects = Manager()
+    tags = TaggableManager(blank=True)
 
     number = CharField(_("number"), max_length=40, unique=True)
     host_number = CharField(_("host_number"), max_length=100, null=True, blank=True)
@@ -8683,6 +8835,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         blank=True,
         related_name="contracts",
     )
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Priorities"),
+        help_text=_("Research priorities"),
+        through=ResearchPriorityItem,
+    )
     fund = ForeignKey(Fund, on_delete=CASCADE, blank=True, null=True)
     # seo_keyword_list = models.CharField(max_length=800, blank=True, null=True)
     # seo_keywords = models.ManyToManyField(
@@ -8770,6 +8928,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         ],
         validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
     )
+    is_variation = BooleanField(
+        help_text="Is this a variation of another contract?", default=False
+    )
+    source = ForeignKey(
+        "self", on_delete=SET_NULL, null=True, blank=True, related_name="derivatives"
+    )
 
     # "ie-contracts"
     ## total_amount = IntegerField(null=True, blank=True)
@@ -8777,7 +8941,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     ## currency = IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+        # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
+        return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
 
     @classmethod
     def user_object_counts(
@@ -9119,16 +9284,17 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
             members = []
             for m in a.members.filter(authorized_at__isnull=False):
+                u = m.user
                 members.append(
                     ContractMember(
                         contract=c,
-                        email=m.email,
-                        first_name=m.first_name,
-                        middle_names=m.middle_names,
-                        last_name=m.last_name,
+                        email=m.email and m.email.strip() or m.get_org_email(org=a.org),
+                        first_name=m.first_name or u and u.first_name,
+                        middle_names=m.middle_names or u and u.middle_names,
+                        last_name=m.last_name or u and u.last_name,
                         role=m.role,
-                        user=m.user,
-                        address=m.user.person.address,
+                        user=u,
+                        address=u and u.person and u.person.address,
                     )
                 )
             if not a.members.filter(role="PI").exists():
@@ -9560,6 +9726,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             template_name = "contracts/footers.html"
         elif part == "headers_footers":
             template_name = "contracts/headers_footers.html"
+        elif part == "letter":
+            template_name = "variations/letter.html"
         else:
             template_name = "contracts/document.html"
 
@@ -9753,6 +9921,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 )
             file_path = output_dir / f"{os.path.basename(base)}.pdf"
         return file_path
+
+    def variation_to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
+
+        output_dir = Path(tempfile.gettempdir())
+
+        output_filename = output_dir / f"{self.number}.pdf"
+        merger.write(output_filename)
+        return output_filename
 
     def to_pdf(self, request=None, user=None, add_headers=None, skip_excluded=False):
         # with open(Path.home() / f"schedule_{self.number}.fodt", "w") as ofile:
@@ -10026,6 +10202,56 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             thread_topic=self.thread_topic,
         )
 
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted", "released"],
+        target="current",
+        custom=dict(verbose="Make Current", button_name="Make Current"),
+    )
+    def make_current(self, *args, **kwargs):
+        pass
+
+    def clone(self, is_variation=None, change_request=None, *args, **kwargs):
+        """Clone the contract to create a variation of a transfer."""
+
+        if not change_request:
+            change_request = (
+                self.change_requests.filter(derivative__isnull=True).order_by("-pk").first()
+            )
+        assert change_request, "Change request is required to clone a contract"
+
+        if is_variation is None:
+            is_variation = not change_request.types.filter(code="TR").exists()
+
+        if is_variation:
+            number = change_request.number
+        else:
+            assert change_request.new_host != self.org, (
+                "Transfrer must have and organisation and "
+                "it should be a different organisation from the original contract"
+            )
+            number = self.__class__.new_number(self.application, org=change_request.new_host)
+
+        with transaction.atomic():
+
+            nc = super().clone(
+                exclude_related_models=[ContractComment, Contract, Report, ChangeRequest],
+                is_variation=is_variation,
+                number=number,
+                state="draft",
+                source=self,
+                **(
+                    {
+                        "org": change_request.new_host,
+                    }
+                    if not is_variation
+                    else {}
+                ),
+            )
+
+            return nc
+
     class Meta:
         db_table = "contract"
 
@@ -10250,7 +10476,7 @@ class ContractMember(PersonMixin, Model):
         blank=True,
         null=True,
         max_length=280,
-        help_text=_("Comma separated list of middle names"),
+        # help_text=_("Comma separated list of middle names"),
     )
     last_name = CharField(max_length=150, null=True, blank=True)
     role = ForeignKey(
@@ -10510,6 +10736,7 @@ class ReportMixin:
 
 
 class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
+    tags = TaggableManager(blank=True)
     schedule_entry = OneToOneField(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
@@ -10621,6 +10848,12 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         through=ReportKeyword,
         blank=True,
         related_name="reports",
+    )
+    priorities = TaggableManager(
+        blank=True,
+        verbose_name=_("Priorities"),
+        help_text=_("Research priorities"),
+        through=ResearchPriorityItem,
     )
     vm_ecs = PositiveSmallIntegerField(
         "Indigenous Innovation",
@@ -11275,7 +11508,7 @@ class PublicationLink(Model):
 REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Other")))
 
 
-class ReportComment(Model):
+class ReportComment(CommentModel):
 
     @property
     def object(self):
@@ -11286,27 +11519,27 @@ class ReportComment(Model):
         return self.report_id
 
     report = ForeignKey(Report, on_delete=CASCADE, related_name="comments")
-    reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
-    token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
-    comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
-    attachment = PrivateFileField(
-        _("attachment"),
-        upload_to="reports",
-        upload_subfolder=lambda instance: [
-            hash_int(instance.report_id),
-            "comments",
-        ],
-        null=True,
-        blank=True,
-    )
-    submitted_by = ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
-        verbose_name=_("submitted by"),
-        related_name="report_comments",
-    )
+    # reply_to = ForeignKey("self", on_delete=CASCADE, related_name="replies", null=True, blank=True)
+    # token = CharField(max_length=42, default=get_unique_invitation_token, unique=True)
+    # comment = TextField(_("comment"), max_length=1000, null=True, blank=True)
+    # attachment = PrivateFileField(
+    #     _("attachment"),
+    #     upload_to="reports",
+    #     upload_subfolder=lambda instance: [
+    #         hash_int(instance.report_id),
+    #         "comments",
+    #     ],
+    #     null=True,
+    #     blank=True,
+    # )
+    # submitted_by = ForeignKey(
+    #     User,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=SET_NULL,
+    #     verbose_name=_("submitted by"),
+    #     related_name="report_comments",
+    # )
     category = FixedCharField(
         choices=REPORT_COMMENT_CATEGORIES,
         max_length=1,
@@ -11319,27 +11552,26 @@ class ReportComment(Model):
         blank=True,
     )
 
-    @property
-    def target(self):
-        return self.report
+    # @property
+    # def target(self):
+    #     return self.report
 
-    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
-        return self.report.import_email(
-            file,
-            file_name=file_name,
-            notify_author=notify_author,
-            request=request,
-            by=by,
-            reply_to=self,
-        )
+    # def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+    #     return self.report.import_email(
+    #         file,
+    #         file_name=file_name,
+    #         notify_author=notify_author,
+    #         request=request,
+    #         by=by,
+    #         reply_to=self,
+    #     )
 
-    def __str__(self):
-        return f"Submitted by {self.submitted_by} at {self.created_at}"
+    # def __str__(self):
+    #     return f"Submitted by {self.submitted_by} at {self.created_at}"
 
-    class Meta:
+    class Meta(CommentModel.Meta):
         db_table = "report_comment"
-        verbose_name = _("comment")
-        ordering = ["-id"]
+        default_related_name = "report_comments"
 
 
 class ReportCommentRecipient(Model):
@@ -11495,8 +11727,8 @@ class ReportedAward(ReportedActivity):
 
 class ChangeType(Model):
 
-    code = CharField(max_length=2, null=True, blank=True)
-    description = CharField(max_length=40)
+    code = FixedCharField(max_length=2, primary_key=True)
+    description = CharField(max_length=100)
     definition = TextField(max_length=200, null=True, blank=True)
 
     def __str__(self):
@@ -11509,11 +11741,19 @@ class ChangeType(Model):
 
 class ChangeCategory(Model):
 
-    type = ForeignKey(ChangeType, on_delete=CASCADE)
-    code = CharField(max_length=2, null=True, blank=True)
-    description = CharField(max_length=40)
+    type = ForeignKey(ChangeType, on_delete=CASCADE, db_column="type")
+    code = CharField(max_length=2, primary_key=True)
+    description = CharField(max_length=100)
     definition = TextField(max_length=200, null=True, blank=True)
-    parent = ForeignKey("self", on_delete=CASCADE)
+    parent = ForeignKey(
+        "self",
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
+        related_name="subcategories",
+        db_column="category",
+        help_text="Parent category",
+    )
 
     def __str__(self):
         return self.description
@@ -11526,20 +11766,24 @@ class ChangeCategory(Model):
 
 class ChangeRequestMixin:
     STATES = Choices(
-        ("accepted", _("accepted")),
-        ("acknowledged", _("acknowledged")),
-        ("approved", _("approved")),
-        ("application", _("application")),
-        ("archived", _("archived")),
-        ("cancelled", _("cancelled")),
-        ("draft", _("draft")),
-        ("submitted", _("submitted")),
-        ("withdrawn", _("withdrawn")),
+        ("accepted", _("Under Review")),
+        ("acknowledged", _("Acknowledged")),
+        ("approved", _("Approved")),
+        ("application", _("Application")),
+        ("archived", _("Archived")),
+        ("cancelled", _("Cancelled")),
+        ("declined", _("Declined")),
+        ("draft", _("WIP")),
+        ("submitted", _("Received")),
+        # ("submitted", _("Submitted")),
+        ("withdrawn", _("Withdrawn")),
     )
 
 
-class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
+# TODO: add history
+class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
+    tags = TaggableManager(blank=True)
     number = CharField(
         _("number"), max_length=24, null=True, blank=True, unique=True, editable=False
     )
@@ -11548,7 +11792,7 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
     types = ManyToManyField(
         ChangeType,
         db_table="change_request_change_type",
-        verbose_name=_("Types"),
+        verbose_name=_("Type(s)"),
         related_name="change_requests",
     )
     categories = ManyToManyField(
@@ -11566,8 +11810,18 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         blank=True,
     )
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
+    derivative = ForeignKey(
+        Contract,
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
+        related_name="originated_by",
+        help_text="Derivative contract (variation or extension)",
+    )
     new_host = ForeignKey(
         Organisation,
+        null=True,
+        blank=True,
         on_delete=CASCADE,
         related_name="change_requests",
         help_text="New host organisation",
@@ -11611,6 +11865,9 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
+    reply = TextField(
+        null=True, blank=True, default='<p style="font-family: Arial; font-size: 10px;"></p>'
+    )
 
     def is_ro(self, user):
         return self.contract and self.contract.org.research_offices.filter(user=user).exists()
@@ -11647,7 +11904,7 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         *args,
         **kwargs,
     ):
-        q = queryset or cls.objects.all()
+        q = (queryset or cls.objects.all()).filter(contract__site_id=settings.SITE_ID)
 
         if select_related:
             prefetch_related_objects(q, "contract__application__round")
@@ -11711,8 +11968,252 @@ class ChangeRequest(PdfFileMixin, ChangeRequestMixin, Model):
         self.number = f"{contract.number}:{v:1d}"
         return self.number
 
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="draft",
+        custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
+    )
+    def save_draft(self, *args, **kwargs):
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["accepted", "approved", "declined"],
+        target="archived",
+        custom=dict(verbose="Archive", button_name="Archive"),
+        permission=lambda instance, user: instance.is_admin(user),
+    )
+    def archive(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["new", "draft"],
+        target="submitted",
+        custom=dict(verbose="Submit", button_name="Submit for review", admin=False),
+        permission=lambda instance, user: instance.is_ro(user),
+    )
+    def submit(self, *args, **kwargs):
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["draft", "submitted", "accepted", "approved"],
+        target="withdrawn",
+        custom=dict(verbose="Withdraw", button_name="Withdraw"),
+        permission=lambda instance, user: instance.is_ro(user),
+    )
+    def withdraw(self, *args, **kwargs):
+        request = kwargs.get("request")
+        if not self.submitted_by:
+            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+            if not (by.is_superuser or by.is_site_staff):
+                self.submitted_by = by
+        if d := self.derivative:
+            d.delete()
+            if request:
+                messages.info(
+                    request, f"The contract variation and/or transfer record {d} was deleted."
+                )
+
+    def create_new_contract(self, request=None, by=None, description=None, *args, **kwargs):
+        is_variation = not self.types.filter(code="TR").exists()
+        new_contract = self.contract.clone(
+            change_request=self,
+            is_variation=is_variation,
+        )
+        self.derivative = new_contract
+
+        if request:
+            url = reverse("contract", args=[new_contract.pk])
+            messages.success(
+                request,
+                (
+                    f'Variation <a href="{url}" target="_blank">{new_contract}</a> created.'
+                    if is_variation
+                    else f'Transferred contract <a href="{url}" target="_blank">{new_contract}</a> created.'
+                ),
+            )
+        return new_contract
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="approved",
+        custom=dict(verbose="Approve", button_name="Approve"),
+        permission=lambda instance, user: instance.is_admin(user),
+    )
+    def approve(self, request=None, by=None, description=None, *args, **kwargs):
+        assert self.contract, "Contract is required to approve the change request."
+        if not self.derivative:
+            try:
+                self.create_new_contract(
+                    request=request, by=by, description=description, *args, **kwargs
+                )
+            except Exception as e:
+                if request:
+                    messages.error(request, f"Failed to approve the change request: {e}")
+                capture_message(e)
+
+    # @fsm_log
+    # @transition(
+    #     field=state,
+    #     source=["*"],
+    #     target="accepted",
+    #     custom=dict(verbose="Accept", button_name="Accept", admin=False),
+    #     permission=lambda instance, user: instance.is_admin(user),
+    # )
+    # def accept(self, request=None, by=None, description=None, *args, **kwargs):
+    #     assert self.contract, "Contract is required to accept the change request."
+    #     try:
+    #         self.create_new_contract(request=request, by=by, description=description, *args, **kwargs)
+    #     except Exception as e:
+    #         if request:
+    #             messages.error(request, f"Failed to accept the change request: {e}")
+    #         capture_message(e)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["draft", "submitted"],
+        target="declined",
+        custom=dict(verbose="Decline", button_name="Decline", admin=False),
+        permission=lambda instance, user: instance.is_admin(user),
+    )
+    def decline(self, request=None, by=None, description=None, *args, **kwargs):
+        if not by and request:
+            by = request.user
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+        html_message = (
+            f"<p>Kia ora {self.submitted_by.full_name}</p>"
+            if self.submitted_by
+            else "<p>Kia ora!</p>"
+            f'<p>The change request <a href="{url}">{link_name}'
+            "</a> was declined by {by}.</p>"
+        )
+        recipients = self.host_recipients
+        if description:
+            html_message += f"<p>Reason:<p><pre>{description}</pre>"
+        send_mail(
+            from_email="variations",
+            subject=f"Change request was declined by {by.full_name_with_email}",
+            html_message=html_message,
+            cc=by.email,
+            recipients=self.host_recipients,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+            request=request,
+            site=self.contract.site,
+        )
+        if request:
+            messages.info(
+                request,
+                "Notification was sent to "
+                f"{', '.join(r if isinstance(r, str) else r.full_name_with_email for r in recipients)}.",
+            )
+
+    @property
+    def agency_recipients(self):
+        c = self.contract
+        return [c.fund.email] if c.fund and c.fund.email else c.site.staff_users.all()
+
+    @property
+    def host_recipients(self):
+        return self.contract.host_emails
+
     class Meta:
         db_table = "change_request"
+
+
+class ChangeRequestComment(CommentModel):
+
+    @property
+    def object(self):
+        return self.change_request
+
+    @property
+    def object_pk(self):
+        return self.change_request_id
+
+    change_request = ForeignKey(ChangeRequest, on_delete=CASCADE, related_name="comments")
+    # attachment = PrivateFileField(
+    #     _("attachment"),
+    #     upload_to="change_requests",
+    #     upload_subfolder=lambda instance: [
+    #         # "change_requests",
+    #         # hash_int(instance.application_id),
+    #         hash_int(instance.change_request_id),
+    #         "comments",
+    #     ],
+    #     null=True,
+    #     blank=True,
+    # )
+    # submitted_by = ForeignKey(
+    #     User,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=SET_NULL,
+    #     verbose_name=_("submitted by"),
+    #     related_name="change_request_comments",
+    # )
+
+    # def __str__(self):
+    #     return f"Submitted by {self.submitted_by} at {self.created_at}"
+
+    # @property
+    # def target(self):
+    #     return self.change_request
+
+    class Meta(CommentModel.Meta):
+        db_table = "change_request_comment"
+        default_related_name = "change_request_comments"
+
+
+class ChangeRequestCommentRecipient(Model):
+
+    comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="recipients")
+    user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
+    email = EmailField(max_length=200)
+    is_cced = BooleanField(default=False)
+
+    class Meta:
+        db_table = "change_request_comment_recipient"
+        verbose_name = _("recipient")
+
+
+class ChangeRequestCommentAttachment(Model):
+    comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="attachments")
+    attachment = PrivateFileField(
+        _("attachment"),
+        upload_to="change_requests",
+        upload_subfolder=lambda instance: [
+            # hash_int(instance.application_id),
+            hash_int(instance.comment.change_request_id),
+            "comments",
+            hash_int(instance.comment_id),
+            "attachments",
+        ],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "change_request_comment_attachment"
+        verbose_name = _("attachment")
 
 
 dummy_for_translations = (

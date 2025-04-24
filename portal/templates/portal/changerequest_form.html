@@ -1,2 +1,33 @@
 {% extends 'form.html' %}
 {% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
+{% block breadcrumbs %}
+  {% render_breadcrumbs %}
+{% endblock %}
+
+{% block javascript %}
+{% if request.GET.export %}<a style="display: none;" id="id_export_object_link" href="{% url 'contract-export' object.pk %}" trarget="_blank"></a>{% endif %}
+{{ block.super }}
+<!-- JS -->
+  <script>
+    $(document).ready(function() {
+      $("#id_types").on("select2:unselect", function(event) {
+            if (event.params.data.id == 'TR') $("#div_id_new_host").hide();
+      });
+      $("#id_types").on("select2:select", function(event) {
+            if (event.params.data.id == 'TR') $("#div_id_new_host").show();
+      });
+        /*
+      $('input[type="submit"]').not('[name="save"]').on("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        $('#id_action').val(event.target.name);
+        $('#id_commit_button').text(event.target.value||'{% trans "Commit" %}');
+        $('#id_resolution_modal').modal('show');
+        return false;
+      });
+      */
+      if ($("#id_types").find("option[value='TR']").length) $("#div_id_new_host").show(); else $("#div_id_new_host").hide();
+      {% if is_transfer %}$("#div_id_new_host").show();{% else %}$("#div_id_new_host").hide();{% endif %}
+    });
+  </script>
+{% endblock %}

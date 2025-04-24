@@ -6,6 +6,7 @@ from urllib.parse import parse_qs
 # import jinja2
 from django import forms, template
 from django.db import models
+from django.db.models.manager import Manager
 from django.forms.widgets import NullBooleanSelect
 from django.template.loader import get_template
 from django.utils.safestring import mark_safe
@@ -78,6 +79,11 @@ def get_item(hashable, key):
     return hashable.get(key) or isinstance(key, str) and key.isdigit() and hashable.get(int(key))
 
 
+@register.filter
+def form_field(form, field_name):
+    return form[field_name]
+
+
 @register.filter()
 def collapsible(value):
     """collapsible if the text length exceeds ML and remainder is more then 20% of the text."""
@@ -140,18 +146,41 @@ def field_value(value, name, *args, **kwargs):
         if isinstance(v, m.User):
             return v.full_name_with_email
         if name in ["state", "status"]:
+            method = getattr(value, f"get_{name}_display", None)
+            dv = method and method()
             if state_changed_at := getattr(value, "state_changed_at", None):
                 return mark_safe(
                     f"""<span data-toggle="tooltip"
                     title="{_('(the state was updated at %s)') % state_changed_at.strftime('%d-%m-%Y %H:%m')}
-                    ">&lt;<b>{v.upper()}</b>&gt</span>"""
+                    ">&lt;<b>{dv or v.upper()}</b>&gt</span>"""
                 )
-            return mark_safe(f"&lt;<b>{v.upper()}</b>&gt;")
+            changed_at = value.updated_at or value.created_at
+            if changed_at:
+                return mark_safe(
+                    f"""<span data-toggle="tooltip"
+                    title="{_('(the record was updated at %s)') % changed_at.strftime('%d-%m-%Y %H:%m')}
+                    ">&lt;<b>{dv or v.upper()}</b>&gt</span>"""
+                )
+            return mark_safe(f"&lt;<b>{dv or v.upper()}</b>&gt;")
     if isinstance(v, bool):
         return _("yes") if v else _("no")
     f = value._meta.get_field(name)
     if isinstance(f, models.BooleanField):
         return _("yes") if v else _("no")
+
+    if v and isinstance(v, models.Model):
+        try:
+            url = v.get_absolute_url()
+            link_name = getattr(v, "number", v)
+            return mark_safe(f'<a href="{url}" target="_blank">{link_name}</a>')
+        except:
+            pass
+
+    if v and isinstance(v, Manager):
+        if v.exists():
+            return ", ".join(str(o) for o in v.all())
+        return _("N/A")
+
     return _("N/A") if v is None or v == "" else v
 
 
@@ -181,7 +210,7 @@ def field_file_url(value, name="file"):
 
 @register.filter()
 def fields(value):
-    return value and value._meta.fields or []
+    return value and value._meta.get_fields() or []
 
 
 @register.filter()
@@ -283,7 +312,10 @@ def user_has_nomination(value, user):
 def render_jinja(context, template, *args, **kwargs):
     # request = context.get("request")
     # site = context.get("site")
-    output = jinja2.Template(template).render(context.flatten())
+    context = context.flatten()
+    if kwargs:
+        context.update(kwargs)
+    output = jinja2.Template(template).render(context)
     return Markup(output)
 
 
@@ -294,7 +326,10 @@ def jinja(context, template, *args, **kwargs):
     # site = context.get("site")
     # contract = object = context.get("object")
     # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}
-    output = get_template(template).render(context.flatten())
+    context = context.flatten()
+    if kwargs:
+        context.update(kwargs)
+    output = get_template(template).render(context)
     return Markup(output)
 
 
@@ -353,17 +388,11 @@ def document_action_button(
     )
     if not document_file:
         if action == "approve":
-            disabled_tooltip_text = _(
-                f"Please upload { required_document } before approving it"
-            )
+            disabled_tooltip_text = _(f"Please upload { required_document } before approving it")
         elif action == "release":
-            disabled_tooltip_text = _(
-                f"Please upload { required_document } before releasing it"
-            )
+            disabled_tooltip_text = _(f"Please upload { required_document } before releasing it")
         elif action == "accept":
-            disabled_tooltip_text = _(
-                f"Please upload { required_document } before accepting it"
-            )
+            disabled_tooltip_text = _(f"Please upload { required_document } before accepting it")
         else:
             disabled_tooltip_text = _(
                 f"Please upload { required_document } before requesting corrections"
@@ -403,4 +432,4 @@ def length_is(value, arg):
     try:
         return len(value) == int(arg)
     except (ValueError, TypeError):
-        return ''
+        return ""

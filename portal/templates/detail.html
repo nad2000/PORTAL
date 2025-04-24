@@ -1,7 +1,28 @@
 {% extends 'base.html' %}
-{% load i18n tags %}
+{% load i18n tags crispy_forms_tags %}
+
+{% if tag_form %}
+{% block css %}
+  {% if has_comments and attachments %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-table@1.24.1/dist/bootstrap-table.min.css">{% endif %}
+{{ tag_form.media.css }}
+{{ block.super }}
+<style>
+.select2-selection__arrow {display: none;}
+.select2-container { min-width: initial; }
+.select2-container .select2-selection--single, .select2-container--default .select2-selection--single .select2-selection__rendered {height: auto !important;}
+.modelselect2multiple,.modelselect2nopk {height: auto !important;}
+</style>
+{% endblock %}
+{% endif %}
 
 {% block content %}
+
+  {% if transitions %}
+    <form method="post">
+      {% csrf_token %}
+      {% include 'snippets/resolution_modal.html' %}
+    </form>
+  {% endif %}
 
   <!-- Placeholder for the modal -->
   <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
@@ -20,6 +41,8 @@
     {% endblock %}
   </h1>
 
+  <div class="row">
+    <div class="col-12">
 
   {% block buttons_above %}
   <div class="row">
@@ -30,18 +53,62 @@
   </div>
   {% endblock buttons_above %}
 
+  {% block tags %}
+  {% if tag_form %}
+  <div class="row">
+    <div class="col-12">
+    {% if tag_form.helper %}
+      {% crispy tag_form tag_form.helper %}
+    {% else %}
+      {{ tag_form|crispy }}
+    {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endblock %}
+
   {% block object_details %}
+
+      {% if has_comments %}
+        <ul class="nav nav-tabs">
+          <li class="nav-item active">
+            <a class="nav-link active" href="#details" data-target="#details" data-toggle="tab">{% trans 'Details' %}</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="#correspondence" data-target="#correspondence" data-toggle="tab">
+                <i class="fas fa-comments"></i> {% trans 'Correspondence' %}
+              </a>
+          </li>
+          {% if attachments %}
+            <li class="nav-item">
+                <a class="nav-link" href="#attachments" data-target="#attachments" data-toggle="tab">
+                  <i class="fas fa-paperclip"></i> {% trans 'Attachment(s)' %}
+                </a>
+            </li>
+          {% endif %}
+        </ul>
+
+        <div class="tab-content card-body">
+          <div id="details" class="tab-pane active">
+
+      {% endif %}
+
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
 
       {% for field in object|fields %}
-        {% if field.name != 'id' and exclude is None or field.name not in exclude %}
+        <!-- {{ field }} // {{ exclude }} -->
+        {% if field.name != 'id' and exclude is None or field.name not in exclude and field.name != "tagged_items" %}
           {% if not object|field_is_empty:field.name %}
           {% with value=object|field_value:field.name %}
           <tr>
             <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {{ field.verbose_name|title }}
+              {% if field.name == "tags" %}
+                {% trans 'Tags' %}
+              {% else %}
+                {{ field.verbose_name|title }}
+              {% endif %}
             </th>
             <td>
               {% if not value and value != 0 %}
@@ -54,7 +121,14 @@
                 <a href="{{ object.converted_file|field_file_url }}" target="_blank">
                   {{ object.converted_file|field_file_name|basename }}
                 </a>
+              {% elif field.name == "tags" %}
+                {% for tag in object.tags.all %}
+                  <span class="badge badge-secondary">{{ tag }}</span>
+                {% empty %}
+                  {% trans 'N/A' %}
+                {% endfor %}
               {% else %}
+        <!-- {{ field.name }} // {{ value }} -->
                 {{ value }}
               {% endif %}
             </td>
@@ -64,9 +138,83 @@
         {% endif %}
       {% endfor %}
 
+      {% if extra_details %}
+        {% for name, value in extra_details.items %}
+          <!-- {{ name }}: {{ value }} -->
+            <tr>
+              <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                {% if name.isupper %}{{ name }}{% else %}{{ name|title }}{% endif %}
+              </th>
+              <td>
+                {% if not value and value != 0 %}
+                  {% trans 'N/A' %}
+                {% elif name == "summary" or name == "abstract" or name == "notes" or name == "assessment" or name == "description" %}
+                  {{ value|safe }}
+                {% elif value|is_file_field %}
+                  <a href="{{ value.url }}" target="_blank">{{ value|basename }}</a>
+                {% elif name == "tags" %}
+                  {% for tag in value.all %}
+                    <span class="badge badge-secondary">{{ tag }}</span>
+                  {% empty %}
+                    {% trans 'N/A' %}
+                  {% endfor %}
+                {% else %}
+                  {{ value }}
+                {% endif %}
+              </td>
+            </tr>
+        {% endfor %}
+      {% endif %}
+
     </tbody>
   </table>
   </div>
+
+
+  {% if has_comments %}
+
+    </div>
+
+	    <div id="correspondence" class="tab-pane">
+	      {% crispy comment_form comment_form.helper %}
+	      {% include 'snippets/comments.html' %}
+	    </div>
+
+
+      {% if attachments %}
+	    <div id="attachments" class="tab-pane">
+<table class="table table-striped"
+    data-toggle="table"
+    data-search="true"
+    data-show-columns="true"
+>
+  <thead>
+    <tr>
+      <th scope="col" data-field="creaded_at" data-sortable="true">{% trans 'Added At' %}</th>
+      <th scope="col" data-field="attachment" data-sortable="true">{% trans 'Attachment' %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in attachments %}
+      <tr>
+        <th scope="row">
+          {{ a.0 }}
+        </th>
+        <td>
+          <a href="{{ a.1.url }}" target="_blank">{{ a.1.name|basename }}</a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+	    </div>
+      {% endif %}
+
+    </div>
+
+  {% endif %}
+
   {% endblock object_details %}
 
   {% block extra_object %}
@@ -120,14 +268,26 @@
   {% include 'snippets/detail_buttons.html' %}
   {% endblock buttons_bellow %}
 
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block javascript %}
   {{ block.super }}
+  {% if attachments %}<script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.24.1/dist/bootstrap-table.min.js"></script>{% endif %}
   <script>
     $(document).ready(function(){
+        // Keep track of the active tab
+        $(document.body).on("click", "a[data-toggle='tab']", function(event) {
+          location.hash = this.getAttribute("href");
+        });
+        // Jump to the last active tab:
+        if (location.hash) {
+            $('.nav a[href="' + location.hash + '"]').tab('show');
+        }
         $('.tooltip-wrapper').tooltip(); // .tooltip({position: "bottom"});
-        /*
+        {% if has_comments %}
         htmx.on("htmx:afterSwap", (e) => {
           // Response targeting #dialog => show the modal
           target_id = e.detail.target.id;
@@ -135,7 +295,39 @@
             $('#form-modal').modal('show');
           }
           $("[required]").attr("hx-validate", true);
-        });*/
+        });
+        {% endif %}
+        {% comment %}
+        {% if has_comments and attachments %}
+            const attachments = [
+              {% for a in attachments %}
+                {
+                  "created_at": "{{ a.0 }}",
+                  "name": "{{ a.1.name|basename }}",
+                  "url": "{{ a.1.url }}"
+                    }{% if not forloop.last %},{% endif %}
+              {% endfor %}];
+
+        {% endif %}
+        {% endcomment %}
+        $('button[data-action],input[type="submit"][data-toggle="modal"][name]').not('[name="save"]').on("click", function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          var el = event.target;
+          $('[name="action"]').val(el.dataset["action"]||el.name);
+          $('#id_commit_button').text(el.value||el.outerText||'{% trans "Commit" %}');
+          $('#id_resolution_modal').modal('show');
+          $('#id_resolution').trigger('focus');
+          return false;
+        });
+        $('#id_resolution_modal').on('shown.bs.modal', function () {
+          $('#id_resolution').trigger('focus');
+        });
       });
   </script>
+  {% if tag_form %}
+  <!-- tag_form JS media -->
+    {{ tag_form.media.js }}
+  <!-- end: tag_form JS media -->
+  {% endif %}
 {% endblock javascript %}

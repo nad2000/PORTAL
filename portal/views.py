@@ -2,19 +2,20 @@ import io
 import json
 import mimetypes
 import os
+import re
 import shutil
 import traceback
 from datetime import timedelta
+from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
-from decimal import Decimal
 
 import django.utils.translation
 import django_tables2
+import jinja2
 import py7zr
 import rispy
-import jinja2
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -34,6 +35,7 @@ from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
 )
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
 from django.contrib.flatpages.views import flatpage
 from django.contrib.sites.models import Site
@@ -103,6 +105,7 @@ from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
 from django_select2 import forms as s2forms
+from django_summernote.widgets import SummernoteInplaceWidget
 from django_tables2 import SingleTableMixin, SingleTableView
 from django_tables2.export import ExportMixin
 from extra_views import (
@@ -252,7 +255,7 @@ def shoud_be_onboarded(function):
     def wrap(request, *args, **kwargs):
         user = request.user
         person = Person.where(user=user).last()
-        if not person or request.session.get("wizard") or ("wizard_views" in request.session):
+        if not person or request.session.get("wizard") or ("wizard-views" in request.session):
             wizard_views = request.session.get("wizard-views")
             view_name = person and "profile-update" or "profile-create"
             if person and wizard_views is not None:
@@ -356,12 +359,17 @@ class StateInPathMixin:
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         if state := self.state:
-            if self.model is models.Testimonial:
+            if self.model is models.Contract:
+                if state == "draft":
+                    queryset = queryset.filter(state__in=["draft", "new"])
+                else:
+                    queryset = queryset.filter(state=state)
+            elif self.model is models.Testimonial:
                 if state == "draft":
                     queryset = queryset.filter(evaluations__state__in=["draft", "new"])
                 else:
                     queryset = queryset.filter(evaluations__state=state)
-            if self.model is models.Nomination:
+            elif self.model is models.Nomination:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
                 else:
@@ -500,15 +508,93 @@ class SingleObjectMixin(ContextMixin):
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
 
+    def get_transitions(self):
+        model_name = self.object._meta.model_name
+
+        def button_name(transition):
+            if hasattr(transition, "custom") and "button_name" in transition.custom:
+                return transition.custom["button_name"]
+            else:
+                # Make the function name the button title, but prettier
+                return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
+
+        if not getattr(self, "object", None):
+            self.object = self.get_object()
+        return [
+            (t.name, button_name(t))
+            for t in self.object.get_available_user_state_transitions(self.request.user)
+            if t.name not in ["save_draft"]
+        ]
+
+    def tag_form(self, *args, **kwargs):
+
+        form = modelform_factory(
+            self.model,
+            fields=["tags"],
+            labels={"tags": ""},
+            help_texts={"tags": ""},
+            widgets={
+                "tags": autocomplete.TagSelect2(
+                    url="tag-autocomplete",
+                    attrs={
+                        "data-placeholder": _(
+                            "Please enter a tag or multiple tags. You can select multiple tags..."
+                        ),
+                    },
+                )
+            },
+        )(self.request.POST or None, instance=self.object)
+        helper = FormHelper(form)
+        helper.help_text_inline = False
+        helper.html5_required = False
+        helper.form_show_labels = False
+        helper.use_custom_control = False
+        helper.include_media = False
+        helper.layout = Layout(
+            Row(
+                Column("tags", css_class="col-11"),
+                Column(
+                    Submit(
+                        "save_tags",
+                        _("Save Tags"),
+                        css_class="btn-primary",
+                        data_tooltip="tooltip",
+                        title=_("Save tags"),
+                    ),
+                    css_class="col-1",
+                ),
+                css_class="row",
+            )
+        )
+        form.helper = helper
+        return form
+
+    def get_comment_form(self):
+
+        CommentForm = modelform_factory(
+            self.model.comments.rel.model,
+            form=forms.CommentForm,
+            fields=["comment", "attachment"],
+            exclude=["report", "token", "contract", "change_request", "object"],
+        )
+        return CommentForm(
+            self.request.POST or None, self.request.FILES or None, instance=self.object
+        )
+        # model,
+        # form=ModelForm,
+        # fields=None,
+        # exclude=None,
+        # formfield_callback=None,
+        # widgets=None,
+        # localized_fields=None,
+        # labels=None,
+        # help_texts=None,
+        # error_messages=None,
+        # field_classes=None,
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context["exclude"] = [
-            "id",
-            "created_at",
-            "updated_at",
-            "org",
-            "site",
-        ]
+        context["exclude"] = ["id", "created_at", "updated_at", "org", "site", "comments"]
         model_name_slug = self.object._meta.db_table.replace("_", "-").lower()
         context["update_view_name"] = f"{model_name_slug}-update"
         context["category"] = self.object._meta.verbose_name_plural
@@ -521,7 +607,108 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         u = self.request.user
         if u.is_superuser or u.is_site_staff:
             context["can_edit"] = True
+
+        # if hasattr(self.model, "tags"):
+        #     context["tag_form"] = self.tag_form()
+
+        if hasattr(self.model, "comments"):
+            context["has_comments"] = True
+            context["comments"] = self.object.comments.all()
+            context["attachments"] = self.object.attached_files
+            context["comment_form"] = self.get_comment_form()
+
+        if hasattr(self.model, "state") and self.object.state != "archived":
+            context["transitions"] = self.get_transitions()
+
         return context
+
+    def post_comment(self, request, *args, **kwargs):
+
+        form = self.get_comment_form()
+        if not form.is_valid():
+            return self.get(request, *args, **kwargs)
+
+        token = models.get_unique_mail_token()
+        attachment = form.cleaned_data.get("attachment", None)
+        if body := form.cleaned_data.get("comment", None):
+            body = body.strip()
+
+        i = self.object
+        c = i.contract
+        u = request.user
+        is_ro = c.org.research_offices.filter(user=u).exists()
+        recipients = i.host_recipients if is_ro else i.agency_recipients
+
+        if body or attachment:
+            comment = i.comments.model(
+                submitted_by=u,
+                comment=body,
+                attachment=attachment,
+                token=token,
+            )
+
+            i.comments.add(
+                comment,
+                bulk=False,
+            )
+
+            respond_url = self.request.build_absolute_uri(i.get_absolute_url()) + "#correspondence"
+            html_message = f'<p>Comment posted by {u.full_name_with_email} to <data value="{i.number}">{i}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                request=self.request,
+                from_email="variations",
+                subject=f"Comment posted by {u.full_name_with_email} to {i}",
+                html_message=html_message,
+                cc=[u.full_email_address],
+                attachments=attachment and [attachment],
+                recipients=recipients,
+                thread_index=i.thread_index,
+                thread_topic=i.thread_topic,
+                token=token,
+            )
+
+            comment.recipients.model.objects.bulk_create(
+                [
+                    (
+                        comment.recipients.model(comment=comment, user=r, email=r.email)
+                        if isinstance(r, models.User)
+                        else comment.recipients.model(
+                            comment=comment,
+                            email=r,
+                            user=User.where(
+                                Q(email__iexact=r) | Q(emailaddress__email__iexact=r)
+                            ).first(),
+                        )
+                    )
+                    for r in recipients
+                ]
+            )
+            return redirect(request.path.split("#")[0] + "#correspondence")
+
+    def post(self, request, *args, **kwargs):
+        if hasattr(self.model, "tags"):
+            self.object = self.get_object()
+            form = self.tag_form()
+            if "save_tags" in form.data and form.is_valid():
+                form.save()
+
+        if "post_comment" in request.POST and hasattr(self.model, "comments"):
+            self.object = self.get_object()
+            return self.post_comment(request, *args, **kwargs)
+
+        action, description = request.POST.get("action"), request.POST.get("resolution")
+        if action:
+            if not self.object:
+                self.object = self.get_object()
+            if (method := getattr(self.object, action)):
+                method(request=request, description=description, by=request.user)
+                self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
+                state = self.object.state
+                messages.success(request, _(f"The change request was {state}."))
+
+        return redirect(request.path)
 
 
 class ExportView(UserPassesTestMixin, DetailView):
@@ -940,7 +1127,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 def index(request):
 
     site_id = request.site_id
-    if request.resolver_match.view_name == "start":
+    if request.resolver_match.view_name in ["start", "home"]:
         reset_cache(request)
     if "error" in request.GET:
         raise Exception(request.GET["error"])
@@ -1168,6 +1355,10 @@ def check_profile(request, token=None):
                 "accepted",
                 "autoreplied",
             ]:
+                if i.type:
+                    request.sesssion["invitation_type"] = i.type
+                    request.session.modified = True
+
                 if (
                     (i.first_name and not u.first_name)
                     or (i.middle_names and not u.middle_names)
@@ -1621,11 +1812,9 @@ class ReportViewMixin:
         return self.object and self.request.user == self.object.assessor
 
     # def forms_valid(self, *args, **kwargs):
-    #     breakpoint()
     #     return super().forms_valid(*args, **kwargs)
 
     # def forms_invalid(self, *args, **kwargs):
-    #     breakpoint()
     #     return super().forms_invalid(*args, **kwargs)
 
     def get_form_kwargs(self):
@@ -2787,6 +2976,8 @@ class FileImportView(LoginRequiredMixin, FormView):
         if model_name := self.request.GET.get("model"):
             if model_name in ["reportcomment", "report"]:
                 return reverse("report", kwargs=self.kwargs)
+            elif model_name in ["changerequest", "changerequestcomment"]:
+                return reverse("change-request", kwargs=self.kwargs)
             else:
                 return reverse("contract", kwargs=self.kwargs)
         return reverse("report", kwargs=self.kwargs)
@@ -2809,7 +3000,12 @@ class FileImportView(LoginRequiredMixin, FormView):
     @property
     def object(self):
         if model_name := self.request.GET.get("model"):
-            model = models.Report if model_name in ["reportcomment", "report"] else models.Contract
+            if model_name in ["reportcomment", "report"]:
+                model = models.Report
+            elif model_name in ["changerequest", "changerequestcomment"]:
+                model = models.ChangeRequest
+            else:
+                model = models.Contract
         else:
             model = self.model
         if "pk" in self.kwargs:
@@ -3103,18 +3299,43 @@ class ProfileCreate(ProfileViewMixin, CreateView):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         u = self.request.user
         if models.Person.where(user=u).exists():
             messages.error(self.request, _("The profile was aready created."))
             return redirect("profile-update")
 
         # Start profile wizard:
-        if not self.request.session.get("wizard"):
-            self.request.session["wizard"] = True
-            self.request.session["wizard-views"] = ProfileSectionFormSetView.section_views.copy()
+        if not request.session.get("wizard"):
+            if request.site_id in [1, 7] and not request.session.get("scheme"):
+                rounds = models.Round.where(scheme__current_round=F("pk")).order_by("ordering")
+                return render(request, "preselect_scheme.html", locals())
+
+            if not (
+                request.site_id in [1, 7]
+                and (code := request.session.get("scheme"))
+                and (pk := request.session.get("round"))
+                and (round := models.Round.where(pk=pk).first())
+                and round.is_partial_profile_allowed
+            ):
+                self.request.session["wizard"] = True
+                self.request.session["wizard-views"] = (
+                    ProfileSectionFormSetView.section_views.copy()
+                )
+                self.request.session.modified = True
+
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if (round_pk := request.POST.get("round")) and (
+            round := models.Round.where(pk=round_pk).first()
+        ):
+            self.request.session["scheme"] = round.scheme.code or round.scheme.pk
+            self.request.session["round"] = round.pk
             self.request.session.modified = True
-        return super().get(*args, **kwargs)
+            return redirect(request.path_info)
+
+        return super().post(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
@@ -3170,6 +3391,8 @@ def invite_team_members(request, application):
     members = list(
         models.Member.where(
             ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
+            ~Q(state="authorized"),
+            authorized_at__isnull=False,
             application=application,
         )
     )
@@ -3341,7 +3564,7 @@ class AuthorizationForm(Form):
 
 class ApplicationDetail(DetailView):
     model = Application
-    template_name = "application_detail.html"
+    template_name = "portal/application_detail.html"
 
     # def last_modified(self, request, *args, **kwargs):
     #     if (
@@ -3426,6 +3649,9 @@ class ApplicationDetail(DetailView):
 
     @method_decorator(csrf_protect)
     def post(self, request, *args, **kwargs):
+        if "save_tags" in request.POST and hasattr(self.model, "tags"):
+            return super().post(request, *args, **kwargs)
+
         self.object = self.get_object()
         if member := self.get_member():
             if not member.user:
@@ -3598,10 +3824,15 @@ class ApplicationDetail(DetailView):
         ]
         context["can_update"] = (
             can_only_update_referees
-            or (site_id not in [2, 5] and a.state not in ["submitted", "approved", "cancelled", "accepted"])
+            or (
+                site_id not in [2, 5]
+                and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+            )
             or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
             or (
-                site_id in [2, 5] and is_owner and a.state in ["new", "submitted", "draft", "in_review"]
+                site_id in [2, 5]
+                and is_owner
+                and a.state in ["new", "submitted", "draft", "in_review"]
             )
         )
 
@@ -3681,6 +3912,8 @@ class ApplicationDetail(DetailView):
             ).last():
                 context["referee"] = referee
 
+        # context["tag_form"] = self.tag_form()
+
         return context
 
 
@@ -3710,9 +3943,10 @@ def delete_object(request, model, pk):
         except Exception as ex:
             # messages_list.append(messages.Message(messages.constants.ERROR, str(ex)))
             return render(
-                  request, 
-                  "partials/messages.html", 
-                  {"messages": [messages.Message(messages.constants.ERROR, str(ex))]})
+                request,
+                "partials/messages.html",
+                {"messages": [messages.Message(messages.constants.ERROR, str(ex))]},
+            )
         name = o._meta.verbose_name.title()
         messages_list.append(
             messages.Message(messages.constants.INFO, _(f"{name} {o} was successfully deleted"))
@@ -3720,9 +3954,17 @@ def delete_object(request, model, pk):
         return render(request, "partials/messages.html", {"messages": messages_list})
     # raise Http404(f"No matches the given query - mode: {model}, PK: {pk}")
     return render(
-        request, 
-        "partials/messages.html", 
-        {"messages": [messages.Message(messages.constants.ERROR, f"No matches the given query - mode: {model}, PK: {pk}")]})
+        request,
+        "partials/messages.html",
+        {
+            "messages": [
+                messages.Message(
+                    messages.constants.ERROR,
+                    f"No matches the given query - mode: {model}, PK: {pk}",
+                )
+            ]
+        },
+    )
 
 
 @login_required
@@ -3976,11 +4218,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
             )
             initial.update(
                 {
-                    "title": user.title
-                    or nomination
-                    and nomination.title
-                    or application_with_title
-                    and application_with_title.title,
+                    "title": user.title or nomination and nomination.title,
                     # "email": user.email or nomination and nomination.email,
                     "first_name": user.first_name
                     or nomination
@@ -5215,6 +5453,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         kwargs = super().get_form_kwargs()
         update_only_referees = self.update_only_referees()
         user = self.request.user
+        initial = kwargs.get("initial", {})
 
         if update_only_referees:
             kwargs["update_only_referees"] = True
@@ -5237,21 +5476,11 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         if n := self.nomination:
             kwargs["nomination"] = n
 
-        if self.request.method == "GET" and "initial" in kwargs:
-            kwargs["initial"].update(
-                {
-                    "application_title": (
-                        "" if self.request.site_id in [2, 4, 5] else self.round.title
-                    ),
-                    # "email": user.email,
-                    # "first_name": user.first_name,
-                    # "last_name": user.last_name,
-                    # "middle_names": user.middle_names,
-                    # "title": user.title,
-                }
-            )
+        if self.request.method == "GET" and initial:
+            if self.request.site_id not in [2, 4, 5]:
+                initial["application_title"] = self.round.title
             if "nomination" in self.kwargs and self.nomination and self.nomination.org:
-                kwargs["initial"]["org"] = self.nomination.org.id
+                initial["org"] = self.nomination.org.id
 
         return kwargs
 
@@ -5635,9 +5864,13 @@ class ContractDetail(DetailView):
             )
         ):
             context["can_edit"] = True
-            context["change_request_form"] = forms.ChangeRequestForm(
-                initial={"contract": self.object}
+            change_request_form = forms.ChangeRequestForm(
+                initial={"contract": self.object},
             )
+            change_request_form.fields.pop("categories")
+            change_request_form.fields.pop("subcategories")
+            change_request_form.fields.pop("tags", None)
+            context["change_request_form"] = change_request_form
         return context
 
     def get_queryset(self):
@@ -5655,6 +5888,10 @@ class ContractDetail(DetailView):
                         "period", "due_date"
                     ),
                 ),
+                Prefetch(
+                    "change_requests",
+                    queryset=models.ChangeRequest.objects.all().order_by("number"),
+                ),
             )
         )
         if not (u.is_superuser or u.is_site_staff):
@@ -5663,6 +5900,8 @@ class ContractDetail(DetailView):
 
 
 class ContractViewMixin:
+
+    extra_context = {"category": "contracts"}
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -6001,9 +6240,30 @@ class ContractViewMixin:
             or {"country": "NZ"},
         )
 
+    def get_change_request_reply_form(self):
+        i = self.object
+        u = self.request.user
+
+        if i.is_variation and u.is_admin and (cr := i.originated_by.last()):
+            form = model_forms.modelform_factory(
+                models.ChangeRequest,
+                fields=("reply",),
+                widgets={
+                    "reply": SummernoteInplaceWidget(
+                        attrs={"summernote": {"width": "100%", "height": "200px"}}
+                    )
+                },
+                labels={"reply": _("Reply to the change request")},
+            )(self.request.POST or None, instance=cr, prefix="change_request")
+            form.helper = forms.FormHelper(form)
+            form.helper.form_tag = False
+            form.helper.include_media = False
+            return form
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
+        i = self.object
         org = self.object and self.object.org or self.application.org
         if is_ro := org.research_offices.filter(user=u).exists():
             context["is_ro"] = is_ro
@@ -6043,6 +6303,9 @@ class ContractViewMixin:
         }
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
+        context["state"] = self.object and self.object.state or "draft"
+        if i.is_variation and u.is_admin and i.originated_by.exists():
+            context["change_request_reply_form"] = self.get_change_request_reply_form()
 
         return context
 
@@ -6115,6 +6378,12 @@ class ContractViewMixin:
                 fs.instance = self.object
                 if fs.is_valid():
                     fs.save()
+                else:
+                    for f in fs.forms:
+                        if f.errors:
+                            form.errors.update(f.errors)
+                    return self.form_invalid(form)
+
                 fs = self.get_document_formset()
                 fs.instance = self.object
                 if fs.is_valid():
@@ -6153,6 +6422,11 @@ class ContractViewMixin:
                     budget.save_draft(request=request, user=u)
                     budget.converted_file = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
+
+                if i.is_variation and u.is_admin and i.originated_by.exists():
+                    reply_form = self.get_change_request_reply_form()
+                    if reply_form.changed_data and reply_form.is_valid():
+                        reply_form.save()
 
         except Exception as ex:
             capture_exception(ex)
@@ -6405,10 +6679,12 @@ class ContractViewMixin:
                 return redirect(
                     reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
                 )
+
         return resp
 
 
 class ContractCreate(ContractViewMixin, CreateView):
+
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -6476,6 +6752,7 @@ class ContractCreate(ContractViewMixin, CreateView):
 
 
 class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
+
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -6784,7 +7061,11 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
             if not request.session.get("wizard"):
                 request.session["wizard"] = True
-                request.session["wizard-views"] = self.section_views.copy()
+                if request.site_id in [1, 7]:
+                    section_views = self.section_views.copy()
+                    request.session["wizard-views"] = section_views
+                else:
+                    request.session["wizard-views"] = self.section_views.copy()
                 request.session.modified = True
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
@@ -6863,7 +7144,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             "profile-academic-records": _("Academic Records"),
             "profile-recognitions": _("Prizes and/or Medals"),
         }.get(url_name)
-        if self.request.session.get("wizard"):
+        if self.request.session.get("wizard") or site_id in (1, 7):
             view_idx = self.section_views.index(url_name)
             if view_idx > 0:
                 previous_step = self.section_views[view_idx - 1]
@@ -6881,12 +7162,14 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         return context
 
     def get_success_url(self):
-        if self.request.session.get("wizard"):
+        if self.request.session.get("wizard") or self.request.site_id in (1, 7):
             view_idx = self.section_views.index(self.request.resolver_match.url_name)
             if "previous" in self.request.POST:
                 return reverse(self.section_views[view_idx - 1])
             if "next" in self.request.POST and view_idx < len(self.section_views) - 1:
                 return reverse(self.section_views[view_idx + 1])
+            if self.request.site_id in (1, 7):
+                return reverse("start")
             return reverse("profile-protection-patterns")
         return super().get_success_url()
 
@@ -7191,6 +7474,24 @@ class Unaccent(Func):
     function = "unaccent"
 
 
+class DocumentTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        q = self.model.objects.all()
+        if scheme := self.forwarded.get("scheme"):
+            q = q.filter(required_documents__round__scheme_id=scheme)
+        if (referer := self.request.META.get("HTTP_REFERER")) and (
+            m := re.search(r"round/(\d+)/change", referer)
+        ):
+            q = q.filter(required_documents__round_id=m.group(1))
+        if self.q:
+            q = q.filter(name__istartswith=self.q)
+        return q.order_by("name").distinct()
+
+    def has_add_permission(self, request):
+        return False
+
+
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
@@ -7208,6 +7509,76 @@ class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return True  # request.user.is_authenticated
+
+
+class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    # def get_queryset(self):
+    #     qs = models.Tag.objects.all()
+
+    #     if self.q:
+    #         qs = qs.filter(name__istartswith=self.q)
+
+    #     return qs
+
+    def has_add_permission(self, request):
+        return True  # request.user.is_authenticated
+
+    # def get_create_option(self, context, q):
+    #     return []
+
+
+class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        qs = self.model.objects.all()
+
+        round = self.forwarded.get("round", "")
+        if round and isinstance(round, str):
+            round = round.strip()
+        if not round:
+            if application := self.forwarded.get("application", "").strip():
+                round = (
+                    models.Application.where(pk=application)
+                    .values_list("round_id", flat=True)
+                    .first()
+                )
+            elif contract := self.forwarded.get("contract", "").strip():
+                round = (
+                    models.Contract.where(pk=contract)
+                    .values_list("application__round_id", flat=True)
+                    .first()
+                )
+
+        if round:
+            qs = (
+                qs.filter(
+                    items__content_type=ContentType.objects.get_for_model(models.Round),
+                    items__object_id=round,
+                )
+                .distinct()
+                .order_by("name")
+            )
+
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+
+        return qs
+
+    def has_add_permission(self, request):
+        return request.user.is_admin
+
+    # def get_create_option(self, context, q):
+    #     return []
+
+
+class UserAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    search_fields = ["^email", "^first_name", "^last_name"]
+
+    def has_add_permission(self, request):
+        # Authenticated users can add new records
+        return False  # request.user.is_authenticated
 
 
 class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -7565,10 +7936,10 @@ class ChangeCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySe
     def get_queryset(self):
 
         q = super().get_queryset()
-        if types := self.forwarded.get("types"):
-            q = q.filter(type__in=types)
         if parents := self.forwarded.get("parents"):
             q = q.filter(parent__in=parents)
+        elif types := self.forwarded.get("types"):
+            q = q.filter(type__in=types)
         if level := self.forwarded.get("level"):
             if level == "1":
                 q = q.filter(parent__isnull=True)
@@ -11072,6 +11443,15 @@ class ChangeRequestViewMixin:
     model = models.ChangeRequest
     # template_name = "profile_form.html"
     form_class = forms.ChangeRequestForm
+    extra_context = {"category": "change_requests"}
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.helper.include_media = False
+
+        if (contract := self.contract) and (pi := contract.pi):
+            form.fields["new_host"].widget.forward.append(forward.Const(pi.pk, "user"))
+        return form
 
     @cached_property
     def is_modal(self):
@@ -11088,6 +11468,9 @@ class ChangeRequestViewMixin:
         if self.is_modal:
             context["modal_dialog"] = True
             context["modal"] = True
+        context["is_transfer"] = (
+            self.object and self.object.pk and self.object.types.filter(code="TR").exists()
+        )
         return context
 
     def get_template_names(self):
@@ -11107,6 +11490,122 @@ class ChangeRequestViewMixin:
         contract_pk = self.kwargs.get("pk")
         return get_object_or_404(models.Contract, pk=contract_pk)
 
+    def form_valid(self, form):
+
+        u = models.User.get(self.request.user.pk)
+        org = self.object and self.object.contract and self.object.contract.org
+        is_ro = (
+            org
+            and org.research_offices.filter(user=u).exists()
+            or not (u.is_site_staff or u.is_superuser)
+        )
+
+        try:
+            with transaction.atomic():
+
+                i = form.instance
+                if i and not i.submitted_by and is_ro:
+                    form.instance.submitte_by = u
+                resp = super().form_valid(form)
+
+                if action := form.data.get("action"):
+                    action = action.lower()
+                    if action == "submit":
+                        i.submit(user=u, request=self.request)
+                    elif action == "approve":
+                        i.approve(user=u, request=self.request)
+                    elif action == "accept":
+                        i.accept(user=u, request=self.request)
+                    elif action == "reject":
+                        i.reject(user=u, request=self.request)
+                    elif action == "cancel":
+                        i.cancel(user=u, request=self.request)
+                    elif action in ["request_resubmission", "resubmit"]:
+                        i.save_draft(user=u, request=self.request)
+                    i.save()
+
+                if action in [
+                    "accept",
+                    "approve",
+                    "cancel",
+                    "reject",
+                    "request_resubmission",
+                    "resubmit",
+                    "submit",
+                ]:
+                    if not org:
+                        org = i.contract.org
+                        is_ro = org.research_offices.filter(user=u).exists()
+                    if is_ro:
+                        fund = i.contract.fund
+                        recipients = (
+                            [fund.email]
+                            if fund and fund.email
+                            else i.contract.site.staff_users.all()
+                        )
+                    else:
+                        recipients = (
+                            [i.submitted_by]
+                            if i.submitted_by
+                            else [ro.user for ro in i.contract.org.research_offices.all()]
+                        )
+                    url = reverse("change-request-update", args=[i.pk])
+                    url = self.request.build_absolute_uri(url)
+                    contract_url = self.request.build_absolute_uri(
+                        reverse("contract", args=[i.contract.pk])
+                    )
+                    if action == "submit":
+                        subject = f"Change Request {i.number} submitted by {u}"
+                    elif action in ["request_resubmission", "resubmit", "reject", "cancel"]:
+                        subject = f"Change Request {i.number} required resubmission"
+                    elif action == "approved":
+                        subject = f"Change Request {i.number} approved by {u}"
+                    else:
+                        subject = f"Change Request {i.number} updated by {u}"
+
+                    if action == "submit":
+                        html_body = (
+                            "<p>Tēnā koe,</p>"
+                            f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
+                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                            "<p>Please review the change request.</p>"
+                        )
+                    else:
+                        html_body = (
+                            "<p>Tēnā koe,</p>"
+                            f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
+                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                            "<p>Please review the changes and update the request.</p>"
+                        )
+
+                    send_mail(
+                        subject,
+                        html_message=html_body,
+                        recipients=recipients,
+                        fail_silently=False,
+                        from_email="contracts",
+                        request=self.request,
+                        reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
+                        thread_index=i.contract.thread_index,
+                        thread_topic=i.contract.thread_topic,
+                    )
+
+                    emails = [getattr(r, "email", r) or str(r) for r in recipients]
+                    messages.success(
+                        self.request,
+                        f"Notification of change request {i.number} sent to {', '.join(emails)}.",
+                    )
+
+                    reset_cache(self.request)
+                    if action == "accept":
+                        return redirect(reverse("contract-update", args=[i.derivative.pk]))
+
+            return resp
+
+        except Exception as ex:
+            form.add_error(None, ex)
+            return self.form_invalid(form)
+
 
 class ChangeRequestCreateView(ChangeRequestViewMixin, CreateView):
 
@@ -11124,7 +11623,7 @@ class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, 
     table_class = tables.ChangeRequestTable
     model = models.ChangeRequest
     template_name = "table.html"
-    extra_context = {"category": "variants"}
+    extra_context = {"category": "change_requests"}
     filterset_class = filters.ChangeRequestFilterSet
 
     # def get_table_kwargs(self):
@@ -11157,6 +11656,10 @@ class ChangeRequestList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, 
     #         }
     #     return {}
 
+    # def get(self, *args, **kwargs):
+    #     resp = super().get(*args, **kwargs)
+    #     return resp
+
     def get_queryset(self, *args, **kwargs):
         u = self.request.user
         return self.model.user_objects(
@@ -11184,6 +11687,11 @@ class ChangeRequestDetail(DetailView):
             )
         ):
             context["can_edit"] = True
+        context["category"] = "change_requests"
+        context["extra_details"] = {
+            "PI": self.object.contract.pi,
+            _("Project Title"): self.object.contract.project_title,
+        }
         return context
 
     # def get_queryset(self):

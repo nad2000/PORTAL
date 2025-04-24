@@ -68,40 +68,31 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
         <table class="table table-bordered searchable table-striped">
           <tbody>
             <tr>
-              <th style="width: 32%; min-width: 180px; max-width: 200px;">...</th>
-              <td>...</td>
+              <th style="width: 32%; min-width: 180px; max-width: 200px;">...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
             <tr>
-              <th>...</th>
-              <td>...</td>
+              <th>...</th><td>...</td>
             </tr>
           </tbody>
         </span>
@@ -343,7 +334,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
           {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
           data-toggle="tooltip"{% endif %}>{{ a }}</a>
 
-        {% if user.is_site_staff or user.is_superuser %}
+        {% if is_admin %}
         <a
             href="{% url 'application-export' pk=a.pk %}"
             style="padding-top: 1px; padding-bottom: 0px;"
@@ -371,7 +362,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       <div class="row">
         <div class="col mb-3">
           <div class="card"{% if round.background %} style="border-top-color: {{ round.background }}; border-right-color: {{ round.background }}; border-bottom-color: {{ round.background }}; border-left-color: {{ round.background }};"{% endif %}>
-            <h5 class="card-header"{% if round.background %} style="background-color: {{ round.background }}; color: {% if round.foreground %}{{ round.foreground }}{% else %} white;"{% endif %}{% endif %}>
+            <h5 class="card-header"{% if round.background or round.foreground %} style="{% if round.background %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}
@@ -440,21 +431,22 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {% endif %}
               {% endif %}
 
-              {% if request.user.can_apply %}
+              {#% if request.user.can_apply %}{% else %}{% endif %#}
                 {% if scheme.guidelines %}
-                <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
-                  {% blocktrans %}Read <b>More</b>{% endblocktrans %}
-                </a>
+                    <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
+                      {% blocktrans %}Read <b>More</b>{% endblocktrans %}
+                    </a>
                 {% endif %}
+
                 {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
-                  <div class="tooltip-wrapper{% if not round.is_open %} disabled{% endif %}"
-                   {% if not round.is_open %}
+                  <div class="tooltip-wrapper{% if not round.is_open and not is_admin %} disabled{% endif %}"
+                   {% if not round.is_open and not is_admin %}
                    disabled
                    {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on|date:'o-m-d'}}"{% endif %}
                    {% else %}data-title="{% trans 'Required documents and templates' %}"
                    {% endif %}>
-                        <button type="button" class="btn btn-outline-primary{% if not round.is_open %} disabled{% endif %}"
-                                              {% if round.is_open %}
+                      <button type="button" class="btn {% if is_admin %}btn-secondary{% else %}btn-outline-primary{% if not round.is_open and not is_admin %} disabled{% endif %}{% endif %}"
+                                              {% if round.is_open or is_admin %}
                                               data-toggle="modal"
                                               data-target="#id_required_documents_modal"
                                               data-round-id="{{ round.id }}"
@@ -471,7 +463,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                       </span -->
                   </div>
                 {% endif %}
-              {% else %}
+                {% if is_admin %}
               <button type="button" class="btn btn-outline-primary"
                                     data-toggle="modal"
                                     data-target="#roundDetail"
@@ -483,7 +475,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                     style="text-transform: uppercase;">
                 {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
               </button>
-              {% endif %}
+                {% endif %}
 
               {% if round %}
               {% if request.user.can_apply %}
@@ -507,7 +499,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    </a>
               </div>
               {% else %}
-              <div class="tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %} disabled{% endif %}"
+              <div class="tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %} disabled{% endif %}"
                    {% if is_ro %}
                    disabled
                    data-title="{% trans 'You are a research officer of this round and cannot apply for it' %}"
@@ -528,12 +520,14 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                    disabled
                    data-html="true"
                    data-title="{% trans 'You need to be nominated in order to apply for this round' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}. {% trans 'Please contact your Research Office' %}{% endif %}."
+                   {% elif not has_profile %}
+                   disabled
+                   data-title="{% trans 'You need to fill in your profile data before apply for the round' %}"
                    {% else %}
                    data-title="{% trans 'Start a new application' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}.{% if not round.direct_application_allowed %} {% trans 'You have been nominated for this round' %}.{% endif %}{% endif %}"
                    {% endif %}>
                 <a href="{% url 'application-create' round=round.id %}"
-                   class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}"
-
+                   class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %}disabled{% endif %}"
                    style="text-transform: uppercase;"
                    {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
                    {% if record.previous_application %}
@@ -617,20 +611,25 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
               {% else %}
               {% if request.user.is_superuser %}
-              <a href="{% url 'admin:portal_round_change' object_id=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
-                                                                                                         > {% trans "Edit" %} <b>{% trans "Round" %}</b>
+              <a href="{% url 'admin:portal_round_change' object_id=round.id %}"
+                 class="btn btn-primary"
+                 style="text-transform: uppercase;"
+                 data-tooltip="tooltip"
+                 title="{% trans 'Open and edit the round in the admin interface' %}"
+              > {% trans "Edit" %} <b>{% trans "Round" %}</b>
               </a>
               {% endif %}
               {% endif %}
 
-              {% if request.user.is_site_staff %}
-              <a href="{% url 'panellist-invite' round=round.id %}" class="btn btn-primary" style="text-transform: uppercase;"
-                                                                                            > {% trans "Invite" %}
-                                                                                            <b>{% trans "Panellist" %}</b>
+              {% if is_admin %}
+              <a href="{% url 'panellist-invite' round=round.id %}"
+                 class="btn btn-primary" style="text-transform: uppercase;"
+              > {% trans "Invite" %}
+                <b>{% trans "Panellist" %}</b>
               </a>
               {% endif %}
 
-              {% if request.user.is_site_staff %}
+              {% if is_admin %}
               <a href="{% url 'round-coi-list' round=round.id %}" class="btn btn-outline-primary" style="text-transform: uppercase;"
 
                                                                                                   > {% trans "Conflicts of" %}

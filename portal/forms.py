@@ -150,6 +150,71 @@ class ReadOnlyFieldsMixin:
     #     return super().clean()
 
 
+class FormWithCommentMixin:
+    pass
+
+
+class CommentForm(FormWithCommentMixin, ModelForm):
+
+    comment = forms.CharField(
+        label="",
+        required=False,
+        widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
+    attachment = FileField(
+        required=False,
+        label="",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": (
+                    ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb"
+                )
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+        helper = getattr(self, "helper", None) or FormHelper(self)
+        # helper.include_media = False
+        # helper.form_tag = False
+        helper.layout = Layout(
+            Field("comment"),
+            Fieldset(
+                None,
+                Field("attachment"),
+                ButtonHolder(
+                    Button(
+                        "toggle_message_folding",
+                        _("Expand/Collapse All"),
+                        css_class="btn-outline-secondary",
+                        onclick="toggleMessageFolding(this)",
+                    ),
+                    Submit(
+                        "post_comment",
+                        _("Post Comment"),
+                        css_class="btn-primary",
+                    ),
+                    Button(
+                        "import_email_file",
+                        _("Import Email"),
+                        hx_get=reverse("email-import", kwargs={"pk": instance and instance.pk})
+                        + "?_modal_dialog=1&model=changerequest",
+                        hx_target="#form-dialog",
+                        hx_params="none",
+                        data_toggle="tooltip",
+                        title=_("Import an email file as a comment ..."),
+                        css_class="btn-outline-primary",
+                    ),
+                    css_class="float-right",
+                ),
+            ),
+        )
+        self.helper = helper
+
+
 class FormWithStateFieldMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -185,7 +250,7 @@ class FTEMixin:
         super().__init__(*args, **kwargs)
         if not duration:
             instance = kwargs.get("instance")
-            contract = instance and instance.contract
+            contract = instance and getattr(instance, "contract", None)
             duration = contract and contract.duration
         if duration:
             for i in range(1, duration + 1):
@@ -259,8 +324,9 @@ class SubForm(LayoutObject):
             self.template = template
 
     def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
-        form = context[self.form_name_in_context]
-        return render_to_string(self.template, {"form": form})
+        if form := context.get(self.form_name_in_context):
+            return render_to_string(self.template, {"form": form})
+        return ""
 
 
 def make_help_text(document_type=None, templates=[], required_document=None):
@@ -276,7 +342,7 @@ def make_help_text(document_type=None, templates=[], required_document=None):
 
     if not document_type and required_document:
         document_type = (
-            f"{required_document.document_type}"
+            f"{required_document.document_type.name}"
             if required_document.document_type
             else f"{required_document.get_role_display()}"
         )
@@ -336,13 +402,13 @@ class DocumentInlineFormset(TableInlineFormset):
                 rd = required_documents.get(rd_id, None)
                 if not isinstance(rd_id, int):
                     rd_id = rd_id.pk
-                if (
-                    f.instance
-                    and f.instance.pk
-                    and not f.instance.file
-                    and f.instance.file.strip != ""
-                ):
-                    f.fields["file"].help_text = help_texts.get(rd_id)
+                # if (
+                #     f.instance
+                #     and f.instance.pk
+                #     and not f.instance.file
+                #     and f.instance.file.strip != ""
+                # ):
+                f.fields["file"].help_text = help_texts.get(rd_id)
                 label = f"{rd}" if rd else _("Document")
                 state = f.instance and getattr(f.instance, "state", None)
                 if state:
@@ -750,14 +816,14 @@ class ApplicationForm(ModelForm):
                 Column(
                     Field(
                         "daytime_phone",
-                        pattern=r"\+?[0-9- ]+",
+                        pattern=r"\+?[0123456789 ]+",
                         placeholder="e.g., +64 4 472 7421",
                     )
                 ),
                 Column(
                     Field(
                         "mobile_phone",
-                        pattern=r"\+?[0-9-]+",
+                        pattern=r"\+?[0123456789 ]+",
                         placeholder="e.g., +64 4 472 7421",
                     )
                 ),
@@ -991,6 +1057,18 @@ class ApplicationForm(ModelForm):
                         Field("keywords"),
                     )
                 )
+            if round.priorities.exists():
+                category_fields.append(
+                    Fieldset(
+                        _("Research Priorities"),
+                        Field("priorities"),
+                    )
+                )
+                self.fields["priorities"].widget = autocomplete.TaggitSelect2(
+                    url="research-priority-autocomplete",
+                    forward=[forward.Const(round.pk, "round"), forward.Const("application", "model")],
+                )
+
             tabs.append(
                 Tab(
                     _("Categories"),
@@ -1387,6 +1465,7 @@ class ApplicationForm(ModelForm):
             "agent_declaration_accepted_by",
             "agent_declaration_accepted_at",
             "applicant_declaration_accepted_by",
+            "tags",
         ]
         widgets = dict(
             keywords=autocomplete.ModelSelect2Multiple(
@@ -1431,7 +1510,11 @@ class ApplicationForm(ModelForm):
                 }
             ),
         )
-        labels = {"keywords": ""}
+        labels = {
+            "keywords": "",
+            "priorities": "",
+            "is_tac_accepted": _("I have read and accept the Terms and Conditions"),
+        }
         help_texts = {
             "vm_ecs": None,
             "vm_ens": None,
@@ -1441,7 +1524,7 @@ class ApplicationForm(ModelForm):
 
 
 class ContractMemberForm(FTEMixin, ModelForm):
-    # role =Field(queryset
+
     role = forms.ModelChoiceField(
         queryset=models.RoleType.where(for_application=True).order_by(
             models.Coalesce("name", "code")
@@ -1671,6 +1754,12 @@ class ContractForm(ModelForm):
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
 
+    # change_request_reply = forms.CharField(
+    #     label="Reply to the change request",
+    #     required=False,
+    #     widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    # )
+
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
         if initial:
@@ -1736,7 +1825,8 @@ class ContractForm(ModelForm):
             or instance.state not in ["new", "draft"]
         )
         is_pi = instance and (
-            application and application.submitted_by == user
+            application
+            and application.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
         )
         submit_button = Submit(
@@ -2265,6 +2355,9 @@ class ContractForm(ModelForm):
                 tabs.append(
                     Tab(
                         mark_safe(f'<i class="far fa-file"></i> {_("Parts")}'),
+                        user.is_admin
+                        and instance.is_variation
+                        and SubForm("change_request_reply_form"),
                         Fieldset(
                             None,
                             Row(
@@ -2442,11 +2535,28 @@ class ContractForm(ModelForm):
                                     "generate_contract",
                                     _("Generate"),
                                     data_toggle="tooltip",
-                                    title="Generate or regenerate contract document and store it in the database",
+                                    title=(
+                                        "Generate or regenerate variation letter"
+                                        if instance.is_variation
+                                        else "Generate or regenerate contract document and store it in the database"
+                                    ),
                                     css_class="btn-primary",
                                 ),
-                                HTML(
-                                    f"""
+                                (
+                                    HTML(
+                                        f"""
+                            <a
+                                class="btn btn-primary"
+                                href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
+                                target="_blank"
+                                data-toggle="tooltip"
+                                data-html="true"
+                                title="First <b>Save</b> and then export it to create an updated version of the variation letter",
+                            > {_("Export Variation Letter")} </a>"""
+                                    )
+                                    if instance.is_variation
+                                    else HTML(
+                                        f"""
                             <a
                                 class="btn btn-primary"
                                 href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
@@ -2455,6 +2565,7 @@ class ContractForm(ModelForm):
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the contract document",
                             > {_("Export Contract")} </a>"""
+                                    )
                                 ),
                                 # Submit(
                                 #     "export_contract",
@@ -2604,6 +2715,7 @@ class ContractForm(ModelForm):
             "state",
             "submitted_by",
             "state_changed_at",
+            "is_variation",
         ]
         widgets = dict(
             start_date=DateInput(),
@@ -2988,7 +3100,9 @@ class NominationForm(ModelForm):
         is_single_org_ro = False
         if nominator:
             if (
-                is_single_org_ro := (site_id in [2, 4, 5] and nominator.research_offices.count() == 1)
+                is_single_org_ro := (
+                    site_id in [2, 4, 5] and nominator.research_offices.count() == 1
+                )
             ) and (ro_org := models.Organisation.where(research_offices__user=nominator).last()):
                 org_id = initial["org"] = ro_org.pk
             elif site_id in [2, 4, 5] and (
@@ -3052,7 +3166,7 @@ class NominationForm(ModelForm):
             ),
             Field(
                 "contact_phone",
-                pattern=r"\+?[0-9- ]+",
+                pattern=r"\+?[0123456789 ]+",
                 placeholder="e.g., +64 4 472 7421",
             ),
         ]
@@ -4838,7 +4952,6 @@ class ReportForm(ModelForm):
 class ChangeRequestForm(ModelForm):
 
     description = forms.CharField(
-        # label="",
         required=False,
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
     )
@@ -4857,16 +4970,94 @@ class ChangeRequestForm(ModelForm):
         if initial:
             kwargs["initial"] = initial
         user = kwargs.pop("user", None) or initial and initial.get("user")
+        if initial and user and "submitted_by" not in initial:
+            initial["submitted_by"] = user
 
         super().__init__(*args, **kwargs)
-        # language = get_language()
-        instance = self.instance or instance
+        instance = self.instance or kwargs.get("instance")
         contract = (
             instance and instance.pk and instance.contract or initial and initial.get("contract")
         )
         org = contract and contract.org
         is_ro = org and org.research_offices.filter(user=user).exists()
+        if is_ro:
+            del self.fields["categories"]
+            del self.fields["subcategories"]
+            # del self.fields["tags"]
+            self.fields.pop("tags", None)
+        employments_url = reverse("profile-employments")
+        educations_url = reverse("profile-educations")
+        self.fields["new_host"].help_text = mark_safe(
+            _(
+                "New host organisation. Make sure that PI is affiliated with the new host organisation: "
+                f"<a href='{employments_url}' target='_blank'>employment records</a> "
+                f"or <a href='{educations_url}' target='_blank'>education records</a> "
+            )
+        )
+        if contract and (pi := contract.pi):
+            self.fields["new_host"].widget.forward.append(forward.Const(pi.pk, "user"))
         submission_disabled = not instance or not is_ro
+        helper = FormHelper(self)
+        helper.use_custom_control = True
+        if not submission_disabled:
+            helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
+            helper.add_input(
+                Button(
+                    "submit",
+                    _("Submit"),
+                    css_class="btn-primary",
+                    data_toggle="modal",
+                    data_target="#id_resolution_modal",
+                    data_action="submit",
+                )
+            )
+        else:
+            helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
+            helper.add_input(
+                Button(
+                    "resubmit",
+                    _("Resubmit"),
+                    css_class="btn-outline-danger",
+                    data_tooltip="tooltip",
+                    title=_("Request resubmission of the change request"),
+                    data_toggle="modal",
+                    data_target="#id_resolution_modal",
+                    data_action="resubmit",
+                )
+            )
+            helper.add_input(
+                Button(
+                    "approve",
+                    _("Approve"),
+                    css_class="btn-success",
+                    data_tooltip="tooltip",
+                    title=_(
+                        "Approve the change request and convert it to a new contract or a contract variation"
+                    ),
+                    data_toggle="modal",
+                    data_target="#id_resolution_modal",
+                    data_action="approve",
+                )
+            )
+        helper.add_input(
+            Button(
+                "close",
+                _("Close"),
+                css_class="btn-outline-secondary",
+                onclick=f"window.location='{instance.get_absolute_url()}';",
+            )
+        )
+        # if instance and instance.pk:
+        #     helper.layout = Layout()
+        #     # helper.add_input(
+        #     #     Button(
+        #     #         "delete",
+        #     #         _("Delete"),
+        #     #         css_class="btn-outline-danger",
+        #     #         onclick=f"window.location='{instance.get_delete_url()}';",
+        #     #     )
+        #     # )
+        self.helper = helper
 
     def save(self, *args, **kwargs):
         instance = self.instance
@@ -4883,15 +5074,29 @@ class ChangeRequestForm(ModelForm):
     class Meta:
         model = models.ChangeRequest
         exclude = [
+            "tags",
             "contract",
-            "submitted_by",
+            "derivative",
+            # "submitted_by",
             "state",
             "state_changed_at",
             "converted_file",
+            "reply",
         ]
+        help_texts = {"tags": ""}
         widgets = dict(
-            start_date=DateInput(),
-            end_date=DateInput(),
+            submitted_by=HiddenInput(),
+            contract=HiddenInput(),
+            file=forms.ClearableFileInput(
+                attrs={"accept": ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"}
+            ),
+            # start_date=DateInput(),
+            # end_date=DateInput(),
+            new_host=autocomplete.ModelSelect2(
+                "org-autocomplete",
+                forward=["contract"],
+                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
+            ),
             categories=autocomplete.ModelSelect2Multiple(
                 url="change-category-autocomplete",
                 forward=[
@@ -4899,24 +5104,22 @@ class ChangeRequestForm(ModelForm):
                     forward.Const("1", "level"),
                 ],
             ),
-            types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
-            host_contact_email=ModelSelect2NoPK(
-                url="org-email-autocomplete",
-                attrs={
-                    "data-placeholder": _("Select an email addrss or create a new one ..."),
-                },
+            subcategories=autocomplete.ModelSelect2Multiple(
+                url="change-category-autocomplete",
+                forward=[
+                    "types",
+                    "categories",
+                    forward.Const("2", "level"),
+                ],
             ),
-            panels=autocomplete.ModelSelect2Multiple(url="panel-autocomplete"),
-            panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
-            abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            assessment=SummernoteInplaceWidget(
+            types=autocomplete.ModelSelect2Multiple(url="change-type-autocomplete"),
+            tags=autocomplete.TagSelect2(
+                url="tag-autocomplete",
                 attrs={
-                    "data-required": 1,
-                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
-                    "oninput": "this.setCustomValidity('')",
-                    "summernote": {"width": "100%", "height": "200px"},
-                }
+                    "data-placeholder": _(
+                        "Please enter a tag or multiple tags. You can select multiple tags..."
+                    ),
+                },
             ),
         )
 

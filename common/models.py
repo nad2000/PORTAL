@@ -1,8 +1,10 @@
+import copy
+import base64
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import checks, validators
 from django.db import connection, connections, models, router
-from django.db.models import CharField, DateTimeField, EmailField
+from django.db.models import CharField, DateTimeField, EmailField, ForeignObjectRel
 from django.db.models import Model as Base
 from django.db.models.functions import Lower
 from django.urls import reverse
@@ -56,6 +58,48 @@ class TimeStampMixin(Base):
 
 
 class HelperMixin:
+
+    def clone(self, exclude_related_models=None, *args, **kwargs):
+        clone = copy.copy(self)
+        clone.pk = None
+        setattr(clone, "created_at", timezone.now())
+        setattr(clone, "updated_at", None)
+        if kwargs:
+            for k, v in kwargs.items():
+                setattr(clone, k, v)
+        clone.save()
+
+        for field in self._meta.get_fields():
+            if (
+                not isinstance(field, ForeignObjectRel)
+                or exclude_related_models
+                and field.related_model in exclude_related_models
+            ):
+                continue
+
+            model = field.related_model
+            related = list(model.objects.filter(**{field.remote_field.name: self}))
+            if not related:
+                continue
+            for o in related:
+                o.pk = None
+                setattr(o, field.remote_field.name, clone)
+            model.objects.bulk_create(related)
+
+        return clone
+
+    @property
+    def thread_index(self):
+        if site_id := getattr(self, "site_id", None):
+            return base64.b64encode(f"{site_id}:{self.pk}".encode()).decode()
+        return base64.b64encode(f"{self.pk}".encode()).decode()
+
+    @property
+    def thread_topic(self):
+        if hasattr(self, "number"):
+            return self.number
+        return str(self)
+
     @property
     def can_export_to_pdf(self):
         return hasattr(self, "to_pdf")
@@ -94,6 +138,8 @@ class HelperMixin:
 
     @classmethod
     def get_or_create(cls, defaults=None, **kwargs):
+        if o := cls.objects.filter(**kwargs).order_by("-pk").first():
+            return o, False
         return cls.objects.get_or_create(defaults, **kwargs)
 
     @classmethod
@@ -240,6 +286,31 @@ class PersonMixin:
 
     def __str__(self):
         return self.full_name
+
+    def get_org_email(self, org=None):
+        if org:
+            if hasattr(self, "org") and self.org == org and hasattr(self, "email") and self.email:
+                return self.email
+            if hasattr(self, "person"):
+                if affiliation := self.person.affiliations.filter(org=org).order_by("-pk").first():
+                    email = affiliation.email
+                    if email:
+                        return email
+            if hasattr(self, "user"):
+                if (
+                    affiliation := self.user.person.affiliations.filter(org=org)
+                    .order_by("-pk")
+                    .first()
+                ):
+                    email = affiliation.email
+                    if email:
+                        return email
+        email = getattr(self, "email", None)
+        if not email and (user := self.get_user()):
+            email = (
+                user and user.email or user and user.emailaddress_set.filter(primary=True).last()
+            )
+        return email
 
 
 class EmailField(models.EmailField):

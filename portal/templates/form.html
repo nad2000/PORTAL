@@ -72,7 +72,17 @@
           {% if helper %}
             {% crispy form helper %}
           {% else %}
-            {% crispy form form.helper %}
+            {% if form.helper.form_tag %}
+            <form method="post" enctype="multipart/form-data" id="{{ form.helper.form_id|default:'object_form' }}">{% csrf_token %}
+                {% block modals %}{% endblock %}
+                {% block resolution %}
+                  {% include 'snippets/resolution_modal.html' %}
+                {% endblock %}
+                {% crispy form form.helper %}
+              </form>
+            {% else %}
+              {% crispy form form.helper %}
+            {% endif %}
           {% endif %}
         {% else %}
           <form method="post" enctype="multipart/form-data" id="object_form">{% csrf_token %}
@@ -290,6 +300,18 @@
             $(this).siblings("button").each(function() {setOutline($(this));});
           }
           $(this).parent().siblings("input[type='hidden']").prop("value", sel);
+      });
+      $('button[data-action],input[data-action]').not('[name="save"]').on("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        $('#id_action').val(event.target.name);
+        $('#id_commit_button').text(event.target.value||event.target.outerText||'{% trans "Commit" %}');
+        $('#id_resolution_modal').modal('show');
+        $('#id_resolution').trigger('focus');
+        return false;
+      });
+      $('#id_resolution_modal').on('shown.bs.modal', function () {
+        $('#id_resolution').trigger('focus');
       });
     });
   </script>

@@ -25,7 +25,11 @@
 
 {% if form %}{% crispy form %}{% endif %}
 
+
+
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
+
+{% block tags %}{{ block.super }}{% endblock %}
 
 <div class="table-responsive">
   {% include 'snippets/application_detail_table.html' %}
@@ -236,7 +240,10 @@
                       class="btn btn-outline-warning"
                       {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
                       {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                      {% endif %} name="request_resubmission" value="{% trans 'Request Resubmission' %}">
+                      {% endif %} 
+                      name="request_resubmission" 
+                      data-action="request_resubmission" 
+                      value="{% trans 'Request Resubmission' %}">
             </span>
                 <span class="d-inline-block"
                     tabindex="0"

@@ -8,6 +8,20 @@
 {% endblock %}
 {% endif %}
 
+{% block content_header %}
+
+{% if object.source %}
+  {% if object.is_variation %}
+  Variation {{ object.number }} of <a href="{{ object.source.get_absolute_url }}" target="_blank">{{ object.source }}</a>
+  {% else %}
+  Transferred contract {{ object.number }} of <a href="{{ object.source.get_absolute_url }}" target="_blank">{{ object.source }}</a>
+  {% endif %}
+{% else %}
+  {{ block.super }}
+{% endif %}
+
+{% endblock %}
+
 {% block buttons_above %}
 {% block buttons_bellow %}
 <div class="row">
@@ -33,13 +47,11 @@
           {% trans 'Request Changes' %}
         </a -->
       <!-- a class="btn btn-danger" hx-get="{% url 'change-request-create' object.pk %}?modal=1" hx-target="#form-modal">{% trans 'Request Changes' %}</a -->
-      {% comment %}
       {% if change_request_form %}
         <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#change-request-form-modal">
             {% trans 'Request Changes' %}
         </button>
       {% endif %}
-      {% endcomment %}
       {% if user.is_site_staff or user.is_superuser %}
       <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
           {% trans 'Open in Admin' %}
@@ -56,10 +68,17 @@
 
   <div class="row">
     <div class="col-12">
-      {% if object.change_requests.exists %}
+      {% with object.change_requests.all as crs %}
+      {% if can_edit and crs.exists %}
         <ul class="nav nav-tabs">
           <li class="nav-item"><a class="nav-link active" href="#contract" data-toggle="tab">{% trans 'Contract' %}</a></li>
-          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">{% trans 'Change Request(s)' %}</a></li>
+          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">
+              {% if crs.count > 1 %}
+                {% trans 'Change Requests' %}
+              {% else %}
+                {% trans 'Change Request' %}
+              {% endif %}
+            </a></li>
         </ul>
 
         <div class="tab-content card-body">
@@ -69,47 +88,7 @@
           <div id="change_requests" class="tab-pane">
             <div class="table-responsive">
 
-              <table class="table table-bordered searchable table-striped">
-
-                <thead>
-                  <tr class="thead-dark">
-                    <th scope="col">
-                      {% trans 'Number' %}
-                    </th>
-                    <th scope="col">
-                      {% trans 'Submit By' %}
-                    </th>
-                    <th scope="col">
-                      {% trans 'Type(s)' %}
-                    </th>
-                    <th scope="col">{% trans 'Letter' %}</th>
-                    <th scope="col">&nbsp;</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {% for cr in object.change_requests.all %}
-                    <tr>
-                      <td>{{ cr.number }}</td>
-                      <td>{{ cr.submitted_by }}</td>
-                      <td>{% for t in cr.types.all %}{{ t }}{% if not forloop.last %}, {% endif %}{% empty %}&nbsp;{% endfor %}</td>
-                      <td>
-                        {% if cr.file %}
-                          <a href="{{ cr.file.url }}" target="_blank">{{ cr.file.name|basename }}</a>
-                        {% else %}
-                          &nbsp;
-                        {% endif %}
-                      </td>
-                      <td>
-                        <a class="btn btn-primary" href="{% url 'change-request-update' cr.pk %}" target="_blank">
-                          {% trans 'Edit' %}
-                        </a>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-
-              </table>
+              {% jinja 'partials/change_request_table.html' objects=crs  %}
 
             </div>
           </div>
@@ -118,6 +97,7 @@
       {% else %}
         <div class="table-responsive"> {% contract_summary %} </div>
       {% endif %}
+      {% endwith %}
     </div>
   </div>
 
@@ -139,8 +119,9 @@
         {{ change_request_form|crispy }}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <input type="submit" class="btn btn-primary" value="Submit">
+        <input type="submit" class="btn btn-secondary" value="Save">
+        <input type="submit" class="btn btn-primary" name="action" value="Submit">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
       </div>
     </div>
     </form>
@@ -155,7 +136,20 @@
 {% block javascript %}
   {{ block.super }}
   <script src="{% static 'js/project.js' %}"></script>
+  <!-- change_request_form JS media -->
   {{ change_request_form.media.js }}
+  <!-- end: change_request_form JS media -->
+  <script>
+    $(document).ready(function() {
+        $("#div_id_new_host").hide();
+        $("#id_types").on("select2:unselect", function(event) {
+              if (event.params.data.id == 'TR') $("#div_id_new_host").hide();
+        });
+        $("#id_types").on("select2:select", function(event) {
+              if (event.params.data.id == 'TR') $("#div_id_new_host").show();
+        });
+    });
+  </script>
 {% endblock %}
 {% endif %}
 {# vim:set ft=htmldjango: #}

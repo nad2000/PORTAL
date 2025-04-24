@@ -4,6 +4,7 @@ from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
+from taggit.models import Tag
 from django.shortcuts import redirect
 
 from . import apis, models, views
@@ -168,11 +169,6 @@ urlpatterns = [
                     name="change-request-create",
                 ),
                 path(
-                    "change-requests/<int:pk>/~update",
-                    views.ChangeRequestUpdateView.as_view(),
-                    name="change-request-update",
-                ),
-                path(
                     "changes/",
                     include(
                         [
@@ -184,6 +180,11 @@ urlpatterns = [
                                             "<int:pk>",
                                             views.ChangeRequestDetail.as_view(),
                                             name="change-request",
+                                        ),
+                                        path(
+                                            "<int:pk>/~update",
+                                            views.ChangeRequestUpdateView.as_view(),
+                                            name="change-request-update",
                                         ),
                                         path(
                                             "",
@@ -466,6 +467,11 @@ urlpatterns = [
         include(
             [
                 path(
+                    "user/",
+                    views.UserAutocomplete.as_view(model=models.User),
+                    name="user-autocomplete",
+                ),
+                path(
                     "keyword/",
                     views.KeywordAutocomplete.as_view(model=models.Keyword, create_field="name"),
                     name="keyword-autocomplete",
@@ -577,6 +583,21 @@ urlpatterns = [
                     "change-category/",
                     views.ChangeCategoryAutocomplete.as_view(model=models.ChangeCategory),
                     name="change-category-autocomplete",
+                ),
+                path(
+                    "document-type/",
+                    views.DocumentTypeAutocomplete.as_view(model=models.DocumentType),
+                    name="document-type-autocomplete",
+                ),
+                path(
+                    "tag/",
+                    views.TagAutocomplete.as_view(model=Tag, create_field="name"),
+                    name="tag-autocomplete",
+                ),
+                path(
+                    "research-priority/",
+                    views.ResearchPriorityAutocomplete.as_view(model=models.ResearchPriority, create_field="name"),
+                    name="research-priority-autocomplete",
                 ),
             ]
         ),

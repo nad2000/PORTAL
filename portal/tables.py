@@ -81,9 +81,12 @@ class StateColumn(tables.Column):
             if isinstance(record, models.Application):
                 css_classes = "fas fa-star text-success text-center"
                 title = _("The application was accepted")
-            else:
+            elif isinstance(record, models.Invitation):
                 css_classes = "far fa-envelope-open text-success text-center"
                 title = _("The invitation was accepted")
+            else:
+                css_classes = "fas fa-check-double text-success text-center"
+                title = _("The %s was accepted") % record._meta.verbose_name
         elif state == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
             title = _("The testimonial was submitted")
@@ -104,12 +107,18 @@ class StateColumn(tables.Column):
         elif state == "cancelled":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("The application was cancelled")
+        elif state == "declined":
+            css_classes = "fa fa-ban text-danger text-center"
+            title = _("Cancelled")
         elif state == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
             title = _("The application was approved")
         elif state == "funded":
             css_classes = "fa fa-heart text-success text-center"
             title = _("The application was funded")
+        elif state == "assessed":
+            css_classes = "fa fa-heart text-success text-center"
+            title = _("The report was assessed")
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
             title = _("The report was assessed")
@@ -256,7 +265,7 @@ class SafeTemplateColumn(tables.TemplateColumn):
 def default_start_date(record=None):
     if (record and record.site_id or settings.SITE_ID) in [2, 5]:
         return timezone.now().date().replace(day=1, month=3)
-    return (timezone.now().date().replace(day=1) + relativedelta(months=1))
+    return timezone.now().date().replace(day=1) + relativedelta(months=1)
 
 
 class ApplicationTable(tables.Table):
@@ -864,22 +873,41 @@ class ChangeRequestTable(tables.Table):
     number = tables.Column(
         # accessor="pk",
         # verbose_name=gettext_lazy("ID"),
-        linkify=lambda value, record: reverse(
-            "variant-request", kwargs=dict(pk=record.pk)
-        ),
+        linkify=lambda value, record: reverse("change-request", kwargs=dict(pk=record.pk)),
         # order_by="pk",
     )
     contract = tables.Column(
-        verbose_name=gettext_lazy("Contract"),
+        _("Contract"),
+        tables.A("contract__number"),
+        # verbose_name=gettext_lazy("Contract"),
         linkify=lambda value, record: reverse(
             "contract-detail", kwargs=dict(number=record.contract.number)
         ),
         order_by="contract__number",
     )
+    pi = tables.Column(
+        gettext_lazy("Contract PI"),
+        tables.A("contract__pi__full_name_with_email"),
+        orderable=False,
+    )
+    title = tables.Column(
+        _("Title"),
+        tables.A("contract__project_title"),
+        # verbose_name=gettext_lazy("Contract"),
+        linkify=lambda value, record: reverse(
+            "contract-detail", kwargs=dict(number=record.contract.number)
+        ),
+        order_by="contract__project_title",
+    )
+
+    def render_description(self, record, value):
+        if not value:
+            return "N/A"
+        return mark_safe(value)
 
     class Meta:
         model = models.ChangeRequest
-        fields = ("state", "number", "contract", "description")
+        fields = ("state", "number", "contract", "pi")
 
 
 # class ReportTable(tables.Table):

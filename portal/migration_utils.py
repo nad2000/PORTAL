@@ -40,6 +40,30 @@ def set_required_document_format_and_role(apps, schema_editor):
         )
 
 
+def set_document_template_required_document(apps, schema_editor):
+    db_alias = schema_editor.connection.alias
+    RoundDocumentTemplate = apps.get_model("portal", "RoundDocumentTemplate")
+    db_alias = schema_editor.connection.alias
+    manager = RoundDocumentTemplate.objects.using(db_alias)
+    update_document_template_required_document(manager)
+
+
+def update_document_template_required_document(manager):
+
+    templates = []
+    for t in manager.filter(
+        required_document__isnull=True,
+        document_type__isnull=False,
+    ).distinct():
+        rd = t.document_type.required_documents.last()
+        if rd:
+            t.required_document = rd
+            templates.append(t)
+
+    if templates:
+        manager.bulk_update(templates, fields=["required_document"])
+
+
 def add_title_data(apps, schema_editor):
     """
     Add to the migrations:
@@ -61,7 +85,50 @@ def add_title_data(apps, schema_editor):
     )
 
 
-def add_change_type(apps, schema_editor):
+def add_research_priorities(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    ResearchPriority = apps.get_model("portal", "ResearchPriority")
+    db_alias = schema_editor.connection.alias
+    add_research_priority_entries(ResearchPriority.objects.using(db_alias))
+
+
+def add_research_priority_entries(manager):
+
+    priorities = [
+        "Antarctic Research",
+        "Artificial Intelligence",
+        "Biotechnologies",
+        "Economic",
+        "Environment",
+        "Environmental Science",
+        "Food Science",
+        "Health and Biomedical Sciences",
+        "Health and Biomedicine",
+        "Health",
+        "Other",
+        "Quantum Technology",
+        "Space and Earth Observations",
+    ]
+    for p in priorities:
+        p = p.strip()
+        if not p:
+            continue
+        manager.get_or_create(
+            name=p,
+            defaults=dict(slug=p.lower().replace(" ", "-")),
+        )
+    # manager.bulk_create(
+    #     [manager.model(name=p) for p in priorities],
+    #     update_conflicts=True,
+    #     update_fields=["name", "slug"],
+    #     unique_fields=["name"],
+    # )
+
+
+def add_change_types(apps, schema_editor):
     """
     Add to the migrations:
     migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
@@ -69,24 +136,70 @@ def add_change_type(apps, schema_editor):
     ChangeType = apps.get_model("portal", "ChangeType")
     db_alias = schema_editor.connection.alias
     types = {
-        "Description",
-        "Extension",
-        "Extension & Budget Revision",
-        "Budget Revision",
-        "Changes to Personnel",
-        "Termination of Contract",
-        "Transfer of Contract",
-        "Issues",
-        "Suspension",
-        "Other",
-    }.difference(ChangeType.objects.using(db_alias).values_list("description", flat=True))
+        ("E", "Extension"),
+        ("B", "Budget Revision"),
+        ("P", "Changes to Personnel"),
+        ("TE", "Termination of Contract"),
+        ("TR", "Transfer of Contract"),
+        ("I", "Issues"),
+        ("S", "Suspension"),
+        ("O", "Other"),
+    }.difference(ChangeType.objects.using(db_alias).values_list("code", "description"))
     if types:
         ChangeType.objects.using(db_alias).bulk_create(
-            [ChangeType(description=t) for t in types],
-            # update_conflicts=True,
+            [ChangeType(code=c, description=t) for c, t in types],
+            update_conflicts=True,
             update_fields=["description"],
-            unique_fields=["description"],
+            unique_fields=["code"],
         )
+
+
+def add_change_categories_data(manager):
+    categories = [
+        # code, type, description, parent_code
+        ("10", "P", "Changes to Investigator Team (PI, co-PI, AI)", None),
+        ("11", "P", "Changes to Other Personnel", None),
+        ("12", "I", "Changes to Research Objectives and Outcomes", None),
+        ("13", "E", "Delay to Progress", None),
+        ("14", "B", "Additional Funding (e.g., grant or scholarship received)", None),
+        ("15", "B", "Request Information/Withhold Payments", None),
+        ("16", "B", "Resume Contract/Payments", None),
+        ("17", "B", "Materially adds or sustains value for the project", None),
+        ("18", "O", "Other", None),
+        ("19", "E", "Parental Leave", None),
+        ("20", "P", "Key Personnel Leave (e.g., FS-PI)", "10"),
+        ("21", "P", "Late Appointment of Staff (e.g., Postdoctoral Fellow)", "11"),
+        ("22", "P", "Late Appointment/thesis delay of Student (e.g., PhD)", "11"),
+        ("23", "E", "Change to Subcontract", "13"),
+        ("24", "P", "Change in FTE", "13"),
+        ("25", "P", "Add/Change Staff/Student/subcontractor/Investigator", "13"),
+        ("26", "O", "Unforeseen Event", "13"),
+        ("27", "I", "Project Management Issue (potentially avoidable)", "13"),
+        ("28", "B", "Research Costs", "13"),
+        ("29", "E", "Alter Travel Date", "13"),
+        ("30", "E", "COVID-19 related impacts", "13"),
+        ("31", "O", "Other", "18"),
+        ("32", "P", "Restructuring of Personnel", "10"),
+    ]
+    manager.bulk_create(
+        [
+            manager.model(code=c, type_id=t, description=d, parent_id=p)
+            for (c, t, d, p) in categories
+        ],
+        update_conflicts=True,
+        update_fields=["description", "parent", "type"],
+        unique_fields=["code"],
+    )
+
+
+def add_change_categories(apps, schema_editor):
+    """
+    Add to the migrations:
+    migrations.RunPython(portal.models.add_title_data, lambda *args, **kwargs: None),
+    """
+    ChangeCategory = apps.get_model("portal", "ChangeCategory")
+    db_alias = schema_editor.connection.alias
+    add_change_categories_data(ChangeCategory.objects.using(db_alias))
 
 
 def add_role_type_data(apps, schema_editor):

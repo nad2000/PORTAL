@@ -22,7 +22,7 @@
   {% endif %}
 {% endblock %}
 
-{% block content %}
+{% block modals %}
   {{ block.super }}
   <!-- Privacy Statement Modal -->
   <div class="modal fade" id="confirm-submit" tabindex="-1" role="dialog"
@@ -48,9 +48,14 @@
           <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
             {% trans 'Cancel' %}
           </button>
-          <a href="#" id="submit-button" class="btn btn-primary success" data-dismiss="modal">
-            {% trans 'Submit' %}
-          </a>
+          <button 
+            type="submit" 
+            class="btn btn-primary success" 
+            onclick='$(this).closest("form").submit();' 
+            id="submit-button"
+            value="submit"
+            name="submit"
+          >{% trans 'Submit' %}</button>
         </div>
 
       </div>
@@ -67,16 +72,18 @@
         if (this.form.checkValidity()) $('#confirm-submit').modal('show');
         else this.form.reportValidity();
       });
+        /*
       $('#submit-button').click(function(){
-        /* when the submit button in the modal is clicked, submit the form */
-        var form = document.getElementById('nomination-form');
+        // when the submit button in the modal is clicked, submit the form
+        var form = document.getElementById('nomination-form')||$(this).closest('form')[0];
         if (form.checkValidity()) {
           form.action.value = "submit";
           form.submit();
         }
         else form.reportValidity();
-      });
+      });*/
     });
   </script>
   {% endif %}
 {% endblock %}
+{# vim:set ft=htmldjango: #}

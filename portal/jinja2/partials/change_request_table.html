@@ -1,0 +1,74 @@
+<table class="table table-bordered searchable table-striped">
+
+  <thead>
+    <tr class="thead-dark">
+      <th scope="col">
+         {{ _('Number') }}
+      </th>
+      <th scope="col">
+         {{ _('Status') }}
+      </th>
+      <th scope="col">
+         {{ _('Submit By') }}
+      </th>
+      <th scope="col">
+         {{ _('Type(s)') }}
+      </th>
+      <th scope="col"> {{ _('Letter') }}</th>
+      <th scope="col"> {{ _('New Contract or Variation') }}</th>
+      <th scope="col">&nbsp;</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for o in objects %}
+      <tr>
+        <td>
+          {% if not is_ro or o.state == 'draft' %}
+            <a href="{{ url('change-request', pk=o.pk) }}" target="_blank">
+              {{ o.number }}
+            </a>
+          {% else %}
+            {{ o.number }}
+          {% endif %}
+        </td>
+        <td>
+          &lt;<strong>{{ o.state|upper }}</strong>&gt;
+        </td>
+        <td>{{ (o.submitted_by or '&nbsp;')|safe }}</td>
+      <td>{% for t in o.types.all() %}{{ t }}{% if not loop.last %}, {% endif %}{% else %}&nbsp;{% endfor %}</td>
+      <td>
+        {% if o.file %}
+          <a href="{{ o.file.url }}" target="_blank">{{ o.file.name|basename }}</a>
+        {% else %}
+          &nbsp;
+        {% endif %}
+      </td>
+
+      <td>
+        {% if o.derivative %}
+          {% if not is_ro or o.derivative.org.research_offices.filter(user=user).exists() %}
+            <a href="{{ url('contract', pk=o.derivative.pk) }}" target="_blank">{{ o.derivative.number }}</a>
+          {% else %}
+            {{ o.derivative.number }}
+          {% endif %}
+        {% else %}
+          &nbsp;
+        {% endif %}
+      </td>
+
+
+      <td>
+        {% if not is_ro or o.state == 'draft' %}
+          <a class="btn btn-primary" href="{{ url('change-request-update', pk=o.pk) }}" target="_blank">
+             {{ _('Edit') }}
+          </a>
+        {% else %}
+          &nbsp;
+        {% endif %}
+      </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+
+</table>

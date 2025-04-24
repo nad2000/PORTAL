@@ -334,6 +334,10 @@ def send_mail(
         thread_topic = subject
     headers["Thread-Index"] = thread_index
     headers["Thread-Topic"] = thread_topic
+    if cc and not isinstance(cc, (list, tuple, query.QuerySet)):
+        cc = [cc]
+    if bcc and not isinstance(bcc, (list, tuple, query.QuerySet)):
+        bcc = [bcc]
     msg = mail.EmailMultiAlternatives(
         subject=subject,
         body=message,

@@ -72,6 +72,7 @@ def portal_context(request):
             cached_context = {
                 "is_staff": is_staff,
                 "is_site_staff": is_staff,
+                "is_admin": is_staff or u.is_superuser,
                 "three_days_ago": timezone.now() - timedelta(days=3),
                 "application_draft_count": application_draft_count,
                 "application_submitted_count": application_submitted_count,
@@ -124,6 +125,16 @@ def portal_context(request):
             counts.append(("total", total, gettext_lazy("Total")))
             cached_context["contract_counts"] = counts
             cached_context["contract_count"] = total
+
+            if is_ro or u.is_superuser or is_staff:
+                counts = [
+                    (s, c, models.ChangeRequest.STATES[s]) for s, c in models.ChangeRequest.user_object_counts(u, request=request)
+                ]
+                total = sum(i[1] for i in counts)
+                counts.append(("total", total, gettext_lazy("Total")))
+                cached_context["change_request_counts"] = counts
+                cached_context["change_request_count"] = total
+
             # if outstanding_testimonial_requests:
             #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
             if not (u.is_superuser or is_staff):
@@ -194,6 +205,7 @@ def portal_context(request):
                     cached_context["LIMESURVEY_ADMIN_URL"] = (
                         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
                     )
+                cached_context["has_profile"] = models.Person.where(user=u).exists()
             cache.set(cache_key, cached_context)
         context.update(cached_context)
     return context

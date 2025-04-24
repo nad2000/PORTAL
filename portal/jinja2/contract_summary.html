@@ -27,6 +27,34 @@
         </td>
       </tr>
 
+      {% if c.source %}
+
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {% if c.is_variation %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }}{% endif %}
+          </th>
+          <td>
+            {% if export %}
+              {{ c.source }}
+            {% else %}
+              <a href="{{ c.source.get_absolute_url }}" target="_blank">{{ c.source }}</a>
+            {% endif %}
+          </td>
+        </tr>
+
+        {#% if export and c.change_requests.count() > 0 %}
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Type') }}
+            </th>
+            <td>
+
+            </td>
+          </tr>
+        {% endif %#}
+
+      {% endif %}
+
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Organisation') }} / {{ _('Source') }}
@@ -176,7 +204,7 @@
             </td>
             {% if not export %}
               <td>
-                <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a> 
+                <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a>
                 {% if d.convert_file %}
                   (<a href="{{ d.convert_file.url }}">{{ d.convert_file.name|basename }}</a>)
                 {% endif %}

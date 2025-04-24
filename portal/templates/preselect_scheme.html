@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% load static i18n django_bootstrap_breadcrumbs tags %}
+
+{% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
+{% block sidebar %}{% include 'sidebar.html' with category="profile" %}{% endblock sidebar %}
+
+{% block content %}
+  <div class="jumbotron">
+    {% blocktrans %}
+      The following information is requested to enable analysis of the effect of qualifications on research performance,
+      career trajectories, and to better understand needs for succession planning and support for particular groups.
+    {% endblocktrans %}
+  </div>
+  {% for r in rounds %}
+
+  <div class="row">
+  <div class="col-12">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="round" value="{{ r.pk }}">
+    <button 
+      type="submit" 
+      class="btn btn-lg{% if not r.background and not r.foreground %} btn-primary{% endif %} btn-block"
+    {% if r.background or r.foreground %} style="{% if r.background %}background-color: {{ r.background }};{% endif %} color:{% if r.foreground %} {{ r.foreground }}{% else %} white;{% endif %}"{% endif %}
+    >{{ r }}</button>
+  </form>
+  </div>
+  </div>
+
+
+  {% endfor %}
+
+
+
+
+{% endblock content %}
+
+{# vim:set ft=htmldjango: #}
