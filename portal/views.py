@@ -7144,7 +7144,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             "profile-academic-records": _("Academic Records"),
             "profile-recognitions": _("Prizes and/or Medals"),
         }.get(url_name)
-        if self.request.session.get("wizard") or site_id in (1, 7):
+        if self.request.session.get("wizard") or self.request.site_id in (1, 7):
             view_idx = self.section_views.index(url_name)
             if view_idx > 0:
                 previous_step = self.section_views[view_idx - 1]
