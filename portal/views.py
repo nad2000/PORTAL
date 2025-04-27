@@ -487,7 +487,7 @@ class SingleObjectMixin(ContextMixin):
 
         try:
             # Get the single item from the filtered queryset
-            obj = queryset.get()
+            obj = queryset.first()
             if not obj:
                 an = get_object_or_404(models.ApplicationNumber, **{slug_field: obj_id})
                 obj = an.application
