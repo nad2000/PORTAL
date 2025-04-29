@@ -4666,9 +4666,46 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(field=state, source=["*"], target="opted_out")
-    def opt_out(self, *args, **kwargs):
+    def opt_out(self, user=None, request=None, *args, **kwargs):
+        if not user:
+            if request:
+                user = request.user
+            else:
+                user = self.user
         # self.has_testifed = False
-        pass
+        a = self.application
+        detail_url = a.get_full_detail_url(request)
+        update_url = a.get_full_update_url(request)
+        send_mail(
+            # __("A Referee opted out of Testimonial"),
+            # __("Your Referee %s has opted out of Testimonial") % t.referee,
+            "A Referee opted out of Testimonial",
+            html_message=(
+                f"<p>The referee ({self.full_name}) your entered for you application for "
+                f'<a href="{detail_url}">{a.number}</a> has declined to provide a testimonial.</p>'
+                f'<p>Please login in to the Portal <a href="{update_url}">{a.number}</a> '
+                "and enter a new referee.</p>"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipients=[
+                (
+                    a.submitted_by.email
+                    if a.submitted_by
+                    else a.email
+                )
+            ],
+            fail_silently=False,
+            request=request,
+            reply_to=settings.DEFAULT_FROM_EMAIL,
+        )
+        if request:
+            messages.info(
+                request,
+                _(
+                    "You opted out of providing an application "
+                    "supporting referee report/testimonial."
+                ),
+            )
 
     @fsm_log
     @transition(field=state, source=["*"], target="sent")

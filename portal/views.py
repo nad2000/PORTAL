@@ -700,13 +700,19 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
         action, description = request.POST.get("action"), request.POST.get("resolution")
         if action:
-            if not self.object:
+            if not getattr(self, "object", None):
                 self.object = self.get_object()
-            if (method := getattr(self.object, action)):
+            if method := getattr(self.object, action, None):
                 method(request=request, description=description, by=request.user)
                 self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
                 state = self.object.state
                 messages.success(request, _(f"The change request was {state}."))
+            elif self.model is models.Testimonial and action == "turn_down":
+                t = self.object
+                t.referee.opt_out(user=self.request.user, request=self.request)
+                t.referee.save()
+                reset_cache(self.request)
+                return redirect("testimonials")
 
         return redirect(request.path)
 
@@ -1356,7 +1362,7 @@ def check_profile(request, token=None):
                 "autoreplied",
             ]:
                 if i.type:
-                    request.sesssion["invitation_type"] = i.type
+                    request.session["invitation_type"] = i.type
                     request.session.modified = True
 
                 if (
@@ -8651,9 +8657,9 @@ class TestimonialView(CreateUpdateView):
         u = self.request.user
         reset_cache(self.request)
         site_id = self.request.site_id
+        a = t and t.application or self.application
 
         if not t.id:
-            a = self.application
             q = models.Referee.where(Q(user=u) | Q(email__in=u.email_addresses))
             if a:
                 q = q.filter(application=a)
@@ -8847,30 +8853,8 @@ class TestimonialView(CreateUpdateView):
                     t.save_draft(request=self.request)
                     t.save()
             elif "turn_down" in self.request.POST:
-                t.referee.opt_out()
+                t.referee.opt_out(user=u, request=self.request)
                 t.referee.save()
-                send_mail(
-                    __("A Referee opted out of Testimonial"),
-                    __("Your Referee %s has opted out of Testimonial") % t.referee,
-                    settings.DEFAULT_FROM_EMAIL,
-                    recipients=[
-                        (
-                            t.referee.application.submitted_by.email
-                            if t.referee.application.submitted_by
-                            else t.referee.application.email
-                        )
-                    ],
-                    fail_silently=False,
-                    request=self.request,
-                    reply_to=settings.DEFAULT_FROM_EMAIL,
-                )
-                messages.info(
-                    self.request,
-                    _(
-                        "You opted out of providing an application "
-                        "supporting referee report/testimonial."
-                    ),
-                )
                 reset_cache(self.request)
                 return redirect("testimonials")
         else:

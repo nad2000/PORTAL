@@ -192,6 +192,21 @@ class Model(TimeStampMixin, HelperMixin, Base):
             except:
                 return reverse(f"{model_name_slug}-list")
 
+    @property
+    def update_url(self):
+        model_name_slug = self._meta.db_table.replace("_", "-")
+        return reverse(f"{model_name_slug}-update", args=[str(self.pk)])
+
+    def get_full_update_url(self, request=None):
+        url = self.update_url
+        if url:
+            if request:
+                url = request.build_absolute_uri(url)
+            else:
+                site = Site.objects.get_current()
+                url = f"https://{site.domain}{url}"
+            return domain_to_macrons(url)
+
     @classmethod
     def get_or_404(cls, *args, **kwargs):
         return get_object_or_404(cls, *args, **kwargs)
