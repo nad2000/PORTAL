@@ -2787,6 +2787,7 @@ class RoundAdmin(
     StaffPermsMixin,
     OrderableAdmin,
     TranslationAdmin,
+    SimpleHistoryAdmin
 ):
     summernote_fields = (
         "description_en",
@@ -2816,7 +2817,7 @@ class RoundAdmin(
         "site",
     ]
     search_fields = ["title", "scheme__code"]
-    actions = ["create_new_round", "invite_referees", "sync_referee_surveys", "copy_round"]
+    actions = ["create_new_round", "invite_referees", "sync_referee_surveys", "copy_round", "make_current"]
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
@@ -3036,6 +3037,29 @@ class RoundAdmin(
         if settings.SITE_ID not in [2, 5] and "invite_referees" in actions:
             del actions["invite_referees"]
         return actions
+
+    @admin.action(description="Mark the rounds current")
+    def make_current(self, request, queryset):
+        schemes = []
+        for r in queryset.order_by("-pk"):
+            s = r.scheme
+            if s.current_round != r:
+                if s in schemes:
+                    messages.warning(request, f"The scheme {s} is already changes; its current round is {s.current_round} "
+                                     "(one of the selected rounds)")
+                s.current_round = r
+                s._change_reason = (
+                    f"Round {r} marked as currnt round of {s} by {request.user}"
+                )
+                schemes.append(s)
+        if schemes:
+            models.Scheme.all_objects.bulk_update(
+                schemes,
+                ["current_round"],
+            )
+            messages.success(request, f"The scheme(s) {', '.join(str(s) for s in schemes)} were/was updated.")
+        else:
+            messages.warning(request, "No round was updated...")
 
     @admin.action(description="Copy and link to another scheme")
     def copy_round(self, request, queryset):
