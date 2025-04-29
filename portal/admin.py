@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse
+from django.utils import timezone
 from django.utils.html import format_html, html_safe
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -1606,7 +1607,8 @@ class ApplicationAdmin(
             url="research-priority-autocomplete",
             forward=[
                 dal.forward.Field("round", "round"),
-                dal.forward.Const("application", "model")],
+                dal.forward.Const("application", "model"),
+            ],
         )
         return form
 
@@ -2826,6 +2828,12 @@ class RoundAdmin(
             extra_context=extra_context,
         )
 
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.closes_at and (u := request.user) and not u.is_superuser:
+            if obj.closes_at < timezone.now():
+                return False  # Prevent editing of the closed round by staff
+        return super().has_change_permission(request, obj)
+
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
         if (site_id := settings.SITE_ID) and site_id in [2, 4, 5]:
@@ -2861,9 +2869,7 @@ class RoundAdmin(
                     )
         form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
             url="research-priority-autocomplete",
-            forward=[
-                dal.forward.Const("round", "model")
-            ],
+            forward=[dal.forward.Const("round", "model")],
         )
         return form
 
