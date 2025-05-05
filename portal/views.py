@@ -3752,6 +3752,8 @@ class ApplicationDetail(DetailView):
                                     "Please upload the host support letter and the current CV, and indicate the county of the origin."
                                 ),
                             )
+                            if form.changed_data:
+                                member.save()
                             return redirect(request.path)
 
                     else:
