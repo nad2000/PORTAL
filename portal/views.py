@@ -3737,7 +3737,7 @@ class ApplicationDetail(DetailView):
                                 file=cv_file,
                                 owner=u,
                                 person=u.person,
-                                title=_("For application {member.application.number}"),
+                                title=_(f"For application {member.application.number}"),
                             )
                         form.save(commit=False)
                         if (
