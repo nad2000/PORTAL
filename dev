@@ -10,6 +10,16 @@ export PYTHONPATH="$PWD"
 #     \; split-window -v -p 12 \; send-keys 'source ./venv/bin/activate' C-m \
 #     \; select-pane -U
 
+# Start a new session if it is run outsited TMUX
+if test -z "${TMUX}" && which tmux &>/dev/null; then
+  ID="`tmux ls | grep -vm1 attached | cut -d: -f1`" # get the id of a deattached session
+  if [ -z "${ID}" ] ;then # if not available create a new one
+    tmux new-session
+  else
+    tmux attach-session -t ${ID} # if available attach to it
+  fi
+fi
+
 tmux rename-window DEV \
     \; send-keys 'source ./venv/bin/activate ; export DEBUG=1 PYTHONPATH="$PWD" DJANGO_DEBUG=1; ./manage.py runserver_plus 0.0.0.0:8080 --cert-file cert.crt --key-file cert.key' C-m \
     \; split-window -v -l 74% \; send-key 'source ./venv/bin/activate ; nvim -S .session.vim' C-m \

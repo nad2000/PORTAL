@@ -1066,7 +1066,10 @@ class ApplicationForm(ModelForm):
                 )
                 self.fields["priorities"].widget = autocomplete.TaggitSelect2(
                     url="research-priority-autocomplete",
-                    forward=[forward.Const(round.pk, "round"), forward.Const("application", "model")],
+                    forward=[
+                        forward.Const(round.pk, "round"),
+                        forward.Const("application", "model"),
+                    ],
                 )
 
             tabs.append(
@@ -2760,6 +2763,22 @@ class ContractForm(ModelForm):
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
+    def __init__(self, *args, **kwargs):
+        # duration = kwargs.pop("duration", None)
+        super().__init__(*args, **kwargs)
+        site_id = (
+            self.instance
+            and self.instance.pk
+            and (a := self.instance.application)
+            and a.site_id
+            or settings.SITE_ID
+        )
+        if site_id == 2:
+            self.fields.pop("middle_names", None)
+        else:
+            self.fields.pop("org", None)
+            self.fields.pop("country", None)
+
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
         queryset=models.RoleType.where(for_application=True).order_by(
@@ -2790,7 +2809,16 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
 
     class Meta:
         model = models.Member
-        fields = ["state", "email", "first_name", "middle_names", "last_name", "role"]
+        fields = [
+            "state",
+            "email",
+            "first_name",
+            "middle_names",
+            "last_name",
+            "role",
+            "country",
+            "org",
+        ]
         # fields = ["email", "first_name", "middle_names", "last_name", "role"]
         disabled = ["state"]
         widgets = dict(
@@ -2804,6 +2832,8 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             ),
             # has_authorized=NullBooleanSelect(attrs=dict(readonly=True)),
             state=InvitationStateInput(attrs={"readonly": True}),
+            country=autocomplete.ModelSelect2("country-autocomplete"),
+            org=autocomplete.ModelSelect2("org-autocomplete"),
         )
 
 

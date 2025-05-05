@@ -99,8 +99,8 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import condition, require_http_methods
-from django.views.generic import DetailView, FormView, TemplateView, detail
+from django.views.decorators.http import require_http_methods
+from django.views.generic import DetailView, FormView, TemplateView
 from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
@@ -1477,6 +1477,14 @@ def check_profile(request, token=None):
                 request,
                 _("Your profile is not completed yet. " "Please complete your profile."),
             )
+            if token and models.Invitation.where(token=token, type="T", site_id=2).exists():
+                messages.warning(
+                    request,
+                    _(
+                        "Please make sure you filled up your postal address and current affiliation data, "
+                        "and uploaded a current CV."
+                    ),
+                )
             # person.is_employments_completed = True
             # person.is_professional_bodies_completed = True
             # person.is_career_stages_completed = True
@@ -3545,8 +3553,7 @@ class MemberInline(InlineFormSetFactory):
             obj.delete()
 
 
-class AuthorizationForm(Form):
-    # authorize_team_lead = BooleanField(label=_("I authorize the team leader."), required=False)
+class AuthorizationFormMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -3561,11 +3568,68 @@ class AuthorizationForm(Form):
         )
         # Submit("load_from_orcid", "Import from ORCiD", css_class="btn-orcid",)
 
+
+class AuthorizationForm(AuthorizationFormMixin, Form):
+    pass
+
+
+class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.fields["file"].required = True
+        # self.fields["country"].required = True
+
+    cv = FileField(
+        required=False,
+        label=gettext_lazy("Curriculum Vitae"),
+        help_text=gettext_lazy("The most current CV"),
+        widget=widgets.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+                "data-required": 1,
+            },
+        ),
+    )
+
     # def clean_is_accepted(self):
     #     """Allow only 'True'"""
     #     if not self.cleaned_data["is_accepted"]:
     #         raise forms.ValidationError("Please read and consent to the Privacy Policy")
     #     return True
+    class Meta:
+        model = models.Member
+        fields = ["cv", "file", "country", "org"]
+        widgets = {
+            "country": autocomplete.ModelSelect2(
+                "country-autocomplete",
+                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+                attrs={"data-required": 1},
+            ),
+            "org": autocomplete.ModelSelect2(
+                "org-autocomplete",
+                forward=["country"],
+                attrs={
+                    "data-placeholder": _("Choose an organisation ..."),
+                    "placeholder": _("Choose an organisation ..."),
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
+                    "oninput": "this.setCustomValidity('')",
+                },
+            ),
+            "file": widgets.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+                    "data-required": 1,
+                },
+            ),
+            "cv": widgets.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+                    "data-required": 1,
+                },
+            ),
+        }
 
 
 class ApplicationDetail(DetailView):
@@ -3664,6 +3728,37 @@ class ApplicationDetail(DetailView):
                 member.user = self.request.user
 
             if "submit" in request.POST:
+                if self.object.site_id == 2:
+                    form = self.get_member_form(instance=member)
+                    u = request.user
+                    if form.is_valid():
+                        if "cv" in form.changed_data and (cv_file := request.FILES.get("cv")):
+                            models.CurriculumVitae.create(
+                                file=cv_file,
+                                owner=u,
+                                person=u.person,
+                                title=_("For application {member.application.number}"),
+                            )
+                        form.save(commit=False)
+                        if (
+                            member.file == ""
+                            or not member.country
+                            or not member.org
+                            or not models.CurriculumVitae.where(owner=u).exists()
+                        ):
+                            messages.error(
+                                request,
+                                _(
+                                    "Please upload the host support letter and the current CV, and indicate the county of the origin."
+                                ),
+                            )
+                            return redirect(request.path)
+
+                    else:
+                        for e in form.errors:
+                            messages.error(request, e)
+                        return redirect(request.path)
+
                 member.authorize(request)
                 member.save()
                 messages.info(
@@ -3745,6 +3840,29 @@ class ApplicationDetail(DetailView):
 
         return redirect(request.path)
 
+    def get_member_form(self, instance=None, initial=None):
+        if self.object and self.object.site_id == 2:
+            u = self.request.user
+            p = u.person
+            initial = initial or {}
+            if cv := models.CurriculumVitae.last_user_cv(u):
+                initial["cv"] = cv.file
+            if not (instance and instance.country) and p.address and p.address.country:
+                initial["country"] = p.address.country
+            if not (instance and instance.org) and (
+                emp := p.affiliations.filter(type="EMP", end_date__isnull=True, org__isnull=False)
+                .order_by("start_date")
+                .last()
+            ):
+                initial["org"] = emp.org
+            return MemberAuthorizationForm(
+                self.request.POST or None,
+                self.request.FILES or None,
+                instance=instance,
+                initial=initial,
+            )
+        return AuthorizationForm()
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
 
@@ -3757,18 +3875,26 @@ class ApplicationDetail(DetailView):
         if n := models.Nomination.where(application=a).last():
             context["nomination"] = n
             context["nominator"] = n.nominator
-        if a.members.filter(
+        if m := a.members.filter(
             Q(user=u)
             | Q(email__lower=u.email.lower())
             | Q(email__lower__in=u.emailaddress_set.values_list("email__lower")),
             # has_authorized__isnull=True,
             Q(state__isnull=True) | ~Q(state__in=["authorized", "opted_out"]),
-        ).exists():
+        ).first():
             messages.info(
                 self.request,
                 _("Please review the application and authorize your team representative."),
             )
-            context["form"] = AuthorizationForm()
+            if a.site_id == 2:
+                messages.warning(
+                    self.request,
+                    _(
+                        "Please upload the host support letter and the current CV, "
+                        "and indicate the county of the origin."
+                    ),
+                )
+            context["form"] = self.get_member_form(instance=m)
         is_ro = site_id in [2, 4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
@@ -5188,6 +5314,8 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         #         if self.object
         #         and self.object.id
         #         and models.IdentityVerification.where(application=self.object).exists()
+
+
         #         else None,
         #         prefix="iv",
         #         initial={"user": self.request.user},
@@ -5208,7 +5336,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
         if round.scheme.team_can_apply:
             context["helper"] = forms.MemberFormSetHelper()
-            duration = round.duration
+            duration = (self.object and self.object.site_id or settings.SITE_ID) != 2 and round.duration
             if self.request.POST:
                 context["members"] = (
                     forms.MemberFormSet(
@@ -7735,7 +7863,14 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 user = contract.pi
         except:
             pass
-        return models.Organisation.search_query(self.q, nominator=nominator, user=user)
+        q = models.Organisation.search_query(self.q, nominator=nominator, user=user)
+        if country := self.forwarded.get("country"):
+            q = q.filter(
+                Q(address__country_id=country)
+                | Q(address__country__isnull=True)
+                | Q(address__isnull=True)
+            )
+        return q
 
 
 class CountryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -10892,7 +11027,7 @@ class MemberFTEForm(ModelForm):
     class Meta:
         model = models.Member
         # exclude = ["state"]
-        fields = ["email", "first_name", "middle_names", "last_name", "user", "role"]
+        fields = ["email", "first_name", "last_name", "user", "role"]
 
 
 # inlineformset_factory(

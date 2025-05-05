@@ -4099,7 +4099,7 @@ class MemberMixin:
     STATES = MEMBER_STATES
 
 
-class Member(PersonMixin, MemberMixin, Model):
+class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     """Application team member."""
 
     objects = ApplicationSiteManager()
@@ -4132,6 +4132,29 @@ class Member(PersonMixin, MemberMixin, Model):
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
+    )
+    org = ForeignKey(
+        Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
+    )
+    country = ForeignKey(
+        Country,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("country"),
+        db_column="country",
+        related_name="members",
+    )
+    file = PrivateFileField(
+        verbose_name=_("Host support letter"),
+        upload_to="members",
+        upload_subfolder=lambda instance: [hash_int(instance.application_id)],
+        blank=True,
+        null=True,
+        max_length=200,
+    )
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
 
     def natural_key(self):
@@ -4687,13 +4710,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 "and enter a new referee.</p>"
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipients=[
-                (
-                    a.submitted_by.email
-                    if a.submitted_by
-                    else a.email
-                )
-            ],
+            recipients=[(a.submitted_by.email if a.submitted_by else a.email)],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,

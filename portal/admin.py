@@ -1840,7 +1840,6 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "testified_at",
         "survey_completed_at",
     ]
-    fsm_field = ["state"]
     search_fields = [
         "first_name",
         "last_name",
@@ -1955,7 +1954,6 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     save_on_top = True
     list_display = ["email", "full_name", "application", "state", "has_authorized"]
-    fsm_field = ["state"]
     search_fields = [
         "email",
         "first_name",
@@ -1973,7 +1971,7 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "authorized_at",
         "has_authorized",
     ]
-    autocomplete_fields = ["user", "application"]
+    autocomplete_fields = ["user", "application", "converted_file"]
 
     def has_authorized(self, obj):
         if obj.state == "authorized":
@@ -1991,7 +1989,6 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["full_name_with_email", "round", "state"]
-    fsm_field = ["state"]
     search_fields = ["first_name", "last_name", "email"]
     list_filter = ["round", "created_at", "updated_at", "state"]
     date_hierarchy = "created_at"
@@ -2133,7 +2130,6 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
     list_display = ["round", "nominee_name", "nominator_name", "application"]
     date_hierarchy = "created_at"
     list_filter = ["created_at", "updated_at", "round", "state"]
-    fsm_field = ["state"]
     search_fields = [
         "email",
         "first_name",
@@ -2437,7 +2433,6 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
 
     save_on_top = True
     view_on_site = False
-    fsm_field = ["state"]
     exclude = [
         "site",
     ]
