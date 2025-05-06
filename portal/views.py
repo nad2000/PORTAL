@@ -38,6 +38,7 @@ from django.contrib.auth.mixins import (
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
 from django.contrib.flatpages.views import flatpage
+from django.contrib.gis.geoip2 import GeoIP2
 from django.contrib.sites.models import Site
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
@@ -114,6 +115,7 @@ from extra_views import (
     ModelFormSetView,
     UpdateWithInlinesView,
 )
+from geopy.geocoders import Nominatim
 from private_storage.views import PrivateStorageDetailView
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
@@ -268,6 +270,37 @@ def shoud_be_onboarded(function):
                 ),
             )
             return redirect(reverse(view_name) + "?next=" + quote(request.get_full_path()))
+        else:
+            if request.site_id == 2 and not request.session.get("country"):
+                cc = None
+                if not (person.address and (cc := person.address.country_id)):
+                    try:
+                        g = GeoIP2()
+                        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+                        if x_forwarded_for:
+                            ip = x_forwarded_for.split(",")[0]
+                        else:
+                            ip = request.META.get("REMOTE_ADDR")
+                        cc = g.country_code(ip)
+                    except:
+                        pass
+                    if (
+                        not cc
+                        and (lat := request.COOKIES.get("latitude"))
+                        and (long := request.COOKIES.get("longitude"))
+                    ):
+                        try:
+                            geolocator = Nominatim(
+                                user_agent=f"{apps.get_app_config('portal').verbose_name or 'RSNZ Portal'}"
+                            )
+                            location = geolocator.reverse(f"{lat}, {long}")
+                            cc = location.raw["address"]["country_code"].upper()
+                        except:
+                            pass
+                if cc:
+                    request.session["country"] = cc
+                    request.session.modified = True
+
         request.person = person
         return function(request, *args, **kwargs)
 
@@ -3849,7 +3882,12 @@ class ApplicationDetail(DetailView):
             initial = initial or {}
             if cv := models.CurriculumVitae.last_user_cv(u):
                 initial["cv"] = cv.file
-            if not (instance and instance.country) and p.address and p.address.country:
+            if (
+                not (instance and instance.country)
+                and "country" not in initial
+                and p.address
+                and p.address.country
+            ):
                 initial["country"] = p.address.country
             if not (instance and instance.org) and (
                 emp := p.affiliations.filter(type="EMP", end_date__isnull=True, org__isnull=False)
@@ -3896,7 +3934,10 @@ class ApplicationDetail(DetailView):
                         "and indicate the county of the origin."
                     ),
                 )
-            context["form"] = self.get_member_form(instance=m)
+
+            country = m.country_id or self.request.session.get("country")
+            initial = country and {"country": country}
+            context["form"] = self.get_member_form(instance=m, initial=initial)
         is_ro = site_id in [2, 4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
@@ -5317,7 +5358,6 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         #         and self.object.id
         #         and models.IdentityVerification.where(application=self.object).exists()
 
-
         #         else None,
         #         prefix="iv",
         #         initial={"user": self.request.user},
@@ -5338,7 +5378,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
         if round.scheme.team_can_apply:
             context["helper"] = forms.MemberFormSetHelper()
-            duration = (self.object and self.object.site_id or settings.SITE_ID) != 2 and round.duration
+            duration = (
+                self.object and self.object.site_id or settings.SITE_ID
+            ) != 2 and round.duration
             if self.request.POST:
                 context["members"] = (
                     forms.MemberFormSet(

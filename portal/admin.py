@@ -1971,7 +1971,7 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "authorized_at",
         "has_authorized",
     ]
-    autocomplete_fields = ["user", "application", "converted_file"]
+    autocomplete_fields = ["user", "application", "converted_file", "country", "org"]
 
     def has_authorized(self, obj):
         if obj.state == "authorized":

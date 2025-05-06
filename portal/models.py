@@ -4147,6 +4147,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     )
     file = PrivateFileField(
         verbose_name=_("Host support letter"),
+        help_text=_("Host support letter from your organisation"),
         upload_to="members",
         upload_subfolder=lambda instance: [hash_int(instance.application_id)],
         blank=True,
