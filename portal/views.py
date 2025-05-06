@@ -5169,6 +5169,40 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     #     # if not hasattr(form, "active_tab"):
                     #     #     form.active_tab = "categories"
 
+                    if site_id == 2 and a.state in ["new", "draft", "tac_accepted"]:
+
+                        is_valid = True
+                        if a.members.filter(~Q(role_id="PI"), country__isnull=True).exists():
+                            messages.error(
+                                self.request,
+                                _(
+                                    "Not all the team members have specified their country of origin. "
+                                    "Please amend the team member list."
+                                ),
+                            )
+                            is_valid = False
+                        if a.members.filter(~Q(role_id="PI"), org__isnull=True).exists():
+                            messages.error(
+                                self.request,
+                                _(
+                                    "Not all the team members have specified their host organisation."
+                                    "Please amend the team member list."
+                                ),
+                            )
+                            is_valid = False
+                        if a.members.filter(~Q(role_id="PI"), file="").exists():
+                            messages.error(
+                                self.request,
+                                _(
+                                    "Not all the team members have uploaded their host support letter."
+                                    "Please ensure that the all team members has uploaded the host support letter(s)."
+                                ),
+                            )
+                            is_valid = False
+
+                        if not is_valid and not url:
+                            url = self.continue_url("applicant")
+
                     if form.errors:
                         return self.form_invalid(form)
 

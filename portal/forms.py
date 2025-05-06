@@ -793,9 +793,13 @@ class ApplicationForm(ModelForm):
         fields = [
             Fieldset(
                 (
-                    _("Team representative")
-                    if instance and instance.is_team_application
-                    else _("Individual applicant")
+                    _("Principal investigator")
+                    if site_id in [2, 4, 5]
+                    else (
+                        _("Team representative")
+                        if instance and instance.is_team_application
+                        else _("Individual applicant")
+                    )
                 ),
                 Field("title", css_class="form-group col-12 mb-0"),
                 Row(

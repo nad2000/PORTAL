@@ -195,11 +195,11 @@
                                 $('#id_is_team_application').change(function() {
                                   if (!($(this).prop('checked'))) {
                                     $("#members").hide();
-                                    $("#submitter legend").text("{% trans 'Individual applicant' %}");
+                                    $("#submitter legend").text("{% if SITE_ID == 2 or SITE_ID == 5 %}{% trans 'Principal investigator' %}{% else %}{% trans 'Team representative' %}{% endif %}");
                                     $("a[href='#applicant']").text("{% trans 'Applicant' %}");
                                   } else {
                                     $("#members").show()
-                                    $("#submitter legend").text("{% trans 'Team representative' %}");
+                                    $("#submitter legend").text("{% if SITE_ID == 2 or SITE_ID == 5 %}{% trans 'Principal investigator' %}{% else %}{% trans 'Team representative' %}{% endif %}");
                                     $("a[href='#applicant']").text("{% trans 'Team' %}");
                                   };
                                 });
