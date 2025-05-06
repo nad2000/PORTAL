@@ -61,6 +61,8 @@ from .models import DOCUMENT_ROLES, Q
 
 
 class DateInput(forms.DateInput):
+    template_name = "portal/widgets/date.html"
+
     def __init__(self, attrs=None, format=None, start_date=None, end_date=None):
         if not format:
             format = "%Y-%m-%d"
@@ -866,6 +868,21 @@ class ApplicationForm(ModelForm):
                 ]
             )
 
+        if site_id in [2, 5]:
+            summary_fields.append(
+                Row(
+                    Column("proposed_start_date", css_class="col-2"),
+                    Column(
+                        Field(
+                            "requested_amount",
+                            style="text-align: right; width: 70%;",
+                            max="9999999",
+                        ),
+                        css_class="d-flex justify-content-start gap-3",
+                    ),
+                )
+            )
+
         if not has_required_documents:
             application_form_templates = (
                 [round.application_template] if round.application_template else []
@@ -1471,6 +1488,7 @@ class ApplicationForm(ModelForm):
             "tags",
         ]
         widgets = dict(
+            proposed_start_date=DateInput(end_date="+3y", start_date="+6m"),
             keywords=autocomplete.ModelSelect2Multiple(
                 url="keyword-autocomplete",
                 attrs={

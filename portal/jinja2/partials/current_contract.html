@@ -1,4 +1,4 @@
-{% set start_date=today.replace(day=1, month=3) if record.site_id in [2, 5] else start_date %}
+{% set start_date=record.proposed_start_date or (today.replace(day=1, month=3) if record.site_id in [2, 5] else start_date) %}
 {% if record.contract %}
   <a
     href="{{ url("application-contract", pk=record.pk) }}"
@@ -36,7 +36,6 @@
     data-application-id={{ record.pk }}
     data-duration={{ record.round.duration or 3 }}
     data-awarded-amount={{ record.round.awarded_amount or 0.00 }}
-    data-start-date={{ start_date.isoformat() }}
     data-start-date={{ start_date.isoformat() }}
     data-end-date="{{ (start_date + relativedelta(years=(record.round.duration or 3), days=-1)).isoformat() }}"
   >

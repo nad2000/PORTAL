@@ -1,0 +1,11 @@
+<div class="input-group date" data-provide="datepicker">
+  <input
+      type="{{ widget.type }}"
+      name="{{ widget.name }}"
+      {% if widget.value != None %}value="{{ widget.value }}"{% endif %}
+      {% include "django/forms/widgets/attrs.html" %}
+  >
+  <div class="input-group-addon">
+      <span class="glyphicon glyphicon-th"></span>
+  </div>
+</div>

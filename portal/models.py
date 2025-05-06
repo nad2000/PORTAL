@@ -2391,6 +2391,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     application_title = CharField(
         max_length=200, null=True, blank=True, verbose_name=_("application name")
     )
+    proposed_start_date = DateField(blank=True, null=True, verbose_name=_("Proposed start date"))
+    requested_amount = DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Requested amount"),
+    )
 
     round = ForeignKey(
         "Round", on_delete=PROTECT, related_name="applications", verbose_name=_("round")
@@ -9113,7 +9121,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         org = a.org
         if not start_date:
-            if a.site_id in [2, 5]:
+            if a.proposed_start_date:
+                start_date = a.proposed_start_date
+            elif a.site_id in [2, 5]:
                 start_date = timezone.now().date().replace(day=1, month=3)
             else:
                 start_date = timezone.now().date().replace(day=1) + relativedelta(months=1)
