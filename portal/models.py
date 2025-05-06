@@ -6588,10 +6588,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         return self
 
-    def clone(self, scheme=None, *args, **kwargs):
-        nr = Round(scheme=scheme or self.scheme)
-        nr.init_from_last_round(last_round=self)
-        if not nr.title:
+    def clone(self, scheme=None, copy=False, *args, **kwargs):
+        if copy:
+            nr = Round.get(self.pk)
+            nr.pk = None
+            if scheme:
+                nr.scheme = scheme
+        else:
+            nr = Round(scheme=scheme or self.scheme)
+            nr.init_from_last_round(last_round=self)
+
+        if not nr.title or copy:
             nr.title = self.scheme.title
         if nr.title == self.scheme.title and nr.opens_on:
             nr.title = f"{nr.title} {nr.opens_on.year}"

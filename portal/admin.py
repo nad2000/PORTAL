@@ -3070,7 +3070,7 @@ class RoundAdmin(
                     with transaction.atomic():
 
                         for r in rounds:
-                            nr = r.clone(scheme=target)
+                            nr = r.clone(scheme=target, copy=True)
                             new_rounds.append(nr)
                             target.current_round = nr
                             target.save(update_fields=["current_round", "updated_at"])
