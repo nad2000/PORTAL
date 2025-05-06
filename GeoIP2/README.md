@@ -1,0 +1,2 @@
+- Update the GeoIP2 DBs form your account page: https://www.maxmind.com/en/accounts/1164886/geoip/downloads
+- Store files in GeoLite2-City.mmdb and GeoLite2-Country.mmdb 
