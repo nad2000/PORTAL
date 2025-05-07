@@ -58,7 +58,10 @@ table, th, td {
 
 
 class Command(BaseCommand):
-    help = "Extract messages and export into MS Word documents"
+    help = (
+        "Extract messages and export into MS Word documents. NB! don't forget to refresh PO file: "
+        "./manage.py makemessages  -i docs -i genkey -i rapidconnect -i venv -l mi"
+    )
 
     # def add_arguments(self, parser):
     #     parser.add_argument('sample', nargs='+')
@@ -66,6 +69,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         import polib
 
+        print(
+            "*** Double check if you have refreshed PO file: "
+            "./manage.py makemessages  -i docs -i genkey -i rapidconnect -i venv -l mi"
+        )
         pofile = polib.pofile("locale/mi/LC_MESSAGES/django.po")
         extract_messages("not_translated", (m for m in pofile if m.msgstr == ""))
         extract_messages("fuzzy_translated", (m for m in pofile if m.fuzzy))

@@ -1080,13 +1080,13 @@ class Migration(migrations.Migration):
                 (
                     "cost_centre",
                     models.PositiveSmallIntegerField(
-                        blank=True, null=True, verbose_name="Cost Center"
+                        blank=True, null=True, verbose_name="Cost Centre"
                     ),
                 ),
                 (
                     "catalyst_cost_centre",
                     models.PositiveSmallIntegerField(
-                        blank=True, null=True, verbose_name="Catalyst Cost Center"
+                        blank=True, null=True, verbose_name="Catalyst Cost Centre"
                     ),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),

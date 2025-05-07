@@ -498,7 +498,7 @@ You have a request to review a {{ site_name }} application to act on.
               {% if u.last_login >= three_days_ago or u.date_joined >= three_days_ago %}
                 <span class="badge badge-primary">{% trans 'New' %}</span>
               {% endif %}
-              {% trans "You have a request to review new user acccount." %}
+              {% trans "You have a request to review new user account." %}
               <a href="{% url 'profile-summary' username=u.username %}" class="alert-link">
                 {% blocktrans with username=u.username %}
                   Please click here to review the user "{{ username }}" account.

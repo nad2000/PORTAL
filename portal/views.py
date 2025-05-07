@@ -5114,25 +5114,25 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 if not hasattr(form, "active_tab"):
                                     form.active_tab = "summary"
 
-                    if (
-                        not update_only_referees
-                        and site_id == 4
-                        and a.round.has_seos
-                        and a.application_seos.count() > 3
-                    ):
-                        form.add_error(
-                            None,
-                            _(
-                                "Please enter up to THREE SEO codes from the drop-down "
-                                "field, using codes that are as specific as possible."
-                            ),
-                        )
-                        if not hasattr(form, "active_tab"):
-                            form.active_tab = "categories"
+                    # if (
+                    #     not update_only_referees
+                    #     and site_id == 4
+                    #     and a.round.has_seos
+                    #     and a.application_seos.count() > 3
+                    # ):
+                    #     form.add_error(
+                    #         None,
+                    #         _(
+                    #             "Please enter up to THREE SEO codes from the drop-down "
+                    #             "field, using codes that are as specific as possible."
+                    #         ),
+                    #     )
+                    #     if not hasattr(form, "active_tab"):
+                    #         form.active_tab = "categories"
 
                     if (
                         not update_only_referees
-                        and site_id in [2, 5]
+                        and site_id in [2, 4, 5]
                         and a.round.has_seos
                         and a.application_seos.count() > 5
                     ):
@@ -5195,7 +5195,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 self.request,
                                 _(
                                     "Not all the team members have uploaded their host support letter."
-                                    "Please ensure that the all team members has uploaded the host support letter(s)."
+                                    "Please ensure that all the team members have uploaded their host support letter."
                                 ),
                             )
                             is_valid = False

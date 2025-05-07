@@ -1967,9 +1967,9 @@ class Fund(Model):
     code3 = FixedCharField(max_length=3, null=True, blank=True)
     name = CharField(_("name"), max_length=200, null=True, blank=True)
     description = TextField(_("description"), max_length=10000, null=True, blank=True)
-    cost_centre = PositiveSmallIntegerField(_("Cost Center"), null=True, blank=True)
+    cost_centre = PositiveSmallIntegerField(_("Cost Centre"), null=True, blank=True)
     catalyst_cost_centre = PositiveSmallIntegerField(
-        _("Catalyst Cost Center"), null=True, blank=True
+        _("Catalyst Cost Centre"), null=True, blank=True
     )
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     # history = HistoricalRecords(table_name="fund_history")
