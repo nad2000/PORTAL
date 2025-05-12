@@ -4564,6 +4564,22 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 api = self.survey_api
             if not self.survey_token or not self.survey_token_id:
                 participant = {"email": self.email.lower()}
+                # api.query(method="list_participants",params={"sSessionKey": api.session_key, "iSurveyID": survey_id, "aConditions":{"email": "nad2000+r1@gmail.com"}})
+                resp = api.query(
+                    method="list_participants",
+                    params={
+                        "sSessionKey": api.session_key,
+                        "iSurveyID": survey_id,
+                        "aConditions": {"email": self.email.lower()},
+                    },
+                )
+                if resp and isinstance(resp, list):
+                    tid = resp[0]["tid"]
+                    token = resp[0]["token"]
+                    self.survey_token_id = tid
+                    self.survey_token = token
+                    return
+
                 if first_name:
                     participant["firstname"] = self.first_name
                 if last_name:
@@ -4627,7 +4643,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     params=OrderedDict(
                         [
                             ("sSessionKey", api.session_key),
-                            ("isurveyD", survey_id),
+                            ("iSurveyID", survey_id),
                             ("aTokenIds", [self.survey_token_id]),
                             ("bEmail", True),
                             ("continueOnError", True),
@@ -7003,7 +7019,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 method="list_participants",
                 params={
                     "sSessionKey": api.session_key,
-                    "isurveyD": self.survey_id,
+                    "iSurveyID": self.survey_id,
                     # "bUnused": True,
                     "aAttributes": ["email", "token", "completed", "token", "sent", "emailstatus"],
                     "aConditions": {

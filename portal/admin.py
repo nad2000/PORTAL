@@ -1871,6 +1871,9 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
     ]
     inlines = [StateLogInline]
 
+    # def get_list_display(self, request):
+    #    list_display = super().get_list_display(request)
+
     def get_queryset(self, request):
         return (
             super()
