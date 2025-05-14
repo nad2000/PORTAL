@@ -5722,18 +5722,18 @@ class ApplicationCreate(ApplicationView, CreateView):
 
     def get(self, request, *args, **kwargs):
         n = (
-            models.Nomination.where(
-                email__in=self.request.user.email_addresses,
-                round__scheme__current_round=F("round"),
+            models.Nomination.get(kwargs["nomination"])
+            if "nomination" in kwargs
+            else (
+                models.Nomination.where(
+                    email__in=self.request.user.email_addresses,
+                    round__scheme__current_round=F("round"),
+                )
+                .order_by("-id")
+                .first()
             )
-            .order_by("-id")
-            .first()
         )
-        r = (
-            models.Round.get(kwargs["round"])
-            if "round" in kwargs
-            else models.Nomination.get(kwargs["nomination"]).round
-        )
+        r = models.Round.get(kwargs["round"]) if "round" in kwargs else (n and n.round)
         u = request.user
         if r.panellists.all().filter(user=u).exists():
             messages.error(
