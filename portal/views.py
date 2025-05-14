@@ -4745,7 +4745,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 # else:
                                 #     url = self.continue_url("referees")
                                 url = self.continue_url("referees")
-                                raise ValidationError(_("Invalid referee form"))
+                                raise ValidationError(f"Invalid referee form: {f.errors}")
 
                     if referees and referees.is_valid():
                         referee_emails = sorted(
