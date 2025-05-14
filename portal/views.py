@@ -4650,7 +4650,18 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                     )
                     else:
                         if update_url:
+                            if documents.errors:
+                                for form_errors in documents.errors:
+                                    if form_errors and "file" in form_errors:
+                                        message = form_errors["file"]
+                                        if isinstance(message, list) and message:
+                                            message = message[0]
+                                        messages.error(self.request, message)
                             return redirect(f"{update_url}#documents")
+                        if documents.errors:
+                            for form_errors in documents.errors:
+                                form.errors.update(form_errors)
+                        form.active_tab = "documents"
                         return self.form_invalid(form)
 
                 try:

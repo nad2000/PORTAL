@@ -361,13 +361,13 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       {% with round=record.scheme.current_round scheme=record.scheme count=record.count application=record.application is_panellist=record.is_panellist has_submitted=record.has_submitted %}
       <div class="row">
         <div class="col mb-3">
-          <div class="card"{% if round.background %} style="border-top-color: {{ round.background }}; border-right-color: {{ round.background }}; border-bottom-color: {{ round.background }}; border-left-color: {{ round.background }};"{% endif %}>
-            <h5 class="card-header"{% if round.background or round.foreground %} style="{% if round.background %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}"{% endif %}>
+          <div class="card"{% if round.background and round.background != 'colour' %} style="border-top-color: {{ round.background }}; border-right-color: {{ round.background }}; border-bottom-color: {{ round.background }}; border-left-color: {{ round.background }};"{% endif %}>
+            <h5 class="card-header"{% if round.background and round.background != 'colour' or round.foreground %} style="{% if round.background and round.background != 'colour' %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}
               </b>
-              {% if not round.is_open %} (<strong{% if not round.background %} class="text-danger"{% endif %}>{% trans 'ROUND CLOSED' %}</strong>){% endif %}
+              {% if not round.is_open %} (<strong{% if not round.background or round.background == 'colour' %} class="text-danger"{% endif %}>{% trans 'ROUND CLOSED' %}</strong>){% endif %}
             </h5>
             <div class="card-body"{#% if round.background %} style="background-color: {{ round.background|color_variant:3.9 }}; color: white;"{% endif %#}>
               {% if record.description %}
@@ -452,7 +452,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                               data-round-id="{{ round.id }}"
                                               data-round-title="{{ round.title }}"
                                               {% if round.foreground %}data-round-fg-color="{{ round.foreground }}"{% endif %}
-                                              {% if round.background %}data-round-bg-color="{{ round.background }}"{% endif %}
+                                              {% if round.background and round.background != 'colour' %}data-round-bg-color="{{ round.background }}"{% endif %}
                                               {% else %}
                                               disabled
                                               {% endif %}
