@@ -1571,6 +1571,73 @@ class ApplicationAdmin(
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
 
+    @admin.action(description="Approve on behalf of R.O.")
+    def approve(self, request, queryset):
+        count = queryset.count()
+        submitted = queryset.filter(state="submitted")
+        submitted_count = submitted.count()
+        if not submitted_count:
+            messages.warning(request, "Only SUBMITTED applications can be approved...")
+            return
+
+        u = request.user
+        applications = []
+        for a in submitted:
+            a.approve(
+                by=u,
+                request=request,
+                description=f"Approved on behalf of R.O. by {u}")
+            applications.append(a)
+
+        bulk_update_with_history(
+            applications,
+            models.Application,
+            default_user=u,
+            fields=["state", "state_changed_at"],
+            default_change_reason=f"Approved on behalf of R.O. by {u}"
+        )
+        messages.success(request, f"{submitted_count} approved: {','.join(a.number for a in applications)}.")
+
+    @admin.action(description="Accept in bulk")
+    def accept(self, request, queryset):
+
+        if "do_action" in request.POST:
+            resolution = request.POST.get("resolution")
+            count = queryset.count()
+            approved = queryset.filter(state="approved")
+            approved_count = submitted.count()
+            if not approved_count:
+                messages.warning(request, "Only APPROVED applications can be accepted...")
+                return
+
+            u = request.user
+            applications = []
+            for a in submitted:
+                a.accept(
+                    by=u,
+                    request=request,
+                    description=resolution or f"Accepted by {u}")
+                applications.append(a)
+
+            bulk_update_with_history(
+                applications,
+                models.Application,
+                default_user=u,
+                fields=["state", "state_changed_at"],
+                default_change_reason=resolution or f"Accepted by {u}"
+            )
+            messages.success(request, f"{submitted_count} accepted: {','.join(a.number for a in applications)}.")
+
+        return render(
+            request,
+            "action_resolution.html",
+            {
+                "title": "Resolution or notes",
+                "objects": queryset,
+                "action_label": self.get_action("accept")[-1],
+            },
+        )
+
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
         invitation_count = models.invite_referees(
@@ -1613,6 +1680,8 @@ class ApplicationAdmin(
         return form
 
     actions = [
+        "approve",
+        "accept",
         "initialize_contracts",
         "invite_referees",
         refresh_page_counts,
