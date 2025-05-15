@@ -75,6 +75,18 @@ djhacker.formfield(
 #     )
 
 djhacker.formfield(
+    models.ApplicationDocument.required_document,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="required-document-autocomplete",
+        forward=[
+            dal.forward.Field("round", "round"),
+            dal.forward.Field("scheme", "scheme"),
+        ],
+    ),
+)
+
+djhacker.formfield(
     models.RoundDocumentTemplate.document_type,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(
@@ -1583,10 +1595,7 @@ class ApplicationAdmin(
         u = request.user
         applications = []
         for a in submitted:
-            a.approve(
-                by=u,
-                request=request,
-                description=f"Approved on behalf of R.O. by {u}")
+            a.approve(by=u, request=request, description=f"Approved on behalf of R.O. by {u}")
             applications.append(a)
 
         bulk_update_with_history(
@@ -1594,29 +1603,27 @@ class ApplicationAdmin(
             models.Application,
             default_user=u,
             fields=["state", "state_changed_at"],
-            default_change_reason=f"Approved on behalf of R.O. by {u}"
+            default_change_reason=f"Approved on behalf of R.O. by {u}",
         )
-        messages.success(request, f"{submitted_count} approved: {','.join(a.number for a in applications)}.")
+        messages.success(
+            request, f"{submitted_count} approved: {','.join(a.number for a in applications)}."
+        )
 
     @admin.action(description="Accept in bulk")
     def accept(self, request, queryset):
 
         if "do_action" in request.POST:
             resolution = request.POST.get("resolution")
-            count = queryset.count()
             approved = queryset.filter(state="approved")
-            approved_count = submitted.count()
+            approved_count = approved.count()
             if not approved_count:
                 messages.warning(request, "Only APPROVED applications can be accepted...")
                 return
 
             u = request.user
             applications = []
-            for a in submitted:
-                a.accept(
-                    by=u,
-                    request=request,
-                    description=resolution or f"Accepted by {u}")
+            for a in approved:
+                a.accept(by=u, request=request, description=resolution or f"Accepted by {u}")
                 applications.append(a)
 
             bulk_update_with_history(
@@ -1624,9 +1631,11 @@ class ApplicationAdmin(
                 models.Application,
                 default_user=u,
                 fields=["state", "state_changed_at"],
-                default_change_reason=resolution or f"Accepted by {u}"
+                default_change_reason=resolution or f"Accepted by {u}",
             )
-            messages.success(request, f"{submitted_count} accepted: {','.join(a.number for a in applications)}.")
+            messages.success(
+                request, f"{approved_count} accepted: {','.join(a.number for a in applications)}."
+            )
 
         return render(
             request,
@@ -2854,7 +2863,7 @@ class RoundAdmin(
     StaffPermsMixin,
     OrderableAdmin,
     TranslationAdmin,
-    SimpleHistoryAdmin
+    SimpleHistoryAdmin,
 ):
     summernote_fields = (
         "description_en",
@@ -2884,7 +2893,13 @@ class RoundAdmin(
         "site",
     ]
     search_fields = ["title", "scheme__code"]
-    actions = ["create_new_round", "invite_referees", "sync_referee_surveys", "copy_round", "make_current"]
+    actions = [
+        "create_new_round",
+        "invite_referees",
+        "sync_referee_surveys",
+        "copy_round",
+        "make_current",
+    ]
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
@@ -3112,19 +3127,22 @@ class RoundAdmin(
             s = r.scheme
             if s.current_round != r:
                 if s in schemes:
-                    messages.warning(request, f"The scheme {s} is already changes; its current round is {s.current_round} "
-                                     "(one of the selected rounds)")
+                    messages.warning(
+                        request,
+                        f"The scheme {s} is already changes; its current round is {s.current_round} "
+                        "(one of the selected rounds)",
+                    )
                 s.current_round = r
-                s._change_reason = (
-                    f"Round {r} marked as currnt round of {s} by {request.user}"
-                )
+                s._change_reason = f"Round {r} marked as currnt round of {s} by {request.user}"
                 schemes.append(s)
         if schemes:
             models.Scheme.all_objects.bulk_update(
                 schemes,
                 ["current_round"],
             )
-            messages.success(request, f"The scheme(s) {', '.join(str(s) for s in schemes)} were/was updated.")
+            messages.success(
+                request, f"The scheme(s) {', '.join(str(s) for s in schemes)} were/was updated."
+            )
         else:
             messages.warning(request, "No round was updated...")
 

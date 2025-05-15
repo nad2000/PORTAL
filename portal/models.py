@@ -7447,7 +7447,15 @@ class ApplicationDocument(PdfFileMixin, Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.document_type}: {os.path.basename(self.file.name)}"
+        if self.document_type_id:
+            return f"{self.document_type}: {os.path.basename(self.file.name)}"
+        elif self.required_document and self.file:
+            return f"{self.required_document}: {os.path.basename(self.file.name)}"
+        elif self.file:
+            return os.path.basename(self.file.name)
+        elif self.required_document:
+            return f"{self.required_document}"
+        return "N/A"
 
     class Meta:
         db_table = "application_document"
