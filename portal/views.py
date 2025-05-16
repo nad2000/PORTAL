@@ -9678,7 +9678,7 @@ class NominationExportView(ExportView, NominationDetail):
                 "/Author": obj.nominator.full_name_with_email,
                 "/Subject": f"Nomination of {obj.user} for {obj.round} by {obj.nominator}",
                 "/Number": f"{obj.pk}",
-                # "/URL": obj.get_full_detail_url(request=self.request),
+                "/URL": obj.get_full_detail_url(request=self.request),
             }
         )
         return metadata
