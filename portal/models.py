@@ -6289,6 +6289,16 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
 
     @property
+    def code(self):
+        if self.opens_on:
+            yy = f"{self.opens_on.year:02d}"
+        elif self.closes_at:
+            yy = f"{self.closes_at.year:02d}"
+        else:
+            yy = f"{timezone.now().year:02d}"
+        return f"{self.scheme.code}{yy}"
+
+    @property
     def previous_round(self):
         return self._meta.model.where(scheme=self.scheme).order_by("-id").first()
 

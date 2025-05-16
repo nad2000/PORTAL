@@ -8,6 +8,7 @@ import environ
 from django.conf.locale import LANG_INFO
 from multisite import SiteID
 from simple_history.models import HistoricalChanges
+from django.contrib.admin import RelatedOnlyFieldListFilter
 
 ROOT_DIR = Path(__file__).parents[2]
 # portal/)
@@ -122,6 +123,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.sites",
     "multisite",
+    # "redirects",
+    "django.contrib.redirects",
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
@@ -174,6 +177,8 @@ INSTALLED_APPS = [
     "taggit",
     "admin_ordering",
     "easyaudit",
+    # "dalf",
+    # "autocompletefilter",
 ]
 
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
@@ -236,6 +241,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     "multisite.middleware.CookieDomainMiddleware",
+    "django.contrib.redirects.middleware.RedirectFallbackMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -358,7 +364,7 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = "None"
-CSRF_FAILURE_VIEW = 'portal.views.csrf_failure'
+CSRF_FAILURE_VIEW = "portal.views.csrf_failure"
 SESSION_COOKIE_SAMESITE = "None"
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
@@ -552,6 +558,22 @@ DJANGO_EASY_AUDIT_UNREGISTERED_URLS_DEFAULT = [
     "^/summernote",
     "^/status",
     "^/autocomplete",
+]
+DJANGO_EASY_AUDIT_CRUD_EVENT_LIST_FILTER = [
+    "event_type",
+    ("content_type", RelatedOnlyFieldListFilter),
+    ("user", RelatedOnlyFieldListFilter),
+    "datetime",
+]
+DJANGO_EASY_AUDIT_LOGIN_EVENT_LIST_FILTER = [
+    "login_type",
+    ("user", RelatedOnlyFieldListFilter),
+    "datetime",
+]
+DJANGO_EASY_AUDIT_REQUEST_EVENT_LIST_FILTER = [
+    "method",
+    ("user", RelatedOnlyFieldListFilter),
+    "datetime",
 ]
 
 

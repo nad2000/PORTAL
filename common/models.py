@@ -1,17 +1,20 @@
-import copy
 import base64
+import copy
+
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.sites.models import Site
 from django.core import checks, validators
 from django.db import connection, connections, models, router
 from django.db.models import CharField, DateTimeField, EmailField, ForeignObjectRel
 from django.db.models import Model as Base
 from django.db.models.functions import Lower
-from django.urls import reverse
-from django.utils.functional import cached_property
-from model_utils import Choices
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.functional import cached_property
+from django.utils.safestring import mark_safe
+from model_utils import Choices
 
 EmailField.register_lookup(Lower)
 
@@ -87,6 +90,17 @@ class HelperMixin:
             model.objects.bulk_create(related)
 
         return clone
+
+    @admin.display(description="State", empty_value="N/A")
+    def STATE(self):
+        if hasattr(self, "state") and self.state:
+            if self.state_changed_at:
+                sca = self.state_changed_at.strftime("%d-%m-%Y %H:%m")
+                return mark_safe(
+                    f"""<b title="State changed at {sca}">{self.get_state_display().upper()}</b> ({sca})"""
+                )
+            return mark_safe(f"<b>{self.get_state_display().upper()}</b>")
+        return ""
 
     @property
     def thread_index(self):
@@ -164,13 +178,11 @@ class Model(TimeStampMixin, HelperMixin, Base):
     @property
     def detail_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
-        try:
-            return reverse(f"{model_name_slug}-detail", args=[str(self.number)])
-        except:
-            try:
-                return reverse(f"{model_name_slug}-detail", args=[str(self.code)])
-            except:
-                return reverse(model_name_slug, args=[str(self.pk)])
+        if hasattr(self, "number") and (number := self.number):
+            return reverse(f"{model_name_slug}-detail", args=[str(number)])
+        elif hasattr(self, "code") and (code := self.code):
+            return reverse(f"{model_name_slug}-detail", args=[str(code)])
+        return reverse(model_name_slug, args=[str(self.pk)])
 
     def get_full_detail_url(self, request=None):
         url = self.detail_url

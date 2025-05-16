@@ -656,7 +656,7 @@ urlpatterns = [
                 ),
                 path("~create", views.NominationView.as_view(), name="nomination-new"),
                 path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
-                path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
+                path("<int:pk>/~export", views.NominationExportView.as_view(), name="nomination-export"),
                 path("<int:pk>", views.NominationDetail.as_view(), name="nomination-detail"),
                 path("draft", views.NominationList.as_view(), name="nominations-draft"),
                 path("submitted", views.NominationList.as_view(), name="nominations-submitted"),

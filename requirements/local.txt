@@ -1,4 +1,4 @@
--r ./testing.txt
+-r testing.txt
 
 Werkzeug>=1.0.0 # https://github.com/pallets/werkzeug
 ipdb>=0.13.2  # https://github.com/gotcha/ipdb

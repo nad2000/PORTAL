@@ -18,11 +18,11 @@ from . import models, serializers
 class AffiliationViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericViewSet):
     serializer_class = serializers.AffiliationSerializer
     queryset = models.Affiliation.objects.all()
-    lookup_field = "profile"
+    lookup_field = "person"
 
     def get_queryset(self, *args, **kwargs):
-        if self.request.user.profile:
-            return self.queryset.filter(profile=self.request.user.profile)
+        if self.request.user.person:
+            return self.queryset.filter(person=self.request.user.person)
         return models.Affiliation.objects.none()
 
 

@@ -9665,6 +9665,62 @@ class RoundExportView(ExportView):
         #     return redirect(self.request.META.get("HTTP_REFERER"))
 
 
+class NominationExportView(ExportView, NominationDetail):
+    """Nomination PDF export view"""
+
+    model = models.Nomination
+
+    def get_metadata(self, pk):
+        obj = self.model.get(pk)
+        metadata = super().get_metadata(pk)
+        metadata.update(
+            {
+                "/Author": obj.nominator.full_name_with_email,
+                "/Subject": f"Nomination of {obj.user} for {obj.round} by {obj.nominator}",
+                "/Number": f"{obj.pk}",
+                # "/URL": obj.get_full_detail_url(request=self.request),
+            }
+        )
+        return metadata
+
+    def get_filename(self, pk):
+        obj = self.model.get(pk)
+        return f"{obj.round.code}-{obj.user and obj.user.full_name_with_email or obj.email}"
+
+    def test_func(self):
+        u = self.request.user
+        # staff, superuser, or a panellist of the round
+        return (
+            u.is_staff
+            or u.is_superuser
+            or u.is_site_staff
+            or (
+                "pk" in self.kwargs
+                and (t := get_object_or_404(self.model, pk=self.kwargs["pk"]))
+                and t.nominator == u
+            )
+        )
+
+    def get_attachments(self, pk):
+        obj = self.model.get(id=pk)
+        attachments = []
+        if obj.file:
+            attachments.append(
+                (
+                    f"{obj} {_('Form')}",
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(obj.pdf_file),
+                )
+            )
+        if cv := obj.cv or models.CurriculumVitae.last_user_cv(obj.nominator):
+            attachments.append(
+                (
+                    f"{cv} {_('Curriculum Vitae')}",
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
+                )
+            )
+        return attachments
+
+
 class TestimonialExportView(ExportView, TestimonialDetail):
     """Testimonial PDF export view"""
 
