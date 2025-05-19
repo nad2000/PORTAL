@@ -1207,7 +1207,8 @@ def index(request):
         if site_id not in [2, 4, 5, 7] or not (user.is_superuser or user.is_site_staff):
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
-                round__in=models.Scheme.objects.values("current_round"),
+                round__scheme__current_round=F("round"),
+                # round__in=models.Scheme.objects.values("current_round"),
             )
             if applications.count() < 7:
                 draft_applications = applications

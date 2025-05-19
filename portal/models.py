@@ -3596,7 +3596,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 ),
             )
         )
-        if Panellist.where(user=user).exists():
+        if Panellist.where(user=user, round__scheme__current_round=F("round")).exists():
             f = f | Q(
                 round__panellists__user=user,
                 conflict_of_interests__panellist__user=user,

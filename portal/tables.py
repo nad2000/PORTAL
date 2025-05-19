@@ -296,6 +296,22 @@ class ApplicationTable(tables.Table):
             "td": {"class": "text-center"},
         },
     )
+    admin = tables.LinkColumn(
+        "admin:portal_application_change",
+        args=[tables.A("pk")],
+        text=gettext_lazy("Open"),
+        verbose_name="In Admin",
+        orderable=False,
+        attrs={
+            "a": {
+                "class": "btn btn-primary btn-sm",
+                "target": "_blank",
+                "data-toggle": "tooltip",
+                "title": "Open the application in the admin",
+            },
+            "td": {"class": "text-center"},
+        },
+    )
     current_contract = SafeTemplateColumn(
         verbose_name=gettext_lazy("Contract"),
         template_name="partials/current_contract.html",
@@ -353,6 +369,7 @@ class ApplicationTable(tables.Table):
             self.columns.hide("current_contract")
         if (u := request.user) and not u.is_superuser and not u.is_staff:
             self.columns.hide("export")
+            self.columns.hide("admin")
             self.columns.hide("current_contract")
         if not models.Round.where(
             scheme__current_round=models.F("pk"), can_specify_panel=True
@@ -405,6 +422,7 @@ class ApplicationTable(tables.Table):
             "last_name",
             "panel",
             "export",
+            "admin",
             # "contract",
         )
 
