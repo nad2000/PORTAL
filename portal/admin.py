@@ -2,6 +2,7 @@ import os
 from functools import cache
 
 import dal
+import django
 import djhacker
 import modeltranslation
 from admin_ordering.admin import OrderableAdmin
@@ -11,18 +12,23 @@ from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse
+from django.urls import NoReverseMatch
 from django.utils import timezone
+from django.utils.datastructures import OrderedSet
 from django.utils.html import format_html, html_safe
 from django.utils.safestring import mark_safe
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
+from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
 from import_export import fields
 from import_export.admin import (
@@ -37,12 +43,13 @@ from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
-from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
+
+from . import models
+
 # from dalf.admin import DALFModelAdmin, DALFRelatedOnlyField, DALFRelatedFieldAjax
 # from autocompletefilter.admin import AutocompleteFilterMixin
 # from autocompletefilter.filters import AutocompleteListFilter
 
-from . import models
 
 djhacker.formfield(
     models.Organisation.signatory,
@@ -271,8 +278,139 @@ class FSMTransitionMixin(FSMTransitionMixin):
         js = (JSPath(),)
 
 
+class AutocompleteFilterMixin:
+    @property
+    def media(self):
+        media = super().media
+
+        i18n_file = None
+        i18n_name = SELECT2_TRANSLATIONS.get(get_language(), None)
+        if i18n_name:
+            i18n_file = "admin/js/vendor/select2/i18n/%s.js" % i18n_name
+
+        extra_js = [
+            "admin/js/vendor/jquery/jquery.js",
+            "admin/js/vendor/select2/select2.full.js",
+        ]
+        if i18n_file:
+            extra_js.append(i18n_file)
+        extra_js.extend(
+            [
+                "admin/js/jquery.init.js",
+                "admin/js/autocomplete.js",
+                # "admin/js/autocomplete_filter.js",  #  moved to the change_list.html
+            ]
+        )
+        extra_css = [
+            "admin/css/vendor/select2/select2.css",
+            "admin/css/autocomplete.css",
+        ]
+        if django.VERSION >= (2, 2, 0, "final", 0):
+            media._js_lists.append(extra_js)
+            media._css_lists.append({"screen": extra_css})
+        else:
+            media._js = OrderedSet(extra_js + media._js)
+            media._css.setdefault("screen", [])
+            media._css["screen"].extend(extra_css)
+        return media
+
+
 class StateLogInline(StateLogInline):
     classes = ["collapse"]
+
+
+def get_request():
+    """Walk the stack up to find a request in a context variable."""
+    import inspect
+
+    frame = None
+    try:
+        for f in inspect.stack()[1:]:
+            frame = f[0]
+            code = frame.f_code
+            if code.co_varnames and "context" in code.co_varnames:
+                return frame.f_locals["context"]["request"]
+    finally:
+        del frame
+
+
+class AutocompleteListFilter(admin.RelatedFieldListFilter):
+    """Admin list_filter using autocomplete select 2 widget."""
+
+    template = "admin/filter_autocomplete.html"
+
+    def has_output(self):
+        """Show the autocomplete filter at all times."""
+        return True
+
+    @staticmethod
+    def get_admin_namespace():
+        request = get_request()
+        return request.resolver_match.namespace
+
+    def get_url(self):
+        if django.VERSION > (3, 2):
+            return self.get_generic_url()
+
+        remote_model = self.field.related_model
+        args = (
+            self.get_admin_namespace(),
+            remote_model._meta.app_label,
+            remote_model._meta.model_name,
+        )
+        return reverse("%s:%s_%s_autocomplete" % args)
+
+    def get_generic_url(self):
+        try:
+            return reverse("admin:autocomplete")
+        except NoReverseMatch:
+            pass
+
+        namespace = self.get_admin_namespace()
+        return reverse("%s:autocomplete" % namespace)
+
+    def field_choices(self, field, request, model_admin):
+        # Do not populate the field choices with a huge queryset
+        return []
+
+    def choices(self, changelist):
+        """
+        Get choices for the widget.
+
+        Yields a single choice populated with template context variables.
+
+        """
+        url = self.get_url()
+
+        placeholder = "PKVAL"
+        query_string = changelist.get_query_string(
+            {self.lookup_kwarg: placeholder}, [self.lookup_kwarg_isnull]
+        )
+
+        lookup_display = None
+        if self.lookup_val:
+            if django.VERSION >= (5, 0):
+                instance = self.field.related_model.objects.get(pk=self.lookup_val[-1])
+            else:
+                instance = self.field.related_model.objects.get(pk=self.lookup_val)
+            lookup_display = str(instance)
+
+        model = self.field.model
+
+        yield {
+            "url": url,
+            "selected": self.lookup_val,
+            "selected_display": lookup_display,
+            "query_string": query_string,
+            "query_string_placeholder": placeholder,
+            "query_string_all": changelist.get_query_string(
+                {}, [self.lookup_kwarg, self.lookup_kwarg_isnull]
+            ),
+            # Data attrs required for Django 3.2+
+            "app_label": model._meta.app_label,
+            "model_name": model._meta.model_name,
+            "field_name": self.field.name,
+        }
 
 
 class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
@@ -498,11 +636,14 @@ class ReportingScheduleEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.Address)
-class AddressAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, HistoryAdmin):
+class AddressAdmin(
+    StaffPermsMixin, ImportExportMixin, ExportActionMixin, AutocompleteFilterMixin, HistoryAdmin
+):
     view_on_site = False
     save_on_top = True
     list_display = ["address", "city", "country"]
-    list_filter = [("country", admin.RelatedOnlyFieldListFilter)]
+    # list_filter = [("country", admin.RelatedOnlyFieldListFilter)]
+    list_filter = [("country", AutocompleteListFilter)]
     search_fields = ["address", "city", "country__name"]
     date_hierarchy = "created_at"
     autocomplete_fields = ["country"]
@@ -1632,7 +1773,7 @@ class ApplicationAdmin(
 
     @admin.action(description="Approve on behalf of R.O.")
     def approve(self, request, queryset):
-        count = queryset.count()
+        # count = queryset.count()
         submitted = queryset.filter(state="submitted")
         submitted_count = submitted.count()
         if not submitted_count:
@@ -3390,9 +3531,7 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
 
 @admin.register(models.Contract)
-class ContractAdmin(
-    StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin
-):
+class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin):
     summernote_fields = (
         "abstract",
         "notes",
