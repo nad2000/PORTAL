@@ -563,6 +563,7 @@ DJANGO_EASY_AUDIT_CRUD_EVENT_LIST_FILTER = [
     "event_type",
     ("content_type", RelatedOnlyFieldListFilter),
     ("user", RelatedOnlyFieldListFilter),
+    # ("user", AutocompleteListFilter),
     "datetime",
 ]
 DJANGO_EASY_AUDIT_LOGIN_EVENT_LIST_FILTER = [
