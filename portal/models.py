@@ -3189,11 +3189,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     thread_index=self.thread_index,
         #     thread_topic=self.thread_topic,
         # )
-        messages.success(
-            request,
-            "Successfully sent notification to %s"
-            % ", ".join(u.full_name_with_email for u in recipients),
-        )
+        # messages.success(
+        #     request,
+        #     "Successfully sent notification to %s"
+        #     % ", ".join(u.full_name_with_email for u in recipients),
+        # )
 
     def can_be_funded(self):
         return (

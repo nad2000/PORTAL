@@ -3873,6 +3873,14 @@ class ApplicationDetail(DetailView):
                             "The application was approved. The applicant(s) and administrator(s) were notified."
                         ),
                     )
+            elif action == "accept":
+                a = self.object
+                if a.state != "accepted":
+                    a.accept(request)
+                    a.save()
+                    messages.success(request, _("The application was successfully accepted"))
+                else:
+                    messages.warning(request, _("The application was already accepted"))
 
         return redirect(request.path)
 
