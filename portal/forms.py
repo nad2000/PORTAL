@@ -78,11 +78,13 @@ class DateInput(forms.DateInput):
             attrs["data-date-start-date"] = start_date or "-80y"
         if "data-date-end-date" not in attrs:
             attrs["data-date-end-date"] = end_date or "+5y"
+        # if "data-date-format" not in attrs:
+        #     attrs["data-date-format"] = "yyyy-mm-dd"
 
         super().__init__(attrs=attrs, format=format)
 
 
-YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type": "text"})
+YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type": "text", "data-date-format": "yyyy"})
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input", "type": "file"})
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input"})
 
