@@ -655,6 +655,7 @@ You have a request to review a {{ site_name }} application to act on.
           buttonsStyling: false
         });
         $(document).ready(function(){
+                  $.fn.datepicker.defaults.format = "yyyy-mm-dd";
                   // $.fn.select2.defaults.set("theme", "bootstrap4");
                   // Timezone settings
                   if (!document.cookie.includes("django_timezone=")) {
