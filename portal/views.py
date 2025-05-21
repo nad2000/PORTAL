@@ -6135,6 +6135,13 @@ class ContractViewMixin:
 
     extra_context = {"category": "contracts"}
 
+    def get_queryset(self):
+        u = self.request.user
+        qs = super().get_queryset()
+        if not (u.is_superuser or u.is_site_staff):
+            qs = qs.filter(Q(members__user=u) | Q(org__research_offices__user=u)).distinct()
+        return qs
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
