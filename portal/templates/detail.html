@@ -314,7 +314,7 @@
           event.preventDefault();
           event.stopPropagation();
           var el = event.target;
-           $("[name='action'],#id_action").val(el.dataset["action"]||el.name);
+          $("[name='action'],#id_action").val(el.dataset["action"]||el.name);
           $('#id_commit_button').text(el.value||el.outerText||'{% trans "Commit" %}');
           $('#id_resolution_modal').modal('show');
           $('#id_resolution').trigger('focus');

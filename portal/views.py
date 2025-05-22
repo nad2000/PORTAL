@@ -9206,6 +9206,7 @@ class NominationDetail(DetailView):
 
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
+        return_url = request.POST.get("return_url")
         if action == "withdraw":
             n = self.object = self.get_object()
             state = n.state
@@ -9226,16 +9227,29 @@ class NominationDetail(DetailView):
                 a.save()
                 messages.info(request, f"The application {a} has been cancelled.")
 
+            if return_url:
+                return redirect(return_url)
             if not state or state in ["new", "draft"]:
                 return redirect("nominations-draft")
             if state == "submitted":
                 return redirect("nominations-submitted")
             if state == "accepted":
                 return redirect("nominations-accepted")
-            return redirect("nominations")
+        return redirect(return_url or "nominations")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        if not (return_url := self.request.META.get("HTTP_REFERER")):
+            state = self.object.state
+            if not state or state in ["new", "draft"]:
+                return_url = "nominations-draft"
+            elif state == "submitted":
+                return_url = "nominations-submitted"
+            elif state == "accepted":
+                return_url = "nominations-accepted"
+            else:
+                return_url = "nominations"
+        context["return_url"] = return_url
         context["category"] = "nominations"
         context["exclude"] = [
             "id",
@@ -9245,7 +9259,7 @@ class NominationDetail(DetailView):
         ]
         if self.can_start_applying:
             context["start_applying"] = reverse(
-                "nomination-application-create", kwargs=dict(nomination=self.object.id)
+                "nomination-application-create", kwargs=dict(nomination=self.object.pk)
             )
         return context
 
@@ -9288,6 +9302,7 @@ class TestimonialDetail(DetailView):
         referee = t.referee
         a = referee.application
         r = a and a.round or referee.application.round
+
 
         testimonial_submission_closes_at = r and r.testimonial_submission_closes_at
         if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
