@@ -84,7 +84,16 @@ class DateInput(forms.DateInput):
         super().__init__(attrs=attrs, format=format)
 
 
-YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type": "text", "data-date-format": "yyyy"})
+YearInput = partial(
+    DateInput,
+    attrs={
+        "class": "form-control yearpicker",
+        "type": "text",
+        "data-date-format": "yyyy",
+        "data-date-view-mode": "years",
+        "data-date-min-view-mode": "years",
+    },
+)
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input", "type": "file"})
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input"})
 

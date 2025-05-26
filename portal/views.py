@@ -7457,7 +7457,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 )
                 return redirect(request.path_info)
 
-        if hasattr(formset, "deleted_objects"):
+        if getattr(formset, "deleted_objects", 0):
             if len(formset.deleted_objects) == 1:
                 messages.info(
                     request,
@@ -7627,7 +7627,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
     def get_queryset(self):
         # if there is an invitation or nomination reuse it:
         p = self.request.user.person
-        q = p.employments.all()
+        q = p.affiliations.all()
         if not q.count() > 0:
             data = (
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
