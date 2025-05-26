@@ -4735,7 +4735,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 "and enter a new referee.</p>"
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipients=[(a.submitted_by.email if a.submitted_by else a.email)],
+            recipients=[a.submitted_by.email if a.submitted_by else a.email],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -6785,7 +6785,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def user_nominations(self, user):
         return Nomination.where(
-            Q(user=user) | Q(email__in=user.emailaddress_set.values_list("email__lower")),
+            Q(user=user)
+            | Q(
+                email__in=user.emailaddress_set.values_list("email__lower")
+                | Q(org__research_offices__user=user)
+            ),
             state__in=["submitted", "accepted"],
             round=self,
         )

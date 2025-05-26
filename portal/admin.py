@@ -2321,7 +2321,13 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
 
     list_display = ["round", "nominee_name", "nominator_name", "application"]
     date_hierarchy = "created_at"
-    list_filter = ["created_at", "updated_at", "round", "state"]
+    list_filter = [
+        "created_at",
+        "updated_at",
+        "round",
+        "state",
+        ("org", admin.RelatedOnlyFieldListFilter),
+    ]
     search_fields = [
         "email",
         "first_name",
