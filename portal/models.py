@@ -8130,6 +8130,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         include_inactive=False,
         request=None,
         queryset=None,
+        exclude_states=None,
     ):
         q = queryset or cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
@@ -8157,6 +8158,8 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 q = q.filter(state__in=state)
             else:
                 q = q.filter(state=state)
+        if exclude_states:
+            q = q.filter(~Q(state__in=exclude_states))
 
         return q
 
@@ -8167,11 +8170,18 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         ).count()
 
     @classmethod
-    def user_nomination_counts(cls, user, state=None, round=None, request=None):
+    def user_nomination_counts(
+        cls, user, state=None, round=None, request=None, exclude_states=None
+    ):
         return (
             cls.where(
                 pk__in=cls.user_nominations(
-                    user=user, state=state, round=round, select_related=False, request=request
+                    user=user,
+                    state=state,
+                    round=round,
+                    select_related=False,
+                    request=request,
+                    exclude_states=exclude_states,
                 ).values("pk")
             )
             .values_list("state")

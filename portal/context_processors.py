@@ -69,10 +69,19 @@ def portal_context(request):
                 + application_funded_count
                 + application_in_review_count
             )
-            counts = {s: c for s, c in models.Nomination.user_nomination_counts(u, request=request)}
+            counts = {
+                s: c
+                for s, c in models.Nomination.user_nomination_counts(
+                    u, request=request, exclude_states=["bounced", "sent", "withdrawn"]
+                )
+            }
             counts = {
                 "total": sum(counts.values()),
-                **{s: counts.get(s, 0) for (s, _) in models.Nomination.STATES},
+                **{
+                    s: counts.get(s, 0)
+                    for (s, _) in models.Nomination.STATES
+                    if s not in ["bounced", "sent", "withdrawn"]
+                },
             }
             nomination_counts = counts
             cached_context = {
