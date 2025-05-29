@@ -8121,7 +8121,66 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         pass
 
     @classmethod
-    def user_nomination_count(cls, user, state=None):
+    def user_nominations(
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        include_inactive=False,
+        request=None,
+        queryset=None,
+    ):
+        q = queryset or cls.objects.all()
+        # q = cls.where(round__site=Site.objects.get_current())
+        if not user and request:
+            user = request.user
+
+        if select_related:
+            prefetch_related_objects(q, "round")
+
+        if not (user.is_superuser or user.is_staff or user.is_site_staff):
+            # if not state or (state == "submitted" or "submitted" in state):
+            q = q.filter(
+                Q(nominator=user)
+                | Q(nominator__research_offices__user=user)
+                | Q(
+                    Q(Q(user=user) | Q(email=user.email)),
+                    state="submitted",
+                )
+            ).distinct()
+        if not include_inactive:
+            q = q.filter(round__scheme__current_round=F("round"))
+
+        if state:
+            if isinstance(state, (list, tuple)):
+                q = q.filter(state__in=state)
+            else:
+                q = q.filter(state=state)
+
+        return q
+
+    @classmethod
+    def user_nomination_count(cls, user, state=None, round=None, request=None):
+        return cls.user_nominations(
+            user=user, state=state, round=round, select_related=False, request=request
+        ).count()
+
+    @classmethod
+    def user_nomination_counts(cls, user, state=None, round=None, request=None):
+        return (
+            cls.where(
+                pk__in=cls.user_nominations(
+                    user=user, state=state, round=round, select_related=False, request=request
+                ).values("pk")
+            )
+            .values_list("state")
+            .annotate(total=Count("state"))
+            .order_by()
+        )
+
+    @classmethod
+    def __user_nomination_count(cls, user, state=None):
         sql = """
             SELECT count(*) AS "count"
             FROM nomination AS n JOIN scheme AS s

@@ -69,6 +69,12 @@ def portal_context(request):
                 + application_funded_count
                 + application_in_review_count
             )
+            counts = {s: c for s, c in models.Nomination.user_nomination_counts(u, request=request)}
+            counts = {
+                "total": sum(counts.values()),
+                **{s: counts.get(s, 0) for (s, _) in models.Nomination.STATES},
+            }
+            nomination_counts = counts
             cached_context = {
                 "is_staff": is_staff,
                 "is_site_staff": is_staff,
@@ -78,14 +84,12 @@ def portal_context(request):
                 "application_submitted_count": application_submitted_count,
                 "application_accepted_count": application_accepted_count,
                 "application_funded_count": application_funded_count,
-                "nomination_count": models.Nomination.user_nomination_count(u),
-                "nomination_draft_count": models.Nomination.user_nomination_count(u, "draft"),
-                "nomination_submitted_count": models.Nomination.user_nomination_count(
-                    u, "submitted"
-                ),
-                "nomination_accepted_count": models.Nomination.user_nomination_count(
-                    u, "accepted"
-                ),
+                "nomination_counts": nomination_counts,
+                "nomination_count": nomination_counts.get("total", 0),
+                "nomination_draft_count": nomination_counts.get("new", 0)
+                + nomination_counts.get("draft", 0),
+                "nomination_submitted_count": nomination_counts.get("submitted", 0),
+                "nomination_accepted_count": nomination_counts.get("accepted", 0),
                 "testimonial_count": models.Testimonial.user_testimonial_count(u),
                 "testimonial_draft_count": models.Testimonial.user_testimonial_count(u, "draft"),
                 "testimonial_submitted_count": models.Testimonial.user_testimonial_count(
@@ -112,14 +116,16 @@ def portal_context(request):
             # else:
             #     cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
 
+            counts = {s: c for s, c in models.Report.user_object_counts(u, request=request)}
             counts = {
-                s: c for s, c in models.Report.user_object_counts(u, request=request)
+                "total": sum(counts.values()),
+                **{s: counts.get(s, 0) for (s, _) in models.Report.STATES},
             }
-            counts = {"total": sum(counts.values()), **{s: counts.get(s, 0) for (s, _) in models.Report.STATES}}
             cached_context["report_counts"] = counts
 
             counts = [
-                (s, c, models.Contract.STATES[s]) for s, c in models.Contract.user_object_counts(u, request=request)
+                (s, c, models.Contract.STATES[s])
+                for s, c in models.Contract.user_object_counts(u, request=request)
             ]
             total = sum(i[1] for i in counts)
             counts.append(("total", total, gettext_lazy("Total")))
@@ -128,7 +134,8 @@ def portal_context(request):
 
             if is_ro or u.is_superuser or is_staff:
                 counts = [
-                    (s, c, models.ChangeRequest.STATES[s]) for s, c in models.ChangeRequest.user_object_counts(u, request=request)
+                    (s, c, models.ChangeRequest.STATES[s])
+                    for s, c in models.ChangeRequest.user_object_counts(u, request=request)
                 ]
                 total = sum(i[1] for i in counts)
                 counts.append(("total", total, gettext_lazy("Total")))

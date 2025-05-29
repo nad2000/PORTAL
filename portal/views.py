@@ -9136,25 +9136,12 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Fil
         return context
 
     def get_queryset(self, *args, **kwargs):
-        queryset = super().get_queryset(*args, **kwargs)
-        u = self.request.user
+        qs = super().get_queryset(*args, **kwargs)
         state = self.request.path.split("/")[-1]
-        if not (u.is_superuser or u.is_staff or u.is_site_staff):
-            # if not state or (state == "submitted" or "submitted" in state):
-            queryset = queryset.filter(
-                Q(nominator=u)
-                | Q(nominator__research_offices__user=u)
-                | Q(
-                    Q(Q(user=u) | Q(email=u.email)),
-                    state="submitted",
-                )
-            ).distinct()
-        queryset = queryset.filter(round__scheme__current_round=F("round"))
+        u = self.request.user
         if state == "draft":
-            queryset = queryset.filter(state__in=[state, "new"])
-        elif state in ["submitted", "accepted"]:
-            queryset = queryset.filter(state=state)
-        return queryset
+            state = [state, "new"]
+        return self.model.user_nominations(user=u, request=self.request, state=state, queryset=qs)
 
 
 class NominationDetail(DetailView):
@@ -9302,7 +9289,6 @@ class TestimonialDetail(DetailView):
         referee = t.referee
         a = referee.application
         r = a and a.round or referee.application.round
-
 
         testimonial_submission_closes_at = r and r.testimonial_submission_closes_at
         if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
