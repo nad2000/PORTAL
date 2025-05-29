@@ -3021,7 +3021,7 @@ class RoundAdmin(
     def get_list_display(self, request):
         ld = super().get_list_display(request)
         if (
-            "survey_id" not in ld
+            "survey" not in ld
             and (qs := self.get_queryset(request))
             and qs.filter(Q(survey_id__isnull=False), ~Q(survey_id=0)).exists()
         ):
