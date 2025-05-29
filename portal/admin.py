@@ -2995,7 +2995,7 @@ class RoundAdmin(
     list_display = [
         "scheme__code",
         "coloured_title",
-        "scheme",
+        # "scheme",
         "opens_on",
         "closes_at",
         "contract_count",
@@ -3017,6 +3017,17 @@ class RoundAdmin(
         "copy_round",
         "make_current",
     ]
+
+    def get_list_display(self, request):
+        ld = super().get_list_display(request)
+        if (
+            "survey_id" not in ld
+            and (qs := self.get_queryset(request))
+            and qs.filter(Q(survey_id__isnull=False), ~Q(survey_id=0)).exists()
+        ):
+            ld.insert(ld.index("contract_count"), "survey")
+            # del ld[ld.index("scheme")]
+        return ld
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
@@ -3324,29 +3335,39 @@ class RoundAdmin(
 
     is_active.boolean = True
 
+    @admin.display(description=_("survey"), ordering="survey_id")
+    def survey(self, obj):
+        if (survey_id := obj.survey_id) and (server_url := obj.survey_server_url):
+            return mark_safe(
+                f'<a href="{server_url}/surveyAdministration/view?iSurveyID={survey_id}&allowRedirect=1" '
+                f'target="_bland">{survey_id}</a>'
+            )
+
     @admin.display(description=_("tittle"), ordering="title")
     def coloured_title(self, obj):
-        if obj.foreground or obj.background:
+        title = obj.title or obj.scheme.title
+        if obj.background or obj.foreground and obj.foreground != 'colour':
             if obj.foreground and obj.background:
                 return format_html(
                     '<span style="background-color: {}; color: {};">{}</span>',
                     obj.background,
                     obj.foreground,
-                    obj.title,
+                    title,
                 )
-            elif obj.foreground:
+            elif obj.foreground and obj.foreground != 'colour':
                 return format_html(
                     '<span color: {};">{}</span>',
                     obj.foreground,
-                    obj.title,
+                    title,
                 )
             else:
                 return format_html(
-                    '<span style="background-color: {}; color: white;">{}</span>',
+                    # '<span style="background-color: {}; color: white;">{}</span>',
+                    '<span style="background-color: {};">{}</span>',
                     obj.background,
-                    obj.title,
+                    title,
                 )
-        return obj.title
+        return title
 
     def view_on_site(self, obj):
         return f"{reverse('applications')}?round={obj.id}"
