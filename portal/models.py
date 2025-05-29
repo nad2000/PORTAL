@@ -4544,10 +4544,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @cached_property
     def survey_api(self):
-        api_url = self.application.round.survey_api_url
-        api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
-        api.open(password=settings.LIMESURVEY_API_PASSWORD)
-        return api
+        return self.application.round.survey_api
+
+    def activate_tokens(self, api=None):
+        return self.application.round.activate_tokens(api=api)
 
     def add_to_survey(self, api=None):
         # Inviation to participate in the survey:
@@ -4562,17 +4562,28 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not api:
                 api = self.survey_api
+            has_participant_table = None
             if not self.survey_token or not self.survey_token_id:
                 participant = {"email": self.email.lower()}
                 # api.query(method="list_participants",params={"sSessionKey": api.session_key, "iSurveyID": survey_id, "aConditions":{"email": "nad2000+r1@gmail.com"}})
-                resp = api.query(
-                    method="list_participants",
-                    params={
-                        "sSessionKey": api.session_key,
-                        "iSurveyID": survey_id,
-                        "aConditions": {"email": self.email.lower()},
-                    },
-                )
+                for _ in range(2):  # 2 attempts
+                    resp = api.query(
+                        method="list_participants",
+                        params={
+                            "sSessionKey": api.session_key,
+                            "iSurveyID": survey_id,
+                            "aConditions": {"email": self.email.lower()},
+                        },
+                    )
+                    if (
+                        not has_participant_table
+                        and isinstance(resp, dict)
+                        and resp.get("status") == "Error: No survey participants table"
+                    ):
+                        self.activate_tokens(api=api)
+                        has_participant_table = True
+                        continue
+                    break
                 if resp and isinstance(resp, list):
                     tid = resp[0]["tid"]
                     token = resp[0]["token"]
@@ -4586,7 +4597,22 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["lastname"] = self.last_name
                 token = self.survey_token or self.make_survey_token()
                 participant["token"] = token
-                resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
+
+                has_participant_table = None
+                for _ in range(2):  # 2 attempts
+                    resp = api.token.add_participants(
+                        survey_id, [participant], create_token_key=False
+                    )
+                    if (
+                        not has_participant_table
+                        and isinstance(resp, dict)
+                        and resp.get("status") == "Error: No survey participants table"
+                    ):
+                        self.activate_tokens(api=api)
+                        has_participant_table = True
+                        continue
+                    break
+
                 if not isinstance(resp, list):
                     limesurvey_status = resp.get("status")
                     raise Exception(
@@ -4618,6 +4644,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         if survey_id := self.application.round.survey_id:
             if not api:
                 api = self.survey_api
+            has_participant_table = None
 
             if not self.survey_token:
                 self.survey_token = self.make_survey_token()
@@ -4626,9 +4653,19 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not self.survey_token_id:
                 try:
-                    resp = api.token.get_participant_properties(
-                        survey_id, None, {"token": self.survey_token}
-                    )
+                    for _ in range(2):  # 2 attempts
+                        resp = api.token.get_participant_properties(
+                            survey_id, None, {"token": self.survey_token}
+                        )
+                        if (
+                            not has_participant_table
+                            and isinstance(resp, dict)
+                            and resp.get("status") == "Error: No survey participants table"
+                        ):
+                            self.activate_tokens(api=api)
+                            has_participant_table = True
+                            continue
+                        break
                     self.survey_token_id = resp.get("tid")
                     self.save(update_fields=["survey_token_id", "updated_at"])
                 except LimeSurveyError:
@@ -4636,20 +4673,28 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
 
             if self.survey_token_id:
-                api = self.survey_api
-                # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
-                resp = api.query(
-                    method="invite_participants",
-                    params=OrderedDict(
-                        [
-                            ("sSessionKey", api.session_key),
-                            ("iSurveyID", survey_id),
-                            ("aTokenIds", [self.survey_token_id]),
-                            ("bEmail", True),
-                            ("continueOnError", True),
-                        ]
-                    ),
-                )
+                for _ in range(2):  # 2 attempts
+                    resp = api.query(
+                        method="invite_participants",
+                        params=OrderedDict(
+                            [
+                                ("sSessionKey", api.session_key),
+                                ("iSurveyID", survey_id),
+                                ("aTokenIds", [self.survey_token_id]),
+                                ("bEmail", True),
+                                ("continueOnError", True),
+                            ]
+                        ),
+                    )
+                    if (
+                        not has_participant_table
+                        and isinstance(resp, dict)
+                        and resp.get("status") == "Error: No survey participants table"
+                    ):
+                        self.activate_tokens(api=api)
+                        has_participant_table = True
+                        continue
+                    break
                 resp_type = type(resp)
 
                 if resp_type is dict and "status" in resp:
@@ -6992,6 +7037,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             api.open(password=settings.LIMESURVEY_API_PASSWORD)
             return api
 
+    def activate_tokens(self, api=None):
+        if not api:
+            api = self.survey_api
+            return api.query(
+                method="activate_tokens",
+                params={
+                    "sSessionKey": api.session_key,
+                    "iSurveyID": self.survey_id,
+                },
+            )
+
     def sync_referee_surveys(self, request=None, by=None, referees=None):
         if not self.survey_id:
             return 0
@@ -7004,16 +7060,37 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             q = q.filter(
                 Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
             )
+            has_participant_table = None
             for r in q:
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
-                    resp = api.token.get_participant_properties(
-                        self.survey_id, None, {"token": r.survey_token}
-                    )
-                    r.survey_token_id = resp.get("tid")
+                    for _ in range(2):  # 2 attempts
+                        resp = api.token.get_participant_properties(
+                            self.survey_id, None, {"token": r.survey_token}
+                        )
+                        if (
+                            not has_participant_table
+                            and isinstance(resp, dict)
+                            and resp.get("status") == "Error: No survey participants table"
+                        ):
+                            self.activate_tokens(api=api)
+                            has_participant_table = True
+                            continue
+                        r.survey_token_id = resp.get("tid")
+                        break
                 except LimeSurveyError:
-                    r.add_to_survey(api=api)
+                    for _ in range(2):  # 2 attempts
+                        resp = r.add_to_survey(api=api)
+                        if (
+                            not has_participant_table
+                            and isinstance(resp, dict)
+                            and resp.get("status") == "Error: No survey participants table"
+                        ):
+                            self.activate_tokens(api=api)
+                            has_participant_table = True
+                            continue
+                        break
                 fixed_referees.append(r)
             if fixed_referees:
                 bulk_update_with_history(
