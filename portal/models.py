@@ -6832,7 +6832,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         return Nomination.where(
             Q(user=user)
             | Q(
-                email__in=user.emailaddress_set.values_list("email__lower")
+                Q(email__in=user.emailaddress_set.values_list("email__lower"))
                 | Q(org__research_offices__user=user)
             ),
             state__in=["submitted", "accepted"],

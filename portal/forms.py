@@ -961,7 +961,16 @@ class ApplicationForm(ModelForm):
                 ]
             )
         if round.scheme.presentation_required:
-            self.fields["presentation_url"].required = True
+            # self.fields["presentation_url"].required = True
+            self.fields["presentation_url"].widget.attrs.update(
+                {
+                    "placeholder": self.fields["presentation_url"].help_text,
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _(self.fields["presentation_url"].help_text),
+                    "oninput": "this.setCustomValidity('')",
+                }
+            )
             summary_fields.insert(
                 0,
                 Field(

@@ -5893,6 +5893,7 @@ class ApplicationCreate(ApplicationView, CreateView):
 
         except Exception as ex:
             capture_exception(ex)
+            form.errors["__all__"] = f"Unhandled except occurred: {ex}"
             return self.form_invalid(form)
 
         return resp
