@@ -112,6 +112,7 @@
                         $("#submit-id-submit").click(function(e) {
                           $("input[data-required='1']").not("[name*='__prefix__']").not("[type='file']").each(function() {
                             var $t = $(this);
+                            // $t.css("border-color", "var(--red)");
                             $t.attr({
                               "required": $t.attr("data-required")
                             }); // .removeAttr('required');
@@ -119,16 +120,18 @@
                           // type='file' requires a different appraoch
                           $("input[data-required='1']").not("[name*='__prefix__']").filter("[type='file']").each(function() {
                             var $t = $(this);
+                            // $t.css("border-color", "var(--red)");
+                            // $t.siblings().filter("label").css("border-color", "var(--red)");
                             if (!$t.closest("div.form-group").find("span > a").length) {
                               $t.attr({
                                 "required": $t.attr("data-required")
                               }); // .removeAttr('required');
                             }
                           });
+                          var has_invalid_fields = $("input:invalid,textarea:invalid").length;
                           {% if round.has_toas %}
                             var total = totalToaShares();
                             if (total!=100) {
-                              var has_invalid_fields = $("input:invalid,textarea:invalid").length;
                               if (!has_invalid_fields) e.preventDefault();  // need for a link
                               $('.nav a[href="#categories"]').tab('show');
                               var message="{% trans 'Type of Activities: the share values do not add up to 100%! Please correct the values and resubmit.' %}";
@@ -154,28 +157,32 @@
                           });
                           if (!$("input:invalid[required]").length) $("#submit-id-save_draft").attr("formnovalidate","formnovalidate");
                         });
-                      {% endif %}
+                      {% endif %}{# // if not update_only_referees #}
                       $("#submit-id-save_draft,#submit-id-submit").click(function(e) {
+                        var has_invalid_fields = $("input:invalid,textarea:invalid").length;
                         formset_set_inputs(prefix="members");
                         formset_set_inputs(prefix="referees");
                         if (!is_email_list_unique(
                               prefix="members",
                               message_template=email => `{% trans 'One or more team memeber email address entered twice: ${email}. Please amend the list.' %}`)) {
-                          e.preventDefault();  // need for a link
-                          return false;
+                          // return false;
+                          if (!has_invalid_fields) { e.preventDefault(); return false; }
                         };
                         if (!is_email_list_unique(
                               prefix="referees",
                               message_template=email => `{% trans 'One or more referee email address entered twice: ${email}. Please amend the list.' %}`)) {
                           e.preventDefault();  // need for a link
-                          return false;
+                          // return false;
+                          if (!has_invalid_fields) { e.preventDefault(); return false; }
                         };
                         // Applicant declaration:
                         {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
                           if (this.name == "submit" ) {
-                            e.preventDefault();
+                            // e.preventDefault();
+                            if (!has_invalid_fields) { e.preventDefault(); }
                             if (this.form.checkValidity()) $('#id_applicant_declaration_modal').modal({keyboard: true});
-                            return false;
+                            // return false;
+                            if (!has_invalid_fields) { return false; }
                           }
                         {% endif %}{% endif %}
                         return true;
@@ -252,15 +259,19 @@
                                 });
                                 // Focus on the first tab with invalid input:
                                 $('#submit-id-save_draft,#submit-id-submit').click(function () {
+                                    $('input:invalid,textarea:invalid').css("border-color", "var(--red)");
+                                    $('input:invalid,textarea:invalid').siblings().filter("label").css("border-color", "var(--red)");
                                     $('input:invalid,textarea:invalid').each(function () {
                                       // Find the tab-pane that this element is inside, and get the id
-                                      var $closest = $(this).closest('.tab-pane');
+                                      var el = $(this)
+                                      var $closest = el.closest('.tab-pane');
                                       var id = $closest.attr('id');
 
                                       // Find the link that corresponds to the pane and have it show
                                       $('.nav a[href="#' + id + '"]').tab('show');
-
+                                      el.focus();
                                       // Only want to do it once
+                                      // return false;
                                       return false;
                                     });
                                     /* if (this.form.checkValidity()) {

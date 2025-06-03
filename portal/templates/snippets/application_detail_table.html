@@ -84,7 +84,7 @@
           {% trans 'Applicant' %}
         {% endif %}
       </th>
-      <td colspan="3">{{ a|person_with_email }} (username: {{ a.submitted_by }})</td>
+      <td colspan="3">{{ a|person_with_email }} (username: {{ a.submitted_by.username }})</td>
     </tr>
 
     {% if a.is_team_application or a.members.all.count %}
