@@ -118,6 +118,10 @@ thead th.orderable.desc > a {
             <div class="form-group">
               <label for="id_outcome_file">Outcome file (.csv or .xlsx)</label>
               <input type="file" class="form-control-file" name="outcome_file" required id="id_outcome_file" accept=".csv,.xlsx">
+              <small id="hint_id_outcome_file" class="form-text text-muted">
+                with fields: NUMBER, DECISION ('Y' or 'N'), [AMOUNT], [START], [END]
+                (awarded amount, start date, and end date are optional)
+              </small>
             </div>
 
           </div>
