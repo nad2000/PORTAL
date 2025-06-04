@@ -3213,7 +3213,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
         if (
             awarded_amount := kwargs.get("awarded_amount")
-            or self.awarded_amount
             or self.round.awarded_amount
         ):
             self.awarded_amount = awarded_amount
