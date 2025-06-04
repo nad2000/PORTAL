@@ -3220,7 +3220,26 @@ class NominationForm(ModelForm):
                 css_id="nominee",
             ),
             Row(
-                Column("org", css_class="col-9"),
+                # Column("org", css_class="col-9"),
+                Column(
+                    (
+                        HTML(
+                            f"""
+                <div id="div_id_org" class="form-group">
+                    <label for="id_org" data-toggle="tooltip" data-html="true" title="{_('Organisation of the nominee')}">
+                        {_('Organisation of the nominee')}
+                    </label>
+                    <div class="">
+                        <input type="text" name="org" value="{ro_org}" class="textinput textInput form-control" id="id_org" readonly>
+                        <small id="hint_id_position" class="form-text text-muted">{ _('Organisation of the nominee') }</small>
+                    </div>
+                </div>"""
+                        )
+                        if is_single_org_ro
+                        else "org"
+                    ),
+                    css_class="col-9",
+                ),
                 Column("position", css_class="col-3"),
             ),
             HTML(
@@ -3334,8 +3353,9 @@ class NominationForm(ModelForm):
 
         if is_single_org_ro:
             # self.fields["org"].disabled = True
-            self.fields["org"].widget.attrs["readonly"] = "true"
-            self.fields["org"].widget.attrs["disabled"] = "true"
+            # self.fields["org"].widget.attrs["disabled"] = "true"
+            # self.fields["org"].widget.attrs["readonly"] = "true"
+            del self.fields["org"]
 
     def save(self, commit=True):
         if self.instance.round.nominator_cv_required:
