@@ -271,7 +271,7 @@ class PersonMixin:
         email = getattr(self, "email", None) or user and user.email
         if full_name := self.full_name:
             return f"{full_name} ({email})"
-        elif email:
+        if email:
             return email
         return getattr(self, "code", None)
 

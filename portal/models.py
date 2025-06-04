@@ -8145,7 +8145,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             q = q.filter(
                 Q(nominator=user)
                 | Q(org__research_offices__user=user)
-                | Q(nominator__research_offices__user=user)
+                | Q(nominator__research_offices__org__research_offices__user=user)
                 | Q(
                     Q(Q(user=user) | Q(email=user.email)),
                     state="submitted",

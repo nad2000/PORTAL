@@ -482,7 +482,7 @@ class HistoryAdmin(SimpleHistoryAdmin):
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
         if obj.state:
-            if obj.state_changed_at:
+            if state_changed_at := getattr(obj, "state_changed_at", None):
                 sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
                 return mark_safe(
                     f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
@@ -2334,6 +2334,10 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
         "last_name",
         "round__title",
         "application__number",
+        "nominator__email",
+        "nominator__first_name",
+        "nominator__last_name",
+        "nominator__username",
     ]
     # summernote_fields = ["summary"]
     exclude = [

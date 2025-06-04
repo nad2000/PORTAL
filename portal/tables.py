@@ -164,9 +164,18 @@ class NominationTable(tables.Table):
             else None
         ),
     )
-    first_name = tables.Column(verbose_name=_("Nominee First Name"))
-    last_name = tables.Column(verbose_name=_("Nominee Last Name"))
-    email = tables.Column(verbose_name=_("Nominee Email Address"))
+    user = tables.Column(verbose_name=_("Nominee"), accessor="full_name_with_email")
+
+    # first_name = tables.Column(verbose_name=_("Nominee First Name"))
+    # last_name = tables.Column(verbose_name=_("Nominee Last Name"))
+    # email = tables.Column(verbose_name=_("Nominee Email Address"))
+
+    #def render_user(self, record, value):
+    #    if value:
+    #        return value.full_name_with_email
+    #    if value := record.full_name_with_email:
+    #        return value
+    #    return record.email
 
     def render_application(self, record, value):
         if value:
@@ -177,7 +186,7 @@ class NominationTable(tables.Table):
             return value.full_name_with_email
 
     def before_render(self, request):
-        if (u := request.user) and not u.is_superuser and not u.is_staff:
+        if (u := request.user) and not u.is_superuser and not u.is_staff and not u.research_offices.exists():
             self.columns.hide("nominator")
 
     class Meta:
@@ -187,10 +196,11 @@ class NominationTable(tables.Table):
         fields = (
             "state",
             "round",
+            "user",
             "nominator",
-            "first_name",
-            "last_name",
-            "email",
+            # "first_name",
+            # "last_name",
+            # "email",
             "application",
         )
 
