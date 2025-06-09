@@ -338,7 +338,7 @@
         e.preventDefault();
         e.stopPropagation();
         var el = e.target;
-        let name =  es.dataset("action")||$(this).attr("name");
+        let name =  el.dataset["action"]||$(this).attr("name");
         $("[name='action'],#id_action").val(name);
         {% if object.round.agent_declaration %}
         if (name == "approve") {
