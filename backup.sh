@@ -24,7 +24,7 @@ if which s3cmd && [ -f $HOME/.s3cfg ] ; then
     s3cmd put ./archive/${TS_LABEL}_MEDIA.tar.xz s3://pmspp-archive/${TS_LABEL}_MEDIA.tar.xz
     if compgen -G "./archive/*.sql.xz" &>/dev/null ; then
         cd ./archive/
-        tar -cf ${TS_LABEL}_DUMPS.tar ./*.sql.xz.tar
+        tar -cf ${TS_LABEL}_DUMPS.tar ./*.sql.xz
         find ./ -mtime +1 -name \*.sql.xz -exec rm -f {} \;
         s3cmd put ./${TS_LABEL}_DUMPS.tar s3://pmspp-archive/${TS_LABEL}_DUMPS.tar
     fi
