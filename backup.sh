@@ -3,6 +3,7 @@
 TS_LABEL=$(date +%FT%s)
 PATH=/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/aws/bin:$HOME/.local/bin:$HOME/bin:$PATH:/usr/local/bin
 DATA_DIR="$(psql  -U postgres postgres -0 -z -q  -t  -c 'show data_directory;'|tr -d ' ')"
+BUCKET=pmspp-archive
 
 [ ! -f docker-compose.yml ] && cd $HOME
 sudo find ./archive -mtime +1 -exec rm -f {} \;
@@ -20,12 +21,12 @@ sudo mv ./backup/${TS_LABEL}_*.tar.xz ./archive/ && sudo find ./archive -mtime +
 
 # SEE: https://www.vultr.com/docs/how-to-use-s3cmd-with-vultr-object-storage
 if which s3cmd && [ -f $HOME/.s3cfg ] ; then
-    s3cmd put ./archive/${TS_LABEL}_DB.tar.xz s3://pmspp-archive/${TS_LABEL}_DB.tar.xz
-    s3cmd put ./archive/${TS_LABEL}_MEDIA.tar.xz s3://pmspp-archive/${TS_LABEL}_MEDIA.tar.xz
+    s3cmd put ./archive/${TS_LABEL}_DB.tar.xz s3://$BUCKET/${TS_LABEL}_DB.tar.xz
+    s3cmd put ./archive/${TS_LABEL}_MEDIA.tar.xz s3://$BUCKET/${TS_LABEL}_MEDIA.tar.xz
     if compgen -G "./archive/*.sql.xz" &>/dev/null ; then
         cd ./archive/
-        tar -cf ${TS_LABEL}_DUMPS.tar ./*.sql.xz
+        # tar -cf ${TS_LABEL}_DUMPS.tar ./*.sql.xz
+        s3cmd put "./$(ls -1rt | tail -n 1)" s3://$BUCKET/${TS_LABEL}_DUMPS.sql.xz
         find ./ -mtime +1 -name \*.sql.xz -exec rm -f {} \;
-        s3cmd put ./${TS_LABEL}_DUMPS.tar s3://pmspp-archive/${TS_LABEL}_DUMPS.tar
     fi
 fi
