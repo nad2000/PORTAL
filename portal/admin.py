@@ -332,8 +332,38 @@ class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
 
 # # Re-register CRUDEventAdmin
-admin.site.unregister(easyaudit_admin.CRUDEvent)
+admin.site.unregister(CRUDEvent)
 admin.site.register(CRUDEvent, CRUDEventAdmin)
+
+
+class RequestEventAdmin(AutocompleteFilterMixin, easyaudit_admin.RequestEventAdmin):
+
+    # list_filter = REQUEST_EVENT_LIST_FILTER
+    list_filter = [
+        "method",
+        ("user", filters.AutocompleteListFilter),
+        "datetime",
+    ]
+
+
+# Re-register CRUDEventAdmin
+admin.site.unregister(RequestEvent)
+admin.site.register(RequestEvent, RequestEventAdmin)
+
+
+class LoginEventAdmin(AutocompleteFilterMixin, easyaudit_admin.LoginEventAdmin):
+
+    # list_filter = LOGIN_EVENT_LIST_FILTER
+    list_filter = [
+        "login_type",
+        ("user", filters.AutocompleteListFilter),
+        "datetime",
+    ]
+
+
+# Re-register CRUDEventAdmin
+admin.site.unregister(LoginEvent)
+admin.site.register(LoginEvent, LoginEventAdmin)
 
 
 class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
@@ -3350,7 +3380,7 @@ class RoundAdmin(
     @admin.display(description=_("tittle"), ordering="title")
     def coloured_title(self, obj):
         title = obj.title or obj.scheme.title
-        if obj.background or obj.foreground and obj.foreground != 'colour':
+        if obj.background or obj.foreground and obj.foreground != "colour":
             if obj.foreground and obj.background:
                 return format_html(
                     '<span style="background-color: {}; color: {};">{}</span>',
@@ -3358,7 +3388,7 @@ class RoundAdmin(
                     obj.foreground,
                     title,
                 )
-            elif obj.foreground and obj.foreground != 'colour':
+            elif obj.foreground and obj.foreground != "colour":
                 return format_html(
                     '<span color: {};">{}</span>',
                     obj.foreground,

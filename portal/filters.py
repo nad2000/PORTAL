@@ -116,7 +116,6 @@ class AutocompleteListFilter(RelatedFieldListFilter):
             "field_name": self.field.name,
         }
 
-
 class RelatedOnlyModelChoiceFilter(django_filters.ModelChoiceFilter):
     # ("round", admin.RelatedOnlyFieldListFilter),
     __queryset = None
