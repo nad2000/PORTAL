@@ -239,7 +239,9 @@ def pyinfo(request, message=None):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
-    u = User.objects.filter(Q(username=username) | Q(email=username)).first()
+    if username and any(c in username for c in ['<', '>']) and (m := re.match(r".*\<(.*)\>.*", username)):
+        username = m[1]
+    u = User.objects.filter(Q(username__istartswith=username) | Q(email__istartswith=username)).first()
     if request.user.pk != u.pk:
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
     return redirect("start")

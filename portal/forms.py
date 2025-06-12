@@ -1920,7 +1920,8 @@ class ContractForm(ModelForm):
             is_pi
             or is_ro
             or is_staff
-            or sefl.data and any(
+            # enable 'Complience' tab if the settings were changed
+            or self.data and any(
                 (f in self.changed_data)
                 for f in [
                     "requires_approval",
