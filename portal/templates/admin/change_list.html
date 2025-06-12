@@ -12,7 +12,7 @@
 <script>
 django.jQuery(document).ready(function(){
   django.jQuery("details[data-filter-title]").on("toggle", function() {
-    if (this.open)
+    if (this.open) {
       localStorage.setItem(this.dataset["filterTitle"], true);
     } else {
       localStorage.removeItem(this.dataset["filterTitle"]);
