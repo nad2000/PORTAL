@@ -1916,7 +1916,21 @@ class ContractForm(ModelForm):
             if is_pi or is_ro
             else []
         )
-        disabled_compliance = not (is_pi or is_ro)
+        disabled_compliance = not (
+            is_pi
+            or is_ro
+            or is_staff
+            or sefl.data and any(
+                (f in self.changed_data)
+                for f in [
+                    "requires_approval",
+                    "has_animal_use",
+                    "is_signatory_to_oa",
+                    "involves_children",
+                    "has_child_protection",
+                ]
+            )
+        )
         compliance_fields.extend(
             [
                 # Field("ethics_statement", label=_("Ethics Statement")),
