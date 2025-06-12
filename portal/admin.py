@@ -332,7 +332,7 @@ class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
 
 # # Re-register CRUDEventAdmin
-admin.site.unregister(CRUDEvent)
+admin.site.unregister(easyaudit_admin.CRUDEvent)
 admin.site.register(CRUDEvent, CRUDEventAdmin)
 
 
@@ -347,7 +347,7 @@ class RequestEventAdmin(AutocompleteFilterMixin, easyaudit_admin.RequestEventAdm
 
 
 # Re-register CRUDEventAdmin
-admin.site.unregister(RequestEvent)
+admin.site.unregister(easyaudit_admin.RequestEvent)
 admin.site.register(RequestEvent, RequestEventAdmin)
 
 
@@ -362,7 +362,7 @@ class LoginEventAdmin(AutocompleteFilterMixin, easyaudit_admin.LoginEventAdmin):
 
 
 # Re-register CRUDEventAdmin
-admin.site.unregister(LoginEvent)
+admin.site.unregister(easyaudit_admin.LoginEvent)
 admin.site.register(LoginEvent, LoginEventAdmin)
 
 
