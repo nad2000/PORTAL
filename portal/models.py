@@ -9608,7 +9608,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
                 allocation = (awarded_amount / c.duration) if awarded_amount else 0.0
                 allocations = [round_number(allocation, 0)] * c.duration
-                allocations[-1] = awarded_amount - sum(allocations[:-1])
+                if awarded_amount:
+                    allocations[-1] = awarded_amount - sum(allocations[:-1])
 
                 Allocation.bulk_create(
                     [
