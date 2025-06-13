@@ -2251,7 +2251,7 @@ class ContractForm(ModelForm):
                     """{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
-                    You can distributed it differently, but may not exceed
+                    You can distribute it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
                     </div>"""
@@ -4824,7 +4824,7 @@ class ReportForm(ModelForm):
         #             """{% load i18n %}<div class="alert alert-dark" role="alert">
         #             {% blocktrans %}
         #             Funding has been allocated over the award period.
-        #             You can distributed it differently, but may not exceed
+        #             You can distribute it differently, but may not exceed
         #             the total award. All amounts are exclusive of GST.
         #             {% endblocktrans %}
         #             </div>"""
