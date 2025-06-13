@@ -239,10 +239,34 @@ def pyinfo(request, message=None):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
-    u = User.objects.filter(Q(username=username) | Q(email=username)).first()
+    if (
+        username
+        and any(c in username for c in ["<", ">"])
+        and (m := re.match(r".*\<(.*)\>.*", username))
+    ):
+        username = m[1]
+    u = User.objects.filter(
+        Q(username__istartswith=username) | Q(email__istartswith=username)
+    ).first()
+    resp = redirect("start")
     if request.user.pk != u.pk:
+        resp.set_cookie("original_user_id", request.user.pk, max_age=36000, secure=True)
+        log_rec = models.Impersonation.create(user=request.user, impersonated=u)
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
-    return redirect("start")
+        messages.info(request, _(f"The 'impersonation' recoded at {log_rec.impersonated_at}."))
+    return resp
+
+
+@login_required
+def switch_back(request):
+    resp = redirect(request.META.get("HTTP_REFERER") or "start")
+    if pk := request.COOKIES.get("original_user_id"):
+        del request.COOKIES["original_user_id"]
+        resp.delete_cookie("original_user_id")
+        u = User.get(pk=pk)
+        if request.user.pk != u.pk:
+            login(request, u, backend="django.contrib.auth.backends.ModelBackend")
+    return resp
 
 
 def shoud_be_onboarded(function):

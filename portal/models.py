@@ -12477,6 +12477,15 @@ class ChangeRequestCommentAttachment(Model):
         verbose_name = _("attachment")
 
 
+class Impersonation(HelperMixin, Base):
+    impersonated_at = DateTimeField(null=True, default=timezone.now, editable=False)
+    user = ForeignKey(User, on_delete=CASCADE, related_name="impersonations")
+    impersonated = ForeignKey(User, on_delete=PROTECT, related_name="impersonations_by")
+
+    class Meta:
+        db_table = "impersonation"
+
+
 dummy_for_translations = (
     _("Browse"),
     _("Currently"),
