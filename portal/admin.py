@@ -2333,6 +2333,22 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
         return mark_safe(obj.html_message or "-")
 
 
+@admin.register(models.Impersonation)
+class ImpersonationAdmin(admin.ModelAdmin):
+    save_on_top = True
+    view_on_site = False
+    list_display = [
+        "user",
+        "impersonated",
+        "impersonated_at",
+    ]
+    readonly_fields = ["user", "impersonated", "impersonated_at"]
+    autocomplete_fields = ["user", "impersonated"]
+    search_fields = ["user__username", "user__email"]
+    list_filter = ["impersonated_at"]
+    date_hierarchy = "impersonated_at"
+
+
 @admin.register(models.Nomination)
 class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
