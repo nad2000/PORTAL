@@ -4277,22 +4277,22 @@ class ReportForm(ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if round.research_experience_in_years_required and round.can_specify_panel:
-                self.fields["panel"].queryset = (
-                    self.fields["panel"]
-                    .queryset.filter(fund__site_id=site_id, state="active")
-                    .order_by("code", "-id")
-                )
-                category_fields = [
-                    Row(
-                        Column("research_experience_in_years"),
-                        Column("panel"),
-                    )
-                ]
-            elif round.research_experience_in_years_required:
-                category_fields = [Field("research_experience_in_years")]
-            elif round.can_specify_panel:
-                category_fields = [Field("panel")]
+            # if round.research_experience_in_years_required and round.can_specify_panel:
+            #     self.fields["panel"].queryset = (
+            #         self.fields["panel"]
+            #         .queryset.filter(fund__site_id=site_id, state="active")
+            #         .order_by("code", "-id")
+            #     )
+            #     category_fields = [
+            #         Row(
+            #             Column("research_experience_in_years"),
+            #             Column("panel"),
+            #         )
+            #     ]
+            # elif round.research_experience_in_years_required:
+            #     category_fields = [Field("research_experience_in_years")]
+            # elif round.can_specify_panel:
+            #     category_fields = [Field("panel")]
 
             if round.has_toas:
                 category_fields.append(

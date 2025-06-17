@@ -3013,7 +3013,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "<p>Please review and approve the submitted application.</p>"
                 )
             send_mail(
-                __("Application '%s' Submitted") % self,
+                "Application '%s' Submitted" % self,
                 html_message=html_message
                 % {
                     "nominator": nominator,
@@ -3211,10 +3211,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
-        if (
-            awarded_amount := kwargs.get("awarded_amount")
-            or self.round.awarded_amount
-        ):
+        if awarded_amount := kwargs.get("awarded_amount") or self.round.awarded_amount:
             self.awarded_amount = awarded_amount
         return Contract.create_from_application(application=self, *args, **kwargs)
 
@@ -10921,6 +10918,91 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     # notes2 = models.TextField(blank=True, null=True)
     # duration = models.IntegerField(blank=True, null=True)
 
+    def create_report(self, *args, **kwargs):
+
+        c = self.contract
+        a = c.application
+        if pr := c.reports.filter(period__lt=self.period).order_by("pk").last():
+            r = pr.clone(
+                schedule_entry=self,
+                period=self.period,
+                type=self.type,
+                state="draft",
+                reported_at=None,
+                assessed_at=None,
+                file=None,
+                converted_file=None,
+                exclude_related_models=[ReportedEffort],
+            )
+
+            # r.fors.add(*pr.fors.all())
+            # r.seos.add(*pr.seos.all())
+            # r.fors.through.bulk_create(
+            #     [
+            #         r.fors.through(
+            #             report=r,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in r.fors.through.objects.filter(report=pr)
+            #     ]
+            # )
+            # r.seos.through.bulk_create(
+            #     [
+            #         r.seos.through(
+            #             report=r,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in r.seos.through.objects.filter(report=pr)
+            #     ]
+            # )
+            # r.keywords.add(*pr.keywords.all())
+            # r.priorities.add(*pr.priorities.all())
+        else:
+            r = Report.create(
+                schedule_entry=self,
+                contract=c,
+                period=self.period,
+                type=self.type,
+            )
+        ReportedEffort.bulk_create(
+            [
+                ReportedEffort(
+                    report=r,
+                    member_effort=me,
+                    person=me.member.user and me.member.user.person,
+                    full_name=me.member.full_name,
+                    role=me.member.role,
+                    fte=me.fte,
+                )
+                for me in ContractMemberEffort.where(period=r.period, member__contract=c)
+            ]
+        )
+
+        return r
+
+    @classmethod
+    def remind(cls):
+        for rse in cls.objects.filter(
+            Q(due_date__lt=timezone.now()) | Q(date_first_remind__lt=timezone.now()),
+            report__isnull=True,
+        ):
+            r = rse.create_report()
+
+        send_mail(
+            __("A team member opted out of application"),
+            __("Your team member %s has opted out of application") % self,
+            recipients=[self.application.submitted_by.email],
+            fail_silently=False,
+            request=request,
+            reply_to=self.full_email_address,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+
+        pass
+
     def __str__(self):
         return f"{self.contract}:{self.type}-{self.period}"
 
@@ -11015,7 +11097,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         ),
         help_text=_("Reporting Type"),
     )
-    state = StateField(default="new", verbose_name=_("state"))
+    state = StateField(default="draft", verbose_name=_("state"))
     file = PrivateFileField(
         verbose_name=_("Completed research report"),
         blank=True,
@@ -11194,8 +11276,57 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         default=0,
     )
 
-    def create(self, *args, **kwargs):
+    @classmethod
+    def create(cls, *args, **kwargs):
+        if c := kwargs.get("contract"):
+            for k in [
+                k
+                for k in c._meta.fields_map.keys()
+                if k
+                in [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    "is_vm_na",
+                    "vm_rationale",
+                    "toa_basic",
+                    "toa_experimental",
+                    "toa_applied",
+                    "toa_strategic",
+                ]
+            ]:
+                v = kwargs.get(k)
+                if v:
+                    continue
+                kwargs[k] = v
+
         obj = super().create(*args, **kwargs)
+        # obj.fors.add(*c.fors.all())
+        # obj.seos.add(*c.seos.all())
+        obj.fors.through.bulk_create(
+            [
+                obj.fors.through(
+                    report=obj,
+                    code=o.code,
+                    share=o.share,
+                )
+                for o in c.fors.through.objects.filter(contract=c)
+            ]
+        )
+        obj.seos.through.bulk_create(
+            [
+                obj.seos.through(
+                    report=obj,
+                    code=o.code,
+                    share=o.share,
+                )
+                for o in c.seos.through.objects.filter(contract=c)
+            ]
+        )
+        obj.keywords.add(*c.keywords.all())
+        obj.priorities.add(*c.priorities.all())
+
         if r := (obj.contract and obj.contract.application and obj.contract.application.round):
             AssessedPerformance.bulk_create(
                 [
@@ -11233,7 +11364,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @property
     def due_in_days(self):
-        current_date = timezone.localdate()
+        current_date = timezone.now().date()
         if self.due_date:
             return (self.due_date - current_date).days
         elif (c := self.contract) and c.start_date and self.period:
