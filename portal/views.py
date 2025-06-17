@@ -2330,7 +2330,8 @@ class ReportViewMixin:
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
-        context["current_date"] = timezone.localdate()
+        # context["current_date"] = timezone.localdate()
+        context["current_date"] = timezone.now().date()
         context["report"] = r = self.object
 
         # self.allocations = context["allocations"] = self.get_allocation_formset()
