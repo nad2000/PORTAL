@@ -408,14 +408,8 @@ msgid "Letter of Support"
 msgstr ""
 
 #: portal/forms.py:936
-#, fuzzy
-#| msgid ""
-#| "You can download the nomination form template at <strong><a "
-#| "href=\"%s\">%s</a></strong>"
 msgid "You can download the CV form template(s) at "
-msgstr ""
-"Ka taea e koe te tikiake te tātauira puka tautapanga ki <strong><a "
-"href=\"%s\">%s</a></strong>"
+msgstr "Ka taea e koe te tikiake te tātauira puka tāhuhu tangata i"
 
 #: portal/forms.py:993 portal/templates/portal/application_form.html:210
 msgid "Team"
@@ -546,10 +540,8 @@ msgid ""
 msgstr ""
 
 #: portal/forms.py:1231
-#, fuzzy, python-format
-#| msgid "%s referees are required to support this application."
 msgid "At least %s referees are required to support this application."
-msgstr "E %s ngā kaitautoko e hiahiatia ana hei tautoko i tēnei tono."
+msgstr "Kia %s ngā kaitautoko, neke atu rānei, e hiahiatia ana hei tautoko i tēnei tono."
 
 #: portal/forms.py:1236
 #, python-format
