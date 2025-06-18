@@ -3390,16 +3390,12 @@ msgid "Has Vision Mātauranga Theme Categories"
 msgstr ""
 
 #: portal/models.py:6295
-#, fuzzy
-#| msgid "Password"
 msgid "Has keywords"
-msgstr "Kupuhuna"
+msgstr "He whai kupuhira"
 
 #: portal/models.py:6295
-#, fuzzy
-#| msgid "Password"
 msgid "Has Keywords"
-msgstr "Kupuhuna"
+msgstr "He Whai Kupuhira"
 
 #: portal/models.py:6365
 msgid "Nomination Template"
@@ -3471,10 +3467,8 @@ msgid "Template"
 msgstr "Tātauira Mahere Pūtea"
 
 #: portal/models.py:7560
-#, fuzzy
-#| msgid "The panelist should comment their score"
 msgid "The panellist should comment on their score"
-msgstr "Me kōrero te kaiwhiriwhiri mō tana tatau"
+msgstr "Me tuku kōrero te mema whiriwhiri mō tana tatau"
 
 #: portal/models.py:7568
 msgid "criteria"
@@ -3491,14 +3485,10 @@ msgid "Total Score"
 msgstr "Tapeke"
 
 #: portal/models.py:7633
-#, fuzzy
-#| msgid ""
-#| "The application is not completed. Missing summary and/or uploaded "
-#| "application form"
 msgid "The review is not completed. Missing an overall comment."
 msgstr ""
-"Kāore i oti te tono. Kei te ngaro te whakarāpopototanga, te puka tonoi "
-"tukuatu hoki/rānei"
+"Kāore anō kia oti te arotake. Kei te ngaro tētahi kōrero whānui. "
+
 
 #: portal/models.py:7688
 #, python-format
@@ -3567,20 +3557,16 @@ msgid ""
 "User %(user)s submitted a photo identity for verification. Please review the "
 "ID here: %(url)s"
 msgstr ""
-"I tukuna e te kaiwhakamahi %(user)s tētahi whakaahua tuakiri mō te "
-"whakatūturutanga.Tēnā tirohia te tuakiri ki konei: %(url)s"
+"I tukuna e te kaiwhakamahi %(user)s he tuakiri whakaahua mō te whakatūturu. "
+"Arotakehia te ID i konei: %(url)s"
 
 #: portal/models.py:8299
-#, fuzzy, python-format
-#| msgid ""
-#| "User %(user)s submitted a photo identity for verification. Please review "
-#| "the ID here: %(url)s"
 msgid ""
 "<p>User <b>%(user)s</b> submitted a photo identity for verification. Please "
 "review the ID here: <a href='%(url)s'>%(url)s</a></p>"
 msgstr ""
-"I tukuna e te kaiwhakamahi %(user)s tētahi whakaahua tuakiri mō te "
-"whakatūturutanga.Tēnā tirohia te tuakiri ki konei: %(url)s"
+"<p>I tukuna e te kaiwhakamahi b>%(user)s</b> he tuakiri whakaahua mō te whakatūturu. "
+"Arotakehia te ID i konei: <a href='%(url)s'>%(url)s</a></p>"
 
 #: portal/models.py:8354
 #, python-format
