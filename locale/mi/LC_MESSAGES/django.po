@@ -375,10 +375,8 @@ msgid "Research experience in years required"
 msgstr "E hiahiatia ana ngā tau e rangahau ana"
 
 #: portal/forms.py:705
-#, fuzzy
-#| msgid "You must add a budget spreadsheet before submitting the application"
 msgid "Need to attach a letter of support before submitting the application."
-msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
+msgstr "Me tāpiri reta tautoko i mua i te tuku i te tono."
 
 #: portal/forms.py:795
 msgid "Title of proposed research"
