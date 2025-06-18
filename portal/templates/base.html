@@ -76,7 +76,7 @@
       {% if SITE_ID == 5 %}
         <link href="{% static 'css/tawhia.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 4 %}
-        <link href="{% static 'css/npp.royalsociety.org.nz.css' %}" rel="stylesheet">
+        <link href="{% static 'css/puanga.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 3 %}
         <link href="{% static 'css/stlp.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 2 %}
@@ -289,6 +289,17 @@ table.table .asteriskField,.popover-header {color: gray;}
                       </a>
                       <div class="dropdown-menu dropdown-menu-right dropdown-info"
                            aria-labelledby="navbarDropdownMenuLinkProfile">
+
+                        {% if request.COOKIES.original_user_id %}
+                          <a class="dropdown-item"
+                             href="{% url 'switch-back' %}"
+                             id="switch-back"
+                             data-toggle="tooltip"
+                             title="{% trans 'Swich back to the previous account...' %}"
+                          >
+                            <i class="fas fa-random"></i> {% trans "Switch Back" %}
+                          </a>
+                        {% endif %}
 
                         <a class="dropdown-item" href="{% url 'my-profile' %}" id="profile">
                           {# URL provided by django-allauth/account/urls.py #}

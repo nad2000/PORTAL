@@ -3013,7 +3013,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "<p>Please review and approve the submitted application.</p>"
                 )
             send_mail(
-                __("Application '%s' Submitted") % self,
+                "Application '%s' Submitted" % self,
                 html_message=html_message
                 % {
                     "nominator": nominator,
@@ -3189,11 +3189,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     thread_index=self.thread_index,
         #     thread_topic=self.thread_topic,
         # )
-        messages.success(
-            request,
-            "Successfully sent notification to %s"
-            % ", ".join(u.full_name_with_email for u in recipients),
-        )
+        # messages.success(
+        #     request,
+        #     "Successfully sent notification to %s"
+        #     % ", ".join(u.full_name_with_email for u in recipients),
+        # )
 
     def can_be_funded(self):
         return (
@@ -3211,11 +3211,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         custom=dict(verbose="Mark application funded", button_name="Mark Funded"),
     )
     def fund(self, request=None, by=None, description=None, *args, **kwargs):
-        if (
-            awarded_amount := kwargs.get("awarded_amount")
-            or self.awarded_amount
-            or self.round.awarded_amount
-        ):
+        if awarded_amount := kwargs.get("awarded_amount") or self.round.awarded_amount:
             self.awarded_amount = awarded_amount
         return Contract.create_from_application(application=self, *args, **kwargs)
 
@@ -3596,7 +3592,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 ),
             )
         )
-        if Panellist.where(user=user).exists():
+        if Panellist.where(user=user, round__scheme__current_round=F("round")).exists():
             f = f | Q(
                 round__panellists__user=user,
                 conflict_of_interests__panellist__user=user,
@@ -4544,10 +4540,10 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @cached_property
     def survey_api(self):
-        api_url = self.application.round.survey_api_url
-        api = LimeSurvey(url=api_url, username=settings.LIMESURVEY_API_USERNAME)
-        api.open(password=settings.LIMESURVEY_API_PASSWORD)
-        return api
+        return self.application.round.survey_api
+
+    def activate_tokens(self, api=None):
+        return self.application.round.activate_tokens(api=api)
 
     def add_to_survey(self, api=None):
         # Inviation to participate in the survey:
@@ -4562,15 +4558,57 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not api:
                 api = self.survey_api
+            has_participant_table = None
             if not self.survey_token or not self.survey_token_id:
                 participant = {"email": self.email.lower()}
+                # api.query(method="list_participants",params={"sSessionKey": api.session_key, "iSurveyID": survey_id, "aConditions":{"email": "nad2000+r1@gmail.com"}})
+                for _ in range(2):  # 2 attempts
+                    resp = api.query(
+                        method="list_participants",
+                        params={
+                            "sSessionKey": api.session_key,
+                            "iSurveyID": survey_id,
+                            "aConditions": {"email": self.email.lower()},
+                        },
+                    )
+                    if (
+                        not has_participant_table
+                        and isinstance(resp, dict)
+                        and resp.get("status") == "Error: No survey participants table"
+                    ):
+                        self.activate_tokens(api=api)
+                        has_participant_table = True
+                        continue
+                    break
+                if resp and isinstance(resp, list):
+                    tid = resp[0]["tid"]
+                    token = resp[0]["token"]
+                    self.survey_token_id = tid
+                    self.survey_token = token
+                    return
+
                 if first_name:
                     participant["firstname"] = self.first_name
                 if last_name:
                     participant["lastname"] = self.last_name
                 token = self.survey_token or self.make_survey_token()
                 participant["token"] = token
-                resp = api.token.add_participants(survey_id, [participant], create_token_key=False)
+
+                has_participant_table = None
+                for _ in range(2):  # 2 attempts
+                    resp = api.token.add_participants(
+                        survey_id, [participant], create_token_key=False
+                    )
+                    if (
+                        not has_participant_table
+                        and isinstance(resp, dict)
+                        and resp.get("status") == "Error: No survey participants table"
+                    ):
+                        self.activate_tokens(api=api)
+                        has_participant_table = True
+                        continue
+                    break
+
                 if not isinstance(resp, list):
                     limesurvey_status = resp.get("status")
                     raise Exception(
@@ -4602,6 +4640,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         if survey_id := self.application.round.survey_id:
             if not api:
                 api = self.survey_api
+            has_participant_table = None
 
             if not self.survey_token:
                 self.survey_token = self.make_survey_token()
@@ -4610,9 +4649,19 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not self.survey_token_id:
                 try:
-                    resp = api.token.get_participant_properties(
-                        survey_id, None, {"token": self.survey_token}
-                    )
+                    for _ in range(2):  # 2 attempts
+                        resp = api.token.get_participant_properties(
+                            survey_id, None, {"token": self.survey_token}
+                        )
+                        if (
+                            not has_participant_table
+                            and isinstance(resp, dict)
+                            and resp.get("status") == "Error: No survey participants table"
+                        ):
+                            self.activate_tokens(api=api)
+                            has_participant_table = True
+                            continue
+                        break
                     self.survey_token_id = resp.get("tid")
                     self.save(update_fields=["survey_token_id", "updated_at"])
                 except LimeSurveyError:
@@ -4620,20 +4669,28 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
 
             if self.survey_token_id:
-                api = self.survey_api
-                # resp = api.token.invite_participants(survey_id, [self.survey_token_id,])
-                resp = api.query(
-                    method="invite_participants",
-                    params=OrderedDict(
-                        [
-                            ("sSessionKey", api.session_key),
-                            ("isurveyD", survey_id),
-                            ("aTokenIds", [self.survey_token_id]),
-                            ("bEmail", True),
-                            ("continueOnError", True),
-                        ]
-                    ),
-                )
+                for _ in range(2):  # 2 attempts
+                    resp = api.query(
+                        method="invite_participants",
+                        params=OrderedDict(
+                            [
+                                ("sSessionKey", api.session_key),
+                                ("iSurveyID", survey_id),
+                                ("aTokenIds", [self.survey_token_id]),
+                                ("bEmail", True),
+                                ("continueOnError", True),
+                            ]
+                        ),
+                    )
+                    if (
+                        not has_participant_table
+                        and isinstance(resp, dict)
+                        and resp.get("status") == "Error: No survey participants table"
+                    ):
+                        self.activate_tokens(api=api)
+                        has_participant_table = True
+                        continue
+                    break
                 resp_type = type(resp)
 
                 if resp_type is dict and "status" in resp:
@@ -4719,7 +4776,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 "and enter a new referee.</p>"
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipients=[(a.submitted_by.email if a.submitted_by else a.email)],
+            recipients=[a.submitted_by.email if a.submitted_by else a.email],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
@@ -6273,6 +6330,16 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
 
     @property
+    def code(self):
+        if self.opens_on:
+            yy = f"{self.opens_on.year:02d}"
+        elif self.closes_at:
+            yy = f"{self.closes_at.year:02d}"
+        else:
+            yy = f"{timezone.now().year:02d}"
+        return f"{self.scheme.code}{yy}"
+
+    @property
     def previous_round(self):
         return self._meta.model.where(scheme=self.scheme).order_by("-id").first()
 
@@ -6759,7 +6826,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def user_nominations(self, user):
         return Nomination.where(
-            Q(user=user) | Q(email__in=user.emailaddress_set.values_list("email__lower")),
+            Q(user=user)
+            | Q(
+                Q(email__in=user.emailaddress_set.values_list("email__lower"))
+                | Q(org__research_offices__user=user)
+            ),
             state__in=["submitted", "accepted"],
             round=self,
         )
@@ -6962,6 +7033,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             api.open(password=settings.LIMESURVEY_API_PASSWORD)
             return api
 
+    def activate_tokens(self, api=None):
+        if not api:
+            api = self.survey_api
+            return api.query(
+                method="activate_tokens",
+                params={
+                    "sSessionKey": api.session_key,
+                    "iSurveyID": self.survey_id,
+                },
+            )
+
     def sync_referee_surveys(self, request=None, by=None, referees=None):
         if not self.survey_id:
             return 0
@@ -6974,16 +7056,37 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             q = q.filter(
                 Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
             )
+            has_participant_table = None
             for r in q:
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
-                    resp = api.token.get_participant_properties(
-                        self.survey_id, None, {"token": r.survey_token}
-                    )
-                    r.survey_token_id = resp.get("tid")
+                    for _ in range(2):  # 2 attempts
+                        resp = api.token.get_participant_properties(
+                            self.survey_id, None, {"token": r.survey_token}
+                        )
+                        if (
+                            not has_participant_table
+                            and isinstance(resp, dict)
+                            and resp.get("status") == "Error: No survey participants table"
+                        ):
+                            self.activate_tokens(api=api)
+                            has_participant_table = True
+                            continue
+                        r.survey_token_id = resp.get("tid")
+                        break
                 except LimeSurveyError:
-                    r.add_to_survey(api=api)
+                    for _ in range(2):  # 2 attempts
+                        resp = r.add_to_survey(api=api)
+                        if (
+                            not has_participant_table
+                            and isinstance(resp, dict)
+                            and resp.get("status") == "Error: No survey participants table"
+                        ):
+                            self.activate_tokens(api=api)
+                            has_participant_table = True
+                            continue
+                        break
                 fixed_referees.append(r)
             if fixed_referees:
                 bulk_update_with_history(
@@ -7003,7 +7106,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 method="list_participants",
                 params={
                     "sSessionKey": api.session_key,
-                    "isurveyD": self.survey_id,
+                    "iSurveyID": self.survey_id,
                     # "bUnused": True,
                     "aAttributes": ["email", "token", "completed", "token", "sent", "emailstatus"],
                     "aConditions": {
@@ -7392,11 +7495,15 @@ class ApplicationDocument(PdfFileMixin, Model):
                     "dot",
                     "dotm",
                     "dotx",
+                    "gif",
+                    "jpeg",
+                    "jpg",
                     "odm",
                     "odt",
                     "oth",
                     "ott",
                     "pdf",
+                    "png",
                     "rtf",
                     "tex",
                     "xls",
@@ -7427,7 +7534,15 @@ class ApplicationDocument(PdfFileMixin, Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.document_type}: {os.path.basename(self.file.name)}"
+        if self.document_type_id:
+            return f"{self.document_type}: {os.path.basename(self.file.name)}"
+        elif self.required_document and self.file:
+            return f"{self.required_document}: {os.path.basename(self.file.name)}"
+        elif self.file:
+            return os.path.basename(self.file.name)
+        elif self.required_document:
+            return f"{self.required_document}"
+        return "N/A"
 
     class Meta:
         db_table = "application_document"
@@ -8002,7 +8117,77 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         pass
 
     @classmethod
-    def user_nomination_count(cls, user, state=None):
+    def user_nominations(
+        cls,
+        user,
+        state=None,
+        round=None,
+        select_related=True,
+        include_inactive=False,
+        request=None,
+        queryset=None,
+        exclude_states=None,
+    ):
+        q = queryset or cls.objects.all()
+        # q = cls.where(round__site=Site.objects.get_current())
+        if not user and request:
+            user = request.user
+
+        if select_related:
+            prefetch_related_objects(q, "round")
+
+        if not (user.is_superuser or user.is_staff or user.is_site_staff):
+            # if not state or (state == "submitted" or "submitted" in state):
+            q = q.filter(
+                Q(nominator=user)
+                | Q(org__research_offices__user=user)
+                | Q(nominator__research_offices__org__research_offices__user=user)
+                | Q(
+                    Q(Q(user=user) | Q(email=user.email)),
+                    state="submitted",
+                )
+            ).distinct()
+        if not include_inactive:
+            q = q.filter(round__scheme__current_round=F("round"))
+
+        if state:
+            if isinstance(state, (list, tuple)):
+                q = q.filter(state__in=state)
+            else:
+                q = q.filter(state=state)
+        if exclude_states:
+            q = q.filter(~Q(state__in=exclude_states))
+
+        return q
+
+    @classmethod
+    def user_nomination_count(cls, user, state=None, round=None, request=None):
+        return cls.user_nominations(
+            user=user, state=state, round=round, select_related=False, request=request
+        ).count()
+
+    @classmethod
+    def user_nomination_counts(
+        cls, user, state=None, round=None, request=None, exclude_states=None
+    ):
+        return (
+            cls.where(
+                pk__in=cls.user_nominations(
+                    user=user,
+                    state=state,
+                    round=round,
+                    select_related=False,
+                    request=request,
+                    exclude_states=exclude_states,
+                ).values("pk")
+            )
+            .values_list("state")
+            .annotate(total=Count("state"))
+            .order_by()
+        )
+
+    @classmethod
+    def __user_nomination_count(cls, user, state=None):
         sql = """
             SELECT count(*) AS "count"
             FROM nomination AS n JOIN scheme AS s
@@ -8747,14 +8932,6 @@ class ContractEthicsStatement(PdfFileMixin, Model):
 class ContractMixin:
     STATES = Choices(
         (None, None),
-        ("ASD", _("Awaiting start date")),
-        ("COM", _("Completed")),
-        ("CUR", _("Current ")),
-        ("DCL", _("Declined")),
-        ("SUS", _("Suspended")),
-        ("TER", _("Terminated")),
-        ("TRN", _("Transferred")),
-        ("WTH", _("Withdrawn")),
         ("accepted", _("Accepted")),
         ("approved", _("Approved")),
         ("archived", _("Archived")),
@@ -8764,8 +8941,17 @@ class ContractMixin:
         ("preliminary", _("Preliminary")),
         ("submitted", _("Submitted")),
         ("released", _("Released")),
-        ("current", _("Current ")),
+        ("current", _("Current")),
         # ("withdrawn", _("withdrawn")),
+        # Legacy codes:
+        ("ASD", _("Awaiting start date")),
+        ("COM", _("Completed")),
+        ("CUR", _("Current")),
+        ("DCL", _("Declined")),
+        ("SUS", _("Suspended")),
+        ("TER", _("Terminated")),
+        ("TRN", _("Transferred")),
+        ("WTH", _("Withdrawn")),
     )
 
 
@@ -9013,6 +9199,22 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     def __str__(self):
         # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
         return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
+
+    @classmethod
+    def start_reporting(cls, request=None, queryset=None, *args, **kwargs):
+
+        now = timezone.now()
+        if not queryset:
+            queryset = cls.where(state_in=["current", "CUR"])
+
+        qs = queryset.model.reporting_schedule.field.model.where(
+            Q(contract__in=queryset) if queryset else Q(state_in=["current", "CUR"]),
+            Q(due_date__lt=now) | Q(date_first_remind__lt=now),
+            report__isnull=True,
+        )
+        for rse in qs:
+            r = rse.create_report()
+            url = reverse("report-update", kwargs={"pk": r.pk})
 
     @classmethod
     def user_object_counts(
@@ -9420,7 +9622,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
                 allocation = (awarded_amount / c.duration) if awarded_amount else 0.0
                 allocations = [round_number(allocation, 0)] * c.duration
-                allocations[-1] = awarded_amount - sum(allocations[:-1])
+                if awarded_amount:
+                    allocations[-1] = awarded_amount - sum(allocations[:-1])
 
                 Allocation.bulk_create(
                     [
@@ -10733,6 +10936,91 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     # notes2 = models.TextField(blank=True, null=True)
     # duration = models.IntegerField(blank=True, null=True)
 
+    def create_report(self, *args, **kwargs):
+
+        c = self.contract
+        a = c.application
+        if pr := c.reports.filter(period__lt=self.period).order_by("pk").last():
+            r = pr.clone(
+                schedule_entry=self,
+                period=self.period,
+                type=self.type,
+                state="draft",
+                reported_at=None,
+                assessed_at=None,
+                file=None,
+                converted_file=None,
+                exclude_related_models=[ReportedEffort],
+            )
+
+            # r.fors.add(*pr.fors.all())
+            # r.seos.add(*pr.seos.all())
+            # r.fors.through.bulk_create(
+            #     [
+            #         r.fors.through(
+            #             report=r,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in r.fors.through.objects.filter(report=pr)
+            #     ]
+            # )
+            # r.seos.through.bulk_create(
+            #     [
+            #         r.seos.through(
+            #             report=r,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in r.seos.through.objects.filter(report=pr)
+            #     ]
+            # )
+            # r.keywords.add(*pr.keywords.all())
+            # r.priorities.add(*pr.priorities.all())
+        else:
+            r = Report.create(
+                schedule_entry=self,
+                contract=c,
+                period=self.period,
+                type=self.type,
+            )
+        ReportedEffort.bulk_create(
+            [
+                ReportedEffort(
+                    report=r,
+                    member_effort=me,
+                    person=me.member.user and me.member.user.person,
+                    full_name=me.member.full_name,
+                    role=me.member.role,
+                    fte=me.fte,
+                )
+                for me in ContractMemberEffort.where(period=r.period, member__contract=c)
+            ]
+        )
+
+        return r
+
+    @classmethod
+    def remind(cls):
+        for rse in cls.objects.filter(
+            Q(due_date__lt=timezone.now()) | Q(date_first_remind__lt=timezone.now()),
+            report__isnull=True,
+        ):
+            r = rse.create_report()
+
+        send_mail(
+            __("A team member opted out of application"),
+            __("Your team member %s has opted out of application") % self,
+            recipients=[self.application.submitted_by.email],
+            fail_silently=False,
+            request=request,
+            reply_to=self.full_email_address,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+
+        pass
+
     def __str__(self):
         return f"{self.contract}:{self.type}-{self.period}"
 
@@ -10827,7 +11115,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         ),
         help_text=_("Reporting Type"),
     )
-    state = StateField(default="new", verbose_name=_("state"))
+    state = StateField(default="draft", verbose_name=_("state"))
     file = PrivateFileField(
         verbose_name=_("Completed research report"),
         blank=True,
@@ -10872,7 +11160,16 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @cached_property
     def due_date(self):
-        return self.schedule_entry.due_date
+        se = self.schedule_entry
+        return se.due_date or (se.date_first_remind + relativedelta(weeks=1))
+
+    @cached_property
+    def is_overdue(self):
+        return self.due_date <= timezone.now().date()
+
+    @cached_property
+    def is_due_soon(self):
+        return (self.due_date - timezone.now().date()).days <= 5
 
     @cached_property
     def ci(self):
@@ -11006,8 +11303,57 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         default=0,
     )
 
-    def create(self, *args, **kwargs):
+    @classmethod
+    def create(cls, *args, **kwargs):
+        if c := kwargs.get("contract"):
+            for k in [
+                k
+                for k in c._meta.fields_map.keys()
+                if k
+                in [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    "is_vm_na",
+                    "vm_rationale",
+                    "toa_basic",
+                    "toa_experimental",
+                    "toa_applied",
+                    "toa_strategic",
+                ]
+            ]:
+                v = kwargs.get(k)
+                if v:
+                    continue
+                kwargs[k] = v
+
         obj = super().create(*args, **kwargs)
+        # obj.fors.add(*c.fors.all())
+        # obj.seos.add(*c.seos.all())
+        obj.fors.through.bulk_create(
+            [
+                obj.fors.through(
+                    report=obj,
+                    code=o.code,
+                    share=o.share,
+                )
+                for o in c.fors.through.objects.filter(contract=c)
+            ]
+        )
+        obj.seos.through.bulk_create(
+            [
+                obj.seos.through(
+                    report=obj,
+                    code=o.code,
+                    share=o.share,
+                )
+                for o in c.seos.through.objects.filter(contract=c)
+            ]
+        )
+        obj.keywords.add(*c.keywords.all())
+        obj.priorities.add(*c.priorities.all())
+
         if r := (obj.contract and obj.contract.application and obj.contract.application.round):
             AssessedPerformance.bulk_create(
                 [
@@ -11045,7 +11391,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @property
     def due_in_days(self):
-        current_date = timezone.localdate()
+        current_date = timezone.now().date()
         if self.due_date:
             return (self.due_date - current_date).days
         elif (c := self.contract) and c.start_date and self.period:
@@ -11104,9 +11450,10 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         if user.is_staff or user.is_superuser or user.is_site_staff:
             return q
 
-        f = (
+        f = Q(
             Q(assessor=user)
             | Q(contract__application__submitted_by=user)
+            | Q(contract__members__user=user, contract__members__role="PI"),
             # | Q(members__user=user, members__state="authorized")
             # | Q(referees__user=user)
             # | Q(nomination__nominator=user)
@@ -11118,10 +11465,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             #         | Q(nomination__nominator__research_offices__org=F("org"))
             #     ),
             # )
+            contract__state__in=["CUR", "current"]
         )
-        q = q.filter(f)
-        q = q.distinct()
-
+        q = q.filter(f).distinct()
         return q
 
     @property
@@ -12286,6 +12632,15 @@ class ChangeRequestCommentAttachment(Model):
     class Meta:
         db_table = "change_request_comment_attachment"
         verbose_name = _("attachment")
+
+
+class Impersonation(HelperMixin, Base):
+    impersonated_at = DateTimeField(null=True, default=timezone.now, editable=False)
+    user = ForeignKey(User, on_delete=CASCADE, related_name="impersonations")
+    impersonated = ForeignKey(User, on_delete=PROTECT, related_name="impersonations_by")
+
+    class Meta:
+        db_table = "impersonation"
 
 
 dummy_for_translations = (

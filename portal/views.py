@@ -239,10 +239,34 @@ def pyinfo(request, message=None):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
-    u = User.objects.filter(Q(username=username) | Q(email=username)).first()
+    if (
+        username
+        and any(c in username for c in ["<", ">"])
+        and (m := re.match(r".*\<(.*)\>.*", username))
+    ):
+        username = m[1]
+    u = User.objects.filter(
+        Q(username__istartswith=username) | Q(email__istartswith=username)
+    ).first()
+    resp = redirect("start")
     if request.user.pk != u.pk:
+        resp.set_cookie("original_user_id", request.user.pk, max_age=36000, secure=True)
+        log_rec = models.Impersonation.create(user=request.user, impersonated=u)
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
-    return redirect("start")
+        messages.info(request, _(f"The 'impersonation' recoded at {log_rec.impersonated_at}."))
+    return resp
+
+
+@login_required
+def switch_back(request):
+    resp = redirect(request.META.get("HTTP_REFERER") or "start")
+    if pk := request.COOKIES.get("original_user_id"):
+        del request.COOKIES["original_user_id"]
+        resp.delete_cookie("original_user_id")
+        u = User.get(pk=pk)
+        if request.user.pk != u.pk:
+            login(request, u, backend="django.contrib.auth.backends.ModelBackend")
+    return resp
 
 
 def shoud_be_onboarded(function):
@@ -1207,7 +1231,8 @@ def index(request):
         if site_id not in [2, 4, 5, 7] or not (user.is_superuser or user.is_site_staff):
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
-                round__in=models.Scheme.objects.values("current_round"),
+                round__scheme__current_round=F("round"),
+                # round__in=models.Scheme.objects.values("current_round"),
             )
             if applications.count() < 7:
                 draft_applications = applications
@@ -1219,6 +1244,9 @@ def index(request):
             )
             if applications.count() < 7:
                 current_applications = applications
+            reports = models.Report.user_objects(user=user, state=["new", "draft"])
+            if reports.count() < 7:
+                new_reports = reports
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
@@ -2305,7 +2333,8 @@ class ReportViewMixin:
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
-        context["current_date"] = timezone.localdate()
+        # context["current_date"] = timezone.localdate()
+        context["current_date"] = timezone.now().date()
         context["report"] = r = self.object
 
         # self.allocations = context["allocations"] = self.get_allocation_formset()
@@ -3872,6 +3901,14 @@ class ApplicationDetail(DetailView):
                             "The application was approved. The applicant(s) and administrator(s) were notified."
                         ),
                     )
+            elif action == "accept":
+                a = self.object
+                if a.state != "accepted":
+                    a.accept(request)
+                    a.save()
+                    messages.success(request, _("The application was successfully accepted"))
+                else:
+                    messages.warning(request, _("The application was already accepted"))
 
         return redirect(request.path)
 
@@ -4650,7 +4687,18 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                     )
                     else:
                         if update_url:
+                            if documents.errors:
+                                for form_errors in documents.errors:
+                                    if form_errors and "file" in form_errors:
+                                        message = form_errors["file"]
+                                        if isinstance(message, list) and message:
+                                            message = message[0]
+                                        messages.error(self.request, message)
                             return redirect(f"{update_url}#documents")
+                        if documents.errors:
+                            for form_errors in documents.errors:
+                                form.errors.update(form_errors)
+                        form.active_tab = "documents"
                         return self.form_invalid(form)
 
                 try:
@@ -4734,7 +4782,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 # else:
                                 #     url = self.continue_url("referees")
                                 url = self.continue_url("referees")
-                                raise ValidationError(_("Invalid referee form"))
+                                raise ValidationError(f"Invalid referee form: {f.errors}")
 
                     if referees and referees.is_valid():
                         referee_emails = sorted(
@@ -5711,18 +5759,18 @@ class ApplicationCreate(ApplicationView, CreateView):
 
     def get(self, request, *args, **kwargs):
         n = (
-            models.Nomination.where(
-                email__in=self.request.user.email_addresses,
-                round__scheme__current_round=F("round"),
+            models.Nomination.get(kwargs["nomination"])
+            if "nomination" in kwargs
+            else (
+                models.Nomination.where(
+                    email__in=self.request.user.email_addresses,
+                    round__scheme__current_round=F("round"),
+                )
+                .order_by("-id")
+                .first()
             )
-            .order_by("-id")
-            .first()
         )
-        r = (
-            models.Round.get(kwargs["round"])
-            if "round" in kwargs
-            else models.Nomination.get(kwargs["nomination"]).round
-        )
+        r = models.Round.get(kwargs["round"]) if "round" in kwargs else (n and n.round)
         u = request.user
         if r.panellists.all().filter(user=u).exists():
             messages.error(
@@ -5873,6 +5921,7 @@ class ApplicationCreate(ApplicationView, CreateView):
 
         except Exception as ex:
             capture_exception(ex)
+            form.errors["__all__"] = f"Unhandled except occurred: {ex}"
             return self.form_invalid(form)
 
         return resp
@@ -6114,6 +6163,13 @@ class ContractDetail(DetailView):
 class ContractViewMixin:
 
     extra_context = {"category": "contracts"}
+
+    def get_queryset(self):
+        u = self.request.user
+        qs = super().get_queryset()
+        if not (u.is_superuser or u.is_site_staff):
+            qs = qs.filter(Q(members__user=u) | Q(org__research_offices__user=u)).distinct()
+        return qs
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -7430,7 +7486,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 )
                 return redirect(request.path_info)
 
-        if hasattr(formset, "deleted_objects"):
+        if getattr(formset, "deleted_objects", 0):
             if len(formset.deleted_objects) == 1:
                 messages.info(
                     request,
@@ -7600,7 +7656,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
     def get_queryset(self):
         # if there is an invitation or nomination reuse it:
         p = self.request.user.person
-        q = p.employments.all()
+        q = p.affiliations.all()
         if not q.count() > 0:
             data = (
                 models.Invitation.where(email=self.request.user.email).order_by("-id").first()
@@ -8137,6 +8193,9 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
     def get_queryset(self):
 
         q = super().get_queryset()
+        if scheme := self.forwarded.get("scheme"):
+            # select only people affiliated with the org
+            q = q.filter(round_scheme=scheme)
         if round := self.forwarded.get("round"):
             # select only people affiliated with the org
             return q.filter(round=round)
@@ -9106,25 +9165,12 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Fil
         return context
 
     def get_queryset(self, *args, **kwargs):
-        queryset = super().get_queryset(*args, **kwargs)
-        u = self.request.user
+        qs = super().get_queryset(*args, **kwargs)
         state = self.request.path.split("/")[-1]
-        if not (u.is_superuser or u.is_staff or u.is_site_staff):
-            # if not state or (state == "submitted" or "submitted" in state):
-            queryset = queryset.filter(
-                Q(nominator=u)
-                | Q(nominator__research_offices__user=u)
-                | Q(
-                    Q(Q(user=u) | Q(email=u.email)),
-                    state="submitted",
-                )
-            ).distinct()
-        queryset = queryset.filter(round__scheme__current_round=F("round"))
+        u = self.request.user
         if state == "draft":
-            queryset = queryset.filter(state__in=[state, "new"])
-        elif state in ["submitted", "accepted"]:
-            queryset = queryset.filter(state=state)
-        return queryset
+            state = [state, "new"]
+        return self.model.user_nominations(user=u, request=self.request, state=state, queryset=qs)
 
 
 class NominationDetail(DetailView):
@@ -9176,6 +9222,7 @@ class NominationDetail(DetailView):
 
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")
+        return_url = request.POST.get("return_url")
         if action == "withdraw":
             n = self.object = self.get_object()
             state = n.state
@@ -9196,16 +9243,29 @@ class NominationDetail(DetailView):
                 a.save()
                 messages.info(request, f"The application {a} has been cancelled.")
 
+            if return_url:
+                return redirect(return_url)
             if not state or state in ["new", "draft"]:
                 return redirect("nominations-draft")
             if state == "submitted":
                 return redirect("nominations-submitted")
             if state == "accepted":
                 return redirect("nominations-accepted")
-            return redirect("nominations")
+        return redirect(return_url or "nominations")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        if not (return_url := self.request.META.get("HTTP_REFERER")):
+            state = self.object.state
+            if not state or state in ["new", "draft"]:
+                return_url = "nominations-draft"
+            elif state == "submitted":
+                return_url = "nominations-submitted"
+            elif state == "accepted":
+                return_url = "nominations-accepted"
+            else:
+                return_url = "nominations"
+        context["return_url"] = return_url
         context["category"] = "nominations"
         context["exclude"] = [
             "id",
@@ -9215,7 +9275,7 @@ class NominationDetail(DetailView):
         ]
         if self.can_start_applying:
             context["start_applying"] = reverse(
-                "nomination-application-create", kwargs=dict(nomination=self.object.id)
+                "nomination-application-create", kwargs=dict(nomination=self.object.pk)
             )
         return context
 
@@ -9649,6 +9709,62 @@ class RoundExportView(ExportView):
         #         _(f"Error while converting to pdf. Please contact Administrator: {ex}"),
         #     )
         #     return redirect(self.request.META.get("HTTP_REFERER"))
+
+
+class NominationExportView(ExportView, NominationDetail):
+    """Nomination PDF export view"""
+
+    model = models.Nomination
+
+    def get_metadata(self, pk):
+        obj = self.model.get(pk)
+        metadata = super().get_metadata(pk)
+        metadata.update(
+            {
+                "/Author": obj.nominator.full_name_with_email,
+                "/Subject": f"Nomination of {obj.user} for {obj.round} by {obj.nominator}",
+                "/Number": f"{obj.pk}",
+                "/URL": obj.get_full_detail_url(request=self.request),
+            }
+        )
+        return metadata
+
+    def get_filename(self, pk):
+        obj = self.model.get(pk)
+        return f"{obj.round.code}-{obj.user and obj.user.full_name_with_email or obj.email}"
+
+    def test_func(self):
+        u = self.request.user
+        # staff, superuser, or a panellist of the round
+        return (
+            u.is_staff
+            or u.is_superuser
+            or u.is_site_staff
+            or (
+                "pk" in self.kwargs
+                and (t := get_object_or_404(self.model, pk=self.kwargs["pk"]))
+                and t.nominator == u
+            )
+        )
+
+    def get_attachments(self, pk):
+        obj = self.model.get(id=pk)
+        attachments = []
+        if obj.file:
+            attachments.append(
+                (
+                    f"{obj} {_('Form')}",
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(obj.pdf_file),
+                )
+            )
+        if cv := obj.cv or models.CurriculumVitae.last_user_cv(obj.nominator):
+            attachments.append(
+                (
+                    f"{cv} {_('Curriculum Vitae')}",
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
+                )
+            )
+        return attachments
 
 
 class TestimonialExportView(ExportView, TestimonialDetail):

@@ -240,43 +240,72 @@
                       class="btn btn-outline-warning"
                       {% if a.state != "submitted"  %} disabled style="pointer-events: none;"
                       {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                      {% endif %} 
-                      name="request_resubmission" 
-                      data-action="request_resubmission" 
+                      {% endif %}
+                      name="request_resubmission"
+                      data-action="request_resubmission"
                       value="{% trans 'Request Resubmission' %}">
             </span>
-                <span class="d-inline-block"
-                    tabindex="0"
-                    data-toggle="tooltip"
-                    {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
-                    {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
-                    {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
-                    {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
-                    {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
-                    {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
-                    {% else %}title="{% trans 'Approve the application' %}"
-                    {% endif %}
-                >
-                      <input class="btn btn-primary"
-                            {% if a.state != "submitted"  %} disabled style="pointer-events: none;" type="submit"
-                            {% elif r.agent_declaration %}data-toggle="modal" data-target="#id_agent_declaration_modal" type="submit"
-                            {% comment %}
-                            {% elif r.agent_declaration %}hx-get="{% url 'application-agent-declaration' %}?pk={{object.pk}}" hx-target="#id_agent_declaration_span" type="button"
-                            {% endcomment %}
-                            {% else %}data-toggle="modal" data-target="#id_resolution_modal" type="submit"
-                            {% endif %} name="approve" value="{% trans 'Approve' %}"
-                      >
-                      <!-- button type="button" class="btn btn-primary"
-                        {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
-                        {% else %}data-toggle="modal" data-target="#id_resolution_modal"
-                        {% endif %}>{% trans 'Approve' %}
-                        </button -->
-                </span>
-              {% endif %}
-  {% if user.is_site_staff or user.is_superuser %}
-  <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
-      {% trans 'Open in Admin' %}
-    </a>{% endif %}
+            <!-- Approve -->
+            <span class="d-inline-block"
+                tabindex="0"
+                data-toggle="tooltip"
+                {% if a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                {% elif a.state == "approved" %}title="{% trans 'Application had been already approved' %}"
+                {% elif a.state == "accepted" %}title="{% trans 'Application has been accepted by the administrators' %}"
+                {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
+                {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
+                {% elif a.state != "submitted" %}title="{% trans 'Application had not yet been submitted' %}"
+                {% else %}title="{% trans 'Approve the application' %}"
+                {% endif %}
+            >
+                  <input class="btn btn-primary"
+                        {% if a.state != "submitted"  %} disabled style="pointer-events: none;" type="submit"
+                        {% elif r.agent_declaration %}data-toggle="modal" data-target="#id_agent_declaration_modal" type="submit"
+                        {% comment %}
+                        {% elif r.agent_declaration %}hx-get="{% url 'application-agent-declaration' %}?pk={{object.pk}}" hx-target="#id_agent_declaration_span" type="button"
+                        {% endcomment %}
+                        {% else %}data-toggle="modal" data-target="#id_resolution_modal" type="submit"
+                        {% endif %} name="approve" value="{% trans 'Approve' %}"
+                        data-action="approve"
+                  >
+                  <!-- button type="button" class="btn btn-primary"
+                    {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
+                    {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                    {% endif %}>{% trans 'Approve' %}
+                    </button -->
+            </span>
+      {% elif user.is_staff %}
+        {% if a.state == "submitted" or a.state == "approved" %}
+            {% include 'snippets/resolution_modal.html' with application=object round=object.round pi=object.pi org=object.org %}
+            <!-- Accept: {{ a.state }}  -->
+            <span class="d-inline-block"
+                tabindex="0"
+                data-toggle="tooltip"
+                {% if a.state == "submitted" or a.state == "approved" %}title="{% trans 'Accept the application' %}"
+                {% elif a.state == "cancelled" %}title="{% trans 'Application had been already cancelled' %}"
+                {% elif a.state == "accepted" %}title="{% trans 'Application has been already accepted by the administrators' %}"
+                {% elif a.state == "in_review" %}title="{% trans 'Application has been sent out for reviewing by the referees' %}"
+                {% elif a.state == "funded" %}title="{% trans 'Application had been already marked as funded' %}"
+                {% else %}title="{% trans 'The application cannot be accepted' %}"
+                {% endif %}
+            >
+                  <input class="btn btn-primary"
+                    {% if a.state != "submitted" and a.state != "approved" %} disabled style="pointer-events: none;"
+                    {% else %}data-toggle="modal" {# data-target="#id_resolution_modal" #}
+                    {% endif %} type="submit" name="accept" value="{% trans 'Accept' %}"
+                    data-action="accept"
+                  >
+                  <!-- button type="button" class="btn btn-primary"
+                    {% if a.state != "submitted"  %} disabled  style="pointer-events: none;"
+                    {% else %}data-toggle="modal" data-target="#id_resolution_modal"
+                    {% endif %}>{% trans 'Approve' %}
+                    </button -->
+            </span>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
+          {% trans 'Open in Admin' %}
+      </a>
+    {% endif %}
   </div>
 </form>
 
@@ -297,7 +326,7 @@
         target_id = e.detail.target.id;
         if (target_id == "id_agent_declaration_span") {
            $('#id_agent_declaration_modal').modal('show');
-           $('#id_action').val("approve");
+           $("[name='action'],#id_action").val("approve");
            $(this).find("textarea[name='resolution']").focus();
         }
       })
@@ -307,10 +336,15 @@
       });
       $("input[type='submit']").on("click", function(e) {
         e.preventDefault();
-        let name = $(this).attr("name");
-        $('#id_action').val(name);
+        e.stopPropagation();
+        var el = e.target;
+        let name =  el.dataset["action"]||$(this).attr("name");
+        $("[name='action'],#id_action").val(name);
         {% if object.round.agent_declaration %}
-          if (name == "approve") $('#id_agent_declaration_modal').modal({keyboard: true}); else $('#id_resolution_modal').modal({keyboard: true});
+        if (name == "approve") {
+           $('#id_agent_declaration_modal #id_commit_button').text(el.value||el.outerText||'Commit');
+           $('#id_agent_declaration_modal').modal({keyboard: true});
+        } else $('#id_resolution_modal').modal({keyboard: true});
         {% else %}
           $('#id_resolution_modal').modal({keyboard: true});
         {% endif %}

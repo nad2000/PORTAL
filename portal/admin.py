@@ -2,6 +2,7 @@ import os
 from functools import cache
 
 import dal
+import django
 import djhacker
 import modeltranslation
 from admin_ordering.admin import OrderableAdmin
@@ -11,18 +12,23 @@ from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse
+from django.urls import NoReverseMatch
 from django.utils import timezone
+from django.utils.datastructures import OrderedSet
 from django.utils.html import format_html, html_safe
 from django.utils.safestring import mark_safe
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
+from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
 from import_export import fields
 from import_export.admin import (
@@ -37,8 +43,14 @@ from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
+from easyaudit import admin as easyaudit_admin
 
-from . import models
+from . import filters, models
+
+# from dalf.admin import DALFModelAdmin, DALFRelatedOnlyField, DALFRelatedFieldAjax
+# from autocompletefilter.admin import AutocompleteFilterMixin
+# from autocompletefilter.filters import AutocompleteListFilter
+
 
 djhacker.formfield(
     models.Organisation.signatory,
@@ -50,6 +62,26 @@ djhacker.formfield(
             dal.forward.Field("code", "org_code"),
         ],
     ),
+)
+
+djhacker.formfield(
+    CRUDEvent.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+)
+
+
+djhacker.formfield(
+    LoginEvent.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+)
+
+
+djhacker.formfield(
+    RequestEvent.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
 )
 
 djhacker.formfield(
@@ -73,6 +105,18 @@ djhacker.formfield(
 #             ],
 #         ),
 #     )
+
+djhacker.formfield(
+    models.ApplicationDocument.required_document,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(
+        url="required-document-autocomplete",
+        forward=[
+            dal.forward.Field("round", "round"),
+            dal.forward.Field("scheme", "scheme"),
+        ],
+    ),
+)
 
 djhacker.formfield(
     models.RoundDocumentTemplate.document_type,
@@ -235,8 +279,91 @@ class FSMTransitionMixin(FSMTransitionMixin):
         js = (JSPath(),)
 
 
+class AutocompleteFilterMixin:
+    @property
+    def media(self):
+        media = super().media
+
+        i18n_file = None
+        i18n_name = SELECT2_TRANSLATIONS.get(get_language(), None)
+        if i18n_name:
+            i18n_file = "admin/js/vendor/select2/i18n/%s.js" % i18n_name
+
+        extra_js = [
+            "admin/js/vendor/jquery/jquery.js",
+            "admin/js/vendor/select2/select2.full.js",
+        ]
+        if i18n_file:
+            extra_js.append(i18n_file)
+        extra_js.extend(
+            [
+                "admin/js/jquery.init.js",
+                "admin/js/autocomplete.js",
+                # "admin/js/autocomplete_filter.js",  #  moved to the change_list.html
+            ]
+        )
+        extra_css = [
+            "admin/css/vendor/select2/select2.css",
+            "admin/css/autocomplete.css",
+        ]
+        if django.VERSION >= (2, 2, 0, "final", 0):
+            media._js_lists.append(extra_js)
+            media._css_lists.append({"screen": extra_css})
+        else:
+            media._js = OrderedSet(extra_js + media._js)
+            media._css.setdefault("screen", [])
+            media._css["screen"].extend(extra_css)
+        return media
+
+
 class StateLogInline(StateLogInline):
     classes = ["collapse"]
+
+
+class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
+
+    list_filter = [
+        "event_type",
+        ("content_type", admin.RelatedOnlyFieldListFilter),
+        # ("user", RelatedOnlyFieldListFilter),
+        ("user", filters.AutocompleteListFilter),
+        "datetime",
+    ]
+
+
+# # Re-register CRUDEventAdmin
+admin.site.unregister(easyaudit_admin.CRUDEvent)
+admin.site.register(CRUDEvent, CRUDEventAdmin)
+
+
+class RequestEventAdmin(AutocompleteFilterMixin, easyaudit_admin.RequestEventAdmin):
+
+    # list_filter = REQUEST_EVENT_LIST_FILTER
+    list_filter = [
+        "method",
+        ("user", filters.AutocompleteListFilter),
+        "datetime",
+    ]
+
+
+# Re-register CRUDEventAdmin
+admin.site.unregister(easyaudit_admin.RequestEvent)
+admin.site.register(RequestEvent, RequestEventAdmin)
+
+
+class LoginEventAdmin(AutocompleteFilterMixin, easyaudit_admin.LoginEventAdmin):
+
+    # list_filter = LOGIN_EVENT_LIST_FILTER
+    list_filter = [
+        "login_type",
+        ("user", filters.AutocompleteListFilter),
+        "datetime",
+    ]
+
+
+# Re-register CRUDEventAdmin
+admin.site.unregister(easyaudit_admin.LoginEvent)
+admin.site.register(LoginEvent, LoginEventAdmin)
 
 
 class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
@@ -374,8 +501,28 @@ class StaffPermsMixin:
         return request.user.is_active and (request.user.is_superuser or request.user.is_site_staff)
 
 
+class HistoryAdmin(SimpleHistoryAdmin):
+
+    def get_history_list_display(self, request):
+        if hasattr(self.model, "state"):
+            # return ["state", "state_changed_at"]
+            return ["STATE"]
+        return []
+
+    @admin.display(description="State", empty_value="N/A")
+    def STATE(self, obj):
+        if obj.state:
+            if state_changed_at := getattr(obj, "state_changed_at", None):
+                sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+                return mark_safe(
+                    f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
+                )
+            return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
+        return ""
+
+
 @admin.register(models.Subscription)
-class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, HistoryAdmin):
     view_on_site = False
     save_on_top = True
     exclude = [
@@ -388,7 +535,7 @@ class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 
 
 @admin.register(models.ContractDocument)
-class ContractDocumentAdmin(StaffPermsMixin, SimpleHistoryAdmin):
+class ContractDocumentAdmin(StaffPermsMixin, HistoryAdmin):
     view_on_site = False
     save_on_top = True
     list_display = [
@@ -442,11 +589,14 @@ class ReportingScheduleEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.Address)
-class AddressAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+class AddressAdmin(
+    StaffPermsMixin, ImportExportMixin, ExportActionMixin, AutocompleteFilterMixin, HistoryAdmin
+):
     view_on_site = False
     save_on_top = True
     list_display = ["address", "city", "country"]
-    list_filter = [("country", admin.RelatedOnlyFieldListFilter)]
+    # list_filter = [("country", admin.RelatedOnlyFieldListFilter)]
+    list_filter = [("country", filters.AutocompleteListFilter)]
     search_fields = ["address", "city", "country__name"]
     date_hierarchy = "created_at"
     autocomplete_fields = ["country"]
@@ -533,7 +683,7 @@ class EthnicityResource(ModelResource):
 
 
 @admin.register(models.Ethnicity)
-class EthnicityAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+class EthnicityAdmin(ImportExportMixin, ExportActionMixin, HistoryAdmin):
     save_on_top = True
     view_on_site = False
     search_fields = [
@@ -566,7 +716,7 @@ class EthnicityAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
 
 
 # @admin.register(models.SocioEconomicObjective)
-# class SeoAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+# class SeoAdmin(ImportExportModelAdmin, HistoryAdmin):
 #     save_on_top = True
 #     view_on_site = False
 #     search_fields = [
@@ -587,7 +737,7 @@ class CodeResource(ModelResource):
 
 
 @admin.register(models.Language)
-class LanguageAdmin(ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+class LanguageAdmin(ImportExportMixin, ExportActionMixin, HistoryAdmin):
     save_on_top = True
     view_on_site = False
 
@@ -969,7 +1119,7 @@ class PanelAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.Mo
 
 
 @admin.register(models.Person)
-class ProfileAdmin(StaffPermsMixin, SimpleHistoryAdmin):
+class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
     save_on_top = True
     autocomplete_fields = ["address", "user", "title"]
 
@@ -1174,7 +1324,7 @@ class ApplicationAdmin(
     StaffPermsMixin,
     FSMTransitionMixin,
     TranslationAdmin,
-    SimpleHistoryAdmin,
+    HistoryAdmin,
 ):
 
     history_list_display = ["changed_fields"]
@@ -1267,10 +1417,13 @@ class ApplicationAdmin(
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
         if obj.state:
-            sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
-            return mark_safe(
-                f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
-            )
+            if obj.state_changed_at:
+                sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+                return mark_safe(
+                    f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
+                )
+            return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
+        return ""
 
     @admin.display(description="Previous Numbers")
     def previous_numbers(self, obj, *args, **kwargs):
@@ -1571,6 +1724,70 @@ class ApplicationAdmin(
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.id})
 
+    @admin.action(description="Approve on behalf of R.O.")
+    def approve(self, request, queryset):
+        # count = queryset.count()
+        submitted = queryset.filter(state="submitted")
+        submitted_count = submitted.count()
+        if not submitted_count:
+            messages.warning(request, "Only SUBMITTED applications can be approved...")
+            return
+
+        u = request.user
+        applications = []
+        for a in submitted:
+            a.approve(by=u, request=request, description=f"Approved on behalf of R.O. by {u}")
+            applications.append(a)
+
+        bulk_update_with_history(
+            applications,
+            models.Application,
+            default_user=u,
+            fields=["state", "state_changed_at"],
+            default_change_reason=f"Approved on behalf of R.O. by {u}",
+        )
+        messages.success(
+            request, f"{submitted_count} approved: {','.join(a.number for a in applications)}."
+        )
+
+    @admin.action(description="Accept in bulk")
+    def accept(self, request, queryset):
+
+        if "do_action" in request.POST:
+            resolution = request.POST.get("resolution")
+            approved = queryset.filter(state="approved")
+            approved_count = approved.count()
+            if not approved_count:
+                messages.warning(request, "Only APPROVED applications can be accepted...")
+                return
+
+            u = request.user
+            applications = []
+            for a in approved:
+                a.accept(by=u, request=request, description=resolution or f"Accepted by {u}")
+                applications.append(a)
+
+            bulk_update_with_history(
+                applications,
+                models.Application,
+                default_user=u,
+                fields=["state", "state_changed_at"],
+                default_change_reason=resolution or f"Accepted by {u}",
+            )
+            messages.success(
+                request, f"{approved_count} accepted: {','.join(a.number for a in applications)}."
+            )
+
+        return render(
+            request,
+            "action_resolution.html",
+            {
+                "title": "Resolution or notes",
+                "objects": queryset,
+                "action_label": self.get_action("accept")[-1],
+            },
+        )
+
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
         invitation_count = models.invite_referees(
@@ -1613,6 +1830,8 @@ class ApplicationAdmin(
         return form
 
     actions = [
+        "approve",
+        "accept",
         "initialize_contracts",
         "invite_referees",
         refresh_page_counts,
@@ -1818,7 +2037,7 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 
 @admin.register(models.Referee)
-class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
     save_on_top = True
 
@@ -1870,6 +2089,9 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
         "testimonial_link",
     ]
     inlines = [StateLogInline]
+
+    # def get_list_display(self, request):
+    #    list_display = super().get_list_display(request)
 
     def get_queryset(self, request):
         return (
@@ -1951,7 +2173,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
 
 @admin.register(models.Member)
-class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     list_display = ["email", "full_name", "application", "state", "has_authorized"]
     search_fields = [
@@ -2038,7 +2260,7 @@ class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
 
 
 @admin.register(models.IdentityVerification)
-class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     list_display = ["user", "is_accepted", "application"]
     search_fields = ["user__first_name", "user__last_name", "application__application_title"]
@@ -2111,8 +2333,24 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
         return mark_safe(obj.html_message or "-")
 
 
+@admin.register(models.Impersonation)
+class ImpersonationAdmin(admin.ModelAdmin):
+    save_on_top = True
+    view_on_site = False
+    list_display = [
+        "user",
+        "impersonated",
+        "impersonated_at",
+    ]
+    readonly_fields = ["user", "impersonated", "impersonated_at"]
+    autocomplete_fields = ["user", "impersonated"]
+    search_fields = ["user__username", "user__email"]
+    list_filter = ["impersonated_at"]
+    date_hierarchy = "impersonated_at"
+
+
 @admin.register(models.Nomination)
-class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
 
     def nominator_name(self, obj):
@@ -2129,13 +2367,23 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin)
 
     list_display = ["round", "nominee_name", "nominator_name", "application"]
     date_hierarchy = "created_at"
-    list_filter = ["created_at", "updated_at", "round", "state"]
+    list_filter = [
+        "created_at",
+        "updated_at",
+        "round",
+        "state",
+        ("org", admin.RelatedOnlyFieldListFilter),
+    ]
     search_fields = [
         "email",
         "first_name",
         "last_name",
         "round__title",
         "application__number",
+        "nominator__email",
+        "nominator__first_name",
+        "nominator__last_name",
+        "nominator__username",
     ]
     # summernote_fields = ["summary"]
     exclude = [
@@ -2200,7 +2448,7 @@ class OrganisationWOIdentifierResource(ModelResource):
 
 
 @admin.register(models.Organisation)
-class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, SimpleHistoryAdmin):
+class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, HistoryAdmin):
     save_on_top = True
     view_on_site = False
     list_display = ["code", "name"]
@@ -2411,7 +2659,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, S
 
 
 @admin.register(models.Invitation)
-class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, SimpleHistoryAdmin):
+class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, HistoryAdmin):
 
     @admin.action(description="Resend invitations")
     def resend(self, request, queryset):
@@ -2510,7 +2758,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Si
 
 
 @admin.register(models.Testimonial)
-class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     # summernote_fields = ["summary"]
 
     @admin.display(description="State", empty_value="N/A")
@@ -2782,7 +3030,7 @@ class RoundAdmin(
     StaffPermsMixin,
     OrderableAdmin,
     TranslationAdmin,
-    SimpleHistoryAdmin
+    HistoryAdmin,
 ):
     summernote_fields = (
         "description_en",
@@ -2797,7 +3045,7 @@ class RoundAdmin(
     list_display = [
         "scheme__code",
         "coloured_title",
-        "scheme",
+        # "scheme",
         "opens_on",
         "closes_at",
         "contract_count",
@@ -2812,7 +3060,24 @@ class RoundAdmin(
         "site",
     ]
     search_fields = ["title", "scheme__code"]
-    actions = ["create_new_round", "invite_referees", "sync_referee_surveys", "copy_round", "make_current"]
+    actions = [
+        "create_new_round",
+        "invite_referees",
+        "sync_referee_surveys",
+        "copy_round",
+        "make_current",
+    ]
+
+    def get_list_display(self, request):
+        ld = super().get_list_display(request)
+        if (
+            "survey" not in ld
+            and (qs := self.get_queryset(request))
+            and qs.filter(Q(survey_id__isnull=False), ~Q(survey_id=0)).exists()
+        ):
+            ld.insert(ld.index("contract_count"), "survey")
+            # del ld[ld.index("scheme")]
+        return ld
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
@@ -3040,19 +3305,22 @@ class RoundAdmin(
             s = r.scheme
             if s.current_round != r:
                 if s in schemes:
-                    messages.warning(request, f"The scheme {s} is already changes; its current round is {s.current_round} "
-                                     "(one of the selected rounds)")
+                    messages.warning(
+                        request,
+                        f"The scheme {s} is already changes; its current round is {s.current_round} "
+                        "(one of the selected rounds)",
+                    )
                 s.current_round = r
-                s._change_reason = (
-                    f"Round {r} marked as currnt round of {s} by {request.user}"
-                )
+                s._change_reason = f"Round {r} marked as currnt round of {s} by {request.user}"
                 schemes.append(s)
         if schemes:
             models.Scheme.all_objects.bulk_update(
                 schemes,
                 ["current_round"],
             )
-            messages.success(request, f"The scheme(s) {', '.join(str(s) for s in schemes)} were/was updated.")
+            messages.success(
+                request, f"The scheme(s) {', '.join(str(s) for s in schemes)} were/was updated."
+            )
         else:
             messages.warning(request, "No round was updated...")
 
@@ -3117,29 +3385,39 @@ class RoundAdmin(
 
     is_active.boolean = True
 
+    @admin.display(description=_("survey"), ordering="survey_id")
+    def survey(self, obj):
+        if (survey_id := obj.survey_id) and (server_url := obj.survey_server_url):
+            return mark_safe(
+                f'<a href="{server_url}/surveyAdministration/view?iSurveyID={survey_id}&allowRedirect=1" '
+                f'target="_bland">{survey_id}</a>'
+            )
+
     @admin.display(description=_("tittle"), ordering="title")
     def coloured_title(self, obj):
-        if obj.foreground or obj.background:
+        title = obj.title or obj.scheme.title
+        if obj.background or obj.foreground and obj.foreground != "colour":
             if obj.foreground and obj.background:
                 return format_html(
                     '<span style="background-color: {}; color: {};">{}</span>',
                     obj.background,
                     obj.foreground,
-                    obj.title,
+                    title,
                 )
-            elif obj.foreground:
+            elif obj.foreground and obj.foreground != "colour":
                 return format_html(
                     '<span color: {};">{}</span>',
                     obj.foreground,
-                    obj.title,
+                    title,
                 )
             else:
                 return format_html(
-                    '<span style="background-color: {}; color: white;">{}</span>',
+                    # '<span style="background-color: {}; color: white;">{}</span>',
+                    '<span style="background-color: {};">{}</span>',
                     obj.background,
-                    obj.title,
+                    title,
                 )
-        return obj.title
+        return title
 
     def view_on_site(self, obj):
         return f"{reverse('applications')}?round={obj.id}"
@@ -3239,7 +3517,7 @@ class RoundAdmin(
 
 
 @admin.register(models.Evaluation)
-class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
 
     class ScoreInline(admin.StackedInline):
@@ -3253,9 +3531,7 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
 
 @admin.register(models.Contract)
-class ContractAdmin(
-    StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin
-):
+class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin):
     summernote_fields = (
         "abstract",
         "notes",
@@ -3531,11 +3807,30 @@ class ContractAdmin(
         ContractClauseInline,
         StateLogInline,
     ]
-    actions = [refresh_page_counts, archive_objects]
+
+    @admin.action(description="Start Reporting")
+    def start_reporting(self, request, queryset, *args, **kwargs):
+        qs = queryset.model.reporting_schedule.field.model.objects.filter(
+            Q(due_date__lt=timezone.now()) | Q(date_first_remind__lt=timezone.now()),
+            report__isnull=True,
+        )
+        for rse in qs:
+            r = rse.create_report()
+            url = reverse("report-update", kwargs={"pk": r.pk})
+            messages.info(
+                request,
+                mark_safe(
+                    f'New report initiated: <a href="{url}" target="_blank">{r.contract.number}:{r.period}</a>'
+                ),
+            )
+            break
+        pass
+
+    actions = [start_reporting, refresh_page_counts, archive_objects]
 
 
 @admin.register(models.Publication)
-class PublicationAdmin(StaffPermsMixin, SimpleHistoryAdmin):
+class PublicationAdmin(StaffPermsMixin, HistoryAdmin):
     save_on_top = True
     show_close_button = True
 
@@ -3573,7 +3868,7 @@ class PublicationAdmin(StaffPermsMixin, SimpleHistoryAdmin):
 
 
 @admin.register(models.Report)
-class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
+class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     show_close_button = True
 
@@ -3850,7 +4145,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, SimpleHistoryAdmin):
 
 @admin.register(models.ChangeRequest)
 class ChangeRequestAdmin(
-    StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, SimpleHistoryAdmin
+    StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin
 ):
     summernote_fields = ("description",)
     save_on_top = True

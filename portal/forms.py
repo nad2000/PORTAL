@@ -84,7 +84,16 @@ class DateInput(forms.DateInput):
         super().__init__(attrs=attrs, format=format)
 
 
-YearInput = partial(DateInput, attrs={"class": "form-control yearpicker", "type": "text", "data-date-format": "yyyy"})
+YearInput = partial(
+    DateInput,
+    attrs={
+        "class": "form-control yearpicker",
+        "type": "text",
+        "data-date-format": "yyyy",
+        "data-date-view-mode": "years",
+        "data-date-min-view-mode": "years",
+    },
+)
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input", "type": "file"})
 # FileInput = partial(FileInput, attrs={"class": "custom-file-input"})
 
@@ -952,7 +961,16 @@ class ApplicationForm(ModelForm):
                 ]
             )
         if round.scheme.presentation_required:
-            self.fields["presentation_url"].required = True
+            # self.fields["presentation_url"].required = True
+            self.fields["presentation_url"].widget.attrs.update(
+                {
+                    "placeholder": self.fields["presentation_url"].help_text,
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _(self.fields["presentation_url"].help_text),
+                    "oninput": "this.setCustomValidity('')",
+                }
+            )
             summary_fields.insert(
                 0,
                 Field(
@@ -1898,7 +1916,22 @@ class ContractForm(ModelForm):
             if is_pi or is_ro
             else []
         )
-        disabled_compliance = not (is_pi or is_ro)
+        disabled_compliance = not (
+            is_pi
+            or is_ro
+            or is_staff
+            # enable 'Complience' tab if the settings were changed
+            or self.data and any(
+                (f in self.changed_data)
+                for f in [
+                    "requires_approval",
+                    "has_animal_use",
+                    "is_signatory_to_oa",
+                    "involves_children",
+                    "has_child_protection",
+                ]
+            )
+        )
         compliance_fields.extend(
             [
                 # Field("ethics_statement", label=_("Ethics Statement")),
@@ -2218,7 +2251,7 @@ class ContractForm(ModelForm):
                     """{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
-                    You can distributed it differently, but may not exceed
+                    You can distribute it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
                     </div>"""
@@ -3202,7 +3235,26 @@ class NominationForm(ModelForm):
                 css_id="nominee",
             ),
             Row(
-                Column("org", css_class="col-9"),
+                # Column("org", css_class="col-9"),
+                Column(
+                    (
+                        HTML(
+                            f"""
+                <div id="div_id_org" class="form-group">
+                    <label for="id_org" data-toggle="tooltip" data-html="true" title="{_('Organisation of the nominee')}">
+                        {_('Organisation of the nominee')}
+                    </label>
+                    <div class="">
+                        <input type="text" name="org" value="{ro_org}" class="textinput textInput form-control" id="id_org" readonly>
+                        <small id="hint_id_position" class="form-text text-muted">{ _('Organisation of the nominee') }</small>
+                    </div>
+                </div>"""
+                        )
+                        if is_single_org_ro
+                        else "org"
+                    ),
+                    css_class="col-9",
+                ),
                 Column("position", css_class="col-3"),
             ),
             HTML(
@@ -3316,8 +3368,9 @@ class NominationForm(ModelForm):
 
         if is_single_org_ro:
             # self.fields["org"].disabled = True
-            self.fields["org"].widget.attrs["readonly"] = "true"
-            self.fields["org"].widget.attrs["disabled"] = "true"
+            # self.fields["org"].widget.attrs["disabled"] = "true"
+            # self.fields["org"].widget.attrs["readonly"] = "true"
+            del self.fields["org"]
 
     def save(self, commit=True):
         if self.instance.round.nominator_cv_required:
@@ -4224,22 +4277,22 @@ class ReportForm(ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if round.research_experience_in_years_required and round.can_specify_panel:
-                self.fields["panel"].queryset = (
-                    self.fields["panel"]
-                    .queryset.filter(fund__site_id=site_id, state="active")
-                    .order_by("code", "-id")
-                )
-                category_fields = [
-                    Row(
-                        Column("research_experience_in_years"),
-                        Column("panel"),
-                    )
-                ]
-            elif round.research_experience_in_years_required:
-                category_fields = [Field("research_experience_in_years")]
-            elif round.can_specify_panel:
-                category_fields = [Field("panel")]
+            # if round.research_experience_in_years_required and round.can_specify_panel:
+            #     self.fields["panel"].queryset = (
+            #         self.fields["panel"]
+            #         .queryset.filter(fund__site_id=site_id, state="active")
+            #         .order_by("code", "-id")
+            #     )
+            #     category_fields = [
+            #         Row(
+            #             Column("research_experience_in_years"),
+            #             Column("panel"),
+            #         )
+            #     ]
+            # elif round.research_experience_in_years_required:
+            #     category_fields = [Field("research_experience_in_years")]
+            # elif round.can_specify_panel:
+            #     category_fields = [Field("panel")]
 
             if round.has_toas:
                 category_fields.append(
@@ -4771,7 +4824,7 @@ class ReportForm(ModelForm):
         #             """{% load i18n %}<div class="alert alert-dark" role="alert">
         #             {% blocktrans %}
         #             Funding has been allocated over the award period.
-        #             You can distributed it differently, but may not exceed
+        #             You can distribute it differently, but may not exceed
         #             the total award. All amounts are exclusive of GST.
         #             {% endblocktrans %}
         #             </div>"""

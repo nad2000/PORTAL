@@ -596,7 +596,9 @@ urlpatterns = [
                 ),
                 path(
                     "research-priority/",
-                    views.ResearchPriorityAutocomplete.as_view(model=models.ResearchPriority, create_field="name"),
+                    views.ResearchPriorityAutocomplete.as_view(
+                        model=models.ResearchPriority, create_field="name"
+                    ),
                     name="research-priority-autocomplete",
                 ),
             ]
@@ -656,7 +658,12 @@ urlpatterns = [
                 ),
                 path("~create", views.NominationView.as_view(), name="nomination-new"),
                 path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
-                path("<int:pk>/~update", views.NominationView.as_view(), name="nomination-update"),
+                path(
+                    "<int:pk>/~export",
+                    views.NominationExportView.as_view(),
+                    name="nomination-export",
+                ),
+                path("<int:pk>", views.NominationDetail.as_view(), name="nomination"),
                 path("<int:pk>", views.NominationDetail.as_view(), name="nomination-detail"),
                 path("draft", views.NominationList.as_view(), name="nominations-draft"),
                 path("submitted", views.NominationList.as_view(), name="nominations-submitted"),
@@ -792,6 +799,7 @@ urlpatterns = [
         ),
     ),
     path("impersonate/<username>", views.impersonate),
+    path("switch-back", views.switch_back, name="switch-back"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
 

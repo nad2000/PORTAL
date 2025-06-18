@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+  <form action="" method="post">
+
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ request.POST.action }}">
+    <input type="hidden" name="select_across" value="0">
+    <input type="hidden" name="index" value="0">
+    {% for o in objects %}
+      <input type="hidden" name="_selected_action" value="{{ o.pk }}">
+    {% endfor %}
+
+    <input type="hidden" name="do_action" value="yes">
+
+    <label for="resolution">{% if title %}{{ title }}{% else %}Resolution or notes{% endif %}</label>
+
+    <textarea id="resolution" name="resolution" rows="10" cols="50"></textarea>
+
+    <div>
+      <input type="submit" class="default" style="float: none" value="{% if action_label %}{{ action_label }}{% else %}Submit{% endif %}">
+    </div>
+
+  </form>
+{% endblock %}

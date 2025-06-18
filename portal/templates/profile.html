@@ -149,12 +149,12 @@
     function setDatePickers(el) {
       el.find(".yearpicker").datepicker({
         format: "yyyy",
-        // format: "yyyyy",
         startDate: '1960',
         endDate: '2040',
         startView: 2,
         minViewMode: 2,
         clearBtn: true,
+        autoClose: true,
         autoclose: true
       });
       el.find(".datepicker").datepicker({
@@ -165,6 +165,7 @@
         // endDate: $(this).data("max"),
         startView: 2,
         clearBtn: true,
+        autoClose: true,
         autoclose: true
       });
       $("td:has(div>input.datepicker)").css("width", "6em");

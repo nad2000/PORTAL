@@ -41,6 +41,10 @@
   <form method="post">
      {% csrf_token %}
      <input type="hidden" name="action" id="id_action">
+     {% if return_url %}
+     <input type="hidden" name="return_url" value="{{ return_url }}">
+     {% endif %}
+
   {% endif %}
 
   {% if is_ro %}
@@ -60,9 +64,11 @@
   <script>
     $(document).ready(function() {
       $('#id_resolution_modal').on('show.bs.modal', function (event) {
-        var target = $(event.relatedTarget) // Button that triggered the modal
-        var action = target.data('action')||target.val(); // Extract info from data-* attributes
-        $("#id_action").val(action);
+        var el = event.relatedTarget;
+        var target = $(el); // Button that triggered the modal
+        var action = target.data('action')||target.val()||target.name; // Extract info from data-* attributes
+        $("[name='action'],#id_action").val(action);
+        $('#id_commit_button').text(target.val()||el.outerText||'{% trans "Commit" %}');
       });
     });
   </script>

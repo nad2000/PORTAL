@@ -310,11 +310,11 @@
 
         {% endif %}
         {% endcomment %}
-        $('button[data-action],input[type="submit"][data-toggle="modal"][name]').not('[name="save"]').on("click", function(event) {
+        $('button[data-action],input[type="submit"][data-toggle="modal"][name]').not('[name="save"],[data-target]').on("click", function(event) {
           event.preventDefault();
           event.stopPropagation();
           var el = event.target;
-          $('[name="action"]').val(el.dataset["action"]||el.name);
+          $("[name='action'],#id_action").val(el.dataset["action"]||el.name);
           $('#id_commit_button').text(el.value||el.outerText||'{% trans "Commit" %}');
           $('#id_resolution_modal').modal('show');
           $('#id_resolution').trigger('focus');

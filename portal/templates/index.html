@@ -325,7 +325,8 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 <div class="card text-white bg-info border-info mb-3">
   <h5 class="card-header" style="text-transform: uppercase;"><strong>
       {% trans 'Current Submitted Applications' %}
-    </strong></h5>
+    </strong>
+  </h5>
     {% for a in current_applications %}
     {% if a and a.id %}
     <ul class="list-group list-group-flush">
@@ -355,19 +356,46 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
       </div -->
       </div>
-      {% endif %}
+      {% endif %} {# if current_applications #}
 
+{% if new_reports %}
+<div class="card text-white border-info mb-3">
+  <h5 class="card-header bg-info" style="text-transform: uppercase;"><strong>
+      {% trans 'New reports to be submitted' %}
+    </strong></h5>
+  <div class="card-body">
+    {% for r in new_reports %}
+    <ul{# class="list-group list-group-flush"#}>
+      <li{#class="list-group-item"#}>
+        <a
+          href="{% url 'report-update' pk=r.id %}"
+          title="{{ r }}"
+          data-toggle="tooltip"
+        >
+
+        {{ r }} ({% if r.is_due_soon %}<strong class="text-{% if r.is_overdue %}danger{% else %}warning{% endif %}">{% endif %}{% trans 'due by' %} {{ r.due_date|date:"d-m-Y" }}{% if r.is_due_soon %}</strong>{% endif %})
+        </a>
+      </li>
+    </ul>
+    {% endfor %}
+  </div>
+    <!-- div class="card-body">
+      <h5 class="card-title">Success card title</h5>
+      <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+      </div -->
+      </div>
+      {% endif %} {# if current_applications #}
       {% for record in schemes %}
       {% with round=record.scheme.current_round scheme=record.scheme count=record.count application=record.application is_panellist=record.is_panellist has_submitted=record.has_submitted %}
       <div class="row">
         <div class="col mb-3">
-          <div class="card"{% if round.background %} style="border-top-color: {{ round.background }}; border-right-color: {{ round.background }}; border-bottom-color: {{ round.background }}; border-left-color: {{ round.background }};"{% endif %}>
-            <h5 class="card-header"{% if round.background or round.foreground %} style="{% if round.background %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}"{% endif %}>
+          <div class="card"{% if round.background and round.background != 'colour' %} style="border-top-color: {{ round.background }}; border-right-color: {{ round.background }}; border-bottom-color: {{ round.background }}; border-left-color: {{ round.background }};"{% endif %}>
+            <h5 class="card-header"{% if round.background and round.background != 'colour' or round.foreground %} style="{% if round.background and round.background != 'colour' %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}"{% endif %}>
               {#% trans "The Prime Minister's" %#}
               <b style="text-transform: uppercase;">
                 {{ record.title }}
               </b>
-              {% if not round.is_open %} (<strong{% if not round.background %} class="text-danger"{% endif %}>{% trans 'ROUND CLOSED' %}</strong>){% endif %}
+              {% if not round.is_open %} (<strong{% if not round.background or round.background == 'colour' %} class="text-danger"{% endif %}>{% trans 'ROUND CLOSED' %}</strong>){% endif %}
             </h5>
             <div class="card-body"{#% if round.background %} style="background-color: {{ round.background|color_variant:3.9 }}; color: white;"{% endif %#}>
               {% if record.description %}
@@ -452,7 +480,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                                               data-round-id="{{ round.id }}"
                                               data-round-title="{{ round.title }}"
                                               {% if round.foreground %}data-round-fg-color="{{ round.foreground }}"{% endif %}
-                                              {% if round.background %}data-round-bg-color="{{ round.background }}"{% endif %}
+                                              {% if round.background and round.background != 'colour' %}data-round-bg-color="{{ round.background }}"{% endif %}
                                               {% else %}
                                               disabled
                                               {% endif %}
