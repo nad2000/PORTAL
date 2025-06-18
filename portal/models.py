@@ -9200,21 +9200,41 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
         return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
 
+    @property
+    def update_url(self):
+        return reverse("report-update", kwargs={"pk": r.pk})
+
     @classmethod
     def start_reporting(cls, request=None, queryset=None, *args, **kwargs):
-
-        now = timezone.now()
+        now = timezone.now().date()
         if not queryset:
             queryset = cls.where(state_in=["current", "CUR"])
 
         qs = queryset.model.reporting_schedule.field.model.where(
             Q(contract__in=queryset) if queryset else Q(state_in=["current", "CUR"]),
-            Q(due_date__lt=now) | Q(date_first_remind__lt=now),
+            Q(due_date__lte=now) | Q(date_first_remind__lte=now),
             report__isnull=True,
         )
         for rse in qs:
             r = rse.create_report()
-            url = reverse("report-update", kwargs={"pk": r.pk})
+            url = r.update_url
+            if request:
+                url = request.build_absolute_uri(url)
+            else:
+                url = urljoin(f"https://{r.contract.site.domain}", url)
+            link_name = domain_to_macrons(url)
+            send_mail(
+                f"Report {r} ready for submission",
+                html_message=f'Report for the contract <b></b> is ready for submission: <a href="{url}">{link_name}</a>',
+                from_email="reports",
+                recipients=[r.pi],
+                fail_silently=False,
+                request=request,
+                # reply_to=settings.DEFAULT_FROM_EMAIL,
+                thread_index=r.thread_index,
+                thread_topic=r.thread_topic,
+            )
+            yield r
 
     @classmethod
     def user_object_counts(
@@ -10945,7 +10965,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 schedule_entry=self,
                 period=self.period,
                 type=self.type,
-                state="draft",
+                state="new",
                 reported_at=None,
                 assessed_at=None,
                 file=None,
@@ -10983,6 +11003,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 contract=c,
                 period=self.period,
                 type=self.type,
+                state="new",
             )
         ReportedEffort.bulk_create(
             [
@@ -10997,7 +11018,6 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 for me in ContractMemberEffort.where(period=r.period, member__contract=c)
             ]
         )
-
         return r
 
     @classmethod
@@ -11589,7 +11609,8 @@ class ReportedEffort(ReportedEffortMixin, Model):
         on_delete=CASCADE,
         related_name="efforts",
     )
-    member_effort = OneToOneField(
+    # member_effort = OneToOneField(
+    member_effort = ForeignKey(
         ContractMemberEffort,
         on_delete=SET_NULL,
         blank=True,
