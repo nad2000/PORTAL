@@ -408,14 +408,8 @@ msgid "Letter of Support"
 msgstr ""
 
 #: portal/forms.py:936
-#, fuzzy
-#| msgid ""
-#| "You can download the nomination form template at <strong><a "
-#| "href=\"%s\">%s</a></strong>"
 msgid "You can download the CV form template(s) at "
-msgstr ""
-"Ka taea e koe te tikiake te tātauira puka tautapanga ki <strong><a "
-"href=\"%s\">%s</a></strong>"
+msgstr "Ka taea e koe te tikiake te tātauira puka tāhuhu tangata i"
 
 #: portal/forms.py:993 portal/templates/portal/application_form.html:210
 msgid "Team"
@@ -546,10 +540,8 @@ msgid ""
 msgstr ""
 
 #: portal/forms.py:1231
-#, fuzzy, python-format
-#| msgid "%s referees are required to support this application."
 msgid "At least %s referees are required to support this application."
-msgstr "E %s ngā kaitautoko e hiahiatia ana hei tautoko i tēnei tono."
+msgstr "Kia %s ngā kaitautoko, neke atu rānei, e hiahiatia ana hei tautoko i tēnei tono."
 
 #: portal/forms.py:1236
 #, python-format
@@ -670,16 +662,6 @@ msgid ""
 msgstr ""
 
 #: portal/forms.py:1363
-#, fuzzy
-#| msgid ""
-#| "As authorized lead applicant, I affirm that all information provided in "
-#| "this application is to the best of my knowledge true and correct. <br/"
-#| "><br/>I affirm that if successful, I (and where relevant, my team) will "
-#| "participate in publicity and that the content of this application can be "
-#| "used in promotion of the Prizes.<br/><br/>If the Prize comes with "
-#| "conditions on use, I affirm that any Prize money will be used in "
-#| "accordance with the Prize's guidelines, and in accord with any plan "
-#| "submitted as part of the Prize application"
 msgid ""
 "<p>As the authorized applicant I have read the eligibility criteria and "
 "other information in the Prize Guidelines and all the information provided "
@@ -690,10 +672,15 @@ msgid ""
 "Prize money will be used in accordance with the Prize’s guidelines, and in "
 "accord with any plan submitted as part of the Prize.</p>"
 msgstr ""
-"Hei kaiārahi kua whakamanahia, e whakaae ana au he pono, <br>he tika hoki "
-"ngā mōhiohio katoa ki taku mōhio, ā, e whakaū ana mēnā ka momoho, <br>ka "
-"whai wāhi ahau (me taku rōpū) ki ngā whakatairanga, <br>ā, ka taea ngā "
-"kōrero o tēnei tono te whakatairanga i ngā Paraihe."
+"<p>Hei kaitono whaimana kua pānuitia e au ngā paearu āheitanga me ētahi atu "
+"mōhiohio kei Ngā Aratohu Paraihe me ngā mōhiohio katoa kei tēnei tono, ā, "
+"e pono ana, e tika ana ki ahau.<p>E whakapūmau ana ahau ki te waimarie ahau, "
+"ka whakauru atu ahau (ina tika ana, tōku rōpū) ki ngā mahi whakatairanga ka "
+"mutu e whakaae ana ahau kia whakamahia ngā kōrero o tēnei tono hei whakatairanga " 
+"i ngā Paraihe.</p><p>Mēnā he here kei te Paraihe mō te whakamahi, e whakapūmau ana " 
+"ahau ka whakamahia ngā moni o te Paraihe e ai ki ngā aratohu o te Paraihe, "
+"i raro hoki i tētahi mahere i tukuna mō te Paraihe.</p>"
+
 
 #: portal/forms.py:1375 portal/models.py:6255
 msgid "Terms and Conditions"
@@ -717,14 +704,11 @@ msgid "Save the referee list and invited new ones if any new has been added"
 msgstr ""
 
 #: portal/forms.py:1418
-#, fuzzy
-#| msgid ""
-#| "You have to accept the Terms and Conditions before submitting the "
-#| "application"
 msgid ""
 "Your team leader must accept the Terms and Conditions before the submission "
 "can happen"
-msgstr "Me whakaae koe ki ngā Ture me ngā Here i mua i te tuku i te tono"
+msgstr ""
+"Me mātua whakaae tō kaiārahi ki Ngā Ture me ngā Here i mua i te tukutanga"
 
 #: portal/forms.py:1446 portal/forms.py:3349 portal/forms.py:3500
 #: portal/forms.py:3770 portal/forms.py:4118 portal/forms.py:5114
@@ -810,10 +794,8 @@ msgid "Next"
 msgstr "Ki muri"
 
 #: portal/forms.py:1519 portal/forms.py:2786 portal/forms.py:5035
-#, fuzzy
-#| msgid "Choose an organisation or create a new one ..."
 msgid "Choose a keyword or create a new one ..."
-msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
+msgstr "Kōwhiria he kupuhira, hangaia he mea hou rānei ..."
 
 #: portal/forms.py:1524 portal/forms.py:5205
 msgid "Choose an organisation or create a new one ..."
