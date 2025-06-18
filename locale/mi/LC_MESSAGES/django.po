@@ -1234,16 +1234,12 @@ msgstr ""
 "href=\"%s\">%s</a></strong>"
 
 #: portal/forms.py:3309
-#, fuzzy, python-format
-#| msgid ""
-#| "You can download the budget template at <strong><a href=\"%s\">%s</a></"
-#| "strong>"
 msgid ""
 "Please download the <strong><a href=\"%s\">%s</a></strong>, complete then "
 "upload below."
 msgstr ""
-"Ka taea e koe te tikiake te tātauira mahere pūtea ki <strong><a "
-"href=\"%s\">%s</a></strong>"
+"Me tikiake te <strong><a "
+"href=\"%s\">%s</a></strong>, me whakaoti ka tukuatu i raro"
 
 #: portal/forms.py:3338
 msgid "Nomination was already submitted"
