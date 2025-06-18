@@ -3245,7 +3245,8 @@ class NominationForm(ModelForm):
                         {_('Organisation of the nominee')}
                     </label>
                     <div class="">
-                        <input type="text" name="org" value="{ro_org}" class="textinput textInput form-control" id="id_org" readonly>
+                        <input type="hidden" name="org" value="{ro_org.pk}" id="id_org" readonly>
+                        <input type="text" name="org_name" value="{ro_org}" class="textinput textInput form-control" id="id_name_org" readonly>
                         <small id="hint_id_position" class="form-text text-muted">{ _('Organisation of the nominee') }</small>
                     </div>
                 </div>"""
