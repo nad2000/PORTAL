@@ -9212,15 +9212,11 @@ msgstr ""
 #~ msgid "Nominee First Name"
 #~ msgstr "Ingoa Tuatahi o te Tautapa"
 
-#, fuzzy
-#~| msgid "Last Name"
 #~ msgid "Nominee Last Name"
-#~ msgstr "Ingoa Whānau"
+#~ msgstr "Ingoa Whānau o te Tautapa"
 
-#, fuzzy
-#~| msgid "Enter Email Address"
 #~ msgid "Nominee Email Address"
-#~ msgstr "Tāurua te Wāhitau Īmēra"
+#~ msgstr "Wāhitau Īmēra o te Tautapa"
 
 #~ msgid "Māori"
 #~ msgstr "Reo Māori"
