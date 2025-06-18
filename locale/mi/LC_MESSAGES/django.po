@@ -340,10 +340,8 @@ msgid "Curriculum Vitae"
 msgstr "Tātai Pūmanawa"
 
 #: portal/forms.py:634 portal/forms.py:721
-#, fuzzy
-#| msgid "You must add a budget spreadsheet before submitting the application"
 msgid "Need to attach a CV before submitting the application."
-msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
+msgstr "Me tāpiri i tō tāhuhu tangata i mua i te tuku i te tono."
 
 #: portal/forms.py:641 portal/models.py:2489 portal/models.py:8251
 #: portal/templates/snippets/application_detail_table.html:335
