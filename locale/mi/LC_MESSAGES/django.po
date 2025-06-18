@@ -4191,16 +4191,12 @@ msgid "Opens On"
 msgstr ""
 
 #: portal/tables.py:567
-#, fuzzy
-#| msgid "Close"
 msgid "Closes On"
-msgstr "Katia"
+msgstr "Kati Hei Te"
 
 #: portal/tables.py:569 portal/tables.py:642
-#, fuzzy
-#| msgid "Review"
 msgid "Review Count"
-msgstr "Tirotirohia"
+msgstr "Kaute Arotake"
 
 #: portal/tables.py:638
 msgid "First Name"
@@ -4211,10 +4207,8 @@ msgid "Last Name"
 msgstr "Ingoa Whānau"
 
 #: portal/tables.py:658
-#, fuzzy
-#| msgid "Conflict of Interests"
 msgid "Conflict of Interest statement to complete."
-msgstr "Ngā Raru Whaipānga"
+msgstr "Me whakaoti te tauākī Take Whai-Taharua."
 
 #: portal/tables.py:665
 #, fuzzy
