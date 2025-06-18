@@ -4049,10 +4049,8 @@ msgid "value"
 msgstr "wāriu"
 
 #: portal/tables.py:53
-#, fuzzy
-#| msgid "working review"
 msgid "Work in progress"
-msgstr "arotakenga e mahi tonu ana"
+msgstr "E mahia ana"
 
 #: portal/tables.py:57
 msgid "The invitation has not been processed yet or it is in draft version"
@@ -4094,48 +4092,36 @@ msgid "The %s was accepted"
 msgstr "Kua whakaaetia te tono"
 
 #: portal/tables.py:92
-#, fuzzy
-#| msgid "The invitation was submitted"
 msgid "The testimonial was submitted"
-msgstr "Kua tukuna te tono"
+msgstr "I tukuna te taunakitanga"
 
 #: portal/tables.py:95
 msgid "The invitee has turned down the nomination"
 msgstr "Kua ākirihia te tautapanga e te kaiwhiwhi tono"
 
 #: portal/tables.py:98
-#, fuzzy
-#| msgid "The invitation failed. Please check the email address"
 msgid "The invitation failed or autoreplied. Please check the recipient"
-msgstr "I mūhore te tono. Tēnā tirohia te wāhitau īmēra"
+msgstr "I rahua te pōwhiri, i whakautua aunoatia rānei. Tirohia te kaiwhiwhi"
 
 #: portal/tables.py:102
-#, fuzzy
-#| msgid "The invitation was submitted"
 msgid "The testimonial was completed and submitted"
-msgstr "Kua tukuna te tono"
+msgstr "I tutuki, i tukuna hoki te taunakitanga"
 
 #: portal/tables.py:104
-#, fuzzy
-#| msgid "The application was submitted"
 msgid "The application was completed and submitted"
-msgstr "Kua tukuna te tono"
+msgstr "I tutuki, i tukuna hoki te tono"
 
 #: portal/tables.py:106
 msgid "The invitation was submitted"
 msgstr "Kua tukuna te tono"
 
 #: portal/tables.py:109
-#, fuzzy
-#| msgid "The invitation was accepted"
 msgid "The application was cancelled"
-msgstr "Kua whakaaetia te tono"
+msgstr "I whakakorehia te tono"
 
 #: portal/tables.py:115
-#, fuzzy
-#| msgid "The application period closed on"
 msgid "The application was approved"
-msgstr "I kati te wā tono i te"
+msgstr "I whakaaetia te tono"
 
 #: portal/tables.py:118
 #, fuzzy
@@ -9222,10 +9208,9 @@ msgstr ""
 "{settings.EMAIL_SUBJECT_PREFIX} I hono mai tētahi Kaiwhakamahi Hou ki te "
 "tomokanga"
 
-#, fuzzy
-#~| msgid "First Name"
+
 #~ msgid "Nominee First Name"
-#~ msgstr "Ingoa Tuatahi"
+#~ msgstr "Ingoa Tuatahi o te Tautapa"
 
 #, fuzzy
 #~| msgid "Last Name"
@@ -9243,10 +9228,8 @@ msgstr ""
 #~ msgid "Comma separated list of middle names"
 #~ msgstr "Rārangi ingoa waenga e whakawehea ana e ngā irapiko"
 
-#, fuzzy
-#~| msgid "The invitation was created"
 #~ msgid "The application was just created"
-#~ msgstr "I waihangatia te tono"
+#~ msgstr "Kātahi anō ka hangaia te tono"
 
 #, fuzzy
 #~| msgid "Please complete your profile."
