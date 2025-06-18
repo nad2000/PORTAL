@@ -8932,14 +8932,6 @@ class ContractEthicsStatement(PdfFileMixin, Model):
 class ContractMixin:
     STATES = Choices(
         (None, None),
-        ("ASD", _("Awaiting start date")),
-        ("COM", _("Completed")),
-        ("CUR", _("Current ")),
-        ("DCL", _("Declined")),
-        ("SUS", _("Suspended")),
-        ("TER", _("Terminated")),
-        ("TRN", _("Transferred")),
-        ("WTH", _("Withdrawn")),
         ("accepted", _("Accepted")),
         ("approved", _("Approved")),
         ("archived", _("Archived")),
@@ -8949,8 +8941,17 @@ class ContractMixin:
         ("preliminary", _("Preliminary")),
         ("submitted", _("Submitted")),
         ("released", _("Released")),
-        ("current", _("Current ")),
+        ("current", _("Current")),
         # ("withdrawn", _("withdrawn")),
+        # Legacy codes:
+        ("ASD", _("Awaiting start date")),
+        ("COM", _("Completed")),
+        ("CUR", _("Current")),
+        ("DCL", _("Declined")),
+        ("SUS", _("Suspended")),
+        ("TER", _("Terminated")),
+        ("TRN", _("Transferred")),
+        ("WTH", _("Withdrawn")),
     )
 
 
@@ -9198,6 +9199,22 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     def __str__(self):
         # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
         return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
+
+    @classmethod
+    def start_reporting(cls, request=None, queryset=None, *args, **kwargs):
+
+        now = timezone.now()
+        if not queryset:
+            queryset = cls.where(state_in=["current", "CUR"])
+
+        qs = queryset.model.reporting_schedule.field.model.where(
+            Q(contract__in=queryset) if queryset else Q(state_in=["current", "CUR"]),
+            Q(due_date__lt=now) | Q(date_first_remind__lt=now),
+            report__isnull=True,
+        )
+        for rse in qs:
+            r = rse.create_report()
+            url = reverse("report-update", kwargs={"pk": r.pk})
 
     @classmethod
     def user_object_counts(
@@ -11143,7 +11160,16 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @cached_property
     def due_date(self):
-        return self.schedule_entry.due_date
+        se = self.schedule_entry
+        return se.due_date or (se.date_first_remind + relativedelta(weeks=1))
+
+    @cached_property
+    def is_overdue(self):
+        return self.due_date <= timezone.now().date()
+
+    @cached_property
+    def is_due_soon(self):
+        return (self.due_date - timezone.now().date()).days <= 5
 
     @cached_property
     def ci(self):
@@ -11424,9 +11450,10 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         if user.is_staff or user.is_superuser or user.is_site_staff:
             return q
 
-        f = (
+        f = Q(
             Q(assessor=user)
             | Q(contract__application__submitted_by=user)
+            | Q(contract__members__user=user, contract__members__role="PI"),
             # | Q(members__user=user, members__state="authorized")
             # | Q(referees__user=user)
             # | Q(nomination__nominator=user)
@@ -11438,10 +11465,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             #         | Q(nomination__nominator__research_offices__org=F("org"))
             #     ),
             # )
+            contract__state__in=["CUR", "current"]
         )
-        q = q.filter(f)
-        q = q.distinct()
-
+        q = q.filter(f).distinct()
         return q
 
     @property

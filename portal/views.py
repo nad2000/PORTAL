@@ -1244,6 +1244,9 @@ def index(request):
             )
             if applications.count() < 7:
                 current_applications = applications
+            reports = models.Report.user_objects(user=user, state=["new", "draft"])
+            if reports.count() < 7:
+                new_reports = reports
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
