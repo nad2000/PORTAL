@@ -4211,29 +4211,21 @@ msgid "Conflict of Interest statement to complete."
 msgstr "Me whakaoti te tauākī Take Whai-Taharua."
 
 #: portal/tables.py:665
-#, fuzzy
-#| msgid "You have already submited one application in this round"
 msgid "You have already submitted an evaluation of this application."
-msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
+msgstr "Kua tukuna kētia e koe tētahi arotakenga o tēnei tono."
 
 #: portal/tables.py:674
-#, fuzzy
-#| msgid ""
-#| "Your can amend and resubmit the statements of the conflict of interest "
-#| "for the round \"%(round)s\""
 msgid ""
 "You have submitted the statement of the conflict of interest. Please "
 "evaluate the application and submit scores."
 msgstr ""
-"Ka taea e koe te whakatika me te tuku anō i ngā tauākī raru whiapānga mō te "
-"whiringa \"%(round)s\""
+"Kua tukuna atu e koe te tauākī mō te take whai-taharua. Me arotake te tono " 
+"ka tuku i ngā tatau. "
 
 #: portal/tables.py:696 portal/templates/portal/application_detail.html:158
 #: portal/templates/portal/application_detail.html:190
-#, fuzzy
-#| msgid "The application was submitted"
 msgid "The application has not been submitted yet"
-msgstr "Kua tukuna te tono"
+msgstr "Kāore anō kia tukuna atu te tono"
 
 #: portal/tables.py:711
 #, python-format
@@ -4776,10 +4768,8 @@ msgid "View site"
 msgstr ""
 
 #: portal/templates/admin/base_site.html:77
-#, fuzzy
-#| msgid "Nominations"
 msgid "Documentation"
-msgstr "Ngā Tautapanga"
+msgstr "Ngā Tuhinga"
 
 #: portal/templates/admin/base_site.html:81
 #, fuzzy
