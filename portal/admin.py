@@ -3560,7 +3560,7 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
     #     "created_at",
     #     "updated_at",
     # ]
-    search_fields = ["number", "project_title"]
+    search_fields = ["number", "project_title", "members__email", "members__first_name", "members__last_name"]
     autocomplete_fields = [
         # "principal",
         # "coordinator",
@@ -3823,7 +3823,6 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
                     f'New report initiated: <a href="{url}" target="_blank">{r.contract.number}:{r.period}</a>'
                 ),
             )
-            break
         pass
 
     actions = [start_reporting, refresh_page_counts, archive_objects]
