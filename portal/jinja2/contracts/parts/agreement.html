@@ -13,7 +13,7 @@
       <td>&nbsp;</td>
       <td>
         <!-- p><b>{{ agency.name.upper() }}</b>, a body corporate constituted under the Royal Society of New Zealand Act 1997 at {{ c.agency_address }} (<b>{{ agency_short }}</b>)</p -->
-        <b>{{ agency.name.upper() }}</b>, a body corporate constituted under the Royal Society of New Zealand Act 1997 at {{ c.agency_address }} (<b>{{ agency_short }}</b>)
+        <b>{{ (agency.legal_name or agency.name).upper() }}</b>, a body corporate constituted under the Royal Society of New Zealand Act 1997 at {{ c.agency_address }} (<b>{{ agency_short }}</b>)
       </td>
     </tr>
     <tr style="height:2pt;"><td colspan="3"></td></tr>
@@ -128,7 +128,7 @@
 
     <tr>
       <td width=262 valign=top style='width:196.7pt;padding:0in 5.4pt 0in 5.4pt'>
-        <p> <b>SIGNED</b> for and on behalf of <b>{{ agency.name.upper() }}</b> by</p>
+        <p> <b>SIGNED</b> for and on behalf of <b>{{ (agency.legal_name or agency.name).upper() }}</b> by</p>
       </td>
       <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>
         <p>)<br/>)<br/>)</p>
