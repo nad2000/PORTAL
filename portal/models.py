@@ -11117,7 +11117,7 @@ class ReportMixin:
 
 class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     tags = TaggableManager(blank=True)
-    schedule_entry = OneToOneField(
+    schedule_entry = ForeignKey(
         ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
     )
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="reports")
