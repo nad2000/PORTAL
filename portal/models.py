@@ -9208,10 +9208,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     def start_reporting(cls, request=None, queryset=None, *args, **kwargs):
         now = timezone.now().date()
         if not queryset:
-            queryset = cls.where(state_in=["current", "CUR"])
+            queryset = cls.where(state__in=["current", "CUR"])
 
         qs = queryset.model.reporting_schedule.field.model.where(
-            Q(contract__in=queryset) if queryset else Q(state_in=["current", "CUR"]),
+            Q(contract__in=queryset) if queryset else Q(state__in=["current", "CUR"]),
             Q(due_date__lte=now) | Q(date_first_remind__lte=now),
             report__isnull=True,
         )
