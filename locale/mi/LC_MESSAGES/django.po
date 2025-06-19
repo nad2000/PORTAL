@@ -1954,10 +1954,8 @@ msgstr "Kaweatu te PDF"
 #: portal/jinja2/round_required_documents.html:62 portal/models.py:5899
 #: portal/templates/portal/application_detail.html:115
 #: portal/templates/snippets/detail_buttons.html:29
-#, fuzzy
-#| msgid "Referee Template"
 msgid "Referee Report"
-msgstr "Tātauira Kaitautoko"
+msgstr "Pūrongo a te Kaitautoko"
 
 #: portal/models.py:178
 msgid "Prefer not to say"
@@ -4641,7 +4639,7 @@ msgstr "Kei te hiahia tonu koe ki te takiputa?"
 #: portal/templates/account/password_reset_from_key_done.html:10
 #: portal/templates/account/password_reset_from_key_done.html:17
 msgid "Change Password"
-msgstr "Hurihia te Kupuhuna"
+msgstr "Huria te Kupuhipa"
 
 #: portal/templates/account/password_reset.html:9
 #: portal/templates/account/password_reset.html:22
@@ -4693,7 +4691,7 @@ msgstr ""
 
 #: portal/templates/account/password_reset_from_key.html:26
 msgid "change password"
-msgstr "hurihia te kupuhuna"
+msgstr "huria te kupuhipa"
 
 #: portal/templates/account/password_reset_from_key.html:29
 #: portal/templates/account/password_reset_from_key_done.html:18
@@ -4772,16 +4770,12 @@ msgid "Documentation"
 msgstr "Ngā Tuhinga"
 
 #: portal/templates/admin/base_site.html:81
-#, fuzzy
-#| msgid "change password"
 msgid "Change password"
-msgstr "hurihia te kupuhuna"
+msgstr "Huria te kupuhipa"
 
 #: portal/templates/admin/base_site.html:85
-#, fuzzy
-#| msgid "opted out"
 msgid "Log out"
-msgstr "kōwhiringa whakaputa"
+msgstr "Takiputa"
 
 #: portal/templates/admin/edit_inline/tabular.html:30
 msgid "Delete?"
@@ -6164,17 +6158,13 @@ msgstr ""
 "i tuku e kaweatu te tono"
 
 #: portal/templates/portal/application_detail.html:104
-#, fuzzy
-#| msgid "Testimonial is already submitted."
 msgid "The referee report has been already submitted"
-msgstr "Kua tukuna kē te tuhinga tautoko"
+msgstr "Kua tukuna kētia te pūrongo kaitautoko"
 
 #: portal/templates/portal/application_detail.html:107
 #: portal/templates/portal/application_detail.html:123
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "The testimonial was already submitted and cannot be updated"
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua tukuna kētia atu te taunakitanga, ā, tē taea te whakatika"
 
 #: portal/templates/portal/application_detail.html:109
 msgid "Submit the referee report"
@@ -6182,10 +6172,8 @@ msgstr ""
 
 #: portal/templates/portal/application_detail.html:114
 #: portal/templates/snippets/detail_buttons.html:29
-#, fuzzy
-#| msgid "Complete"
 msgid "Complete"
-msgstr "Whakaotia"
+msgstr "Kua oti"
 
 #: portal/templates/portal/application_detail.html:126
 #: portal/templates/snippets/detail_buttons.html:75 portal/views.py:4114
@@ -6205,24 +6193,17 @@ msgid "The application reviewing has been closed."
 msgstr "Kua whakaaetia te tono"
 
 #: portal/templates/portal/application_detail.html:131
-#, fuzzy
-#| msgid "Save draft testimonial"
 msgid "Update and submit the testimonial"
-msgstr "Tiakina te tuhinga tautoko hukihuki"
+msgstr "Me whakatika ka tuku i te taunakitanga"
 
 #: portal/templates/portal/application_detail.html:141
 msgid "Testimonial"
 msgstr "Tuhinga Tautoko"
 
 #: portal/templates/portal/application_detail.html:152
-#, fuzzy
-#| msgid ""
-#| "Your can amend and resubmit the statements of the conflict of interest "
-#| "for the round \"%(round)s\""
 msgid "You have not submitted the statement of conflict of interest."
-msgstr ""
-"Ka taea e koe te whakatika me te tuku anō i ngā tauākī raru whiapānga mō te "
-"whiringa \"%(round)s\""
+msgstr "Kāore anō kia tukuna atu e koe te tauākī mō te take whai-taharua."
+
 
 #: portal/templates/portal/application_detail.html:155
 #, fuzzy
