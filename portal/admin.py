@@ -3810,20 +3810,14 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
 
     @admin.action(description="Start Reporting")
     def start_reporting(self, request, queryset, *args, **kwargs):
-        qs = queryset.model.reporting_schedule.field.model.objects.filter(
-            Q(due_date__lt=timezone.now()) | Q(date_first_remind__lt=timezone.now()),
-            report__isnull=True,
+        reports = list(self.model.start_reporting(request=request, queryset=queryset, *args, **kwargs))
+        messages.info(
+            request,
+            mark_safe(
+                f'New report(s) initiated: '
+                ", ".join('<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
+            ),
         )
-        for rse in qs:
-            r = rse.create_report()
-            url = reverse("report-update", kwargs={"pk": r.pk})
-            messages.info(
-                request,
-                mark_safe(
-                    f'New report initiated: <a href="{url}" target="_blank">{r.contract.number}:{r.period}</a>'
-                ),
-            )
-        pass
 
     actions = [start_reporting, refresh_page_counts, archive_objects]
 
