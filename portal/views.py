@@ -11437,16 +11437,16 @@ class ReportedFundingViewMixin:
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
     widgets = {
-        # "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        "agency": autocomplete.ModelSelect2("org-autocomplete"),
         # "agency": s2forms.ModelSelect2Widget(
         #     model=models.Organisation,
         #     search_fields=["name__icontains"],
         #     attrs={"class": "form-control custom-select", "with": "100%"}
         # ),
-        "agency": OrgWidget(
-            attrs={"class": "form-control custom-select", "with": "100%"},
-            model=models.Organisation,
-        ),
+        # "agency": OrgWidget(
+        #     attrs={"class": "form-control custom-select", "with": "100%"},
+        #     model=models.Organisation,
+        # ),
         "end_date": forms.DateInput(),
         "report": HiddenInput(),
         "start_date": forms.DateInput(),

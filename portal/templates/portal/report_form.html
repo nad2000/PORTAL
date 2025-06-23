@@ -122,15 +122,22 @@
             autoclose: true,
             todayHighlight: true
           });
-          $("#id_agency").siblings(".select2").width("100%");
           $(".select2-selection__arrow").remove();
           $('#reported-funding-modal').modal('show');
+          $("#id_agency").siblings(".select2").width("100%");
+          $(".select2-dropdown.select2-dropdown--below").width("auto");
         } else if (target_id == "reported-funding-list") {
            $('#reported-funding-modal').modal('hide');
         } else if (target_id == "form-dialog") {
            $('#form-modal').modal('show');
         }
         $("[required]").attr("hx-validate", true);
+      });
+      $('#reported-funding-modal').on('shown.bs.modal', function (e) {
+          // $('#id_agency').select2();
+          window.__dal__initialize($("#id_agency"));
+          $("#id_agency").siblings(".select2").width("100%");
+          $(".select2-dropdown.select2-dropdown--below").width("auto");
       });
       $(".select2-selection__arrow").remove();
       $("#submit-id-submit").click(function(e) {
