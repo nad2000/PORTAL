@@ -419,7 +419,8 @@ LOGGING = {
             "formatter": "verbose",
         }
     },
-    "root": {"level": "INFO", "handlers": ["console"]},
+    # "root": {"level": "INFO", "handlers": ["console"]},
+    "root": {"level": "WARNING", "handlers": ["console"]},
 }
 
 
