@@ -4694,7 +4694,7 @@ class ReportForm(ModelForm):
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
-                    # Field("host_contact_email"),
+                    Field("host_contact_email"),
                     Field("comment"),
                     Fieldset(
                         None,

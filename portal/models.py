@@ -9443,9 +9443,30 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         with transaction.atomic():
             c = cls.create(**params)
-            c.fors.add(*a.fors.all())
-            c.seos.add(*a.seos.all())
+            # c.fors.add(*a.fors.all())
+            # c.seos.add(*a.seos.all())
+            c.fors.through.bulk_create(
+                [
+                    c.fors.through(
+                        report=c,
+                        code=o.code,
+                        share=o.share,
+                    )
+                    for o in a.fors.through.objects.filter(application=a)
+                ]
+            )
+            c.seos.through.bulk_create(
+                [
+                    c.seos.through(
+                        report=c,
+                        code=o.code,
+                        share=o.share,
+                    )
+                    for o in a.seos.through.objects.filter(application=a)
+                ]
+            )
             c.keywords.add(*a.keywords.all())
+            c.priorities.add(*a.priorities.all())
             documents = []
             for crd in r.required_contract_documents.order_by("ordering"):
                 # Handling Eligibility Criteria:
@@ -10960,7 +10981,25 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
 
         c = self.contract
         a = c.application
+        org = c.org or a.org
         if pr := c.reports.filter(period__lt=self.period).order_by("pk").last():
+            if host_contact_email := (
+                pr.host_contact_email
+                or (
+                    last_report := Report.where(
+                        ~Q(host_contact_email__isnull=True),
+                        ~Q(host_contact_email=""),
+                        contract__org=org,
+                    )
+                    .order_by("-pk")
+                    .first()
+                )
+                and last_report.host_contact_email
+                or c.host_contact_email
+                or org
+                and (org.email or org.ro_email)
+            ):
+                params["host_contact_email"] = host_contact_email
             r = pr.clone(
                 schedule_entry=self,
                 period=self.period,
@@ -10970,6 +11009,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 assessed_at=None,
                 file=None,
                 converted_file=None,
+                host_contact_email=host_contact_email,
                 exclude_related_models=[ReportedEffort],
             )
 
@@ -11117,9 +11157,7 @@ class ReportMixin:
 
 class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     tags = TaggableManager(blank=True)
-    schedule_entry = ForeignKey(
-        ReportingScheduleEntry, on_delete=CASCADE, related_name="report"
-    )
+    schedule_entry = ForeignKey(ReportingScheduleEntry, on_delete=CASCADE, related_name="report")
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="reports")
     # number = models.CharField(unique=True, max_length=255)
     # report_id = models.CharField(unique=True, max_length=255, blank=True, null=True)
@@ -11134,6 +11172,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             ("L", _("Follow up")),
         ),
         help_text=_("Reporting Type"),
+    )
+    host_contact_email = EmailField(
+        _("host contact email address"), max_length=120, null=True, blank=True
     )
     state = StateField(default="draft", verbose_name=_("state"))
     file = PrivateFileField(
@@ -11445,7 +11486,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         *args,
         **kwargs,
     ):
-        q = (queryset or cls.objects.all()).filter(contract__site_id = settings.SITE_ID)
+        q = (queryset or cls.objects.all()).filter(contract__site_id=settings.SITE_ID)
         # q = cls.where(round__site=Site.objects.get_current())
 
         if select_related:
@@ -11485,7 +11526,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             #         | Q(nomination__nominator__research_offices__org=F("org"))
             #     ),
             # )
-            contract__state__in=["CUR", "current"]
+            contract__state__in=["CUR", "current"],
         )
         q = q.filter(f).distinct()
         return q

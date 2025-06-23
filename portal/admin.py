@@ -3815,7 +3815,7 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
             request,
             mark_safe(
                 f'New report(s) initiated: '
-                ", ".join('<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
+                 + ", ".join(f'<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
             ),
         )
 
