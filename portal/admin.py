@@ -1632,6 +1632,7 @@ class ApplicationAdmin(
 
     def get_fieldsets(self, request, obj):
         # fieldsets = super().get_fieldsets(request, obj).copy()
+        nomination = models.Nomination.where(application=obj).order_by("-pk").first()
         fieldsets = (
             (
                 None,
@@ -1668,7 +1669,7 @@ class ApplicationAdmin(
                 "Organisation",
                 {
                     "fields": [
-                        "org",
+                        ("org", "organisation") if nomination else "org",
                         "postal_address",
                         "city",
                         "postcode",
