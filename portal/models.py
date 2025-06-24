@@ -1327,12 +1327,24 @@ class Organisation(Model):
     ro_email = EmailField(
         _("RO email address"), help_text=_("Research office email address"), blank=True, null=True
     )
-    # ro_email = EmailField(
-    #     _("Research Office email address"),
-    #     blank=True,
-    #     null=True,
-    #     help_text="Research Office common email address",
-    # )
+    application_contact_email = EmailField(
+        _("Application contact email"),
+        blank=True,
+        null=True,
+        help_text="Application contact common email address",
+    )
+    contract_contact_email = EmailField(
+        _("Contract contact email"),
+        blank=True,
+        null=True,
+        help_text="Contract contact common email address",
+    )
+    reporting_contact_email = EmailField(
+        _("Reporting contact email"),
+        blank=True,
+        null=True,
+        help_text="Reporting contact common email address",
+    )
     signatory = ForeignKey(
         "Person",
         verbose_name=_("signatory"),
@@ -2437,8 +2449,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         on_delete=SET_NULL,
         verbose_name=_("organisation"),
         related_name="applications",
+        help_text=_("Host orgnisation or contact organisation"),
     )
-    organisation = CharField(max_length=200, verbose_name=_("organisation"))
+    organisation = CharField(
+        max_length=200,
+        verbose_name=_("organisation"),
+        help_text=_("Applicant contact organisation"),
+    )
     position = CharField(
         max_length=80,
         verbose_name=_("position"),
@@ -11141,16 +11158,16 @@ class ReportSeo(Model):
 
 class ReportMixin:
     STATES = Choices(
-        ("accepted", _("accepted")),
-        ("acknowledged", _("acknowledged")),
-        ("approved", _("approved")),
-        ("assessed", _("assessed")),
-        ("archived", _("archived")),
-        ("cancelled", _("cancelled")),
-        ("draft", _("draft")),
-        ("new", _("new")),
-        ("submitted", _("submitted")),
-        ("reported", _("reported")),
+        ("accepted", _("Accepted")),
+        ("acknowledged", _("Acknowledged")),
+        ("approved", _("Approved")),
+        ("assessed", _("Assessed")),
+        ("archived", _("Archived")),
+        ("cancelled", _("Cancelled")),
+        ("draft", _("Draft")),
+        ("new", _("New")),
+        ("submitted", _("Submitted")),
+        ("reported", _("Reported")),
         # ("withdrawn", _("withdrawn")),
     )
 
@@ -11514,7 +11531,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         f = Q(
             Q(assessor=user)
             | Q(contract__application__submitted_by=user)
-            | Q(contract__members__user=user, contract__members__role="PI"),
+            | Q(contract__org__research_offices__user=user)
+            | Q(contract__members__user=user, contract__members__role="PI")
+            | Q(efforts__person__user=user, efforts__role="PI"),
             # | Q(members__user=user, members__state="authorized")
             # | Q(referees__user=user)
             # | Q(nomination__nominator=user)
@@ -11592,6 +11611,20 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
+
+    def host_contact(self):
+        if self.host_contact_email:
+            return self.host_contact_email
+        if (
+            org := (c := self.contract)
+            and (
+                self.contract.org
+                or (a := self.contract.application)
+                and self.contract.application.org
+            )
+        ) and (email := org.reporting_contact_email or org.ro_email):
+            return email
+        return c.host_contact_email or ""
 
     class Meta:
         db_table = "report"

@@ -190,10 +190,14 @@ class CommentForm(FormWithCommentMixin, ModelForm):
     def __init__(self, *args, **kwargs):
         instance = kwargs.pop("instance", None)
         super().__init__(*args, **kwargs)
+        has_contact_email = instance and hasattr(instance, "host_contact_email")
+        if has_contact_email:
+            self.fields.insert(0, form.TextInput())
         helper = getattr(self, "helper", None) or FormHelper(self)
         # helper.include_media = False
         # helper.form_tag = False
         helper.layout = Layout(
+            Field("host_contact_email"),
             Field("comment"),
             Fieldset(
                 None,
@@ -581,6 +585,21 @@ class AdminFileWidget(forms.FileInput):
         return mark_safe("".join(output))
 
 
+class ModelSelect2NoPK(autocomplete.ModelSelect2):
+    def filter_choices_to_render(self, selected_choices):
+        """Filter out un-selected choices if choices is a QuerySet."""
+        if isinstance(self.choices, list):
+            if selected_choices:
+                if not self.choices:
+                    self.choices = [(v, v) for v in selected_choices]
+                else:
+                    self.choices = [
+                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
+                    ]
+        else:
+            super().filter_choices_to_render(selected_choices)
+
+
 def apnumber(value):
     """
     For numbers 1-9, return the number spelled out. Otherwise, return the
@@ -778,7 +797,13 @@ class ApplicationForm(ModelForm):
         return super().save(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
-        nomination = kwargs.pop("nomination", None)
+        instance = kwargs.get("instance", None)
+        nomination = (
+            kwargs.pop("nomination", None)
+            or instance
+            and instance.pk
+            and models.Nomination.where(application=instance).order_by("-pk").first()
+        )
         self.update_only_referees = update_only_referees = kwargs.pop(
             "update_only_referees", False
         )
@@ -823,7 +848,11 @@ class ApplicationForm(ModelForm):
                 css_id="submitter",
             ),
             Row(
-                Column("org", css_class="col-9"),
+                (
+                    Column("organisation", css_class="col-9")
+                    if nomination and nomination.org
+                    else Column("org", css_class="col-9")
+                ),
                 Column("position", css_class="col-3"),
             ),
             "postal_address",
@@ -851,9 +880,11 @@ class ApplicationForm(ModelForm):
             fields.append(Field("is_tac_accepted", type="hidden"))
 
         if nomination and nomination.org:
-            self.fields["org"].disabled = True
-            self.fields["org"].widget.attrs["readonly"] = "true"
-            self.fields["org"].widget.attrs["disabled"] = "true"
+            del self.fields["org"]
+        else:
+            del self.fiedls["organisation"]
+        if instance and nomination and nomination.org:
+            instance.org = nomination.org
 
         round = (
             models.Round.get(self.initial["round"]) if "round" in self.initial else instance.round
@@ -1497,7 +1528,6 @@ class ApplicationForm(ModelForm):
             "fors",
             "letter_of_support",
             "number",
-            "organisation",
             "round",
             "seos",
             "site",
@@ -1521,6 +1551,10 @@ class ApplicationForm(ModelForm):
             ),
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
+                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
+            ),
+            organisation=ModelSelect2NoPK(
+                "org-name-autocomplete",
                 attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
             ),
             title=autocomplete.ModelSelect2(
@@ -1602,21 +1636,6 @@ class AllocationForm(ModelForm):
         #     "purpose": forms.Textarea(attrs={"rows": 3}),
         #     "details": forms.Textarea(attrs={"rows": 3}),
         # }
-
-
-class ModelSelect2NoPK(autocomplete.ModelSelect2):
-    def filter_choices_to_render(self, selected_choices):
-        """Filter out un-selected choices if choices is a QuerySet."""
-        if isinstance(self.choices, list):
-            if selected_choices:
-                if not self.choices:
-                    self.choices = [(v, v) for v in selected_choices]
-                else:
-                    self.choices = [
-                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
-                    ]
-        else:
-            super().filter_choices_to_render(selected_choices)
 
 
 class AddressForm(ModelForm):
@@ -1921,7 +1940,8 @@ class ContractForm(ModelForm):
             or is_ro
             or is_staff
             # enable 'Complience' tab if the settings were changed
-            or self.data and any(
+            or self.data
+            and any(
                 (f in self.changed_data)
                 for f in [
                     "requires_approval",

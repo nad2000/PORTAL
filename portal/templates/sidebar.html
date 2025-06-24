@@ -1,4 +1,4 @@
-{% load static i18n %}
+{% load static i18n tags %}
 
 {% with u=request.user %}
 {% if u.is_approved %}
@@ -243,8 +243,9 @@
     </div>
     {% endif %}
 
+  {% endif %}
 
-  {% if SITE_ID != 1 and SITE_ID != 7 %}
+  {% if SITE_ID != 1 and SITE_ID != 7 and report_counts and report_counts.total %}
   <div class="card mb-2">
     <div class="card-header{% if category == "reports" %} bg-primary{% endif %}">
         <a href="{% url 'report-list' %}" id="report-list"{% if category == "reports" %} class="text-white"{% endif %}>{% trans 'Reports' %}</a>
@@ -253,10 +254,31 @@
           {% if not report_counts.total  %}data-toggle="tooltip" title="{% trans 'No reports saved or submitted' %}"{% endif %}
         >{{ report_counts.total|default:0 }}</span>
     </div>
+
+    {% if category == 'reports' %}
+      <div class="card-body">
+        <ul class="nav nav-pills flex-column">
+          {% for s, count in report_counts.items %}
+          <!-- {{ s }} - {{ count }} -->
+          {% if s != 'total' and count > 0 %}
+          <li class="nav-item" id="nominations-draft">
+            <a class="nav-link{% if state == s or object and object.state == s %} active{% endif %}"
+                id="reports-{{ s }}"
+                href="{% url 'report-list' %}?state_filter={{ s }}&state={{ s }}">
+              {{ s|report_state }}
+              <span class="badge badge-primary{% if category == "reports" and s == state %} bg-secondary{% endif %}">{{ count }}</span>
+            </a>
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+
   </div>
   {% endif %}
 
-  {% endif %}
 
   {% if nomination_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
   <div class="card mb-2">

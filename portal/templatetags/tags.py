@@ -18,6 +18,9 @@ from .. import models as m
 
 register = template.Library()
 
+@register.filter(is_safe=True)
+def report_state(state):
+    return _(m.Report.STATES[state])
 
 @register.filter(is_safe=True)
 def verbose_name(obj, field_name=None):

@@ -126,10 +126,11 @@ def portal_context(request):
             #     cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
 
             counts = {s: c for s, c in models.Report.user_object_counts(u, request=request)}
-            counts = {
-                "total": sum(counts.values()),
-                **{s: counts.get(s, 0) for (s, _) in models.Report.STATES},
-            }
+            # counts = {
+            #     "total": sum(counts.values()),
+            #     **{s: counts.get(s, 0) for (s, _) in models.Report.STATES},
+            # }
+            counts["total"] = sum(counts.values())
             cached_context["report_counts"] = counts
 
             counts = [

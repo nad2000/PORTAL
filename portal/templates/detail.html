@@ -93,6 +93,7 @@
 
       {% endif %}
 
+  {% block object_details_table %}
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -169,7 +170,7 @@
     </tbody>
   </table>
   </div>
-
+  {% endblock %}
 
   {% if has_comments %}
 

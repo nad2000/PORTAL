@@ -1,1 +1,5 @@
 {% extends 'detail.html' %}
+{% load i18n tags %}
+{% block object_details_table %}
+  {% jinja 'partials/report_summary.html' %}
+{% endblock %}

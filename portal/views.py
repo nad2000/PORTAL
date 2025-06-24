@@ -416,7 +416,15 @@ class StateInPathMixin:
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         if state := self.state:
-            if self.model is models.Contract:
+            if hasattr(self.model, "user_objects"):
+                return self.model.user_objects(
+                    user=self.request.user,
+                    state=state,
+                    round=self.request.GET.get("round"),
+                    request=self.request,
+                    queryset=queryset,
+                )
+            elif self.model is models.Contract:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
                 else:
@@ -446,6 +454,8 @@ class StateInPathMixin:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
                 elif state in ["accepted", "funded", "in_review"]:
+                    queryset = queryset.filter(state=state)
+                elif state == "new":
                     queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
@@ -631,11 +641,18 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         CommentForm = modelform_factory(
             self.model.comments.rel.model,
             form=forms.CommentForm,
-            fields=["comment", "attachment"],
+            fields=(
+                ["host_contact_email", "comment", "attachment"]
+                if hasattr(self.model, "host_contact_email")
+                else ["comment", "attachment"]
+            ),
             exclude=["report", "token", "contract", "change_request", "object"],
         )
         return CommentForm(
-            self.request.POST or None, self.request.FILES or None, instance=self.object
+            self.request.POST or None,
+            self.request.FILES or None,
+            instance=self.object,
+            initial={"host_contact_email": getattr(self.object, "host_contact_email", "")},
         )
         # model,
         # form=ModelForm,
@@ -4461,6 +4478,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 and latest_application.org
             ):
                 initial["org"] = org
+                initial["organisation"] = org.name
 
             if (
                 position := current_affiliation
@@ -5740,8 +5758,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         if self.request.method == "GET" and initial:
             if self.request.site_id not in [2, 4, 5]:
                 initial["application_title"] = self.round.title
-            if "nomination" in self.kwargs and self.nomination and self.nomination.org:
-                initial["org"] = self.nomination.org.id
+            if "nomination" in self.kwargs and self.nomination and (no := self.nomination.org):
+                initial["org"] = no.pk
+                initial["organisation"] = no.name
 
         return kwargs
 
@@ -7989,6 +8008,49 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         nominator = self.forwarded.get("nominator") if self.request.site_id in [2, 4, 5] else None
+        user = self.forwarded.get("user")
+        contract = self.forwarded.get("contract")
+        try:
+            if not user and contract:
+                if not isinstance(contract, models.Contract):
+                    contract = models.Contract.get(contract)
+                user = contract.pi
+        except:
+            pass
+        q = models.Organisation.search_query(self.q, nominator=nominator, user=user)
+        if country := self.forwarded.get("country"):
+            q = q.filter(
+                Q(address__country_id=country)
+                | Q(address__country__isnull=True)
+                | Q(address__isnull=True)
+            )
+        return q
+
+
+class OrgNameAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def has_add_permission(self, request):
+        return True
+
+    def get_result_label(self, result):
+        if isinstance(result, models.Organisation):
+            return result.name
+        if isinstance(result, tuple):
+            return result[1]
+        return result
+
+    def get_result_value(self, result):
+        if isinstance(result, models.Organisation):
+            return result.name
+        if isinstance(result, tuple):
+            return result[1]
+        return result
+
+    def create_object(self, text):
+        return text
+
+    def get_queryset(self):
+        nominator = self.forwarded.get("nominator")
         user = self.forwarded.get("user")
         contract = self.forwarded.get("contract")
         try:
