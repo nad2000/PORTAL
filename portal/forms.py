@@ -882,7 +882,7 @@ class ApplicationForm(ModelForm):
         if nomination and nomination.org:
             del self.fields["org"]
         else:
-            del self.fiedls["organisation"]
+            del self.fields["organisation"]
         if instance and nomination and nomination.org:
             instance.org = nomination.org
 
