@@ -320,6 +320,16 @@ class StateLogInline(StateLogInline):
     classes = ["collapse"]
 
 
+class UnaccentMixin:
+
+    def get_search_fields(self, request):
+        sf = super().get_search_fields(request)
+        if settings.ENV == "prod":
+            return ["_name" in f and f.replace("_name", "_name__unaccent") or f for f in sf]
+        return sf
+
+
+
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
     list_filter = [
@@ -1320,6 +1330,7 @@ def archive_objects(modeladmin, request, queryset):
 
 @admin.register(models.Application)
 class ApplicationAdmin(
+    UnaccentMixin,
     PdfFileAdminMixin,
     StaffPermsMixin,
     FSMTransitionMixin,
@@ -1972,8 +1983,6 @@ class ApplicationAdmin(
 
 
 admin.site.register(models.Award)
-
-
 class AwardAdmin(admin.ModelAdmin):
     save_on_top = True
     view_on_site = False
@@ -2010,7 +2019,7 @@ class ConvertedFileAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.CurriculumVitae)
-class CurriculumVitaeAdmin(admin.ModelAdmin):
+class CurriculumVitaeAdmin(UnaccentMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["person", "owner", "title", "file"]
     autocomplete_fields = ["person", "owner"]
@@ -2038,7 +2047,7 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 
 @admin.register(models.Referee)
-class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class RefereeAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
     save_on_top = True
 
@@ -2174,7 +2183,7 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
 
 @admin.register(models.Member)
-class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     list_display = ["email", "full_name", "application", "state", "has_authorized"]
     search_fields = [
@@ -2209,7 +2218,7 @@ class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
 
 @admin.register(models.Panellist)
-class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
+class PanellistAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["full_name_with_email", "round", "state"]
     search_fields = ["first_name", "last_name", "email"]
@@ -2261,7 +2270,7 @@ class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
 
 
 @admin.register(models.IdentityVerification)
-class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class IdentityVerificationAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     list_display = ["user", "is_accepted", "application"]
     search_fields = ["user__first_name", "user__last_name", "application__application_title"]
@@ -2287,7 +2296,7 @@ class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmi
 
 
 @admin.register(models.ConflictOfInterest)
-class ConflictOfInterestAdmin(StaffPermsMixin, admin.ModelAdmin):
+class ConflictOfInterestAdmin(UnaccentMixin, StaffPermsMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["panellist", "application", "has_conflict"]
     readonly_fields = [
@@ -2351,7 +2360,7 @@ class ImpersonationAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.Nomination)
-class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
+class NominationAdmin(UnaccentMixin, PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
 
     def nominator_name(self, obj):
@@ -2764,7 +2773,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
 
 
 @admin.register(models.Testimonial)
-class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class TestimonialAdmin(UnaccentMixin, PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     # summernote_fields = ["summary"]
 
     @admin.display(description="State", empty_value="N/A")
@@ -3537,7 +3546,7 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
 
 @admin.register(models.Contract)
-class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin):
+class ContractAdmin(UnaccentMixin, StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin):
     summernote_fields = (
         "abstract",
         "notes",
