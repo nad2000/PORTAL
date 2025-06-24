@@ -167,6 +167,21 @@ class FormWithCommentMixin:
     pass
 
 
+class ModelSelect2NoPK(autocomplete.ModelSelect2):
+    def filter_choices_to_render(self, selected_choices):
+        """Filter out un-selected choices if choices is a QuerySet."""
+        if isinstance(self.choices, list):
+            if selected_choices:
+                if not self.choices:
+                    self.choices = [(v, v) for v in selected_choices]
+                else:
+                    self.choices = [
+                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
+                    ]
+        else:
+            super().filter_choices_to_render(selected_choices)
+
+
 class CommentForm(FormWithCommentMixin, ModelForm):
 
     comment = forms.CharField(
@@ -191,13 +206,13 @@ class CommentForm(FormWithCommentMixin, ModelForm):
         instance = kwargs.pop("instance", None)
         super().__init__(*args, **kwargs)
         has_contact_email = instance and hasattr(instance, "host_contact_email")
-        if has_contact_email:
-            self.fields.insert(0, form.TextInput())
+        # if has_contact_email:
+        #     self.fields.insert(0, form.TextInput())
         helper = getattr(self, "helper", None) or FormHelper(self)
         # helper.include_media = False
         # helper.form_tag = False
         helper.layout = Layout(
-            Field("host_contact_email"),
+            has_contact_email and Field("host_contact_email"),
             Field("comment"),
             Fieldset(
                 None,
@@ -231,6 +246,15 @@ class CommentForm(FormWithCommentMixin, ModelForm):
         )
         self.helper = helper
 
+    class Meta:
+        widgets = dict(
+            host_contact_email=ModelSelect2NoPK(
+                url="org-email-autocomplete",
+                attrs={
+                    "data-placeholder": _("Select an email addrss or create a new one ..."),
+                },
+            ),
+        )
 
 class FormWithStateFieldMixin:
     def __init__(self, *args, **kwargs):
@@ -583,21 +607,6 @@ class AdminFileWidget(forms.FileInput):
             )
         output.append(super().render(name, value, attrs, renderer))
         return mark_safe("".join(output))
-
-
-class ModelSelect2NoPK(autocomplete.ModelSelect2):
-    def filter_choices_to_render(self, selected_choices):
-        """Filter out un-selected choices if choices is a QuerySet."""
-        if isinstance(self.choices, list):
-            if selected_choices:
-                if not self.choices:
-                    self.choices = [(v, v) for v in selected_choices]
-                else:
-                    self.choices = [
-                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
-                    ]
-        else:
-            super().filter_choices_to_render(selected_choices)
 
 
 def apnumber(value):

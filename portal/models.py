@@ -11265,6 +11265,17 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             or self.contract.pi
         )
 
+    @cached_property
+    def agency_recipients(self):
+        c = self.contract
+        return [c.fund.email] if c.fund and c.fund.email else c.site.staff_users.all()
+
+    @cached_property
+    def host_recipients(self):
+        if host_contact := self.host_contact:
+            return [host_contact]
+        return self.contract.host_emails
+
     # exported = models.BooleanField(blank=True, null=True)
     # exported_date = models.DateField(blank=True, null=True)
 
@@ -11463,6 +11474,10 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     publications = ManyToManyField(
         "Publication", blank=True, db_table="report_publication", related_name="reports"
     )
+
+    @property
+    def number(self):
+        return f"{self.contract}:{self.period}:{self.type}"
 
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"

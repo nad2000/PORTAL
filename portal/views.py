@@ -652,19 +652,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             self.request.POST or None,
             self.request.FILES or None,
             instance=self.object,
-            initial={"host_contact_email": getattr(self.object, "host_contact_email", "")},
+            prefix="comment",
+            initial={"host_contact_email": getattr(self.object, "host_contact", "")},
         )
-        # model,
-        # form=ModelForm,
-        # fields=None,
-        # exclude=None,
-        # formfield_callback=None,
-        # widgets=None,
-        # localized_fields=None,
-        # labels=None,
-        # help_texts=None,
-        # error_messages=None,
-        # field_classes=None,
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -720,6 +710,14 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 attachment=attachment,
                 token=token,
             )
+            if (
+                "host_contact_email" in form.changed_data
+                and hasattr(i, "host_contact_email")
+                and (host_contact_email := form.cleaned_data.get("host_contact_email", None))
+                and i.host_contact_email != host_contact_email
+            ):
+                i.host_contact_email = host_contact_email
+                i.save()
 
             i.comments.add(
                 comment,
@@ -2825,8 +2823,8 @@ class ReportViewMixin:
             if body or attachment:
                 CommentForm = modelform_factory(models.ReportComment, exclude=["report", "token"])
                 comment_form = CommentForm(
-                    self.request.POST,
-                    self.request.FILES,
+                    self.request.POST or None,
+                    self.request.FILES or None,
                 )
                 comment = comment_form.save(commit=False)
                 comment.submitted_by = u
