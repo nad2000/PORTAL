@@ -354,16 +354,16 @@ class ApplicationFilterSet(FilterSet):
                 | Q(
                     Exists(
                         models.Member.where(
-                            application=OuterRef("pk"),
                             self.unaccent(first_name__icontains=value),
+                            application=OuterRef("pk"),
                         )
                     )
                 )
                 | Q(
                     Exists(
                         models.Member.where(
-                            application=OuterRef("pk"),
                             self.unaccent(last_name__icontains=value),
+                            application=OuterRef("pk"),
                         )
                     )
                 )
