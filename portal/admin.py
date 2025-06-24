@@ -2489,7 +2489,12 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                     "contact",
                     ("email", "contact_phone"),
                     "signatory",
-                    "ro_email",
+                    (
+                        "ro_email",
+                        "application_contact_email",
+                        "contract_contact_email",
+                        "reporting_contact_email",
+                    ),
                 ],
             },
         ),
@@ -3560,7 +3565,13 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
     #     "created_at",
     #     "updated_at",
     # ]
-    search_fields = ["number", "project_title", "members__email", "members__first_name", "members__last_name"]
+    search_fields = [
+        "number",
+        "project_title",
+        "members__email",
+        "members__first_name",
+        "members__last_name",
+    ]
     autocomplete_fields = [
         # "principal",
         # "coordinator",
@@ -3810,12 +3821,14 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
 
     @admin.action(description="Start Reporting")
     def start_reporting(self, request, queryset, *args, **kwargs):
-        reports = list(self.model.start_reporting(request=request, queryset=queryset, *args, **kwargs))
+        reports = list(
+            self.model.start_reporting(request=request, queryset=queryset, *args, **kwargs)
+        )
         messages.info(
             request,
             mark_safe(
-                f'New report(s) initiated: '
-                 + ", ".join(f'<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
+                f"New report(s) initiated: "
+                + ", ".join(f'<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
             ),
         )
 
