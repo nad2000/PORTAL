@@ -5780,7 +5780,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             "SELECT i.* FROM invitation AS i JOIN account_emailaddress AS ae ON ae.email = i.email "
             "  LEFT JOIN scheme AS s ON s.current_round_id = i.round_id "
             "  LEFT JOIN round AS r ON r.id = i.round_id "
-            "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked') AND i.site_id=%s "
+            "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked', 'new', 'draft') AND i.site_id=%s "
             """  AND (i."type" != 'R' OR r.testimonial_submission_closes_at IS NULL or r.testimonial_submission_closes_at > %s)""",
             [user.id, site_id, timezone.now()],
         )
