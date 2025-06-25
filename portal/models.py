@@ -3604,7 +3604,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             | (
                 Q(referees__user=user)
                 if site_id in [1, 7]
-                else Q(referees__user=user, referees__invitation__isnull=False)
+                else Q(~Q(referees__state="new"), referees__user=user, referees__invitation__isnull=False)
             )
             | Q(nomination__nominator=user)
             | Q(nomination__user=user)
