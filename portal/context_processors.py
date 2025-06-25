@@ -114,7 +114,7 @@ def portal_context(request):
                 cached_context["application_in_review_count"] = application_in_review_count
             if site_id in [2, 4, 5] and (is_staff or u.is_superuser):
                 application_approved_count = models.Application.user_application_count(
-                    u, "approved"
+                    u, "approved", request=request
                 )
                 cached_context["application_approved_count"] = application_approved_count
                 application_count += application_approved_count

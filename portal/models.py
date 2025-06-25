@@ -3596,10 +3596,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if user.is_staff or user.is_superuser or user.is_site_staff:
             return q
 
+        site_id = request and request.site_id or settings.SITE_ID
+
         f = (
             Q(submitted_by=user)
             | Q(members__user=user, members__state="authorized")
-            | Q(referees__user=user)
+            | (
+                Q(referees__user=user)
+                if site_id in [1, 7]
+                else Q(referees__user=user, referees__invitation__isnull=False)
+            )
             | Q(nomination__nominator=user)
             | Q(nomination__user=user)
             | Q(
@@ -11589,7 +11595,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["new", "draft", "submitted"],
         target="submitted",
         custom=dict(verbose="Submit", button_name="submit"),
-        permission=lambda instance, user: instance.pi == user
+        permission=lambda instance, user: instance.pi == user,
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
@@ -11617,7 +11623,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["submitted", "assessed"],
         target="assessed",
         custom=dict(verbose="Assess", button_name="assess"),
-        permission=lambda instance, user: instance.assessor == user
+        permission=lambda instance, user: instance.assessor == user,
     )
     def assess(self, *args, **kwargs):
         request = kwargs.get("request")

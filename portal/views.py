@@ -1256,7 +1256,7 @@ def index(request):
             if applications.count() < 7:
                 draft_applications = applications
             applications = models.Application.user_applications(
-                user, ["submitted", "in_review", "accepted", "approved"]
+                user, ["submitted", "in_review", "accepted", "approved"], request=request
             ).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
@@ -4034,7 +4034,7 @@ class ApplicationDetail(DetailView):
             and (current_round := r.scheme.current_round)
             and current_round != r
             and current_round.is_open
-            and not Application.user_applications(user=u, round=current_round).exists()
+            and not Application.user_applications(user=u, round=current_round, request=self.request).exists()
         ):
             context["can_reenter"] = True
             context["current_round"] = current_round
@@ -7207,7 +7207,7 @@ class ApplicationList(
         u = self.request.user
         q = super().get_queryset(*args, **kwargs)
         q = models.Application.user_applications(
-            u, round=self.request.GET.get("round"), queryset=q
+            u, round=self.request.GET.get("round"), queryset=q, request=self.request
         )
         if u.is_staff or u.is_superuser or u.is_site_staff:
             return q.prefetch_related("contracts")
