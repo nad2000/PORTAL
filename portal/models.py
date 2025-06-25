@@ -49,6 +49,7 @@ from django.db.models import (
     BooleanField,
     Case,
     CharField,
+    GeneratedField,
     Count,
     DateField,
     DateTimeField,
@@ -75,7 +76,7 @@ from django.db.models import (
     aggregates,
     prefetch_related_objects,
 )
-from django.db.models.functions import Cast, Coalesce, Lower
+from django.db.models.functions import Cast, Coalesce, Lower, Concat
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
@@ -11177,7 +11178,14 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     schedule_entry = ForeignKey(ReportingScheduleEntry, on_delete=CASCADE, related_name="report")
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="reports")
     # number = models.CharField(unique=True, max_length=255)
-    # report_id = models.CharField(unique=True, max_length=255, blank=True, null=True)
+    # number = GeneratedField(
+    #         expression=Concat(
+    #             F("contract__number"),":", F("period"), ":", F("type")
+    #         ),
+    #         output_field=CharField(max_length=255),
+    #         db_persist=False
+    #     )
+    # # report_id = models.CharField(unique=True, max_length=255, blank=True, null=True)
     period = PositiveSmallIntegerField(_("period"))
     type = FixedCharField(
         max_length=1,
@@ -11194,6 +11202,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         _("host contact email address"), max_length=120, null=True, blank=True
     )
     state = StateField(default="draft", verbose_name=_("state"))
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     file = PrivateFileField(
         verbose_name=_("Completed research report"),
         blank=True,
@@ -11477,7 +11486,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @property
     def number(self):
-        return f"{self.contract}:{self.period}:{self.type}"
+        return f"{self.contract.number}:{self.period}:{self.type}"
 
     def __str__(self):
         return f"{self.period}:{self.type}:{self.contract}"
@@ -11580,6 +11589,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["new", "draft", "submitted"],
         target="submitted",
         custom=dict(verbose="Submit", button_name="submit"),
+        permission=lambda instance, user: instance.pi == user
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
@@ -11607,6 +11617,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["submitted", "assessed"],
         target="assessed",
         custom=dict(verbose="Assess", button_name="assess"),
+        permission=lambda instance, user: instance.assessor == user
     )
     def assess(self, *args, **kwargs):
         request = kwargs.get("request")

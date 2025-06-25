@@ -534,6 +534,11 @@ class SingleObjectMixin(ContextMixin):
 
     _obj = None
 
+    def get_object_filter(self, value):
+        if isinstance(value, int) or value.isnumeric():
+            return {"pk": int(value)}
+        return {self.get_slug_field(): value}
+
     def get_object(self, queryset=None):
         if not self.request.user.is_authenticated:
             return None
@@ -545,17 +550,14 @@ class SingleObjectMixin(ContextMixin):
             queryset = self.get_queryset()
 
         obj_id = self.kwargs.get(self.pk_url_kwarg) or self.kwargs.get(self.slug_url_kwarg)
-        slug_field = self.get_slug_field()
         if obj_id is not None:
-            if isinstance(obj_id, int) or obj_id.isnumeric():
-                queryset = queryset.filter(pk=int(obj_id))
-            else:
-                queryset = queryset.filter(Q(**{slug_field: obj_id}))
+            queryset = queryset.filter(Q(**self.get_object_filter(obj_id)))
 
         try:
             # Get the single item from the filtered queryset
             obj = queryset.first()
             if not obj:
+                slug_field = self.get_slug_field()
                 an = get_object_or_404(models.ApplicationNumber, **{slug_field: obj_id})
                 obj = an.application
         except queryset.model.DoesNotExist:
@@ -579,8 +581,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         model_name = self.object._meta.model_name
 
         def button_name(transition):
-            if hasattr(transition, "custom") and "button_name" in transition.custom:
-                return transition.custom["button_name"]
+            if hasattr(transition, "custom") and (
+                name := transition.custom.get("verbose") or transition.custom.get("button_name")
+            ):
+                return name
             else:
                 # Make the function name the button title, but prettier
                 return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
@@ -1834,8 +1838,12 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
 class ReportDetail(DetailView):
     template_name = "portal/report_detail.html"
     model = models.Report
-    slug_field = "number"
-    slug_url_kwarg = "number"
+
+    def get_object_filter(self, value):
+        if isinstance(value, int) or value.isnumeric():
+            return {"pk": int(value)}
+        n, p, t = value.split(":")
+        return {"period": p, "type": t, "contract__number": n}
 
     # def get(self, request, *args, **kwargs):
     #     return super().get(request, *args, **kwargs)

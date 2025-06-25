@@ -2441,4 +2441,172 @@ class Migration(migrations.Migration):
                 blank=True, max_length=120, null=True, verbose_name="host contact email address"
             ),
         ),
+        migrations.AddField(
+            model_name="historicalorganisation",
+            name="application_contact_email",
+            field=common.models.EmailField(
+                blank=True,
+                help_text="Application contact common email address",
+                max_length=254,
+                null=True,
+                verbose_name="Application contact email",
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalorganisation",
+            name="contract_contact_email",
+            field=common.models.EmailField(
+                blank=True,
+                help_text="Contract contact common email address",
+                max_length=254,
+                null=True,
+                verbose_name="Contract contact email",
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalorganisation",
+            name="reporting_contact_email",
+            field=common.models.EmailField(
+                blank=True,
+                help_text="Reporting contact common email address",
+                max_length=254,
+                null=True,
+                verbose_name="Reporting contact email",
+            ),
+        ),
+        migrations.AddField(
+            model_name="historicalreport",
+            name="state_changed_at",
+            field=model_utils.fields.MonitorField(
+                blank=True, default=None, monitor="state", null=True
+            ),
+        ),
+        migrations.AddField(
+            model_name="organisation",
+            name="application_contact_email",
+            field=common.models.EmailField(
+                blank=True,
+                help_text="Application contact common email address",
+                max_length=254,
+                null=True,
+                verbose_name="Application contact email",
+            ),
+        ),
+        migrations.AddField(
+            model_name="organisation",
+            name="contract_contact_email",
+            field=common.models.EmailField(
+                blank=True,
+                help_text="Contract contact common email address",
+                max_length=254,
+                null=True,
+                verbose_name="Contract contact email",
+            ),
+        ),
+        migrations.AddField(
+            model_name="organisation",
+            name="reporting_contact_email",
+            field=common.models.EmailField(
+                blank=True,
+                help_text="Reporting contact common email address",
+                max_length=254,
+                null=True,
+                verbose_name="Reporting contact email",
+            ),
+        ),
+        migrations.AddField(
+            model_name="report",
+            name="state_changed_at",
+            field=model_utils.fields.MonitorField(
+                blank=True, default=None, monitor="state", null=True
+            ),
+        ),
+        migrations.AlterField(
+            model_name="application",
+            name="org",
+            field=models.ForeignKey(
+                help_text="Host orgnisation or contact organisation",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="applications",
+                to="portal.organisation",
+                verbose_name="organisation",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="application",
+            name="organisation",
+            field=models.CharField(
+                help_text="Applicant contact organisation",
+                max_length=200,
+                verbose_name="organisation",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalapplication",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                help_text="Host orgnisation or contact organisation",
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.organisation",
+                verbose_name="organisation",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalapplication",
+            name="organisation",
+            field=models.CharField(
+                help_text="Applicant contact organisation",
+                max_length=200,
+                verbose_name="organisation",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="historicalreport",
+            name="state",
+            field=portal.models.StateField(
+                choices=[
+                    ("accepted", "Accepted"),
+                    ("acknowledged", "Acknowledged"),
+                    ("approved", "Approved"),
+                    ("assessed", "Assessed"),
+                    ("archived", "Archived"),
+                    ("cancelled", "Cancelled"),
+                    ("draft", "Draft"),
+                    ("new", "New"),
+                    ("submitted", "Submitted"),
+                    ("reported", "Reported"),
+                ],
+                default="draft",
+                max_length=100,
+                no_check_for_status=True,
+                verbose_name="state",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="report",
+            name="state",
+            field=portal.models.StateField(
+                choices=[
+                    ("accepted", "Accepted"),
+                    ("acknowledged", "Acknowledged"),
+                    ("approved", "Approved"),
+                    ("assessed", "Assessed"),
+                    ("archived", "Archived"),
+                    ("cancelled", "Cancelled"),
+                    ("draft", "Draft"),
+                    ("new", "New"),
+                    ("submitted", "Submitted"),
+                    ("reported", "Reported"),
+                ],
+                default="draft",
+                max_length=100,
+                no_check_for_status=True,
+                verbose_name="state",
+            ),
+        ),
     ]
