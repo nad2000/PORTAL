@@ -1381,6 +1381,8 @@ class ApplicationAdmin(
         "STATE",
         "main_applicant",
         "previous_numbers",
+        "agent_declaration_accepted_at",
+        "applicant_declaration_accepted_by",
     ]
     search_fields = [
         "number",
@@ -1456,6 +1458,7 @@ class ApplicationAdmin(
         readonly_fields = ["state", "state_changed_at"]
         # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
+        fields = ["state", "email", "first_name", "last_name", "role"]
 
         # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role",
         # "user", "state", "state_changed_at", "authorized_at"]
@@ -1662,7 +1665,7 @@ class ApplicationAdmin(
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
                         "presentation_url",
-                        "is_tac_accepted",
+                        ("is_tac_accepted", "agent_declaration_accepted_at", "applicant_declaration_accepted_by") if obj.round.applicant_declaration else "is_tac_accepted",
                         ("tags", "priorities"),
                     ],
                 },
