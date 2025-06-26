@@ -4799,16 +4799,12 @@ msgid "Home"
 msgstr "Kāinga"
 
 #: portal/templates/base.html:185
-#, fuzzy
-#| msgid "Continue"
 msgid "Contracting"
-msgstr "Haere tonu"
+msgstr "Te tuku kirimana"
 
 #: portal/templates/base.html:190
-#, fuzzy
-#| msgid "Nominations"
 msgid "Variations"
-msgstr "Ngā Tautapanga"
+msgstr "Ngā Rerekētanga"
 
 #: portal/templates/base.html:200
 msgid "Contacts"
@@ -4839,10 +4835,8 @@ msgid "Invite to join"
 msgstr "Tonoa kia hono"
 
 #: portal/templates/base.html:265
-#, fuzzy
-#| msgid "Users"
 msgid "User"
-msgstr "Ngā Kaiwhakamahi"
+msgstr "Kaiwhakamahi"
 
 #: portal/templates/base.html:271 users/admin.py:77
 msgid "Permissions"
@@ -4873,16 +4867,12 @@ msgid "My Profile"
 msgstr "Taku Kāhua"
 
 #: portal/templates/base.html:371
-#, fuzzy
-#| msgid "This Prize requires photo identification for the the lead applicant."
 msgid "This scheme requires a copy of the passport for the the lead applicant."
-msgstr "Kāore anō tō tuakiri kia whakatūturutia"
+msgstr "Me whai tēnei kaupapa i tētahi kape o te uruwhenua mō te kaitono matua."
 
 #: portal/templates/base.html:372
-#, fuzzy
-#| msgid "Please upload a scan of your Driver's Licence or Passport"
 msgid "Please upload a scan of your Passport"
-msgstr "Tēnā tukuatu tētahi whakaahua tuakiri ki konei"
+msgstr "Me tukuatu tētahi matawai o tō Uruwhenua"
 
 #: portal/templates/base.html:380
 msgid "This Prize requires photo identification for the the lead applicant."
@@ -4912,36 +4902,34 @@ msgstr ""
 "tuakiri"
 
 #: portal/templates/base.html:445
-#, fuzzy, python-format
-#| msgid ""
-#| "You have a request to join a Prize team that you still have to act on."
 msgid ""
 "\n"
 "You have a request to join a %(site_name)s team that you still have to act "
 "on.\n"
-"                "
-msgstr "He tono whakamana māngai ā-rōpū tāu kāore anō kia whakaaetia."
+"                 "
+msgstr ""
+"\n"
+"He tono ki a koe kia hono ki tētahi rōpū %(site_name)s me whakatutuki e koe. "
+"\n"
 
 #: portal/templates/base.html:449
 msgid "Please click here to review the request"
 msgstr "Tēnā pāwhiria ki konei kia tirotirohia te tono"
 
 #: portal/templates/base.html:466
-#, fuzzy, python-format
-#| msgid "You have a request to review a Prize application to act on."
 msgid ""
 "\n"
 "You have a request to review a %(site_name)s application to act on.\n"
 "                "
 msgstr ""
-"He tono tāu kia tirotirohia, me te tautoko i tētahi tono kāore anō kia "
-"tirotirohia."
+"\n"
+"He tono ki a koe kia arotakehia tētahi tono %(site_name)s hei whakatutuki " 
+"māu.\n  "
+
 
 #: portal/templates/base.html:471
-#, fuzzy
-#| msgid "Please click here to review the request"
 msgid "Please click here to complete the referee report"
-msgstr "Tēnā pāwhiria ki konei kia tirotirohia te tono"
+msgstr "Me pāwhiri i konei hei whakaoti i te pūrongo a te kaitautoko"
 
 #: portal/templates/base.html:475
 msgid "Please click here to view the review request"
