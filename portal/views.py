@@ -5020,7 +5020,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
                             next_url = (
                                 reverse("application-update", kwargs={"pk": a.id})
-                                if a and a.id
+                                if a and a.pk
                                 else self.request.get_full_path()
                             )
                             messages.error(
@@ -5299,6 +5299,16 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         and "submit" in self.request.POST
                         and a.state in ["new", "draft", "tac_accepted"]
                     ):
+                        if a.round.applicant_declaration and form.data.get(
+                            "applicant_declaration_accepted"
+                        ) not in ["on", 1, "true", "checked"]:
+                            messages.error(
+                                self.request,
+                                _("Please accept the <strong>Applicant Declaration</strong>"),
+                            )
+                            url = f'{reverse("application-update", kwargs={"pk": a.pk})}#tac'
+                            return redirect(url)
+
                         a.submit(request=self.request)
                         messages.info(
                             self.request,
