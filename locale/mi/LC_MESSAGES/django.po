@@ -4799,16 +4799,12 @@ msgid "Home"
 msgstr "Kāinga"
 
 #: portal/templates/base.html:185
-#, fuzzy
-#| msgid "Continue"
 msgid "Contracting"
-msgstr "Haere tonu"
+msgstr "Te tuku kirimana"
 
 #: portal/templates/base.html:190
-#, fuzzy
-#| msgid "Nominations"
 msgid "Variations"
-msgstr "Ngā Tautapanga"
+msgstr "Ngā Rerekētanga"
 
 #: portal/templates/base.html:200
 msgid "Contacts"
@@ -4839,10 +4835,8 @@ msgid "Invite to join"
 msgstr "Tonoa kia hono"
 
 #: portal/templates/base.html:265
-#, fuzzy
-#| msgid "Users"
 msgid "User"
-msgstr "Ngā Kaiwhakamahi"
+msgstr "Kaiwhakamahi"
 
 #: portal/templates/base.html:271 users/admin.py:77
 msgid "Permissions"
@@ -4873,16 +4867,12 @@ msgid "My Profile"
 msgstr "Taku Kāhua"
 
 #: portal/templates/base.html:371
-#, fuzzy
-#| msgid "This Prize requires photo identification for the the lead applicant."
 msgid "This scheme requires a copy of the passport for the the lead applicant."
-msgstr "Kāore anō tō tuakiri kia whakatūturutia"
+msgstr "Me whai tēnei kaupapa i tētahi kape o te uruwhenua mō te kaitono matua."
 
 #: portal/templates/base.html:372
-#, fuzzy
-#| msgid "Please upload a scan of your Driver's Licence or Passport"
 msgid "Please upload a scan of your Passport"
-msgstr "Tēnā tukuatu tētahi whakaahua tuakiri ki konei"
+msgstr "Me tukuatu tētahi matawai o tō Uruwhenua"
 
 #: portal/templates/base.html:380
 msgid "This Prize requires photo identification for the the lead applicant."
