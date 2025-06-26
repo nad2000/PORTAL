@@ -330,19 +330,22 @@
            $(this).find("textarea[name='resolution']").focus();
         }
       })
+    {% comment %}
       $('#id_resolution_modal,#id_agent_declaration_modal').on('shown.bs.modal', function (e) {
           $(this).find("textarea[name='resolution']").focus();
           // $("#id_resolution").focus();
       });
+    {% endcomment %}
       $("input[type='submit']").on("click", function(e) {
         e.preventDefault();
         e.stopPropagation();
         var el = e.target;
         let name =  el.dataset["action"]||$(this).attr("name");
         $("[name='action'],#id_action").val(name);
+        $('#id_commit_button').text(el.value||el.outerText||'Commit');
         {% if object.round.agent_declaration %}
         if (name == "approve") {
-           $('#id_agent_declaration_modal #id_commit_button').text(el.value||el.outerText||'Commit');
+           $('#id_agent_declaration_modal #id_agent_declaration_submit').text(el.value||el.outerText||'Commit');
            $('#id_agent_declaration_modal').modal({keyboard: true});
         } else $('#id_resolution_modal').modal({keyboard: true});
         {% else %}
@@ -359,13 +362,12 @@
         buttonsStyling: false
       });
       $("#id_action_form").submit(function(e) {
-        if (!$("#id_declaration_accepted_check").is(':checked')) {
+        if ($(this).find("input[name='action']").val() == "approve" && !$("#id_declaration_accepted_check").is(':checked')) {
           e.preventDefault();
-          swalWithBootstrapButtons.fire("{% trans 'Please accept the terms and conditions!' %}");
+          swalWithBootstrapButtons.fire("{% trans 'Please accept the <strong>Agent Declaration<strong>!' %}");
           return false;
         }
       });
-
       {% endif %}
     {% endif %}
   });

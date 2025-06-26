@@ -3877,11 +3877,21 @@ class ApplicationDetail(DetailView):
                 )
             elif action == "approve":
                 a = self.object
-                a.approve(
-                    request,
-                    agent_declaration_accepted=request.POST.get("agent_declaration_accepted"),
-                )
-                a.save()
+                if (
+                    a.round.agent_declaration
+                    and (is_declaration_accepted := request.POST.get("agent_declaration_accepted"))
+                    and is_declaration_accepted not in ["on", "1", 1, True, "true"]
+                ):
+                    messages.error(
+                        self.request,
+                        _("You have to accept the <strong>Agent Declaration<strong>."),
+                    )
+                else:
+                    a.approve(
+                        request,
+                        agent_declaration_accepted=request.POST.get("agent_declaration_accepted"),
+                    )
+                    a.save()
 
                 if a.site_id in [2, 5]:
                     url = a.get_full_detail_url(request=request)
@@ -4034,7 +4044,9 @@ class ApplicationDetail(DetailView):
             and (current_round := r.scheme.current_round)
             and current_round != r
             and current_round.is_open
-            and not Application.user_applications(user=u, round=current_round, request=self.request).exists()
+            and not Application.user_applications(
+                user=u, round=current_round, request=self.request
+            ).exists()
         ):
             context["can_reenter"] = True
             context["current_round"] = current_round

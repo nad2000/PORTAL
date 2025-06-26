@@ -321,7 +321,8 @@
           $('#id_resolution').trigger('focus');
           return false;
         });
-        $('#id_resolution_modal').on('shown.bs.modal', function (event) {
+        $('#id_resolution_modal,#id_agent_declaration_modal').on('shown.bs.modal', function (event) {
+          $(this).find("textarea[name='resolution']").focus();
           var el = event.relatedTarget;
           if (el) {
             if (el.type == 'button') {
