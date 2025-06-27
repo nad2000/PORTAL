@@ -9286,6 +9286,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         **kwargs,
     ):
         q = queryset or cls.objects.all()
+        is_admin =  user.is_staff or user.is_superuser or user.is_site_staff
 
         if select_related:
             prefetch_related_objects(q, "application__round")
@@ -9296,9 +9297,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             else:
                 q = q.filter(state=state)
         else:
-            q = q.filter(~Q(state="archived"))
+            q = q.filter(~Q(state="archived") if is_admin else ~Q(state__in=["archived", "withdraw"]))
 
-        if user.is_staff or user.is_superuser or user.is_site_staff:
+        if is_admin:
             return q
 
         f = (
