@@ -25,8 +25,11 @@
     <!--[if lt IE 9]>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
-    <script src="https://js.sentry-cdn.com/ca6ff8cc0e2248068d84643686a763d1.min.js" crossorigin="anonymous"></script>
-
+    {% if settings.SENTRY_DSN %}<script
+      src="https://browser.sentry-cdn.com/9.32.0/bundle.tracing.replay.feedback.min.js"
+      integrity="sha384-Ysq3iic+5Yn+pBlZKjcZ0ooGe9g6KnGvGAA6dEFo5tKnz5wUWG0tajuhyqxBqnmP"
+      crossorigin="anonymous"
+      ></script>{% endif %}
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     {#% if domain == "international.royalsociety.org.nz" %#}
@@ -660,6 +663,7 @@ You have a request to review a {{ site_name }} application to act on.
       {% compress js %}
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
+        // var tracking_disabled; // TODO: is it still working?
         const swalWithBootstrapButtons = Swal.mixin({
           customClass: {
             confirmButton: "btn btn-danger ml-1",
@@ -711,7 +715,6 @@ You have a request to review a {{ site_name }} application to act on.
                     })
                   });
                   setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 70000);
-                });
         {% if site_id == 2 and user.is_authenticated and not is_admin and not request.session.country and not user.person.address.country %}
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(location) {
@@ -720,47 +723,19 @@ You have a request to review a {{ site_name }} application to act on.
             });
           }
         {% endif %}
-      </script>
-<!-- script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics.js";
-  import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyB_8gnIoL0HZ82UZiKQREJ17RRRtkM0bX4",
-    authDomain: "pmspp-273112.firebaseapp.com",
-    projectId: "pmspp-273112",
-    storageBucket: "pmspp-273112.appspot.com",
-    messagingSenderId: "505794998992",
-    appId: "1:505794998992:web:54350149a523eef0c764d5",
-    measurementId: "G-FHVXYJD580"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const messaging = getMessaging(app);
-  // getToken(messaging, {vapidKey: "BIV_XppOX0z0yrf5bT06FCWNxeBNrwPm94KrNqMHfzPMLQiIlpj5C13Y3VEFeqAiSRBoqrleM4IJDxyi7meruwI"});
-  getToken(messaging, { vapidKey: 'BIV_XppOX0z0yrf5bT06FCWNxeBNrwPm94KrNqMHfzPMLQiIlpj5C13Y3VEFeqAiSRBoqrleM4IJDxyi7meruwI' }).then((currentToken) => {
-  if (currentToken) {
-    console.log('Token recieved. ', currentToken);
-    // Send the token to your server and update the UI if necessary
-    // ...
-  } else {
-    // Show permission request UI
-    console.log('No registration token available. Request permission to generate one.');
-    // ...
-  }
-}).catch((err) => {
-  console.log('An error occurred while retrieving token. ', err);
-  // ...
-});
-</script -->
+      {% if settings.SENTRY_DSN %}
+          Sentry.init({
+          dsn: '{{ settings.SENTRY_DSN }}',
+          integrations: [
+            Sentry.feedbackIntegration({
+              // Additional SDK configuration goes in here, for example:
+              colorScheme: "system",
+            }),
+          ],
+        });
+      {% endif %}
+  });
+</script>
     {% endcompress %}
     {% if request.GET.logout %}
       <script>$(document).ready(function() {$.ajax({url: '{{ settings.ORCID_BASE_URL }}' + 'userStatus.json?logUserOut=true', dataType: 'jsonp'});});</script>
