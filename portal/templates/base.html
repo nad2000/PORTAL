@@ -724,15 +724,26 @@ You have a request to review a {{ site_name }} application to act on.
           }
         {% endif %}
       {% if settings.SENTRY_DSN %}
+        try {
+          Sentry.setUser({ fullName: "{{ user.full_name }}", email: "{{ user.email }}"});
           Sentry.init({
           dsn: '{{ settings.SENTRY_DSN }}',
           integrations: [
-            Sentry.feedbackIntegration({
-              // Additional SDK configuration goes in here, for example:
-              colorScheme: "system",
-            }),
-          ],
-        });
+              Sentry.feedbackIntegration({
+                colorScheme: "system",
+                {% if user.is_authenticated %}
+                useSentryUser: {name: "fullName", email: "email"}
+                {% endif %}
+              }),
+            ],
+          });
+        } catch (error) {
+          if (window.navigator.brave != undefined && window.navigator.brave.isBrave.name == "isBrave") {
+            const d = new Date();
+            d.setTime(d.getTime() + (5*60*1000)) // 5min;
+            document.cookie = "sentry_disabled=1; expires=" + d.toUTCString() + " ;path=/";
+          }
+        }
       {% endif %}
   });
 </script>
