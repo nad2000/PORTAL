@@ -329,7 +329,6 @@ class UnaccentMixin:
         return sf
 
 
-
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
     list_filter = [
@@ -1665,7 +1664,15 @@ class ApplicationAdmin(
                         ("daytime_phone", "mobile_phone"),
                         ("email", "main_applicant"),
                         "presentation_url",
-                        ("is_tac_accepted", "agent_declaration_accepted_at", "applicant_declaration_accepted_by") if obj.round.applicant_declaration else "is_tac_accepted",
+                        (
+                            (
+                                "is_tac_accepted",
+                                "agent_declaration_accepted_at",
+                                "applicant_declaration_accepted_by",
+                            )
+                            if obj.round.applicant_declaration
+                            else "is_tac_accepted"
+                        ),
                         ("tags", "priorities"),
                     ],
                 },
@@ -1805,10 +1812,27 @@ class ApplicationAdmin(
 
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
-        invitation_count = models.invite_referees(
-            applications=queryset, by=request.user, after_round_closes=True
+        if request.site_id not in [2, 5] or "do_action" in request.POST:
+            invitation_count = models.invite_referees(
+                request=request,
+                applications=queryset,
+                by=request.user,
+                after_round_closes=("force" not in request.POST)
+                or (request.POST.get("force") != "1"),
+            )
+            messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
+            return
+
+        return render(
+            request,
+            "action_invite_referees.html",
+            {
+                "title": "Invite referees",
+                "objects": queryset,
+                "applications": queryset,
+                "action_label": self.get_action("invite_referees")[-1],
+            },
         )
-        messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
 
     @admin.action(description="Initialize a new contract/contracs")
     def initialize_contracts(self, request, queryset):
@@ -1986,6 +2010,8 @@ class ApplicationAdmin(
 
 
 admin.site.register(models.Award)
+
+
 class AwardAdmin(admin.ModelAdmin):
     save_on_top = True
     view_on_site = False
@@ -2776,7 +2802,9 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
 
 
 @admin.register(models.Testimonial)
-class TestimonialAdmin(UnaccentMixin, PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class TestimonialAdmin(
+    UnaccentMixin, PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin
+):
     # summernote_fields = ["summary"]
 
     @admin.display(description="State", empty_value="N/A")
@@ -3303,12 +3331,30 @@ class RoundAdmin(
 
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
-        invitation_count = models.invite_referees(
-            rounds=queryset, by=request.user, after_round_closes=True, request=request
+        if request.site_id not in [2, 5] or "do_action" in request.POST:
+            invitation_count = models.invite_referees(
+                request=request,
+                by=request.user,
+                rounds=queryset,
+                after_round_closes=("force" not in request.POST)
+                or (request.POST.get("force") != "1"),
+            )
+            messages.success(
+                request, f"{invitation_count} referee invitation(s) created and/or dispatched."
+            )
+            return
+
+        return render(
+            request,
+            "action_invite_referees.html",
+            {
+                "title": "Invite referees",
+                "objects": queryset,
+                "action_label": self.get_action("invite_referees")[-1],
+                "rounds": queryset,
+            },
         )
-        messages.success(
-            request, f"{invitation_count} referee invitation(s) created and/or dispatched."
-        )
+
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -3549,7 +3595,9 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
 
 @admin.register(models.Contract)
-class ContractAdmin(UnaccentMixin, StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin):
+class ContractAdmin(
+    UnaccentMixin, StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin
+):
     summernote_fields = (
         "abstract",
         "notes",
