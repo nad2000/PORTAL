@@ -609,6 +609,14 @@ class PdfFileMixin:
 
         file_ext = file_ext.lower()
         if self.file.name and file_ext != ".pdf":
+            # if file_ext == ".tex":
+            #     cp = subprocess.run(
+            #         ["pdflatex", self.file.path],
+            #         stdin=subprocess.DEVNULL,
+            #         text=True,
+            #         capture_output=True,
+            #     )
+            # else:
             cp = subprocess.run(
                 [
                     (
@@ -3604,7 +3612,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             | (
                 Q(referees__user=user)
                 if site_id in [1, 7]
-                else Q(~Q(referees__state="new"), referees__user=user, referees__invitation__isnull=False)
+                else Q(
+                    ~Q(referees__state="new"),
+                    referees__user=user,
+                    referees__invitation__isnull=False,
+                )
             )
             | Q(nomination__nominator=user)
             | Q(nomination__user=user)
@@ -9286,7 +9298,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         **kwargs,
     ):
         q = queryset or cls.objects.all()
-        is_admin =  user.is_staff or user.is_superuser or user.is_site_staff
+        is_admin = user.is_staff or user.is_superuser or user.is_site_staff
 
         if select_related:
             prefetch_related_objects(q, "application__round")
@@ -9297,7 +9309,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             else:
                 q = q.filter(state=state)
         else:
-            q = q.filter(~Q(state="archived") if is_admin else ~Q(state__in=["archived", "withdraw"]))
+            q = q.filter(
+                ~Q(state="archived") if is_admin else ~Q(state__in=["archived", "withdraw"])
+            )
 
         if is_admin:
             return q
