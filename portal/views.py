@@ -1507,7 +1507,7 @@ def check_profile(request, token=None):
                 elif i.type == "R" and (r := i.referee):
                     if (
                         testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
-                    ) and testimonial_submission_closes_at > timezone.now():
+                    ) and testimonial_submission_closes_at < timezone.now():
                         messages.error(
                             request,
                             mark_safe(
@@ -4126,7 +4126,7 @@ class ApplicationDetail(DetailView):
                                 )
                             ),
                         )
-                    elif site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()):
+                    elif site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()) or a.state == "in_review":
                         messages.info(
                             self.request,
                             (
@@ -8966,7 +8966,7 @@ class TestimonialView(CreateUpdateView):
             if r:
                 if (
                     testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
-                ) and testimonial_submission_closes_at > timezone.now():
+                ) and testimonial_submission_closes_at < timezone.now():
                     messages.error(
                         request,
                         mark_safe(
@@ -9476,7 +9476,7 @@ class TestimonialDetail(DetailView):
                             )
                         ),
                     )
-                elif r.site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()):
+                elif r.site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()) or (a and a.state == "in_review"):
                     messages.info(
                         self.request,
                         (
