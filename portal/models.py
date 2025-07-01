@@ -3613,9 +3613,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 Q(referees__user=user)
                 if site_id in [1, 7]
                 else Q(
-                    ~Q(referees__state="new"),
-                    referees__user=user,
-                    referees__invitation__isnull=False,
+                    Q(
+                        Q(referees__user=user) | Q(referees__email=user.email),
+                        state="in_review",
+                    )
+                    | Q(
+                        ~Q(referees__state="new"),
+                        referees__user=user,
+                        referees__invitation__isnull=False,
+                    )
                 )
             )
             | Q(nomination__nominator=user)
@@ -4638,7 +4644,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     if (
                         not has_participant_table
                         and isinstance(resp, dict)
-                        and resp.get("status") == "Error: No survey participants table"
+                        and (resp_status := resp.get("status"))
+                        and "no survey participants table" in resp_status.lower()
                     ):
                         self.activate_tokens(api=api)
                         has_participant_table = True
@@ -4655,7 +4662,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     if (
                         "errors" in r
                         and "token" in r["errors"]
-                        and " has already been taken." in r["errors"]["token"]
+                        and "has already been taken" in r["errors"]["token"]
                     ):
                         r = api.token.get_participant_properties(survey_id, None, {"token": token})
                     if r.get("email") == self.email.lower():
@@ -7072,13 +7079,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     def activate_tokens(self, api=None):
         if not api:
             api = self.survey_api
-            return api.query(
-                method="activate_tokens",
-                params={
-                    "sSessionKey": api.session_key,
-                    "iSurveyID": self.survey_id,
-                },
-            )
+        return api.query(
+            method="activate_tokens",
+            params={
+                "sSessionKey": api.session_key,
+                "iSurveyID": self.survey_id,
+            },
+        )
 
     def sync_referee_surveys(self, request=None, by=None, referees=None):
         if not self.survey_id:

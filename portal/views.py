@@ -1146,7 +1146,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
     if referee_id:
         if (
             r := models.Referee.objects.prefetch_related("application", "application__round")
-            .filter(id=referee_id)
+            .filter(pk=referee_id)
             .first()
         ):
             if not (
