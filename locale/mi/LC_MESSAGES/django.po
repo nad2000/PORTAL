@@ -5228,16 +5228,12 @@ msgid "Show Less"
 msgstr "Whakaatu Kia Iti Iho"
 
 #: portal/templates/index.html:120
-#, fuzzy
-#| msgid "Submitted and previous applications"
 msgid "Copy over the previous application"
-msgstr "Ngā tono i tukuna me ngā tono o mua"
+msgstr "Tāruatia anōtia te tono o mua"
 
 #: portal/templates/index.html:127
-#, fuzzy
-#| msgid "You have already submited one application in this round"
 msgid "You have an application in the previous round"
-msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
+msgstr "He tono tāu i te rauna o mua"
 
 #: portal/templates/index.html:131
 msgid ""
@@ -5252,10 +5248,8 @@ msgid ""
 msgstr ""
 
 #: portal/templates/index.html:146
-#, fuzzy
-#| msgid "Start a new application"
 msgid "Create a new application from scratch"
-msgstr "Tīmatahia tētahi tono hou"
+msgstr "Hangaia he tono hou mai i te tīmatanga"
 
 #: portal/templates/index.html:161 portal/views.py:3042 portal/views.py:3234
 msgid "Message"
