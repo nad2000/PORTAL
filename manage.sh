@@ -1,4 +1,4 @@
-:
+#!/usr/bin/env bash
 export ENV=${ENV:-local}
 export DJANGO_DEBUG=False
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
