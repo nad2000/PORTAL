@@ -9,7 +9,7 @@
 <script>
   django.jQuery(document).ready(function(){
       // if (!$) {$ = django.jQuery;}
-      django.jQuery('<div id="dialg" style="display: none; width: 100%;"><textarea style="width: 96%;" cols="26" rows="10" name="description" id="id_description"></textarea></div>').dialog({
+    django.jQuery('<div id="dialg" style="display: none; width: 100%;"><textarea style="width: 96%;" cols="26" rows="10" name="description" id="id_description"></textarea><input name="force" type="checkbox" id="id_force" checked><label for="id_forced">  force transition</label></div>').dialog({
         autoOpen: false,
         modal: true,
         appendTo: "#{{ opts.model_name }}_form",

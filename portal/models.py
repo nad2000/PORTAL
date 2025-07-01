@@ -2978,6 +2978,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         try:
             request = kwargs.get("request")
             self.is_completed(skip_testimonials=(self.site_id in [2, 5]), *args, **kwargs)
+            force = request and (request.POST.get("force") in ["1", "on", 1])
             return self.invite_referees(
                 request=request,
                 dispatch_invitations=(
@@ -2987,6 +2988,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         and self.round.closes_at
                         and self.round.closes_at <= timezone.now()
                     )
+                    or force
                 ),
                 exclude_sender=exclude_sender,
             )

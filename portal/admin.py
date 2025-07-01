@@ -2009,9 +2009,35 @@ class ApplicationAdmin(
                 raise
 
 
-admin.site.register(models.Award)
+@admin.register(models.ApplicationDocument)
+class ApplicationDocumentAdmin(StaffPermsMixin, HistoryAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = [
+        "application__number",
+        "required_document",
+        "file",
+        # "state",
+        "created_at",
+        # "updated_at",
+    ]
+    list_display_links = ["file", "application__number"]
+    list_filter = [
+        "created_at",
+        "updated_at",
+        # "state",
+        ("application", admin.RelatedOnlyFieldListFilter),
+        # ("required_document", admin.RelatedOnlyFieldListFilter),
+    ]
+    search_fields = ["file", "contract__number"]
+    date_hierarchy = "created_at"
+    # autocomplete_fields = ["contract", "converted_file", "required_document"]
+    autocomplete_fields = ["application", "converted_file"]
+    # exclude = ["converted_file"]
+    exclude = ["document_type"]
 
 
+@admin.register(models.Award)
 class AwardAdmin(admin.ModelAdmin):
     save_on_top = True
     view_on_site = False
