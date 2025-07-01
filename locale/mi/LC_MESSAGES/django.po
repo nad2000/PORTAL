@@ -1532,10 +1532,8 @@ msgstr "Tāurua te Wāhitau Īmēra"
 
 #: portal/jinja2/contract_summary.html:139 portal/templates/index.html:593
 #: portal/views.py:1280 portal/views.py:1293
-#, fuzzy
-#| msgid "Research Topic"
 msgid "Research Office"
-msgstr "Kaupapa Rangahau"
+msgstr "Tari Rangahau"
 
 #: portal/jinja2/contract_summary.html:167
 #, fuzzy
@@ -5484,10 +5482,8 @@ msgid "Start a new application"
 msgstr "Tīmatahia tētahi tono hou"
 
 #: portal/templates/index.html:527
-#, fuzzy
-#| msgid "You have been nominated for %s"
 msgid "You have been nominated for this round"
-msgstr "I tautapatia koe mō %s"
+msgstr "Kua kōharitia koe mō tēnei rauna"
 
 #: portal/templates/index.html:546 portal/templates/index.html:573
 msgid "Apply"
@@ -5585,13 +5581,6 @@ msgid ""
 msgstr ""
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:17
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Organisations that you have an affiliation with.\n"
-#| "          Note that the organsation where you are primarily employed, or "
-#| "study, will be published if you are awarded a prize.\n"
-#| "        "
 msgid ""
 "\n"
 "        Organisations that you have an affiliation with.\n"
@@ -5600,9 +5589,9 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          Ngā whakahaere e tūhono ai koe.\n"
-"          Kia mōhio mai ka whakaputaina te whakahaere e mahi ai, e ako ai "
-"koe rānei, mēnā ka whakawhiwhia koe ki tētahi paraihe.\n"
+"          Ngā whakahaere e whai pānga ana koe.\n"
+"          Ko te whakahaere tērā e mahi ai koe, e rangahau rānei. "
+"Ka whakaputaina tēnei mō ngā kaitono angitu.\n"
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:22
