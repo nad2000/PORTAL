@@ -5304,12 +5304,6 @@ msgid ""
 msgstr ""
 
 #: portal/templates/index.html:240
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Your portal access has not been authorised, please allow up to "
-#| "two working days for admin us to look into your request.\n"
-#| "        "
 msgid ""
 "\n"
 "      Your portal access has not been authorised, please allow up to two "
@@ -5317,8 +5311,8 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          Kāore anō kia whakaaetia tō kāhua, kei te tirotiro te "
-"Kaiwhakahaere i tō tono.\n"
+"          Kāore anō kia whakamanahia tō āhei atu ki te tomokanga, he rua "  
+"rā mahi pea te wā e tirohia ai e mātou tō tono.\n"
 "        "
 
 #: portal/templates/index.html:248
@@ -5327,10 +5321,8 @@ msgid "Apply for The Prime Minister’s Science Prizes"
 msgstr "Tono mai mō ngā Paraihe Pūtaiao a te Pirimia"
 
 #: portal/templates/index.html:255
-#, fuzzy
-#| msgid "Proposal/Application"
 msgid "Previous Applications"
-msgstr "Tono"
+msgstr "Ngā Tono o Mua"
 
 #: portal/templates/index.html:286
 msgid "Application Drafts"
@@ -5446,10 +5438,8 @@ msgid "Modify your application and continue application process"
 msgstr "Whakarerekētia tō tono ka whai tonu i te tukanga tono"
 
 #: portal/templates/index.html:505
-#, fuzzy
-#| msgid "You are a panellist of this round and cannot apply for it"
 msgid "You are a research officer of this round and cannot apply for it"
-msgstr "He kaiwhiriwhiri koe mō tēnei whiringa, nō reira kāore e taea te tono"
+msgstr "He āpiha rangahau koe mō tēnei rauna, ā, kāore koe e āhei ki te tono"
 
 #: portal/templates/index.html:508
 msgid "You are a panellist of this round and cannot apply for it"
@@ -5472,16 +5462,12 @@ msgid "The application will be open on"
 msgstr "Ka tūwhera te tono a te"
 
 #: portal/templates/index.html:518
-#, fuzzy
-#| msgid "You have already submited one application in this round"
 msgid "You have already submitted one application in this round"
-msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
+msgstr "Kua tuku tono kē koe i tēnei rauna"
 
 #: portal/templates/index.html:522
-#, fuzzy
-#| msgid "You need to be nominated in order to apply for the application"
 msgid "You need to be nominated in order to apply for this round"
-msgstr "Me tautapa tētahi i a koe kia āhei ai te tono mō te puka tono"
+msgstr "Me kōhari koe hei tono mō tēnei rauna"
 
 #: portal/templates/index.html:522 portal/templates/index.html:555
 msgid "Please contact your Research Office"
