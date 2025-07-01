@@ -4943,12 +4943,6 @@ msgstr ""
 "tirotirohia."
 
 #: portal/templates/base.html:495
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  Please click here to review and score the round "
-#| "\"%(round)s\".\n"
-#| "                "
 msgid ""
 "\n"
 "                    Please click here to review and score the round "
@@ -4956,25 +4950,16 @@ msgid ""
 "                  "
 msgstr ""
 "\n"
-"                  Tēna pāwhiria ki konei kia tirotirohia, kia tatauria hoki "
-"te whiringa \"%(round)s\".\n"
+"                  Me pāwhiri i konei hei arotake me te tuku tatau mō  "
+"te rauna \"%(round)s\".\n"
 "                "
 
 #: portal/templates/base.html:513
-#, fuzzy
-#| msgid "You have a request to review a Prize application to act on."
 msgid "You have a request to review new user account."
-msgstr ""
-"He tono tāu kia tirotirohia, me te tautoko i tētahi tono kāore anō kia "
-"tirotirohia."
+msgstr "He tono ki a koe kia arotakehia he pūkete kaiwhakamahi hōu. "
+
 
 #: portal/templates/base.html:515
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  Please click here to review and score the round "
-#| "\"%(round)s\".\n"
-#| "                "
 msgid ""
 "\n"
 "                  Please click here to review the user \"%(username)s\" "
@@ -4982,8 +4967,8 @@ msgid ""
 "                "
 msgstr ""
 "\n"
-"                  Tēna pāwhiria ki konei kia tirotirohia, kia tatauria hoki "
-"te whiringa \"%(round)s\".\n"
+"                  Me pāwhiri i konei hei arotake i te pūkete kaiwhakamahi: a "
+"\"%(username)s\".\n"
 "                "
 
 #: portal/templates/base.html:595 portal/templates/base.html:607
@@ -5039,10 +5024,8 @@ msgstr ""
 
 #: portal/templates/conflict_of_interest.html:42
 #: portal/templates/rounds.html:61
-#, fuzzy
-#| msgid "Conflict of Interests"
 msgid "Conflict of Interest Statements"
-msgstr "Ngā Raru Whaipānga"
+msgstr "Ngā Tauākī Take Whai-TaharuaTaupatupatu"
 
 #: portal/templates/conflict_of_interest.html:69
 msgid "Team Members"
