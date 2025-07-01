@@ -1057,10 +1057,8 @@ msgid "Save and continue"
 msgstr "Tiakina ka tukuna he tono hou"
 
 #: portal/forms.py:2664 portal/templates/fsm_admin/fsm_submit_line.html:16
-#, fuzzy
-#| msgid "Save and send new invitation(s)"
 msgid "Save and continue editing"
-msgstr "Tiakina ka tukuna he tono hou"
+msgstr "Tiaki ka whakatika haere tonu"
 
 #: portal/forms.py:2671 portal/forms.py:4935
 #, fuzzy
@@ -5096,16 +5094,12 @@ msgid "Show"
 msgstr "Whakaatuhia"
 
 #: portal/templates/evaluation.html:71
-#, fuzzy
-#| msgid "Score"
 msgid "Scores"
-msgstr "atau"
+msgstr "Ngā tatau"
 
 #: portal/templates/evaluation.html:77
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "The evaluation has been already submitted and cannot be modified."
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua tukuna kētia atu te arotakenga, ā, tē taea te whakarerekē."
 
 #: portal/templates/evaluation.html:93
 #: portal/templates/portal/evaluation_form.html:93
@@ -5224,18 +5218,14 @@ msgstr ""
 #: portal/templates/index.html:37 portal/templates/index.html:44
 #: portal/templates/research_office_index.html:37
 #: portal/templates/research_office_index.html:44
-#, fuzzy
-#| msgid "Show Scores"
 msgid "Show More"
-msgstr "Whakaatuhia ngā Tatau"
+msgstr "Whakaatu Kia Nui Ake"
 
 #: portal/templates/index.html:40 portal/templates/index.html:48
 #: portal/templates/research_office_index.html:40
 #: portal/templates/research_office_index.html:48
-#, fuzzy
-#| msgid "Show Scores"
 msgid "Show Less"
-msgstr "Whakaatuhia ngā Tatau"
+msgstr "Whakaatu Kia Iti Iho"
 
 #: portal/templates/index.html:120
 #, fuzzy
