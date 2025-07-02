@@ -2029,7 +2029,7 @@ class ApplicationDocumentAdmin(StaffPermsMixin, HistoryAdmin):
         ("application", admin.RelatedOnlyFieldListFilter),
         # ("required_document", admin.RelatedOnlyFieldListFilter),
     ]
-    search_fields = ["file", "contract__number"]
+    search_fields = ["file", "application__number"]
     date_hierarchy = "created_at"
     # autocomplete_fields = ["contract", "converted_file", "required_document"]
     autocomplete_fields = ["application", "converted_file"]
