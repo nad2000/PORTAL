@@ -1,6 +1,6 @@
 # MAILTO=
 # SHELL=/bin/bash
-TS_LABEL=$(date +%FT%s)
+TS_LABEL=$(date +%FT%H%M%S)
 PATH=/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/aws/bin:$HOME/.local/bin:$HOME/bin:$PATH:/usr/local/bin
 DATA_DIR="$(psql  -U postgres postgres -0 -z -q  -t  -c 'show data_directory;'|tr -d ' ')"
 BUCKET=pmspp-archive
