@@ -5706,12 +5706,6 @@ msgstr ""
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:49
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Prizes and/or medals are requested in order to enable analysis "
-#| "over time of the causes and effects of recognition.\n"
-#| "        "
 msgid ""
 "\n"
 "        NZRIS Prizes and/or medals are requested in order to enable analysis "
@@ -5719,24 +5713,10 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"Ka tonoa ngā paraihe, mētara hoki/rānei kia taea ai te tātari i roto i te wā "
-"i ngā pūtake me ngā pānga o te whakamana.        "
+"Ka tonoa ngā paraihe a NZRIS, ngā mētara hoki/rānei kia taea ai te tātari i roto "
+"i te wā i ngā pūtake me ngā pānga o te whakamana. "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:53
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Information on professional bodies, is useful for demonstating "
-#| "participation in the research community, \n"
-#| "          including membership in organisations responsible for "
-#| "accrediation, as well as providing space for recognising non-academic "
-#| "qualifications.<br/>\n"
-#| "          Example Memberships include: Members of the Royal Society Te "
-#| "Apārangi and New Zealand Association of Science Educators.<br/>\n"
-#| "          Example Qualifications include: Chartered Practicing Accountant "
-#| "(CPA) and Chartered Professional Engineer (CPEng), with the \n"
-#| "          Organisation being the body that granted the qualification. \n"
-#| "        "
 msgid ""
 "\n"
 "        NZRIS Information on professional bodies, is useful for "
@@ -5752,17 +5732,12 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          He whai take ngā mōhiohio mō ngā rōpū ngaio hei whakaatu i te "
-"whakaurunga ki te hapori rangahau, \n"
-"          tae atu ki te mematanga ki ngā whakahaere e haepapa ana mō te "
-"whakamanatanga, me te rato wāhi mō te whakamihi i ngā tohu ehara i te tohu "
-"mātauranga.<br/>\n"
-"          Example Memberships include: Members of the Royal Society Te "
-"Apārangi and New Zealand Association of Science Educators.<br/>\n"
-"          Example Qualifications include: Chartered Practicing Accountant "
-"(CPA) and Chartered Professional Engineer (CPEng), with the \n"
-"          Organisation being the body that granted the qualification. \n"
-"        "
+"          Ko ngā mōhiohio a NZRIS mō ngā rōpū ngaio, he whaitake mō te  "
+"whakatauira i te whai wāhitanga ki te hapori rangahau, tae atu ki te noho hei mema i roto i ngā whakahaere mō "
+te whakamanatanga, tae atu ki te tuku wāhi mō te whakamana i ngā tohu ehara i te kura wānanga. Ko ngā Mematanga tauira "
+"ko: Ngā Mema o te Apārangi me te New Zealand Association of Science Educators. Ko ngā Tohu tauira ko: Kaikaute Whaitohu "
+"Mahi (CPA) me te Kaipūkaha Ngaio Whaitohu (CPEng), ā, ko te Whakahaere ko te rōpū nā rātau i tuku te tohu. \n"
+"           "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:68
 #: portal/templates/profile_section.html:87
@@ -5874,10 +5849,8 @@ msgstr ""
 #: portal/templates/nomination_detail.html:25
 #: portal/templates/snippets/detail_buttons.html:7
 #: portal/templates/testimonial_detail.html:33 portal/views.py:9201
-#, fuzzy
-#| msgid "Start Prize Application"
 msgid "Start Application"
-msgstr "Me Tīmata ki te Tono"
+msgstr "Timataria te Tono"
 
 #: portal/templates/nomination_detail.html:27
 #: portal/templates/snippets/detail_buttons.html:9
@@ -5987,7 +5960,7 @@ msgstr ""
 #, fuzzy
 #| msgid "Yes, subscribe me"
 msgid "Yes, I'm sure"
-msgstr "Āe, ohaurutia ahau"
+msgstr "Āe, koinā"
 
 #: portal/templates/panellist.html:44
 msgid "No, take me back"
