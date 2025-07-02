@@ -24,12 +24,12 @@
 
 
 {% block content %}
+  {{ block.super }}
 
   <div class="table-responsive">
     {% include 'snippets/application_detail_table.html' with a=application u=request.user %}
   </div>
 
-  {{ block.super }}
   <!-- Privacy Statement Modal -->
   <div class="modal fade" id="confirm-submit" tabindex="-1" role="dialog"
     aria-labelledby="privacy-statement-title" aria-hidden="true">
@@ -54,7 +54,7 @@
           <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
             {% trans 'Cancel' %}
           </button>
-          <a href="#" id="submit-button" class="btn btn-primary success" data-dismiss="modal">
+          <a href="#" id="submit-button" class="btn btn-primary success">
             {% trans 'Submit' %}
           </a>
         </div>
@@ -80,6 +80,10 @@
         var form = document.getElementById('entry-form');
         if (form.checkValidity()) {
           form.action.value = "submit";
+          $("[name='action'],#id_action").val("submit");
+          // workaround to disable 'beforeunload' hadling:
+          $(window).off("beforeunload"); $("form[id]").data("changed", false);
+          $("form[id]").data("changed", false);
           form.submit();
         }
         else form.reportValidity();

@@ -9020,9 +9020,9 @@ class TestimonialView(CreateUpdateView):
         u = self.request.user
         reset_cache(self.request)
         site_id = self.request.site_id
-        a = t and t.application or self.application
+        a = t and t.referee_id and t.referee.application or self.application
 
-        if not t.id:
+        if not t.pk:
             q = models.Referee.where(Q(user=u) | Q(email__in=u.email_addresses))
             if a:
                 q = q.filter(application=a)
@@ -9042,7 +9042,7 @@ class TestimonialView(CreateUpdateView):
 
         resp = super().form_valid(form)
 
-        if r := t.referee:
+        if (r := t.referee):
             invitations = list(models.Invitation.where(~Q(state="accepted"), type="R", referee=r))
             if invitations:
                 for i in invitations:
