@@ -8511,12 +8511,19 @@ def invite_referees(
     return count
 
 
-def clean_converted_file_cache(dry_run=False):
+def clean_converted_file_cache(dry_run=False, keep_days=90):
     root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
     cf_count = 0
     for cf in ConvertedFile.all_objects.filter(
-        created_at__lt=timezone.now() - timedelta(days=-90)
+        created_at__lt=timezone.now() - timedelta(days=-keep_days)
     ):
+        if not cf.file:
+            print(f"*** Deleted corrupted record ID: cf.pk (0 bytes)")
+            if not dry_run:
+                cf.delete()
+            cf_count += 1
+            continue
+
         has_file = Path(cf.file.path).is_file()
         if has_file:
             size = os.path.getsize(cf.file.path)
@@ -8531,7 +8538,7 @@ def clean_converted_file_cache(dry_run=False):
         cf_count += 1
 
     for cf in ConvertedFile.all_objects.all():
-        if not Path(cf.file.path).is_file():
+        if not cf.file or not Path(cf.file.path).is_file():
             print(f"*** Deleted file record with missing file: '{cf.file.name}'")
             if not dry_run:
                 cf.delete()
