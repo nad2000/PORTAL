@@ -91,6 +91,15 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
+    add_fieldsets = (
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("username", "email", "password1", "password2"),
+            },
+        ),
+    )
     readonly_fields = ["is_site_staff"]
 
     list_display = [
