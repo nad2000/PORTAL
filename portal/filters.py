@@ -351,6 +351,7 @@ class ApplicationFilterSet(FilterSet):
                 | self.unaccent(submitted_by__first_name__icontains=value)
                 | self.unaccent(submitted_by__last_name__icontains=value)
                 | Q(submitted_by__email__icontains=value)
+                | self.unaccent(org__name__icontains=value)
                 | Q(
                     Exists(
                         models.Member.where(
