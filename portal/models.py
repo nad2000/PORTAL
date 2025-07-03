@@ -2785,7 +2785,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def create_contract(self, *args, **kwargs):
         return Contract.create_from_application(application=self, *args, **kwargs)
 
-    @cache
+    # @cache
     def can_only_update_referees(self, user):
         return bool(
             self.pk
