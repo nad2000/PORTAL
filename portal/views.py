@@ -1500,6 +1500,8 @@ def check_profile(request, token=None):
                             next_url = reverse("application-update", kwargs={"pk": a.id})
                         else:
                             next_url = reverse("application", kwargs={"pk": a.id})
+                    elif n.pk:
+                        next_url = reverse("nomination-application-create", kwargs={"nomination": n.pk})
                     else:
                         next_url = reverse("application-create", kwargs={"round": n.round_id})
                 elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
@@ -5806,20 +5808,34 @@ class ApplicationCreate(ApplicationView, CreateView):
     # form_class = forms.ApplicationForm
 
     def get(self, request, *args, **kwargs):
+        u = request.user
         n = (
             models.Nomination.get(kwargs["nomination"])
             if "nomination" in kwargs
             else (
                 models.Nomination.where(
+                    Q(round=kwargs["round"]) if "round" in kwargs else Q(round__scheme__current_round=F("round")),
                     email__in=self.request.user.email_addresses,
-                    round__scheme__current_round=F("round"),
                 )
                 .order_by("-id")
                 .first()
             )
         )
-        r = models.Round.get(kwargs["round"]) if "round" in kwargs else (n and n.round)
-        u = request.user
+        if "round" in kwargs:
+            r = models.Round.get(kwargs["round"])
+            if n and n.round != r:
+                n = models.Nomination.where(
+                    email__in=self.request.user.email_addresses,
+                    round=r,
+                ).order_by("-id").first()
+        else:
+            r = (n and n.round)
+        if not r:
+            messages.error(
+                self.request,
+                _("Failed to find any round you could apply for... Please contact adminstrator.")
+            )
+            return redirect("home")
         if r.panellists.all().filter(user=u).exists():
             messages.error(
                 self.request,
@@ -5853,11 +5869,13 @@ class ApplicationCreate(ApplicationView, CreateView):
                         ),
                     )
                 if a and (nom == n) and not n.application:
-                    n.applicatio = a
-                    n.accept(
-                        by=u,
-                        description="Application in the round was already created; accepted by default",
-                    )
+                    n.application = a
+                    models.Nomination.where(application=a).update(application=None)
+                    if n.state != "accepted":
+                        n.accept(
+                            by=u,
+                            description="Application in the round was already created; accepted by default",
+                        )
                     n.save()
         if a:
             messages.warning(
