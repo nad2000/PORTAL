@@ -1501,7 +1501,9 @@ def check_profile(request, token=None):
                         else:
                             next_url = reverse("application", kwargs={"pk": a.id})
                     elif n.pk:
-                        next_url = reverse("nomination-application-create", kwargs={"nomination": n.pk})
+                        next_url = reverse(
+                            "nomination-application-create", kwargs={"nomination": n.pk}
+                        )
                     else:
                         next_url = reverse("application-create", kwargs={"round": n.round_id})
                 elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
@@ -4128,7 +4130,11 @@ class ApplicationDetail(DetailView):
                                 )
                             ),
                         )
-                    elif site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()) or a.state == "in_review":
+                    elif (
+                        site_id not in [2, 5]
+                        or (closes_at and closes_at <= timezone.now())
+                        or a.state == "in_review"
+                    ):
                         messages.info(
                             self.request,
                             (
@@ -5814,7 +5820,11 @@ class ApplicationCreate(ApplicationView, CreateView):
             if "nomination" in kwargs
             else (
                 models.Nomination.where(
-                    Q(round=kwargs["round"]) if "round" in kwargs else Q(round__scheme__current_round=F("round")),
+                    (
+                        Q(round=kwargs["round"])
+                        if "round" in kwargs
+                        else Q(round__scheme__current_round=F("round"))
+                    ),
                     email__in=self.request.user.email_addresses,
                 )
                 .order_by("-id")
@@ -5824,16 +5834,20 @@ class ApplicationCreate(ApplicationView, CreateView):
         if "round" in kwargs:
             r = models.Round.get(kwargs["round"])
             if n and n.round != r:
-                n = models.Nomination.where(
-                    email__in=self.request.user.email_addresses,
-                    round=r,
-                ).order_by("-id").first()
+                n = (
+                    models.Nomination.where(
+                        email__in=self.request.user.email_addresses,
+                        round=r,
+                    )
+                    .order_by("-id")
+                    .first()
+                )
         else:
-            r = (n and n.round)
+            r = n and n.round
         if not r:
             messages.error(
                 self.request,
-                _("Failed to find any round you could apply for... Please contact adminstrator.")
+                _("Failed to find any round you could apply for... Please contact adminstrator."),
             )
             return redirect("home")
         if r.panellists.all().filter(user=u).exists():
@@ -9060,7 +9074,7 @@ class TestimonialView(CreateUpdateView):
 
         resp = super().form_valid(form)
 
-        if (r := t.referee):
+        if r := t.referee:
             invitations = list(models.Invitation.where(~Q(state="accepted"), type="R", referee=r))
             if invitations:
                 for i in invitations:
@@ -9494,7 +9508,11 @@ class TestimonialDetail(DetailView):
                             )
                         ),
                     )
-                elif r.site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()) or (a and a.state == "in_review"):
+                elif (
+                    r.site_id not in [2, 5]
+                    or (closes_at and closes_at <= timezone.now())
+                    or (a and a.state == "in_review")
+                ):
                     messages.info(
                         self.request,
                         (
