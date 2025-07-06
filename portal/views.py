@@ -8698,21 +8698,22 @@ class NominationView(CreateUpdateView):
         self.user = u = self.request.user
         if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
-            if n and n.nominator and n.nominator != u:
-                messages.error(
-                    request, _("You do not have permissions to access this nomination.")
-                )
-                return redirect(self.request.META.get("HTTP_REFERER", "index"))
-            if n and n.state == "accepted":
-                contact_email = models.site_contact_email()
-                messages.warning(
-                    request,
-                    _(
-                        "You cannot alter a nomination that has been submitted and accepted.  "
-                        f"If you feel a need to do this, please email {contact_email} "
-                        "with a reason and we may be able to enable."
-                    ),
-                )
+            if n:
+                if not(n.nominator and n.nominator == u or n.org and n.org.research_offices.filter(user=u).exists()):
+                    messages.error(
+                        request, _("You do not have permissions to access this nomination.")
+                    )
+                    return redirect(self.request.META.get("HTTP_REFERER", "index"))
+                if n.state == "accepted":
+                    contact_email = models.site_contact_email()
+                    messages.warning(
+                        request,
+                        _(
+                            "You cannot alter a nomination that has been submitted and accepted.  "
+                            f"If you feel a need to do this, please email {contact_email} "
+                            "with a reason and we may be able to enable."
+                        ),
+                    )
         return super().dispatch(request, *args, **kwargs)
 
     @cached_property
