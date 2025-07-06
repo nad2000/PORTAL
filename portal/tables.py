@@ -397,7 +397,7 @@ class ApplicationTable(tables.Table):
             and record.deadline_days < 6
         ):
             r = record.round
-            closes_at = timezone.localtime(r.closes_at)
+            closes_at = r.closes_at and (timezone.localtime(r.closes_at) if timezone.is_aware(r.closes_at) else r.closes_at)
             return format_html(
                 """<span
                     data-toggle="tooltip"
