@@ -4528,6 +4528,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
         """Send invitations to all referee."""
         # members that don't have invitations
         count = 0
+        if not by and request:
+            by = request.user
         # referees = list(models.Referee.where(application=application, invitation__isnull=True))
         # referees = list(models.Referee.where(invitation__isnull=True))
         # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
@@ -4838,6 +4840,11 @@ class Referee(RefereeMixin, PersonMixin, Model):
     @fsm_log
     @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
+        # if (request := kwargs.get("request")) and "/referee/" in request.path:
+        #     # Referee.invite_referees()
+        #     # for i in Invitation.where(~Q(state__in="revoked"), referee=self):
+        #     #     i.send(*args, **kwargs)
+        #     #     i.save()
         pass
 
     def __str__(self):
@@ -6167,10 +6174,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     title = CharField(_("title"), max_length=100, null=True, blank=True)
     scheme = ForeignKey(Scheme, on_delete=CASCADE, related_name="rounds", verbose_name=_("scheme"))
     background = ColorField(
-        null=True, blank=True, help_text="Colour used for text headers and back-grounds"
+        null=True, blank=True, help_text="Colour used for text headers and back-grounds", default=None
     )
     foreground = ColorField(
-        null=True, blank=True, help_text="Colour used for text headers and fore-grounds"
+        null=True, blank=True, help_text="Colour used for text headers and fore-grounds", default=None
     )
 
     opens_on = DateField(_("opens on"), null=True, blank=True)

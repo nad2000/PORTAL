@@ -256,6 +256,7 @@ class CommentForm(FormWithCommentMixin, ModelForm):
             ),
         )
 
+
 class FormWithStateFieldMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -2947,6 +2948,18 @@ class MemberFormSet(
 class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     readonly_fields = ["state"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if settings.SITE_ID == 5:
+            self.fields["org"].widget.attrs.update(
+                {
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _("Referee institution is required"),
+                    "oninput": "this.setCustomValidity('')",
+                }
+            )
+
     def save(self, commit=True):
         """Prevent 'state' getting overwritten"""
         if self.errors:
@@ -2977,7 +2990,8 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
                     )
                     r.delete()
                 else:
-                    self.instance.save(update_fields=["first_name", "middle_names", "last_name"])
+                    # self.instance.save(update_fields=["first_name", "middle_names", "last_name"])
+                    self.instance.save()
             else:
                 self.instance.save()
             self._save_m2m()
@@ -3031,7 +3045,9 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
                 # forward=["nominator"],
-                attrs={"data-placeholder": _("Choose the organisation of the referee...")},
+                attrs={
+                    "data-placeholder": _("Choose the organisation of the referee..."),
+                },
             ),
         )
 

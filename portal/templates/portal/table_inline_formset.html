@@ -40,7 +40,7 @@
           {% for field in formset.forms.0 %}
             {% if not field.is_hidden %}
               <th {% if field.label %}for="{{ field.auto_id }}"{% endif %}
-                  class="col-form-label {% if field.label and field.field.required %}requiredField{% endif %}"
+                  class="col-form-label {% if field.label and field.field.required or field|is_data_required %}requiredField{% endif %}"
               >
                 {% if field.label and not field.is_hidden %}
                     {% if field.name != "DELETE" %}
@@ -48,7 +48,7 @@
                         data-toggle="tooltip"
                         title="{{ field.help_text }}"
                       {% endif %}>
-                        {{ field.label|safe }}{% if field.field.required and not field|is_checkbox %}<span class="asteriskField">*</span></span>
+                        {{ field.label|safe }}{% if field.field.required and not field|is_checkbox or field|is_data_required %}<span class="asteriskField">*</span></span>
                         {% endif %}
                     {% else %}
                       &nbsp;

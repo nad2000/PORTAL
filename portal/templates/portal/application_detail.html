@@ -110,8 +110,12 @@
              >
              <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or referee.survey_completed_at or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
                 href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
-               {% trans 'Complete' %}
-               <strong>{% trans 'Referee Report' %}</strong></a>
+               {% if SITE_ID == 5 %}
+                {% blocktrans %}Progress to <strong>Referee Report</strong>{% endblocktrans %}
+               {% else %}
+                {% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong>
+               {% endif %}
+             </a>
         </div>
 
         {% else %}
@@ -132,12 +136,17 @@
              >
              <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
                 href="{% if testimonial %}{% url 'testimonial-update' pk=testimonial.pk %}{% else %}{% url 'application-review-create' application=referee.application_id %}{% endif %}">
-               {% if testimonial and testimonial.file %}
-               {% trans 'Update' %}
+               {% if SITE_ID == 5 %}
+                {% blocktrans %}Progress to <strong>Referee Report</strong>{% endblocktrans %}
                {% else %}
-               {% trans 'Submit' %}
-               {% endif %}
-               <strong>{% trans 'Testimonial' %}</strong></a>
+                {% if testimonial and testimonial.file %}
+                {% trans 'Update' %}
+                {% else %}
+                {% trans 'Submit' %}
+                {% endif %}
+                <strong>{% trans 'Testimonial' %}</strong>
+              {% endif %}
+            </a>
         </div>
 
         {% endif %}
