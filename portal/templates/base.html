@@ -395,9 +395,19 @@ table.table .asteriskField,.popover-header {color: gray;}
               {% if oi.created_at >= three_days_ago %}
                 <span class="badge badge-primary">{% trans 'New' %}</span>
               {% endif %}
-              {% trans "You have an invitation that hasn't been acted on." %}
+              {% if oi.referee %}
+                {% blocktrans with a=oi.referee.application url=oi.referee.application.detail_url %}
+                You have an invitation to submit a referee report for application <a href="{{ url }}">{{ a }}</a>.
+                {% endblocktrans %}
+              {% else %}
+                {% trans "You have an invitation that hasn't been acted on." %}
+              {% endif %}
               <a href="{% url 'onboard-with-token' token=oi.token %}" class="alert-link">
-                {% trans 'Please click here to review it' %}!
+                {% if oi.referee %}
+                  {% trans 'Please click here to review the application' %}!
+                {% else %}
+                  {% trans 'Please click here to review it' %}!
+                {% endif %}
               </a>
               <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
