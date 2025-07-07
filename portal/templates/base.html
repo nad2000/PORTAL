@@ -672,7 +672,7 @@ You have a request to review a {{ site_name }} application to act on.
 
       <!-- Your stuff: Third-party javascript libraries go here -->
       <!-- place project specific Javascript in this file -->
-      {% compress js %}
+      {#% compress js %#}
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
         // var tracking_disabled; // TODO: is it still working?
@@ -735,6 +735,7 @@ You have a request to review a {{ site_name }} application to act on.
             });
           }
         {% endif %}
+    <!-- settings.SENTRY_DSN: {{ settings.SENTRY_DSN }} -->
       {% if settings.SENTRY_DSN %}
         try {
           Sentry.setUser({ fullName: "{{ user.full_name }}", email: "{{ user.email }}"});
@@ -759,7 +760,7 @@ You have a request to review a {{ site_name }} application to act on.
       {% endif %}
   });
 </script>
-    {% endcompress %}
+    {#% endcompress %#}
     {% if request.GET.logout %}
       <script>$(document).ready(function() {$.ajax({url: '{{ settings.ORCID_BASE_URL }}' + 'userStatus.json?logUserOut=true', dataType: 'jsonp'});});</script>
     {% endif %}
