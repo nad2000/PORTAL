@@ -1524,7 +1524,9 @@ def check_profile(request, token=None):
                         )
                         return redirect(next_url or "home")
 
-                    if not (r.survey_token_id or r.survey_token) and (t := models.Testimonial.where(referee=r).last()):
+                    if not (r.survey_token_id or r.survey_token) and (
+                        t := models.Testimonial.where(referee=r).last()
+                    ):
                         next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
                         messages.info(
@@ -8699,7 +8701,12 @@ class NominationView(CreateUpdateView):
         if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
             if n:
-                if not(n.nominator and n.nominator == u or n.org and n.org.research_offices.filter(user=u).exists()):
+                if not (
+                    n.nominator
+                    and n.nominator == u
+                    or n.org
+                    and n.org.research_offices.filter(user=u).exists()
+                ):
                     messages.error(
                         request, _("You do not have permissions to access this nomination.")
                     )

@@ -170,7 +170,7 @@ class NominationTable(tables.Table):
     # last_name = tables.Column(verbose_name=_("Nominee Last Name"))
     # email = tables.Column(verbose_name=_("Nominee Email Address"))
 
-    #def render_user(self, record, value):
+    # def render_user(self, record, value):
     #    if value:
     #        return value.full_name_with_email
     #    if value := record.full_name_with_email:
@@ -186,7 +186,12 @@ class NominationTable(tables.Table):
             return value.full_name_with_email
 
     def before_render(self, request):
-        if (u := request.user) and not u.is_superuser and not u.is_staff and not u.research_offices.exists():
+        if (
+            (u := request.user)
+            and not u.is_superuser
+            and not u.is_staff
+            and not u.research_offices.exists()
+        ):
             self.columns.hide("nominator")
 
     class Meta:
@@ -397,7 +402,9 @@ class ApplicationTable(tables.Table):
             and record.deadline_days < 6
         ):
             r = record.round
-            closes_at = r.closes_at and (timezone.localtime(r.closes_at) if timezone.is_aware(r.closes_at) else r.closes_at)
+            closes_at = r.closes_at and (
+                timezone.localtime(r.closes_at) if timezone.is_aware(r.closes_at) else r.closes_at
+            )
             return format_html(
                 """<span
                     data-toggle="tooltip"

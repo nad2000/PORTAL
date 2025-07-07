@@ -493,7 +493,9 @@ urlpatterns = [
                 ),
                 path(
                     "org-name/",
-                    views.OrgNameAutocomplete.as_view(model=models.Organisation, create_field="name"),
+                    views.OrgNameAutocomplete.as_view(
+                        model=models.Organisation, create_field="name"
+                    ),
                     name="org-name-autocomplete",
                 ),
                 path(

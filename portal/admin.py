@@ -3381,7 +3381,6 @@ class RoundAdmin(
             },
         )
 
-
     def get_actions(self, request):
         actions = super().get_actions(request)
         if settings.SITE_ID not in [2, 5] and "invite_referees" in actions:

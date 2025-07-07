@@ -12,4 +12,5 @@ def notify_user(user_id, message):
     user.email_user("Here is a notification", message or "You have been notified")
     logger.info(f"*** Message '{message}' was sent to address {user.email}")
 
+
 # vim:set ft=python.django:
