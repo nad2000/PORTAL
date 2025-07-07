@@ -735,10 +735,9 @@ You have a request to review a {{ site_name }} application to act on.
             });
           }
         {% endif %}
-    <!-- settings.SENTRY_DSN: {{ settings.SENTRY_DSN }} -->
       {% if settings.SENTRY_DSN %}
         try {
-          Sentry.setUser({ fullName: "{{ user.full_name }}", email: "{{ user.email }}"});
+          // Sentry.setUser({ fullName: "{{ user.full_name }}", email: "{{ user.email }}"});
           Sentry.init({
           dsn: '{{ settings.SENTRY_DSN }}',
           integrations: [
