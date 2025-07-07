@@ -8721,6 +8721,15 @@ class NominationView(CreateUpdateView):
                             "with a reason and we may be able to enable."
                         ),
                     )
+            elif request.site_id == 5 and not (models.ResearchOffice.where(user=u).exists()):
+                messages.error(
+                    request,
+                    _(
+                        "Only Research Office can nominate you for this round. Please contact your Research Office."
+                    ),
+                )
+                return redirect("home")
+
         return super().dispatch(request, *args, **kwargs)
 
     @cached_property
