@@ -564,7 +564,7 @@ urlpatterns = [
                 ),
                 path(
                     "city/",
-                    views.CityAutocomplete.as_view(model=models.Address),
+                    views.CityAutocomplete.as_view(model=models.Address, create_field="city"),
                     name="city-autocomplete",
                 ),
                 path(
