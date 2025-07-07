@@ -1524,7 +1524,7 @@ def check_profile(request, token=None):
                         )
                         return redirect(next_url or "home")
 
-                    if t := models.Testimonial.where(referee=r).last():
+                    if not (r.survey_token_id or r.survey_token) and (t := models.Testimonial.where(referee=r).last()):
                         next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
                         messages.info(
