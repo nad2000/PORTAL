@@ -25,11 +25,13 @@
     <!--[if lt IE 9]>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
-    {% if settings.SENTRY_DSN %}<script
+    {% if settings.SENTRY_DSN %}
+    <script src="https://js.sentry-cdn.com/ca6ff8cc0e2248068d84643686a763d1.min.js" crossorigin="anonymous"></script>
+    <!-- script
       src="https://browser.sentry-cdn.com/9.32.0/bundle.tracing.replay.feedback.min.js"
       integrity="sha384-Ysq3iic+5Yn+pBlZKjcZ0ooGe9g6KnGvGAA6dEFo5tKnz5wUWG0tajuhyqxBqnmP"
       crossorigin="anonymous"
-      ></script>{% endif %}
+      ></script -->{% endif %}
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     {#% if domain == "international.royalsociety.org.nz" %#}
