@@ -74,6 +74,14 @@ class StateColumn(tables.Column):
             title = _(
                 "The application was submitted and sent out to the referees for the reviewing"
             )
+        elif state == "withdrawn":
+            css_classes = "fa fa-ban text-warning text-center"
+            if isinstance(record, models.Application):
+                title = _("The application was withdrawn")
+            elif isinstance(record, models.Nomination):
+                title = _("The nomination was withdrawn")
+            else:
+                title = _("The record was withdrawn")
         elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
