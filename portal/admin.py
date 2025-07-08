@@ -2020,6 +2020,8 @@ class ApplicationDocumentAdmin(StaffPermsMixin, HistoryAdmin):
         # "state",
         "created_at",
         # "updated_at",
+        "converted_file__created_at",
+        "converted_file_url",
     ]
     list_display_links = ["file", "application__number"]
     list_filter = [
@@ -2035,6 +2037,11 @@ class ApplicationDocumentAdmin(StaffPermsMixin, HistoryAdmin):
     autocomplete_fields = ["application", "converted_file"]
     # exclude = ["converted_file"]
     exclude = ["document_type"]
+
+    @admin.display(empty_value="-")
+    def converted_file_url(self, obj):
+        if obj.converted_file and (f := obj.converted_file.file):
+            return mark_safe(f'<a href={f.url}">{f.name}</a>')
 
 
 @admin.register(models.Award)

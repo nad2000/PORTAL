@@ -3601,7 +3601,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if not round and not (
             (user.is_staff or user.is_superuser or user.is_site_staff) and include_inactive
         ):
-            q = q.filter(round=F("round__scheme__current_round"))
+            # q = q.filter(round=F("round__scheme__current_round"))
+            q = q.filter(round__in=Scheme.objects.all().values("current_round"))
 
         if user.is_staff or user.is_superuser or user.is_site_staff:
             return q

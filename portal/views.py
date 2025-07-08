@@ -7108,7 +7108,7 @@ class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
 
 
 class ApplicationList(
-    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView,
+    # LoginRequiredMixin, StateInPathMixin, SingleTableView,
     LoginRequiredMixin,
     StateInPathMixin,
     SingleTableMixin,
