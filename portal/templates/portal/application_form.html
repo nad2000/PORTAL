@@ -149,7 +149,7 @@
                           {% endif %}
                         });
                         $("#submit-id-save_draft").click(function(e) {
-                          $("input[data-required][required]").each(function() {
+                          $("input[data-required][required]").not("[type='email'][name$='email']").each(function() {
                             this.required = false;
                             this.invalid = false;
                             this.removeAttribute("required");
@@ -188,6 +188,10 @@
                             if (!has_invalid_fields) { return false; }
                           }
                         {% endif %}{% endif %}
+                        if (!has_invalid_fields) {
+                          // workaround to disable 'beforeunload' hadling:
+                          $(window).off("beforeunload"); $("form").data("changed", false);
+                        }
                         return true;
                       });
                       {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}

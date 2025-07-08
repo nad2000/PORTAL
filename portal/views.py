@@ -8054,7 +8054,7 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return text
 
     def get_queryset(self):
-        q = Address.objects.annotate(city_name=Trim("city")).values_list("city_name")
+        q = Address.objects.annotate(city_name=Trim("city")).values_list("city_name", flat=True)
         if country := self.forwarded.get("country", "").strip():
             q = q.filter(country=country)
         if self.q:
