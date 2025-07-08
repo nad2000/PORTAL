@@ -2019,7 +2019,7 @@ class ApplicationDocumentAdmin(StaffPermsMixin, HistoryAdmin):
         "file",
         # "state",
         "created_at",
-        # "updated_at",
+        "updated_at",
         "converted_file__created_at",
         "converted_file_url",
     ]
