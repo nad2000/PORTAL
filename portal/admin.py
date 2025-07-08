@@ -2437,7 +2437,13 @@ class NominationAdmin(UnaccentMixin, PdfFileAdminMixin, FSMTransitionMixin, Hist
     nominator_name.short_description = "nominator"
     nominator_name.admin_order_field = "nominator__first_name"
 
-    list_display = ["round", "nominee_name", "nominator_name", "application"]
+    list_display = [
+        "round",
+        "nominee_name",
+        "nominator_name",
+        "application_link",
+        "invitation_url",
+    ]
     date_hierarchy = "created_at"
     list_filter = [
         "created_at",
@@ -2465,6 +2471,21 @@ class NominationAdmin(UnaccentMixin, PdfFileAdminMixin, FSMTransitionMixin, Hist
     autocomplete_fields = ["application", "user", "round", "nominator", "cv", "org"]
     actions = ["resend_invitations"]
     inlines = [StateLogInline]
+
+    @admin.display(description="invitation")
+    def invitation_url(self, obj):
+        return (
+            ", ".join(
+                (i.url or reverse("onboard-with-token", kwargs={"token": i.token}))
+                for i in obj.invitations.all()
+            )
+            or ""
+        )
+
+    @admin.display(description="application")
+    def application_link(self, obj):
+        if a := obj.application:
+            return mark_safe(f'<a href="{a.admin_url}" target="_blank">{a.number}</a>')
 
     @admin.action(description="Resend the invitations")
     def resend_invitations(self, request, queryset):

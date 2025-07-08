@@ -1388,6 +1388,9 @@ class Organisation(Model):
             return [self.ro_email]
         return [ro.user for ro in self.research_offices.all()]
 
+    def is_ro(self, user):
+        return self.research_offices.filter(user=user).exists()
+
     def natural_key(self):
         return self.code
 
@@ -8126,7 +8129,16 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         pass
 
     @fsm_log
-    @transition(field=state, source=["*"], target="withdrawn")
+    @transition(
+        field=state,
+        source=["*"],
+        target="withdrawn",
+        permission=lambda instance, user: user.is_admin
+        or instance.nominator == user
+        or instance.site_id not in [4, 5]
+        or instance.org
+        and instance.org.is_ro(user),
+    )
     def withdraw(self, *args, **kwargs):
         pass
 
@@ -8159,6 +8171,11 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             "bounced",
         ],
         target="submitted",
+        permission=lambda instance, user: user.is_admin
+        or instance.nominator == user
+        or instance.site_id not in [4, 5]
+        or instance.org
+        and instance.org.is_ro(user),
     )
     def submit(self, *args, **kwargs):
         return self.send_invitation(*args, **kwargs)

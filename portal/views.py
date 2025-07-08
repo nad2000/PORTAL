@@ -1544,9 +1544,16 @@ def check_profile(request, token=None):
                         next_url = reverse("application", kwargs={"pk": a_id})
 
             elif i.state == "revoked":
+                next_url = None
                 messages.warning(
                     request,
                     _("The invitation has been revoked and is not any more valid."),
+                )
+            elif i.state == "expired" or not i.state:
+                next_url = None
+                messages.warning(
+                    request,
+                    _("The invitation expired and is not any more valid."),
                 )
 
         # if Person.where(user=request.user).exists() and request.user.person.is_completed:
@@ -5852,6 +5859,9 @@ class ApplicationCreate(ApplicationView, CreateView):
                 _("Failed to find any round you could apply for... Please contact adminstrator."),
             )
             return redirect("home")
+        if n and n.state == "withdrawn":
+            messages.error(request, _("The nominiation was withdrawn."))
+            return redirect(self.request.META.get("HTTP_REFERER", "home"))
         if r.panellists.all().filter(user=u).exists():
             messages.error(
                 self.request,
@@ -9327,7 +9337,10 @@ class NominationDetail(DetailView):
                 or u.emailaddress_set.filter(email=n.email).exists()
             ):
                 messages.error(request, _("You do not have permissions to view this nomination."))
-                return redirect(self.request.META.get("HTTP_REFERER", "index"))
+                return redirect(self.request.META.get("HTTP_REFERER", "nominations"))
+            if n.state == "withdrawn":
+                messages.error(request, _("The nominiation was withdrawn."))
+                return redirect(self.request.META.get("HTTP_REFERER", "nominations"))
         return super().dispatch(request, *args, **kwargs)
 
     @property
