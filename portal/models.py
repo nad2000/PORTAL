@@ -49,7 +49,6 @@ from django.db.models import (
     BooleanField,
     Case,
     CharField,
-    GeneratedField,
     Count,
     DateField,
     DateTimeField,
@@ -58,6 +57,7 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
+    GeneratedField,
     IntegerField,
     Manager,
     ManyToManyField,
@@ -76,11 +76,12 @@ from django.db.models import (
     aggregates,
     prefetch_related_objects,
 )
-from django.db.models.functions import Cast, Coalesce, Lower, Concat
+from django.db.models.functions import Cast, Coalesce, Concat, Lower
 from django.http import HttpRequest
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, FSMFieldMixin, transition
@@ -2981,7 +2982,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         try:
             request = kwargs.get("request")
             self.is_completed(skip_testimonials=(self.site_id in [2, 5]), *args, **kwargs)
-            force = request and (request.POST.get("force") in ["1", "on", 1])
+            force = (
+                request
+                and (request.POST.get("force") in ["1", "on", 1])
+                or kwargs.get("force", False)
+            )
             return self.invite_referees(
                 request=request,
                 dispatch_invitations=(
@@ -4529,6 +4534,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         referees=None,
         dispatch_invitations=True,
         exclude_sender=False,
+        **kwargs,
     ):
         """Send invitations to all referee."""
         # members that don't have invitations
@@ -8543,9 +8549,13 @@ def invite_referees(
             ah = a.history.filter(state="submitted").order_by("-history_id").first()
             by = ah and ah.history_user or by
         if site_id in [2, 5] and a.state != "in_review":
-            count += a.send_out_to_referees(by=by, request=request, exclude_sender=True)
+            count += a.send_out_to_referees(
+                by=by, request=request, exclude_sender=True, force=not after_round_closes
+            )
         else:
-            count += a.invite_referees(by=by, request=request, exclude_sender=True)
+            count += a.invite_referees(
+                by=by, request=request, exclude_sender=True, force=not after_round_closes
+            )
         if a.state != state:
             a.save()
     return count
