@@ -1,9 +1,8 @@
 {% load i18n crispy_forms_tags tags %}
-<table class="table table-bordered searchable">
+<table{% if for_pdf_export %} style="{% if a.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}"{% else %} class="table table-bordered searchable"{% endif %}>
   <tbody>
-
     <tr>
-      <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">{% trans 'Application' %}</th>
+    <th{% if for_pdf_export %} style="{% if a.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}"{% else %} class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;"{% endif %}>{% trans 'Application' %}</th>
         <td {% if not a.panel %}colspan="3"{% endif %}>
         {% if user.is_superuser and not export %}
           <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
@@ -303,10 +302,12 @@
 
         {% elif a.summary %}
           <tr>
-            <th class="table-dark" scope="row" colspan="4" style="padding-top: 6px;padding-bottom: 6px;">{% trans 'Summary' %}</th>
+            <th colspan="4" class="table-dark" scope="row" style="padding-top: 6px;padding-bottom: 6px;">{% trans 'Summary' %}</th>
           </tr>
           <tr>
-            <td colspan="4">{{ a.summary|safe }}</td>
+            <td colspan="4">
+            {% if for_pdf_export %}<div style="width: 17cm;">{{ a.summary|safe }}</div>{% else %}{{ a.summary|safe }}{% endif %}
+            </td>
           </tr>
         {% endif %}
 

@@ -1,8 +1,10 @@
 {% load i18n tags %}
+<html>
+  <head>
 <style>
 table {
   border-collapse: collapse;
-  width: 100%;
+  {% if application.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}
 }
 
 th, td {
@@ -24,11 +26,14 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 body {
     font-family: Arial, "Helvetica Neue", sans-serif;
     font-size: 11pt;
+    {% if application.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}
 }
 </style>
+  </head>
 
 {% with a=application u=user %}
 
+<body>
 {% include 'snippets/export-header.html' %}
 
 <div style="margin-top:36%;border-color:grey;border-width:2px;border-style:solid;margin-left:10%;margin-right:5%;font-size:15px;padding:25px;border-radius:25px;">
@@ -51,7 +56,9 @@ body {
   <h2>
     {{ a.number }}: {{ a.application_title|default:a.round.title|title }}
   </h2>
-  {% include 'snippets/application_detail_table.html' %}
+  <div style="{% if application.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}">
+    {% include 'snippets/application_detail_table.html' %}
+  </div>
 {% endwith %}
 
 {% for object in objects %}

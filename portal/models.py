@@ -3924,6 +3924,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 "logo_1": logo_1_url,
                 "logo_2": logo_2_url,
                 "for_panellists": for_panellists,
+                "for_pdf_export": True
             }
             if for_panellists and (user.is_superuser or user.is_site_staff):
                 if site_id in [2, 5]:

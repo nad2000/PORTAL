@@ -11218,9 +11218,15 @@ def application_exported_view(request, number, lang=None):
     # remote_addr = request.META.get("REMOTE_ADDR")
     # if not remote_addr.startswith("127.0.0."):
     #     return remote_addr
-    number = vignere.decode(number)
+    if not request.user.is_authenticated:
+        number = vignere.decode(number)
+
+    if number and number.isdecimal():
+        application = get_object_or_404(models.Application, pk=number)
+    else:
+        application = get_object_or_404(models.Application, number=number)
+
     for_panellists = request.GET.get("for_panellists", False)
-    application = get_object_or_404(models.Application, number=number)
     round = application.round
     site = Site.objects.get_current()
     domain = site.domain
@@ -11244,6 +11250,7 @@ def application_exported_view(request, number, lang=None):
 
     objects = application.get_testimonials()
 
+    for_pdf_export = True
     return render(request, "application-export.html", locals())
 
 
