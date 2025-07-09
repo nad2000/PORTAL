@@ -37,16 +37,23 @@ body {
 {% include 'snippets/export-header.html' %}
 
 <div style="margin-top:36%;border-color:grey;border-width:2px;border-style:solid;margin-left:10%;margin-right:5%;font-size:15px;padding:25px;border-radius:25px;">
-  <table>
+{% if for_pdf_export %}<div style="width: 14cm;">{% endif %}
+<table style="width:{% if for_pdf_export %}14cm{% else %}100%{% endif %};">
       <center>
           <h2>
             {{ a.number }}: {{ a.application_title|default:a.round.title }}
           </h2>
       </center>
       <tr><th>{% trans 'Number' %}</th><td>{{ a.number }}</td></tr>
-      <tr><th>{% trans 'Title' %}</th><td>{{ a.application_title|default:a.round.title }}</td></tr>
+      <tr>
+        <th>{% trans 'Title' %}</th>
+        <td>
+          {{ a.application_title|default:a.round.title }}
+        </td>
+      </tr>
       <tr><th>{% trans 'Applicant' %}</th><td>{{ a.full_name }}</td></tr>
   </table>
+{% if for_pdf_export %}</div>{% endif %}
 </div>
 
 <div class="mb-2" id="header_content" style="page-break-before: always">
