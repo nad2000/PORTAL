@@ -13,6 +13,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
+from django.contrib.admin import helpers
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
@@ -528,6 +529,14 @@ class HistoryAdmin(SimpleHistoryAdmin):
                 )
             return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
         return ""
+
+class KeepSelectedMixin:
+
+    def response_action(self, request, queryset):
+        resp = super().response_action(request, queryset)
+        if helpers.ACTION_CHECKBOX_NAME in request.POST:
+            resp.set_cookie("selected_action", ':'.join(request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)), max_age=60)
+        return resp
 
 
 @admin.register(models.Subscription)
@@ -2109,7 +2118,7 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 
 @admin.register(models.Referee)
-class RefereeAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class RefereeAdmin(KeepSelectedMixin, UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
     save_on_top = True
 
