@@ -162,7 +162,7 @@
           <th class="table-dark" scope="row">{% trans 'Project Title' %}</th>
           <td colspan="3">
             {% if a.application_title %}
-              {{ a.application_title }}
+              {% if for_pdf_export %}<div style="width: 17cm;">{{ a.application_title }}</div>{% else %}{{ a.application_title }}{{% endif %}
             {% else %}
               {% trans 'N/A' %}
             {% endif %}
@@ -509,7 +509,7 @@
         <tr>
           <th class="table-dark" scope="row">{% trans 'Rationale' %}</th>
           <td colspan="3">
-            {{ a.vm_rationale_html|safe }}
+            {% if for_pdf_export %}<div style="width: 17cm;">{{ a.vm_rationale_html|safe }}</div>{% else %}{{ a.vm_rationale_html|safe }}{% endif %}
           </td>
         </tr>
       {% endif %}
