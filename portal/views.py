@@ -9580,6 +9580,8 @@ class ApplicationExportView(ExportView):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
+        if not u.is_authenticated or u.is_anonymous:
+            return False
         return (
             u.is_staff
             or u.is_superuser

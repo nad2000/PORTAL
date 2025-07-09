@@ -1949,7 +1949,7 @@ class ConvertedFile(HelperMixin, Base):
     objects = CurrentSiteManager()
     all_objects = Manager()
 
-    file = PrivateFileField(upload_to="converted/%Y/%m/%d")
+    file = PrivateFileField(upload_to="converted/%Y/%m/%d", max_length=200)
     page_count = PositiveSmallIntegerField(_("number of pages"), null=True, blank=True)
 
     def natural_key(self):
@@ -2019,6 +2019,7 @@ class Category(Model):
 
 class LetterOfSupport(PdfFileMixin, Model):
     file = PrivateFileField(
+        max_length=200,
         upload_to="letters_of_support",
         validators=[
             FileExtensionValidator(
@@ -2485,6 +2486,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     file = PrivateFileField(
         blank=True,
         null=True,
+        max_length=200,
         verbose_name=_("completed application form"),
         help_text=_("Please upload completed application form"),
         upload_to="applications",
@@ -4115,6 +4117,7 @@ class ApplicationNumber(Model):
 class EthicsStatement(PdfFileMixin, Model):
     application = OneToOneField(Application, on_delete=CASCADE, related_name="ethics_statement")
     file = PrivateFileField(
+        max_length=200,
         verbose_name=_("ethics statement"),
         help_text=_("Please upload human or animal ethics statement."),
         upload_to="statements",
@@ -5997,6 +6000,7 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         help_text=_("A title or name you can assign to the upload CV file"),
     )
     file = PrivateFileField(
+        max_length=200,
         upload_to="cv",
         upload_subfolder=lambda instance: [hash_int(instance.person_id or instance.owner_id)],
         verbose_name=_("file"),
@@ -7427,6 +7431,7 @@ class RoundDocumentTemplate(Model):
         "before assigning the themplates to the required documents!",
     )
     file = FileField(
+        max_length=200,
         upload_to=round_template_path,
         verbose_name=_("Template"),
         validators=[
@@ -7468,6 +7473,7 @@ class RoundDocumentTemplate(Model):
 class ApplicationFormTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="application_form_templates")
     file = FileField(
+        max_length=200,
         upload_to=round_template_path,
         verbose_name=_("Template"),
         validators=[
@@ -7498,6 +7504,7 @@ class ApplicationFormTemplate(Model):
 class CurriculumVitaeTemplate(Model):
     round = ForeignKey(Round, on_delete=CASCADE, related_name="curriculum_vitae_templates")
     file = FileField(
+        max_length=200,
         upload_to=round_template_path,
         verbose_name=_("Template"),
         validators=[
@@ -7536,6 +7543,7 @@ class ApplicationDocument(PdfFileMixin, Model):
     )
     page_count = PositiveSmallIntegerField(null=True, blank=True)
     file = PrivateFileField(
+        max_length=200,
         blank=True,
         null=True,
         upload_to="applications",
@@ -8043,6 +8051,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     )
     summary = TextField(blank=True, null=True)
     file = PrivateFileField(
+        max_length=200,
         null=True,
         blank=True,
         upload_to="nominations",
@@ -8315,6 +8324,7 @@ simple_history.register(
 
 class IdentityVerification(Model):
     file = PrivateFileField(
+        max_length=200,
         null=True,
         blank=True,
         upload_to="ids",
@@ -8470,6 +8480,7 @@ class ScoreSheet(Model):
     panellist = ForeignKey(Panellist, null=True, on_delete=SET_NULL)
     round = ForeignKey(Round, editable=False, on_delete=CASCADE, related_name="score_sheets")
     file = PrivateFileField(
+        max_length=200,
         upload_to="score-sheets",
         upload_subfolder=lambda instance: [
             (
@@ -8993,6 +9004,7 @@ class ContractCommentAttachment(Model):
 class ContractEthicsStatement(PdfFileMixin, Model):
     contract = OneToOneField("Contract", on_delete=CASCADE, related_name="ethics_statement")
     file = PrivateFileField(
+        max_length=200,
         verbose_name=_("ethics statement"),
         help_text=_("Please upload human or animal ethics statement."),
         upload_to="contracts",
@@ -9256,6 +9268,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         validators=[FileExtensionValidator(allowed_extensions=CONTRACT_PART_EXTENSIONS)],
     )
     file = PrivateFileField(
+        max_length=200,
         verbose_name="Contract File",
         null=True,
         blank=True,
@@ -10745,6 +10758,7 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
     )
     page_count = PositiveSmallIntegerField(null=True, blank=True)
     file = PrivateFileField(
+        max_length=200,
         blank=True,
         null=True,
         upload_to="contracts",
@@ -11270,6 +11284,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     state = StateField(default="draft", verbose_name=_("state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     file = PrivateFileField(
+        max_length=200,
         verbose_name=_("Completed research report"),
         blank=True,
         null=True,
@@ -12440,6 +12455,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     )
     description = TextField(null=True, blank=True)
     file = PrivateFileField(
+        max_length=200,
         verbose_name=_("Request Letter"),
         blank=True,
         null=True,
