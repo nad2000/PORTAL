@@ -3030,12 +3030,14 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
                         i.revoke(description=i._change_reason)
                         i.referee = None
                         i.save()
+                    # self.instance = r.clone(state="new")
                     self.instance = models.Referee.create(
                         application=r.application,
                         email=r.email,
                         first_name=r.first_name,
                         middle_names=r.middle_names,
                         last_name=r.last_name,
+                        org=r.org,
                     )
                     r.delete()
                 else:
