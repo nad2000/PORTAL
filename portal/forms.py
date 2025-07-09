@@ -1,10 +1,9 @@
 import os
 from functools import partial
-from django.utils import timezone
 
 from crispy_forms.bootstrap import (
-    InlineField,
     InlineCheckboxes,
+    InlineField,
     InlineRadios,
     PrependedText,
     Tab,
@@ -26,18 +25,25 @@ from crispy_forms.layout import (
     LayoutObject,
     Row,
 )
-from dateutil.relativedelta import relativedelta
 from dal import autocomplete, forward
+from dateutil.relativedelta import relativedelta
 from django import forms
 from django.conf import settings
 
 # from crispy_forms.bootstrap import Modal
 from django.core.files.base import File
-from django.forms import FileField, IntegerField, HiddenInput, Widget, inlineformset_factory
+from django.forms import (
+    FileField,
+    HiddenInput,
+    IntegerField,
+    Widget,
+    inlineformset_factory,
+)
 from django.forms.models import BaseInlineFormSet, modelformset_factory
 from django.forms.widgets import NullBooleanSelect, NumberInput, Select, TextInput
 from django.shortcuts import reverse
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language
@@ -758,7 +764,7 @@ class ApplicationForm(ModelForm):
             return True
         return is_valid
 
-    def save(self, *args, **kwargs):
+    def save(self, commit=True):
 
         if self.instance and self.update_only_referees:
             return self.instance
@@ -804,7 +810,28 @@ class ApplicationForm(ModelForm):
             and (u := self.initial.get("user"))
         ):
             self.instance.applicant_declaration_accepted_by = u
-        return super().save(*args, **kwargs)
+
+        # TODO: the save accross the all portal forms
+        if self.errors:
+            raise ValueError(
+                "The %s could not be %s because the data didn't validate."
+                % (
+                    self.instance._meta.object_name,
+                    "created" if self.instance._state.adding else "changed",
+                )
+            )
+        if commit:
+            # If committing, save the instance and the m2m data immediately.
+            self.instance.save(update_fields=self.changed_data)
+            # self.instance.save()
+            self._save_m2m()
+        else:
+            # If not committing, add a method to the form to allow deferred
+            # saving of m2m data.
+            self.save_m2m = self._save_m2m
+        return self.instance
+
+    save.alters_data = True
 
     def __init__(self, *args, **kwargs):
         instance = kwargs.get("instance", None)
@@ -823,7 +850,7 @@ class ApplicationForm(ModelForm):
         if not nomination:
             nomination = initial.get("nomination")
         self.nomination = nomination
-        language = get_language()
+        language = get_language() or "en"
         site_id = self.site_id
 
         if site_id in [2, 4, 5]:
@@ -890,9 +917,9 @@ class ApplicationForm(ModelForm):
             fields.append(Field("is_tac_accepted", type="hidden"))
 
         if nomination and nomination.org:
-            del self.fields["org"]
+            self.fields.pop("org", None)
         else:
-            del self.fields["organisation"]
+            self.fields.pop("organisation", None)
         if instance and nomination and nomination.org:
             instance.org = nomination.org
 
@@ -915,6 +942,9 @@ class ApplicationForm(ModelForm):
             summary_fields.append(
                 Field("is_bilingual", data_toggle="toggle", template="portal/toggle.html")
             )
+        else:
+            self.fields.pop("is_bilingual", None)
+
         guidelines = round and round.get_guidelines()
         if round.has_title:
             summary_fields.extend(
@@ -923,6 +953,11 @@ class ApplicationForm(ModelForm):
                     Field(f"application_title_{'en' if language=='mi' else 'mi'}"),
                 ]
             )
+            self.fields.pop(f"application_title_{language}", None)
+        else:
+            self.fields.pop("application_title", None)
+            self.fields.pop("application_title_en", None)
+            self.fields.pop("application_title_mi", None)
 
         if site_id in [2, 5]:
             summary_fields.append(
@@ -938,6 +973,9 @@ class ApplicationForm(ModelForm):
                     ),
                 )
             )
+        else:
+            self.fields.pop("proposed_start_date", None)
+            self.fields.pop("requested_amount", None)
 
         if not has_required_documents:
             application_form_templates = (
@@ -1001,6 +1039,11 @@ class ApplicationForm(ModelForm):
                     Row(Field("summary"), Field(f"summary_{'en' if language=='mi' else 'mi'}")),
                 ]
             )
+            self.fields.pop(f"summary_{language}", None)
+        else:
+            self.fields.pop("summary", None)
+            self.fields.pop("summary_en", None)
+            self.fields.pop("summary_mi", None)
         if round.scheme.presentation_required:
             # self.fields["presentation_url"].required = True
             self.fields["presentation_url"].widget.attrs.update(
@@ -1528,6 +1571,11 @@ class ApplicationForm(ModelForm):
             ),
         )
         self.helper.include_media = False
+        if instance and instance.postal_address:
+            self.fields["postal_address"].widget.attrs["rows"] = max(
+                int(self.fields["postal_address"].widget.attrs.get("rows", 3)),
+                instance.postal_address.count("\n") + 1,
+            )
 
     class Meta:
         model = models.Application
@@ -1550,6 +1598,7 @@ class ApplicationForm(ModelForm):
             "agent_declaration_accepted_at",
             "applicant_declaration_accepted_by",
             "tags",
+            "is_preliminary",
         ]
         widgets = dict(
             proposed_start_date=DateInput(end_date="+3y", start_date="+6m"),
@@ -3416,7 +3465,7 @@ class NominationForm(ModelForm):
             # self.fields["org"].disabled = True
             # self.fields["org"].widget.attrs["disabled"] = "true"
             # self.fields["org"].widget.attrs["readonly"] = "true"
-            del self.fields["org"]
+            self.fields.pop("org", None)
 
     def save(self, commit=True):
         if self.instance.round.nominator_cv_required:
@@ -3690,11 +3739,11 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not (self.instance and self.instance.site_id or self.site_id) in (2, 4, 5):
-            self.fields.pop("panel")
-            self.fields.pop("role")
-            self.fields.pop("is_active")
-            self.fields.pop("elected_on")
-            self.fields.pop("expires_on")
+            self.fields.pop("panel", None)
+            self.fields.pop("role", None)
+            self.fields.pop("is_active", None)
+            self.fields.pop("elected_on", None)
+            self.fields.pop("expires_on", None)
 
     @property
     def deletion_confirmation_message(self):
@@ -4671,10 +4720,10 @@ class ReportForm(ModelForm):
                 ),
                 "assessment",
             ]
-            del self.fields["file"]
+            self.fields.pop("file", None)
             # self.fields["assessment"].required = True
         else:
-            del self.fields["assessment"]
+            self.fields.pop("assessment", None)
             if round.nomination_template:
                 help_text = _(
                     'You can download the research report template at <strong><a href="%s">%s</a></strong>'
@@ -5134,9 +5183,8 @@ class ChangeRequestForm(ModelForm):
         org = contract and contract.org
         is_ro = org and org.research_offices.filter(user=user).exists()
         if is_ro:
-            del self.fields["categories"]
-            del self.fields["subcategories"]
-            # del self.fields["tags"]
+            self.fields.pop("categories", None)
+            self.fields.pop("subcategories", None)
             self.fields.pop("tags", None)
         employments_url = reverse("profile-employments")
         educations_url = reverse("profile-educations")

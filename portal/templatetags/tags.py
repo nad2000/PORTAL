@@ -1,7 +1,10 @@
 import os
+import re
 from itertools import groupby
 from operator import itemgetter
 from urllib.parse import parse_qs
+
+import jinja2
 
 # import jinja2
 from django import forms, template
@@ -9,18 +12,22 @@ from django.db import models
 from django.db.models.manager import Manager
 from django.forms.widgets import NullBooleanSelect
 from django.template.loader import get_template
+from django.utils.functional import keep_lazy_text
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
+from django.utils.text import normalize_newlines
 from django.utils.translation import gettext as _
 from markupsafe import Markup
-import jinja2
 
 from .. import models as m
 
 register = template.Library()
 
+
 @register.filter(is_safe=True)
 def report_state(state):
     return _(m.Report.STATES[state])
+
 
 @register.filter(is_safe=True)
 def verbose_name(obj, field_name=None):
@@ -436,3 +443,26 @@ def length_is(value, arg):
         return len(value) == int(arg)
     except (ValueError, TypeError):
         return ""
+
+
+@register.filter(is_safe=True)
+@keep_lazy_text
+def html_address(application, autoescape=False):
+    """Convert application postal address newlines into <br>s."""
+    value = (
+        application
+        and application.postal_address
+        and normalize_newlines(application.postal_address)
+        or ""
+    )
+    # parts = re.split("\n{2,}", str(value))
+    parts = re.split("\n", str(value))
+    if autoescape:
+        parts = [*map(escape, parts)]
+    if application.city and application.postcode:
+        parts.append(f"{application.city}, {application.postcode}")
+    elif application.city:
+        parts.append(application.city)
+    elif application.postcode:
+        parts.append(application.postcode)
+    return mark_safe("<br>\n".join(parts))

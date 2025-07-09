@@ -260,8 +260,8 @@
     <tr>
       <th class="table-dark" scope="row">{% trans 'Postal Address' %}</th>
       <td colspan="3">
-        {{ a.postal_address }}{% if a.city %},<br/>{{a.city}}{% endif %}
-        {% if a.postcode %}, {{a.postcode}} {% endif %}
+        {{ a|html_address }}
+        {#{ a.postal_address|linebreaks }}{% if a.city %}<br/>{{a.city}}{% endif %}{% if a.postcode %}, {{a.postcode}} {% endif %#}
       </td>
     </tr>
 

@@ -813,7 +813,6 @@ class Address(Model):
 
     history = HistoricalRecords(table_name="address_history")
 
-    @lru_cache(1)
     def __str__(self):
         address = self.address
         if self.city and self.city not in address:
@@ -830,9 +829,8 @@ class Address(Model):
 
         return address
 
-    @lru_cache(1)
     def __html__(self):
-        return "<br>".join(self.__str__().split("\n")) or ""
+        return mark_safe("<br>".join(self.__str__().split("\n"))) or ""
 
     class Meta:
         db_table = "address"
