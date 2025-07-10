@@ -3752,7 +3752,7 @@ class ApplicationDetail(DetailView):
         else:
             a = self.get_object()
             self.object = a
-        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
+        if u.is_authenticated and not u.is_admin:
             if not a.user_can_view(u):
                 messages.error(request, _("You do not have permissions to view this application."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
@@ -4067,7 +4067,7 @@ class ApplicationDetail(DetailView):
         if for_panellists := self.request.GET.get("for_panellists", False):
             context["for_panellists"] = for_panellists
 
-        if is_owner or is_ro or u.is_superuser or u.is_site_staff:
+        if is_owner or is_ro or u.is_admin:
             if site_id in [2, 5] and for_panellists:
                 referees = a.referees.order_by("testified_at")
                 if r.required_referees:
@@ -4102,10 +4102,8 @@ class ApplicationDetail(DetailView):
             context["reviewing_closed"] = True
         if not is_owner:
             context["show_basic_details"] = not (
-                u.is_staff
-                or u.is_superuser
+                u.is_admin
                 or is_ro
-                or u.is_site_staff
                 or (site_id not in [2, 4, 5] and a.referees.filter(user=u).exists())
                 or r.panellists.filter(user=u).exists()
                 # or models.ConflictOfInterest.where(

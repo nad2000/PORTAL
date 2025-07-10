@@ -283,7 +283,7 @@
                     {% endif %}>{% trans 'Approve' %}
                     </button -->
             </span>
-      {% elif user.is_staff %}
+      {% elif user.is_admin %}
         {% if a.state == "submitted" or a.state == "approved" %}
             {% include 'snippets/resolution_modal.html' with application=object round=object.round pi=object.pi org=object.org %}
             <!-- Accept: {{ a.state }}  -->

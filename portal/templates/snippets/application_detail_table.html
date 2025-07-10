@@ -94,7 +94,7 @@
           <ul>
             {% for m in a.members.all %}
               <li>
-                {% if user.is_staff or user.is_superuser %}
+                {% if user.is_admin %}
                   <a href="{% url 'admin:portal_member_change' object_id=m.id %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}
                   {{ m | person_with_email }}
@@ -117,7 +117,7 @@
         {% endif %}
       </th>
       <td>{% if a.org %}
-        {% if user.is_superuser and not export %}
+        {% if user.is_admin and not export %}
           <a href="{% url 'admin:portal_organisation_change' object_id=a.org.pk %}" target="_blank">
             {{ a.org }}
           </a>
@@ -145,7 +145,7 @@
         {% trans 'Host Organisation' %}
       </th>
       <td colspan="3">{% if a.org %}
-        {% if user.is_superuser and not export %}
+        {% if user.is_admin and not export %}
           <a href="{% url 'admin:portal_organisation_change' object_id=a.org.pk %}" target="_blank">
             {{ a.org }}
           </a>
@@ -358,7 +358,7 @@
 
     {% endif %}
 
-    {% if user.is_staff or user.is_superuser %}
+    {% if user.is_admin %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Photo Identity' %}</th>
         <td colspan="3">
@@ -403,7 +403,7 @@
 	  {% endwith %}
     {% endif %}
 
-    {% if SITE_ID != 2 or SITE_ID != 5 or not is_ro or user.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
+    {% if SITE_ID != 2 or SITE_ID != 5 or not is_ro or user.is_admin %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Referees' %}</th>
         <td colspan="3">
