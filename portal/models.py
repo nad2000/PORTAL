@@ -2795,8 +2795,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self.pk
             and self.state in ["submitted", "in_review"]
             and not (
-                user.is_superuser
-                or user.is_site_staff
+                user.is_admin
                 or (
                     self.site_id in [2, 4, 5]
                     and self.org

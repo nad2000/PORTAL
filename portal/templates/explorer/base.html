@@ -1,5 +1,5 @@
 {% extends "explorer/base.html" %}
-{% load static i18n %}
+{% load static i18n vite %}
 
 {% block style %}
   {{ block.super }}
@@ -35,6 +35,85 @@
   </li>
 {% endblock %}
 
+{% block sql_explorer_content_takeover %}
+    <nav class="navbar navbar-expand-lg navbar-dark mb-3">
+        <div class="container bd-gutter flex-wrap flex-lg-nowrap">
+            <a class="navbar-brand d-flex align-items-center"
+                href="{% url 'explorer_index' %}">
+                <img src="{% vite_asset 'images/logo-main.svg' %}" alt="Logo" class="me-2 logo-image" >
+                {% translate "SQL Explorer" %}
+            </a>
+            <ul class="nav nav-pills">
+                {% if can_change %}
+                    <li class="nav-item">
+                        <a class="nav-link{% if not query and view_name == 'query_create' %} active{% endif %}"
+                           href="{% url 'query_create' %}"><i class="small me-1 bi-plus-circle"></i>{% translate "New Query" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if not query and view_name == 'explorer_playground' %} active{% endif %}"
+                           href="{% url 'explorer_playground' %}"><i class="small me-1 bi-arrow-up-right-square"></i>{% translate "Playground" %}</a>
+                    </li>
+                    {% if db_connections_enabled and can_manage_connections %}
+                        <li class="nav-item">
+                            <a class="nav-link{% if view_name == 'explorer_connections' %} active{% endif %}"
+                               href="{% url 'explorer_connections' %}"><i class="small me-1 bi-globe"></i>{% translate "Connections" %}</a>
+                        </li>
+                        {% if assistant_enabled %}
+                            <li class="nav-item">
+                                <a class="nav-link{% if view_name == 'table_description_list' %} active{% endif %}"
+                                   href="{% url 'table_description_list' %}"><i class="small me-1 bi-bank2"></i>{% translate "Annotations" %}</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link{% if not query and view_name == 'explorer_logs' %} active{% endif %}"
+                       href="{% url 'explorer_logs' %}"><i class="small me-1 bi-card-list"></i>{% translate "Logs" %}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link{% if not query and view_name == 'query_favorites' %} active{% endif %}"
+                       href="{% url 'query_favorites' %}"><i class="small me-1 bi-heart"></i>{% translate "Favorites" %}</a>
+                </li>
+            {% if hosted %}
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="/"><i class="small me-1 bi-arrow-return-left"></i>Manage</a>
+                </li>
+            {% endif %}
+                <li class="nav-item" id="admin:index">
+                  <a id="admin-link"
+                     class="nav-link"
+                     href="{% url 'admin:index' %}"
+                     data-toggle="tooltip"
+                     title="Portal Administration"
+                  >
+                    <i class="fas fa-radiation"></i> Portal Admin
+                  </a>
+                </li>
+                {% if LIMESURVEY_ADMIN_URL %}
+                  <li class="nav-item" id="limesurvey-admin_id">
+                    <a id="limesurvey-admin-link" class="nav-link" href="{{ LIMESURVEY_ADMIN_URL }}">
+                      <img src="{% static 'images/limesurvey.png' %}" width="19" height="19" class="d-inline-block align-top" alt="LimeSurvey"> LimeSurvey
+                    </a>
+                  </li>
+                {% endif %}
+                <li class="nav-item" id="index">
+                  <a id="admin-link"
+                     class="nav-link"
+                     href="{% url 'index' %}"
+                     data-toggle="tooltip"
+                     title="Portal"
+                    >
+                     <i class="fas fa-sitemap"></i> Portal
+                  </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+{% block sql_explorer_content %}{% endblock %}
+{% endblock %}
+
+{% comment %}
 {% block sql_explorer_content_takeover %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
         <div class="container bd-gutter flex-wrap flex-lg-nowrap">
@@ -89,14 +168,14 @@
     </nav>
 {% block sql_explorer_content %}{% endblock %}
 {% endblock %}
+{% endcomment %}
 
-
-{% comment %}
-{% block sql_explorer_scripts %}
+{% block bottom_script %}
+  {{ block.super }}
   <script>
     $(document).ready(function() {
       $('[data-toggle="tooltip"]').tooltip()
     });
   </script>
 {% endblock %}
-{% endcomment %}
+{# vim:set ft=htmldjango: #}
