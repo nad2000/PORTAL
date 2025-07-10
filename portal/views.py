@@ -3993,9 +3993,16 @@ class ApplicationDetail(DetailView):
         a = context["application"] = self.object
         r = a.round
         site_id = a.site_id
-        if a and site_id in [2, 5]:
-            context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
+        if a and site_id in [2, 5]:
+            if u.is_admin:
+                context["documents"] = list(
+                    a.documents.filter(~Q(file=""), file__isnull=False).order_by(
+                        "required_document__ordering"
+                    )
+                )
+            else:
+                context["documents"] = a.user_documents_dict(self.request.user)
         if n := models.Nomination.where(application=a).last():
             context["nomination"] = n
             context["nominator"] = n.nominator

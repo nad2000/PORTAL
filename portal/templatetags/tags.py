@@ -435,6 +435,9 @@ def document_action_button(
     output = get_template("partials/document_action_button.html").render(locals())
     return Markup(output)
 
+@register.filter(is_safe=False)
+def filter_documents(documents, required_document):
+    return [d for d in documents if d.required_document == required_document]
 
 @register.filter(is_safe=False)
 def length_is(value, arg):

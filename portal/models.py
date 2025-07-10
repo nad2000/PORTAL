@@ -4038,8 +4038,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def natural_key(self):
         return self.number
 
-    @lru_cache(1)
+    # @lru_cache(1)
     def user_documents_dict(self, user=None):
+
         if self.submitted_by_id == user.pk or self.members.filter(user=user).exists():
             return self.documents_dict
 

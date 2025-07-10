@@ -201,6 +201,26 @@
           </td>
         </tr>
 
+      {% if user.is_admin %}
+
+        {% for rd in a.round.required_documents.all %}
+          <tr>
+            <th class="table-dark" scope="row">{{ rd }}{% if rd.is_optional %} (<strong>{% trans 'optional' %}</strong>){% endif %}</th>
+            <td colspan="3">
+              {% for d in documents|filter_documents:rd %}
+                {% if not forloop.first %}, {% endif %}<a href="{{ d.file.url }}" target="_blank">{{ d.file|basename }}</a>
+                {% if d.converted_file %}
+                  (<a href="{{ d.converted_file.file.url }}" target="_blank">{{ d.converted_file.file|basename }}</a>)
+                {% endif %}
+                {% empty %}
+                {% if rd.is_optional %}{% trans 'N/A' %}{% else %}<span style="color: text-danger">{% trans 'N/A' %}</span>{% endif %}
+              {% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+
+      {% else %}
+
         {% if documents.CV or referee and referee.user != user %}
           <tr>
             <th class="table-dark" scope="row">{% trans 'Narrative CV' %}</th>
@@ -254,6 +274,7 @@
             </td>
           </tr>
         {% endif %}
+      {% endif %}
 
     {% endif %}
 
