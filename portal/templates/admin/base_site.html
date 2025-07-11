@@ -46,7 +46,9 @@
     </script>
     <select id="site_selector" onchange="changeSite()">
       {% for s in all_sites %}
-        <option value="{{ s.url }}{{ request.get_full_path }}"{% if s.is_current %} style="background-color: var(--selected-row);" selected{% endif %}>{{ s.domain }}</option>
+        <option value="{{ s.url }}{{ request.get_full_path }}"{% if s.is_current %} style="background-color: var(--selected-row);" selected{% endif %}>
+          {% if s.name %}{{ s.name }}{% else %}{{ s.domain }}{% endif %}
+        </option>
       {% endfor %}
     </select>
   {% endif %}
