@@ -99,6 +99,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, FormView, TemplateView
@@ -576,6 +577,24 @@ class SingleObjectMixin(ContextMixin):
 
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
+
+    cache_timeout = int(getattr(settings, "CACHE_TIMEOUT", 300))
+
+    def get_cache_timeout(self):
+        return self.cache_timeout
+
+    @property
+    def key_prefix(self):
+        u = self.request.user
+        return f"{u.is_admin or u.pk}"
+
+    def dispatch(self, request, *args, **kwargs):
+        breakpoint()
+        if request.method == "GET":
+            return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
+                super().dispatch
+            )(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_transitions(self):
         model_name = self.object._meta.model_name

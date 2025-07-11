@@ -1,6 +1,6 @@
 {% extends 'detail.html' %}
-
-{% load i18n crispy_forms_tags tags django_bootstrap_breadcrumbs %}
+{% load i18n cache crispy_forms_tags tags django_bootstrap_breadcrumbs %}
+{#% cache 180 application object.pk user.pk %#}
 {% block sidebar %}{% include 'sidebar.html' with category="applications" %}{% endblock sidebar %}
 
 {% block breadcrumbs %}
@@ -382,4 +382,5 @@
   });
 </script>
 {% endblock javascript %}
+{#% endcache %#}
 {# vim:set ft=htmldjango: #}
