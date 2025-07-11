@@ -577,8 +577,7 @@ class SingleObjectMixin(ContextMixin):
 
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
     template_name = "detail.html"
-
-    cache_timeout = int(getattr(settings, "CACHE_TIMEOUT", 300))
+    cache_timeout = int(getattr(settings, "CACHE_TIMEOUT", 60))
 
     def get_cache_timeout(self):
         return self.cache_timeout
@@ -589,12 +588,12 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         return f"{u.is_admin or u.pk}"
 
     def dispatch(self, request, *args, **kwargs):
-        breakpoint()
         if request.method == "GET":
             return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
                 super().dispatch
             )(request, *args, **kwargs)
-        return super().dispatch(request, *args, **kwargs)
+        resp =  super().dispatch(request, *args, **kwargs)
+        return resp
 
     def get_transitions(self):
         model_name = self.object._meta.model_name
@@ -814,6 +813,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
 class ExportView(UserPassesTestMixin, DetailView):
     model = None
+    cache_timeout = 0
     template = "pdf_export_template.html"
 
     def get_metadata(self, pk):
@@ -9351,10 +9351,19 @@ class NominationDetail(DetailView):
     model = models.Nomination
     template_name = "nomination_detail.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    @property
+    def can_start_applying(self):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
-            n = self.get_object()
+        return (
+            self.object.user == u or u.emailaddress_set.filter(email=self.object.email).exists()
+        ) and not self.object.application
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        u = self.request.user
+        if u.is_authenticated and not u.is_admin:
+            n = self.object
             if not (
                 n.nominator == u
                 or n.user == u
@@ -9365,17 +9374,7 @@ class NominationDetail(DetailView):
             if n.state == "withdrawn":
                 messages.error(request, _("The nominiation was withdrawn."))
                 return redirect(self.request.META.get("HTTP_REFERER", "nominations"))
-        return super().dispatch(request, *args, **kwargs)
 
-    @property
-    def can_start_applying(self):
-        u = self.request.user
-        return (
-            self.object.user == u or u.emailaddress_set.filter(email=self.object.email).exists()
-        ) and not self.object.application
-
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
         if self.can_start_applying:
             nominator = self.object.nominator
             button_label = (
@@ -9480,14 +9479,14 @@ class TestimonialDetail(DetailView):
     model = models.Testimonial
     template_name = "testimonial_detail.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
+        if not u.is_admin:
             t = self.get_object()
             if t.referee.user != u:
                 messages.error(request, _("You do not have permissions to view this testimonial."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
-        return super().dispatch(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -10595,16 +10594,15 @@ class EvaluationDetail(DetailView):
     model = models.Evaluation
     template_name = "evaluation.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         if (
             not (u := request.user)
-            and u.is_authenticated
-            and not (u.is_superuser or u.is_staff or u.is_site_staff)
+            and not u.is_admin
         ):
             if (e := self.get_object()) and e.panellist and e.panellist.user != u:
                 messages.error(request, _("You do not have permission to access this review."))
                 return self.handle_no_permission()
-        return super().dispatch(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, *args, **kwargs):
         u = self.request.user
