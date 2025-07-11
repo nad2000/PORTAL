@@ -10,6 +10,7 @@ from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
+from limesurveyrc2api.exceptions import LimeSurveyError
 
 import django.utils.translation
 import django_tables2
@@ -1173,11 +1174,31 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
     if not r.survey_completed_at:
         api = r.survey_api
-        if not r.survey_token_id:
-            r.add_to_survey(api)
-            r.save()
+        was_synced = False
+        for _ in range(2):  # 2 attempts
+            if was_synced:
+                break
+            if not r.survey_token_id:
+                r.add_to_survey(api)
+                r.save()
 
-        properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
+            for arg_list in [(r.survey_token_id,),
+                            (None, {"email": r.email}),
+                            (None, {"token": r.survey_token})]:
+                try:
+                    properties = api.token.get_participant_properties(survey_id, *arg_list)
+                    if properties.get("token") != r.survey_token or properties.get("tid") != r.survey_token_id:
+                        r.survey_token = properties.get("token")
+                        r.survey_token_id = properties.get("tid")
+                        r.save(update_fields=["survey_token", "survey_token_id"])
+                    was_synced = True
+                    break
+                except LimeSurveyError:
+                    pass
+            else:
+                r.survey_token = None
+                r.survey_token_id = None
+
         if (completed_at := properties.get("completed")) and completed_at != "N":
             with transaction.atomic():
                 description = f"Referee report was completed at {completed_at}"

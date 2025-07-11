@@ -22,4 +22,4 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         by = models.User.where(username="applications").first()
-        models.invite_referees(site_id=5, after_round_closes=not options.get("force", False), by=by, forece=))
+        models.invite_referees(site_id=5, after_round_closes=not options.get("force", False), by=by)
