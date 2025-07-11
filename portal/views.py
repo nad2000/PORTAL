@@ -10,7 +10,6 @@ from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
-from limesurveyrc2api.exceptions import LimeSurveyError
 
 import django.utils.translation
 import django_tables2
@@ -118,6 +117,7 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from geopy.geocoders import Nominatim
+from limesurveyrc2api.exceptions import LimeSurveyError
 from private_storage.views import PrivateStorageDetailView
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
@@ -593,7 +593,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
                 super().dispatch
             )(request, *args, **kwargs)
-        resp =  super().dispatch(request, *args, **kwargs)
+        resp = super().dispatch(request, *args, **kwargs)
         return resp
 
     def get_transitions(self):
@@ -1201,12 +1201,17 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                 r.add_to_survey(api)
                 r.save()
 
-            for arg_list in [(r.survey_token_id,),
-                            (None, {"email": r.email}),
-                            (None, {"token": r.survey_token})]:
+            for arg_list in [
+                (r.survey_token_id,),
+                (None, {"email": r.email}),
+                (None, {"token": r.survey_token}),
+            ]:
                 try:
                     properties = api.token.get_participant_properties(survey_id, *arg_list)
-                    if properties.get("token") != r.survey_token or properties.get("tid") != r.survey_token_id:
+                    if (
+                        properties.get("token") != r.survey_token
+                        or properties.get("tid") != r.survey_token_id
+                    ):
                         r.survey_token = properties.get("token")
                         r.survey_token_id = properties.get("tid")
                         r.save(update_fields=["survey_token", "survey_token_id"])
@@ -10616,10 +10621,7 @@ class EvaluationDetail(DetailView):
     template_name = "evaluation.html"
 
     def get(self, request, *args, **kwargs):
-        if (
-            not (u := request.user)
-            and not u.is_admin
-        ):
+        if not (u := request.user) and not u.is_admin:
             if (e := self.get_object()) and e.panellist and e.panellist.user != u:
                 messages.error(request, _("You do not have permission to access this review."))
                 return self.handle_no_permission()
