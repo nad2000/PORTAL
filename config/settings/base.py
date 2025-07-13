@@ -190,10 +190,13 @@ EXPLORER_DATA_EXPORTERS = [
     ("excel", "explorer.exporters.ExcelExporter"),
     ("json", "explorer.exporters.JSONExporter"),
 ]
+# EXPLORER_TRANSFORMS = [
+#     ('user', '<a href="/users/{0}/profile" target="_blank">{0}</a>')
+# ]
 # EXPLORER_PERMISSION_VIEW = lambda r: r.user.is_staff or r.user.is_site_staff
 # EXPLORER_PERMISSION_CHANGE = lambda r: r.user.is_staff or r.user.is_site_staff
 # EXPLORER_PERMISSION_CONNECTIONS = lambda r: r.user.is_staff or r.user.is_site_staff
-# EXPLORER_CHARTS_ENABLED = True
+EXPLORER_CHARTS_ENABLED = True
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------

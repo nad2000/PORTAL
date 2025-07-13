@@ -589,7 +589,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         return f"{u.is_admin or u.pk}"
 
     def dispatch(self, request, *args, **kwargs):
-        if request.method == "GET" and request.is_authenticated:
+        if request.method == "GET" and request.user.is_authenticated:
             return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
                 super().dispatch
             )(request, *args, **kwargs)
