@@ -8673,6 +8673,7 @@ class AdminstaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
     """Profile summary view"""
 
+    cache_timeout = 0
     model = models.User
     slug_field = "username"
     slug_url_kwarg = "username"
