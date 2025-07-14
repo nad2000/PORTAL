@@ -4401,7 +4401,11 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         ),
                     )
                     return redirect("application-detail", number=a.number)
-                if not r.is_open and r.closes_at > (timezone.now() + timedelta(days=1)):
+                if not r.is_open and r.closes_at < (
+                    timezone.now()
+                    if a.site_id not in [2, 5]
+                    else (timezone.now() + timedelta(days=1))
+                ):
                     messages.error(
                         request,
                         _(
