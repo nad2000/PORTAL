@@ -207,7 +207,7 @@
           </tr>
         {% for rd in a.round.required_documents.all %}
           <tr>
-            <th class="table-secondary" scope="row">{{ rd }}{% if rd.is_optional %} (<strong>{% trans 'optional' %}</strong>){% endif %}</th>
+            <th class="table-secondary" scope="row">{{ rd }}{% if rd.is_optional %} (<i>{% trans 'optional' %}</i>){% endif %}</th>
             <td colspan="3">
               {% for d in documents|filter_documents:rd %}
                 {% if not forloop.first %}, {% endif %}<a href="{{ d.file.url }}" target="_blank">{{ d.file|basename }}</a>
