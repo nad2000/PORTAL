@@ -2302,11 +2302,13 @@ class ContractForm(ModelForm):
             ),
             Tab(
                 _("Proposal"),
-                HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+                HTML('{% include "snippets/application_detail_table.html" with a=application documents=application_documents %}'),
                 css_id="proposal",
             ),
             Tab(
                 _("Reporting"),
+                # Field("start_date"),
+                # Field("end_date"),
                 Fieldset(
                     _("Reporting Schedule"),
                     (

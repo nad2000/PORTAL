@@ -201,10 +201,19 @@
               $("#id_end_date").val(end_date.toISOString().slice(0,10))
               {% if reporting_schedule %}
                   {% for f in reporting_schedule.forms %}
+                    {% if f.date_first_remind.value %}
+                      var rd = new Date("{{ f.due_date.value }}");
+                      var reminder_date = new Date(rd.getTime() + delta);
+                      $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
+                    {% endif %}
                     {% if f.due_date.value %}
                       let dd_{{ forloop.counter }}  = new Date("{{ f.due_date.value }}");
                       let due_date_{{ forloop.counter }} = new Date(dd_{{ forloop.counter }}.getTime() + delta);
                       $("#{{ f.due_date.auto_id }}").val(due_date_{{ forloop.counter }}.toISOString().slice(0,10));
+                      {% if not f.date_first_remind.value %}
+                        var reminder_date = new Date(due_date_{{ forloop.counter }}.getTime() - 2629800000); // 30.4375*24*60*60*1000
+                        $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
+                      {% endif %}
                     {% endif %}
                   {% endfor %}
               {% endif %}

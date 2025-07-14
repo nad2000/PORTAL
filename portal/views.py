@@ -6687,6 +6687,11 @@ class ContractViewMixin:
         self.personnel = context["personnel"] = self.get_personnel_formset()
         a = self.application
         context["application"] = a
+        context["application_documents"] = list(
+            a.documents.filter(~Q(file=""), file__isnull=False).order_by(
+                "required_document__ordering"
+            )
+        )
         context["round"] = round = a.round
         context["is_pi"] = (
             self.object
