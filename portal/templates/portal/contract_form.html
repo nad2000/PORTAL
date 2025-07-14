@@ -98,6 +98,8 @@
       var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
       var awarded_amount = {% if object.awarded_amount %}{{ object.awarded_amount }}{% else %}0{% endif %};
     {% endif %}
+    var sd = {% if object.start_date %}new Date('{{ object.start_date }}'){% else %}new Date(){% endif %};
+    var ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
     function toggleEthicsInputs(requires_approval) {
       $("#id_has_animal_use_0,#id_has_animal_use_1,#id_has_animal_use_2").prop("disabled", !requires_approval);
       $("#id_is_signatory_to_oa_0,#id_is_signatory_to_oa_1,#id_is_signatory_to_oa_2").prop("disabled", !requires_approval);
@@ -188,12 +190,14 @@
         }
       );
       $("#id_duration").change(function(e) {
-        if (this.value) duration = this.value;
-        {% if object.end_date %}
-          ed = new Date('{{ object.end_date }}');
-        {% else %}
-        // TODO:
-        {% endif %}
+        if (this.value) {
+          duration = this.value;
+          start_date = new Date($("#id_start_date").val()||'{{ object.start_date }}');
+          /* 365.25*24*60*60*1000 = 31557600000.0 */
+          end_date = new Date(start_date.getTime() + duration*31557600000);
+          $("#id_end_date").val(end_date.toISOString().slice(0,10))
+          // TODO: adjust repoting schedule rows...
+        }
       });
       $("#id_start_date").change(
         function(e) {
@@ -201,8 +205,6 @@
             if (val) {
               /* 365.25*24*60*60*1000 = 31557600000.0 */
               /* 24*60*60*1000 = 86400000 */
-              let sd = {% if object.start_date %}new Date('{{ object.start_date }}'){% else %}new Date(){% endif %};
-              let ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
               let start_date = new Date(val);
               let delta = start_date - sd ;
               let end_date = new Date(ed.getTime() + delta);
