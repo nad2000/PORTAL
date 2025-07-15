@@ -2808,10 +2808,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
         )
 
-    def invite_referees(self, request, by=None, referees=None, *args, **kwargs):
+    def invite_referees(self, request=None, by=None, referees=None, *args, **kwargs):
         """Send invitations to all referee."""
         return Referee.invite_referees(
-            request, application=self, by=by, referees=referees, *args, **kwargs
+            request=request, application=self, by=by, referees=referees, *args, **kwargs
         )
 
     @fsm_log
@@ -2977,9 +2977,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ],
         custom=dict(verbose="Submit To Referees", button_name="To Referees"),
     )
-    def send_out_to_referees(self, exclude_sender=False, *args, **kwargs):
+    def send_out_to_referees(self, exclude_sender=False, request=None, by=None, *args, **kwargs):
         try:
-            request = kwargs.get("request")
+            if not by and request:
+                by = request.user
             self.is_completed(skip_testimonials=(self.site_id in [2, 5]), *args, **kwargs)
             force = (
                 request
@@ -2988,6 +2989,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
             return self.invite_referees(
                 request=request,
+                by=by,
                 dispatch_invitations=(
                     self.site_id not in [2, 5]
                     or (
@@ -4529,7 +4531,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     @classmethod
     def invite_referees(
         cls,
-        request,
+        request=None,
         application=None,
         by=None,
         referees=None,
