@@ -9541,9 +9541,29 @@ class TestimonialDetail(DetailView):
             context["application"] = a
             if a.site_id in [2, 5]:
                 context["documents"] = a.documents_dict
-            if not t or not t.file:
+            if not (t and t.file) and not referee.survey_completed_at:
                 context["export_url"] = reverse("application-export", kwargs={"pk": a.pk})
                 context["export_tooltip"] = _(f"Export application {a}")
+            elif (
+                r.survey_id
+                and referee.survey_token
+                and referee.survey_token_id
+                and (api := r.survey_api)
+                and (
+                    survey_response_ids := api.query(
+                        "get_response_ids",
+                        params={
+                            "sSessionKey": api.session_key,
+                            "iSurveyID": r.survey_id,
+                            "sToken": referee.survey_token,
+                        },
+                    )
+                )
+            ):
+                context["export_url"] = (
+                    f"/limesurvey/responses/viewquexmlpdf?surveyId={r.survey_id}&id={max(survey_response_ids)}&browseLang="
+                )
+                context["export_tooltip"] = _(f"Export referee report/survey {t}")
             elif t and t.file:
                 if a.site_id in [2, 5]:
                     context["export_tooltip"] = _(f"Export referee report {t}")
