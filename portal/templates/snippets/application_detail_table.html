@@ -209,7 +209,7 @@
           <tr>
             <th class="table-secondary" scope="row">{{ rd }}{% if rd.is_optional %} (<i>{% trans 'optional' %}</i>){% endif %}</th>
             <td colspan="3">
-              {% for d in documents|filter_documents:rd %}
+              {% for d in attachments|filter_documents:rd %}
                 {% if not forloop.first %}, {% endif %}<a href="{{ d.file.url }}" target="_blank">{{ d.file|basename }}</a>
                 {% if d.converted_file %}
                   (<a href="{{ d.converted_file.file.url }}" target="_blank">{{ d.converted_file.file|basename }}</a>)
