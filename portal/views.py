@@ -1581,18 +1581,18 @@ def check_profile(request, token=None):
                     ):
                         next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
-                        messages.info(
-                            request,
-                            (
-                                _(
-                                    "Please review the application details and submit referee report."
-                                )
-                                if i.site_id in [2, 4, 5]
-                                else _(
-                                    "Please review the application details and submit testimonial."
-                                )
-                            ),
-                        )
+                        # messages.info(
+                        #     request,
+                        #     (
+                        #         _(
+                        #             "Please review the application details and submit referee report."
+                        #         )
+                        #         if i.site_id in [2, 4, 5]
+                        #         else _(
+                        #             "Please review the application details and submit testimonial."
+                        #         )
+                        #     ),
+                        # )
                         next_url = reverse("application", kwargs={"pk": a_id})
 
             elif i.state == "revoked":
