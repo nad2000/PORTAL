@@ -201,7 +201,7 @@
           </td>
         </tr>
 
-      {% if user.is_admin and not for_pdf_export %}
+      {% if user.is_admin and attachments %}
           <tr>
               <th colspan="4" class="table-dark" scope="row">{% trans 'Attached Documents' %}</th>
           </tr>

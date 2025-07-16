@@ -4041,7 +4041,8 @@ class ApplicationDetail(DetailView):
         u = self.request.user
         if a and site_id in [2, 5]:
             if u.is_admin:
-                context["documents"] = list(
+                # context["documents"] = list(
+                context["attachments"] = list(
                     a.documents.filter(~Q(file=""), file__isnull=False).order_by(
                         "required_document__ordering"
                     )
