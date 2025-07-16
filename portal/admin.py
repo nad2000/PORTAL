@@ -12,8 +12,8 @@ from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
-from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
 from django.contrib.admin import helpers
+from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
@@ -29,6 +29,7 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
+from easyaudit import admin as easyaudit_admin
 from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
 from import_export import fields
@@ -40,11 +41,11 @@ from import_export.admin import (
 from import_export.resources import ModelResource
 from import_export.widgets import ForeignKeyWidget
 from modeltranslation.admin import TranslationAdmin
+from rest_framework.authtoken.models import Token
 from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
-from easyaudit import admin as easyaudit_admin
 
 from . import filters, models
 
@@ -67,6 +68,12 @@ djhacker.formfield(
 
 djhacker.formfield(
     CRUDEvent.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+)
+
+djhacker.formfield(
+    Token.user,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
 )
@@ -530,12 +537,17 @@ class HistoryAdmin(SimpleHistoryAdmin):
             return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
         return ""
 
+
 class KeepSelectedMixin:
 
     def response_action(self, request, queryset):
         resp = super().response_action(request, queryset)
         if helpers.ACTION_CHECKBOX_NAME in request.POST:
-            resp.set_cookie("selected_action", ':'.join(request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)), max_age=60)
+            resp.set_cookie(
+                "selected_action",
+                ":".join(request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)),
+                max_age=60,
+            )
         return resp
 
 
@@ -2118,7 +2130,9 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 
 @admin.register(models.Referee)
-class RefereeAdmin(KeepSelectedMixin, UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class RefereeAdmin(
+    KeepSelectedMixin, UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin
+):
 
     save_on_top = True
 
