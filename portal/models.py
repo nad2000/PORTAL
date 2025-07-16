@@ -2,6 +2,7 @@ import base64
 import email
 import hashlib
 import io
+import logging
 import os
 import re
 import secrets
@@ -5650,43 +5651,55 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 "To confirm this access, please follow the link: <a href='%(url)s'>%(link_name)s</a><br>"
             ) % {"url": url, "link_name": link_name, "site_name": site_name}
 
-        resp = send_mail(
-            subject,
-            body,
-            html_message=html_body,
-            recipients=[self.email],
-            fail_silently=False,
-            request=request,
-            reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
-            invitation=self,
-            cc=(
-                None
-                if exclude_sender
-                else (
-                    self.nomination
-                    and [self.nomination.nominator.email]
-                    or by
-                    and [by.email]
-                    or None
-                )
-            ),
-            thread_index=self.thread_index,
-            thread_topic=self.thread_topic,
-        )
+        try:
+            resp = send_mail(
+                subject,
+                body,
+                html_message=html_body,
+                recipients=[self.email],
+                fail_silently=False,
+                request=request,
+                reply_to=by.email if by else settings.DEFAULT_FROM_EMAIL,
+                invitation=self,
+                cc=(
+                    None
+                    if exclude_sender
+                    else (
+                        self.nomination
+                        and [self.nomination.nominator.email]
+                        or by
+                        and [by.email]
+                        or None
+                    )
+                ),
+                thread_index=self.thread_index,
+                thread_topic=self.thread_topic,
+            )
+            # add a delay for referee invitations to comply with the mailinator rate limit
+            if self.type == INVITATION_TYPES.R and "mailinator" in self.email.lower():
+                time.sleep(0.2)
 
-        if self.type == INVITATION_TYPES.T:
-            if self.member:
-                self.member.send(request)
-                self.member.save()
-        elif self.type == INVITATION_TYPES.R:
-            if self.referee:
-                self.referee.send(request)
-                self.referee.save()
-        elif self.type == INVITATION_TYPES.P:
-            if self.panellist:
-                self.panellist.send(request)
-                self.panellist.save()
-        return resp
+            if self.type == INVITATION_TYPES.T:
+                if self.member:
+                    self.member.send(request)
+                    self.member.save()
+            elif self.type == INVITATION_TYPES.R:
+                if self.referee:
+                    self.referee.send(request)
+                    self.referee.save()
+            elif self.type == INVITATION_TYPES.P:
+                if self.panellist:
+                    self.panellist.send(request)
+                    self.panellist.save()
+            return resp
+
+        except Exception as ex:
+            capture_exception(ex)
+            logger = logging.getLogger("root")
+            logger.error(
+                f"Failed to send and/or handle an invitation {self} to {self.email}: {ex}"
+            )
+            return
 
     @fsm_log
     @transition(field=state, source=["*"], target="read")
