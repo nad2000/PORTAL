@@ -9541,6 +9541,14 @@ class TestimonialDetail(DetailView):
             context["application"] = a
             if a.site_id in [2, 5]:
                 context["documents"] = a.documents_dict
+            if not t or not t.file:
+                context["export_url"] = reverse("application-export", kwargs={"pk": a.pk})
+                context["export_tooltip"] = _(f"Export application {a}")
+            elif t and t.file:
+                if a.site_id in [2, 5]:
+                    context["export_tooltip"] = _(f"Export referee report {t}")
+                else:
+                    context["export_tooltip"] = _(f"Export testimonial {t}")
 
         survey_url = (
             r and r.survey_id and reverse("survey-referee", kwargs={"referee_id": referee.id})

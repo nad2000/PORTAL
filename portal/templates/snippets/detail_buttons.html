@@ -101,8 +101,12 @@
     </div>
   {% endif %}
 
-  {% if export_button_view_name %}
-    <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
+  {% if export_button_view_name or export_url %}
+  <a
+    class="btn btn-primary"
+    {% if export_tooltip %}data-toggle="tooltip" title="{{ export_tooltip|safe }}" data-html="true"{% endif %}
+    href="{% if export_url %}{{ export_url }}{% else %}{% url export_button_view_name pk=object.pk %}{% endif %}?format=pdf"
+    target="_blank">{% trans 'Export' %}</a>
   {% endif %}
 
   {% if user.is_site_staff or user.is_superuser %}
