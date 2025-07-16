@@ -1194,7 +1194,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
     if not r.survey_completed_at:
         api = r.survey_api
         was_synced = False
-        for _attempt  in range(2):  # 2 attempts
+        for _attempt in range(2):  # 2 attempts
             if was_synced:
                 break
             if not r.survey_token_id:
@@ -1239,6 +1239,13 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                     r.save()
 
     if r.survey_completed_at:
+        if r.state != "submitted":
+            r.testify(
+                request=request,
+                by=u,
+                description=f"Synced date with LimeSurve; surevey completed at {r.survey_completed_at}",
+            )
+            r.save()
         messages.warning(
             request,
             _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>."),
