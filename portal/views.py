@@ -1194,7 +1194,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
     if not r.survey_completed_at:
         api = r.survey_api
         was_synced = False
-        for _ in range(2):  # 2 attempts
+        for _attempt  in range(2):  # 2 attempts
             if was_synced:
                 break
             if not r.survey_token_id:

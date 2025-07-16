@@ -4622,7 +4622,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
             if not self.survey_token or not self.survey_token_id:
                 participant = {"email": self.email.lower()}
                 # api.query(method="list_participants",params={"sSessionKey": api.session_key, "iSurveyID": survey_id, "aConditions":{"email": "nad2000+r1@gmail.com"}})
-                for _ in range(2):  # 2 attempts
+                for _attempt in range(2):  # 2 attempts
                     resp = api.query(
                         method="list_participants",
                         params={
@@ -4655,7 +4655,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 participant["token"] = token
 
                 has_participant_table = None
-                for _ in range(2):  # 2 attempts
+                for _attempt in range(2):  # 2 attempts
                     resp = api.token.add_participants(
                         survey_id, [participant], create_token_key=False
                     )
@@ -4710,7 +4710,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
             if not self.survey_token_id:
                 try:
-                    for _ in range(2):  # 2 attempts
+                    for _attempt in range(2):  # 2 attempts
                         resp = api.token.get_participant_properties(
                             survey_id, None, {"token": self.survey_token}
                         )
@@ -4730,7 +4730,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
 
             if self.survey_token_id:
-                for _ in range(2):  # 2 attempts
+                for _attempt in range(2):  # 2 attempts
                     resp = api.query(
                         method="invite_participants",
                         params=OrderedDict(
@@ -7134,7 +7134,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
-                    for _ in range(2):  # 2 attempts
+                    for _attempt in range(2):  # 2 attempts
                         resp = api.token.get_participant_properties(
                             self.survey_id, None, {"token": r.survey_token}
                         )
@@ -7149,7 +7149,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         r.survey_token_id = resp.get("tid")
                         break
                 except LimeSurveyError:
-                    for _ in range(2):  # 2 attempts
+                    for _attempt in range(2):  # 2 attempts
                         resp = r.add_to_survey(api=api)
                         if (
                             not has_participant_table
