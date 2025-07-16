@@ -1252,7 +1252,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         )
         t =  models.Testimonial.where(referee=r).order_by("-pk").first()
         if t:
-            return redirect("testimonial", pk=t.pk)
+            return redirect("testimonial-detail", pk=t.pk)
         elif r.application_id:
             return redirect("application", pk=r.application_id)
         return redirect(request.META.get("HTTP_REFERER", "index"))
