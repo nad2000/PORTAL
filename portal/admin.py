@@ -2135,6 +2135,9 @@ class RefereeAdmin(
 ):
 
     save_on_top = True
+    limesurvey_admin_url = (
+        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+    )
 
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
@@ -2144,6 +2147,17 @@ class RefereeAdmin(
                 f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
             )
 
+    @admin.display(description="survey participant")
+    def participant_link(self, obj):
+        if (token_id := obj.survey_token_id) and (survey_id := obj.application.round.survey_id):
+            url = (
+                f"{self.limesurvey_admin_url}tokens/sa/edit/iSurveyId/{survey_id}/iTokenId/{token_id}"
+            )
+            return mark_safe(
+                f'<a href="{url}" target="_blank">{obj.survey_token or obj.email}</a>'
+            )
+        return "-"
+
     list_display = [
         "email",
         "has_testified",
@@ -2152,7 +2166,7 @@ class RefereeAdmin(
         "state",
         "org",
         "testified_at",
-        "survey_completed_at",
+        # "survey_completed_at",
     ]
     search_fields = [
         "first_name",
@@ -2185,8 +2199,20 @@ class RefereeAdmin(
     ]
     inlines = [StateLogInline]
 
-    # def get_list_display(self, request):
-    #    list_display = super().get_list_display(request)
+    def get_list_display(self, request):
+        if request.site_id in [2, 5]:
+            return [
+                "email",
+                "has_testified",
+                "application_number",
+                "full_name",
+                "state",
+                "org",
+                "testified_at",
+                "participant_link",
+                "survey_completed_at",
+            ]
+        return super().get_list_display(request)
 
     def get_queryset(self, request):
         return (
