@@ -6213,7 +6213,7 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
 
     def get_table_kwargs(self):
         u = self.request.user
-        if u.is_staff or u.is_site_staff:
+        if u.is_admin:
             return {
                 "extra_columns": [
                     (
@@ -7340,7 +7340,7 @@ class ApplicationList(
         return q
 
     def get_table_kwargs(self):
-        if not (self.request.user.is_superuser or self.request.user.is_site_staff):
+        if not self.request.user.is_admin:
             return {"exclude": ("contract",)}
         return super().get_table_kwargs()
 
@@ -9511,6 +9511,19 @@ class TestimonialList(
             "referee__application__number"
         )
 
+    def get_table_kwargs(self):
+        kwargs = super().get_table_kwargs()
+        if self.request.user.is_admin:
+            # if "extra_columns" in kwargs:
+            return {
+                "extra_columns": [
+                    (
+                        _("Survey Token"),
+                        django_tables2.Column(_("Survey Token"), "referee__survey_token"),
+                    )
+                ]
+            }
+        return kwargs
 
 class TestimonialDetail(DetailView):
     model = models.Testimonial
