@@ -6277,7 +6277,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     testimonials_required = BooleanField(
         _("testimonials required"),
         default=True,
-        help_text="required testimonials/referee reports",
+        help_text="required uploaded testimonial/referee report file",
     )
 
     has_referees = BooleanField(_("can invite referees"), default=True)

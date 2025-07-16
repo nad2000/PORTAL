@@ -982,7 +982,6 @@ def complete_survey(request):
     else:
         q = q.filter(Q(user=request.user) | Q(email__lower=request.user.email.lower()))
     for r in q:
-        token = request.GET.get("token")
         if not survey_id:
             survey_id = r.application.round.survey_id
         if r.survey_token_id and survey_id:
