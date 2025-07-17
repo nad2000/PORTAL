@@ -588,13 +588,14 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         u = self.request.user
         return f"{u.is_admin or u.pk}"
 
-    def dispatch(self, request, *args, **kwargs):
-        if request.method == "GET" and request.user.is_authenticated:
-            return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
-                super().dispatch
-            )(request, *args, **kwargs)
-        resp = super().dispatch(request, *args, **kwargs)
-        return resp
+    # TODO:  make more managable
+    # def dispatch(self, request, *args, **kwargs):
+    #     if request.method == "GET" and request.user.is_authenticated:
+    #         return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
+    #             super().dispatch
+    #         )(request, *args, **kwargs)
+    #     resp = super().dispatch(request, *args, **kwargs)
+    #     return resp
 
     def get_transitions(self):
         model_name = self.object._meta.model_name
@@ -1131,7 +1132,8 @@ def get_survey_api_url():
 
 
 def do_survey(request, survey_id=None, token=None, referee_id=None):
-    if not request.user.is_authenticated:
+    u = request.user
+    if not u.is_authenticated:
         i = None
         if token := request.GET.get("token"):
             if i := models.Invitation.where(token=token).first():
@@ -1161,7 +1163,6 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
-    u = request.user
     if referee_id:
         if (
             r := models.Referee.objects.prefetch_related("application", "application__round")
@@ -1249,7 +1250,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             request,
             _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>."),
         )
-        t =  models.Testimonial.where(referee=r).order_by("-pk").first()
+        t = models.Testimonial.where(referee=r).order_by("-pk").first()
         if t:
             return redirect("testimonial-detail", pk=t.pk)
         elif r.application_id:
@@ -4366,7 +4367,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and not (u.is_staff or u.is_superuser or u.is_site_staff):
+        if u.is_authenticated and not u.is_admin:
             if (pk := self.kwargs.get("pk")) and (
                 a := get_object_or_404(models.Application, pk=pk)
             ):
@@ -4413,16 +4414,41 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         ),
                     )
                     return redirect("application-detail", number=a.number)
-                if not r.is_open and r.closes_at < (
-                    timezone.now()
-                    if a.site_id not in [2, 5]
-                    else (timezone.now() + timedelta(days=1))
+                if (
+                    not r.is_open
+                    and r.closes_at < timezone.now()
+                    and not (
+                        a.site_id == 5
+                        and a.sate == "in_review"
+                        and a.org
+                        and (a.pi == u or a.org.is_ro(u))
+                    )
                 ):
                     messages.error(
                         request,
                         _(
                             "The application period has closed. "
                             "You cannot longer modify this application."
+                        ),
+                    )
+                    return redirect("application-detail", number=a.number)
+                elif (
+                    not r.is_open
+                    and r.testimonial_submission_closes_at
+                    and r.testimonial_submission_closes_at < timezone.now()
+                ):
+                    messages.error(
+                        request,
+                        (
+                            _(
+                                "The referee report period has closed. "
+                                "You cannot longer modify this application."
+                            )
+                            if a.site_id == 5
+                            else _(
+                                "The application period has closed. "
+                                "You cannot longer modify this application."
+                            )
                         ),
                     )
                     return redirect("application-detail", number=a.number)
