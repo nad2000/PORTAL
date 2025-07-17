@@ -773,7 +773,7 @@ class EvaluationTable(tables.Table):
         )
 
 
-class RoundConflictOfInterestSatementTable(tables.Table):
+class RoundConflictOfInterestStatementTable(tables.Table):
     number = tables.Column(linkify=lambda record: record.application.get_absolute_url())
     has_conflict = tables.Column()
     first_name = tables.Column()
