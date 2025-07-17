@@ -4415,7 +4415,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     and r.closes_at < timezone.now()
                     and not (
                         a.site_id == 5
-                        and a.sate == "in_review"
+                        and a.state == "in_review"
                         and a.org
                         and (a.pi == u or a.org.is_ro(u))
                     )
@@ -10985,10 +10985,10 @@ def export_score_sheet(request, round):
     return response
 
 
-class RoundConflictOfInterstSatementList(LoginRequiredMixin, ExportMixin, SingleTableView):
+class RoundConflictOfInterstStatementList(LoginRequiredMixin, ExportMixin, SingleTableView):
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.ConflictOfInterest
-    table_class = tables.RoundConflictOfInterestSatementTable
+    table_class = tables.RoundConflictOfInterestStatementTable
     paginator_class = django_tables2.paginators.LazyPaginator
     template_name = "table.html"
 
@@ -11086,7 +11086,7 @@ def score_sheet(request, round):
 class RoundScoreList(AdminRequiredMixin, ExportMixin, SingleTableView):
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.Application
-    # table_class = tables.RoundConflictOfInterestSatementTable
+    # table_class = tables.RoundConflictOfInterestStatementTable
     paginator_class = django_tables2.paginators.LazyPaginator
     # template_name = "rounds_conflict_of_interest.html"
     template_name = "table.html"

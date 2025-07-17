@@ -634,7 +634,7 @@ urlpatterns = [
                 path("coi", views.RoundConflictOfInterestFormSetView.as_view(), name="round-coi"),
                 path(
                     "coi/~list",
-                    views.RoundConflictOfInterstSatementList.as_view(),
+                    views.RoundConflictOfInterstStatementList.as_view(),
                     name="round-coi-list",
                 ),
                 path("scoresheet/~export", views.export_score_sheet, name="export-score-sheet"),
