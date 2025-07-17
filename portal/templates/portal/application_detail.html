@@ -96,7 +96,7 @@
         {% if testimonial or referee   %}
 
 
-        {% if testimonial.referee.survey_token_id or referee.survey_token_id %}
+        {% if referee.survey_token_id or referee.survey_token_id or testimonial.referee.survey_token_id or testimonial.referee.survey_token_id %}
         <div class="tooltip-wrapper{% if testimonial.state == "submitted" or referee.survey_completed_at %} disabled{% endif %}"
              {% if referee.survey_completed_at %}
              disabled
@@ -109,7 +109,7 @@
              {% endif %}
              >
              <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or referee.survey_completed_at or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
-                href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
+                href="{% if referee %}{% url 'survey-referee' referee_id=referee.pk %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
                {% if SITE_ID == 5 %}
                 {% blocktrans %}Progress to <strong>Referee Report</strong>{% endblocktrans %}
                {% else %}
@@ -117,7 +117,6 @@
                {% endif %}
              </a>
         </div>
-
         {% else %}
 
         <div class="tooltip-wrapper{% if testimonial.state == "submitted" or reviewing_disabled or reviewing_closed %} disabled{% endif %}"

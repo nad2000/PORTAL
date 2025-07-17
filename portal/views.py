@@ -4178,67 +4178,63 @@ class ApplicationDetail(DetailView):
                 # ).exists()
                 or a.org.where(research_offices__user=u).exists()
             )
-            if (
-                t := models.Testimonial.where(referee__user=u, referee__application=a)
-                .order_by("-id")
-                .first()
-            ):
-                if site_id in [2, 5]:
-                    context["export_enabled"] = True
-                context["testimonial"] = t
-                if t.state != "submitted":
-                    closes_at = r.closes_at
-                    if (
-                        testimonial_submission_closes_at
-                        and testimonial_submission_closes_at < timezone.now()
-                    ):
-                        messages.warning(
-                            self.request,
-                            mark_safe(
-                                _(
-                                    "The referee report submission was closed on "
-                                    f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
-                                    f"at <b>{testimonial_submission_closes_at.time()}</b>."
-                                )
-                            ),
-                        )
-                    elif (
-                        site_id not in [2, 5]
-                        or (closes_at and closes_at <= timezone.now())
-                        or a.state == "in_review"
-                    ):
-                        messages.info(
-                            self.request,
-                            (
-                                _(
-                                    "Please review the application details and submit referee report."
-                                )
-                                if site_id in [2, 4, 5]
-                                else _(
-                                    "Please review the application details and submit testimonial."
-                                )
-                            ),
-                        )
-                    else:
-                        context["reviewing_disabled"] = True
-                        closes_at_date = closes_at and closes_at.date().isoformat()
-                        messages.warning(
-                            self.request,
-                            (
-                                _(
-                                    "The application reviewing will be open after the application "
-                                    f"submission is closed (on <b>{closes_at_date}</b>)."
-                                )
-                                if closes_at_date
-                                else _(
-                                    "The application reviewing will be open after the application submission is closed."
-                                )
-                            ),
-                        )
             if referee := a.referees.filter(
                 Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
             ).last():
                 context["referee"] = referee
+                if t := models.Testimonial.where(referee=referee).order_by("-pk").first():
+                    if site_id in [2, 5]:
+                        context["export_enabled"] = True
+                    context["testimonial"] = t
+                    if t.state != "submitted":
+                        closes_at = r.closes_at
+                        if (
+                            testimonial_submission_closes_at
+                            and testimonial_submission_closes_at < timezone.now()
+                        ):
+                            messages.warning(
+                                self.request,
+                                mark_safe(
+                                    _(
+                                        "The referee report submission was closed on "
+                                        f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                        f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                                    )
+                                ),
+                            )
+                        elif (
+                            site_id not in [2, 5]
+                            or (closes_at and closes_at <= timezone.now())
+                            or a.state == "in_review"
+                        ):
+                            messages.info(
+                                self.request,
+                                (
+                                    _(
+                                        "Please review the application details and submit referee report."
+                                    )
+                                    if site_id in [2, 4, 5]
+                                    else _(
+                                        "Please review the application details and submit testimonial."
+                                    )
+                                ),
+                            )
+                        else:
+                            context["reviewing_disabled"] = True
+                            closes_at_date = closes_at and closes_at.date().isoformat()
+                            messages.warning(
+                                self.request,
+                                (
+                                    _(
+                                        "The application reviewing will be open after the application "
+                                        f"submission is closed (on <b>{closes_at_date}</b>)."
+                                    )
+                                    if closes_at_date
+                                    else _(
+                                        "The application reviewing will be open after the application submission is closed."
+                                    )
+                                ),
+                            )
 
         # context["tag_form"] = self.tag_form()
 
