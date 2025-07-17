@@ -1203,8 +1203,8 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
             for arg_list in [
                 (r.survey_token_id,),
-                (None, {"email": r.email}),
                 (None, {"token": r.survey_token}),
+                (None, {"email": r.email}),
             ]:
                 try:
                     properties = api.token.get_participant_properties(survey_id, *arg_list)
