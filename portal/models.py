@@ -4610,9 +4610,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
         # Inviation to participate in the survey:
         if survey_id := self.application.round.survey_id:
             u = self.user
-            if not u and (
-                ea := EmailAddress.objects.filter(email__lower=self.email.lower()).first()
-            ):
+            email = self.email.lower()
+            if not u and (ea := EmailAddress.objects.filter(email__lower=email).first()):
                 u = ea.user
             first_name = self.first_name or u and u.first_name or ""
             last_name = self.last_name or u and u.last_name or ""
@@ -4620,8 +4619,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
             if not api:
                 api = self.survey_api
             has_participant_table = None
+            token = self.survey_token or self.make_survey_token()
+            if self.survey_token and self.survey_token_id:
+                properties = api.token.get_participant_properties(
+                    survey_id, self.survey_token_id, {"token": token, "email": email}
+                )
+                pass
+            if not self.survey_token:
+                self.survey_token = token
             if not self.survey_token or not self.survey_token_id:
-                participant = {"email": self.email.lower()}
+                participant = {"email": email, "token": token}
                 # api.query(method="list_participants",params={"sSessionKey": api.session_key, "iSurveyID": survey_id, "aConditions":{"email": "nad2000+r1@gmail.com"}})
                 for _attempt in range(2):  # 2 attempts
                     resp = api.query(
@@ -4629,7 +4636,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         params={
                             "sSessionKey": api.session_key,
                             "iSurveyID": survey_id,
-                            "aConditions": {"email": self.email.lower()},
+                            "aConditions": {"email": email, "token": token},
                         },
                     )
                     if (
@@ -4652,8 +4659,6 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     participant["firstname"] = self.first_name
                 if last_name:
                     participant["lastname"] = self.last_name
-                token = self.survey_token or self.make_survey_token()
-                participant["token"] = token
 
                 has_participant_table = None
                 for _attempt in range(2):  # 2 attempts
@@ -4684,7 +4689,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                         and "has already been taken" in r["errors"]["token"]
                     ):
                         r = api.token.get_participant_properties(survey_id, None, {"token": token})
-                    if r.get("email") == self.email.lower():
+                    if r.get("email") == email:
                         self.survey_token_id = r.get("tid")
                         self.survey_token = r.get("token", token)
                         properties = api.token.get_participant_properties(
@@ -4709,7 +4714,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 self._change_reason = f"Fixed and updated token"
                 self.save(update_fields=["survey_token"])
 
-            if not self.survey_token_id:
+            if not self.survey_token_id and self.survey_token:
                 try:
                     for _attempt in range(2):  # 2 attempts
                         resp = api.token.get_participant_properties(
@@ -4729,6 +4734,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 except LimeSurveyError:
                     self.add_to_survey(api=api)
                     self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
+            else:
+                self.add_to_survey(api=api)
+                self.save(update_fields=["survey_token_id", "survey_token", "updated_at"])
 
             if self.survey_token_id:
                 for _attempt in range(2):  # 2 attempts
@@ -7131,26 +7139,33 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         )
 
     def sync_referee_surveys(self, request=None, by=None, referees=None):
+        count = 0
         if not self.survey_id:
-            return 0
+            return count
         try:
             q = Referee.where(application__round=self)  # , survey_token__isnull=False)
             if referees:
                 q = q.filter(pk__in=referees.values_list("pk"))
             fixed_referees = []
             api = self.survey_api
-            q = q.filter(
-                Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
-            )
+            # q = q.filter(
+            #     Q(survey_token_id__isnull=True) | Q(survey_token__isnull=True) | Q(survey_token="")
+            # )
             has_participant_table = None
             for r in q:
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
                     for _attempt in range(2):  # 2 attempts
-                        resp = api.token.get_participant_properties(
-                            self.survey_id, None, {"token": r.survey_token}
-                        )
+
+                        if r.survey_token_id:
+                            resp = api.token.get_participant_properties(
+                                self.survey_id, r.survey_token_id
+                            )
+                        else:
+                            resp = api.token.get_participant_properties(
+                                self.survey_id, None, {"token": r.survey_token}
+                            )
                         if (
                             not has_participant_table
                             and isinstance(resp, dict)
@@ -7161,20 +7176,24 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                             continue
                         r.survey_token_id = resp.get("tid")
                         break
-                except LimeSurveyError:
-                    for _attempt in range(2):  # 2 attempts
-                        resp = r.add_to_survey(api=api)
-                        if (
-                            not has_participant_table
-                            and isinstance(resp, dict)
-                            and resp.get("status") == "Error: No survey participants table"
-                        ):
-                            self.activate_tokens(api=api)
-                            has_participant_table = True
-                            continue
-                        break
+                except LimeSurveyError as ex:
+                    if "no results were found" in getattr(ex, "message", "").lower():
+                        for _attempt in range(2):  # 2 attempts
+                            resp = r.add_to_survey(api=api)
+                            if (
+                                not has_participant_table
+                                and isinstance(resp, dict)
+                                and resp.get("status") == "Error: No survey participants table"
+                            ):
+                                self.activate_tokens(api=api)
+                                has_participant_table = True
+                                continue
+                            break
+                    else:
+                        raise
                 fixed_referees.append(r)
             if fixed_referees:
+                count += len(fixed_referees)
                 bulk_update_with_history(
                     fixed_referees,
                     Referee,
@@ -7254,7 +7273,6 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 with transaction.atomic():
 
                     if not self.testimonials_required:
-                        updated_testimonials = []
                         testimonials = Testimonial.where(
                             ~Q(state="submitted"), referee__in=[r.pk for r in updated_referees]
                         )
@@ -7287,7 +7305,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         )
 
             # Re-sync testimonials with the referees:
-            updated_testimonials = []
+            re_updated_testimonials = []
             description = "Synced with LimeSurvey"
             for r in Referee.where(
                 (
@@ -7321,9 +7339,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                                 [r.survey_completed_at, r.testified_at, r.state_changed_at],
                             )
                         )
-                    updated_testimonials.append(t)
+                    re_updated_testimonials.append(t)
             bulk_update_with_history(
-                updated_testimonials,
+                re_updated_testimonials,
                 Testimonial,
                 ["state", "state_changed_at", "updated_at"],
                 default_user=request and request.user,
@@ -7333,15 +7351,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         except Exception as ex:
             messages.error(request, f"{ex}")
             raise
-        else:
-            count = len(updated_referees) or len(updated_testimonials)
-            if request:
-                if count:
-                    messages.info(
-                        request,
-                        f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}",
-                    )
-            return count
+
+        count += len(updated_referees) or len(updated_testimonials)
+        if request:
+            if count:
+                messages.info(
+                    request,
+                    f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}",
+                )
+        return count
 
     class Meta(OrderableModel.Meta):
         db_table = "round"
