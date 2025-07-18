@@ -4622,9 +4622,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
             token = self.survey_token or self.make_survey_token()
             if self.survey_token and self.survey_token_id:
                 properties = api.token.get_participant_properties(
-                    survey_id, self.survey_token_id, {"token": token, "email": email}
+                    survey_id, None, {"token": token, "email": email}
                 )
-                pass
             if not self.survey_token:
                 self.survey_token = token
             if not self.survey_token or not self.survey_token_id:
@@ -4798,8 +4797,8 @@ class Referee(RefereeMixin, PersonMixin, Model):
             and (server_url := r.survey_server_url)
         ):
             if server_url.endswith("/"):
-                return f"{server_url}{survey_id}?token={token}"
-            return f"{server_url}/{survey_id}?token={token}"
+                return f"{server_url}{survey_id}?token={token}&newtest=Y"
+            return f"{server_url}/{survey_id}?token={token}&newtest=Y"
 
     @fsm_log
     @transition(field=state, source=["*"], target="testified")
@@ -5404,6 +5403,18 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         target="sent",
     )
     def send(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
+        return self.dispatch(request=request, by=by, exclude_sender=exclude_sender, *args, **kwargs)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="sent",
+    )
+    def resend(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
+        return self.dispatch(request=request, by=by, exclude_sender=exclude_sender, *args, **kwargs)
+
+    def dispatch(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
         if not by:
             by = request.user if request else self.inviter
         url = reverse("onboard-with-token", kwargs=dict(token=self.token))
@@ -8189,7 +8200,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     def withdraw(self, *args, **kwargs):
         pass
 
-    def send_invitation(self, *args, **kwargs):
+    def send_invitation(self, resend=False, *args, **kwargs):
         i, created = Invitation.get_or_create(
             type=INVITATION_TYPES.A,
             nomination=self,
@@ -8204,7 +8215,10 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 inviter=self.nominator,
             ),
         )
-        i.send(*args, **kwargs)
+        if resend:
+            i.resend(*args, **kwargs)
+        else:
+            i.send(*args, **kwargs)
         i.save()
         return (i, created)
 

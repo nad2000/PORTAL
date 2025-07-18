@@ -2147,7 +2147,7 @@ class RefereeAdmin(
                 f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
             )
 
-    @admin.display(description="survey participant")
+    @admin.display(description="survey participant", ordering="survey_token")
     def participant_link(self, obj):
         if (token_id := obj.survey_token_id) and (survey_id := obj.application.round.survey_id):
             url = (
@@ -2354,7 +2354,7 @@ class PanellistAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, admin.M
             models.Invitation.where(~Q(state="accepted"), panellist__in=queryset, type="P")
         )
         for i in invitations:
-            i.send(request)
+            i.resend(request)
             i.save()
             recipients.append(i.panellist)
 
@@ -2540,7 +2540,7 @@ class NominationAdmin(UnaccentMixin, PdfFileAdminMixin, FSMTransitionMixin, Hist
     def resend_invitations(self, request, queryset):
         recipients = []
         for o in queryset.filter(state__in=["submitted", "bounced"]):
-            o.send_invitation(request)
+            o.send_invitation(request, resend=True)
             recipients.append(o)
 
         messages.success(
@@ -2812,7 +2812,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
     def resend(self, request, queryset):
         recipients = []
         for o in queryset:
-            o.send(request)
+            o.resend(request)
             o.save()
             recipients.append(o)
 

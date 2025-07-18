@@ -1132,6 +1132,20 @@ def get_survey_api_url():
 
 
 def do_survey(request, survey_id=None, token=None, referee_id=None):
+    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k=='YII_CSRF_TOKEN']
+    if lime_cookies:
+        # resp = HttpResponseRedirect(request.get_full_path())
+        resp = render(
+                request,
+                "delete_cookies_and_redirect.html",
+                {
+                    "cookies": lime_cookies,
+                    "url": request.get_full_path(),
+                })
+        host, *rest = request.get_host().split(":")
+        for k in lime_cookies:
+            resp.delete_cookie(k, path="/", domain=host)
+        # return resp
     u = request.user
     if not u.is_authenticated:
         i = None
@@ -1257,7 +1271,13 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             return redirect("application", pk=r.application_id)
         return redirect(request.META.get("HTTP_REFERER", "index"))
 
-    return redirect(r.survey_url)
+    resp = HttpResponseRedirect(r.survey_url)
+    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k=='YII_CSRF_TOKEN']
+    if lime_cookies:
+        host, *rest = request.get_host().split(":")
+        for k in lime_cookies:
+            resp.delete_cookie(k, path="/", domain=host)
+    return resp
 
 
 @login_required
