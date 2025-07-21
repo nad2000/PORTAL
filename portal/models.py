@@ -4603,12 +4603,16 @@ class Referee(RefereeMixin, PersonMixin, Model):
     def survey_api(self):
         return self.application.round.survey_api
 
+    @cached_property
+    def survey_id(self):
+        return self.application.round.survey_id
+
     def activate_tokens(self, api=None):
         return self.application.round.activate_tokens(api=api)
 
     def add_to_survey(self, api=None):
         # Inviation to participate in the survey:
-        if survey_id := self.application.round.survey_id:
+        if survey_id := self.survey_id:
             u = self.user
             email = self.email.lower()
             if not u and (ea := EmailAddress.objects.filter(email__lower=email).first()):

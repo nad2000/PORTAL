@@ -1,4 +1,5 @@
 import io
+import base64
 import json
 import mimetypes
 import os
@@ -1132,16 +1133,17 @@ def get_survey_api_url():
 
 
 def do_survey(request, survey_id=None, token=None, referee_id=None):
-    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k=='YII_CSRF_TOKEN']
+    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k == "YII_CSRF_TOKEN"]
     if lime_cookies:
         # resp = HttpResponseRedirect(request.get_full_path())
         resp = render(
-                request,
-                "delete_cookies_and_redirect.html",
-                {
-                    "cookies": lime_cookies,
-                    "url": request.get_full_path(),
-                })
+            request,
+            "delete_cookies_and_redirect.html",
+            {
+                "cookies": lime_cookies,
+                "url": request.get_full_path(),
+            },
+        )
         host, *rest = request.get_host().split(":")
         for k in lime_cookies:
             resp.delete_cookie(k, path="/", domain=host)
@@ -1272,7 +1274,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         return redirect(request.META.get("HTTP_REFERER", "index"))
 
     resp = HttpResponseRedirect(r.survey_url)
-    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k=='YII_CSRF_TOKEN']
+    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k == "YII_CSRF_TOKEN"]
     if lime_cookies:
         host, *rest = request.get_host().split(":")
         for k in lime_cookies:
@@ -9573,7 +9575,33 @@ class TestimonialList(
                     (
                         _("Survey Token"),
                         django_tables2.Column(_("Survey Token"), "referee__survey_token"),
-                    )
+                    ),
+                    (
+                        _("Survey Completed"),
+                        django_tables2.Column(
+                            _("Survey Completed"), "referee__survey_completed_at"
+                        ),
+                    ),
+                    (
+                        _("Export Survey"),
+                        django_tables2.LinkColumn(
+                            "survey-response",
+                            args=[django_tables2.A("referee_id")],
+                            orderable=False,
+                            # kwargs={"format": "pdf", "pk": django_tables2.A("pk")},
+                            text=gettext_lazy("Export Survey"),
+                            attrs={
+                                "a": {
+                                    "class": "btn btn-primary btn-sm",
+                                    # "target": "_blank",
+                                    "data-toggle": "tooltip",
+                                    "target": "_blank",
+                                    "title": gettext_lazy("Export the referee survey response"),
+                                },
+                                "td": {"class": "text-center"},
+                            },
+                        ),
+                    ),
                 ]
             }
         return kwargs
@@ -12348,6 +12376,41 @@ class ChangeRequestDetail(DetailView):
     #     if not (u.is_superuser or u.is_site_staff):
     #         qs = qs.filter(Q(members__user=u) | Q(org__research_offices__user=u)).distinct()
     #     return qs
+
+
+@login_required
+def lime_response(request, referee_id):
+    r = get_object_or_404(models.Referee, pk=referee_id)
+    u = request.user
+    if not u.is_admin or not r.user != u:
+        messages.error(request, _("You have no permission to view this referee report"))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    if not r.survey_completed_at:
+        messages.error(request, _("The survey has not yet been completed..."))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    api = r.survey_api
+    survey_id = r.survey_id
+    resp = api.query(
+        method="export_responses_by_token",
+        params={
+            "sSessionKey": api.session_key,
+            "iSurveyID": survey_id,
+            "sDocumentType": "pdf",  ## csv, xls, doc, json
+            "aTokens": r.survey_token,
+            # "sHeadingType": "full",  ## 'code', 'abbreviated'
+            "sHeadingType": "abbreviated",  ## 'code', 'abbreviated'
+            "sResponseType": "long",  ## 'short'
+        },
+    )
+    if isinstance(resp, dict) and (status := resp.get("status")):
+        messages.error(request, status)
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    content = io.BytesIO()
+    content.write(base64.b64decode(resp.encode("ascii")))
+    content.seek(0)
+    response = FileResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = f"inline; filename={r}.pdf"
+    return response
 
 
 @login_required

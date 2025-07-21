@@ -374,6 +374,7 @@ urlpatterns = [
             [
                 path("webhook/", views.survey_webhook, name="survey-webhook"),
                 path("complete/", views.complete_survey, name="survey-complete"),
+                path("<int:referee_id>/response", views.lime_response, name="survey-response"),
                 path("<int:survey_id>/<token>", views.do_survey, name="survey-do"),
                 path("<int:referee_id>", views.do_survey, name="survey-referee"),
             ]
