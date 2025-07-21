@@ -371,9 +371,13 @@
         {% if testimonial_count %}
         <a href="{% url 'testimonials' %}" id="testimonials" {% if category == "testimonials" %} class="text-white"{% endif %}>
         {% else %}
-        <span data-toggle="tooltip" title="{% trans 'No testimonials saved or submitted' %}">
+        <span data-toggle="tooltip" title="{% if SITE_ID == 5 %}{% trans 'No referee report saved or submitted' %}{% else %}{% trans 'No testimonials saved or submitted' %}{% endif %}">
         {% endif %}
-          {% trans 'Testimonials' %}
+          {% if SITE_ID == 5 %}
+            {% trans 'Referee Reports' %}
+          {% else %}
+            {% trans 'Testimonials' %}
+          {% endif %}
         <span class="badge badge-primary{% if category == "testimonials" %} bg-secondary{% endif %}">{{ testimonial_count }}</span>
         {% if testimonial_count %}</a>{% else %}</span>{% endif %}
     </div>
@@ -431,7 +435,7 @@
   {% if u.is_superuser or is_staff or review_count > 0 or score_sheet_count > 0 or u.is_site_staff %}
     <div class="card mb-2">
       <div class="card-header">
-        {% if testimonial_count %}
+        {% if review_count %}
         <a href="{% url 'reviews' %}" id="reviews" {% if category == "reviews" %} class="text-white"{% endif %}>
         {% else %}
         <span data-toggle="tooltip" title="{% trans 'No reviews saved or submitted' %}">
@@ -439,7 +443,7 @@
 
           {% trans 'Reviews' %}
         <span class="badge badge-primary{% if category == "reviews" %} bg-secondary{% endif %}">{{ review_count }}</span>
-        {% if testimonial_count %}</a>{% else %}</span>{% endif %}
+        {% if review_count %}</a>{% else %}</span>{% endif %}
 
       </div>
       {% if category == "reviews" %}
