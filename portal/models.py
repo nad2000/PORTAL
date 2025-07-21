@@ -7168,18 +7168,23 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             # )
             has_participant_table = None
             for r in q:
+                if not r.survey_token_id:
+                    resp = api.token.get_participant_properties(
+                        self.survey_id, r.survey_token_id
+                    )
+                    breakpoint()
+                    r.survey_token_id = resp.get("tid")
                 if not r.survey_token:
                     r.survey_token = r.make_survey_token()
                 try:
                     for _attempt in range(2):  # 2 attempts
-
                         if r.survey_token_id:
                             resp = api.token.get_participant_properties(
                                 self.survey_id, r.survey_token_id
                             )
                         else:
                             resp = api.token.get_participant_properties(
-                                self.survey_id, None, {"token": r.survey_token}
+                                    self.survey_id, None, {"token": r.survey_token, "email": r.email}
                             )
                         if (
                             not has_participant_table
