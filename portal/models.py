@@ -5403,7 +5403,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         target="sent",
     )
     def send(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
-        return self.dispatch(request=request, by=by, exclude_sender=exclude_sender, *args, **kwargs)
+        return self.dispatch(
+            request=request, by=by, exclude_sender=exclude_sender, *args, **kwargs
+        )
 
     @fsm_log
     @transition(
@@ -5412,7 +5414,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         target="sent",
     )
     def resend(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
-        return self.dispatch(request=request, by=by, exclude_sender=exclude_sender, *args, **kwargs)
+        return self.dispatch(
+            request=request, by=by, exclude_sender=exclude_sender, *args, **kwargs
+        )
 
     def dispatch(self, request=None, by=None, exclude_sender=False, *args, **kwargs):
         if not by:
@@ -7168,13 +7172,17 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             # )
             has_participant_table = None
             for r in q:
-                if not r.survey_token_id:
-                    resp = api.token.get_participant_properties(
-                        self.survey_id, r.survey_token_id
-                    )
-                    breakpoint()
-                    r.survey_token_id = resp.get("tid")
-                if not r.survey_token:
+                if r.survey_token_id and r.survey_token:
+                    resp = api.token.get_participant_properties(self.survey_id, r.survey_token_id)
+                    if isinstance(resp, dict):
+                        if (
+                            "token" in resp.get("token") == r.survey_token
+                            and resp.get("email") == r.email
+                        ):
+                            continue
+                        r.survey_token = resp.get("token")
+                elif not r.survey_token:
+                    r.survey_token_id = None
                     r.survey_token = r.make_survey_token()
                 try:
                     for _attempt in range(2):  # 2 attempts
@@ -7184,7 +7192,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                             )
                         else:
                             resp = api.token.get_participant_properties(
-                                    self.survey_id, None, {"token": r.survey_token, "email": r.email}
+                                self.survey_id, None, {"token": r.survey_token, "email": r.email}
                             )
                         if (
                             not has_participant_table
@@ -7382,11 +7390,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             if count:
                 messages.info(
                     request,
-                    f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}",
+                    f"Synced and/or updated {len(updated_referees)} referee(s): {', '.join(r.email for r in updated_referees)}",
                 )
         else:
             if count:
-                logger.error(f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}")
+                logger.info(
+                    f"Synced and/or updated {len(updated_referees)} referee(s): {', '.join(r.email for r in updated_referees)}"
+                )
         return count
 
     class Meta(OrderableModel.Meta):
