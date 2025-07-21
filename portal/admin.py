@@ -2169,6 +2169,7 @@ class RefereeAdmin(
         # "survey_completed_at",
     ]
     search_fields = [
+        "survey_token",
         "first_name",
         "last_name",
         "email",
