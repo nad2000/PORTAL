@@ -7222,17 +7222,25 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 fixed_referees.append(r)
             if fixed_referees:
                 count += len(fixed_referees)
-                bulk_update_with_history(
-                    fixed_referees,
-                    Referee,
-                    [
-                        "survey_token_id",
-                        "survey_token",
-                        "updated_at",
-                    ],
-                    default_user=by or request and request.user,
-                    default_change_reason="Fixed the Lime Survey Token",
-                )
+                try:
+                    bulk_update_with_history(
+                        fixed_referees,
+                        Referee,
+                        [
+                            "survey_token_id",
+                            "survey_token",
+                            "updated_at",
+                        ],
+                        default_user=by or request and request.user,
+                        default_change_reason="Fixed the Lime Survey Token",
+                    )
+                except Exception as ex:
+                    if request:
+                        messages.error(request, f"Failed to sync tokens and token IDs: {ex}")
+                    else:
+                        logger.error(f"Failed to sync tokens and token IDs: {ex}")
+                        for r in fixed_referees:
+                            logger.warning(f"* {r}: {r.survey_token} / {r.survey_token_id}")
 
             # q = q.filter(Q(user=request.user) | Q(email=request.user.email))
             resp = api.query(
