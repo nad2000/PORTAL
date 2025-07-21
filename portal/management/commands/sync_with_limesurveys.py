@@ -31,6 +31,8 @@ class Command(BaseCommand):
                     if sync_count:
                         print(f"{sync_count} referee(s) synced for round {r}")
                         count += sync_count
+                    else:
+                        print(f"All referees were already synced (round: {r}).")
                 except Exception as ex:
                     capture_exception(ex)
                     print(f"{ex}")
