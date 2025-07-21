@@ -7381,7 +7381,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 )
         else:
             if count:
-            logger.error(f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}")
+                logger.error(f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}")
         return count
 
     class Meta(OrderableModel.Meta):
