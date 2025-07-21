@@ -33,7 +33,7 @@ class Command(BaseCommand):
                         count += sync_count
                 except Exception as ex:
                     capture_exception(ex)
-                    print(f"{x}")
+                    print(f"{ex}")
             if not count:
                 print("All referees were already synced.")
             if q.count() > 1:
