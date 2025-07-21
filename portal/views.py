@@ -12385,7 +12385,7 @@ class ChangeRequestDetail(DetailView):
 def lime_response(request, referee_id):
     r = get_object_or_404(models.Referee, pk=referee_id)
     u = request.user
-    if not u.is_admin or not r.user != u:
+    if not (u.is_admin or r.user != u):
         messages.error(request, _("You have no permission to view this referee report"))
         return redirect(request.META.get("HTTP_REFERER") or "start")
     if not r.survey_completed_at:
