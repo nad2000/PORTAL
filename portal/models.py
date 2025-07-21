@@ -4410,7 +4410,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     testified_at = MonitorField(
         monitor="state", when=["testified"], null=True, default=None, blank=True
     )
-    survey_token_id = PositiveIntegerField(null=True, blank=True, default=None, unique=True)
+    survey_token_id = PositiveIntegerField(null=True, blank=True, default=None)
     survey_token = CharField(max_length=100, null=True, blank=True, default=None, unique=True)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
