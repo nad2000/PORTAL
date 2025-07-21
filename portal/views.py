@@ -12391,6 +12391,9 @@ def lime_response(request, referee_id):
     if not r.survey_completed_at:
         messages.error(request, _("The survey has not yet been completed..."))
         return redirect(request.META.get("HTTP_REFERER") or "start")
+    output_format = request.GET.get("format", "pdf")
+    filename = f"{r}.{output_format}"
+    mime_type, _encoding = mimetypes.guess_type(filename)
     api = r.survey_api
     survey_id = r.survey_id
     resp = api.query(
@@ -12398,10 +12401,9 @@ def lime_response(request, referee_id):
         params={
             "sSessionKey": api.session_key,
             "iSurveyID": survey_id,
-            "sDocumentType": "pdf",  ## csv, xls, doc, json
+            "sDocumentType": output_format,
             "aTokens": r.survey_token,
-            # "sHeadingType": "full",  ## 'code', 'abbreviated'
-            "sHeadingType": "abbreviated",  ## 'code', 'abbreviated'
+            "sHeadingType": "full",  ## 'code', 'abbreviated'
             "sResponseType": "long",  ## 'short'
         },
     )
@@ -12411,8 +12413,8 @@ def lime_response(request, referee_id):
     content = io.BytesIO()
     content.write(base64.b64decode(resp.encode("ascii")))
     content.seek(0)
-    response = FileResponse(content, content_type="application/pdf")
-    response["Content-Disposition"] = f"inline; filename={r}.pdf"
+    response = FileResponse(content, content_type=mime_type)
+    response["Content-Disposition"] = f"inline; filename={filename}"
     return response
 
 
