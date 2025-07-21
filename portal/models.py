@@ -7151,6 +7151,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def sync_referee_surveys(self, request=None, by=None, referees=None):
         count = 0
+        if not by and request:
+            by = request.user
+        if not request:
+            logger = logging.getLogger("root")
         if not self.survey_id:
             return count
         try:
@@ -7213,7 +7217,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         "survey_token",
                         "updated_at",
                     ],
-                    default_user=request and request.user,
+                    default_user=by or request and request.user,
                     default_change_reason="Fixed the Lime Survey Token",
                 )
 
@@ -7272,10 +7276,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     r.survey_token_id = p["tid"]
                 r.survey_completed_at = p["completed_at"]
                 r._change_reason = f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
-                if request:
+                if by:
+                    r._history_user = by
+                elif request:
                     r._history_user = request.user
                 if not self.testimonials_required and r.state != "testified":
-                    r.testify(request, by=request.user, description=r._change_reason, commit=False)
+                    r.testify(request, by=by, description=r._change_reason, commit=False)
                     if not r.testified_at or r.testified_at < r.survey_completed_at:
                         r.testified_at = r.survey_completed_at
                 updated_referees.append(r)
@@ -7297,7 +7303,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                                 updated_testimonials,
                                 Testimonial,
                                 ["state", "state_changed_at", "updated_at"],
-                                default_user=request and request.user,
+                                default_user=by,
                                 default_change_reason="Synced with LimeSurvey",
                             )
                         bulk_update_with_history(
@@ -7311,7 +7317,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                                 "state_changed_at",
                                 "updated_at",
                             ],
-                            default_user=request and request.user,
+                            default_user=by,
                             default_change_reason="Synced with LimeSurvey",
                         )
 
@@ -7337,7 +7343,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 t, _ = Testimonial.get_or_create(referee=r)
                 if t.state != "submitted":
                     t.submit(
-                        by=r.user or request.user,
+                        by=by,
                         description=description,
                         commit=False,
                         request=request,
@@ -7355,12 +7361,15 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 re_updated_testimonials,
                 Testimonial,
                 ["state", "state_changed_at", "updated_at"],
-                default_user=request and request.user,
+                default_user=by,
                 default_change_reason="Synced with LimeSurvey",
             )
 
         except Exception as ex:
-            messages.error(request, f"{ex}")
+            if request:
+                messages.error(request, f"{ex}")
+            else:
+                logger.error(f"{ex}")
             raise
 
         count += len(updated_referees) or len(updated_testimonials)
@@ -7370,6 +7379,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     request,
                     f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}",
                 )
+        else:
+            if count:
+            logger.error(f"Synced {count} referee(s): {', '.join(r.email for r in updated_referees)}")
         return count
 
     class Meta(OrderableModel.Meta):
