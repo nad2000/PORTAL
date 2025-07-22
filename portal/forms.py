@@ -276,7 +276,7 @@ class FormWithStateFieldMixin:
                 or instance.updated_at
             )
             attrs["invitation"] = invitation
-            state = invitation and invitation.state or instance.state
+            state = instance.state or invitation and invitation.state
             if (
                 state == "accepted"
                 and instance
