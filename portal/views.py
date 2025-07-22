@@ -4099,13 +4099,22 @@ class ApplicationDetail(DetailView):
         r = a.round
         site_id = a.site_id
         u = self.request.user
+        referee = a.referees.filter(
+            Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
+        ).last()
         if a and site_id in [2, 5]:
-            if u.is_admin:
+            if referee or u.is_admin:
                 # context["documents"] = list(
-                context["attachments"] = list(
-                    a.documents.filter(~Q(file=""), file__isnull=False).order_by(
-                        "required_document__ordering"
-                    )
+                qs = a.documents.filter(~Q(file=""), file__isnull=False).order_by(
+                    "required_document__ordering"
+                )
+                if referee:
+                    qs = qs.filter(required_document__referees_can_access=True)
+                context["attachments"] = list(qs)
+                context["required_documents"] = (
+                    r.required_documents.filter(referees_can_access=True)
+                    if referee
+                    else r.required_documents.all()
                 )
             else:
                 context["documents"] = a.user_documents_dict(self.request.user)
@@ -4148,7 +4157,7 @@ class ApplicationDetail(DetailView):
             and not is_owner
             and a.referees.filter(
                 Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
-            )
+            ).exists()
         )
 
         if site_id in [2, 5] and not is_ro and is_owner and a.state in ["in_review", "submitted"]:

@@ -201,11 +201,11 @@
           </td>
         </tr>
 
-      {% if user.is_admin and attachments %}
+      {% if user.is_admin and attachments or referee and attachments %}
           <tr>
               <th colspan="4" class="table-dark" scope="row">{% trans 'Attached Documents' %}</th>
           </tr>
-        {% for rd in a.round.required_documents.all %}
+        {% for rd in required_documents %}
           <tr>
             <th class="table-secondary" scope="row">{{ rd }}{% if rd.is_optional %} (<i>{% trans 'optional' %}</i>){% endif %}</th>
             <td colspan="3">
