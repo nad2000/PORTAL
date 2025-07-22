@@ -2150,9 +2150,7 @@ class RefereeAdmin(
     @admin.display(description="survey participant", ordering="survey_token")
     def participant_link(self, obj):
         if (token_id := obj.survey_token_id) and (survey_id := obj.application.round.survey_id):
-            url = (
-                f"{self.limesurvey_admin_url}tokens/sa/edit/iSurveyId/{survey_id}/iTokenId/{token_id}"
-            )
+            url = f"{self.limesurvey_admin_url}tokens/sa/edit/iSurveyId/{survey_id}/iTokenId/{token_id}"
             return mark_safe(
                 f'<a href="{url}" target="_blank">{obj.survey_token or obj.email}</a>'
             )
@@ -3204,9 +3202,12 @@ class RoundAdmin(
     ]
     list_editable = ["ordering"]
     ordering_field_hide_input = True
-    list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at",
+    list_filter = [
+        IsActiveRoundListFilter,
+        "opens_on",
+        "closes_at",
         ("scheme", admin.RelatedOnlyFieldListFilter),
-               ]
+    ]
     date_hierarchy = "opens_on"
     exclude = [
         "site",

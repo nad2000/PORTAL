@@ -1423,10 +1423,12 @@ class Organisation(Model):
                     a.save(update_fields=["number"])
 
     @classmethod
-    def search_query(cls, term, queryset=None, nominator=None, user=None):
+    def search_query(cls, term, queryset=None, nominator=None, user=None, only_active=True):
         """Organisation search query for autocomplete and select2."""
         # def get_queryset(self):
         q = queryset or cls.objects.all()
+        if only_active:
+            q = q.filter(is_active=True)
         if nominator:
             q = q.filter(Q(research_offices__user_id=nominator))
         if user:
