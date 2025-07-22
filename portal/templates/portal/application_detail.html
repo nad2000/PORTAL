@@ -21,21 +21,11 @@
 {% endblock %}
 {% endif %}
 
-{% block content %}
-
-{% if form %}{% crispy form %}{% endif %}
-
-
+{% block buttons_above %}
+{% block buttons_bellow %}
 
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
-
-{% block tags %}{{ block.super }}{% endblock %}
-
-<div class="table-responsive">
-  {% include 'snippets/application_detail_table.html' %}
-</div>
-
-<form method="post" id="id_action_form">
+<form method="post" class="action-form">
   {% csrf_token %}
   <input type="hidden" name="action" id="id_action">
   <div class="buttonHolder mb-5 mt-3 float-right">
@@ -92,15 +82,37 @@
           </a>
         </div>
         {% endif %}
-
         {% if testimonial or referee   %}
-
+          {% if testimonial %}<input type="hidden" name="testimonial_id" value="{{ testimonial.pk }}"> {% endif %}
+          {% if referee  %}<input type="hidden" name="referee_id" value="{{ referee.pk }}">{% endif %}
+        <div class="tooltip-wrapper{% if not can_decline %} disabled{% endif %}"
+             {% if not can_decline %}
+             disabled
+             data-title="{% trans 'The referee report has been already submitted or declined' %}"
+             {% elif testimonial.state == "submitted" %}
+             disabled
+             data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
+             {% else %}
+             data-title="{% trans 'Decline to provid a referee report' %}"
+             {% endif %}
+          >
+            <button type="button"
+              name="turn_down"
+              class="btn btn-outline-danger{% if not can_decline %} disabled{% endif %}"
+              data-toggle="modal"
+              data-action="turn_down"
+              data-target="#id_resolution_modal"
+              {% if not can_decline %}disabled{% endif %}
+            >
+            {% trans 'I do not wish to provide a testimonial' %}
+            </button>
+        </div>
 
         {% if referee.survey_token_id or referee.survey_token_id or testimonial.referee.survey_token_id or testimonial.referee.survey_token_id %}
         <div class="tooltip-wrapper{% if testimonial.state == "submitted" or referee.survey_completed_at %} disabled{% endif %}"
              {% if referee.survey_completed_at %}
              disabled
-             data-title="{% trans 'The referee report has been already submitted' %}"
+             data-title="{% trans 'The referee report has been already submitted or declined' %}"
              {% elif testimonial.state == "submitted" %}
              disabled
              data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
@@ -316,7 +328,17 @@
     {% endif %}
   </div>
 </form>
+{% endwith %}
+{% endblock buttons_bellow %}
+{% endblock buttons_above %}
 
+{% block object_details_table %}
+{% if form %}{% crispy form %}{% endif %}
+{% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
+{% block tags %}{{ block.super }}{% endblock %}
+<div class="table-responsive">
+  {% include 'snippets/application_detail_table.html' %}
+</div>
 {% endwith %}
 {% endblock %}
 
@@ -369,7 +391,7 @@
         },
         buttonsStyling: false
       });
-      $("#id_action_form").submit(function(e) {
+      $("#id_action_form,form.action-form").submit(function(e) {
         if ($(this).find("input[name='action']").val() == "approve" && !$("#id_declaration_accepted_check").is(':checked')) {
           e.preventDefault();
           swalWithBootstrapButtons.fire("{% trans 'Please accept the <strong>Agent Declaration<strong>!' %}");

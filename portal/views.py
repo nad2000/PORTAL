@@ -249,11 +249,15 @@ def impersonate(request, username):
     ):
         username = m[1]
     u = User.objects.filter(
-        Q(username__istartswith=username) | Q(email__istartswith=username) | Q(emailaddress__email__istartswith=username)
+        Q(username__istartswith=username)
+        | Q(email__istartswith=username)
+        | Q(emailaddress__email__istartswith=username)
     ).first()
     resp = redirect(request.META.get("HTTP_REFERER") or "start")
     if not u:
-        messages.warning(request, _(f"A user matching the entered parameter '{username}' does not exist!"))
+        messages.warning(
+            request, _(f"A user matching the entered parameter '{username}' does not exist!")
+        )
     elif request.user.pk != u.pk:
         resp.set_cookie("original_user_id", request.user.pk, max_age=36000, secure=True)
         log_rec = models.Impersonation.create(user=request.user, impersonated=u)
@@ -3881,7 +3885,7 @@ class ApplicationDetail(DetailView):
                 .order_by("-id")
                 .first()
             )
-            if referee:
+            if referee and referee.state != "opted_out":
                 survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
                 site = models.Site.objects.get_current()
                 messages.info(
@@ -3902,15 +3906,35 @@ class ApplicationDetail(DetailView):
         if "save_tags" in request.POST and hasattr(self.model, "tags"):
             return super().post(request, *args, **kwargs)
 
-        self.object = self.get_object()
+        a = self.object = self.get_object()
+        u = request.user
+        if (
+            (action := request.POST.get("action"))
+            and action == "turn_down"
+            and (
+                referee := (
+                    models.Referee.get(referee_id)
+                    if (referee_id := request.POST.get("referee_id"))
+                    else a.referees.filter(user=u).last()
+                )
+            )
+        ):
+            referee.opt_out(
+                request=request,
+                by=u,
+                description=request.POST.get("resolution", _("User opted out...")),
+            )
+            referee.save()
+            reset_cache(request)
+            return redirect("index")
+
         if member := self.get_member():
             if not member.user:
-                member.user = self.request.user
+                member.user = u
 
             if "submit" in request.POST:
                 if self.object.site_id == 2:
                     form = self.get_member_form(instance=member)
-                    u = request.user
                     if form.is_valid():
                         if "cv" in form.changed_data and (cv_file := request.FILES.get("cv")):
                             models.CurriculumVitae.create(
@@ -4203,12 +4227,17 @@ class ApplicationDetail(DetailView):
                 or a.org.where(research_offices__user=u).exists()
             )
             if referee := a.referees.filter(
-                Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
+                Q(user=u)
+                | Q(
+                    email__lower__in=u.emailaddress_set.values_list("email__lower")
+                )  ## , ~Q(state="opted_out")
             ).last():
                 context["referee"] = referee
+                can_change_testimonial = referee.state not in ["opted_out", "testified"]
+                if site_id in [2, 5]:
+                    context["export_enabled"] = can_change_testimonial
+                context["can_decline"] = can_change_testimonial
                 if t := models.Testimonial.where(referee=referee).order_by("-pk").first():
-                    if site_id in [2, 5]:
-                        context["export_enabled"] = True
                     context["testimonial"] = t
                     if t.state != "submitted":
                         closes_at = r.closes_at
@@ -4230,7 +4259,7 @@ class ApplicationDetail(DetailView):
                             site_id not in [2, 5]
                             or (closes_at and closes_at <= timezone.now())
                             or a.state == "in_review"
-                        ):
+                        ) and referee.state != "opted_out":
                             messages.info(
                                 self.request,
                                 (
@@ -4245,20 +4274,22 @@ class ApplicationDetail(DetailView):
                             )
                         else:
                             context["reviewing_disabled"] = True
-                            closes_at_date = closes_at and closes_at.date().isoformat()
-                            messages.warning(
-                                self.request,
-                                (
+                            if closes_at and closes_at < timezone.now():
+                                closes_at_date = closes_at and closes_at.date().isoformat()
+                                messages.warning(
+                                    self.request,
                                     _(
                                         "The application reviewing will be open after the application "
                                         f"submission is closed (on <b>{closes_at_date}</b>)."
-                                    )
-                                    if closes_at_date
-                                    else _(
+                                    ),
+                                )
+                            elif a.state not in ["submitted", "in_review"]:
+                                messages.warning(
+                                    self.request,
+                                    _(
                                         "The application reviewing will be open after the application submission is closed."
-                                    )
-                                ),
-                            )
+                                    ),
+                                )
 
         # context["tag_form"] = self.tag_form()
 
@@ -9639,7 +9670,9 @@ class TestimonialDetail(DetailView):
             if a.site_id in [2, 5]:
                 context["documents"] = a.documents_dict
             if r.survey_id and referee.survey_token_id and referee.survey_completed_at:
-                context["export_url"] = reverse("survey-response", kwargs={"referee_id": referee.pk})
+                context["export_url"] = reverse(
+                    "survey-response", kwargs={"referee_id": referee.pk}
+                )
                 context["export_tooltip"] = _(f"Export survey response")
             elif not (t and t.file):  ## and not referee.survey_completed_at:
                 context["export_url"] = reverse("application-export", kwargs={"pk": a.pk})

@@ -4828,15 +4828,26 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
     @fsm_log
     @transition(field=state, source=["*"], target="opted_out")
-    def opt_out(self, user=None, request=None, *args, **kwargs):
+    def opt_out(self, user=None, by=None, request=None, *args, **kwargs):
         if not user:
-            if request:
+            if by:
+                user = by
+            elif request:
                 user = request.user
             else:
                 user = self.user
         # self.has_testifed = False
         a = self.application
         r = a.round
+        for i in Invitation.where(
+                ~Q(state__in=["accepted"]),
+                referee=self):
+            i.accept(
+                by=by,
+                request=request,
+                description=request.POST.get("resolution", _("User opted out...")),
+            )
+            i.save()
         detail_url = a.get_full_detail_url(request)
         update_url = a.get_full_update_url(request)
         if a.site_id == 5:
