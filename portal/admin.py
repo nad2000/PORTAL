@@ -3204,7 +3204,9 @@ class RoundAdmin(
     ]
     list_editable = ["ordering"]
     ordering_field_hide_input = True
-    list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
+    list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at",
+        ("scheme", admin.RelatedOnlyFieldListFilter),
+               ]
     date_hierarchy = "opens_on"
     exclude = [
         "site",
