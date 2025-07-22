@@ -4115,7 +4115,7 @@ class ApplicationDetail(DetailView):
                     r.required_documents.filter(referees_can_access=True)
                     if referee
                     else r.required_documents.all()
-                )
+                ).order_by("ordering")
             else:
                 context["documents"] = a.user_documents_dict(self.request.user)
         if n := models.Nomination.where(application=a).last():
