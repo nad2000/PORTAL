@@ -4836,18 +4836,43 @@ class Referee(RefereeMixin, PersonMixin, Model):
                 user = self.user
         # self.has_testifed = False
         a = self.application
+        r = a.round
         detail_url = a.get_full_detail_url(request)
         update_url = a.get_full_update_url(request)
+        if a.site_id == 5:
+            html_message = f"""
+<p>
+    The referee designated for your application ({self.full_name}),
+    <a href="{detail_url}">{a.number}</a>,
+    has chosen not to provide a report.
+    {self.full_name}has opted out of submitting a referee report.
+</p>
+<p>
+We kindly request that you log in to
+the Portal for <a href="{update_url}">{a.number}</a>
+and designate a new referee at your earliest convenience.
+</p>
+"""
+            if ts := r.testimonial_submission_closes_at:
+                html_message = f"""{html_message}
+<p>Please note that the deadline for submitting referee reports is {ts.strftime('%B %d')}"""
+                if ts.hour != 0:
+                    html_message = f"{html_message} at {ts.strftime('%I:%m %p')}"
+                html_message = f"{html_message}.</p>"
+        else:
+            html_message = (
+                (
+                    f"<p>The referee ({self.full_name}), you entered for your application for "
+                    f'<a href="{detail_url}">{a.number}</a>, has declined to provide a testimonial.</p>'
+                    f'<p>Please login in to the Portal <a href="{update_url}">{a.number}</a> '
+                    "and enter a new referee.</p>"
+                ),
+            )
         send_mail(
             # __("A Referee opted out of Testimonial"),
             # __("Your Referee %s has opted out of Testimonial") % t.referee,
             "A Referee opted out of Testimonial",
-            html_message=(
-                f"<p>The referee ({self.full_name}) your entered for you application for "
-                f'<a href="{detail_url}">{a.number}</a> has declined to provide a testimonial.</p>'
-                f'<p>Please login in to the Portal <a href="{update_url}">{a.number}</a> '
-                "and enter a new referee.</p>"
-            ),
+            html_message=html_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipients=[a.submitted_by.email if a.submitted_by else a.email],
             fail_silently=False,
@@ -5497,6 +5522,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 and self.application.submitted_by.full_name
                 or by.full_name
             )
+            r = application.round
             contact_email = application.round.contact_email or site_contact_email(site_id)
             subject = __("You are invited as a referee for a %(site_name)s application") % {
                 "site_name": site_name
@@ -5544,8 +5570,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                     "We strongly advise clicking on the Referee Guidelines before clicking  "
                     "on the portal link below: %(guidelines)s\n\n"
                     "To review this invitation, please follow the link: %(url)s\n\n"
-                    "If you have any further questions, please contact: %(contact_email)s\n\n"
-                    "Ngā mihi nui"
+                    "If you have any further questions, please contact: %(contact_email)s"
                 )
             ) % dict(
                 inviter=inviter,
@@ -5560,6 +5585,12 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 guidelines=self.referee.guidelines,
                 contact_email=contact_email,
             )
+            if ts := r.testimonial_submission_closes_at:
+                body = f"{body}\n\nPlease note that the deadline for submitting referee reports is {ts.strftime('%B %d')}"
+                if ts.hour != 0:
+                    body = f"{body} at {ts.strftime('%I:%m %p')}"
+                body = f"{body}."
+            body = f"{body}\n\nNgā mihi nui"
             html_body = (
                 (
                     "<p>Tēnā koe,</p><p>You have been invited by %(inviter)s to be a referee "
@@ -5601,12 +5632,18 @@ class Invitation(InvitationMixin, PersonMixin, Model):
                 guidelines=self.referee.guidelines,
                 contact_email=contact_email,
             )
+            if ts:
+                html_body = f"""{html_body}
+<p>Please note that the deadline for submitting referee reports is {ts.strftime('%B %d')}"""
+                if ts.hour != 0:
+                    html_body = f"{html_body} at {ts.strftime('%I:%m %p')}"
+                html_body = f"{html_body}.</p>"
         elif self.type == INVITATION_TYPES.A:
             subject = "You have been nominated for %s" % self.nomination.round
             inviter = (
                 self.nomination
                 and self.nomination.nominator
-                and self.nomination.nominator.full_name
+                and self.nomination.nominathr.full_name
                 or by.full_name
             )
             body = (

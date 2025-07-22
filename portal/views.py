@@ -249,10 +249,12 @@ def impersonate(request, username):
     ):
         username = m[1]
     u = User.objects.filter(
-        Q(username__istartswith=username) | Q(email__istartswith=username)
+        Q(username__istartswith=username) | Q(email__istartswith=username) | Q(emailaddress__email__istartswith=username)
     ).first()
-    resp = redirect("start")
-    if request.user.pk != u.pk:
+    resp = redirect(request.META.get("HTTP_REFERER") or "start")
+    if not u:
+        messages.warning(request, _(f"A user matching the entered parameter '{username}' does not exist!"))
+    elif request.user.pk != u.pk:
         resp.set_cookie("original_user_id", request.user.pk, max_age=36000, secure=True)
         log_rec = models.Impersonation.create(user=request.user, impersonated=u)
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
