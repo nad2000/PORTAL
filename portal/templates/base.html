@@ -683,7 +683,7 @@ You have a request to review a {{ site_name }} application to act on.
           },
           buttonsStyling: false
         });
-        $(document).ready(function(){
+        $(document).ready(function() {
                   $.fn.datepicker.defaults.format = "yyyy-mm-dd";
                   $.fn.datepicker.defaults.autoclose = true;
 
@@ -757,6 +757,14 @@ You have a request to review a {{ site_name }} application to act on.
           }
         }
       {% endif %}
+      $("form").on("submit", function() {
+        $(this).find("select[name*='org'] option[value]").each( function() {
+          if (this.value) {
+            console.log(`"${this.value}:${this.text}"`, this.form);
+            $(this.form).append(`<input name="selected_org_with_label" type="hidden" value="${this.value}:${this.text}">`);
+          }
+        });
+      });
   });
 </script>
     {#% endcompress %#}

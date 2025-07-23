@@ -147,6 +147,32 @@ def __(s):
     return s
 
 
+def check_selected_orgs(request):
+    """Notify the user of updated org names."""
+    selected_orgs = request.POST.getlist("selected_org_with_label", [])
+    if selected_orgs:
+        selected_orgs = dict(
+            t
+            for t in (
+                (lambda k, v: (int(k), v))(*v.split(":"))
+                for v in request.POST.getlist("selected_org_with_label", [])
+            )
+            if t[1] and t[1].strip()
+        )
+        if selected_orgs:
+            qs = models.Organisation.where(
+                ~Q(name__in=selected_orgs.values()), pk__in=selected_orgs.keys()
+            )
+            for o in qs:
+                old_name, new_name = selected_orgs[o.pk], o.name
+                messages.warning(
+                    request,
+                    _(
+                        f"The selected institution name '{old_name}' was replaced and updated with the up-to-date name: '{new_name}'."
+                    ),
+                )
+
+
 def reset_cache(request):
     cache.delete(f"{request.user.username}:{request.site_id}")
 
@@ -4808,6 +4834,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         instance.page_count = None
 
                 resp = super().form_valid(form)
+                check_selected_orgs(request)
                 has_deleted = False
                 a = form.instance or self.object
                 # dispatch invitation to the referees or defer until the application round is closed
@@ -7763,6 +7790,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 msg = _("You have not completed the recognition section.")
             messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
 
+        check_selected_orgs(request)
         return resp
 
 
@@ -8969,6 +8997,7 @@ class NominationView(CreateUpdateView):
                 n.org = n.get_nominator_orgs().last()
 
         resp = super().form_valid(form)
+        check_selected_orgs(request)
 
         if self.request.method == "POST":
             reset_cache(self.request)
