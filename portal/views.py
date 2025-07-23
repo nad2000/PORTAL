@@ -4834,7 +4834,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         instance.page_count = None
 
                 resp = super().form_valid(form)
-                check_selected_orgs(request)
+                check_selected_orgs(self.request)
                 has_deleted = False
                 a = form.instance or self.object
                 # dispatch invitation to the referees or defer until the application round is closed
@@ -8997,7 +8997,7 @@ class NominationView(CreateUpdateView):
                 n.org = n.get_nominator_orgs().last()
 
         resp = super().form_valid(form)
-        check_selected_orgs(request)
+        check_selected_orgs(self.request)
 
         if self.request.method == "POST":
             reset_cache(self.request)
