@@ -150,27 +150,26 @@ def __(s):
 def check_selected_orgs(request):
     """Notify the user of updated org names."""
     selected_orgs = request.POST.getlist("selected_org_with_label", [])
+    selected_orgs = filter(
+        lambda t: t[1] and t[0].isdigit() and t[1].strip(),
+        v.split(":") for v in selected_orgs
+    )
     if selected_orgs:
         selected_orgs = dict(
-            t
-            for t in (
                 (lambda k, v: (int(k), v))(*v.split(":"))
-                for v in request.POST.getlist("selected_org_with_label", [])
-            )
-            if t[1] and t[1].strip()
+                for v in selected_orgs
         )
-        if selected_orgs:
-            qs = models.Organisation.where(
-                ~Q(name__in=selected_orgs.values()), pk__in=selected_orgs.keys()
+        qs = models.Organisation.where(
+            ~Q(name__in=selected_orgs.values()), pk__in=selected_orgs.keys()
+        )
+        for o in qs:
+            old_name, new_name = selected_orgs[o.pk], o.name
+            messages.warning(
+                request,
+                _(
+                    f"The selected institution name '{old_name}' was replaced and updated with the up-to-date name: '{new_name}'."
+                ),
             )
-            for o in qs:
-                old_name, new_name = selected_orgs[o.pk], o.name
-                messages.warning(
-                    request,
-                    _(
-                        f"The selected institution name '{old_name}' was replaced and updated with the up-to-date name: '{new_name}'."
-                    ),
-                )
 
 
 def reset_cache(request):
