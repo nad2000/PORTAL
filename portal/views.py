@@ -154,7 +154,7 @@ def check_selected_orgs(request):
         lambda t: t[1] and t[0].isdigit() and t[1].strip(), (v.split(":") for v in selected_orgs)
     )
     if selected_orgs:
-        selected_orgs = dict((lambda k, v: (int(k), v))(*v.split(":")) for v in selected_orgs)
+        selected_orgs = dict((lambda k, v: (int(k), v))(*v) for v in selected_orgs)
         qs = models.Organisation.where(
             ~Q(name__in=selected_orgs.values()), pk__in=selected_orgs.keys()
         )
