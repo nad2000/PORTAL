@@ -2139,6 +2139,9 @@ class RefereeAdmin(
         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
     )
 
+    # def get_search_results(self, request, queryset, search_term):
+    #     return super().get_search_results(request, queryset, search_term)
+
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
         if obj.state:
@@ -2660,6 +2663,11 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
         classes = ["collapse"]
 
     inlines = [ResearchOfficeInline, NameInline]
+
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (qq := q.strip()) and qq.isupper():
+            return ["^code"]
+        return super().get_search_fields(request)
 
     @admin.action(description="Merge Organisations")
     def merge_orgs(self, request, queryset):
