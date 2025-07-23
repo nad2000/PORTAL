@@ -9630,6 +9630,9 @@ class TestimonialList(
     template_name = "testimonials.html"
     filterset_class = filters.TestimonialFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
+    limesurvey_admin_url = (
+        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+    )
 
     def get_queryset(self, *args, **kwargs):
         state = self.state
@@ -9645,7 +9648,17 @@ class TestimonialList(
                 "extra_columns": [
                     (
                         _("Survey Token"),
-                        django_tables2.Column(_("Survey Token"), "referee__survey_token"),
+                        django_tables2.Column(
+                            _("Survey Token"),
+                            "referee__survey_token",
+                            linkify=lambda record: (
+                                f"{self.limesurvey_admin_url}tokens/sa/edit/iSurveyId/{survey_id}/iTokenId/{token_id}"
+                                if (ref := record.referee)
+                                and (token_id := ref.survey_token_id)
+                                and (survey_id := ref.application.round.survey_id)
+                                else None
+                            ),
+                        ),
                     ),
                     (
                         _("Survey Completed"),
@@ -9654,22 +9667,14 @@ class TestimonialList(
                         ),
                     ),
                     (
-                        _("Export Survey"),
-                        django_tables2.LinkColumn(
-                            "survey-response",
-                            args=[django_tables2.A("referee_id")],
-                            orderable=False,
-                            # kwargs={"format": "pdf", "pk": django_tables2.A("pk")},
-                            text=gettext_lazy("Export Survey"),
+                        _("Export"),
+                        tables.SafeTemplateColumn(
+                            verbose_name=gettext_lazy("Export"),
+                            template_name="partials/export_testimonial.html",
                             attrs={
-                                "a": {
-                                    "class": "btn btn-primary btn-sm",
-                                    # "target": "_blank",
-                                    "data-toggle": "tooltip",
-                                    "target": "_blank",
-                                    "title": gettext_lazy("Export the referee survey response"),
+                                "td": {
+                                    "class": "text-center",
                                 },
-                                "td": {"class": "text-center"},
                             },
                         ),
                     ),
