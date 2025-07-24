@@ -16,7 +16,11 @@
 <script>
   function {{ formset.prefix}}_delete_closest_formset_form_row(element, event) {
     if (event.detail.successful) {
-          $(element).closest("tr").remove();
+        $(element).closest("tr").remove();
+        total_forms = $("input[name='{{ formset.prefix }}-TOTAL_FORMS']");
+        initial_forms = $("input[name='{{ formset.prefix }}-INITIAL_FORMS']");
+        if (total_forms.val()) total_forms.val(total_forms.val()-1);
+        if (initial_forms.val()) initial_forms.val(initial_forms.val()-1);
     }
   }
 </script>

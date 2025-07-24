@@ -4766,6 +4766,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         ):
             return n
 
+    # def form_invalid(self, form):
+    #     return super().form_invalid(form)
+
     def form_valid(self, form):
         instance = form.instance or self.object
         current_state = instance and instance.state
@@ -6851,8 +6854,8 @@ class ContractViewMixin:
     # def post(self, *args, **kwargs):
     #     return super().post(*args, **kwargs)
 
-    # def form_invalid(self, form):
-    #     return super().form_invalid(form)
+    def form_invalid(self, form):
+        return super().form_invalid(form)
 
     def form_valid(self, form):
         i = form.instance
