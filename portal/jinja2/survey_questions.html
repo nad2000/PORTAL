@@ -39,20 +39,25 @@ table.table .asteriskField,.popover-header {color: gray;}
   <body class="d-flex flex-column min-vh-100">
 
 {% block content %}
+  <pre>
+  {{ sql }}
+  </pre>
     <table>
       <tr>
-        <th></th>
-        <th></th>
-        <th></th>
-        <th></th>
+        {% for h in headers %}
+          <th>{{ h }}</th>
+        {% endfor %}
       </tr>
 
   {% for q in questions %}
       <tr>
-        <td>{{ q.sid }}</td>
+        {% for h in headers %}
+          <td>{{ q[h]|safe }}</td>
+        {% endfor %}
+        <!-- td>{{ q.sid }}</td>
         <td>{{ q.gid }}</td>
         <td>{{ q.qid }}</td>
-        <td>{{ q.question|safe }}</td>
+        <td>{{ q.question|safe }}</td -->
       </tr>
 
   {% endfor %}

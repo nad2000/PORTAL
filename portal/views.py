@@ -12478,16 +12478,18 @@ def survey_response(request, referee_id, exclude_confidential=False):
         return redirect(request.META.get("HTTP_REFERER") or "start")
     a = r.application
     with connection.cursor() as cr:
-        cr.execute(
+        sql = (
             "SELECT q.sid, q.gid, q.qid, l.question "
             "FROM lime.question_l10ns AS l JOIN lime.questions AS q "
             "  ON q.qid=l.qid "
             "WHERE q.sid=%s "
-            r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
-            "ORDER BY q.sid, q.gid, q.qid",
-            a.round.survey_id,
         )
-        quesetions = dictfetchall(cr)
+        if exclude_confidential:
+            sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
+        sql += "ORDER BY q.sid, q.gid, q.qid"
+        cr.execute(sql, [a.round.survey_id])
+        headers = [col[0] for col in cr.description]
+        questions = dictfetchall(cr)
     return render(request, "survey_questions.html", locals())
 
 
