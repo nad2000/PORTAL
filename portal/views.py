@@ -12457,6 +12457,40 @@ class ChangeRequestDetail(DetailView):
     #     return qs
 
 
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+
+
+@login_required
+def survey_response(request, referee_id, exclude_confidential=False):
+    r = get_object_or_404(models.Referee, pk=referee_id)
+    u = request.user
+    if not (u.is_admin or r.user != u):
+        messages.error(request, _("You have no permission to view this referee report"))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    if not r.survey_completed_at:
+        messages.error(request, _("The survey has not yet been completed..."))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    a = r.application
+    with connection.cursor() as cr:
+        cr.execute(
+            "SELECT q.sid, q.gid, q.qid, l.question "
+            "FROM lime.question_l10ns AS l JOIN lime.questions AS q "
+            "  ON q.qid=l.qid "
+            "WHERE q.sid=%s "
+            r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
+            "ORDER BY q.sid, q.gid, q.qid",
+            a.round.survey_id,
+        )
+        quesetions = dictfetchall(cr)
+    return render(request, "survey_questions.html", locals())
+
+
 @login_required
 def lime_response(request, referee_id):
     r = get_object_or_404(models.Referee, pk=referee_id)

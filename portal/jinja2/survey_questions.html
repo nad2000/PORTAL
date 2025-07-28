@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{% block title %}{{ site_name }}{% endblock title %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="{{ site_name }}">
+    <meta name="author" content="Royal Society Te Apārangi">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    {#% if domain == "international.royalsociety.org.nz" %#}
+
+      <!-- Latest compiled and minified Bootstrap CSS -->
+      <!-- link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+      <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
+
+      <style>
+table.table .asteriskField,.popover-header {color: gray;}
+.modelselect2multiple {height: auto !important;}
+.jumbotron {padding: 2rem 2rem;}
+/* .tooltip-inner #gravatar-tooltip {text-align: left; white-space: nowrap;} */
+.tooltip-inner {max-width: 300px;}
+.popover {max-width: 400px;}
+.custom-file-label::after {content: "{{ _('Browse') }}";}
+      </style>
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+
+  </head>
+
+  <!-- body class="d-flex flex-column min-vh-100" -->
+  <body class="d-flex flex-column min-vh-100">
+
+{% block content %}
+    <table>
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+
+  {% for q in questions %}
+      <tr>
+        <td>{{ q.sid }}</td>
+        <td>{{ q.gid }}</td>
+        <td>{{ q.qid }}</td>
+        <td>{{ q.question|safe }}</td>
+      </tr>
+
+  {% endfor %}
+    </table>
+
+{% endblock %}
+
+  </body>
+</html>
+
+{# vim:set ft=jinja: #}
