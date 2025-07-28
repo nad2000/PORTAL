@@ -7718,8 +7718,13 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     def turn_off_wizard(self):
         turn_off_wizard(self.request)
 
+    def formset_invalid(self, formset):
+        # breakpoint()
+        return super().formset_invalid(formset)
+
     def formset_valid(self, formset):
         request = self.request
+        # breakpoint()
         url_name = request.resolver_match.url_name
         try:
             resp = super().formset_valid(formset)
