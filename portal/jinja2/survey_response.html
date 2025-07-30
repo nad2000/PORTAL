@@ -25,6 +25,10 @@ table.table .asteriskField,.popover-header {color: gray;}
 .tooltip-inner {max-width: 300px;}
 .popover {max-width: 400px;}
 .custom-file-label::after {content: "{{ _('Browse') }}";}
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
       </style>
 
 </head>
@@ -37,40 +41,67 @@ table.table .asteriskField,.popover-header {color: gray;}
   {{ question_sql }}
   {{ answer_sql }}
   </pre>
-    <table>
-      <tr>
-        {% for h in headers %}
-          <th>{{ h }}</th>
-        {% endfor %}
-      </tr>
+
+    <!-- tr>
+      {% for h in headers %}
+        <th>{{ h }}</th>
+      {% endfor %}
+    </tr -->
 
   {% for g in groups %}
-    <tr>
-        <td colspan="{{ headers|length }}">{{ g.group_name|safe }}</td>
-    </tr>
-    <tr>
-        <td colspan="{{ headers|length }}">{{ g.description|safe }}</td>
-    </tr>
+    {% if not exclude_scores %}
+      <table style="width: 100.0%">
+        <tr>
+            <td>{{ g.group_name|safe }}</td>
+        </tr>
+        <tr>
+          <td>{{ g.description|safe }}</td>
+        </tr>
+      </table>
+    {% else %}
+      <h1>{{ g.group_name|safe }}</h1>
+    {% endif %}
+
     {% if g.questions %}
+      <table style="width: 100.0%" >
+        <!-- tr>
+          {% for h in headers %}
+            <th>{{ h }}</th>
+          {% endfor %}
+        </tr -->
       {% for q in g.questions %}
+        <tbody>
+        {% if q.type == 'F' %}
           <tr>
-            {% for h in headers %}
+            {% if response %}
+              <td colspan="5" style="background: lightgray;">{{ q.question|safe }}</td>
+              <td>{{ response[q.qid]|safe }}</td>
+            {% else %}
+              <td colspan="6" style="background: lightgray;">{{ q.question|safe }}</td>
+            {% endif %}
+            {#% for h in headers %}
               <td>{{ q[h]|safe }}</td>
-            {% endfor %}
+            {% endfor %#}
             <!-- td>{{ q.sid }}</td>
             <td>{{ q.gid }}</td>
             <td>{{ q.qid }}</td>
             <td>{{ q.question|safe }}</td -->
           </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" style="background: lightgray;">{{ q.question|safe }}</td>
+          </tr>
           {% if response %}
             <tr>
-                <td colspan="{{ headers|length }}">{{ response[q.qid]|safe }}</td>
+              <td colspan="6">{{ response[q.qid]|safe }}</td>
             </tr>
           {% endif %}
+        {% endif %}
       {% endfor %}
+      </tbody>
+      </table>
     {% endif %}
   {% endfor %}
-    </table>
 
 {% endblock %}
 

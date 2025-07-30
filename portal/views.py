@@ -12481,18 +12481,11 @@ class ChangeRequestDetail(DetailView):
     #     return qs
 
 
-def dictfetchall(cursor):
-    "Return all rows from a cursor as a dict"
-    columns = [col[0] for col in cursor.description]
-    return [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-
 @login_required
-def survey_response(request, referee_id, exclude_confidential=False, exclude_scores=False):
+def survey_response(request, referee_id):
     r = get_object_or_404(models.Referee, pk=referee_id)
-    a = r.application
     u = request.user
-    survey_id = a.round.survey_id
+    survey_id = r.survey_id
 
     if not (u.is_admin or r.user != u):
         messages.error(request, _("You have no permission to view this referee report"))
@@ -12500,100 +12493,18 @@ def survey_response(request, referee_id, exclude_confidential=False, exclude_sco
     if not r.survey_completed_at:
         messages.error(request, _("The survey has not yet been completed..."))
         return redirect(request.META.get("HTTP_REFERER") or "start")
-    with connection.cursor() as cr:
-
-        group_sql = (
-            "SELECT g.gid, gl.group_name, gl.description "
-            "FROM lime.groups AS g "
-            "JOIN lime.group_l10ns AS gl ON gl.gid=g.gid "
-            "WHERE g.sid=%s "
-        )
-        if exclude_confidential:
-            group_sql += r" AND NOT gl.group_name ~ '\[CONFIDENTIAL\]'  AND NOT gl.description ~ '\[CONFIDENTIAL\]' "
-        group_sql += "ORDER BY g.group_order"
-        cr.execute(group_sql, [survey_id])
-        groups = dictfetchall(cr)
-
-        gids = ', '.join(f"{g['gid']}" for g in groups)
-        question_sql = (
-            'SELECT q.gid, q.qid, q.title, l.question, q."type" '
-            "FROM lime.questions AS q "
-            "JOIN lime.question_l10ns AS l "
-            "  ON l.qid=q.qid "
-            f"WHERE q.sid=%s AND q.gid IN ({gids}) "
-            r"AND q.title !~ '^SQ[0-9]{3,}' "
-        )
-        if exclude_confidential:
-            question_sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
-        if exclude_scores:
-            question_sql += """  AND q."type" != 'F' """
-        question_sql += "ORDER BY q.gid, q.question_order"
-        cr.execute(question_sql, [survey_id])
-        headers = [col[0] for col in cr.description]
-        all_questions = dictfetchall(cr)
-        questions = {q["qid"]: q for q in all_questions}
-        for k, group_questions in groupby( all_questions, lambda r: r.get("gid")):
-            next(g for g in groups if g["gid"] == k)["questions"] = list(group_questions)
-
-        answer_sql = (
-            "SELECT q.qid, a.code, al.answer "
-            "FROM lime.questions AS q JOIN lime.answers AS a ON a.qid=q.qid "
-            "JOIN lime.answer_l10ns AS al ON al.aid=a.aid "
-            "WHERE q.sid=%s AND al.language='en' "
-            "ORDER BY q.qid, a.sortorder"
-        )
-        cr.execute(answer_sql, [survey_id])
-        answers = {
-            k: {code: answer for (qid_, code, answer) in  g}
-            for k, g in groupby(
-                cr.fetchall(), lambda r: r[0]
-            )
-        }
-        columns_sql = (
-            "WITH q AS (SELECT qid, question_order, format('%sX%sX%s%%', sid,gid,qid) AS ac_pattern "
-            f"  FROM lime.questions WHERE sid={survey_id}) "
-            "SELECT column_name, qid FROM information_schema.columns "
-            "JOIN q ON column_name LIKE ac_pattern "
-            f"WHERE table_name = 'survey_{survey_id}' AND column_name NOT LIKE '%time' "
-            "ORDER BY question_order"
-        )
-        cr.execute(columns_sql)
-        columns = dict(cr.fetchall())
-
-        # ...
-        response_sql = (
-            "SELECT id, token, "
-            f"""{', '.join(f'"{c}"' for c in columns)}"""
-            f" FROM lime.survey_{survey_id} "
-            "WHERE token=%s"
-        )
-        cr.execute(response_sql, [r.survey_token])
-        response = dictfetchall(cr)
-        if response:
-            response = response[0]
-            response = {qid: answers[qid][response[c]] if questions[qid]["type"] == "F" else response[c] for (c, qid) in columns.items()}
-        breakpoint()
-
-    return render(request, "survey_questions.html", locals())
-
-
-@login_required
-def lime_response(request, referee_id):
-    r = get_object_or_404(models.Referee, pk=referee_id)
-    u = request.user
-    if not (u.is_admin or r.user != u):
-        messages.error(request, _("You have no permission to view this referee report"))
-        return redirect(request.META.get("HTTP_REFERER") or "start")
-    if not r.survey_completed_at:
-        messages.error(request, _("The survey has not yet been completed..."))
-        return redirect(request.META.get("HTTP_REFERER") or "start")
-    output_format = request.GET.get("format", "pdf")
+    exclude_confidential=request.GET.get("exclude_confidential", False)
+    exclude_scores=request.GET.get("exclude_scores", False)
+    output_format = request.GET.get("format", "html")
     filename = f"{r}.{output_format}"
     mime_type, _encoding = mimetypes.guess_type(filename)
-    output = r.get_response(output_format=output_format)
+    output = r.get_response(output_format=output_format, exclude_confidential=exclude_confidential, exclude_scores=exclude_scores)
     if isinstance(output, dict) and (status := output.get("status")):
         messages.error(request, status)
         return redirect(request.META.get("HTTP_REFERER") or "start")
+    if not output_format or output_format in ["html", "htm"]:
+        return HttpResponse(output, content_type="text/html; charset=utf-8")
+
     output.seek(0)
     response = FileResponse(output, content_type=mime_type)
     response["Content-Disposition"] = f"inline; filename={filename}"

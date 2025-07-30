@@ -136,6 +136,12 @@ CONTRACT_PART_EXTENSIONS = [
 round_number = round
 
 
+def dictfetchall(cursor) -> dict:
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
 def pdf_toc(reader: PdfReader) -> dict[str, int]:
 
     def flat_outline(outline, level=1):
@@ -4944,29 +4950,112 @@ and designate a new referee at your earliest convenience.
     def get_response(self, request=None, exclude_confidential=False, exclude_scores=False, output_format="pdf"):
         if not self.survey_token:
             return
-        api = self.survey_api
         survey_id = self.survey_id
-        resp = api.query(
-            method="export_responses_by_token",
-            params={
-                "sSessionKey": api.session_key,
-                "iSurveyID": survey_id,
-                "sDocumentType": output_format,
-                "aTokens": self.survey_token,
-                "sHeadingType": "full",  ## 'code', 'abbreviated'
-                "sResponseType": "long",  ## 'short'
-            },
-        )
-        if isinstance(resp, dict) and (status := resp.get("status")):
-            if request:
-                messages.error(request, status)
-                return redirect(request.META.get("HTTP_REFERER") or "start")
-            else:
-                return resp
-        content = io.BytesIO()
-        content.write(base64.b64decode(resp.encode("ascii")))
-        content.seek(0)
-        return content
+        if not (exclude_confidential or exclude_scores):
+            api = self.survey_api
+            resp = api.query(
+                method="export_responses_by_token",
+                params={
+                    "sSessionKey": api.session_key,
+                    "iSurveyID": survey_id,
+                    "sDocumentType": output_format,
+                    "aTokens": self.survey_token,
+                    "sHeadingType": "full",  ## 'code', 'abbreviated'
+                    "sResponseType": "long",  ## 'short'
+                },
+            )
+            if isinstance(resp, dict) and (status := resp.get("status")):
+                if request:
+                    messages.error(request, status)
+                    return redirect(request.META.get("HTTP_REFERER") or "start")
+                else:
+                    return resp
+            content = io.BytesIO()
+            content.write(base64.b64decode(resp.encode("ascii")))
+            content.seek(0)
+            return content
+
+        # Custom export:
+        application = self.application
+
+        with connection.cursor() as cr:
+
+            group_sql = (
+                "SELECT g.gid, gl.group_name, gl.description "
+                "FROM lime.groups AS g "
+                "JOIN lime.group_l10ns AS gl ON gl.gid=g.gid "
+                "WHERE g.sid=%s "
+            )
+            if exclude_confidential:
+                group_sql += r" AND NOT gl.group_name ~ '\[CONFIDENTIAL\]'  AND NOT gl.description ~ '\[CONFIDENTIAL\]' "
+            group_sql += "ORDER BY g.group_order"
+            cr.execute(group_sql, [survey_id])
+            groups = dictfetchall(cr)
+
+            gids = ', '.join(f"{g['gid']}" for g in groups)
+            question_sql = (
+                'SELECT q.gid, q.qid, q.title, l.question, q."type" '
+                "FROM lime.questions AS q "
+                "JOIN lime.question_l10ns AS l "
+                "  ON l.qid=q.qid "
+                f"WHERE q.sid=%s AND q.gid IN ({gids}) "
+                r"AND q.title !~ '^SQ[0-9]{3,}' "
+            )
+            if exclude_confidential:
+                question_sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
+            if exclude_scores:
+                question_sql += """  AND q."type" != 'F' """
+            question_sql += "ORDER BY q.gid, q.question_order"
+            cr.execute(question_sql, [survey_id])
+            headers = [col[0] for col in cr.description]
+            all_questions = dictfetchall(cr)
+            questions = {q["qid"]: q for q in all_questions}
+            for k, group_questions in groupby( all_questions, lambda r: r.get("gid")):
+                next(g for g in groups if g["gid"] == k)["questions"] = list(group_questions)
+
+            answer_sql = (
+                "SELECT q.qid, a.code, al.answer "
+                "FROM lime.questions AS q JOIN lime.answers AS a ON a.qid=q.qid "
+                "JOIN lime.answer_l10ns AS al ON al.aid=a.aid "
+                "WHERE q.sid=%s AND al.language='en' "
+                "ORDER BY q.qid, a.sortorder"
+            )
+            cr.execute(answer_sql, [survey_id])
+            answers = {
+                k: {code: answer for (qid_, code, answer) in  g}
+                for k, g in groupby(
+                    cr.fetchall(), lambda r: r[0]
+                )
+            }
+            columns_sql = (
+                "WITH q AS (SELECT qid, question_order, format('%sX%sX%s%%', sid,gid,qid) AS ac_pattern "
+                f"  FROM lime.questions WHERE sid={survey_id}) "
+                "SELECT column_name, qid FROM information_schema.columns "
+                "JOIN q ON column_name LIKE ac_pattern "
+                f"WHERE table_name = 'survey_{survey_id}' AND column_name NOT LIKE '%time' "
+                "ORDER BY question_order"
+            )
+            cr.execute(columns_sql)
+            columns = dict(cr.fetchall())
+
+            # ...
+            response_sql = (
+                "SELECT id, token, "
+                f"""{', '.join(f'"{c}"' for c in columns)}"""
+                f" FROM lime.survey_{survey_id} "
+                "WHERE token=%s"
+            )
+            cr.execute(response_sql, [self.survey_token])
+            response = dictfetchall(cr)
+            if response:
+                response = response[0]
+                response = {qid: answers[qid][response[c]] if questions[qid]["type"] == "F" else response[c] for (c, qid) in columns.items() if qid in questions}
+            template = get_template("survey_response.html")
+
+        output = template.render(locals())
+        # if output_format == "pdf":
+        #     pass
+        return output
 
     class Meta:
         db_table = "referee"
