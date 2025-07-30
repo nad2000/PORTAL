@@ -1,5 +1,5 @@
-import io
 import base64
+import io
 import json
 import mimetypes
 import os
@@ -42,6 +42,7 @@ from django.contrib.flatpages.models import FlatPage
 from django.contrib.flatpages.views import flatpage
 from django.contrib.gis.geoip2 import GeoIP2
 from django.contrib.sites.models import Site
+from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
@@ -867,13 +868,31 @@ class ExportView(UserPassesTestMixin, DetailView):
     def get(self, request, pk):
         try:
             objects = self.get_objects(pk)
+            self.object = self.get_object()
             template = get_template(self.template)
             attachments = self.get_attachments(pk)
             # merger = PdfMerger()
             merger = PdfWriter()
             merger.add_metadata(self.get_metadata(pk))
 
-            html = HTML(string=template.render({"objects": objects}))
+            site_id = getattr(self.object, "site_id", None) or settings.SITE_ID
+            logo = logo_1 = logo_2 = None
+            if site_id == 2:
+                if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
+                    logo = f"file://{logo_path}"
+
+            elif site_id in [2, 4, 5]:
+                if logo_path := finders.find("images/MBIE_logo.jpg"):
+                    logo_1 = f"file://{logo_path}"
+
+                if logo_path := finders.find("images/RS_logo.png"):
+                    logo_2 = f"file://{logo_path}"
+
+            elif site_id == 7:
+                if logo_path := finders.find("images/pmspace-logo_small.jpg"):
+                    logo = f"file://{logo_path}"
+
+            html = HTML(string=template.render(locals()))
             pdf_object = html.write_pdf(presentational_hints=True)
             # converting pdf bytes to stream which is required for pdf merger.
             pdf_stream = io.BytesIO(pdf_object)
@@ -12465,10 +12484,7 @@ class ChangeRequestDetail(DetailView):
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dict"
     columns = [col[0] for col in cursor.description]
-    return [
-        dict(zip(columns, row))
-        for row in cursor.fetchall()
-    ]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
 @login_required
@@ -12574,26 +12590,12 @@ def lime_response(request, referee_id):
     output_format = request.GET.get("format", "pdf")
     filename = f"{r}.{output_format}"
     mime_type, _encoding = mimetypes.guess_type(filename)
-    api = r.survey_api
-    survey_id = r.survey_id
-    resp = api.query(
-        method="export_responses_by_token",
-        params={
-            "sSessionKey": api.session_key,
-            "iSurveyID": survey_id,
-            "sDocumentType": output_format,
-            "aTokens": r.survey_token,
-            "sHeadingType": "full",  ## 'code', 'abbreviated'
-            "sResponseType": "long",  ## 'short'
-        },
-    )
-    if isinstance(resp, dict) and (status := resp.get("status")):
+    output = r.get_response(output_format=output_format)
+    if isinstance(output, dict) and (status := output.get("status")):
         messages.error(request, status)
         return redirect(request.META.get("HTTP_REFERER") or "start")
-    content = io.BytesIO()
-    content.write(base64.b64decode(resp.encode("ascii")))
-    content.seek(0)
-    response = FileResponse(content, content_type=mime_type)
+    output.seek(0)
+    response = FileResponse(output, content_type=mime_type)
     response["Content-Disposition"] = f"inline; filename={filename}"
     return response
 

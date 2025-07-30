@@ -3754,15 +3754,24 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         def add_testimonials(attachments, user=None):
             for t in self.get_testimonials(has_testified=True, user=user):
-                if t.file and t.referee:
-                    attachments.append(
-                        (
-                            _("Testimonial Form Submitted By %s") % t.referee.full_name,
-                            settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
-                            t.title_page,
+                referee = t.referee
+                if referee:
+                    if referee.survey_token and referee.survey_token_id and referee.survey_completed_at:
+                        attachments.append(
+                            (
+                                _("Referee Survey Submitted By %s") % t.referee.full_name,
+                                refeeree.get_response(output_format="pdf"),
+                                t.title_page,
+                            )
                         )
-                    )
-
+                    if t.file:
+                        attachments.append(
+                            (
+                                (_("Referee Report Submitted By %s") if site_id == 5 else _("Testimonial Form Submitted By %s")) % t.referee.full_name,
+                                settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
+                                t.title_page,
+                            )
+                        )
                     if (
                         r.referee_cv_required
                         and (referee_cv := t.cv or CurriculumVitae.last_user_cv(t.referee.user))
@@ -3776,6 +3785,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                                 referee_cv.title_page,
                             )
                         )
+
 
         if user.is_superuser or user.is_staff or (site_id != 4 and is_panellist) or for_panellists:
             for n in Nomination.where(application=self, nominator__isnull=False):
@@ -3858,7 +3868,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         ssl._create_default_https_context = ssl._create_unverified_context
 
-        # merger = PdfMerger(strict=False)
         merger = PdfWriter()
         merger.add_metadata(
             {
@@ -4003,7 +4012,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 # test if book marks can be imported
                 try:
                     reader.outline
-                    import_outline = True
+                    import_outline = (site_id != 5)
                 except PdfReadError as ex:
                     if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
                         "Multiple definitions in dictionary at "
@@ -4931,6 +4940,33 @@ and designate a new referee at your earliest convenience.
     @cached_property
     def guidelines(self):
         return self.application.round.get_referee_guidelines()
+
+    def get_response(self, request=None, exclude_confidential=False, exclude_scores=False, output_format="pdf"):
+        if not self.survey_token:
+            return
+        api = self.survey_api
+        survey_id = self.survey_id
+        resp = api.query(
+            method="export_responses_by_token",
+            params={
+                "sSessionKey": api.session_key,
+                "iSurveyID": survey_id,
+                "sDocumentType": output_format,
+                "aTokens": self.survey_token,
+                "sHeadingType": "full",  ## 'code', 'abbreviated'
+                "sResponseType": "long",  ## 'short'
+            },
+        )
+        if isinstance(resp, dict) and (status := resp.get("status")):
+            if request:
+                messages.error(request, status)
+                return redirect(request.META.get("HTTP_REFERER") or "start")
+            else:
+                return resp
+        content = io.BytesIO()
+        content.write(base64.b64decode(resp.encode("ascii")))
+        content.seek(0)
+        return content
 
     class Meta:
         db_table = "referee"
