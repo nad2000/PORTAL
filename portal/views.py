@@ -11,6 +11,7 @@ from decimal import Decimal
 from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
+from itertools import groupby
 
 import django.utils.translation
 import django_tables2
@@ -1135,7 +1136,6 @@ def round_detail(request, round):
 
 
 def round_required_documents(request, round):
-    from itertools import groupby
 
     round = get_object_or_404(models.Round, id=round)
     required_documents = round.required_documents.order_by("ordering")
@@ -12472,29 +12472,92 @@ def dictfetchall(cursor):
 
 
 @login_required
-def survey_response(request, referee_id, exclude_confidential=False):
+def survey_response(request, referee_id, exclude_confidential=False, exclude_scores=False):
     r = get_object_or_404(models.Referee, pk=referee_id)
+    a = r.application
     u = request.user
+    survey_id = a.round.survey_id
+
     if not (u.is_admin or r.user != u):
         messages.error(request, _("You have no permission to view this referee report"))
         return redirect(request.META.get("HTTP_REFERER") or "start")
     if not r.survey_completed_at:
         messages.error(request, _("The survey has not yet been completed..."))
         return redirect(request.META.get("HTTP_REFERER") or "start")
-    a = r.application
     with connection.cursor() as cr:
-        sql = (
-            "SELECT q.sid, q.gid, q.qid, l.question "
-            "FROM lime.question_l10ns AS l JOIN lime.questions AS q "
-            "  ON q.qid=l.qid "
-            "WHERE q.sid=%s "
+
+        group_sql = (
+            "SELECT g.gid, gl.group_name, gl.description "
+            "FROM lime.groups AS g "
+            "JOIN lime.group_l10ns AS gl ON gl.gid=g.gid "
+            "WHERE g.sid=%s "
         )
         if exclude_confidential:
-            sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
-        sql += "ORDER BY q.sid, q.gid, q.qid"
-        cr.execute(sql, [a.round.survey_id])
+            group_sql += r" AND NOT gl.group_name ~ '\[CONFIDENTIAL\]'  AND NOT gl.description ~ '\[CONFIDENTIAL\]' "
+        group_sql += "ORDER BY g.group_order"
+        cr.execute(group_sql, [survey_id])
+        groups = dictfetchall(cr)
+
+        gids = ', '.join(f"{g['gid']}" for g in groups)
+        question_sql = (
+            'SELECT q.gid, q.qid, q.title, l.question, q."type" '
+            "FROM lime.questions AS q "
+            "JOIN lime.question_l10ns AS l "
+            "  ON l.qid=q.qid "
+            f"WHERE q.sid=%s AND q.gid IN ({gids}) "
+            r"AND q.title !~ '^SQ[0-9]{3,}' "
+        )
+        if exclude_confidential:
+            question_sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
+        if exclude_scores:
+            question_sql += """  AND q."type" != 'F' """
+        question_sql += "ORDER BY q.gid, q.question_order"
+        cr.execute(question_sql, [survey_id])
         headers = [col[0] for col in cr.description]
-        questions = dictfetchall(cr)
+        all_questions = dictfetchall(cr)
+        questions = {q["qid"]: q for q in all_questions}
+        for k, group_questions in groupby( all_questions, lambda r: r.get("gid")):
+            next(g for g in groups if g["gid"] == k)["questions"] = list(group_questions)
+
+        answer_sql = (
+            "SELECT q.qid, a.code, al.answer "
+            "FROM lime.questions AS q JOIN lime.answers AS a ON a.qid=q.qid "
+            "JOIN lime.answer_l10ns AS al ON al.aid=a.aid "
+            "WHERE q.sid=%s AND al.language='en' "
+            "ORDER BY q.qid, a.sortorder"
+        )
+        cr.execute(answer_sql, [survey_id])
+        answers = {
+            k: {code: answer for (qid_, code, answer) in  g}
+            for k, g in groupby(
+                cr.fetchall(), lambda r: r[0]
+            )
+        }
+        columns_sql = (
+            "WITH q AS (SELECT qid, question_order, format('%sX%sX%s%%', sid,gid,qid) AS ac_pattern "
+            f"  FROM lime.questions WHERE sid={survey_id}) "
+            "SELECT column_name, qid FROM information_schema.columns "
+            "JOIN q ON column_name LIKE ac_pattern "
+            f"WHERE table_name = 'survey_{survey_id}' AND column_name NOT LIKE '%time' "
+            "ORDER BY question_order"
+        )
+        cr.execute(columns_sql)
+        columns = dict(cr.fetchall())
+
+        # ...
+        response_sql = (
+            "SELECT id, token, "
+            f"""{', '.join(f'"{c}"' for c in columns)}"""
+            f" FROM lime.survey_{survey_id} "
+            "WHERE token=%s"
+        )
+        cr.execute(response_sql, [r.survey_token])
+        response = dictfetchall(cr)
+        if response:
+            response = response[0]
+            response = {qid: answers[qid][response[c]] if questions[qid]["type"] == "F" else response[c] for (c, qid) in columns.items()}
+        breakpoint()
+
     return render(request, "survey_questions.html", locals())
 
 
