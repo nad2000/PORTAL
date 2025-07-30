@@ -4977,6 +4977,7 @@ and designate a new referee at your earliest convenience.
 
         # Custom export:
         application = self.application
+        referee = self
 
         with connection.cursor() as cr:
 

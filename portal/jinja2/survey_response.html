@@ -52,14 +52,16 @@ table, th, td {
     {% if not exclude_scores %}
       <table style="width: 100.0%">
         <tr>
-            <td>{{ g.group_name|safe }}</td>
+            <h1 style="text-align: center;">{{ g.group_name|safe }}</h1>
+            <h2 style="text-align: center;">{{ referee }}</h2>
         </tr>
         <tr>
           <td>{{ g.description|safe }}</td>
         </tr>
       </table>
     {% else %}
-      <h1>{{ g.group_name|safe }}</h1>
+      <h1 style="text-align: center;">{{ g.group_name|safe }}</h1>
+      <h2 style="text-align: center;">{{ referee }}</h2>
     {% endif %}
 
     {% if g.questions %}
