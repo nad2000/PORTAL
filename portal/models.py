@@ -3760,7 +3760,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         attachments.append(
                             (
                                 _("Referee Survey Submitted By %s") % t.referee.full_name,
-                                refeeree.get_response(output_format="pdf"),
+                                referee.get_response(output_format="pdf"),
                                 t.title_page,
                             )
                         )
