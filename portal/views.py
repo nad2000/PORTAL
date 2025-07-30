@@ -153,7 +153,7 @@ def check_selected_orgs(request):
     """Notify the user of updated org names."""
     selected_orgs = request.POST.getlist("selected_org_with_label", [])
     selected_orgs = filter(
-        lambda t: t[1] and t[0].isdigit() and t[1].strip(), (v.split(":") for v in selected_orgs)
+        lambda t: t[1] and t[0].isdigit() and t[1].strip(), (v.split(":", 1) for v in selected_orgs)
     )
     if selected_orgs:
         selected_orgs = dict((lambda k, v: (int(k), v))(*v) for v in selected_orgs)
