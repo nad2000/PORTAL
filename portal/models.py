@@ -3779,6 +3779,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             attachments.append(
                                 (
                                     _("Referee Survey Submitted By %s") % t.referee.full_name,
+                                    response,
                                     t.title_page,
                                 )
                             )
@@ -4126,6 +4127,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             documents["HS"] = n.pdf_file
         return documents
 
+    def was_updated_since(self, ts):
+        return (self.updated_at > ts
+            or self.documents.filter(updated_at__gte=ts).exists()
+            or self.referees.filter(updated_at__gte=ts).exists()
+            # or self.members.filter(updated_at__gte=ts).exists()
+            # or self.members.filter(updated_at__gte=ts).exists()
+        )
     class Meta:
         db_table = "application"
 
@@ -5075,9 +5083,9 @@ and designate a new referee at your earliest convenience.
 
         output = template.render(locals())
         if output_format == "pdf":
-            html = HTML(output)
+            html = HTML(string=output)
             pdf_object = html.write_pdf(presentational_hints=True)
-            pfd_output = io.BytesIO(pdf_object)
+            pdf_output = io.BytesIO(pdf_object)
             return pdf_output
         return output
 

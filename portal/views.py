@@ -10061,7 +10061,7 @@ class RoundExportView(ExportView):
 
         for a in applications:
             filename = os.path.join(prefix, f"{a.number}.pdf")
-            if not os.path.exists(filename) or regenerate or os.path.getsize(filename) < 100:
+            if not os.path.exists(filename) or regenerate or os.path.getsize(filename) < 100 or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename))):
                 with open(filename, "wb") as output:
                     a.to_pdf(
                         request,

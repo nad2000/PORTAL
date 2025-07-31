@@ -17,7 +17,14 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.css" rel="stylesheet"/>
 
-      <style>
+  <style>
+@page {
+  /* size: 21cm 3cm;*/
+  size: {{ width or 210 }}mm {{ height or 297 }}mm;
+  margin: 1cm 1cm 5mm 2cm;
+  font-family: Arial;
+  font-size: 10pt;
+}
 table.table .asteriskField,.popover-header {color: gray;}
 .modelselect2multiple {height: auto !important;}
 .jumbotron {padding: 2rem 2rem;}
@@ -25,22 +32,28 @@ table.table .asteriskField,.popover-header {color: gray;}
 .tooltip-inner {max-width: 300px;}
 .popover {max-width: 400px;}
 .custom-file-label::after {content: "{{ _('Browse') }}";}
+body {
+  font-family: Arial;
+  font-size: 10pt;
+}
 table, th, td {
   border: 1px solid black;
   border-collapse: collapse;
+  font-family: Arial;
+  font-size: 10pt;
 }
-      </style>
+  </style>
 
 </head>
 <!-- body class="d-flex flex-column min-vh-100" -->
 <body class="d-flex flex-column min-vh-100">
 
 {% block content %}
-  <pre>
+  <!--
   {{ group_sql }}
   {{ question_sql }}
   {{ answer_sql }}
-  </pre>
+  -->
 
     <!-- tr>
       {% for h in headers %}
