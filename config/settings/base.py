@@ -164,9 +164,9 @@ INSTALLED_APPS = [
     "import_export",
     "django_select2",
     "private_storage",
+    "django_fsm",
     "django_fsm_log",
     "fsm_admin",
-    "django_fsm",
     "django_summernote",
     "tinymce",
     "django_filters",
@@ -179,7 +179,19 @@ INSTALLED_APPS = [
     "easyaudit",
     # "dalf",
     # "autocompletefilter",
+    "django_q",
 ]
+
+Q_CLUSTER = {
+    "name": "DjangORM",
+    "retry": 120,  ## 60
+    "workers": 1,
+    "timeout": 90,
+    "bulk": 10,
+    "queue_limit": 500,
+    "sync": DEBUG,
+    "orm": "default",
+}
 
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
 # EXPLORER_DEFAULT_CONNECTION = "readonly"

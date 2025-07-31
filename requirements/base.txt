@@ -48,11 +48,13 @@ django-select2>=7.2.3,<9.0.0
 django-extra-views>=0.13.0,<1.0.0
 django-private-storage>=3.0,<4.0
 # git+https://github.com/MWBASF/django-private-storage.git@django-4.2-compat
-django-fsm-2>=2.7.0,<5.0.0
+django-fsm-2>=4.0.0,<5.0.0
 # django-fsm-admin>=1.2.4,<2.0.0
- git+https://github.com/nad2000/django-fsm-admin.git@patch-1
+# git+https://github.com/nad2000/django-fsm-admin.git@patch-1
+django-fsm-2-admin>=2.0.0,<3.0.0
 # django-admin-index>=1.4.0,<2.0.0
-django-fsm-log>=2.0.1,<4.0.0
+# django-fsm-log>=2.0.1,<5.0.0
+ git+https://github.com/jazzband/django-fsm-log@v4.0.5
 graphviz>=0.4
 # django_multisite<2.0.0
  git+https://github.com/nad2000/django-multisite.git
@@ -75,11 +77,14 @@ django-colorfield<1.0
 django-bootstrap4<26.0
 django-filter<26.0
 django-sql-explorer[xls,charts]>=3.0.0,<6.0.0
+django-q2<2.0.0
+blessed<2.0.0
 pycryptodome<4.0
 py7zr>=0.22.0,<0.23.0
 geopy<3.0.0
 geoip2<5.0.0
 # dalf<1.0.0
+
 
 #django-bootstrap-breadcrumbs<1.0.0
  git+https://github.com/nad2000/bootstrap-breadcrumbs.git
