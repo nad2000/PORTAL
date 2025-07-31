@@ -19,7 +19,7 @@ from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
-from django.shortcuts import render, reverse
+from django.shortcuts import render, reverse, redirect
 from django.urls import NoReverseMatch
 from django.utils import timezone
 from django.utils.datastructures import OrderedSet
@@ -3181,8 +3181,8 @@ class RequiredContractDocumentForm(forms.ModelForm):
 @admin.register(models.Round)
 class RoundAdmin(
     SummernoteModelAdminMixin,
-    ExportActionMixin,
-    ImportExportMixin,
+    # ExportActionMixin,
+    # ImportExportMixin,
     StaffPermsMixin,
     OrderableAdmin,
     TranslationAdmin,
@@ -3227,6 +3227,7 @@ class RoundAdmin(
         "sync_referee_surveys",
         "copy_round",
         "make_current",
+        "export_for_panellists",
     ]
 
     def get_list_display(self, request):
@@ -3425,6 +3426,17 @@ class RoundAdmin(
             ),
         ]
         return fieldsets
+
+    @admin.action(description="Export for the panellists")
+    def export_for_panellists(self, request, queryset):
+        if queryset.count() > 1:
+            messages.error(request, "Please select a single round entry.")
+            return
+
+        r = queryset.first()
+        url = reverse('round-application-export', kwargs={"pk": r.pk })
+        url = f"{url}?for_panellists=1&format=7z"
+        return redirect(url)
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):

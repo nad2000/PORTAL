@@ -3733,6 +3733,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 panellist__user=user, has_conflict=False, has_conflict__isnull=False
             ).exists()
         )
+        exclude_confidential = not user or self.is_applicant(user)
 
         attachments = []
         cvs = []
@@ -3762,18 +3763,34 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             for t in self.get_testimonials(has_testified=True, user=user):
                 referee = t.referee
                 if referee:
-                    if referee.survey_token and referee.survey_token_id and referee.survey_completed_at:
-                        attachments.append(
-                            (
-                                _("Referee Survey Submitted By %s") % t.referee.full_name,
-                                referee.get_response(output_format="pdf"),
-                                t.title_page,
-                            )
+                    if (
+                        referee.survey_token
+                        and referee.survey_token_id
+                        and referee.survey_completed_at
+                    ):
+                        response = referee.get_response(
+                            output_format="pdf",
+                            exclude_scores=for_panellists or is_panellist,
+                            exclude_confidential=exclude_confidential,
                         )
+                        if response and not isinstance(
+                            response, dict
+                        ):  ## {'status': 'No Data, survey table does not exist.'}
+                            attachments.append(
+                                (
+                                    _("Referee Survey Submitted By %s") % t.referee.full_name,
+                                    t.title_page,
+                                )
+                            )
                     if t.file:
                         attachments.append(
                             (
-                                (_("Referee Report Submitted By %s") if site_id == 5 else _("Testimonial Form Submitted By %s")) % t.referee.full_name,
+                                (
+                                    _("Referee Report Submitted By %s")
+                                    if site_id == 5
+                                    else _("Testimonial Form Submitted By %s")
+                                )
+                                % t.referee.full_name,
                                 settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
                                 t.title_page,
                             )
@@ -3791,7 +3808,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                                 referee_cv.title_page,
                             )
                         )
-
 
         if user.is_superuser or user.is_staff or (site_id != 4 and is_panellist) or for_panellists:
             for n in Nomination.where(application=self, nominator__isnull=False):
@@ -4018,7 +4034,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 # test if book marks can be imported
                 try:
                     reader.outline
-                    import_outline = (site_id != 5)
+                    import_outline = site_id != 5
                 except PdfReadError as ex:
                     if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
                         "Multiple definitions in dictionary at "
@@ -4856,9 +4872,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
         # self.has_testifed = False
         a = self.application
         r = a.round
-        for i in Invitation.where(
-                ~Q(state__in=["accepted"]),
-                referee=self):
+        for i in Invitation.where(~Q(state__in=["accepted"]), referee=self):
             i.accept(
                 by=by,
                 request=request,
@@ -4947,7 +4961,9 @@ and designate a new referee at your earliest convenience.
     def guidelines(self):
         return self.application.round.get_referee_guidelines()
 
-    def get_response(self, request=None, exclude_confidential=False, exclude_scores=False, output_format="pdf"):
+    def get_response(
+        self, request=None, exclude_confidential=False, exclude_scores=False, output_format="pdf"
+    ):
         if not self.survey_token:
             return
         survey_id = self.survey_id
@@ -4993,7 +5009,7 @@ and designate a new referee at your earliest convenience.
             cr.execute(group_sql, [survey_id])
             groups = dictfetchall(cr)
 
-            gids = ', '.join(f"{g['gid']}" for g in groups)
+            gids = ", ".join(f"{g['gid']}" for g in groups)
             question_sql = (
                 'SELECT q.gid, q.qid, q.title, l.question, q."type" '
                 "FROM lime.questions AS q "
@@ -5011,7 +5027,7 @@ and designate a new referee at your earliest convenience.
             headers = [col[0] for col in cr.description]
             all_questions = dictfetchall(cr)
             questions = {q["qid"]: q for q in all_questions}
-            for k, group_questions in groupby( all_questions, lambda r: r.get("gid")):
+            for k, group_questions in groupby(all_questions, lambda r: r.get("gid")):
                 next(g for g in groups if g["gid"] == k)["questions"] = list(group_questions)
 
             answer_sql = (
@@ -5023,10 +5039,8 @@ and designate a new referee at your earliest convenience.
             )
             cr.execute(answer_sql, [survey_id])
             answers = {
-                k: {code: answer for (qid_, code, answer) in  g}
-                for k, g in groupby(
-                    cr.fetchall(), lambda r: r[0]
-                )
+                k: {code: answer for (qid_, code, answer) in g}
+                for k, g in groupby(cr.fetchall(), lambda r: r[0])
             }
             columns_sql = (
                 "WITH q AS (SELECT qid, question_order, format('%sX%sX%s%%', sid,gid,qid) AS ac_pattern "
@@ -5050,12 +5064,21 @@ and designate a new referee at your earliest convenience.
             response = dictfetchall(cr)
             if response:
                 response = response[0]
-                response = {qid: answers[qid][response[c]] if questions[qid]["type"] == "F" else response[c] for (c, qid) in columns.items() if qid in questions}
+                response = {
+                    qid: (
+                        answers[qid][response[c]] if questions[qid]["type"] == "F" else response[c]
+                    )
+                    for (c, qid) in columns.items()
+                    if qid in questions
+                }
             template = get_template("survey_response.html")
 
         output = template.render(locals())
-        # if output_format == "pdf":
-        #     pass
+        if output_format == "pdf":
+            html = HTML(output)
+            pdf_object = html.write_pdf(presentational_hints=True)
+            pfd_output = io.BytesIO(pdf_object)
+            return pdf_output
         return output
 
     class Meta:
