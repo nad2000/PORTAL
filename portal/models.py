@@ -1,4 +1,5 @@
 import base64
+import py7zr
 import email
 import hashlib
 import io
@@ -19,6 +20,8 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from django_q.tasks import async_task
 from django_q.models import OrmQ
+from django.http import StreamingHttpResponse, FileResponse
+from wsgiref.util import FileWrapper
 
 import pikepdf
 import simple_history
@@ -3769,6 +3772,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         referee.survey_token
                         and referee.survey_token_id
                         and referee.survey_completed_at
+                        and connection.vendor != "sqlite"
                     ):
                         response = referee.get_response(
                             output_format="pdf",
@@ -6443,27 +6447,31 @@ def bulk_application_export(
 ):
     if site_id:
         settings.SITE_ID = site_id
+    site = Site.objects.get(site_id)
+    r = round_id and Round.get(round_id)
 
     u = by_id and User.get(by_id)
     if not prefix and u:
-        if for_panellists or round.panellists.filter(user=u).exists():
+        if for_panellists or r.panellists.filter(user=u).exists():
             prefix = "panellists"
         elif u.is_admin:
             prefix = "admins"
         else:
             prefix = u.username
 
-    applications = models.Application.all_objects.filter(pk__in=applicaiton_ids)
+    applications = Application.all_objects.filter(pk__in=applicaiton_ids)
+    tz = timezone.get_current_timezone()
     for a in applications:
         if not site_id:
-            site_id = a.site_id
+            site = a.site
+            site_id = site.pk
             settings.SITE_ID = site_id
         filename = os.path.join(prefix, f"{a.number}.pdf")
         if (
             not os.path.exists(filename)
             or regenerate
             or os.path.getsize(filename) < 100
-            or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)))
+            or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)).replace(tzinfo=tz))
         ):
             with open(filename, "wb") as output:
                 a.to_pdf(
@@ -6471,6 +6479,16 @@ def bulk_application_export(
                     skip_excluded=(site_id in [2, 4, 5]),
                     for_panellists=for_panellists,
                 ).write(output)
+
+    send_mail(
+        from_email="applications",
+        subject=f"Export completed: {','.join(a.number for a in applicaitons)}",
+        message=f"Export completed: {','.join(a.number for a in applicaitons)}",
+        thread_index=r and r.thread_index,
+        thread_topic=r and r.thread_topic,
+        recipients=[u],
+        site=site,
+    )
 
 
 class Round(TimeStampMixin, HelperMixin, OrderableModel):
@@ -7700,6 +7718,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             else r.applications.filter(state__in=["submitted", "approved"])
         ).order_by("number")
 
+        tz = timezone.get_current_timezone()
         def need_to_regenerate(a, filename=None):
             if not filename:
                 filename = os.path.join(prefix, f"{a.number}.pdf")
@@ -7707,7 +7726,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 regenerate
                 or not os.path.exists(filename)
                 or os.path.getsize(filename) < 100
-                or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)))
+                or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)).replace(tzinfo=tz))
             )
 
         if not sync:
