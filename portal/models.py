@@ -17,6 +17,8 @@ from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
+from django_q.tasks import async_task
+from django_q.models import OrmQ
 
 import pikepdf
 import simple_history
@@ -4128,12 +4130,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return documents
 
     def was_updated_since(self, ts):
-        return (self.updated_at > ts
+        return (
+            self.updated_at > ts
             or self.documents.filter(updated_at__gte=ts).exists()
             or self.referees.filter(updated_at__gte=ts).exists()
             # or self.members.filter(updated_at__gte=ts).exists()
             # or self.members.filter(updated_at__gte=ts).exists()
         )
+
     class Meta:
         db_table = "application"
 
@@ -6428,6 +6432,47 @@ def round_template_path(instance, filename):
     return f"rounds/{title}/{filename}"
 
 
+def bulk_application_export(
+    applicaiton_ids=None,
+    round_id=None,
+    for_panellists=None,
+    by_id=None,
+    prefix=None,
+    site_id=None,
+    regenerate=False,
+):
+    if site_id:
+        settings.SITE_ID = site_id
+
+    u = by_id and User.get(by_id)
+    if not prefix and u:
+        if for_panellists or round.panellists.filter(user=u).exists():
+            prefix = "panellists"
+        elif u.is_admin:
+            prefix = "admins"
+        else:
+            prefix = u.username
+
+    applications = models.Application.all_objects.filter(pk__in=applicaiton_ids)
+    for a in applications:
+        if not site_id:
+            site_id = a.site_id
+            settings.SITE_ID = site_id
+        filename = os.path.join(prefix, f"{a.number}.pdf")
+        if (
+            not os.path.exists(filename)
+            or regenerate
+            or os.path.getsize(filename) < 100
+            or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)))
+        ):
+            with open(filename, "wb") as output:
+                a.to_pdf(
+                    user=u,
+                    skip_excluded=(site_id in [2, 4, 5]),
+                    for_panellists=for_panellists,
+                ).write(output)
+
+
 class Round(TimeStampMixin, HelperMixin, OrderableModel):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     objects = CurrentSiteManager()
@@ -7617,6 +7662,193 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                     f"Synced and/or updated {len(updated_referees)} referee(s): {', '.join(r.email for r in updated_referees)}"
                 )
         return count
+
+    def export(
+        self,
+        request=None,
+        by=None,
+        file_format="pdf",
+        sync=False,
+        regenerate=False,
+        for_panellists=False,
+    ):
+        """Export application and stores them into a single file."""
+        r = self
+        site_id = r.site_id or int(settings.SITE_ID)
+
+        if not by and request:
+            by = request.user
+
+        if for_panellists or by and r.panellists.filter(user=by).exists():
+            prefix = "panellists"
+        elif by and by.is_superuser or by.is_site_staff:
+            prefix = "admins"
+        else:
+            prefix = by.username
+
+        # prefix = os.path.join(tempfile.gettempdir(), prefix)
+        prefix_url = os.path.join("rounds", f"{r.scheme.code}", f"{r.opens_on.year}", prefix)
+        prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
+        if not os.path.exists(prefix):
+            os.makedirs(prefix)
+        output_filename = os.path.join(prefix, f"{r.scheme.code}-{r.opens_on.year}.{file_format}")
+
+        # for a in r.applications.all().order_by("number"):
+        applications = (
+            r.applications.filter(state__in=["accepted", "in_review"])
+            if site_id in [2, 4, 5]
+            else r.applications.filter(state__in=["submitted", "approved"])
+        ).order_by("number")
+
+        def need_to_regenerate(a, filename=None):
+            if not filename:
+                filename = os.path.join(prefix, f"{a.number}.pdf")
+            return (
+                regenerate
+                or not os.path.exists(filename)
+                or os.path.getsize(filename) < 100
+                or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)))
+            )
+
+        if not sync:
+            try:
+                task_id = async_task(
+                    bulk_application_export,
+                    sync=False,
+                    applicaiton_ids=[a.pk for a in applications],
+                    regenerate=regenerate,
+                    by_id=by.pk,
+                    for_panellists=for_panellists,
+                    prefix=prefix,
+                    site_id=site_id,
+                )
+                if task_id and request:
+                    q_task = next(q for q in OrmQ.objects.all() if q.task_id() == task_id)
+                    if q_task:
+                        url = reverse(
+                            "admin:django_q_ormq_change", kwargs={"object_id": q_task.pk}
+                        )
+                        messages.success(
+                            request,
+                            mark_safe(
+                                "Application background task initiated: "
+                                f'<a href="{url}" target="_blank">{task_id}</a>. '
+                                "You will notified when the export task will be finished."
+                            ),
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            f"Application background task initiated: {task_id}. "
+                            "You will notified when the export task will be finished.",
+                        )
+                    return q_task or task_id, False
+            except Exception as ex:
+                capture_exception(ex)
+                if request:
+                    messages.error(request, f"Application export task submission failed: {ex}.")
+                    return None, None
+                raise
+
+        for a in applications:
+            filename = os.path.join(prefix, f"{a.number}.pdf")
+            if regenerate or need_to_regenerate(a, filename):
+                with open(filename, "wb") as output:
+                    a.to_pdf(
+                        request,
+                        skip_excluded=(site_id in [2, 4, 5]),
+                        for_panellists=for_panellists,
+                    ).write(output)
+
+            # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
+            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+            # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+
+        if file_format and file_format != "pdf":
+            if (
+                not os.path.exists(output_filename)
+                or regenerate
+                or os.path.getsize(output_filename) < 100
+            ):
+                with py7zr.SevenZipFile(output_filename, "w") as archive:
+                    for a in applications:
+                        filename = os.path.join(prefix, f"{a.number}.pdf")
+                        archive.write(filename, f"{a.number}.pdf")
+
+            if request:
+                content_type = "application/x-7z-compressed"
+                if settings.DEBUG or not hasattr(settings, "PRIVATE_STORAGE_INTERNAL_URL"):
+                    response = StreamingHttpResponse(
+                        FileWrapper(open(output_filename, "rb")), content_type=content_type
+                    )
+                else:
+                    # works with nginx:
+                    output_url = os.path.join(
+                        settings.PRIVATE_STORAGE_INTERNAL_URL,
+                        prefix_url,
+                        f"{r.scheme.code}-{r.opens_on.year}.{file_format}",
+                    )
+                    # response = HttpResponse(content_type="application/force-download")
+                    response = HttpResponse(content_type=content_type)
+                    response["X-Accel-Redirect"] = quote(output_url)
+                    response["Content-Type"] = content_type
+                    response["X-Sendfile"] = quote(output_url)
+                response["Content-Length"] = os.path.getsize(output_filename)
+                # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+                response["Content-Disposition"] = (
+                    f"attachment; filename={r.scheme.code}-{r.opens_on.year}.{file_format}"
+                )
+                return response, True
+            return output_filename, True
+
+        if not os.path.exists(output_filename) or regenerate:
+            numbers = []
+            # merger = PdfMerger()
+            merger = PdfWriter()
+            merger.add_metadata({"/Title": f"{r.title or r.scheme.title}"})
+            merger.add_metadata({"/Subject": f"{r.title or r.scheme.title}"})
+
+            for a in applications:
+                numbers.append(a.number)
+                filename = os.path.join(prefix, f"{a.number}.pdf")
+                reader = PdfReader(filename, strict=False)
+                merger.append(
+                    reader,
+                    outline_item=(
+                        f"{a}"
+                        if a.site_id in [2, 4, 5]
+                        else f"{a.number}: {a.application_title or r.title}"
+                    ),
+                    import_outline=True,
+                )
+            merger.add_metadata({"/Keywords": ", ".join(numbers)})
+            merger.write(output_filename)
+
+        if request:
+            content_type = "application/pdf"
+            if True or settings.DEBUG:
+                response = StreamingHttpResponse(
+                    FileWrapper(open(output_filename, "rb")), content_type=content_type
+                )
+            else:
+                # works with nginx:
+                response = HttpResponse(content_type="application/force-download")
+                response["X-Sendfile"] = output_filename
+                response["X-Accel-Redirect"] = output_filename
+            response["Content-Length"] = os.path.getsize(output_filename)
+            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
+            response["Content-Disposition"] = (
+                f"attachment; filename={r.scheme.code}-{r.opens_on.year}.pdf"
+            )
+            return response, True
+        return output_filename, True
+
+        # except Exception as ex:
+        #     messages.warning(
+        #         self.request,
+        #         _(f"Error while converting to pdf. Please contact Administrator: {ex}"),
+        #     )
+        #     return redirect(self.request.META.get("HTTP_REFERER"))
 
     class Meta(OrderableModel.Meta):
         db_table = "round"

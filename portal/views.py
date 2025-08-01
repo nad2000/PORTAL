@@ -13,6 +13,7 @@ from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 from itertools import groupby
 
+from django_q.models import OrmQ
 import django.utils.translation
 import django_tables2
 import jinja2
@@ -153,7 +154,8 @@ def check_selected_orgs(request):
     """Notify the user of updated org names."""
     selected_orgs = request.POST.getlist("selected_org_with_label", [])
     selected_orgs = filter(
-        lambda t: t[1] and t[0].isdigit() and t[1].strip(), (v.split(":", 1) for v in selected_orgs)
+        lambda t: t[1] and t[0].isdigit() and t[1].strip(),
+        (v.split(":", 1) for v in selected_orgs),
     )
     if selected_orgs:
         selected_orgs = dict((lambda k, v: (int(k), v))(*v) for v in selected_orgs)
@@ -8654,9 +8656,14 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            message_text = f"""{message_text}.<br/>
-                                    {_('''Now you can complete the submission of your referee report/testimonial.
-                                    <br/>Please click on the <strong>Submit</strong> button.''')}"""
+                            notes = _(
+                                """
+                                Now you can complete the submission of your referee report/testimonial.
+                                <br/>Please click on the <strong>Submit</strong> button.
+                            """
+                            )
+
+                            message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
 
                     return redirect(next_url)
@@ -10025,7 +10032,8 @@ class RoundExportView(ExportView):
 
     def get(self, request, pk):
         round = self.round
-        site_id = settings.SITE_ID
+        site_id = round and round.site_id or int(settings.SITE_ID)
+        sync = request.GET.get("sync", None)
         file_format = request.GET.get("format", "pdf")
         regenerate = request.GET.get("regenerate", False)
         regenerate = regenerate and regenerate != "0"
@@ -10048,112 +10056,21 @@ class RoundExportView(ExportView):
         prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
+
         output_filename = os.path.join(
             prefix, f"{round.scheme.code}-{round.opens_on.year}.{file_format}"
         )
 
-        # for a in self.round.applications.all().order_by("number"):
-        applications = (
-            self.round.applications.filter(state__in=["accepted", "in_review"])
-            if site_id in [2, 4, 5]
-            else self.round.applications.filter(state__in=["submitted", "approved"])
-        ).order_by("number")
-
-        for a in applications:
-            filename = os.path.join(prefix, f"{a.number}.pdf")
-            if not os.path.exists(filename) or regenerate or os.path.getsize(filename) < 100 or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename))):
-                with open(filename, "wb") as output:
-                    a.to_pdf(
-                        request,
-                        skip_excluded=(site_id in [2, 4, 5]),
-                        for_panellists=for_panellists,
-                    ).write(output)
-
-            # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
-            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-            # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-
-        if file_format and file_format != "pdf":
-            if (
-                not os.path.exists(output_filename)
-                or regenerate
-                or os.path.getsize(output_filename) < 100
-            ):
-                with py7zr.SevenZipFile(output_filename, "w") as archive:
-                    for a in applications:
-                        filename = os.path.join(prefix, f"{a.number}.pdf")
-                        archive.write(filename, f"{a.number}.pdf")
-
-            content_type = "application/x-7z-compressed"
-            if settings.DEBUG or not hasattr(settings, "PRIVATE_STORAGE_INTERNAL_URL"):
-                response = StreamingHttpResponse(
-                    FileWrapper(open(output_filename, "rb")), content_type=content_type
-                )
-            else:
-                # works with nginx:
-                output_url = os.path.join(
-                    settings.PRIVATE_STORAGE_INTERNAL_URL,
-                    prefix_url,
-                    f"{round.scheme.code}-{round.opens_on.year}.{file_format}",
-                )
-                # response = HttpResponse(content_type="application/force-download")
-                response = HttpResponse(content_type=content_type)
-                response["X-Accel-Redirect"] = quote(output_url)
-                response["Content-Type"] = content_type
-                response["X-Sendfile"] = quote(output_url)
-            response["Content-Length"] = os.path.getsize(output_filename)
-            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-            response["Content-Disposition"] = (
-                f"attachment; filename={round.scheme.code}-{round.opens_on.year}.{file_format}"
-            )
+        response, sync_output = round.export(
+            request=request,
+            by=u,
+            file_format=file_format,
+            sync=sync,
+            regenerate=regenerate,
+            for_panellists=for_panellists)
+        if sync_output:
             return response
-
-        if not os.path.exists(output_filename) or regenerate:
-            numbers = []
-            # merger = PdfMerger()
-            merger = PdfWriter()
-            merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
-            merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
-
-            for a in applications:
-                numbers.append(a.number)
-                filename = os.path.join(prefix, f"{a.number}.pdf")
-                reader = PdfReader(filename, strict=False)
-                merger.append(
-                    reader,
-                    outline_item=(
-                        f"{a}"
-                        if a.site_id in [2, 4, 5]
-                        else f"{a.number}: {a.application_title or round.title}"
-                    ),
-                    import_outline=True,
-                )
-            merger.add_metadata({"/Keywords": ", ".join(numbers)})
-            merger.write(output_filename)
-
-        content_type = "application/pdf"
-        if True or settings.DEBUG:
-            response = StreamingHttpResponse(
-                FileWrapper(open(output_filename, "rb")), content_type=content_type
-            )
-        else:
-            # works with nginx:
-            response = HttpResponse(content_type="application/force-download")
-            response["X-Sendfile"] = output_filename
-            response["X-Accel-Redirect"] = output_filename
-        response["Content-Length"] = os.path.getsize(output_filename)
-        # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-        response["Content-Disposition"] = (
-            f"attachment; filename={round.scheme.code}-{round.opens_on.year}.pdf"
-        )
-        return response
-
-        # except Exception as ex:
-        #     messages.warning(
-        #         self.request,
-        #         _(f"Error while converting to pdf. Please contact Administrator: {ex}"),
-        #     )
-        #     return redirect(self.request.META.get("HTTP_REFERER"))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
 
 
 class NominationExportView(ExportView, NominationDetail):
@@ -12493,12 +12410,16 @@ def survey_response(request, referee_id):
     if not r.survey_completed_at:
         messages.error(request, _("The survey has not yet been completed..."))
         return redirect(request.META.get("HTTP_REFERER") or "start")
-    exclude_confidential=request.GET.get("exclude_confidential", False)
-    exclude_scores=request.GET.get("exclude_scores", False)
+    exclude_confidential = request.GET.get("exclude_confidential", False)
+    exclude_scores = request.GET.get("exclude_scores", False)
     output_format = request.GET.get("format", "html")
     filename = f"{r}.{output_format}"
     mime_type, _encoding = mimetypes.guess_type(filename)
-    output = r.get_response(output_format=output_format, exclude_confidential=exclude_confidential, exclude_scores=exclude_scores)
+    output = r.get_response(
+        output_format=output_format,
+        exclude_confidential=exclude_confidential,
+        exclude_scores=exclude_scores,
+    )
     if isinstance(output, dict) and (status := output.get("status")):
         messages.error(request, status)
         return redirect(request.META.get("HTTP_REFERER") or "start")
