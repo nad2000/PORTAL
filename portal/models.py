@@ -17,10 +17,10 @@ from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, quote
 from django_q.tasks import async_task
 from django_q.models import OrmQ
-from django.http import StreamingHttpResponse, FileResponse
+from django.http import StreamingHttpResponse, FileResponse, HttpResponse
 from wsgiref.util import FileWrapper
 
 import pikepdf
@@ -6460,18 +6460,22 @@ def bulk_application_export(
             prefix = u.username
 
     applications = Application.all_objects.filter(pk__in=application_ids)
-    tz = timezone.get_current_timezone()
+    # tz = timezone.get_current_timezone()
+    if not r:
+        r = Round.where(applications__in=applications).order_by("-pk").first()
+    tz = r.created_at.tzinfo
     for a in applications:
         if not site_id:
             site = a.site
             site_id = site.pk
             settings.SITE_ID = site_id
         filename = os.path.join(prefix, f"{a.number}.pdf")
+        file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(os.path.getmtime(filename))
         if (
-            not os.path.exists(filename)
+            not file_ts
             or regenerate
             or os.path.getsize(filename) < 100
-            or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)).replace(tzinfo=tz))
+            or a.was_updated_since(file_ts.replace(tzinfo=tz) if tz else file_ts)
         ):
             with open(filename, "wb") as output:
                 a.to_pdf(
@@ -6480,12 +6484,9 @@ def bulk_application_export(
                     for_panellists=for_panellists,
                 ).write(output)
 
-    rounds = Round.where(applications__in=applications).distinct()
-    if not r:
-        r = rounds.first()
-    subject=f"Round Application Export completed: {','.join(f'{r}' for r in rounds)}"
+    subject=f"Round Application Export completed: {r}"
     url = reverse('round-application-export', kwargs={"pk": r.pk })
-    url = f"https://{site.domain}/{url}?format=7z"
+    url = f"https://{site.domain}{url}?format=7z&sync=1"
     if for_panellists:
         url = f"{url}&for_panellists=1"
     send_mail(
@@ -7729,18 +7730,21 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             else r.applications.filter(state__in=["submitted", "approved"])
         ).order_by("number")
 
-        tz = timezone.get_current_timezone()
+        tz = r.created_at.tzinfo  # timezone.get_current_timezone()
         def need_to_regenerate(a, filename=None):
             if not filename:
                 filename = os.path.join(prefix, f"{a.number}.pdf")
+            file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(os.path.getmtime(filename))
             return (
-                regenerate
-                or not os.path.exists(filename)
+                not file_ts
+                or regenerate
+                # or not os.path.exists(filename)
                 or os.path.getsize(filename) < 100
-                or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)).replace(tzinfo=tz))
+                or a.was_updated_since(file_ts.replace(tzinfo=tz) if tz else file_ts)
+                # or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)).replace(tzinfo=tz))
             )
 
-        if not sync:
+        if sync in [False, 0, "0"] or sync is None and sum(need_to_regenerate(a) and 1 or 0) > 3:
             try:
                 task_id = async_task(
                     bulk_application_export,

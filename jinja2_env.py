@@ -17,7 +17,7 @@ class DbLoader(BaseLoader):
     def get_source(self, environment, template):
         # site = Site.objects.get_current()
         # site_id = site and site.pk
-        site_id = settings.SITE_ID.site_id  # if it uses 'django-multisite'
+        site_id = int(settings.SITE_ID)   # if it uses 'django-multisite'
         t = (
             Template.objects.filter(
                 Q(name__exact=template), Q(sites__pk=site_id) | Q(sites__isnull=True)
