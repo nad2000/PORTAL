@@ -3430,7 +3430,16 @@ class RoundAdmin(
     @admin.action(description="Export for the panellists")
     def export_for_panellists(self, request, queryset):
         if queryset.count() > 1:
-            messages.error(request, "Please select a single round entry.")
+            for r in queryset:
+                r.export(
+                    request=request,
+                    by=request.user,
+                    file_format="7z",
+                    sync=False,
+                    regenerate=False,
+                    for_panellists=True
+                )
+            # messages.error(request, "Please select a single round entry.")
             return
 
         r = queryset.first()

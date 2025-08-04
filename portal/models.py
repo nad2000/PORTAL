@@ -6437,7 +6437,7 @@ def round_template_path(instance, filename):
 
 
 def bulk_application_export(
-    applicaiton_ids=None,
+    application_ids=None,
     round_id=None,
     for_panellists=None,
     by_id=None,
@@ -6447,7 +6447,7 @@ def bulk_application_export(
 ):
     if site_id:
         settings.SITE_ID = site_id
-    site = Site.objects.get(site_id)
+    site = Site.objects.get(pk=site_id)
     r = round_id and Round.get(round_id)
 
     u = by_id and User.get(by_id)
@@ -6459,7 +6459,7 @@ def bulk_application_export(
         else:
             prefix = u.username
 
-    applications = Application.all_objects.filter(pk__in=applicaiton_ids)
+    applications = Application.all_objects.filter(pk__in=application_ids)
     tz = timezone.get_current_timezone()
     for a in applications:
         if not site_id:
@@ -6480,10 +6480,21 @@ def bulk_application_export(
                     for_panellists=for_panellists,
                 ).write(output)
 
+    rounds = Round.where(applications__in=applications).distinct()
+    if not r:
+        r = rounds.first()
+    subject=f"Round Application Export completed: {','.join(f'{r}' for r in rounds)}"
+    url = reverse('round-application-export', kwargs={"pk": r.pk })
+    url = f"https://{site.domain}/{url}?format=7z"
+    if for_panellists:
+        url = f"{url}&for_panellists=1"
     send_mail(
+        subject=subject,
+        message=(
+            f"Export completed: {', '.join(a.number for a in applications)}. "
+            f"You can download the application(-s) at: {url}."
+        ),
         from_email="applications",
-        subject=f"Export completed: {','.join(a.number for a in applicaitons)}",
-        message=f"Export completed: {','.join(a.number for a in applicaitons)}",
         thread_index=r and r.thread_index,
         thread_topic=r and r.thread_topic,
         recipients=[u],
@@ -7734,7 +7745,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 task_id = async_task(
                     bulk_application_export,
                     sync=False,
-                    applicaiton_ids=[a.pk for a in applications],
+                    application_ids=[a.pk for a in applications],
                     regenerate=regenerate,
                     by_id=by.pk,
                     for_panellists=for_panellists,
