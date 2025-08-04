@@ -5035,7 +5035,9 @@ and designate a new referee at your earliest convenience.
                 r"AND q.title !~ '^SQ[0-9]{3,}' "
             )
             if exclude_confidential:
-                question_sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' AND NOT l.help ~ 'CONFIDENTIAL'"
+                question_sql += (
+                    r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' AND NOT l.help ~ 'CONFIDENTIAL'"
+                )
             if exclude_scores:
                 question_sql += """  AND q."type" != 'F' """
             question_sql += "ORDER BY q.gid, q.question_order"
@@ -6470,7 +6472,9 @@ def bulk_application_export(
             site_id = site.pk
             settings.SITE_ID = site_id
         filename = os.path.join(prefix, f"{a.number}.pdf")
-        file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(os.path.getmtime(filename))
+        file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(
+            os.path.getmtime(filename)
+        )
         if (
             not file_ts
             or regenerate
@@ -6484,8 +6488,8 @@ def bulk_application_export(
                     for_panellists=for_panellists,
                 ).write(output)
 
-    subject=f"Round Application Export completed: {r}"
-    url = reverse('round-application-export', kwargs={"pk": r.pk })
+    subject = f"Round Application Export completed: {r}"
+    url = reverse("round-application-export", kwargs={"pk": r.pk})
     url = f"https://{site.domain}{url}?format=7z&sync=1"
     if for_panellists:
         url = f"{url}&for_panellists=1"
@@ -7730,11 +7734,14 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             else r.applications.filter(state__in=["submitted", "approved"])
         ).order_by("number")
 
-        tz = r.created_at.tzinfo  # timezone.get_current_timezone()
+        tz = (r.created_at or r.updated_at).tzinfo  # timezone.get_current_timezone()
+
         def need_to_regenerate(a, filename=None):
             if not filename:
                 filename = os.path.join(prefix, f"{a.number}.pdf")
-            file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(os.path.getmtime(filename))
+            file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(
+                os.path.getmtime(filename)
+            )
             return (
                 not file_ts
                 or regenerate
@@ -7744,7 +7751,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 # or a.was_updated_since(timezone.datetime.fromtimestamp(os.path.getmtime(filename)).replace(tzinfo=tz))
             )
 
-        if sync in [False, 0, "0"] or sync is None and sum(need_to_regenerate(a) and 1 or 0) > 3:
+        if (
+            sync in [False, 0, "0"]
+            or sync is None
+            and sum(need_to_regenerate(a) and 1 or 0 for a in applications) > 3
+        ):
             try:
                 task_id = async_task(
                     bulk_application_export,

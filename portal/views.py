@@ -9935,7 +9935,11 @@ class ApplicationExportView(ExportView):
         # a = get_object_or_404(models.Application, pk=pk)
         a = self.get_object()
         pdf_content = io.BytesIO()
-        merger = a.to_pdf(request)
+        merger = a.to_pdf(
+            request=request,
+            user=request.user,
+            for_panellists=request.GET.get("for_panellists", False),
+        )
         merger.write(pdf_content)
         # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
         pdf_content.seek(0)
@@ -10067,7 +10071,8 @@ class RoundExportView(ExportView):
             file_format=file_format,
             sync=sync,
             regenerate=regenerate,
-            for_panellists=for_panellists)
+            for_panellists=for_panellists,
+        )
         if sync_output:
             return response
         return redirect(request.META.get("HTTP_REFERER") or "start")

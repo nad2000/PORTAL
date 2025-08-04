@@ -69,18 +69,33 @@
         {% endif %}
 
         {% if export_button_view_name %}
-        <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
-          {% if show_basic_details and not export_enabled %}
-          disabled
-          data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
-          {% else %}
-          data-title="{% trans 'Export the application into a consolidated PDF file' %}"
+          <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
+            {% if show_basic_details and not export_enabled %}
+            disabled
+            data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
+            {% else %}
+            data-title="{% trans 'Export the application into a consolidated PDF file' %}"
+            {% endif %}
+          >
+          <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}{% if for_panellists %}?for_panellists={{ for_panellists }}{% endif %}" target="_blank">
+              {% trans 'Export' %}
+            </a>
+          </div>
+          {% if user.is_admin %}
+            <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
+              {% if show_basic_details and not export_enabled %}
+              disabled
+              title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
+              {% else %}
+              title="{% trans 'Export the application for the panellists into a consolidated PDF file' %}"
+              {% endif %}
+              data-toggle="toggle"
+            >
+              <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}?for_panellists=1" target="_blank">
+                {% trans 'For Panellists' %}
+              </a>
+            </div>
           {% endif %}
-        >
-        <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}{% if for_panellists %}?for_panellists={{ for_panellists }}{% endif %}" target="_blank">
-            {% trans 'Export' %}
-          </a>
-        </div>
         {% endif %}
         {% if testimonial or referee   %}
           {% if testimonial %}<input type="hidden" name="testimonial_id" value="{{ testimonial.pk }}"> {% endif %}
