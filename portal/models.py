@@ -5035,7 +5035,7 @@ and designate a new referee at your earliest convenience.
                 r"AND q.title !~ '^SQ[0-9]{3,}' "
             )
             if exclude_confidential:
-                question_sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' "
+                question_sql += r"  AND NOT l.question ~ '\[CONFIDENTIAL\]' AND NOT l.help ~ 'CONFIDENTIAL'"
             if exclude_scores:
                 question_sql += """  AND q."type" != 'F' """
             question_sql += "ORDER BY q.gid, q.question_order"
