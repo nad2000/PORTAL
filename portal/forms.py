@@ -3607,6 +3607,12 @@ class TestimonialForm(ModelForm):
                         if site_id in [2, 4, 5]
                         else _("I do not wish to provide a testimonial")
                     ),
+                    data_toggle="tooltip",
+                    title = (
+                        _("I do not wish to provide a referee report")
+                        if site_id in [2, 4, 5]
+                        else _("I do not wish to provide a testimonial")
+                    ),
                     css_class="btn-outline-danger",
                 ),
                 HTML(

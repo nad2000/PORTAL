@@ -38,8 +38,14 @@
         data-toggle="modal"
         data-action="turn_down"
         data-target="#id_resolution_modal"
+        data-tooltip="tooltip"
+        title="{% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}{% trans 'You do not wish to provide a referee report' %}{% else %}{% trans 'You do not wish to provide a testimonial' %}{% endif %}"
       >
-      {% trans 'I do not wish to provide a testimonial' %}
+      {% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}
+        {% trans 'I do not wish to provide a report' %}
+      {% else %}
+        {% trans 'I do not wish to provide a testimonial' %}
+      {% endif %}
       </button>
     {% endif %}
   {% else %}

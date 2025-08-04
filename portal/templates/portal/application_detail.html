@@ -88,13 +88,14 @@
         <div class="tooltip-wrapper{% if not can_decline %} disabled{% endif %}"
              {% if not can_decline %}
              disabled
-             data-title="{% trans 'The referee report has been already submitted or declined' %}"
+             title="{% trans 'The testimonial/referee report has been already submitted or declined' %}"
              {% elif testimonial.state == "submitted" %}
              disabled
-             data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
+             title="{% trans 'The testimonial/referee report was already submitted and cannot be updated' %}"
              {% else %}
-             data-title="{% trans 'Decline to provid a referee report' %}"
+             title="{% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}{% trans 'Decline to provid a referee report' %}{% else %}{% trans 'Decline to provid a testimonial' %}{% endif %}"
              {% endif %}
+             data-tooltip="tooltip"
           >
             <button type="button"
               name="turn_down"
@@ -104,7 +105,11 @@
               data-target="#id_resolution_modal"
               {% if not can_decline %}disabled{% endif %}
             >
-            {% trans 'I do not wish to provide a testimonial' %}
+              {% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}
+                {% trans 'I do not wish to provide a report' %}
+              {% else %}
+                {% trans 'I do not wish to provide a testimonial' %}
+              {% endif %}
             </button>
         </div>
 
