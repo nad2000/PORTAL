@@ -4675,15 +4675,24 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     url = self.get_full_url("testimonial-update", pk=t.pk)
                 else:
                     url = self.application.get_full_detail_url(request=request)
+        message=f"""Kia ora!
+
+You have requested to revise your referee report ({t or self.application}).
+Please review your referee report and resubmit it again: {url}.
+"""
+
+        # if resolugion:
+        #     pass
+        
         send_mail(
             "Your referee report/testimonial requires reviewing",
             message=f"""Kia ora!
 
-The referee report ({t or self.application}) you have submitted requires reviewing.
+You have requested to revise your referee report ({t or self.application}).
 Please review your referee report and resubmit it again: {url}.
             """,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipients=[self.user or self.emailj],
+            recipients=[self.user or self.email],
             fail_silently=False,
             request=request,
             reply_to=settings.DEFAULT_FROM_EMAIL,
