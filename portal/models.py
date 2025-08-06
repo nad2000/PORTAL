@@ -977,7 +977,7 @@ class CareerStage(Model):
 
 class PersonIdentifierType(Model):
     code = CharField(max_length=2, null=True, blank=True)
-    description = CharField(max_length=40)
+    description = CharField(max_length=200)
     definition = TextField(max_length=200, null=True, blank=True)
 
     def __str__(self):
