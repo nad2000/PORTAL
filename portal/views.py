@@ -1307,13 +1307,23 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
             r.testify(
                 request=request,
                 by=u,
-                description=f"Synced date with LimeSurve; surevey completed at {r.survey_completed_at}",
+                description=f"Synced date with LimeSurve; survey completed at {r.survey_completed_at}",
             )
             r.save()
+
         messages.warning(
             request,
-            _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>."),
+            _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>"),
         )
+        url = r.survey_url
+        if url:
+            messages.info(
+                request,
+                _(
+                    f'If you wish to update your response, click here <a href="{url}" class="btn btn-info btn-sm">Update Response</a>'
+                ),
+            )
+
         t = models.Testimonial.where(referee=r).order_by("-pk").first()
         if t:
             return redirect("testimonial-detail", pk=t.pk)

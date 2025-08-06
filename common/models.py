@@ -62,6 +62,19 @@ class TimeStampMixin(Base):
 
 class HelperMixin:
 
+    def get_full_url(self, name, request=None, *args, **kwargs):
+        if name.startswith("/"):
+            url = name
+        else:
+            url = reverse(name, args=args, kwargs=kwargs)
+        if url:
+            if request:
+                url = request.build_absolute_uri(url)
+            else:
+                site = Site.objects.get_current()
+                url = f"https://{site.domain}{url}"
+            return domain_to_macrons(url)
+
     def clone(self, exclude_related_models=None, *args, **kwargs):
         clone = copy.copy(self)
         clone.pk = None
@@ -185,14 +198,7 @@ class Model(TimeStampMixin, HelperMixin, Base):
         return reverse(model_name_slug, args=[str(self.pk)])
 
     def get_full_detail_url(self, request=None):
-        url = self.detail_url
-        if url:
-            if request:
-                url = request.build_absolute_uri(url)
-            else:
-                site = Site.objects.get_current()
-                url = f"https://{site.domain}{url}"
-            return domain_to_macrons(url)
+        return self.get_full_url(self.detail_url, request=reqeust)
 
     def get_absolute_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")

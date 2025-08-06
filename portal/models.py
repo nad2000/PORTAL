@@ -4648,6 +4648,47 @@ class Referee(RefereeMixin, PersonMixin, Model):
     def accept(self, *args, **kwargs):
         pass
 
+    @fsm_log
+    @transition(
+        field=state,
+        source=["testified"],
+        permission=lambda instance, user: user.is_admin,
+        target="accepted",
+    )
+    def request_reviewing(self, request=None, *args, **kwargs):
+
+        t = Testimonial.where(referee=self).order_by("-pk").first()
+        if t and t.state == "submitted":
+            t.request_reviewing(request=request, *args, **kwargs)
+            t.save()
+
+        if not (url := self.survey_url):
+            if self.application.round.survey_id:
+                if self.survey_token and survey_token_id:
+                    url = self.get_full_url(
+                        "survey-do", survey_id=self.survey_token_id, token=survey_token
+                    )
+                else:
+                    url = self.get_full_url("survey-referee", referee_id=self.pk)
+            else:
+                if t := self.testimonials.order_by("-pk").first():
+                    url = self.get_full_url("testimonial-update", pk=t.pk)
+                else:
+                    url = self.application.get_full_detail_url(request=request)
+        send_mail(
+            "Your referee report/testimonial requires reviewing",
+            message=f"""Kia ora!
+
+The referee report ({t or self.application}) you have submitted requires reviewing.
+Please review your referee report and resubmit it again: {url}.
+            """,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipients=[self.user or self.emailj],
+            fail_silently=False,
+            request=request,
+            reply_to=settings.DEFAULT_FROM_EMAIL,
+        )
+
     @cached_property
     def survey_api(self):
         return self.application.round.survey_api
@@ -6155,6 +6196,12 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
     def save_draft(self, request=None, by=None, *args, **kwargs):
         pass
 
+    @fsm_log
+    @transition(field=state, source=["submitted"], target="draft", custom=dict(admin=False))
+    def request_reviewing(self, request=None, by=None, *args, **kwargs):
+        pass
+
+    @fsm_log
     @fsm_log
     @transition(field=state, source=["new", "draft"], target="submitted")
     def submit(self, request=None, by=None, commit=True, *args, **kwargs):
