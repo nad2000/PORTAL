@@ -3842,6 +3842,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         )
 
         if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
+            # resync referee with LimeSurvey:
+            if r.survey_id:
+                r.sync_referee_surveys(request=request, referees=self.referees.all())
+
             if (
                 user.is_superuser
                 or self.is_applicant(user)
@@ -4683,7 +4687,7 @@ Please review your referee report and resubmit it again: {url}.
 
         # if resolugion:
         #     pass
-        
+
         send_mail(
             "Your referee report/testimonial requires reviewing",
             message=f"""Kia ora!
@@ -7508,9 +7512,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         if not self.survey_id:
             return count
         try:
-            q = Referee.where(application__round=self)  # , survey_token__isnull=False)
             if referees:
-                q = q.filter(pk__in=referees.values_list("pk"))
+                q = referees.filter(application__round=self)
+            else:
+                q = Referee.where(application__round=self)  # , survey_token__isnull=False)
             fixed_referees = []
             api = self.survey_api
             # q = q.filter(
