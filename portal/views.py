@@ -1660,6 +1660,21 @@ def check_profile(request, token=None):
                             ),
                         )
                         return redirect(next_url or "home")
+                    if (round := i.round or r.application.round) and not round.is_active:
+                        message = _("The invitation round is not active.")
+                        if (current_round := round.scheme.current_round) and current_round != round:
+                            message = f'{message} {_(f"The current round is <b>{current_round}</b>")}.'
+                        url = None
+                        if current_invitation := models.Invitation.where(
+                                ~Q(state__in=["revoked", "accepted"]),
+                                email__lower__in=u.emailaddress_set.values_list("email__lower")).order_by("-pk").first():
+                            url = current_invitation.url or current_invitation.get_full_url("onboard-with-token", request=request, token=current_invitation.token)
+                            message = f"""{message} {_(f'The most current invitation sent to you is <a href="{url}">{url}</a>')}.
+                             {_('Please follow the invitation link')}."""
+
+                        messages.warning(request, mark_safe(message))
+                        return redirect(url or "home")
+
 
                     if not (r.survey_token_id or r.survey_token) and (
                         t := models.Testimonial.where(referee=r).last()

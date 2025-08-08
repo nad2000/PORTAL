@@ -2217,11 +2217,10 @@ class RefereeAdmin(
         return super().get_list_display(request)
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .filter(application__round__scheme__current_round=F("application__round"))
-        )
+        qs = super().get_queryset(request)
+        if "q" not in request.GET:
+            return qs.filter(application__round__scheme__current_round=F("application__round"))
+        return qs
 
     @admin.display(description="application", ordering="application__number")
     def application_number(self, obj):
