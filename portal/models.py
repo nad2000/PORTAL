@@ -3842,14 +3842,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         )
 
         if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
-            # resync referee with LimeSurvey:
-            if r.survey_id:
-                # referees that might need to be re-synced:
-                referees = self.referees.filter(
-                    Q(survey_completed_at__isnull=True) | Q(testimonial__isnull=True)
-                )
-                if referees.exists():
-                    r.sync_referee_surveys(request=request, referees=referees)
 
             if (
                 user.is_superuser
@@ -3893,6 +3885,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             (nomination := Nomination.where(application=self).last())
             and nomination.nominator == user
         ):
+            # resync referee with LimeSurvey:
+            if r.survey_id:
+                # referees that might need to be re-synced:
+                referees = self.referees.filter(
+                    Q(survey_completed_at__isnull=True) | Q(testimonial__isnull=True)
+                )
+                if referees.exists():
+                    r.sync_referee_surveys(request=request, referees=referees)
             if (
                 user.is_superuser
                 or self.is_applicant(user)
