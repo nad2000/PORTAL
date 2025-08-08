@@ -3844,7 +3844,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
             # resync referee with LimeSurvey:
             if r.survey_id:
-                r.sync_referee_surveys(request=request, referees=self.referees.all())
+                # referees that might need to be re-synced:
+                referees = self.referees.filter(
+                    Q(survey_completed_at__isnull=True) | Q(testimonial__isnull=True)
+                )
+                if referees.exists():
+                    r.sync_referee_surveys(request=request, referees=referees)
 
             if (
                 user.is_superuser
@@ -4679,7 +4684,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     url = self.get_full_url("testimonial-update", pk=t.pk)
                 else:
                     url = self.application.get_full_detail_url(request=request)
-        message=f"""Kia ora!
+        message = f"""Kia ora!
 
 You have requested to revise your referee report ({t or self.application}).
 Please review your referee report and resubmit it again: {url}.
@@ -7626,7 +7631,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             updated_testimonials = []
             for r in q:
                 token = r.survey_token or r.make_survey_token()
-                p = participants.get(r.survey_token)
+                p = participants.get(token)
                 if p and not r.survey_token:
                     r.survey_token = token
                     r.survey_token_id = p.get("tid")
@@ -7643,10 +7648,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 ):
                     continue
 
-                r.survey_completed_at = p["completed_at"]
+                if not r.survey_completed_at:
+                    r.survey_completed_at = p["completed_at"]
                 if not r.survey_token_id or r.survey_token_id != p["tid"]:
                     r.survey_token_id = p["tid"]
-                r.survey_completed_at = p["completed_at"]
                 r._change_reason = f"Synced with LimeSurvey. Referee report was completed at {r.survey_completed_at}"
                 if by:
                     r._history_user = by
