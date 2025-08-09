@@ -198,7 +198,7 @@ class Model(TimeStampMixin, HelperMixin, Base):
         return reverse(model_name_slug, args=[str(self.pk)])
 
     def get_full_detail_url(self, request=None):
-        return self.get_full_url(self.detail_url, request=reqeust)
+        return self.get_full_url(self.detail_url, request=request)
 
     def get_absolute_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
