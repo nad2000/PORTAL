@@ -9842,6 +9842,9 @@ class TestimonialDetail(DetailView):
                 )
             else:
                 closes_at = r.closes_at
+                if t.file and (not r.referee_cv_required or t.cv):
+                    context["can_submit_testimonial"] = True
+
                 if (
                     testimonial_submission_closes_at
                     and testimonial_submission_closes_at < timezone.now()
