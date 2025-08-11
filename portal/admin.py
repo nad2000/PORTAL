@@ -2845,6 +2845,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
         "created_at",
         "sent_at",
         "updated_at",
+        # "invitation_url",
         "url",
     ]
     autocomplete_fields = [
@@ -2869,6 +2870,14 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
     readonly_fields = ["submitted_at", "accepted_at", "expired_at", "token", "url"]
     ordering = ["-id"]
     actions = ["resend"]
+
+    @admin.display(description="URL", ordering="URL")
+    def invitation_url(self, obj):
+        if obj.url:
+            return obj.url
+        if obj.token:
+            url = reverse("onboard-with-token", kwargs={"token": obj.token})
+            return f"https://{obj.site.domain}/{url}"
 
     class MailLogInline(StaffPermsMixin, admin.TabularInline):
         classes = ["collapse"]
