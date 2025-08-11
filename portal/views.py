@@ -826,7 +826,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             self.object = self.get_object()
             return self.post_comment(request, *args, **kwargs)
 
-        action, description = request.POST.get("action"), request.POST.get("resolution")
+        action, description = request.POST.get("action"), request.POST.get("resolution", None)
         if action:
             if not getattr(self, "object", None):
                 self.object = self.get_object()

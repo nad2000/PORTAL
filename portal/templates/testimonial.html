@@ -30,38 +30,8 @@
     {% include 'snippets/application_detail_table.html' with a=application u=request.user %}
   </div>
 
-  <!-- Privacy Statement Modal -->
-  <div class="modal fade" id="confirm-submit" tabindex="-1" role="dialog"
-    aria-labelledby="privacy-statement-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="privacy-statement-title">{% trans 'Confirmation' %}</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          {% blocktranslate %}
-            All information in this report is true to the best of my knowledge.
-            <br />
-            <br />
-            I acknowledge that I may be contacted to provide further information in relation to this prize application.
-          {% endblocktranslate %}
-        </div>
+  {% include 'snippets/referee_privacy_statement_modal.html' %}
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
-            {% trans 'Cancel' %}
-          </button>
-          <a href="#" id="submit-button" class="btn btn-primary success">
-            {% trans 'Submit' %}
-          </a>
-        </div>
-
-      </div>
-    </div>
-  </div>
 {% endblock %}
 
 {% block javascript %}
@@ -69,7 +39,7 @@
   <script>
     $(document).ready(function(){
       $('#button-id-submit_button').click(function() {
-        if (this.form.checkValidity()) $('#confirm-submit').modal('show');
+        if (this.form.checkValidity()) $('#confirm-referee-submit').modal('show');
         else this.form.reportValidity();
       });
       $('#submit-id-turn_down').click(function() {

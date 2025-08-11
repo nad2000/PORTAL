@@ -30,8 +30,19 @@
     </div>
   {% endif %}
 
-  {% if view_name == 'testimonial-detail' and object.referee.user == user %}
+  {% if view_name == 'testimonial-detail' and object.referee.user == user and not application.round.survey_id %}
     {% if object.state == 'new' or object.state == 'draft' %}
+      <button type="button"
+        name="turn_down"
+        class="btn btn-primary"
+        data-action="submit"
+        data-toggle="modal"
+        data-target="#confirm-referee-submit"
+        data-tooltip="tooltip"
+        title="{% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}{% trans 'Submit the referee report' %}{% else %}{% trans 'Submit the testimonial' %}{% endif %}"
+      >
+        {% trans 'Submit' %}
+      </button>
       <button type="button"
         name="turn_down"
         class="btn btn-outline-danger"
