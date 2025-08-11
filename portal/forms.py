@@ -2302,7 +2302,9 @@ class ContractForm(ModelForm):
             ),
             Tab(
                 _("Proposal"),
-                HTML('{% include "snippets/application_detail_table.html" with a=application documents=application_documents %}'),
+                HTML(
+                    '{% include "snippets/application_detail_table.html" with a=application documents=application_documents %}'
+                ),
                 css_id="proposal",
             ),
             Tab(
@@ -3608,7 +3610,7 @@ class TestimonialForm(ModelForm):
                         else _("I do not wish to provide a testimonial")
                     ),
                     data_toggle="tooltip",
-                    title = (
+                    title=(
                         _("I do not wish to provide a referee report")
                         if site_id in [2, 4, 5]
                         else _("I do not wish to provide a testimonial")
@@ -3625,7 +3627,8 @@ class TestimonialForm(ModelForm):
 
     def save(self, commit=True):
 
-        if self.instance.round.referee_cv_required:
+        r = self.instance.round
+        if r.referee_cv_required:
             referee = (
                 self.initial
                 and self.initial.get("referee")

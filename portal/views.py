@@ -1662,19 +1662,31 @@ def check_profile(request, token=None):
                         return redirect(next_url or "home")
                     if (round := i.round or r.application.round) and not round.is_active:
                         message = _("The invitation round is not active.")
-                        if (current_round := round.scheme.current_round) and current_round != round:
-                            message = f'{message} {_(f"The current round is <b>{current_round}</b>")}.'
+                        if (
+                            current_round := round.scheme.current_round
+                        ) and current_round != round:
+                            message = (
+                                f'{message} {_(f"The current round is <b>{current_round}</b>")}.'
+                            )
                         url = None
-                        if current_invitation := models.Invitation.where(
+                        if (
+                            current_invitation := models.Invitation.where(
                                 ~Q(state__in=["revoked", "accepted"]),
-                                email__lower__in=u.emailaddress_set.values_list("email__lower")).order_by("-pk").first():
-                            url = current_invitation.url or current_invitation.get_full_url("onboard-with-token", request=request, token=current_invitation.token)
+                                email__lower__in=u.emailaddress_set.values_list("email__lower"),
+                            )
+                            .order_by("-pk")
+                            .first()
+                        ):
+                            url = current_invitation.url or current_invitation.get_full_url(
+                                "onboard-with-token",
+                                request=request,
+                                token=current_invitation.token,
+                            )
                             message = f"""{message} {_(f'The most current invitation sent to you is <a href="{url}">{url}</a>')}.
                              {_('Please follow the invitation link')}."""
 
                         messages.warning(request, mark_safe(message))
                         return redirect(url or "home")
-
 
                     if not (r.survey_token_id or r.survey_token) and (
                         t := models.Testimonial.where(referee=r).last()
@@ -9340,6 +9352,9 @@ class TestimonialView(CreateUpdateView):
                 r.save(update_fields=["user"])
             t.referee = r
 
+        if "file" in form.changed_data and t.file and t.converted_file:
+            t.converted_file = None
+
         resp = super().form_valid(form)
 
         if r := t.referee:
@@ -9352,6 +9367,29 @@ class TestimonialView(CreateUpdateView):
                 )
 
         round = t.application.round
+        if "file" in form.changed_data and t.file and not t.file.name.lower().endswith(".pdf"):
+            try:
+                if t.file and (cf := t.update_converted_file()):
+                    t.save(update_fields=["converted_file"])
+                    messages.success(
+                        self.request,
+                        _(
+                            "Your referee report/testimonial was converted into PDF file. Please review "
+                            "the converted version <a href='%s'>%s</a>."
+                        )
+                        % (cf.file.url, os.path.basename(cf.file.name)),
+                    )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(
+                    self.request,
+                    _(
+                        "Failed to convert your report/testimonial into PDF. "
+                        "Please save the file into PDF format and try to upload it again."
+                    ),
+                )
+                return redirect(self.request.get_full_path())
+
         if (
             self.request.method == "POST"
             and round.referee_cv_required

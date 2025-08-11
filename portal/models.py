@@ -589,11 +589,13 @@ class PdfFileMixin:
                 self.page_count = page_count
             return page_count
 
-    def update_converted_file(self, commit=False):
+    def update_converted_file(self, commit=False, file=None):
         """If the attached file is not PDF convert and update the PDF version."""
 
-        if not self.file or (
-            (file_ext := Path(self.file.path).suffix)
+        if not file:
+            file = self.file
+        if not file or (
+            (file_ext := Path(file.path).suffix)
             and file_ext.lower() == ".pdf"
             and self.converted_file
         ):
@@ -603,8 +605,8 @@ class PdfFileMixin:
             self.converted_file = None
 
             if hasattr(self, "page_count"):
-                if self.file and self.file.name:
-                    self.update_page_count(self.file.path)
+                if file and file.name:
+                    self.update_page_count(file.path)
                 else:
                     self.page_count = 0
 
@@ -621,10 +623,10 @@ class PdfFileMixin:
             return
 
         file_ext = file_ext.lower()
-        if self.file.name and file_ext != ".pdf":
+        if file.name and file_ext != ".pdf":
             # if file_ext == ".tex":
             #     cp = subprocess.run(
-            #         ["pdflatex", self.file.path],
+            #         ["pdflatex", file.path],
             #         stdin=subprocess.DEVNULL,
             #         text=True,
             #         capture_output=True,
@@ -660,7 +662,7 @@ class PdfFileMixin:
                     "pdf",
                     "--outdir",
                     tempfile.gettempdir(),
-                    self.file.path,
+                    file.path,
                 ],
                 capture_output=True,
             )
@@ -683,7 +685,7 @@ class PdfFileMixin:
                     % stderr,
                 )
 
-            output_filename, ext = os.path.splitext(os.path.basename(self.file.name))
+            output_filename, ext = os.path.splitext(os.path.basename(file.name))
             output_filename = f"{output_filename}.pdf"
             output_path = os.path.join(tempfile.gettempdir(), output_filename)
 
