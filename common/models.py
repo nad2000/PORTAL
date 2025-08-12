@@ -12,7 +12,7 @@ from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, LazyObject
 from django.utils.safestring import mark_safe
 from model_utils import Choices
 
@@ -171,7 +171,9 @@ class HelperMixin:
 
     @classmethod
     def where(cls, *args, **kwargs):
-        return cls.objects.filter(*args, **kwargs)
+        return cls.objects.filter(
+            *args, **{k: v.pk if isinstance(v, LazyObject) else v for (k, v) in kwargs.items()}
+        )
 
     @property
     def admin_url(self):

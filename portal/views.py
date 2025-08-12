@@ -314,6 +314,11 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
+        if not user.is_authenticated or user.is_anonymous:
+            return redirect(
+                reverse(settings.LOGIN_URL) + "?next=" + quote(request.get_full_path())
+            )
+
         person = Person.where(user=user).last()
         if not person or request.session.get("wizard") or ("wizard-views" in request.session):
             wizard_views = request.session.get("wizard-views")
