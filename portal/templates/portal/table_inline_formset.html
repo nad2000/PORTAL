@@ -96,7 +96,7 @@
             {% endcomment %}
             {% elif field.name == "DELETE" %}
               <td>
-                {% if form.id and form.id.value %}
+                {% if form.id and form.id.value and form.instance.pk %}
                   <button
                     class="btn btn-danger"
                     hx-delete="{% url 'objects-delete' model=form.instance.model_name pk=form.instance.pk %}"
