@@ -3699,22 +3699,39 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return cls.user_applications(user, ["draft", "new"], request=request)
 
     def get_testimonials(self, has_testified=None, user=None):
-        sql = (
-            "SELECT DISTINCT tm.* FROM referee AS r "
-            "JOIN application AS a "
-            "  ON a.id = r.application_id "
-            "LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
-            "WHERE (r.application_id=%s OR a.id=%s) AND a.site_id=%s "
-        )
-        if has_testified:
-            sql += " AND r.state='testified'"
+        r = self.round
+        qs = Testimonial.where(referee__application=self)
+        if has_testified is not None:
+            qs = qs.filter(referee__state="testified")
+            if r.survey_id:
+                qs = qs.filter(referee__survey_completed_at__isnull=False)
+            else:
+                qs = qs.filter(~Q(file=""))
         if user:
-            sql += f" AND r.user_id={user.pk}"
-        sql += " ORDER BY tm.id"
-        if self.round.required_referees:
-            sql += f" LIMIT {self.round.required_referees}"
+            qs = qs.filter(referee__user=user)
+        if has_testified and r.required_referees:
+            qs = qs.order_by("referee__survey_completed_at") if r.survey_id else qs.order_by("referee__testified_at")
+        else:
+            qs = qs.order_by("referee__id")
+        if r.required_referees:
+            qs = qs[: r.required_referees]
+        return qs
+        # sql = (
+        #     "SELECT DISTINCT tm.* FROM referee AS r "
+        #     "JOIN application AS a "
+        #     "  ON a.id = r.application_id "
+        #     "LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
+        #     "WHERE (r.application_id=%s OR a.id=%s) AND a.site_id=%s "
+        # )
+        # if has_testified:
+        #     sql += " AND r.state='testified'"
+        # if user:
+        #     sql += f" AND r.user_id={user.pk}"
+        # sql += " ORDER BY tm.id"
+        # if self.round.required_referees:
+        #     sql += f" LIMIT {self.round.required_referees}"
 
-        return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
+        # return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
 
     def to_pdf(
         self,
@@ -3894,7 +3911,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     Q(survey_completed_at__isnull=True) | Q(testimonial__isnull=True)
                 )
                 if referees.exists():
-                    r.sync_referee_surveys(request=request, referees=referees)
+                    try:
+                        r.sync_referee_surveys(request=request, referees=referees)
+                    except Exception as ex:
+                        logger.exception("Error syncing referee surveys: %s", ex)
+                        capture_exception(ex)
             if (
                 user.is_superuser
                 or self.is_applicant(user)
@@ -3981,7 +4002,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             }
             if for_panellists and (user.is_superuser or user.is_site_staff):
                 if site_id in [2, 5]:
-                    referees = self.referees.order_by("testified_at")
+                    referees = self.referees.order_by("survey_completed_at") if r.survey_id else self.referees.order_by("testified_at")
                     if r.required_referees:
                         referees = referees[: r.required_referees]
                     context["referees"] = referees
@@ -7753,7 +7774,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         count += len(updated_referees) or len(updated_testimonials)
         if request:
-            if count:
+            if count and request.user.is_admin:
                 messages.info(
                     request,
                     f"Synced and/or updated {len(updated_referees)} referee(s): {', '.join(r.email for r in updated_referees)}",
