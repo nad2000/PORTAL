@@ -377,6 +377,14 @@
             </td>
           </tr>
         {% endif %}
+        {% if a.budget %}
+          {% if u.is_admin or is_panellist %}
+            <tr>
+              <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
+              <td colspan="3"><a href="{{ a.budget.url }}" target="_blank"> {{ a.budget.name|basename }} </a></td>
+            </tr>
+          {% endif %}
+        {% endif %}
       {% endif %}
 
     {% endif %}

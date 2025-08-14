@@ -3769,6 +3769,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
             )
 
+        # if i(u.is_admin or for_panellists or is_panellist) and self.budget:
+        #     attachments.append((
+        #         _('Budget'),
+        #         settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
+        #     ))
+
         if (
             r.applicant_cv_required
             and not self.documents.filter(document_type__role="CV").exists()
