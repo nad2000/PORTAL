@@ -3808,7 +3808,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                                     t.title_page,
                                 )
                             )
-                    if t.file:
+                    if t.file and not exclude_confidential:  ## dont't attache files
                         attachments.append(
                             (
                                 (
@@ -3923,9 +3923,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 or is_panellist
                 or for_panellists
             ):
-                add_testimonials(attachments)
+                if r.survey_id or not exclude_confidential:
+                    add_testimonials(attachments)
             else:
-                add_testimonials(attachments, user=user)
+                if r.survey_id or not exclude_confidential:
+                    add_testimonials(attachments, user=user)
 
         ssl._create_default_https_context = ssl._create_unverified_context
 
