@@ -850,6 +850,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         return redirect(request.path)
 
 
+@method_decorator(shoud_be_onboarded, name="dispatch")
 class ExportView(UserPassesTestMixin, DetailView):
     model = None
     cache_timeout = 0
@@ -10233,9 +10234,7 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         u = self.request.user
         # staff, superuser, or a panellist of the round
         return (
-            u.is_staff
-            or u.is_superuser
-            or u.is_site_staff
+            u.is_admin
             or (
                 "pk" in self.kwargs
                 and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
