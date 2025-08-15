@@ -589,20 +589,6 @@ class PdfFileMixin:
                 self.page_count = page_count
             return page_count
 
-    def __getattr__(self, item):
-        if item.endswith("_pdf"):
-            if filename := getattr(self, item.removesuffix("_pdf"), None):
-                setattr(self, item, self.get_converted_to_pdf(filename))
-                return getattr(self, item)
-            return None
-        if item.endswith("_pdf"):
-            pdf_filename = getattr(self, item.removesuffix("_pdf"))
-            pdf_reader = PdfReader(pdf_filename, strict=False)
-            page_count = len(pdf_reader.pages)
-            setattr(self, item, page_count)
-            return getattr(self, item)
-        return super().__getattr__(item)
-
     def get_converted_to_pdf(self, filename, output_dir=None):
 
         if not isinstance(filename, str):
@@ -651,7 +637,7 @@ class PdfFileMixin:
                 "--convert-to",
                 "pdf",
                 "--outdir",
-                output_dir or tempfile.gettempdir(),
+                output_dir,
                 filename,
             ],
             capture_output=True,
@@ -3763,6 +3749,20 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     sql += f" LIMIT {self.round.required_referees}"
 
         # return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
+
+    def __getattr__(self, item):
+        if item.endswith("_pdf"):
+            if filename := getattr(self, item.removesuffix("_pdf"), None):
+                setattr(self, item, self.get_converted_to_pdf(filename))
+                return getattr(self, item)
+            return None
+        if item.endswith("_pdf"):
+            pdf_filename = getattr(self, item.removesuffix("_pdf"))
+            pdf_reader = PdfReader(pdf_filename, strict=False)
+            page_count = len(pdf_reader.pages)
+            setattr(self, item, page_count)
+            return getattr(self, item)
+        return super().__getattr__(item)
 
     def to_pdf(
         self,
