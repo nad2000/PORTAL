@@ -589,6 +589,93 @@ class PdfFileMixin:
                 self.page_count = page_count
             return page_count
 
+    def __getattr__(self, item):
+        if item.endswith("_pdf"):
+            if filename := getattr(self, item.removesuffix("_pdf"), None):
+                setattr(self, item, self.get_converted_to_pdf(filename))
+                return getattr(self, item)
+            return None
+        if item.endswith("_pdf"):
+            pdf_filename = getattr(self, item.removesuffix("_pdf"))
+            pdf_reader = PdfReader(pdf_filename, strict=False)
+            page_count = len(pdf_reader.pages)
+            setattr(self, item, page_count)
+            return getattr(self, item)
+        return super().__getattr__(item)
+
+    def get_converted_to_pdf(self, filename, output_dir=None):
+
+        if not isinstance(filename, str):
+            filename = filename.path
+        if not output_dir:
+            output_dir = os.path.dirname(filename)
+
+        output_filename, ext = os.path.splitext(os.path.basename(filename))
+        output_filename = f"{output_filename}.pdf"
+        output_path = os.path.join(output_dir or tempfile.gettempdir(), output_filename)
+        ext = ext.lower()
+        if ext == ".pdf":
+            return filename
+        if (
+            (file_ts := os.path.exists(filename) and os.path.getmtime(filename))
+            and (output_ts := os.path.exists(output_path) and os.path.getmtime(output_path))
+            and file_ts <= output_ts
+        ):
+            return output_path
+
+        cp = subprocess.run(
+            [
+                (
+                    "lowriter"
+                    if ext in [".odt", ".ott", ".oth", ".odm", ".doc", ".docx", ".docm", ".docb"]
+                    else (
+                        "localc"
+                        if ext
+                        in [
+                            ".xls",
+                            ".xlw",
+                            ".xlt",
+                            ".xml",
+                            ".xlsx",
+                            ".xlsm",
+                            ".xltx",
+                            ".xltm",
+                            ".xlsb",
+                            ".csv",
+                            ".ctv",
+                        ]
+                        else "loffice"
+                    )
+                ),
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                output_dir or tempfile.gettempdir(),
+                filename,
+            ],
+            capture_output=True,
+        )
+        if cp.returncode or (
+            (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
+        ):
+            if cp.returncode:
+                raise Exception(
+                    _(
+                        "Failed to convert your application form into PDF. "
+                        "Please save your application form into PDF format and try to upload it again."
+                    ),
+                )
+
+            raise Exception(
+                _(
+                    "Failed to convert your application form into PDF: %s. "
+                    "Please save your application form into PDF format and try to upload it again."
+                )
+                % stderr,
+            )
+        return output_path
+
     def update_converted_file(self, commit=False, file=None):
         """If the attached file is not PDF convert and update the PDF version."""
 
@@ -624,70 +711,10 @@ class PdfFileMixin:
 
         file_ext = file_ext.lower()
         if file.name and file_ext != ".pdf":
-            # if file_ext == ".tex":
-            #     cp = subprocess.run(
-            #         ["pdflatex", file.path],
-            #         stdin=subprocess.DEVNULL,
-            #         text=True,
-            #         capture_output=True,
-            #     )
-            # else:
-            cp = subprocess.run(
-                [
-                    (
-                        "lowriter"
-                        if file_ext
-                        in [".odt", ".ott", ".oth", ".odm", ".doc", ".docx", ".docm", ".docb"]
-                        else (
-                            "localc"
-                            if file_ext
-                            in [
-                                ".xls",
-                                ".xlw",
-                                ".xlt",
-                                ".xml",
-                                ".xlsx",
-                                ".xlsm",
-                                ".xltx",
-                                ".xltm",
-                                ".xlsb",
-                                ".csv",
-                                ".ctv",
-                            ]
-                            else "loffice"
-                        )
-                    ),
-                    "--headless",
-                    "--convert-to",
-                    "pdf",
-                    "--outdir",
-                    tempfile.gettempdir(),
-                    file.path,
-                ],
-                capture_output=True,
-            )
-            if cp.returncode or (
-                (stderr := (cp.stderr and cp.stderr.decode())) and "error" in stderr.lower()
-            ):
-                if cp.returncode:
-                    raise Exception(
-                        _(
-                            "Failed to convert your application form into PDF. "
-                            "Please save your application form into PDF format and try to upload it again."
-                        ),
-                    )
 
-                raise Exception(
-                    _(
-                        "Failed to convert your application form into PDF: %s. "
-                        "Please save your application form into PDF format and try to upload it again."
-                    )
-                    % stderr,
-                )
-
-            output_filename, ext = os.path.splitext(os.path.basename(file.name))
-            output_filename = f"{output_filename}.pdf"
-            output_path = os.path.join(tempfile.gettempdir(), output_filename)
+            output_dir = tempfile.gettempdir()
+            output_path = self.get_converted_to_pdf(file.path, output_dir=output_dir)
+            output_filename = os.path.basename(output_path)
 
             with open(output_path, "rb") as of:
 
@@ -3710,7 +3737,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if user:
             qs = qs.filter(referee__user=user)
         if has_testified and r.required_referees:
-            qs = qs.order_by("referee__survey_completed_at") if r.survey_id else qs.order_by("referee__testified_at")
+            qs = (
+                qs.order_by("referee__survey_completed_at")
+                if r.survey_id
+                else qs.order_by("referee__testified_at")
+            )
         else:
             qs = qs.order_by("referee__id")
         if r.required_referees:
@@ -3769,11 +3800,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
             )
 
-        # if i(u.is_admin or for_panellists or is_panellist) and self.budget:
-        #     attachments.append((
-        #         _('Budget'),
-        #         settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
-        #     ))
+        if (user.is_admin or for_panellists or is_panellist) and self.budget:
+            attachments.append(
+                (
+                    _("Budget"),
+                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
+                    self.budget_pdf,
+                )
+            )
 
         if (
             r.applicant_cv_required
@@ -4010,7 +4044,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             }
             if for_panellists and (user.is_superuser or user.is_site_staff):
                 if site_id in [2, 5]:
-                    referees = self.referees.order_by("survey_completed_at") if r.survey_id else self.referees.order_by("testified_at")
+                    referees = (
+                        self.referees.order_by("survey_completed_at")
+                        if r.survey_id
+                        else self.referees.order_by("testified_at")
+                    )
                     if r.required_referees:
                         referees = referees[: r.required_referees]
                     context["referees"] = referees
