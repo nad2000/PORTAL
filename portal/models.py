@@ -748,6 +748,23 @@ class PdfFileMixin:
 
         return len(changed_objects)
 
+    # def __getattr__(self, item):
+
+    #     if item.endswith("_pdf"):
+    #         if filename := getattr(self, item.removesuffix("_pdf"), None):
+    #             setattr(self, item, self.get_converted_to_pdf(filename))
+    #             return getattr(self, item)
+    #         return None
+    #     if item.endswith("_pdf"):
+    #         pdf_filename = getattr(self, item.removesuffix("_pdf"))
+    #         pdf_reader = PdfReader(pdf_filename, strict=False)
+    #         page_count = len(pdf_reader.pages)
+    #         setattr(self, item, page_count)
+    #         return getattr(self, item)
+    #     if hasattr(super(), "__getattr__"):
+    #         return super().__getattr__(item)
+    #     raise AttributeError(self, item)
+
 
 class StateField(FSMFieldMixin, StatusField):
     def __init__(self, *args, **kwargs):
@@ -3749,20 +3766,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         #     sql += f" LIMIT {self.round.required_referees}"
 
         # return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
-
-    def __getattr__(self, item):
-        if item.endswith("_pdf"):
-            if filename := getattr(self, item.removesuffix("_pdf"), None):
-                setattr(self, item, self.get_converted_to_pdf(filename))
-                return getattr(self, item)
-            return None
-        if item.endswith("_pdf"):
-            pdf_filename = getattr(self, item.removesuffix("_pdf"))
-            pdf_reader = PdfReader(pdf_filename, strict=False)
-            page_count = len(pdf_reader.pages)
-            setattr(self, item, page_count)
-            return getattr(self, item)
-        return super().__getattr__(item)
 
     def to_pdf(
         self,
