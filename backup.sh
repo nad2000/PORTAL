@@ -15,7 +15,7 @@ sudo -u postgres XZ_OPT="-9 --memory=135000000" tar -C "$DATA_DIR" -cJf ./backup
 psql -U postgres -c "SELECT pg_backup_stop();"
 [ $(date +%d) != '01' ] && NEWER="-N $(date +%Y-%m-01)"
 if [ "$(hostname)" != 'mail.prodata.nz' ] ; then
-    XZ_OPT="-9 --memory=135000000" tar -C ./prod/private-media/ --exclude ./pdf --exclude ./converted $NEWER -cJf ./backup/${TS_LABEL}_MEDIA.tar.xz ./
+    XZ_OPT="-9 --memory=135000000" tar -C ./prod/private-media/ --exclude ./PDF --exclude ./pdf --exclude ./converted $NEWER -cJf ./backup/${TS_LABEL}_MEDIA.tar.xz ./
 fi
 # sudo -u chmod g+w ./backup/$TS_LABEL.tar.xz 
 sudo mv ./backup/${TS_LABEL}_*.tar.xz ./archive/ && sudo find ./archive -mtime +0 -exec rm -f {} \;

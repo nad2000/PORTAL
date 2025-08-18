@@ -6607,6 +6607,8 @@ def bulk_application_export(
             prefix = "admins"
         else:
             prefix = u.username
+        prefix_url = os.path.join("PDF", f"{r.scheme.code}", f"{r.opens_on.year}", prefix)
+        prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
 
     applications = Application.all_objects.filter(pk__in=application_ids)
     # tz = timezone.get_current_timezone()
@@ -7873,7 +7875,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             prefix = by.username
 
         # prefix = os.path.join(tempfile.gettempdir(), prefix)
-        prefix_url = os.path.join("rounds", f"{r.scheme.code}", f"{r.opens_on.year}", prefix)
+        prefix_url = os.path.join("PDF", f"{r.scheme.code}", f"{r.opens_on.year}", prefix)
         prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
