@@ -594,7 +594,9 @@ class PdfFileMixin:
         if not isinstance(filename, str):
             filename = filename.path
         if not output_dir:
-            output_dir = os.path.dirname(filename)
+            output_dir = os.path.dirname(filename).replace(
+                settings.PRIVATE_STORAGE_ROOT, f"{settings.PRIVATE_STORAGE_ROOT}/PDF"
+            )
 
         output_filename, ext = os.path.splitext(os.path.basename(filename))
         output_filename = f"{output_filename}.pdf"
@@ -608,6 +610,9 @@ class PdfFileMixin:
             and file_ts <= output_ts
         ):
             return output_path
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
 
         cp = subprocess.run(
             [
@@ -748,22 +753,21 @@ class PdfFileMixin:
 
         return len(changed_objects)
 
-    # def __getattr__(self, item):
+    # def __getattribute__(self, item):
 
+    #     breakpoint()
     #     if item.endswith("_pdf"):
     #         if filename := getattr(self, item.removesuffix("_pdf"), None):
     #             setattr(self, item, self.get_converted_to_pdf(filename))
     #             return getattr(self, item)
     #         return None
-    #     if item.endswith("_pdf"):
-    #         pdf_filename = getattr(self, item.removesuffix("_pdf"))
+    #     if item.endswith("_page_count"):
+    #         pdf_filename = getattr(self, item.removesuffix("_page_count"))
     #         pdf_reader = PdfReader(pdf_filename, strict=False)
     #         page_count = len(pdf_reader.pages)
     #         setattr(self, item, page_count)
     #         return getattr(self, item)
-    #     if hasattr(super(), "__getattr__"):
-    #         return super().__getattr__(item)
-    #     raise AttributeError(self, item)
+    #     return super().__getattribute__(item)
 
 
 class StateField(FSMFieldMixin, StatusField):
@@ -4222,6 +4226,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # or self.members.filter(updated_at__gte=ts).exists()
             # or self.members.filter(updated_at__gte=ts).exists()
         )
+
+    @property
+    def budget_pdf(self):
+        if self.budget and (filename := self.budget.path):
+            return self.get_converted_to_pdf(filename)
 
     class Meta:
         db_table = "application"
@@ -7890,7 +7899,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             )
 
         if (
-            sync in [False, 0, "0"]
+            sync in [False, 0, "0", "no" "false", "False", "NO", "FALSE"]
             or sync is None
             and sum(need_to_regenerate(a) and 1 or 0 for a in applications) > 3
         ):
@@ -7956,7 +7965,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 with py7zr.SevenZipFile(output_filename, "w") as archive:
                     for a in applications:
                         filename = os.path.join(prefix, f"{a.number}.pdf")
-                        archive.write(filename, f"{a.number}.pdf")
+                        archive.write(filename, f"{a.panel.code}/{a.number}.pdf" if a.panel else f"{a.number}.pdf")
 
             if request:
                 content_type = "application/x-7z-compressed"
