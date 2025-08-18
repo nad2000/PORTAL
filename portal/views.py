@@ -10114,9 +10114,7 @@ class RoundExportView(ExportView):
         regenerate = request.GET.get("regenerate", False)
         regenerate = regenerate and regenerate != "0"
         u = request.user
-        for_panellists = request.GET.get("for_panellists", False) and (
-            u.is_superuser or u.is_site_staff
-        )
+        for_panellists = request.GET.get("for_panellists", False) and u.is_admin
 
         if for_panellists or round.panellists.filter(user=u).exists():
             prefix = "panellists"

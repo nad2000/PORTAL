@@ -3741,7 +3741,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 qs = qs.filter(referee__survey_completed_at__isnull=False)
             else:
                 qs = qs.filter(~Q(file=""))
-        if user:
+        if user and not user.is_admin:
             qs = qs.filter(referee__user=user)
         if has_testified and r.required_referees:
             qs = (
@@ -3753,6 +3753,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             qs = qs.order_by("referee__id")
         if r.required_referees:
             qs = qs[: r.required_referees]
+        print("sql:", qs.query)
         return qs
         # sql = (
         #     "SELECT DISTINCT tm.* FROM referee AS r "
@@ -3910,7 +3911,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
 
             if (
-                user.is_superuser
+                user.is_admin
                 or self.is_applicant(user)
                 or user.is_site_staff
                 or is_panellist
@@ -3964,7 +3965,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         logger.exception("Error syncing referee surveys: %s", ex)
                         capture_exception(ex)
             if (
-                user.is_superuser
+                user.is_admin
                 or self.is_applicant(user)
                 or user.is_site_staff
                 or is_panellist
@@ -6611,7 +6612,7 @@ def bulk_application_export(
     # tz = timezone.get_current_timezone()
     if not r:
         r = Round.where(applications__in=applications).order_by("-pk").first()
-    tz = r.created_at.tzinfo
+    tz =  r and r.created_at and r.created_at.tzinfo
     for a in applications:
         if not site_id:
             site = a.site
@@ -6621,6 +6622,10 @@ def bulk_application_export(
         file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(
             os.path.getmtime(filename)
         )
+        if not os.path.exists(prefix):
+            os.makedirs(prefix, exist_ok=True)
+        if not tz:
+            tz = a.updated_at and a.updated_at.tzinfo
         if (
             not file_ts
             or regenerate
@@ -7920,11 +7925,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         url = reverse(
                             "admin:django_q_ormq_change", kwargs={"object_id": q_task.pk}
                         )
+                        task_name = q_task.task.get("name") or taks_id
                         messages.success(
                             request,
                             mark_safe(
                                 "Application background task initiated: "
-                                f'<a href="{url}" target="_blank">{task_id}</a>. '
+                                f'<a href="{url}" target="_blank">{task_name}</a>. '
                                 "You will notified when the export task will be finished."
                             ),
                         )
