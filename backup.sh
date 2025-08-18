@@ -22,12 +22,12 @@ sudo mv ./backup/${TS_LABEL}_*.tar.xz ./archive/ && sudo find ./archive -mtime +
 
 # SEE: https://www.vultr.com/docs/how-to-use-s3cmd-with-vultr-object-storage
 if which s3cmd && [ -f $HOME/.s3cfg ] ; then
-    s3cmd put ./archive/${TS_LABEL}_DB.tar.xz s3://$BUCKET/$(date +%y%m)/${S_LABEL}_DB.tar.xz
-    s3cmd put ./archive/${TS_LABEL}_MEDIA.tar.xz s3://$BUCKET/$(date +%y%m)/${TS_LABEL}_MEDIA.tar.xz
+    s3cmd put ./archive/${TS_LABEL}_DB.tar.xz s3://$BUCKET/$(date +%y%m)/DB/${S_LABEL}_DB.tar.xz
+    s3cmd put ./archive/${TS_LABEL}_MEDIA.tar.xz s3://$BUCKET/$(date +%y%m)/MEDIA/${TS_LABEL}_MEDIA.tar.xz
     if compgen -G "./archive/*.sql.xz" &>/dev/null ; then
         cd ./archive/
         # tar -cf ${TS_LABEL}_DUMPS.tar ./*.sql.xz
-        s3cmd put "./$(ls -1rt | tail -n 1)" s3://$BUCKET/$(date +%y%m)/${TS_LABEL}_DUMPS.sql.xz
+        s3cmd put "./$(ls -1rt | tail -n 1)" s3://$BUCKET/$(date +%y%m)/DUMPS/${TS_LABEL}_DUMPS.sql.xz
         find ./ -mtime +1 -name \*.sql.xz -exec rm -f {} \;
     fi
 fi
