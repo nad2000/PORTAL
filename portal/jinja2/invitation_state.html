@@ -48,6 +48,15 @@
       data-html="true"
       title="{% trans %}The invitation delivery failed{% endtrans %}"
       data-content="{% trans %}The invitation delivery failed or autoreplied at {{ changed_on }}. Please contact the recipient directly.{% endtrans %}{% if error_message %}<br/><br/><pre>{{ error_message }}</pre>{% endif %}"></i>
+  {% elif state == 'excluded' %}
+   <i class="fa fa-ban text-danger text-center"
+      data-placement="right"
+      aria-hidden="true"
+      data-toggle="popover"
+      data-trigger="manual"
+      data-html="true"
+      title="{% trans %}The entry was <b>excluded</b>{% endtrans %}"
+      data-content="{% trans %}The entry excluded at {{ changed_on }}.{% endtrans %}</i>
  {% endif %}
  <input type="hidden"
         name="{{ widget.name }}"

@@ -3736,7 +3736,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         r = self.round
         qs = Testimonial.where(referee__application=self)
         if has_testified is not None:
-            qs = qs.filter(referee__state="testified")
+            qs = qs.filter(referee__state="testified", state="submitted")
             if r.survey_id:
                 qs = qs.filter(referee__survey_completed_at__isnull=False)
             else:
@@ -4512,7 +4512,8 @@ REFEREE_STATES = Choices(
     ("new", _("new")),
     ("opted_out", _("opted out")),
     ("sent", _("sent")),
-    ("testified", _("testified")),
+    ("testified", _("Testified")),
+    ("excluded", _("Excluded")),
     (None, None),
 )
 
@@ -5095,6 +5096,11 @@ and designate a new referee at your earliest convenience.
         #     # for i in Invitation.where(~Q(state__in="revoked"), referee=self):
         #     #     i.send(*args, **kwargs)
         #     #     i.save()
+        pass
+
+    @fsm_log
+    @transition(field=state, source=["testified"], target="excluded")
+    def exclude(self, *args, **kwargs):
         pass
 
     def __str__(self):
@@ -6239,9 +6245,10 @@ simple_history.register(
 
 TESTIMONIAL_STATES = Choices(
     (None, None),
-    ("new", _("new")),
-    ("draft", _("draft")),
-    ("submitted", _("submitted")),
+    ("new", _("New")),
+    ("draft", _("Draft")),
+    ("submitted", _("Submitted")),
+    ("excluded", _("Excluded")),
 )
 
 
@@ -6302,7 +6309,6 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         pass
 
     @fsm_log
-    @fsm_log
     @transition(field=state, source=["new", "draft"], target="submitted")
     def submit(self, request=None, by=None, commit=True, *args, **kwargs):
         # self.referee.has_testifed = True
@@ -6318,6 +6324,11 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
                 self.referee.save()
         if self.site_id in [2, 5]:
             pass
+
+    @fsm_log
+    @transition(field=state, source=["testified"], target="excluded")
+    def exclude(self, *args, **kwargs):
+        pass
 
     @classmethod
     def user_testimonials(cls, user, state=None, round=None):
