@@ -7853,12 +7853,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             if count and request.user.is_admin:
                 messages.info(
                     request,
-                    f"Synced and/or updated {len(updated_referees)} referee(s): {', '.join(r.email for r in updated_referees)}",
+                    f"Synced and/or updated {count} referee(s): {', '.join(r.email for r in updated_referees)}",
                 )
         else:
             if count:
                 logger.info(
-                    f"Synced and/or updated {len(updated_referees)} referee(s): {', '.join(r.email for r in updated_referees)}"
+                    f"Synced and/or updated {count} referee(s): {', '.join(r.email for r in updated_referees)}"
                 )
         return count
 
