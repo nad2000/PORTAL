@@ -4254,8 +4254,8 @@ class ApplicationDetail(DetailView):
             context["evaluation"] = models.Evaluation.where(panellist=p, application=a).last()
 
         context["is_owner"] = is_owner
-        can_only_update_referees = context["can_only_update_referees"] = not is_referee and (
-            a.can_only_update_referees(u)
+        can_only_update_referees = context["can_only_update_referees"] = (
+            not is_referee and site_id not in [1, 7] and (a.can_only_update_referees(u))
         )
 
         if (
@@ -5676,20 +5676,31 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         has_required_documents = round.required_documents.count() > 0
 
         if round.ethics_statement_required:
+            et_not_relevant = (
+                self.object
+                and self.object.ethics_statement
+                and self.object.ethics_statement.not_relevant
+            )
             EthicsStatementForm = model_forms.modelform_factory(
                 models.EthicsStatement,
                 exclude=["application"],
                 widgets={
                     "file": widgets.ClearableFileInput(
-                        attrs={
-                            "placeholder": _("Please upload a file ..."),
-                            "data-placeholder": _("Please upload a file ..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The file is required. Please upload a file ..."),
-                            "oninput": "this.setCustomValidity('')",
-                            "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
-                        }
+                        attrs=(
+                            {
+                                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                            }
+                            if et_not_relevant
+                            else {
+                                "placeholder": _("Please upload a file ..."),
+                                "data-placeholder": _("Please upload a file ..."),
+                                "data-required": 1,
+                                "oninvalid": "this.setCustomValidity('%s')"
+                                % _("The file is required. Please upload a file ..."),
+                                "oninput": "this.setCustomValidity('')",
+                                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                            }
+                        )
                     )
                 },
             )
@@ -10231,13 +10242,10 @@ class TestimonialExportView(ExportView, TestimonialDetail):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
-        return (
-            u.is_admin
-            or (
-                "pk" in self.kwargs
-                and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
-                and t.referee.user == u
-            )
+        return u.is_admin or (
+            "pk" in self.kwargs
+            and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
+            and t.referee.user == u
         )
 
     def get_attachments(self, pk):

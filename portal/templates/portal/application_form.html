@@ -217,22 +217,35 @@
                                     $("a[href='#applicant']").text("{% trans 'Team' %}");
                                   };
                                 });
-                                $('#id_et-not_relevant').change(function() {
-                                            if ($(this).is(':checked')) {
-                                              document.getElementById("id_et-comment").setAttribute("required", "true");
-                                              document.getElementById("id_et-comment").setAttribute(
-                                                          "oninvalid",
-                                                          "this.setCustomValidity('{% trans 'If not relevant, please comment. For example, the work in this application did not involve people or animals.' %}')"
-                                                        );
-                                              document.getElementById("id_et-comment").setAttribute("oninput", "this.setCustomValidity('')");
-                                              $("label[for='id_et-comment']").append('<span class="asteriskField">*</span>');
-                                            } else {
-                                              document.getElementById("id_et-comment").removeAttribute("required");
-                                              document.getElementById("id_et-comment").removeAttribute("oninput");
-                                              document.getElementById("id_et-comment").removeAttribute("oninvalid");
-                                              $("label[for='id_et-comment']").children().remove();
-                                            }
-                                          });
+                                {% if round.ethics_statement_required %}
+                                  // $("#ethics-statement").show();
+                                  $('#id_et-not_relevant').change(function() {
+                                    et_file = $("#id_et-file");
+                                    if ($(this).is(':checked')) {
+                                      document.getElementById("id_et-comment").setAttribute("required", "true");
+                                      document.getElementById("id_et-comment").setAttribute(
+                                        "oninvalid",
+                                        "this.setCustomValidity('{% trans 'If not relevant, please comment. For example, the work in this application did not involve people or animals.' %}')"
+                                      );
+                                      document.getElementById("id_et-comment").setAttribute("oninput", "this.setCustomValidity('')");
+                                      $("label[for='id_et-comment']").append('<span class="asteriskField">*</span>');
+                                      et_file.removeAttr("required");
+                                      et_file.removeAttr("data-required");
+                                      et_file.removeAttr("oninvalid");
+                                      et_file.removeAttr("oninput");
+                                    } else {
+                                      document.getElementById("id_et-comment").removeAttribute("required");
+                                      document.getElementById("id_et-comment").removeAttribute("oninput");
+                                      document.getElementById("id_et-comment").removeAttribute("oninvalid");
+                                      $("label[for='id_et-comment']").children().remove();
+                                      et_file.attr("data-required", "1");
+                                      et_file.attr("oninvalid", "this.setCustomValidity('{ % trans 'The file is required. Please upload a file ...' %}')");
+                                      et_file.attr("oninput", "this.setCustomValidity('')");
+                                    }
+                                  });
+                                {% else %}
+                                  $("#ethics-statement").hide();
+                                {% endif %}
                                 {% if not form.is_bilingual.value %}
                                   $("#div_id_summary_en").hide();
                                   $("#div_id_summary_mi").hide();
