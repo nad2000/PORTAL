@@ -4359,6 +4359,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     converted_file = ForeignKey(
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
+    is_funded = BooleanField(default=True, verbose_name=_("funded"))
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -6625,7 +6626,7 @@ def bulk_application_export(
     # tz = timezone.get_current_timezone()
     if not r:
         r = Round.where(applications__in=applications).order_by("-pk").first()
-    tz =  r and r.created_at and r.created_at.tzinfo
+    tz = r and r.created_at and r.created_at.tzinfo
     for a in applications:
         if not site_id:
             site = a.site
@@ -6702,6 +6703,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     testimonial_submission_closes_at = DateTimeField(
         null=True, blank=True, verbose_name="Testimonial submission closes at"
     )
+    has_ftes = BooleanField(_("has FTEs"), default=False, help_text=_("has FTEs defined at proposal stage"))
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
     is_partial_profile_allowed = BooleanField(
         help_text=_(
@@ -7984,7 +7986,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 with py7zr.SevenZipFile(output_filename, "w") as archive:
                     for a in applications:
                         filename = os.path.join(prefix, f"{a.number}.pdf")
-                        archive.write(filename, f"{a.panel.code}/{a.number}.pdf" if a.panel else f"{a.number}.pdf")
+                        archive.write(
+                            filename,
+                            f"{a.panel.code}/{a.number}.pdf" if a.panel else f"{a.number}.pdf",
+                        )
 
             if request:
                 content_type = "application/x-7z-compressed"
@@ -10454,6 +10459,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         role=m.role,
                         user=u,
                         address=u and u.person and u.person.address,
+                        is_funded= m.is_funded,
                     )
                 )
             if not a.members.filter(role="PI").exists():
@@ -10468,6 +10474,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         role_id="PI",
                         user=u,
                         address=a.address or u.person.address,
+                        is_funded=True,
                     )
                 )
             if members:
@@ -11656,6 +11663,7 @@ class ContractMember(PersonMixin, Model):
     # authorized_at = MonitorField(
     #     monitor="state", when=["authorized"], null=True, default=None, blank=True
     # )
+    is_funded = BooleanField(default=True, verbose_name=_("funded"))
     history = HistoricalRecords(table_name="contract_member_history")
 
     def natural_key(self):

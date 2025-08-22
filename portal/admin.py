@@ -2328,6 +2328,22 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
 
+    class EffortInline(admin.TabularInline):
+        model = models.MemberEffort
+        extra = 0
+        view_on_site = False
+
+    def get_inlines(self, request, obj):
+        inlines = super().get_inlines(request, obj)
+        if (
+            obj
+            and obj.application
+            and obj.application.round.has_ftes
+            and self.EffortInline not in inlines
+        ):
+            inlines.append(self.EffortInline)
+        return inlines
+
 
 @admin.register(models.Panellist)
 class PanellistAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
@@ -3359,6 +3375,7 @@ class RoundAdmin(
                                 "research_summary_required",
                                 "team_can_apply",
                                 "testimonials_required",
+                                "has_ftes",
                             ]
                             if f not in exclude
                         ],
@@ -3445,13 +3462,13 @@ class RoundAdmin(
                     file_format="7z",
                     sync=False,
                     regenerate=False,
-                    for_panellists=True
+                    for_panellists=True,
                 )
             # messages.error(request, "Please select a single round entry.")
             return
 
         r = queryset.first()
-        url = reverse('round-application-export', kwargs={"pk": r.pk })
+        url = reverse("round-application-export", kwargs={"pk": r.pk})
         url = f"{url}?for_panellists=1&format=7z"
         return redirect(url)
 
