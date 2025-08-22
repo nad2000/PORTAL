@@ -2297,7 +2297,7 @@ class RefereeAdmin(
 @admin.register(models.Member)
 class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
-    list_display = ["email", "full_name", "application", "state", "has_authorized"]
+    list_display = ["email", "full_name", "application", "state", "has_authorized", "changed_at"]
     search_fields = [
         "email",
         "first_name",
@@ -2324,6 +2324,9 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
             return False
 
     has_authorized.boolean = True
+
+    def changed_at(self, obj):
+        return obj.state_changed_at or obj.updated_at or obj.created_at
 
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
