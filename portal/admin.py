@@ -2347,6 +2347,18 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
             inlines.append(self.EffortInline)
         return inlines
 
+    @admin.action(description="Invite members")
+    def invite_members(self, request, queryset, *args, **kwargs):
+        applications = models.Application.where(members__in=queryset)
+        for a in applications:
+            count = a.invite_team_members(request)
+            if count > 0:
+                messages.success(
+                    request,
+                    f"{count} invitation(s) to join the application ({a}) team have been sent.",
+                )
+    actions = ["invite_members"]
+
 
 @admin.register(models.Panellist)
 class PanellistAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):

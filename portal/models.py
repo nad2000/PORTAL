@@ -2856,7 +2856,31 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     and self.state in ["draft", "submitted"]
                 )
             )
+       )
+
+    def invite_team_members(self, request=None, by=None, *args, **kwargs):
+        """Send invitations to all team members to authorized_at the representative."""
+        # members that don't have invitations
+        count = 0
+        members = list(
+            self.members.filter(
+                ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
+                ~Q(state="authorized"),
+                authorized_at__isnull=True,
+            )
         )
+        for m in members:
+            m.get_or_create_invitation()
+
+        # send 'yet unsent' invitations:
+        invitations = list(
+            Invitation.where(application=self, type="T", sent_at__isnull=True)
+        )
+        for i in invitations:
+            i.send(request)
+            i.save()
+            count += 1
+        return count
 
     def invite_referees(self, request=None, by=None, referees=None, *args, **kwargs):
         """Send invitations to all referee."""
@@ -4468,6 +4492,42 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
         pass
+
+
+    def get_or_create_invitation(self):
+        u = self.user or User.objects.filter(email=self.email).first()
+        if not u and (ea := EmailAddress.objects.filter(email=self.email).first()):
+            u = ea.user
+        first_name = self.first_name or u and u.first_name or ""
+        last_name = self.last_name or u and u.last_name or ""
+        middle_names = self.middle_names or u and u.middle_names or ""
+        site = (self.application and self.application.site) or Site.objects.get_current()
+
+        if hasattr(self, "invitation"):
+            i = self.invitation
+            if self.email != i.email:
+                i.email = self.email
+                i.first_name = first_name
+                i.middle_names = middle_names
+                i.last_name = last_name
+                i.sent_at = None
+                i.site = site
+                i.submit()
+                i.save()
+            return (i, False)
+        else:
+            return Invitation.get_or_create(
+                type=INVITATION_TYPES.T,
+                member=self,
+                email=self.email,
+                defaults=dict(
+                    application=self.application,
+                    first_name=first_name,
+                    middle_names=middle_names,
+                    last_name=last_name,
+                    site=site,
+                ),
+            )
 
     def __str__(self):
         return self.full_name_with_email
