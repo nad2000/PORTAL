@@ -3672,11 +3672,10 @@ def invite_team_members(request, application):
     # members that don't have invitations
     count = 0
     members = list(
-        models.Member.where(
+        application.members.filter(
             ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
             ~Q(state="authorized"),
-            authorized_at__isnull=False,
-            application=application,
+            authorized_at__isnull=True,
         )
     )
     for m in members:
