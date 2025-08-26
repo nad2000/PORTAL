@@ -19,6 +19,7 @@ class ReportedFundingTable(tables.Table):
 
 
 class PublicationTable(tables.Table):
+    title = tables.Column(linkify=("publication-update", {"pk": tables.A("pk")}))
     class Meta:
         model = models.Publication
         template_name = "django_tables2/bootstrap4.html"

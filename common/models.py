@@ -205,12 +205,14 @@ class Model(TimeStampMixin, HelperMixin, Base):
     def get_absolute_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
         try:
-            return reverse(model_name_slug, args=[str(self.id)])
+            url = reverse(model_name_slug, args=[str(self.id)])
         except:
             try:
-                return reverse(f"{model_name_slug}-detail", args=[str(self.id)])
+                url = reverse(f"{model_name_slug}-detail", args=[str(self.id)])
             except:
-                return reverse(f"{model_name_slug}-list")
+                url = reverse(f"{model_name_slug}-list")
+        if url:
+            return url
 
     @property
     def update_url(self):

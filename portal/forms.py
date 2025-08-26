@@ -4635,7 +4635,7 @@ class ReportForm(ModelForm):
                                         hx-target="#publication-list"
                                     >
                                     {_("Import from ORCID")}
-                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static 'images/bars.svg' %}}"/>
                                     </button>
                                     """
                                 ),
@@ -4681,7 +4681,7 @@ class ReportForm(ModelForm):
                                         hx-target="#reported-funding-list"
                                     >
                                     {_("Import from ORCID")}
-                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static 'images/bars.svg' %}}"/>
                                     </button>
                                     """
                                 ),

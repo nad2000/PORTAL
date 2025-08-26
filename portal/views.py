@@ -11740,12 +11740,19 @@ def demo_create(request):
 
 
 class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+
     table_class = tables.PublicationTable
     model = models.Publication
     template_name = "table.html"
     extra_context = {"category": "reports"}
     template_name = "table.html"
     # filterset_class = filters.ReportFilterSet
+
+    def get_queryset(self, *args, **kwargs):
+        queryset = super().get_queryset(*args, **kwargs)
+        if report_id := (self.request.GET.get("report") or self.request.GET.get("report_id")):
+            queryset = queryset.filter(reports__id=report_id)
+        return queryset
 
 
 class PublicationViewMixin:
@@ -11769,12 +11776,29 @@ class PublicationViewMixin:
         if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
             return int(report_id)
 
+    def ger_autors_formset(self):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            models.PublicationAuthor,
+            fields=["name", "type"],
+            extra=1,
+            can_delete=True,
+            # widgets={
+            #     "name": forms.TextInput(attrs={"class": "form-control"}),
+            #     "type": forms.NumberInput(attrs={"class": "form-control"}),
+            # },
+        )
+
+        fs = fsc(self.request.POST or None, instance=self.object, prefix="author")
+        return fs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.GET.get("_modal_dialog"):
             context["modal_dialog"] = True
         if report_id := self.report_id:
             context["report"] = report_id
+        context["authors"] = self.ger_autors_formset()
         return context
 
     def get_template_names(self):
@@ -11795,27 +11819,38 @@ class PublicationViewMixin:
         if self.request.GET.get("_modal_dialog"):
             form.helper.form_tag = False
         form.helper.layout = Layout(
-            "title",
-            "title2",
-            "doi",
-            Row(Column("rsnz_ref"), Column("type")),
-            Row(Column("status"), Column("status_date")),
-            "host",
-            "journal",
-            "publisher",
-            "editor",
-            "location",
-            "url",
-            "volume",
-            "year_ref",
-            "page_ref",
-            "host_ref",
-            Row(Column("citations"), Column("citations_date")),
-            "abstract",
-            "uid",
-            Row(Column("impact_factor"), Column("impact_year")),
-            "xcr",
-            "isi_loc",
+            bootstrap.TabHolder(
+                bootstrap.Tab(
+                    _("Details"),
+                    "title",
+                    "title2",
+                    "doi",
+                    Row(Column("rsnz_ref"), Column("type")),
+                    Row(Column("status"), Column("status_date")),
+                    "host",
+                    "journal",
+                    "publisher",
+                    "editor",
+                    "location",
+                    "url",
+                    "volume",
+                    "year_ref",
+                    "page_ref",
+                    "host_ref",
+                    Row(Column("citations"), Column("citations_date")),
+                    "abstract",
+                    "uid",
+                    Row(Column("impact_factor"), Column("impact_year")),
+                    "xcr",
+                    "isi_loc",
+                    css_id="id_detail_tab",
+                ),
+                bootstrap.Tab(
+                    _("Authors"),
+                    forms.TableInlineFormset("authors"),
+                    css_id="id_authors",
+                ),
+            )
         )
         if not self.request.GET.get("_modal_dialog"):
             form.helper.layout.append(
@@ -11827,8 +11862,20 @@ class PublicationViewMixin:
             )
         return form
 
+    def get_success_url(self):
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            return self.request.path + f"?_modal_dialog=1&report={self.report_id}"
+        if report_id := self.report_id:
+            return reverse("publication-list") + f"?report={report_id}"
+        return reverse("publication-update", kwargs={"pk": self.object.pk})
+
     def form_valid(self, form):
         resp = super().form_valid(form)
+        authors = self.ger_autors_formset()
+        if authors.is_valid():
+            # authors.instance = self.object
+            authors.save()
+        breakpoint()
         if (
             self.object.pk
             and (report_id := self.report_id)

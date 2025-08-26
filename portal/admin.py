@@ -520,6 +520,12 @@ class StaffPermsMixin:
 
 class HistoryAdmin(SimpleHistoryAdmin):
 
+    def view_on_site(self, obj):
+        try:
+            return obj.get_absolute_url()
+        except (AttributeError, NoReverseMatch):
+            return super().view_on_site(obj)
+
     def get_history_list_display(self, request):
         if hasattr(self.model, "state"):
             # return ["state", "state_changed_at"]
