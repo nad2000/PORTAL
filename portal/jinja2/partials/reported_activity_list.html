@@ -1,7 +1,18 @@
 <div class="table-responsible">
 <table class="table table-striped">
 {% if report.publicities.count() > 0 %}
-  <tr><th colspan="3" class="table-dark">Publicity</th></tr>
+  <tr>
+    <th colspan="3" class="table-dark">Publicity
+      <button
+        style="float: right;"
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&activity_category=P&_modal_dialog=1"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </th>
+  </tr>
 {% for o in report.publicities.all() %}
   <tr>
     <td>{{ o.type }}</td>
@@ -34,7 +45,17 @@
 {% endfor %}
 {% endif %}
 {% if report.collaborations.count() > 0 %}
-  <tr><th colspan="3" class="table-dark">Collaboration</th></tr>
+  <tr><th colspan="3" class="table-dark">Collaboration
+      <button
+        style="float: right;"
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&activity_category=C&_modal_dialog=1"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </th>
+  </tr>
 {% for o in report.collaborations.all() %}
   <tr>
     <td>{{ o.full_name }}</td>
@@ -67,7 +88,17 @@
 {% endfor %}
 {% endif %}
 {% if report.visits.count() > 0 %}
-  <tr><th colspan="3" class="table-dark">Visits</th></tr>
+  <tr><th colspan="3" class="table-dark">Visits
+      <button
+        style="float: right;"
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&activity_category=V&_modal_dialog=1"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </th>
+  </tr>
 {% for o in report.visits.all() %}
   <tr>
     <td>{{ o.member }}</td>
@@ -100,7 +131,18 @@
 {% endfor %}
 {% endif %}
 {% if report.awards.count() > 0 %}
-  <tr><th colspan="3" class="table-dark">Awards</th></tr>
+  <tr>
+    <th colspan="3" class="table-dark">Awards
+      <button
+        style="float: right;"
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&activity_category=A&_modal_dialog=1"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </th>
+  </tr>
 {% for a in report.awards.all() %}
   <tr>
     <td>{{ a.member.full_name }} </td>

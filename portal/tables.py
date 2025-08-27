@@ -10,6 +10,11 @@ from dateutil.relativedelta import relativedelta
 from . import models
 
 
+class SafeTemplateColumn(tables.TemplateColumn):
+    def render(self, record, table, value, bound_column, **kwargs):
+        return mark_safe(super().render(record, table, value, bound_column, **kwargs))
+
+
 class ReportedFundingTable(tables.Table):
     class Meta:
         model = models.ReportedFunding
@@ -20,6 +25,15 @@ class ReportedFundingTable(tables.Table):
 
 class PublicationTable(tables.Table):
     title = tables.Column(linkify=("publication-update", {"pk": tables.A("pk")}))
+    reports = SafeTemplateColumn(
+        verbose_name=gettext_lazy("Report(s)"),
+        template_name="partials/publication_reports.html",
+        attrs={
+            "td": {
+                "class": "text-center",
+            },
+        },
+    )
     class Meta:
         model = models.Publication
         template_name = "django_tables2/bootstrap4.html"
@@ -279,11 +293,6 @@ class ContractColumn(tables.LinkColumn):
     def render(self, record, value):
         if record.state == "funded" or record.contract:
             return super().render(record, value)
-
-
-class SafeTemplateColumn(tables.TemplateColumn):
-    def render(self, record, table, value, bound_column, **kwargs):
-        return mark_safe(super().render(record, table, value, bound_column, **kwargs))
 
 
 def default_start_date(record=None):

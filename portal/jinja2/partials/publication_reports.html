@@ -1,0 +1,10 @@
+{% for r in record.reports.all() %}
+  <a
+    href="{{ url("report", pk=r.pk) }}"
+    target="_blank"
+    class="btn btn-primary btn-sm"
+    data-toggle="tooltip"
+    title="{{_('Open the report')}}"
+    > {{ r.number }}</a>
+  {% if not loop.last %}, {% endif %}
+{% endfor %}

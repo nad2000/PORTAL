@@ -11773,10 +11773,14 @@ class PublicationViewMixin:
 
     @cached_property
     def report_id(self):
-        if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
+        if report_id := (
+            self.request.GET.get("report")
+            or self.request.POST.get("report")
+            or self.object.reports.order_by("-pk").values_list("pk", flat=True).first()
+        ):
             return int(report_id)
 
-    def ger_autors_formset(self):
+    def ger_autor_formset(self):
         fsc = forms.inlineformset_factory(
             self.model,
             models.PublicationAuthor,
@@ -11788,8 +11792,22 @@ class PublicationViewMixin:
             #     "type": forms.NumberInput(attrs={"class": "form-control"}),
             # },
         )
+        fs = fsc(self.request.POST or None, instance=self.object, prefix="authors")
+        return fs
 
-        fs = fsc(self.request.POST or None, instance=self.object, prefix="author")
+    def ger_link_formset(self):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            models.PublicationLink,
+            fields=["link", "type"],
+            extra=1,
+            can_delete=True,
+            # widgets={
+            #     "name": forms.TextInput(attrs={"class": "form-control"}),
+            #     "type": forms.NumberInput(attrs={"class": "form-control"}),
+            # },
+        )
+        fs = fsc(self.request.POST or None, instance=self.object, prefix="links")
         return fs
 
     def get_context_data(self, **kwargs):
@@ -11798,7 +11816,8 @@ class PublicationViewMixin:
             context["modal_dialog"] = True
         if report_id := self.report_id:
             context["report"] = report_id
-        context["authors"] = self.ger_autors_formset()
+        context["authors"] = self.ger_autor_formset()
+        context["links"] = self.ger_link_formset()
         return context
 
     def get_template_names(self):
@@ -11846,9 +11865,16 @@ class PublicationViewMixin:
                     css_id="id_detail_tab",
                 ),
                 bootstrap.Tab(
-                    _("Authors"),
-                    forms.TableInlineFormset("authors"),
-                    css_id="id_authors",
+                    _("Authors and links"),
+                    forms.Fieldset(
+                        _("Authors"),
+                        forms.TableInlineFormset("authors"),
+                    ),
+                    forms.Fieldset(
+                        _("Links"),
+                        forms.TableInlineFormset("links"),
+                    ),
+                    css_id="id_authors_and_links_tab",
                 ),
             )
         )
@@ -11871,11 +11897,13 @@ class PublicationViewMixin:
 
     def form_valid(self, form):
         resp = super().form_valid(form)
-        authors = self.ger_autors_formset()
+        authors = self.ger_autor_formset()
         if authors.is_valid():
             # authors.instance = self.object
             authors.save()
-        breakpoint()
+        links = self.ger_link_formset()
+        if links.is_valid():
+            links.save()
         if (
             self.object.pk
             and (report_id := self.report_id)
