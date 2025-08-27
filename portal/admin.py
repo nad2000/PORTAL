@@ -2303,7 +2303,7 @@ class RefereeAdmin(
 @admin.register(models.Member)
 class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
-    list_display = ["email", "full_name", "application", "state", "has_authorized"]
+    list_display = ["email", "full_name", "application", "state", "has_authorized", "changed_at"]
     search_fields = [
         "email",
         "first_name",
@@ -2331,6 +2331,9 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
 
     has_authorized.boolean = True
 
+    def changed_at(self, obj):
+        return obj.state_changed_at or obj.updated_at or obj.created_at
+
     def view_on_site(self, obj):
         return reverse("application", kwargs={"pk": obj.application_id})
 
@@ -2349,6 +2352,18 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
         ):
             inlines.append(self.EffortInline)
         return inlines
+
+    @admin.action(description="Invite members")
+    def invite_members(self, request, queryset, *args, **kwargs):
+        applications = models.Application.where(members__in=queryset)
+        for a in applications:
+            count = a.invite_team_members(request)
+            if count > 0:
+                messages.success(
+                    request,
+                    f"{count} invitation(s) to join the application ({a}) team have been sent.",
+                )
+    actions = ["invite_members"]
 
 
 @admin.register(models.Panellist)

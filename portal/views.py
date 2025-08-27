@@ -3667,67 +3667,6 @@ class ProfileCreate(ProfileViewMixin, CreateView):
 #     email_message.send()
 
 
-def invite_team_members(request, application):
-    """Send invitations to all team members to authorized_at the representative."""
-    # members that don't have invitations
-    count = 0
-    members = list(
-        application.members.filter(
-            ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
-            ~Q(state="authorized"),
-            authorized_at__isnull=True,
-        )
-    )
-    for m in members:
-        get_or_create_team_member_invitation(m)
-
-    # send 'yet unsent' invitations:
-    invitations = list(
-        models.Invitation.where(application=application, type="T", sent_at__isnull=True)
-    )
-    for i in invitations:
-        i.send(request)
-        i.save()
-        count += 1
-    return count
-
-
-def get_or_create_team_member_invitation(member):
-    u = member.user or models.User.objects.filter(email=member.email).first()
-    if not u and (ea := EmailAddress.objects.filter(email=member.email).first()):
-        u = ea.user
-    first_name = member.first_name or u and u.first_name or ""
-    last_name = member.last_name or u and u.last_name or ""
-    middle_names = member.middle_names or u and u.middle_names or ""
-    site = (member.application and member.application.site) or Site.objects.get_current()
-
-    if hasattr(member, "invitation"):
-        i = member.invitation
-        if member.email != i.email:
-            i.email = member.email
-            i.first_name = first_name
-            i.middle_names = middle_names
-            i.last_name = last_name
-            i.sent_at = None
-            i.site = site
-            i.submit()
-            i.save()
-        return (i, False)
-    else:
-        return models.Invitation.get_or_create(
-            type=models.INVITATION_TYPES.T,
-            member=member,
-            email=member.email,
-            defaults=dict(
-                application=member.application,
-                first_name=first_name,
-                middle_names=middle_names,
-                last_name=last_name,
-                site=site,
-            ),
-        )
-
-
 def invite_panellist(request, round):
     """Send invitations to all panellists."""
     count = 0
@@ -4916,7 +4855,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     if members.is_valid():
                         members.instance = a
                         members.save()
-                        count = invite_team_members(self.request, a)
+                        count = a.invite_team_members(self.request)
                         if count > 0:
                             messages.success(
                                 self.request,
