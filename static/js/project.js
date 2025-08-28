@@ -29,8 +29,19 @@ function formset_add_a_row(btn, prefix="form") {
   // root.querySelector("#form_set").append(el);
   //$('form #id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1);
   total.value = parseInt(form_idx) + 1;
+  // Replace the "Add" button in the previous row with a "Remove" button
+  $(`form #${prefix}_form_set tr[id!='${prefix}_empty_form']:last`).prev().find("button:not([hx-delete])").each(function() {
+    this.outerHTML=`<a class="btn btn-danger" onclick="delete_formset_row(this, '${prefix}')"><i class="fa fa-times" style="width: 12px;"></i></a>`;
+  });
   return false;
 };
+
+function delete_formset_row(delete_btn, prefix="form") {
+  $(delete_btn).closest("tr").remove();
+  var el = $(`#id_${prefix}-TOTAL_FORMS`);
+  el.val(el.val() - 1);
+  return false;
+}
 
 function is_email_list_unique(prefix="referees", message_template=email => `The email address entered twice: ${email}`) {
   var emails=$("#"+prefix+"_form_set input[type='email'][name$='-email'][name^='"+prefix+"-']").not("[name*='__prefix__']").map(

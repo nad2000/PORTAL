@@ -4066,6 +4066,9 @@ class ContractAdmin(
         reports = list(
             self.model.start_reporting(request=request, queryset=queryset, *args, **kwargs)
         )
+        if not reports:
+            messages.warning(request, "No report was initiated.")
+            return
         messages.info(
             request,
             mark_safe(

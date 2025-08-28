@@ -99,6 +99,7 @@
                 {% if form.id and form.id.value and form.instance.pk %}
                   <button
                     class="btn btn-danger"
+                    id="{{ field.auto_id }}"
                     hx-delete="{% url 'objects-delete' model=form.instance.model_name pk=form.instance.pk %}"
                     hx-params="none"
                     hx-target="#messages"
@@ -111,8 +112,9 @@
                   </button>
                 {% else%}
                   <button
+                    id="{{ field.auto_id }}"
                     type="button"
-                    class="btn btn-success"
+                    class="btn btn-success add-or-remove-button"
                     onclick="formset_add_a_row(this, '{{ formset.prefix }}');"
                   >
                     <i class="fa fa-plus" style="width: 12px;"></i>

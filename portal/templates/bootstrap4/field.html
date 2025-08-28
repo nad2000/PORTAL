@@ -16,9 +16,9 @@
                   {% else %}
                     onclick='$("#{{ form.DELETE.auto_id }}").val("on");'
                   {% endif %}
-            ><i class="fa fa-times" style="width: 12px;"></i></button>
+            ><i class="fa fa-times add-or-remove-button" style="width: 12px;"></i></button>
         {% else %}
-          <button  type="button" class="btn btn-success" onclick="formset_add_a_row(this, '{{ formset.prefix }}');"><i class="fa fa-plus" style="width: 12px;"></i></button>
+          <button  type="button" class="btn btn-success add-or-remove-button" onclick="formset_add_a_row(this, '{{ formset.prefix }}');"><i class="fa fa-plus" style="width: 12px;"></i></button>
         {% endif %}
     </div>
   </td>
