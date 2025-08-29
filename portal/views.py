@@ -4853,7 +4853,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         # url = self.request.path_info.split("?")[0] + "#application"
                         url = self.continue_url("application")
                     if members.is_valid():
-                        members.instance = a
+                        # members.instance = a
                         members.save()
                         count = a.invite_team_members(self.request)
                         if count > 0:
