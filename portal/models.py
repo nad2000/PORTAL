@@ -2856,7 +2856,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     and self.state in ["draft", "submitted"]
                 )
             )
-       )
+        )
 
     def invite_team_members(self, request=None, by=None, *args, **kwargs):
         """Send invitations to all team members to authorized_at the representative."""
@@ -2864,7 +2864,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         count = 0
         members = list(
             self.members.filter(
-                ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
+                ~Q(invitation__email__lower=Lower("email"))
+                | Q(state="sent")
+                | Q(state__isnull=True),
                 ~Q(state="authorized"),
                 authorized_at__isnull=True,
             )
@@ -2873,9 +2875,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             m.get_or_create_invitation()
 
         # send 'yet unsent' invitations:
-        invitations = list(
-            Invitation.where(application=self, type="T", sent_at__isnull=True)
-        )
+        invitations = list(Invitation.where(application=self, type="T", sent_at__isnull=True))
         for i in invitations:
             i.send(request)
             i.save()
@@ -4492,7 +4492,6 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     @transition(field=state, source=["*"], target="sent")
     def send(self, *args, **kwargs):
         pass
-
 
     def get_or_create_invitation(self):
         u = self.user or User.objects.filter(email=self.email).first()
@@ -6763,7 +6762,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     testimonial_submission_closes_at = DateTimeField(
         null=True, blank=True, verbose_name="Testimonial submission closes at"
     )
-    has_ftes = BooleanField(_("has FTEs"), default=False, help_text=_("has FTEs defined at proposal stage"))
+    has_ftes = BooleanField(
+        _("has FTEs"), default=False, help_text=_("has FTEs defined at proposal stage")
+    )
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
     is_partial_profile_allowed = BooleanField(
         help_text=_(
@@ -9691,12 +9692,12 @@ def add_title_data(apps, schema_editor):
 #         db_table = "affiliation"
 
 
-class ContractKeyword(Model):
-    contract = ForeignKey("Contract", on_delete=CASCADE)
-    keyword = ForeignKey(Keyword, on_delete=CASCADE)
+# class ContractKeyword(Model):
+#     contract = ForeignKey("Contract", on_delete=CASCADE)
+#     keyword = ForeignKey(Keyword, on_delete=CASCADE)
 
-    class Meta:
-        db_table = "contract_keyword"
+#     class Meta:
+#         db_table = "contract_keyword"
 
 
 class ContractFor(Model):
@@ -9992,7 +9993,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     keywords = ManyToManyField(
         Keyword,
         verbose_name=_("Keywords"),
-        through=ContractKeyword,
+        # through=ContractKeyword,
+        db_table="contract_keyword",
         blank=True,
         related_name="contracts",
     )
@@ -10357,7 +10359,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             c.fors.through.bulk_create(
                 [
                     c.fors.through(
-                        report=c,
+                        contract=c,
                         code=o.code,
                         share=o.share,
                     )
@@ -10367,7 +10369,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             c.seos.through.bulk_create(
                 [
                     c.seos.through(
-                        report=c,
+                        contract=c,
                         code=o.code,
                         share=o.share,
                     )
@@ -10519,7 +10521,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         role=m.role,
                         user=u,
                         address=u and u.person and u.person.address,
-                        is_funded= m.is_funded,
+                        is_funded=m.is_funded,
                     )
                 )
             if not a.members.filter(role="PI").exists():
@@ -11928,28 +11930,28 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
 
             # r.fors.add(*pr.fors.all())
             # r.seos.add(*pr.seos.all())
-            # r.fors.through.bulk_create(
-            #     [
-            #         r.fors.through(
-            #             report=r,
-            #             code=o.code,
-            #             share=o.share,
-            #         )
-            #         for o in r.fors.through.objects.filter(report=pr)
-            #     ]
-            # )
-            # r.seos.through.bulk_create(
-            #     [
-            #         r.seos.through(
-            #             report=r,
-            #             code=o.code,
-            #             share=o.share,
-            #         )
-            #         for o in r.seos.through.objects.filter(report=pr)
-            #     ]
-            # )
-            # r.keywords.add(*pr.keywords.all())
-            # r.priorities.add(*pr.priorities.all())
+            r.fors.through.bulk_create(
+                [
+                    r.fors.through(
+                        report=r,
+                        code=o.code,
+                        share=o.share,
+                    )
+                    for o in r.fors.through.objects.filter(report=pr)
+                ]
+            )
+            r.seos.through.bulk_create(
+                [
+                    r.seos.through(
+                        report=r,
+                        code=o.code,
+                        share=o.share,
+                    )
+                    for o in r.seos.through.objects.filter(report=pr)
+                ]
+            )
+            r.keywords.add(*pr.keywords.all())
+            r.priorities.add(*pr.priorities.all())
         else:
             r = Report.create(
                 schedule_entry=self,
@@ -11958,19 +11960,19 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 type=self.type,
                 state="new",
             )
-        ReportedEffort.bulk_create(
-            [
-                ReportedEffort(
-                    report=r,
-                    member_effort=me,
-                    person=me.member.user and me.member.user.person,
-                    full_name=me.member.full_name,
-                    role=me.member.role,
-                    fte=me.fte,
-                )
-                for me in ContractMemberEffort.where(period=r.period, member__contract=c)
-            ]
-        )
+            ReportedEffort.bulk_create(
+                [
+                    ReportedEffort(
+                        report=r,
+                        member_effort=me,
+                        person=me.member.user and me.member.user.person,
+                        full_name=me.member.full_name,
+                        role=me.member.role,
+                        fte=me.fte,
+                    )
+                    for me in ContractMemberEffort.where(period=r.period, member__contract=c)
+                ]
+            )
         return r
 
     @classmethod
@@ -12010,12 +12012,12 @@ simple_history.register(
 )
 
 
-class ReportKeyword(Model):
-    report = ForeignKey("Report", on_delete=CASCADE)
-    keyword = ForeignKey(Keyword, on_delete=CASCADE)
+# class ReportKeyword(Model):
+#     report = ForeignKey("Report", on_delete=CASCADE)
+#     keyword = ForeignKey(Keyword, on_delete=CASCADE)
 
-    class Meta:
-        db_table = "report_keyword"
+#     class Meta:
+#         db_table = "report_keyword"
 
 
 class ReportFor(Model):
@@ -12208,7 +12210,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     keywords = ManyToManyField(
         Keyword,
         verbose_name=_("Keywords"),
-        through=ReportKeyword,
+        db_table="report_keyword",
+        # through=ReportKeyword,
         blank=True,
         related_name="reports",
     )
@@ -12300,27 +12303,22 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @classmethod
     def create(cls, *args, **kwargs):
         if c := kwargs.get("contract"):
-            for k in [
-                k
-                for k in c._meta.fields_map.keys()
-                if k
-                in [
+            kwargs.update(
+                (k, getattr(c, k, None))
+                for k in [
                     "vm_ecs",
                     "vm_ens",
                     "vm_hsw",
                     "vm_ink",
-                    "is_vm_na",
-                    "vm_rationale",
+                    # "is_vm_na",
+                    # "vm_rationale",
                     "toa_basic",
                     "toa_experimental",
                     "toa_applied",
                     "toa_strategic",
                 ]
-            ]:
-                v = kwargs.get(k)
-                if v:
-                    continue
-                kwargs[k] = v
+                if k not in kwargs
+            )
 
         obj = super().create(*args, **kwargs)
         # obj.fors.add(*c.fors.all())

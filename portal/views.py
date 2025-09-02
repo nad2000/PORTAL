@@ -8146,11 +8146,14 @@ class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Don't forget to filter out results depending on the visitor !
         if not self.request.user.is_authenticated:
-            return models.Keyword.objects.none()
+            # return models.Keyword.objects.none()
+            return self.model.objects.none()
         if not self.q or not self.request.user.is_authenticated:
-            return models.Keyword.objects.all()
+            # return models.Keyword.objects.all()
+            return self.model.objects.all()
 
-        return models.Keyword.objects.all().filter(name__istartswith=self.q)
+        # return models.Keyword.objects.all().filter(name__istartswith=self.q)
+        return self.model.objects.all().filter(name__istartswith=self.q)
 
     def has_add_permission(self, request):
         # Authenticated users can add new records

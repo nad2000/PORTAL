@@ -2363,6 +2363,7 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
                     request,
                     f"{count} invitation(s) to join the application ({a}) team have been sent.",
                 )
+
     actions = ["invite_members"]
 
 
@@ -3809,6 +3810,7 @@ class ContractAdmin(
     # ]
     search_fields = [
         "number",
+        "application__number",
         "project_title",
         "members__email",
         "members__first_name",
@@ -3827,6 +3829,7 @@ class ContractAdmin(
         # "seo_keywords",
         "address",
         "org",
+        "priorities",
     ]
     fieldsets = [
         (
@@ -3892,6 +3895,41 @@ class ContractAdmin(
                     # "seo_list",
                     # "keyword_list",
                     # "seo_keyword_list",
+                ],
+            },
+        ),
+        (
+            "Categories",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    ("keywords", "priorities"),
+                ],
+            },
+        ),
+        (
+            "Vision Mātauranga",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    # "is_vm_na",
+                    # "vm_rationale",
+                ],
+            },
+        ),
+        (
+            "Type of Activity",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "toa_applied",
+                    "toa_basic",
+                    "toa_strategic",
+                    "toa_experimental",
                 ],
             },
         ),
@@ -3984,7 +4022,6 @@ class ContractAdmin(
             )
 
     # class PanelAllocationInline(admin.StackedInline):
-    # class PanelAllocationInline(admin.StackedInline):
     #     model = models.ContractPanelAllocation
     #     extra = 0
     #     view_on_site = False
@@ -4035,6 +4072,20 @@ class ContractAdmin(
         autocomplete_fields = ["code"]
         classes = ["collapse"]
 
+    class SeoInline(StaffPermsMixin, admin.TabularInline):
+        model = models.ContractSeo
+        autocomplete_fields = ["code"]
+        extra = 0
+        view_on_site = False
+        classes = ["collapse"]
+
+    # class KeywordInline(StaffPermsMixin, admin.TabularInline):
+    #     model = models.ContractKeyword
+    #     autocomplete_fields = ["keyword"]
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
     class MemberInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         view_on_site = False
@@ -4048,7 +4099,9 @@ class ContractAdmin(
         ContractDocumentInline,
         ReportingScheduleEntryInline,
         AllocationInline,
+        SeoInline,
         ForInline,
+        # KeywordInline,
         # TeamInline,
         # AllocationInline,
         # ReportingInline,
@@ -4078,6 +4131,24 @@ class ContractAdmin(
         )
 
     actions = [start_reporting, refresh_page_counts, archive_objects]
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
+            url="research-priority-autocomplete",
+            forward=[
+                dal.forward.Const(obj and obj.application.round_id, "round"),
+                dal.forward.Const("contract", "model"),
+            ],
+        )
+        form.base_fields["keywords"].widget = widget=autocomplete.ModelSelect2Multiple(  # autocomplete.TaggitSelect2(
+            url="keyword-autocomplete",
+            # forward=[
+            #     dal.forward.Const(obj and obj.application.round_id, "round"),
+            #     dal.forward.Const("contract", "model"),
+            # ],
+        )
+        return form
 
 
 @admin.register(models.Publication)
@@ -4143,7 +4214,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     #     ("state", admin.RelatedOnlyFieldListFilter),
     #     ("type", admin.RelatedOnlyFieldListFilter),
     # )
-    search_fields = ["number", "contract__project_title", "contract__number"]
+    search_fields = ["contract__project_title", "contract__number",  "contract__application__number"]
     autocomplete_fields = [
         "assessor",
         "contract",
@@ -4204,24 +4275,41 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         #         ],
         #     },
         # ),
-        # (
-        #     "Additional Information",
-        #     {
-        #         "classes": ("collapse",),
-        #         "fields": [
-        #             # "panel_code",
-        #             "panel",
-        #             # ("total_amount", "actual_amount", "currency"),
-        #             "url",
-        #             "abstract",
-        #             "notes",
-        #             # "mf_round_yr",
-        #             # "seo_list",
-        #             # "keyword_list",
-        #             # "seo_keyword_list",
-        #         ],
-        #     },
-        # ),
+        (
+            "Categories",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    ("keywords", "priorities"),
+                ],
+            },
+        ),
+        (
+            "Vision Mātauranga",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    # "is_vm_na",
+                    # "vm_rationale",
+                ],
+            },
+        ),
+        (
+            "Type of Activity",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "toa_applied",
+                    "toa_basic",
+                    "toa_strategic",
+                    "toa_experimental",
+                ],
+            },
+        ),
     ]
     # readonly_fields = ["ethics_statement_link"]
 
@@ -4358,11 +4446,18 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     #     view_on_site = False
     #     classes = ["collapse"]
 
-    class ForInline(admin.TabularInline):
+    class ForInline(StaffPermsMixin, admin.TabularInline):
         model = models.ReportFor
         extra = 0
         view_on_site = False
         autocomplete_fields = ["code"]
+        classes = ["collapse"]
+
+    class SeoInline(StaffPermsMixin, admin.TabularInline):
+        model = models.ReportSeo
+        autocomplete_fields = ["code"]
+        extra = 0
+        view_on_site = False
         classes = ["collapse"]
 
     inlines = [
@@ -4371,6 +4466,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         # ReportingScheduleEntryInline,
         # AllocationInline,
         ForInline,
+        SeoInline,
         PublicationInline,
         ReportedEffortInline,
         ReportedFundingInline,
@@ -4392,6 +4488,20 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
             if not obj.period:
                 obj.period = obj.schedule_entry.period
         super().save_model(request, obj, form, change)
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
+            url="research-priority-autocomplete",
+            forward=[
+                dal.forward.Const(obj and obj.contract.application.round_id, "round"),
+                dal.forward.Const("report", "model"),
+            ],
+        )
+        form.base_fields["keywords"].widget = widget=autocomplete.ModelSelect2Multiple(
+            url="keyword-autocomplete",
+        )
+        return form
 
 
 @admin.register(models.ChangeRequest)

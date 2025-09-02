@@ -4516,7 +4516,7 @@ class ReportForm(ModelForm):
                     """{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
-                    {{ _('Please retort all personnel who have participated in this project \
+                    {{ _('Please report all personnel who have participated in this project \
                             and who are not named in the contract. \
                             Please estimate both the amount of FTE, since the last report, \
                             that is supported by this contract as well as the total amount of FTE \
