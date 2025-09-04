@@ -2632,7 +2632,7 @@ class OrganisationWOIdentifierResource(ModelResource):
 class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, HistoryAdmin):
     save_on_top = True
     view_on_site = False
-    list_display = ["code", "name"]
+    list_display = ["code", "name", "is_active", "created_at", "updated_at"]
     list_filter = ["created_at", "updated_at", "applications__round"]
     search_fields = ["name", "code"]
     date_hierarchy = "created_at"
@@ -2839,13 +2839,20 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
 
             return
 
-        return render(
+        if target := queryset.filter(is_active=True).first():
+            return render(
+                request,
+                "action_merge_orgs.html",
+                {
+                    "title": "Choose target organisation",
+                    "objects": queryset,
+                    "target": target,
+                },
+            )
+        messages.error(
             request,
-            "action_merge_orgs.html",
-            {
-                "title": "Choose target organisation",
-                "objects": queryset,
-            },
+            "Please select at least one active organisation "
+            "to be used as the target to merge other selected organisations into.",
         )
 
 
@@ -4141,12 +4148,14 @@ class ContractAdmin(
                 dal.forward.Const("contract", "model"),
             ],
         )
-        form.base_fields["keywords"].widget = widget=autocomplete.ModelSelect2Multiple(  # autocomplete.TaggitSelect2(
-            url="keyword-autocomplete",
-            # forward=[
-            #     dal.forward.Const(obj and obj.application.round_id, "round"),
-            #     dal.forward.Const("contract", "model"),
-            # ],
+        form.base_fields["keywords"].widget = widget = (
+            autocomplete.ModelSelect2Multiple(  # autocomplete.TaggitSelect2(
+                url="keyword-autocomplete",
+                # forward=[
+                #     dal.forward.Const(obj and obj.application.round_id, "round"),
+                #     dal.forward.Const("contract", "model"),
+                # ],
+            )
         )
         return form
 
@@ -4214,7 +4223,11 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     #     ("state", admin.RelatedOnlyFieldListFilter),
     #     ("type", admin.RelatedOnlyFieldListFilter),
     # )
-    search_fields = ["contract__project_title", "contract__number",  "contract__application__number"]
+    search_fields = [
+        "contract__project_title",
+        "contract__number",
+        "contract__application__number",
+    ]
     autocomplete_fields = [
         "assessor",
         "contract",
@@ -4498,7 +4511,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
                 dal.forward.Const("report", "model"),
             ],
         )
-        form.base_fields["keywords"].widget = widget=autocomplete.ModelSelect2Multiple(
+        form.base_fields["keywords"].widget = widget = autocomplete.ModelSelect2Multiple(
             url="keyword-autocomplete",
         )
         return form

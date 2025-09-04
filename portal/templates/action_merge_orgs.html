@@ -18,7 +18,14 @@
     <select id="target" name="target">
 
       {% for o in objects %}
-        <option value="{{ o.id }}"{% if forloop.first %} selected{% endif %}>{{ o.code }}: {{ o }}</option>
+        <option
+            value="{{ o.id }}"
+            {% if target and o == target or forloop.first and o.is_active %} selected{% endif %}
+            {% if not o.is_active %} disabled{% endif %}
+            {#% if not o.is_active %} disabled style="color: #999;"{% endif %#}
+        >
+        {{ o.code }}: {{ o }}{% if o.is_active %} (<b>ACTIVE</b>){% endif %}
+        </option>
       {% endfor %}
     </select>
 

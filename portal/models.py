@@ -1342,7 +1342,7 @@ class Organisation(Model):
     identifier_type = ForeignKey(OrgIdentifierType, null=True, blank=True, on_delete=SET_NULL)
     identifier = CharField(max_length=24, null=True, blank=True)
     code = CharField(max_length=10, blank=True, default="", unique=True)
-    is_active = BooleanField(default=True)
+    is_active = BooleanField(default=False)
 
     legal_name = CharField(max_length=255, blank=True, null=True)
     alt_name = CharField(max_length=100, blank=True, null=True)

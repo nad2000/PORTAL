@@ -4570,11 +4570,11 @@ class ReportForm(ModelForm):
                     Div(
                         Div(
                             ButtonHolder(
-                                Button(
-                                    "add_activity",
-                                    _("Add Activity"),
-                                    css_class="btn-primary btn-sm",
-                                ),
+                                # Button(
+                                #     "add_activity",
+                                #     _("Add Activity"),
+                                #     css_class="btn-primary btn-sm",
+                                # ),
                                 Button(
                                     "import_activities_from_orcid",
                                     _("Import from ORCID"),
