@@ -8267,6 +8267,22 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def create_object(self, text):
+        o, _ =  self.model.get_or_create(
+            defaults={"is_active": False}, **{self.create_field: text}
+        )
+        org_url=self.request.build_absolute_uri(reverse("admin:portal_organisation_change", args=[o.pk]))
+        models.async_task(
+            models.notify_site_staff_about_new_org,
+            # sync=True,
+            site_id=self.request.site_id,
+            org_id=o.pk,
+            by_id=self.request.user.pk,
+            org_url=org_url,
+        )
+        return o
+
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return not ("nominator" in self.forwarded and self.request.site_id in [2, 4, 5])

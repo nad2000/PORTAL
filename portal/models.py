@@ -1342,7 +1342,7 @@ class Organisation(Model):
     identifier_type = ForeignKey(OrgIdentifierType, null=True, blank=True, on_delete=SET_NULL)
     identifier = CharField(max_length=24, null=True, blank=True)
     code = CharField(max_length=10, blank=True, default="", unique=True)
-    is_active = BooleanField(default=False)
+    is_active = BooleanField(default=True)
 
     legal_name = CharField(max_length=255, blank=True, null=True)
     alt_name = CharField(max_length=100, blank=True, null=True)
@@ -1455,7 +1455,7 @@ class Organisation(Model):
     def save(self, *args, **kwargs):
         if not self.code:
             self.code = default_organisation_code(self.name)
-        original_code = self.id and self.get(self.id).code
+        original_code = self.pk and self.get(self.pk).code
         super().save(*args, **kwargs)
         if original_code and self.code.strip() and self.code != original_code:
             if org_applications := list(
@@ -1909,7 +1909,7 @@ class ProtectionPatternPerson(Model):
             WHERE pp.code IN (5, 6, 7, 9)
             ORDER BY description_"""
             + get_language(),
-            [person.id],
+            [person.pk],
         )
 
         prefetch_related_objects(q, "person")
@@ -2764,9 +2764,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @property
     def thread_index(self):
         if n := Nomination.where(application=self).last():
-            idx = n.id
+            idx = n.pk
         else:
-            idx = self.id
+            idx = self.pk
         return base64.b64encode(f"{self.site_id}:{idx}".encode()).decode()
 
     @property
@@ -3146,7 +3146,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 thread_topic=self.thread_topic,
             )
         elif round.notify_nominator and nominator:
-            url = request.build_absolute_uri(reverse("application", args=[str(self.id)]))
+            url = request.build_absolute_uri(reverse("application", args=[str(self.pk)]))
             link_name = domain_to_macrons(url)
             url = self.get_full_detail_url(request=request)
             send_mail(
@@ -3363,7 +3363,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self._change_reason = resolution
 
         recipients = [self.submitted_by, *self.members.all()]
-        url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.pk}))
         link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
@@ -3516,7 +3516,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self._change_reason = resolution
 
         recipients = [self.submitted_by, *self.members.all()]
-        url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.id}))
+        url = request.build_absolute_uri(reverse("application-update", kwargs={"pk": self.pk}))
         link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
@@ -3578,7 +3578,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             nominator := nomination and nomination.nominator
         ):
             recipients.append(nominator)
-        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.id}))
+        url = request.build_absolute_uri(reverse("application", kwargs={"pk": self.pk}))
         link_name = domain_to_macrons(url)
         params = {
             "user_display": ", ".join(r.full_name for r in recipients),
@@ -3651,7 +3651,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         return f"{self.lead} ({self.submitted_by and self.submitted_by.email or self.email})"
 
     def get_absolute_url(self):
-        return reverse("application", args=[str(self.id)])
+        return reverse("application", args=[str(self.pk)])
 
     @classmethod
     def user_applications(
@@ -3782,9 +3782,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # sql = (
         #     "SELECT DISTINCT tm.* FROM referee AS r "
         #     "JOIN application AS a "
-        #     "  ON a.id = r.application_id "
-        #     "LEFT JOIN testimonial AS tm ON r.id = tm.referee_id "
-        #     "WHERE (r.application_id=%s OR a.id=%s) AND a.site_id=%s "
+        #     "  ON a.pk = r.application_id "
+        #     "LEFT JOIN testimonial AS tm ON r.pk = tm.referee_id "
+        #     "WHERE (r.application_id=%s OR a.pk=%s) AND a.site_id=%s "
         # )
         # if has_testified:
         #     sql += " AND r.state='testified'"
@@ -3794,7 +3794,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # if self.round.required_referees:
         #     sql += f" LIMIT {self.round.required_referees}"
 
-        # return Testimonial.objects.raw(sql, [self.id, self.id, self.current_site_id])
+        # return Testimonial.objects.raw(sql, [self.pk, self.pk, self.current_site_id])
 
     def to_pdf(
         self,
@@ -4391,7 +4391,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     @property
     def thread_index(self):
         if self.application_id and (n := Nomination.where(application=self.application_id).last()):
-            idx = n.id
+            idx = n.pk
         else:
             idx = self.application_id
         site_id = self.application and self.application.site_id or settings.SITE_ID
@@ -4539,7 +4539,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
             "  JOIN scheme AS s ON s.current_round_id = a.round_id "
             "WHERE (m.user_id=%s OR ae.user_id=%s) "
             "  AND NOT (m.state IS NULL OR m.state IN ('authorized', 'opted_out'))",
-            [user.id, user.id],
+            [user.pk, user.pk],
         )
 
     class Meta:
@@ -5177,7 +5177,7 @@ and designate a new referee at your earliest convenience.
             "  JOIN round ON round.id = a.round_id "
             "WHERE (r.user_id=%s OR ae.user_id=%s) AND r.state NOT IN ('testified', 'opted_out')"
             "  AND (round.testimonial_submission_closes_at IS NULL OR round.testimonial_submission_closes_at > %s)",
-            [user.id, user.id, timezone.now()],
+            [user.pk, user.pk, timezone.now()],
         )
 
     @cached_property
@@ -5480,7 +5480,7 @@ class Panellist(PanellistMixin, PersonMixin, Model):
             "  AND (coi.has_conflict IS NULL OR NOT coi.has_conflict) "
             "  AND (e.state IS NULL OR e.state <> 'submitted')"
             "  AND a.site_id=%s",
-            [user.id, user.id, cls.get_current_site_id()],
+            [user.pk, user.pk, cls.get_current_site_id()],
         )
         prefetch_related_objects(q, "round")
         return q
@@ -5609,23 +5609,23 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             idx = self.nomination_id
         elif self.application_id:
             if n := Nomination.where(application=self.application_id).first():
-                idx = n.id
+                idx = n.pk
             else:
                 idx = self.application_id
         elif self.member_id:
             if n := Nomination.where(application__members=self.member_id).first():
-                idx = n.id
+                idx = n.pk
             else:
                 idx = self.member.application_id
         elif self.referee_id:
             if n := Nomination.where(application__referees=self.referee_id).first():
-                idx = n.id
+                idx = n.pk
             else:
                 idx = self.referee.application_id
         elif self.panellist_id:
             idx = self.panellist.round_id
         else:
-            idx = self.id
+            idx = self.pk
         return base64.b64encode(f"{self.site_id}:{idx}".encode()).decode()
 
     @property
@@ -5655,9 +5655,9 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         elif self.type == INVITATION_TYPES.A and self.nomination_id:
             if a := self.nomination.application:
                 if a.state != "submitted":
-                    return reverse("application-update", kwargs=dict(pk=a.id))
+                    return reverse("application-update", kwargs=dict(pk=a.pk))
                 else:
-                    return reverse("application", kwargs=dict(pk=a.id))
+                    return reverse("application", kwargs=dict(pk=a.pk))
             return reverse("nomination-detail", kwargs=dict(pk=self.nomination_id))
         elif self.type == INVITATION_TYPES.T and self.member:
             return reverse("application", kwargs=dict(pk=self.member.application_id))
@@ -5665,13 +5665,13 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             if r.survey_token_id and not r.survey_completed_at:
                 return reverse("application", kwargs=dict(pk=r.application_id))
             if t := Testimonial.where(referee=r).first():
-                return reverse("review-update", kwargs=dict(pk=t.id))
+                return reverse("review-update", kwargs=dict(pk=t.pk))
             return reverse("application", kwargs=dict(pk=r.application_id))
         elif self.type == INVITATION_TYPES.P and (p := self.panellist):
             if p.round_id:
                 if p.has_all_coi_statements_submitted or p.round.has_online_scoring:
-                    return reverse("round-application-list", kwargs=dict(round_id=p.round.id))
-                return reverse("round-coi", kwargs=dict(round=p.round.id))
+                    return reverse("round-application-list", kwargs=dict(round_id=p.round.pk))
+                return reverse("round-coi", kwargs=dict(round=p.round.pk))
         elif self.type in INVITATION_TYPES:
             return reverse("index")
         return self.token and reverse("onboard-with-token", kwargs=dict(token=self.token))
@@ -5841,7 +5841,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         site = (
             self.site or request and getattr(request, "site", None) or Site.objects.get_current()
         )
-        site_id, site_name = site.id, site.name
+        site_id, site_name = site.pk, site.name
         if request:
             # url = request.build_absolute_uri(url)
             url = request.build_absolute_uri(url)
@@ -6246,19 +6246,19 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             self.referee.save()
             url = get_absolute_uri(
                 request,
-                reverse("application-update", kwargs={"pk": self.application.id}) + "?referees=1",
+                reverse("application-update", kwargs={"pk": self.application.pk}) + "?referees=1",
             )
         elif self.type == INVITATION_TYPES.T and self.member:
             self.member.state = "bounced"
             self.member.save()
             url = get_absolute_uri(
-                request, reverse("application-update", kwargs={"pk": self.application.id})
+                request, reverse("application-update", kwargs={"pk": self.application.pk})
             )
         elif self.type == INVITATION_TYPES.P and self.panellist:
             self.panellist.state = "bounced"
             self.panellist.save()
             url = get_absolute_uri(
-                request, reverse("panellist-invite", kwargs={"round": self.round.id})
+                request, reverse("panellist-invite", kwargs={"round": self.round.pk})
             )
 
         if url:
@@ -6288,7 +6288,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             "  LEFT JOIN round AS r ON r.id = i.round_id "
             "WHERE ae.user_id=%s AND i.state NOT IN ('accepted', 'expired', 'revoked', 'new', 'draft') AND i.site_id=%s "
             """  AND (i."type" != 'R' OR r.testimonial_submission_closes_at IS NULL or r.testimonial_submission_closes_at > %s)""",
-            [user.id, site_id, timezone.now()],
+            [user.pk, site_id, timezone.now()],
         )
 
     def __str__(self):
@@ -6464,7 +6464,7 @@ FILE_TYPE = Choices("CV")
 #     owner = ForeignKey(User, on_delete=CASCADE)
 #     type = CharField(max_length=100, choices=FILE_TYPE)
 #     title = CharField("title", max_length=200, null=True, blank=True)
-#     # file = PrivateFileField(upload_subfolder=lambda instance: f"cv-{instance.owner.id}")
+#     # file = PrivateFileField(upload_subfolder=lambda instance: f"cv-{instance.owner.pk}")
 #     file = PrivateFileField()
 
 #     class Meta:
@@ -6654,6 +6654,36 @@ def round_template_path(instance, filename):
     if len(title) > 50:
         title = hashlib.shake_256(title.encode()).hexdigest(9)
     return f"rounds/{title}/{filename}"
+
+
+def notify_site_staff_about_new_org(
+    site_id,
+    org_id,
+    by_id=None,
+    org_url=None,
+):
+    if site_id and site_id != int(settings.SITE_ID):
+        settings.SITE_ID = site_id
+    site = Site.objects.get(pk=site_id)
+    org = Organisation.get(org_id)
+    u = by_id and User.get(by_id)
+
+    if not org_url:
+        org_url = reverse("admin:portal_organisation_change", args=[org_id])
+        org_url = f"https://{site.domain}{org_url}"
+    subject = f"New Organization created: {org}"
+    html_message=f"<p>Kia ora!</p><p>A new organization ({org}) has been created "
+    if u:
+        html_message = f"{html_message}by {u}. "
+    html_message = f"""{html_message}</p><p>You can review the organization at:
+        <a href="{org_url}">{org}</a>.</p>
+        <p>Ngā mihi</p>"""
+    send_mail(
+        subject=subject,
+        html_message=html_message,
+        recipients=site.staff_users.all(),
+        site=site,
+    )
 
 
 def bulk_application_export(
@@ -7193,7 +7223,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     def save(self, *args, **kwargs):
         scheme = self.scheme
-        created_new = not (self.id)
+        created_new = not (self.pk)
         super().save(*args, **kwargs)
 
         if created_new and (last_round := Round.where(scheme=scheme).order_by("-id").first()):
@@ -7218,8 +7248,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     def init_from_last_round(self, last_round=None):
         if not last_round and self.scheme:
             q = Round.where(scheme=self.scheme)
-            if self.id:
-                q = q.filter(~Q(id=self.id))
+            if self.pk:
+                q = q.filter(~Q(id=self.pk))
             last_round = q.order_by("-id").first()
 
         scheme = self.scheme or last_round.scheme
@@ -7335,7 +7365,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         super().__init__(*args, **kwargs)
         opens_on = kwargs.get("opens_on")
         if (
-            not self.id
+            not self.pk
             and (scheme := kwargs.get("scheme"))
             and (last_round := Round.where(scheme=scheme).order_by("-id").first())
         ):
@@ -7448,7 +7478,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         return self.title or self.scheme.title
 
     def get_absolute_url(self):
-        return f"{reverse('applications')}?round={self.id}"
+        return f"{reverse('applications')}?round={self.pk}"
 
     def user_nominations(self, user):
         return Nomination.where(
@@ -7541,7 +7571,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             ) AS t ON t.application_id=a.id
             WHERE a.round_id=%s AND a.site_id=%s
             ORDER BY a.number""",
-            [self.id, site_id, self.id, site_id],
+            [self.pk, site_id, self.pk, site_id],
         )
 
     @property
@@ -7625,7 +7655,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             WHERE a.round_id=%s AND a.site_id=%s
             ORDER BY a.number
             """,
-            [self.id, site_id, self.id, site_id, self.id, site_id],
+            [self.pk, site_id, self.pk, site_id, self.pk, site_id],
         )
 
     @classmethod
@@ -8481,7 +8511,7 @@ class Evaluation(EvaluationMixin, Model):
     @property
     def thread_index(self):
         if self.application_id and (n := Nomination.where(application=self.application_id).last()):
-            idx = n.id
+            idx = n.pk
         else:
             idx = self.application_id
         site_id = self.application and self.application.site_id or settings.SITE_ID
@@ -8553,7 +8583,7 @@ class Evaluation(EvaluationMixin, Model):
 
         scores = {s.criterion_id: s for s in self.scores.all()}
         for c in criteria:
-            yield scores.get(c.id, {"criteria": c})
+            yield scores.get(c.pk, {"criteria": c})
 
     def __str__(self):
         return _("Evaluation of %s by %s") % (self.application, self.panellist)
@@ -8759,18 +8789,18 @@ class SchemeApplication(Model):
               s.site_id = %s
             ORDER BY r.ordering, 3;""",
             [
-                user.id,
+                user.pk,
                 site_id,
-                user.id,
+                user.pk,
                 site_id,
-                user.id,
-                user.id,
-                user.id,
+                user.pk,
+                user.pk,
+                user.pk,
                 site_id,
                 site_id,
                 site_id,
-                user.id,
-                user.id,
+                user.pk,
+                user.pk,
                 site_id,
             ],
         )
@@ -9092,7 +9122,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         ]
         if not (user.is_staff or user.is_superuser):
             sql += " n.nominator_id=%s AND "
-            params.append(user.id)
+            params.append(user.pk)
 
         if state:
             if isinstance(state, (list, tuple)):
@@ -9109,7 +9139,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         sql += ")"
         if not state or (state == "submitted" or "submitted" in state):
             sql += " OR (n.state='submitted' AND (n.user_id=%s OR n.email=%s))"
-            params.extend([user.id, user.email])
+            params.extend([user.pk, user.email])
         sql += ")"
 
         with connection.cursor() as cursor:
@@ -9157,7 +9187,7 @@ class IdentityVerification(Model):
     @property
     def thread_index(self):
         if self.application_id and (n := Nomination.where(application=self.application_id).last()):
-            idx = n.id
+            idx = n.pk
         else:
             idx = self.application_id
         site_id = self.application and self.application.site_id or settings.SITE_ID
@@ -9177,7 +9207,7 @@ class IdentityVerification(Model):
         field=state, source=["new", "draft", "needs-resubmission", "sent", "read"], target="sent"
     )
     def send(self, request, *args, **kwargs):
-        url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.id)))
+        url = request.build_absolute_uri(reverse("identity-verification", kwargs=dict(pk=self.pk)))
 
         send_mail(
             _("User Identity Verification"),
