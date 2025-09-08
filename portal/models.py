@@ -6030,7 +6030,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             inviter = (
                 self.nomination
                 and self.nomination.nominator
-                and self.nomination.nominathr.full_name
+                and self.nomination.nominator.full_name
                 or by.full_name
             )
             body = (
