@@ -219,7 +219,15 @@ if __name__ == "__main__":
         else:
             message_id = None
 
-    if to and message_id and (to.startswith("contracts") or to.startswith("comments") or to.startswith("change-requests")):
+    if (
+        to
+        and message_id
+        and (
+            to.startswith("contracts")
+            or to.startswith("comments")
+            or to.startswith("change-requests")
+        )
+    ):
         if to.startswith("change-requests"):
             reply_to = models.ChangeRequestComment.where(token=message_id).order_by("-pk").first()
         else:
@@ -229,8 +237,13 @@ if __name__ == "__main__":
 
         o = reply_to.object
         if contract := (
-                reply_to.object.contract if to.startswith("change-requests") else
-                models.Contract.all_objects.filter(comments__token=message_id).last() else models.ChangeRequest.where(token=message_id).first()):
+            reply_to.object.contract
+            if to.startswith("change-requests")
+            else (
+                models.Contract.all_objects.filter(comments__token=message_id).last()
+                or models.ChangeRequest.where(token=message_id).first()
+            )
+        ):
 
             if site := contract.site:
                 settings.SITE_ID = site.pk
@@ -283,6 +296,7 @@ if __name__ == "__main__":
                     ca.save()
 
                 if by:
+                    a = contract.application
                     domain = to.split("@")[1]
                     if (
                         contract.org.research_offices.filter(user=by).exists()
@@ -293,7 +307,6 @@ if __name__ == "__main__":
                             u for u in models.User.where(is_superuser=True)
                         ]
                     else:
-                        a = contract.application
                         recipients = (
                             contract.host_contact_email
                             or [ro.user for ro in contract.org.research_offices.all()]

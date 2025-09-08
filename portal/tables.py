@@ -9,21 +9,34 @@ from dateutil.relativedelta import relativedelta
 
 from . import models
 
+class Table(tables.Table):
+
+    @property
+    def model_name(self):
+        return self._meta.model and self._meta.model._meta.model_name
+
+    @property
+    def verbose_model_name(self):
+        return self._meta.model and self._meta.model._meta.verbose_name
+
+    class Meta:
+        attrs = {"class": "table table-striped table-bordered"}
+        # attrs = {"class": "table table-striped"}
+        template_name = "django_tables2/bootstrap4.html"
+
 
 class SafeTemplateColumn(tables.TemplateColumn):
     def render(self, record, table, value, bound_column, **kwargs):
         return mark_safe(super().render(record, table, value, bound_column, **kwargs))
 
 
-class ReportedFundingTable(tables.Table):
+class ReportedFundingTable(Table):
     class Meta:
         model = models.ReportedFunding
-        template_name = "django_tables2/bootstrap4.html"
-        attrs = {"class": "table table-striped"}
         fields = ("title", "doi")
 
 
-class PublicationTable(tables.Table):
+class PublicationTable(Table):
     title = tables.Column(linkify=("publication-update", {"pk": tables.A("pk")}))
     reports = SafeTemplateColumn(
         verbose_name=gettext_lazy("Report(s)"),
@@ -34,18 +47,14 @@ class PublicationTable(tables.Table):
             },
         },
     )
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Publication
-        template_name = "django_tables2/bootstrap4.html"
-        attrs = {"class": "table table-striped"}
         fields = ("title", "doi")
 
 
-class SubscriptionTable(tables.Table):
-    class Meta:
+class SubscriptionTable(Table):
+    class Meta(Table.Meta):
         model = models.Subscription
-        template_name = "django_tables2/bootstrap4.html"
-        attrs = {"class": "table table-striped"}
         fields = (
             "name",
             "email",
@@ -55,8 +64,14 @@ class SubscriptionTable(tables.Table):
 class StateColumn(tables.Column):
     attrs = {"td": {"class": "align-middle text-center"}}
 
-    def render(self, value, record):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        kwargs["empty_values"] = [None, ""]
+
+    def render(self, record, table, value, bound_column, **kwargs):
         state = getattr(record, "state", None) or value
+        name = table and table.verbose_model_name or record and record._meta.model._meta.verbose_name
+        name = gettext_lazy(name and name.lower() or "record")
         if not state:
             return mark_safe(
                 '<i class="far fa-question-circle text-dark text-center" aria-hidden="true"></i>'
@@ -69,89 +84,70 @@ class StateColumn(tables.Column):
                 else:
                     css_classes = "far fa-plus-square text-success text-center"
                     title = _(
-                        "The invitation has not been processed yet or it is in draft version"
+                        f"The {name} has not been processed yet or it is in draft version"
                     )
             else:
                 if not isinstance(record, (models.Invitation)):
                     css_classes = "far fa-times-circle text-danger text-center"
-                    title = _("The %(verbose_name)s was just created") % {
-                        "verbose_name": _(record._meta.verbose_name)
-                    }
-                    # if isinstance(record, models.Testimonial):
-                    #     title = _("The testimonial was just created")
-                    # else:
-                    #     title = _("The application was just created")
                 else:
-                    title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
+                title = _(f"The {name} was just created")
         elif state == "in_review":
             css_classes = "fas fa-question text-success text-center"
             title = _(
-                "The application was submitted and sent out to the referees for the reviewing"
+                f"The {name} was submitted and sent out to the referees for the reviewing"
             )
         elif state == "withdrawn":
             css_classes = "fa fa-ban text-warning text-center"
-            if isinstance(record, models.Application):
-                title = _("The application was withdrawn")
-            elif isinstance(record, models.Nomination):
-                title = _("The nomination was withdrawn")
-            else:
-                title = _("The record was withdrawn")
+            title = _(f"The {name} was withdrawn")
         elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
         elif state == "accepted":
             if isinstance(record, models.Application):
                 css_classes = "fas fa-star text-success text-center"
-                title = _("The application was accepted")
             elif isinstance(record, models.Invitation):
                 css_classes = "far fa-envelope-open text-success text-center"
-                title = _("The invitation was accepted")
             else:
                 css_classes = "fas fa-check-double text-success text-center"
-                title = _("The %s was accepted") % record._meta.verbose_name
+            title = _(f"The {name} was accepted")
         elif state == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
-            title = _("The testimonial was submitted")
+            title = _(f"The {name} was submitted")
         elif state == "opted_out":
             css_classes = "fa fa-ban text-danger text-center"
-            title = _("The invitee has turned down the nomination")
+            title = _(f"The {name} has turned down the nomination")
         elif state == "bounced":
             css_classes = "fa fa-exclamation-triangle text-danger text-center"
-            title = _("The invitation failed or autoreplied. Please check the recipient")
+            title = _(f"The {name} failed or autoreplied. Please check the recipient")
         elif state == "submitted":
             css_classes = "fa fa-check text-success text-center"
-            if isinstance(record, models.Testimonial):
-                title = _("The testimonial was completed and submitted")
-            elif isinstance(record, models.Application):
-                title = _("The application was completed and submitted")
-            else:
-                title = _("The invitation was submitted")
+            title = _(f"The {name} was completed and submitted")
         elif state == "cancelled":
             css_classes = "fa fa-ban text-danger text-center"
-            title = _("The application was cancelled")
+            title = _(f"The {name} was cancelled")
         elif state == "declined" or state == "excluded":
             css_classes = "fa fa-ban text-danger text-center"
             title = _("Cancelled") if state == "declined" else _("Excluded")
         elif state == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
-            title = _("The application was approved")
+            title = _(f"The {name} was approved")
         elif state == "funded":
             css_classes = "fa fa-heart text-success text-center"
-            title = _("The application was funded")
+            title = _(f"The {name} was funded")
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
-            title = _("The report was assessed")
+            title = _(f"The {name} was assessed")
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
-            title = _("The report was assessed")
+            title = _(f"The {name} was assessed")
         else:
             if isinstance(record, (models.Testimonial, models.Application)):
                 return mark_safe(
                     '<i class="fas fa-plus text-success text-center" aria-hidden="true"></i>'
                 )
             css_classes = "fas fa-plus text-success text-center"
-            title = _("The invitation was created")
+            title = _(f"The {name} was created")
 
         if state_changed_at := getattr(record, "state_changed_at", None):
             # title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
@@ -164,7 +160,7 @@ class StateColumn(tables.Column):
         )
 
 
-class NominationTable(tables.Table):
+class NominationTable(Table):
     round = tables.Column(
         linkify=lambda table, record: (
             record.get_absolute_url()
@@ -217,9 +213,8 @@ class NominationTable(tables.Table):
         ):
             self.columns.hide("nominator")
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Nomination
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
@@ -233,7 +228,7 @@ class NominationTable(tables.Table):
         )
 
 
-class TestimonialTable(tables.Table):
+class TestimonialTable(Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(
         accessor="referee__application__number",
@@ -245,9 +240,8 @@ class TestimonialTable(tables.Table):
         order_by=("referee__first_name", "referee__last_name", "referee__email"),
     )
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Testimonial
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = ()
 
@@ -301,7 +295,7 @@ def default_start_date(record=None):
     return timezone.now().date().replace(day=1) + relativedelta(months=1)
 
 
-class ApplicationTable(tables.Table):
+class ApplicationTable(Table):
     # selection = tables.CheckBoxColumn(accessor="pk")
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
@@ -444,9 +438,8 @@ class ApplicationTable(tables.Table):
             )
         return value
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Application
-        template_name = "django_tables2/bootstrap4-responsive.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
@@ -477,7 +470,7 @@ def report_contract_link(table, record, value):
     return f'{reverse("contract-create")}?report_id={record.pk}'
 
 
-class ReportTable(tables.Table):
+class ReportTable(Table):
     state = StateColumn(verbose_name=_("Status"))
     # number = tables.Column(linkify=report_link)
     number = tables.LinkColumn(
@@ -552,9 +545,8 @@ class ReportTable(tables.Table):
     #         )
     #     return value
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Report
-        template_name = "django_tables2/bootstrap4-responsive.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
@@ -585,7 +577,7 @@ def round_link(record, table, *args, **kwargs):
     return url
 
 
-class RoundTable(tables.Table):
+class RoundTable(Table):
     title = tables.Column(linkify=round_link, verbose_name=_("Round"))
     scheme = tables.Column(verbose_name=_("Scheme"))
     opens_on = tables.Column(verbose_name=_("Opens On"))
@@ -599,9 +591,8 @@ class RoundTable(tables.Table):
         footer=lambda table: sum(row.evaluation_count for row in table.data),
     )
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Round
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "title",
@@ -612,14 +603,13 @@ class RoundTable(tables.Table):
         )
 
 
-class ScoreSheetTable(tables.Table):
+class ScoreSheetTable(Table):
     round = tables.Column(
         linkify=lambda record: reverse("score-sheet", kwargs=dict(round=record.round_id))
     )
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.ScoreSheet
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "round",
@@ -658,7 +648,7 @@ def application_review_link(table, record, value):
         return
 
 
-class RoundApplicationTable(tables.Table):
+class RoundApplicationTable(Table):
     number = tables.Column(linkify=application_review_link, verbose_name=_("Number"))
     first_name = tables.Column(verbose_name=_("First Name"))
     last_name = tables.Column(verbose_name=_("Last Name"))
@@ -745,9 +735,8 @@ class RoundApplicationTable(tables.Table):
             )
         return value
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Application
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "number",
@@ -758,7 +747,7 @@ class RoundApplicationTable(tables.Table):
         )
 
 
-class EvaluationTable(tables.Table):
+class EvaluationTable(Table):
     # round = tables.Column(verbose_name=_("Round"))
     total_score = tables.Column(
         verbose_name=_("Total Score"), attrs={"td": {"style": "text-align: right;"}}
@@ -772,9 +761,8 @@ class EvaluationTable(tables.Table):
     #     if value:
     #         return value.full_name_with_email
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Evaluation
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             # "round",
@@ -783,7 +771,7 @@ class EvaluationTable(tables.Table):
         )
 
 
-class RoundConflictOfInterestStatementTable(tables.Table):
+class RoundConflictOfInterestStatementTable(Table):
     number = tables.Column(linkify=lambda record: record.application.get_absolute_url())
     has_conflict = tables.Column()
     first_name = tables.Column()
@@ -802,12 +790,11 @@ class RoundConflictOfInterestStatementTable(tables.Table):
             return _("Yes")
         return _("No")
 
-    class Meta:
-        template_name = "django_tables2/bootstrap4.html"
+    class Meta(Table.Meta):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class RoundSummaryTable(tables.Table):
+class RoundSummaryTable(Table):
     number = tables.Column(linkify=lambda record: record.get_absolute_url())
     lead = tables.Column()
     state = tables.Column(verbose_name=_("State"))
@@ -840,7 +827,7 @@ class RoundSummaryTable(tables.Table):
         fields = ["number"]
 
 
-class InvitationTable(tables.Table):
+class InvitationTable(Table):
     url = tables.Column(linkify=lambda value: value)
     token = tables.Column(linkify=lambda value, record: record.url)
     # number = tables.Column(linkify=application_link)
@@ -856,7 +843,6 @@ class InvitationTable(tables.Table):
 
     class Meta:
         model = models.Invitation
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "token",
@@ -884,15 +870,14 @@ class InvitationTable(tables.Table):
         ]
 
 
-class SummaryReportTable(tables.Table):
-    class Meta:
+class SummaryReportTable(Table):
+    class Meta(Table.Meta):
         model = models.Application
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = ["number", "round", "submitted_by", "state"]
 
 
-class ContractTable(tables.Table):
+class ContractTable(Table):
     number = tables.Column(
         verbose_name=gettext_lazy("Contract"),
         linkify=lambda value, record: reverse(
@@ -916,12 +901,12 @@ class ContractTable(tables.Table):
     )
     notes = StateColumn()
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Contract
         fields = ("state", "number", "application", "pi", "notes")
 
 
-class ChangeRequestTable(tables.Table):
+class ChangeRequestTable(Table):
     state = StateColumn(gettext_lazy("Status"))
     number = tables.Column(
         # accessor="pk",
