@@ -2431,6 +2431,17 @@ class ContractForm(ModelForm):
                                     ),
                                     # data_document_role="AB",
                                     data_document_role="B",
+                                    disabled=not budget or budget.state in ["accepted"],
+                                    data_tooltip="tooltip",
+                                    title=(
+                                        _("The budget was alrady accepted")
+                                        if budget and budget.state in ["accepted"]
+                                        else (
+                                            _("Accept the budget")
+                                            if budget
+                                            else _("Upload and accept the budget")
+                                        )
+                                    ),
                                 ),
                                 css_class="float-right",
                             )
