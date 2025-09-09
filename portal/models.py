@@ -348,7 +348,7 @@ class CommentMixin:
             file.seek(0)
             with open(msg_filename, "wb") as f:
                 f.write(file.read())
-            msg_obj = MsOxMessage(filename)
+            msg_obj = MsOxMessage(msg_filename)
             msg_fmt = EmailFormatter(msg_obj)
             msg_fmt.build_email()
             # with open(filename, "w") as f:
