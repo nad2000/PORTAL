@@ -10459,9 +10459,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
     def get(self, request, *args, **kwargs):
         user = self.request.user
         if r := self.round:
-            if not (
-                user.is_staff or user.is_superuser or r.has_online_scoring or user.is_site_staff
-            ):
+            if not (r.has_online_scoring or user.is_admin):
                 if not r.panellists.filter(user=user).exists():
                     messages.error(self.request, _(f"You were not invited to this round ({r})"))
                     return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
@@ -10887,7 +10885,9 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
         return get_object_or_404(models.Round, pk=self.kwargs["round"])
 
     def get(self, *args, **kwargs):
-        if not self.panellist:
+
+        user = self.request.user
+        if not (self.panellist or user.is_admin):
             messages.error(self.request, _(f"You were not invited to this round ({self.round})"))
             return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
         return super().get(*args, **kwargs)
