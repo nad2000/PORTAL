@@ -3458,7 +3458,7 @@ class EmailImportView(FileImportView):
         try:
             o.import_email(
                 file_field.file,
-                file_name,
+                filename=file_name,
                 request=self.request,
                 by=self.request.user,
                 reply_to=reply_to,
@@ -8275,7 +8275,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         org_url=self.request.build_absolute_uri(reverse("admin:portal_organisation_change", args=[o.pk]))
         models.async_task(
             models.notify_site_staff_about_new_org,
-            # sync=True,
+            sync=True,
             site_id=self.request.site_id,
             org_id=o.pk,
             by_id=self.request.user.pk,

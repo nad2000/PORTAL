@@ -84,7 +84,7 @@ py7zr>=0.22.0,<0.23.0
 geopy<3.0.0
 geoip2<5.0.0
 # dalf<1.0.0
-
+msg_parser>=1.2.0,<2.0.0
 
 #django-bootstrap-breadcrumbs<1.0.0
  git+https://github.com/nad2000/bootstrap-breadcrumbs.git

@@ -124,7 +124,8 @@ from common.models import (
 
 from .utils import send_mail, vignere
 
-EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+EMAIL_EX = re.compile(r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
+TOKEN_EX = re.compile(r"<(.*)@.*>")
 CONTRACT_PART_EXTENSIONS = [
     "html",
     "pdf",
@@ -334,20 +335,42 @@ def get_request(*args, **kwargs):
 class CommentMixin:
 
     def import_email(
-        self, file, file_name=None, notify_author=True, request=None, by=None, reply_to=None
+        self, file, filename=None, notify_author=True, request=None, by=None, reply_to=None
     ):
-        if isinstance(file, io.BytesIO):
-            msg = email.message_from_binary_file(file)
+        ext = None
+        root, ext = os.path.splitext(filename)
+        if ext and ext.lower() == ".msg":
+            from msg_parser import MsOxMessage
+            from msg_parser.email_builder import EmailFormatter
+            import tempfile
+
+            msg_filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.msg")
+            file.seek(0)
+            with open(msg_filename, "wb") as f:
+                f.write(file.read())
+            msg_obj = MsOxMessage(filename)
+            msg_fmt = EmailFormatter(msg_obj)
+            msg_fmt.build_email()
+            # with open(filename, "w") as f:
+            #     f.write(msg_fmt.build_email())
+            # file = open(filename, "r")
+            msg = msg_fmt.message
+            # filename = "{os.path.basename(root)}.eml"
         else:
-            msg = email.message_from_file(file)
+            if isinstance(file, io.BytesIO):
+                msg = email.message_from_binary_file(file)
+            else:
+                msg = email.message_from_file(file)
 
         to = msg["to"]
-        subject = msg["subject"]
-        sender = msg["from"]
+        subject = str(msg["subject"] or "")
+        sender = str(msg["from"] or "")
         sent_at = (
             msg["date"] and email.utils.parsedate_to_datetime(msg["date"]) or timezone.now()
-        ).replace(tzinfo=None)
-        if sender and (match := re.search(EMAIL_EX, sender)):
+        )  ## .replace(tzinfo=None)
+        if sent_at and not sent_at.tzinfo:
+            sent_at = timezone.make_aware(sent_at)
+        if sender and (match := EMAIL_EX.search(sender)):
             sender = match[0].lower()
         # from_addresses = []
 
@@ -369,6 +392,15 @@ class CommentMixin:
                         body = p.get_payload(decode=True)
                         if p.get_content_type() == "text/html":
                             break
+            if not body:
+                for part in msg.walk():
+                    content_type = part.get_content_type()
+                    if content_type == "text/html":
+                        body = part.get_payload(decode=True)
+                        break
+                    if content_type == "text/plain":
+                        body = part.get_payload(decode=True)
+                        break
 
         attachments = [
             File(io.BytesIO(a.as_bytes()), name=a.get_filename())
@@ -404,7 +436,12 @@ class CommentMixin:
                         pass
             if not reply_to:
                 for message_id in message_ids(msg):
-                    reply_to = self.comments.model.where(token=message_id).last()
+                    if "@" not in message_id:
+                        m = TOKEN_EX.match(message_id)
+                        token = m and (m[1] or m[0]) or message_id
+                        reply_to = self.comments.model.where(token=token).last()
+                    else:
+                        reply_to = self.comments.model.where(token=message_id).last()
                     if reply_to:
                         break
             if isinstance(self, ChangeRequest):
@@ -439,11 +476,15 @@ class CommentMixin:
                     and by.email,
                 )
 
-                attachments.append(
-                    File(
-                        io.BytesIO(msg.as_bytes()), name=file_name or f"{hash_int(comment.pk)}.eml"
+                if ext and ext.lower() == ".msg":
+                    file.seek(0)
+                    attachments.append(File(file, name=filename))
+                else:
+                    attachments.append(
+                        File(
+                            io.BytesIO(msg.as_bytes()), name=filename or f"{hash_int(comment.pk)}.eml"
+                        )
                     )
-                )
 
                 # for a in attachments[1:]:
                 for a in attachments:
@@ -451,17 +492,20 @@ class CommentMixin:
                     ca.attachment.save(content=a, name=a.name)
                     ca.save()
 
-                domain = to.split("@")[1]
                 recipients = [reply_to and reply_to.submitted_by or self.pi]
+                site = getattr(self, "site", None) or Site.objects.get_current()
                 if isinstance(self, Report):
-                    respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
+                    url = f"{reverse('report-update', kwargs=dict(pk=self.pk))}#correspondence"
                 else:
-                    respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=self.pk))}#correspondence"
+                    url = f"{reverse('contract-update', kwargs=dict(pk=self.pk))}#correspondence"
+                if request:
+                    respond_url = request.build_absolute_uri(url)
+                else:
+                    domain = to.split("@")[1] or site and site.domain
+                    respond_url = f"https://{domain}{url}"
                 html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{self}">{self}</data>'
                 html_message += f":</p>{body}" if body else "."
                 html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                site = getattr(self, "site", None) or Site.objects.get_current()
-
                 send_mail(
                     from_email="reports" if isinstance(self, Report) else "contracts",
                     subject=f"Comment posted by {by.full_name_with_email} to {self}",
@@ -2410,10 +2454,10 @@ class CommentModel(Model):
     def target(self):
         return self.object
 
-    def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+    def import_reply(self, file, filename=None, notify_author=True, request=None, by=None):
         return self.object.import_email(
             file,
-            file_name=file_name,
+            filename=filename,
             notify_author=notify_author,
             request=request,
             by=by,
@@ -6436,7 +6480,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
             tp = {
                 "TITLES": [_("Referee Report")],
                 # _("Submitted At"): self.updated_at or self.created_at,
-                # "file_name": self.filename,
+                # "filename": self.filename,
             }
             tp[_("Referee")] = self.referee.full_name
             if org := self.referee.org:
@@ -6672,7 +6716,7 @@ def notify_site_staff_about_new_org(
         org_url = reverse("admin:portal_organisation_change", args=[org_id])
         org_url = f"https://{site.domain}{org_url}"
     subject = f"New Organization created: {org}"
-    html_message=f"<p>Kia ora!</p><p>A new organization ({org}) has been created "
+    html_message = f"<p>Kia ora!</p><p>A new organization ({org}) has been created "
     if u:
         html_message = f"{html_message}by {u}. "
     html_message = f"""{html_message}</p><p>You can review the organization at:
@@ -13019,10 +13063,10 @@ class ReportComment(CommentModel):
     # def target(self):
     #     return self.report
 
-    # def import_reply(self, file, file_name=None, notify_author=True, request=None, by=None):
+    # def import_reply(self, file, filename=None, notify_author=True, request=None, by=None):
     #     return self.report.import_email(
     #         file,
-    #         file_name=file_name,
+    #         filename=filename,
     #         notify_author=notify_author,
     #         request=request,
     #         by=by,

@@ -46,8 +46,29 @@ if __name__ == "__main__":
 
     # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
     # msg = email.message_from_string(full_msg)
-    msg = email.message_from_file(open(sys.argv[1], "r") if len(sys.argv) > 1 else sys.stdin)
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        if os.path.isfile(filename):
+            root, ext = os.path.splitext(filename)
+            if ext.lower() == ".msg":
+                from msg_parser import MsOxMessage
+                from msg_parser.email_builder import EmailFormatter
+                import tempfile
+                msg_obj = MsOxMessage(filename)
+                filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.eml")
+                msg_fmt = EmailFormatter(msg_obj)
+                with open(filename, "w") as f:
+                    f.write(msg_fmt.build_email())
+                msg = msg_fmt.message
+            else:
+                with open(filename, "r") as f:
+                    msg = email.message_from_file(f)
+        else:
+            message_id = filename
+            msg = email.message_from_file(sys.stdin)
+    else:
+        msg = email.message_from_file(sys.stdin)
+    if len(sys.argv) > 2 and not message_id:
         message_id = sys.argv[2]
 
     to = msg["to"]
