@@ -799,7 +799,6 @@ class PdfFileMixin:
 
     # def __getattribute__(self, item):
 
-    #     breakpoint()
     #     if item.endswith("_pdf"):
     #         if filename := getattr(self, item.removesuffix("_pdf"), None):
     #             setattr(self, item, self.get_converted_to_pdf(filename))
@@ -10882,6 +10881,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         if self.org and (commisars := (self.org.research_offices.all())) and commisars.count():
             return commisars
         return []
+
+    @property
+    def host_recipients(self):
+        return self.host_emails
+
+    @cached_property
+    def agency_recipients(self):
+        return [self.fund.email] if self.fund and self.fund.email else self.site.staff_users.all()
 
     def save(self, *args, **kwargs):
         if (

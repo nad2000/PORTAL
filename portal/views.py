@@ -714,7 +714,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             self.request.FILES or None,
             instance=self.object,
             prefix="comment",
-            initial={"host_contact_email": getattr(self.object, "host_contact", "")},
+            initial={"host_contact_email": getattr(self.object, "host_contact_email", None) or getattr(self.object, "host_contact", "")},
         )
 
     def get_context_data(self, *args, **kwargs):
@@ -759,7 +759,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             body = body.strip()
 
         i = self.object
-        c = i.contract
+        if self.model is models.Contract:
+            c = i
+        elif self.model is models.Report:
+            c = i.contract
         u = request.user
         is_ro = c.org.research_offices.filter(user=u).exists()
         recipients = i.host_recipients if is_ro else i.agency_recipients
@@ -791,7 +794,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
             send_mail(
                 request=self.request,
-                from_email="variations",
+                from_email="variations" if self.model is models.ChangeRequest else f"{i.model_name}s",
                 subject=f"Comment posted by {u.full_name_with_email} to {i}",
                 html_message=html_message,
                 cc=[u.full_email_address],
@@ -7732,12 +7735,10 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         turn_off_wizard(self.request)
 
     def formset_invalid(self, formset):
-        # breakpoint()
         return super().formset_invalid(formset)
 
     def formset_valid(self, formset):
         request = self.request
-        # breakpoint()
         url_name = request.resolver_match.url_name
         try:
             resp = super().formset_valid(formset)

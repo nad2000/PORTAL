@@ -1,5 +1,6 @@
 {% extends 'detail.html' %}
 {% load i18n tags static crispy_forms_tags %}
+{% with object.change_requests.all as crs %}
 
 {% if change_request_form %}
 {% block css %}
@@ -67,38 +68,63 @@
 
   <hr />
 
+
   <div class="row">
     <div class="col-12">
-      {% with object.change_requests.all as crs %}
       {% if can_edit and crs.exists %}
-        <ul class="nav nav-tabs">
-          <li class="nav-item"><a class="nav-link active" href="#contract" data-toggle="tab">{% trans 'Contract' %}</a></li>
-          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">
-              {% if crs.count > 1 %}
-                {% trans 'Change Requests' %}
-              {% else %}
-                {% trans 'Change Request' %}
-              {% endif %}
-            </a></li>
-        </ul>
 
-        <div class="tab-content card-body">
-          <div id="contract" class="tab-pane active">
-            <div class="table-responsive"> {% contract_summary %} </div>
-          </div>
-          <div id="change_requests" class="tab-pane">
-            <div class="table-responsive">
+        {% if has_comments %}
+          {% block object_details_extra_tabs %}
+            <li class="nav-item">
+              <a class="nav-link" href="#change_requests" data-toggle="tab">
+                {% if crs.count > 1 %}{% trans 'Change Requests' %}{% else %}{% trans 'Change Request' %}{% endif %}
+              </a>
+            </li>
+          {% endblock object_details_extra_tabs %}
+        {% else %}
+          <ul class="nav nav-tabs">
+            <li class="nav-item"><a class="nav-link active" href="#contract" data-toggle="tab">{% trans 'Contract' %}</a></li>
+            <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">
+                {% if crs.count > 1 %}
+                  {% trans 'Change Requests' %}
+                {% else %}
+                  {% trans 'Change Request' %}
+                {% endif %}
+              </a></li>
+          </ul>
+        {% endif %}
+        {% comment %}
+        {% endcomment %}
 
-              {% jinja 'partials/change_request_table.html' objects=crs  %}
-
+          {% if has_comments %}
+            {% block object_details_extra_panes %}
+              <div id="contract" class="tab-pane active">
+                <div class="table-responsive"> {% contract_summary %} </div>
+              </div>
+              <div id="change_requests" class="tab-pane">
+                <div class="table-responsive">
+                  {% jinja 'partials/change_request_table.html' objects=crs  %}
+                </div>
+              </div>
+            {% endblock object_details_extra_panes %}
+          {% else %}
+            <div class="tab-content card-body">
+              <div id="contract" class="tab-pane active">
+                <div class="table-responsive"> {% contract_summary %} </div>
+              </div>
+              <div id="change_requests" class="tab-pane">
+                <div class="table-responsive">
+                  {% jinja 'partials/change_request_table.html' objects=crs  %}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          {% endif %}
 
+      {# No comments, no change requests #}
       {% else %}
-        <div class="table-responsive"> {% contract_summary %} </div>
+          <div class="table-responsive"> {% contract_summary %} </div>
       {% endif %}
-      {% endwith %}
+
     </div>
   </div>
 
@@ -153,4 +179,5 @@
   </script>
 {% endblock %}
 {% endif %}
+{% endwith %}
 {# vim:set ft=htmldjango: #}
