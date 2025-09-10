@@ -22,7 +22,7 @@ from django.shortcuts import reverse
 # from django.contrib.sites.models import Site
 from django.db.models import Value, F
 
-EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+EMAIL_EX = re.compile(r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+", re.I)
 message_id = None
 
 
@@ -99,11 +99,11 @@ if __name__ == "__main__":
         and auto_submitted.lower() == "auto-replied"
     )
 
-    if sender and (match := re.search(EMAIL_EX, sender)):
+    if sender and (match := EMAIL_EX.search(sender)):
         sender = match[0].lower()
         from_addresses.append(sender)
 
-    if to and (recipient_match := re.search(EMAIL_EX, to)):
+    if to and (recipient_match := EMAIL_EX.search(to)):
         to = recipient_match[0].lower()
 
     body = msg["body"]
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         if has_delivery_status:
             for line in part.as_string().splitlines():
                 if line and re.search(r"(final-recipient|original-recipient)", line, re.I):
-                    match = re.search(EMAIL_EX, line, re.I)
+                    match = EMAIL_EX.search(line)
                     if match:
                         final_recipient = match[0].lower()
                         from_addresses.append(final_recipient)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                     body = p.get_payload(decode=True)
                 if message_id:
                     break
-            match = re.search(EMAIL_EX, part.as_string())
+            match = EMAIL_EX.search(part.as_string())
             if match:
                 final_recipient = match[0].lower()
                 from_addresses.append(final_recipient)
