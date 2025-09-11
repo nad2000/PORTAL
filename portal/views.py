@@ -714,7 +714,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             self.request.FILES or None,
             instance=self.object,
             prefix="comment",
-            initial={"host_contact_email": getattr(self.object, "host_contact_email", None) or getattr(self.object, "host_contact", "")},
+            initial={
+                "host_contact_email": getattr(self.object, "host_contact_email", None)
+                or getattr(self.object, "host_contact", "")
+            },
         )
 
     def get_context_data(self, *args, **kwargs):
@@ -741,6 +744,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             context["comments"] = self.object.comments.all()
             context["attachments"] = self.object.attached_files
             context["comment_form"] = self.get_comment_form()
+            context["tabbed_ui"] = True
 
         if hasattr(self.model, "state") and self.object.state != "archived":
             context["transitions"] = self.get_transitions()
@@ -794,7 +798,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
             send_mail(
                 request=self.request,
-                from_email="variations" if self.model is models.ChangeRequest else f"{i.model_name}s",
+                from_email=(
+                    "variations" if self.model is models.ChangeRequest else f"{i.model_name}s"
+                ),
                 subject=f"Comment posted by {u.full_name_with_email} to {i}",
                 html_message=html_message,
                 cc=[u.full_email_address],
@@ -3256,6 +3262,15 @@ class FileImportView(LoginRequiredMixin, FormView):
     label = gettext_lazy("Message")
     model = models.Report
 
+    def get_model(self):
+        if model_name := self.request.GET.get("model"):
+            if model_name in ["reportcomment", "report"]:
+                return models.Report
+            elif model_name in ["changerequest", "changerequestcomment"]:
+                return models.ChangeRequest
+            return models.Contract
+        return self.model
+
     def get_success_url(self):
         if o := self.object:
             return o.get_absolute_url()
@@ -3264,8 +3279,7 @@ class FileImportView(LoginRequiredMixin, FormView):
                 return reverse("report", kwargs=self.kwargs)
             elif model_name in ["changerequest", "changerequestcomment"]:
                 return reverse("change-request", kwargs=self.kwargs)
-            else:
-                return reverse("contract", kwargs=self.kwargs)
+            return reverse("contract", kwargs=self.kwargs)
         return reverse("report", kwargs=self.kwargs)
 
     def get_form_kwargs(self):
@@ -3285,15 +3299,7 @@ class FileImportView(LoginRequiredMixin, FormView):
 
     @property
     def object(self):
-        if model_name := self.request.GET.get("model"):
-            if model_name in ["reportcomment", "report"]:
-                model = models.Report
-            elif model_name in ["changerequest", "changerequestcomment"]:
-                model = models.ChangeRequest
-            else:
-                model = models.Contract
-        else:
-            model = self.model
+        model = self.get_model()
         if "pk" in self.kwargs:
             return get_object_or_404(model, pk=self.kwargs.get("pk"))
 
@@ -6417,6 +6423,11 @@ class ContractDetail(DetailView):
             change_request_form.fields.pop("subcategories")
             change_request_form.fields.pop("tags", None)
             context["change_request_form"] = change_request_form
+        context["tabbed_ui"] = (
+            context.get("tabbed_ui", False)
+            or context.get("can_edit", False)
+            or self.object.change_requests.exists()
+        )
         return context
 
     def get_queryset(self):
@@ -8270,10 +8281,10 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def create_object(self, text):
-        o, _ =  self.model.get_or_create(
-            defaults={"is_active": False}, **{self.create_field: text}
+        o, _ = self.model.get_or_create(defaults={"is_active": False}, **{self.create_field: text})
+        org_url = self.request.build_absolute_uri(
+            reverse("admin:portal_organisation_change", args=[o.pk])
         )
-        org_url=self.request.build_absolute_uri(reverse("admin:portal_organisation_change", args=[o.pk]))
         models.async_task(
             models.notify_site_staff_about_new_org,
             sync=True,

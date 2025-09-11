@@ -446,11 +446,9 @@ class CommentMixin:
                         break
             if isinstance(self, ChangeRequest):
                 kwargs = {"change_request": self}
-            elif isinstance(self, Report):
-                kwargs = {"report": self}
             elif isinstance(self, Contract):
                 kwargs = {"contract": self}
-            else:
+            else:  # elif isinstance(self, Report):
                 kwargs = {"report": self}
 
             try:

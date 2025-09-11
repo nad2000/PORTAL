@@ -69,7 +69,7 @@
 
   {% block object_details %}
 
-      {% if has_comments %}
+      {% if tabbed_ui %}
         <ul class="nav nav-tabs">
           <li class="nav-item active">
             <a class="nav-link active" href="#details" data-target="#details" data-toggle="tab">{% trans 'Details' %}</a>
@@ -172,47 +172,47 @@
   </div>
   {% endblock %}
 
-  {% if has_comments %}
+  {% if tabbed_ui %}
 
     </div>
 
 	    <div id="correspondence" class="tab-pane">
-	      {% crispy comment_form comment_form.helper %}
-	      {% include 'snippets/comments.html' %}
+        {% crispy comment_form comment_form.helper %}
+        {% include 'snippets/comments.html' %}
 	    </div>
-
 
       {% if attachments %}
-	    <div id="attachments" class="tab-pane">
-<table class="table table-striped"
-    data-toggle="table"
-    data-search="true"
-    data-show-columns="true"
->
-  <thead>
-    <tr>
-      <th scope="col" data-field="creaded_at" data-sortable="true">{% trans 'Added At' %}</th>
-      <th scope="col" data-field="attachment" data-sortable="true">{% trans 'Attachment' %}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for a in attachments %}
-      <tr>
-        <th scope="row">
-          {{ a.0 }}
-        </th>
-        <td>
-          <a href="{{ a.1.url }}" target="_blank">{{ a.1.name|basename }}</a>
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-	    </div>
+        <div id="attachments" class="tab-pane">
+          <table class="table table-striped"
+              data-toggle="table"
+              data-search="true"
+              data-show-columns="true"
+          >
+            <thead>
+              <tr>
+                <th scope="col" data-field="creaded_at" data-sortable="true">{% trans 'Added At' %}</th>
+                <th scope="col" data-field="attachment" data-sortable="true">{% trans 'Attachment' %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in attachments %}
+                <tr>
+                  <th scope="row">
+                    {{ a.0 }}
+                  </th>
+                  <td>
+                    <a href="{{ a.1.url }}" target="_blank">{{ a.1.name|basename }}</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% endif %}
 
-      {% block object_details_extra_panes %}{% endblock %}
+      {% block object_details_extra_panes %}
+        <!-- Extra panes can be added by child templates -->
+      {% endblock %}
 
     </div>
 

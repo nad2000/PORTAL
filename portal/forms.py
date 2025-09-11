@@ -217,6 +217,7 @@ class CommentForm(FormWithCommentMixin, ModelForm):
         helper = getattr(self, "helper", None) or FormHelper(self)
         # helper.include_media = False
         # helper.form_tag = False
+        model_name = instance and instance.model_name or "changerequest"
         helper.layout = Layout(
             has_contact_email and Field("host_contact_email"),
             Field("comment"),
@@ -239,7 +240,7 @@ class CommentForm(FormWithCommentMixin, ModelForm):
                         "import_email_file",
                         _("Import Email"),
                         hx_get=reverse("email-import", kwargs={"pk": instance and instance.pk})
-                        + "?_modal_dialog=1&model=changerequest",
+                        + f"?_modal_dialog=1&model={model_name}",
                         hx_target="#form-dialog",
                         hx_params="none",
                         data_toggle="tooltip",
