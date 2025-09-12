@@ -1524,6 +1524,14 @@ class ApplicationForm(ModelForm):
         #     submit_button_kwargs.update(
         #         {"data_toggle": "modal", "data_target": "#id_applicant_declaration_modal"}
         #     )
+        if user.is_admin:
+            tabs.append(
+                Tab(
+                    _("Notes"),
+                    Div(TableInlineFormset("notes")),
+                    css_id="notes",
+                ),
+            )
 
         submit_button = Submit(
             "submit",
@@ -2498,7 +2506,7 @@ class ContractForm(ModelForm):
                     css_id="correspondence",
                 )
             )
-            if user.is_superuser or user.is_site_staff:
+            if user.is_admin:
                 self.fields["cover"].label = ""
                 self.fields["preamble"].label = ""
                 self.fields["schedule1"].label = ""

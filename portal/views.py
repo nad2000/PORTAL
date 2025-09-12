@@ -13,6 +13,10 @@ from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 from itertools import groupby
 
+from django.contrib.contenttypes.forms import (
+    BaseGenericInlineFormSet,
+    generic_inlineformset_factory,
+)
 from django_q.models import OrmQ
 import django.utils.translation
 import django_tables2
@@ -733,11 +737,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{model_name_slug}-export"
         u = self.request.user
-        if u.is_superuser or u.is_site_staff:
+        if u.is_admin:
             context["can_edit"] = True
-
-        # if hasattr(self.model, "tags"):
-        #     context["tag_form"] = self.tag_form()
+            if hasattr(self.model, "tags"):
+                context["tag_form"] = self.tag_form()
 
         if hasattr(self.model, "comments"):
             context["has_comments"] = True
@@ -5060,6 +5063,16 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         return redirect(update_url)
                     return self.form_invalid(form)
 
+                if not has_deleted and not update_only_referees and user.is_admin and (notes := context.get("notes")):
+                    if not notes.instance or not notes.instance.pk:
+                        notes.instance = a
+
+                    for f in notes.forms:
+                        if f.instance and not f.instance.pk and not f.instance.author:
+                            f.instance.author = user
+                    if notes.is_valid():
+                        notes.save()
+
                 if (
                     not update_only_referees
                     and "photo_identity" in form.changed_data
@@ -5609,6 +5622,25 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 return redirect(url)
         return resp
 
+    def get_notes_formset(self):
+        fsc = generic_inlineformset_factory(
+            models.Note, fields=("topic", "content"), extra=1, can_order=False, can_delete=True, can_delete_extra=True
+        )
+        if self.object and self.object.id:
+            fs = fsc(
+                self.request.POST or None,
+                instance=self.object,
+                queryset=models.Note.objects.filter(
+                    content_type=ContentType.objects.get_for_model(self.model),
+                    object_id=self.object.id,
+                ),
+                prefix="notes",
+            )
+        else:
+            fs = fsc(self.request.POST or None, queryset=models.Note.objects.none(), prefix="notes")
+        return fs
+        # class NoteInline(GenericTabularInline):
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         update_only_referees = self.update_only_referees()
@@ -5616,6 +5648,11 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
+
+        u = self.request.user
+        if u.is_admin:
+            context["is_admin"] = True
+            context["notes"] = self.get_notes_formset()
 
         round = self.round
         context["round"] = round

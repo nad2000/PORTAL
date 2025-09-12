@@ -58,6 +58,28 @@ class TimeStampMixin(Base):
 
     class Meta:
         abstract = True
+        get_latest_by = "updated_at"
+
+# class TimeStampedModel(models.Model):
+#     """
+#     TimeStampedModel
+
+#     An abstract base class model that provides self-managed "created" and
+#     "modified" fields.
+#     """
+
+#     created = CreationDateTimeField(_("created"))
+#     modified = ModificationDateTimeField(_("modified"))
+
+#     def save(self, **kwargs):
+#         self.update_modified = kwargs.pop(
+#             "update_modified", getattr(self, "update_modified", True)
+#         )
+#         super().save(**kwargs)
+
+#     class Meta:
+#         abstract = True
+#         get_latest_by = "modified"
 
 
 class HelperMixin:

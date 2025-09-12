@@ -1,5 +1,6 @@
 import os
 from functools import cache
+from django.contrib.contenttypes.admin import GenericTabularInline
 
 import dal
 import django
@@ -323,6 +324,36 @@ class AutocompleteFilterMixin:
             media._css["screen"].extend(extra_css)
         return media
 
+class InlineNoteForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+        if self.request and not self.instance.pk:
+            self.fields["author"].initial = self.request.user
+
+    class Meta:
+        model = models.Note
+        fields = "__all__"
+
+
+class NoteInline(GenericTabularInline):
+    model = models.Note
+    form = InlineNoteForm
+    extra = 1
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "author",
+        # "date",
+    )
+    # fields = ("topic", "date", "content", "public", "author")
+    fields = ("content", "author")
+    can_delete = True
+    show_change_link = True
+
+
+admin.site.register(models.Note)
 
 class StateLogInline(StateLogInline):
     classes = ["collapse"]
@@ -1566,6 +1597,7 @@ class ApplicationAdmin(
         ForInline,
         SeoInline,
         KeywordInline,
+        NoteInline,
         StateLogInline,
     ]
 
@@ -1913,6 +1945,8 @@ class ApplicationAdmin(
     #     return actions
 
     # def save_formset(self, request, form, formset, change):
+    #     if isinstance(formset.model, Note):
+    #         breakpoint()
     #     super().save_formset(request, form, formset, change)
 
     def save_related(self, request, form, formsets, change):

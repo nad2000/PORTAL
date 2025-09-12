@@ -1,5 +1,3 @@
-import base64
-import py7zr
 import email
 import hashlib
 import io
@@ -22,6 +20,9 @@ from django_q.tasks import async_task
 from django_q.models import OrmQ
 from django.http import StreamingHttpResponse, FileResponse, HttpResponse
 from wsgiref.util import FileWrapper
+from django.contrib.contenttypes.models import ContentType
+from django_extensions.db.models import TimeStampedModel
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 import pikepdf
 import simple_history
@@ -45,6 +46,7 @@ from django.core.validators import (
     MinValueValidator,
     RegexValidator,
 )
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import connection, transaction
 from django.db.models import (
     CASCADE,
@@ -109,6 +111,7 @@ from simple_history.utils import bulk_update_with_history
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
+# from notes.models import Note
 
 from common.models import (
     Base,
@@ -854,6 +857,28 @@ class RoundSiteManager(Manager):
 
     def get_queryset(self):
         return super().get_queryset().filter(round__site=Site.objects.get_current())
+
+
+class Note(Model):
+    # topic=models.ForeignKey(Topic, on_delete=models.CASCADE)
+    # date=models.DateField(_('Date'), default=date.today)
+    content=TextField(_('Content'))
+    # public=models.BooleanField(_('Public'), default=True)
+    author=ForeignKey(User, on_delete=CASCADE, blank=True, null=True)
+    content_type = ForeignKey(ContentType, on_delete=CASCADE)
+    object_id = PositiveIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+
+    # public_objects = PublicManager()
+    # objects = models.Manager()
+
+    class Meta:
+        db_table = "note"
+        verbose_name=_('Note')
+        verbose_name_plural=_('Notes')
+
+    # def get_absolute_url(self):
+    #     return reverse('notes-view', kwargs={ 'pk': self.pk})
 
 
 class Country(Model):
@@ -2782,6 +2807,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
     # at the time of submission:
     # applicant_declaration_accepted_at = DateTimeField(null=True, blank=True)
+    notes = GenericRelation(Note)
 
     @property
     def is_wip(self):

@@ -24,6 +24,9 @@
 {% block buttons_above %}
 {% block buttons_bellow %}
 
+<div class="row">
+  <div class="col-12">
+
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
 <form method="post" class="action-form">
   {% csrf_token %}
@@ -349,13 +352,16 @@
   </div>
 </form>
 {% endwith %}
+
+  </div>
+</div>
+
 {% endblock buttons_bellow %}
 {% endblock buttons_above %}
 
 {% block object_details_table %}
 {% if form %}{% crispy form %}{% endif %}
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
-{% block tags %}{{ block.super }}{% endblock %}
 <div class="table-responsive">
   {% include 'snippets/application_detail_table.html' %}
 </div>

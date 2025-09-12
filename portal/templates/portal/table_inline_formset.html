@@ -22,7 +22,7 @@
         // if (total_forms.val()) total_forms.val(total_forms.val()-1);
         // if (initial_forms.val()) initial_forms.val(initial_forms.val()-1);
         var tr = $(element).closest("tr");
-        tr.find("[name$='-DELETE']").val('on');
+        tr.find(" [name$='-DELETE']").val('on');
         tr.hide();
     }
     return false;
