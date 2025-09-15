@@ -393,7 +393,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # workaround for https://github.com/shestera/django-multisite/issues/9
 # SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - ours is an object
-SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101"]
+SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101", 'captcha.recaptcha_test_key_error']
 
 # EMAIL
 # ------------------------------------------------------------------------------
