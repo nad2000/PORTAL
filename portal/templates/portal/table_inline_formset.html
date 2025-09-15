@@ -61,7 +61,7 @@
               >
                 {% if field.label and not field.is_hidden %}
                     {% if field.name != "DELETE" %}
-                      <span {% if field.help_text %}
+                      <span {% if field.help_text and formset.prefix != "notes" %}
                         data-toggle="tooltip"
                         title="{{ field.help_text }}"
                       {% endif %}>

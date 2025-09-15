@@ -517,6 +517,83 @@ class StateInPathMixin:
         return queryset
 
 
+class NotesMixin:
+
+    def get_notes_formset(self):
+
+        u = self.request.user
+        fsc = generic_inlineformset_factory(
+            models.Note,
+            fields=("content",),
+            extra=1,
+            can_order=False,
+            can_delete=True,
+            can_delete_extra=True,
+        )
+        if self.object and self.object.id:
+            fs = fsc(
+                self.request.POST or None,
+                instance=self.object,
+                queryset=models.Note.objects.filter(
+                    content_type=ContentType.objects.get_for_model(self.model),
+                    object_id=self.object.id,
+                ),
+                prefix="notes",
+            )
+            for f in fs.forms:
+                i = f.instance
+                content_field = f.fields["content"]
+                if f.instance and f.instance.pk:
+                    content_field.widget.attrs["rows"] = max(
+                        (i.content and f.instance.content.count("\n") + 1) or 3, 3
+                    )
+                    if i.author:
+                        if i.author != u:
+                            content_field.widget.attrs["readonly"] = True
+                        if i.created_at:
+                            content_field.help_text = _("Added on %s by %s") % (
+                                i.created_at.strftime("%Y-%m-%d %H:%M"),
+                                i.author,
+                            )
+                        else:
+                            content_field.help_text = _("Added by %s") % i.author
+                else:
+                    content_field.widget.attrs["rows"] = 3
+
+        else:
+            fs = fsc(
+                self.request.POST or None, queryset=models.Note.objects.none(), prefix="notes"
+            )
+        return fs
+        # class NoteInline(GenericTabularInline):
+
+    def get_context_data(self, **kwargs):
+        if not (context := getattr(self, "context", None)):
+            context = super().get_context_data(**kwargs)
+            self.context = context
+        u = self.request.user
+        if u.is_admin:
+            context["is_admin"] = True
+            context["notes"] = self.get_notes_formset()
+        return context
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        if not (context := getattr(self, "context", None)):
+            context = self.get_context_data()
+        u = self.request.user
+        if u.is_admin and (notes := context.get("notes")):
+            if not notes.instance or not notes.instance.pk:
+                notes.instance = a
+
+            for f in notes.forms:
+                if f.instance and not f.instance.pk and not f.instance.author:
+                    f.instance.author = u
+            if notes.is_valid():
+                notes.save()
+        return resp
+
+
 class AccountView(LoginRequiredMixin, TemplateView):
     template_name = "account.html"
 
@@ -3126,10 +3203,12 @@ class ReportViewMixin:
                     token=comment.token,
                 )
                 return redirect(f"{self.request.path}#correspondence")
+        if "save" in self.request.POST:
+            return redirect(self.request.path)
         return resp
 
 
-class ReportCreate(ReportViewMixin, CreateWithInlinesView):
+class ReportCreate(NotesMixin, ReportViewMixin, CreateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
 
@@ -3196,7 +3275,7 @@ class ReportCreate(ReportViewMixin, CreateWithInlinesView):
         return initial
 
 
-class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
+class ReportUpdate(LoginRequiredMixin, NotesMixin, ReportViewMixin, UpdateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
 
@@ -4408,7 +4487,7 @@ def delete_referee(request, pk):
     )
 
 
-class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
+class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
     model = Application
     form_class = forms.ApplicationForm
 
@@ -5063,16 +5142,6 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         return redirect(update_url)
                     return self.form_invalid(form)
 
-                if not has_deleted and not update_only_referees and user.is_admin and (notes := context.get("notes")):
-                    if not notes.instance or not notes.instance.pk:
-                        notes.instance = a
-
-                    for f in notes.forms:
-                        if f.instance and not f.instance.pk and not f.instance.author:
-                            f.instance.author = user
-                    if notes.is_valid():
-                        notes.save()
-
                 if (
                     not update_only_referees
                     and "photo_identity" in form.changed_data
@@ -5548,6 +5617,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     self.request.method == "POST"
                     or "save_draft" in self.request.POST
                     or "send_invitations" in self.request.POST
+                    or "save" in self.request.POST  # save and continue
                 ):
                     if not current_state or current_state == "new":
                         a.save_draft(request=self.request)
@@ -5557,6 +5627,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         if not url:
                             url = self.continue_url("referees")
                         # return redirect(url)
+                    elif "save" in self.request.POST:
+                        url = self.request.path
+
                     elif not update_only_referees:
                         if (
                             site_id == 4
@@ -5622,25 +5695,6 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 return redirect(url)
         return resp
 
-    def get_notes_formset(self):
-        fsc = generic_inlineformset_factory(
-            models.Note, fields=("topic", "content"), extra=1, can_order=False, can_delete=True, can_delete_extra=True
-        )
-        if self.object and self.object.id:
-            fs = fsc(
-                self.request.POST or None,
-                instance=self.object,
-                queryset=models.Note.objects.filter(
-                    content_type=ContentType.objects.get_for_model(self.model),
-                    object_id=self.object.id,
-                ),
-                prefix="notes",
-            )
-        else:
-            fs = fsc(self.request.POST or None, queryset=models.Note.objects.none(), prefix="notes")
-        return fs
-        # class NoteInline(GenericTabularInline):
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         update_only_referees = self.update_only_referees()
@@ -5648,11 +5702,6 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         context["model_name"] = self.model._meta.model_name
         if self.object and self.object.state:
             context["object_state"] = self.object.state
-
-        u = self.request.user
-        if u.is_admin:
-            context["is_admin"] = True
-            context["notes"] = self.get_notes_formset()
 
         round = self.round
         context["round"] = round
@@ -6918,8 +6967,8 @@ class ContractViewMixin:
     # def post(self, *args, **kwargs):
     #     return super().post(*args, **kwargs)
 
-    def form_invalid(self, form):
-        return super().form_invalid(form)
+    # def form_invalid(self, form):
+    #     return super().form_invalid(form)
 
     def form_valid(self, form):
         i = form.instance
@@ -7289,7 +7338,7 @@ class ContractViewMixin:
         return resp
 
 
-class ContractCreate(ContractViewMixin, CreateView):
+class ContractCreate(NotesMixin, ContractViewMixin, CreateView):
 
     model = models.Contract
     form_class = forms.ContractForm
@@ -7357,7 +7406,7 @@ class ContractCreate(ContractViewMixin, CreateView):
         return initial
 
 
-class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
+class ContractUpdate(LoginRequiredMixin, NotesMixin, ContractViewMixin, UpdateView):
 
     model = models.Contract
     form_class = forms.ContractForm

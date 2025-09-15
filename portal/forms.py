@@ -1547,6 +1547,13 @@ class ApplicationForm(ModelForm):
                 Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
                 Div(
                     Submit(
+                        "save",
+                        _("Save and continue"),
+                        css_class="btn-secondary",
+                        data_toggle="tooltip",
+                        title=_("Save and continue editing"),
+                    ),
+                    Submit(
                         "save_draft",
                         _("Save"),
                         css_class="btn-primary",
@@ -2755,6 +2762,14 @@ class ContractForm(ModelForm):
                         css_id="parts",
                     ),
                 )
+        if user.is_admin:
+            tabs.append(
+                Tab(
+                    _("Notes"),
+                    Div(TableInlineFormset("notes")),
+                    css_id="notes",
+                ),
+            )
         self.helper.layout = Layout(
             TabHolder(*tabs),
             ButtonHolder(
@@ -5051,11 +5066,26 @@ class ReportForm(ModelForm):
         #             css_id="correspondence",
         #         )
         #     )
+        if user.is_admin:
+            tabs.append(
+                Tab(
+                    _("Notes"),
+                    Div(TableInlineFormset("notes")),
+                    css_id="notes",
+                ),
+            )
         self.helper.layout = Layout(
             TabHolder(*tabs),
             ButtonHolder(
                 Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
                 Div(
+                    Submit(
+                        "save",
+                        _("Save and continue"),
+                        css_class="btn-secondary",
+                        data_toggle="tooltip",
+                        title=_("Save and continue editing"),
+                    ),
                     Submit(
                         "save_draft",
                         _("Save"),

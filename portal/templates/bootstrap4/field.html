@@ -96,6 +96,9 @@
                 </div>
             {% endif %}
         {% endif %}
+        {% if tag == "td" and formset.prefix == "notes" and field.name == "content" and field.help_text %}
+          <span class="d-block text-muted small" data-toggle="tooltip" title="{{ field.help_text|safe }}">{{ field.help_text|safe }}</span>
+        {% endif %}
     </{% if tag %}{{ tag }}{% else %}div{% endif %}>
     {% if field|is_checkbox %}
         {% if label_class %}
