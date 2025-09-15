@@ -342,7 +342,7 @@ class ApplicationFilterSet(FilterSet):
     def set_filter(self, queryset, name, value):
         if value:
             value = value.strip()
-            return queryset.filter(
+            q = (
                 Q(application_title__icontains=value)
                 | Q(number__icontains=value)
                 | self.unaccent(first_name__icontains=value)
@@ -368,7 +368,11 @@ class ApplicationFilterSet(FilterSet):
                         )
                     )
                 )
-            ).distinct()
+                | Q(tags__name=value)
+            )
+            if self.request.user.is_admin:
+                q = q | Q(notes__content__icontains=value)
+            return queryset.filter(q).distinct()
         else:
             return queryset
 
@@ -612,7 +616,7 @@ class ReportFilterSet(FilterSet):
     def set_filter(self, queryset, name, value):
         if value:
             value = value.strip()
-            return queryset.filter(
+            q = (
                 Q(contract__application__application_title__icontains=value)
                 | Q(contract__number__icontains=value)
                 | Q(contract__project_title__icontains=value)
@@ -628,7 +632,11 @@ class ReportFilterSet(FilterSet):
                 # | Q(contract__application__submitted_by__first_name__icontains=value)
                 # | Q(contract__application__submitted_by__last_name__icontains=value)
                 # | Q(contract__application__submitted_by__email__icontains=value)
-            ).distinct()
+                | Q(tags__name=value)
+            )
+            if self.request.user.is_admin:
+                q = q | Q(notes__content__icontains=value)
+            return queryset.filter(q).distinct()
         else:
             return queryset
 
@@ -667,7 +675,7 @@ class ContractFilterSet(FilterSet):
     def set_filter(self, queryset, name, value):
         if value:
             value = value.strip()
-            return queryset.filter(
+            q = (
                 Q(application__application_title__icontains=value)
                 | Q(number__icontains=value)
                 | Q(application__number__icontains=value)
@@ -681,7 +689,11 @@ class ContractFilterSet(FilterSet):
                     | self.unaccent(submitted_by__last_name__icontains=value)
                     | self.unaccent(submitted_by__first_name__icontains=value)
                 )
-            ).distinct()
+                | Q(tags__name=value)
+            )
+            if self.request.user.is_admin:
+                q = q | Q(notes__content__icontains=value)
+            return queryset.filter(q).distinct()
         else:
             return queryset
 

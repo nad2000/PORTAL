@@ -25,6 +25,8 @@ urlpatterns = [
     path("about", views.about, name="about"),
     path("logout", views.logout, name="logout"),
     path("status", views.status, name="status"),
+    path("tags", views.tags, name="tags"),
+    path("tags/<tag_name>", views.tags, name="tag"),
     path(
         "robots.txt",
         cache_page(None)(
@@ -180,6 +182,11 @@ urlpatterns = [
                                             "<int:pk>",
                                             views.ChangeRequestDetail.as_view(),
                                             name="change-request",
+                                        ),
+                                        path(
+                                            "<number>",
+                                            views.ChangeRequestDetail.as_view(),
+                                            name="change-request-detail",
                                         ),
                                         path(
                                             "<int:pk>/~update",

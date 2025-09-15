@@ -10033,7 +10033,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     end_date = DateField(blank=True, null=True)
     duration = PositiveIntegerField(blank=True, null=True)
 
-    notes = TextField(blank=True, null=True)
+    # notes = TextField(blank=True, null=True)
+    notes = GenericRelation(Note)
     abstract = TextField(blank=True, null=True)
     completed_on = DateField(blank=True, null=True)
 
@@ -12247,6 +12248,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     assessed_at = MonitorField(
         monitor="state", when=["assessed"], null=True, default=None, blank=True
     )
+    notes = GenericRelation(Note)
 
     @cached_property
     def due_date(self):

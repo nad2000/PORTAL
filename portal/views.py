@@ -12,6 +12,7 @@ from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 from itertools import groupby
+from taggit.models import TaggedItem
 
 from django.contrib.contenttypes.forms import (
     BaseGenericInlineFormSet,
@@ -266,6 +267,22 @@ def pyinfo(request, message=None):
                 return handler500(**locals())
             raise
     return render(request, "pyinfo.html", info)
+
+
+def tags(request, tag_name=None):
+    if tag_name:
+        tag = get_object_or_404(models.Tag, name__iexact=tag_name)
+        # tagged_items = TaggedItem.objects.filter(tag=tag_name)
+        tagged_items = tag.taggit_taggeditem_items.all()
+
+    # tags = TaggedItem.objects.annotate(name=F("tag__name")).values("name").annotate(count=Count("pk")).order_by("-count")
+    tags = (
+        TaggedItem.objects.annotate(name=F("tag__name"))
+        .values("name")
+        .annotate(count=Count("pk"))
+        .order_by("name")
+    )
+    return render(request, "tags.html", locals())
 
 
 @login_required
