@@ -22,7 +22,7 @@
 {% block content %}
 <div id="id_tagcloud" class="tagcloud">
   {% for t in tags %}
-    <a href="{% url 'tag' tag_name=t.name %}" rel="{{ t.count }}">{{ t.name }}<sup>{{ t.count }}</sup></a>
+  <a href="{% url 'tag' tag_name=t.name %}" rel="{{ t.count }}" id="id_tag_{{ t.slug }}">{{ t.name }}<sup>{{ t.count }}</sup></a>
   {% endfor %}
 </div>
 
@@ -61,6 +61,7 @@
                 end: '#661c49'
               }
         });
+        {% if tag %}$("a#id_tag_{{ tag.slug }}").css({"border-style": "double", "border-width": "thick" });{% endif %}
     });
   </script>
   {% endblock javascript %}

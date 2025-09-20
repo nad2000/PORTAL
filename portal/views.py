@@ -277,8 +277,8 @@ def tags(request, tag_name=None):
 
     # tags = TaggedItem.objects.annotate(name=F("tag__name")).values("name").annotate(count=Count("pk")).order_by("-count")
     tags = (
-        TaggedItem.objects.annotate(name=F("tag__name"))
-        .values("name")
+        TaggedItem.objects.annotate(name=F("tag__name"), slug=F("tag__slug"))
+        .values("name", "slug")
         .annotate(count=Count("pk"))
         .order_by("name")
     )
