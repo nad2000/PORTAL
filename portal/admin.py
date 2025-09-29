@@ -3807,14 +3807,111 @@ class RoundAdmin(
             self.PerformanceFlagInline,
         ]
 
+class IsActiveRoundEvaluationListFilter(admin.SimpleListFilter):
+    title = "Is Active Round"
+
+    parameter_name = "is_active_round"
+
+    def get_facet_counts(self, pk_attname, filtered_qs):
+
+        return {
+            "ACTIVE__c": models.Count(
+                pk_attname,
+                filter=Q(application__round__scheme__current_round__id=F("application__round_id")),
+            ),
+            "PREVIOUS__c": models.Count(
+                pk_attname,
+                filter=~Q(application__round__scheme__current_round__id=F("application__round_id")),
+            ),
+            "All__c": models.Count(pk_attname),
+        }
+
+    def choices(self, changelist):
+
+        add_facets = changelist.add_facets
+        facet_counts = self.get_facet_queryset(changelist) if add_facets else None
+
+        yield {
+            "selected": self.value() == "ACTIVE" or self.value() is None,
+            "query_string": changelist.get_query_string(remove=[self.parameter_name]),
+            "display": f"ACTIVE ({facet_counts['ACTIVE__c']})" if add_facets else "ACTIVE",
+        }
+        for lookup, title in self.lookup_choices:
+            v = self.value()
+            c = facet_counts and facet_counts.get(f"{lookup}__c", 0)
+            yield {
+                "selected": v == str(lookup),
+                "query_string": changelist.get_query_string({self.parameter_name: lookup}),
+                "display": f"{title} ({c})" if add_facets else title,
+            }
+
+    def lookups(self, request, model_admin):
+        return (
+            ("PREVIOUS", _("Previous")),
+            ("All", _("All")),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "ACTIVE" or self.value() is None:
+            return queryset.filter(application__round__scheme__current_round__id=F("application__round_id"))
+        if self.value() == "PREVIOUS":
+            return queryset.filter(~Q(application__round__scheme__current_round__id=F("application__round_id")))
+        return queryset
+
+
 
 @admin.register(models.Evaluation)
 class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
 
+    list_filter = [
+        IsActiveRoundEvaluationListFilter,
+        ("application__round__scheme", admin.RelatedOnlyFieldListFilter),
+        "state",
+    ]
+    search_fields = [
+        "application__number",
+        "panellist__email",
+        "panellist__first_name",
+        "panellist__last_name",
+        "panellist__user__first_name",
+        "panellist__user__last_name",
+    ]
+
+    date_hierarchy = "updated_at"
+
+    list_display = (
+        "application__number",
+        "panellist",
+        "application_url",
+        "state",
+        "updated_at",
+    )
+    # list_display_links = ["appliation__number", "panellist", ]
+    autocomplete_fields = ["application"]
+
+    @admin.display(description="application", ordering="application__number")
+    def application_url(self, obj):
+        a = obj.application
+        return mark_safe(
+            '<a href="%s" target="_blank">%s</a>'
+            % (
+                reverse(
+                    "admin:portal_application_change",
+                    kwargs={"object_id": obj.application_id},
+                ),
+                f"{a.number}: {a.pi}",
+            )
+        )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(application__site_id=settings.SITE_ID)
+
     class ScoreInline(admin.StackedInline):
         extra = 0
         model = models.Score
+        view_on_site = False
 
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.criterion.round_id})
