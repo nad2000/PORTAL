@@ -2971,7 +2971,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "new", "tac_accepted", "in_review", "submitted"],
+        source=["in_review", "submitted", "cancelled"],
         target="archived",
         custom=dict(verbose="Archive", button_name="Archive"),
     )

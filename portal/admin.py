@@ -363,6 +363,7 @@ class UnaccentMixin:
 
     def get_search_fields(self, request):
         sf = super().get_search_fields(request)
+        breakpoint()
         if settings.ENV == "prod":
             return ["_name" in f and f.replace("_name", "_name__unaccent") or f for f in sf]
         return sf
@@ -2668,7 +2669,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
     view_on_site = False
     list_display = ["code", "name", "is_active", "created_at", "updated_at"]
     list_filter = ["created_at", "updated_at", "applications__round"]
-    search_fields = ["name", "code"]
+    search_fields = ["name__icontains", "code"]
     date_hierarchy = "created_at"
     resource_classes = [OrganisationResource, OrganisationWOIdentifierResource]
     autocomplete_fields = ["address", "signatory"]
@@ -2714,6 +2715,10 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             },
         ),
     ]
+
+    # def get_queryset(self, request):
+    #     qs = super().get_queryset(request)
+    #     return qs
 
     class ResearchOfficeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
@@ -3823,7 +3828,7 @@ class ContractAdmin(
 ):
     summernote_fields = (
         "abstract",
-        "notes",
+        # "notes",
     )
     save_on_top = True
     show_close_button = True
@@ -3931,7 +3936,7 @@ class ContractAdmin(
                     # ("total_amount", "actual_amount", "currency"),
                     "url",
                     "abstract",
-                    "notes",
+                    # "notes",
                     # "mf_round_yr",
                     # "seo_list",
                     # "keyword_list",
