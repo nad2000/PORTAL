@@ -61,7 +61,7 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
-    GeneratedField,
+    # GeneratedField,
     IntegerField,
     Manager,
     ManyToManyField,
