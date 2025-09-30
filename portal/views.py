@@ -3686,6 +3686,7 @@ class ProfileUpdate(ProfileViewMixin, LoginRequiredMixin, UpdateView):
 
 
 class ProfileCreate(ProfileViewMixin, CreateView):
+
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -10830,7 +10831,7 @@ class EvaluationMixin:
         data = super().get_context_data(**kwargs)
         if application := (
             models.Application.get(self.kwargs.get("application"))
-            if "application" in kwargs
+            if "application" in self.kwargs
             else self.object.application
         ):
             data["application"] = application

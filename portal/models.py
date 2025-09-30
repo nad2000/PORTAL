@@ -1,3 +1,4 @@
+import base64
 import email
 import hashlib
 import io
@@ -15,14 +16,8 @@ from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
 from itertools import groupby
 from pathlib import Path
-from urllib.parse import urljoin, urlparse, quote
-from django_q.tasks import async_task
-from django_q.models import OrmQ
-from django.http import StreamingHttpResponse, FileResponse, HttpResponse
+from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
-from django.contrib.contenttypes.models import ContentType
-from django_extensions.db.models import TimeStampedModel
-from django.contrib.contenttypes.fields import GenericForeignKey
 
 import pikepdf
 import simple_history
@@ -35,6 +30,8 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.managers import CurrentSiteManager
 from django.contrib.sites.models import Site
 from django.contrib.staticfiles import finders
@@ -46,7 +43,6 @@ from django.core.validators import (
     MinValueValidator,
     RegexValidator,
 )
-from django.contrib.contenttypes.fields import GenericRelation
 from django.db import connection, transaction
 from django.db.models import (
     CASCADE,
@@ -65,7 +61,7 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
-    GeneratedField,
+    # GeneratedField,
     IntegerField,
     Manager,
     ManyToManyField,
@@ -85,16 +81,19 @@ from django.db.models import (
     prefetch_related_objects,
 )
 from django.db.models.functions import Cast, Coalesce, Concat, Lower
-from django.http import HttpRequest
+from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
+from django_extensions.db.models import TimeStampedModel
 from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from django_fsm_log.models import StateLog
+from django_q.models import OrmQ
+from django_q.tasks import async_task
 from limesurveyrc2api.exceptions import LimeSurveyError
 from limesurveyrc2api.limesurvey import LimeSurvey
 from model_utils import Choices
@@ -111,7 +110,6 @@ from simple_history.utils import bulk_update_with_history
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
-# from notes.models import Note
 
 from common.models import (
     Base,
@@ -126,6 +124,9 @@ from common.models import (
 )
 
 from .utils import send_mail, vignere
+
+# from notes.models import Note
+
 
 EMAIL_EX = re.compile(r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+")
 TOKEN_EX = re.compile(r"<(.*)@.*>")
@@ -343,9 +344,10 @@ class CommentMixin:
         ext = None
         root, ext = os.path.splitext(filename)
         if ext and ext.lower() == ".msg":
+            import tempfile
+
             from msg_parser import MsOxMessage
             from msg_parser.email_builder import EmailFormatter
-            import tempfile
 
             msg_filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.msg")
             file.seek(0)
@@ -483,7 +485,8 @@ class CommentMixin:
                 else:
                     attachments.append(
                         File(
-                            io.BytesIO(msg.as_bytes()), name=filename or f"{hash_int(comment.pk)}.eml"
+                            io.BytesIO(msg.as_bytes()),
+                            name=filename or f"{hash_int(comment.pk)}.eml",
                         )
                     )
 
@@ -862,9 +865,9 @@ class RoundSiteManager(Manager):
 class Note(Model):
     # topic=models.ForeignKey(Topic, on_delete=models.CASCADE)
     # date=models.DateField(_('Date'), default=date.today)
-    content=TextField(_('Content'))
+    content = TextField(_("Content"))
     # public=models.BooleanField(_('Public'), default=True)
-    author=ForeignKey(User, on_delete=CASCADE, blank=True, null=True)
+    author = ForeignKey(User, on_delete=CASCADE, blank=True, null=True)
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
     object_id = PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
@@ -874,8 +877,8 @@ class Note(Model):
 
     class Meta:
         db_table = "note"
-        verbose_name=_('Note')
-        verbose_name_plural=_('Notes')
+        verbose_name = _("Note")
+        verbose_name_plural = _("Notes")
 
     # def get_absolute_url(self):
     #     return reverse('notes-view', kwargs={ 'pk': self.pk})
@@ -2968,7 +2971,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "new", "tac_accepted", "in_review", "submitted"],
+        source=["in_review", "submitted", "cancelled"],
         target="archived",
         custom=dict(verbose="Archive", button_name="Archive"),
     )
@@ -9461,50 +9464,55 @@ def invite_referees(
     return count
 
 
-def clean_converted_file_cache(dry_run=False, keep_days=90):
+def clean_converted_file_cache(dry_run=False, keep_days=200, site_id=None):
+    if site_id:
+        settings.SITE_ID = site_id
     root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
     cf_count = 0
-    for cf in ConvertedFile.all_objects.filter(
-        created_at__lt=timezone.now() - timedelta(days=-keep_days)
-    ):
-        if not cf.file:
-            print(f"*** Deleted corrupted record ID: cf.pk (0 bytes)")
-            if not dry_run:
-                cf.delete()
-            cf_count += 1
-            continue
-
-        has_file = Path(cf.file.path).is_file()
-        if has_file:
-            size = os.path.getsize(cf.file.path)
-            print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
-        else:
-            print(f"*** Deleted expired file: '{cf.file.name}' (0 bytes)")
-        if not dry_run:
-            if has_file:
-                cf.file.delete()
-            cf.delete()
-            # os.remove(cf.file.path)
-        cf_count += 1
-
-    for cf in ConvertedFile.all_objects.all():
-        if not cf.file or not Path(cf.file.path).is_file():
-            print(f"*** Deleted file record with missing file: '{cf.file.name}'")
-            if not dry_run:
-                cf.delete()
-            cf_count += 1
-
-    for root, dirs, files in os.walk(root_dir):
-        rel_dir = os.path.relpath(root, root_dir)
-        for rel_name in files:
-            filename = os.path.join(rel_dir, rel_name)
-            if not ConvertedFile.all_objects.filter(file=filename).exists():
-                full_filename = os.path.join(root_dir, filename)
-                size = os.path.getsize(full_filename)
+    with transaction.atomic():
+        for cf in ConvertedFile.all_objects.filter(
+            created_at__lt=(timezone.now() - timedelta(days=keep_days))
+        ):
+            if not cf.file:
+                print(f"*** Deleted corrupted record ID: cf.pk (0 bytes)")
                 if not dry_run:
-                    os.remove(full_filename)
-                print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
+                    cf.delete()
                 cf_count += 1
+                continue
+
+            has_file = Path(cf.file.path).is_file()
+            if has_file:
+                size = os.path.getsize(cf.file.path)
+                print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
+            else:
+                print(f"*** Deleted expired file: '{cf.file.name}' (0 bytes)")
+            if not dry_run:
+                if has_file:
+                    cf.file.delete()
+                cf.delete()
+                # os.remove(cf.file.path)
+            cf_count += 1
+
+    with transaction.atomic():
+        for cf in ConvertedFile.all_objects.all():
+            if not cf.file or not Path(cf.file.path).is_file():
+                print(f"*** Deleted file record with missing file: '{cf.file.name}'")
+                if not dry_run:
+                    cf.delete()
+                cf_count += 1
+
+    with transaction.atomic():
+        for root, dirs, files in os.walk(root_dir):
+            rel_dir = os.path.relpath(root, root_dir)
+            for rel_name in files:
+                filename = os.path.join(rel_dir, rel_name)
+                if not ConvertedFile.all_objects.filter(file=filename).exists():
+                    full_filename = os.path.join(root_dir, filename)
+                    size = os.path.getsize(full_filename)
+                    if not dry_run:
+                        os.remove(full_filename)
+                    print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
+                    cf_count += 1
     if cf_count:
         print(f"*** Deleted {cf_count} files")
 
