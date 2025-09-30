@@ -33,6 +33,6 @@ class Command(BaseCommand):
         if site_id := options.get("site"):
             models.clean_converted_file_cache(dry_run=options.get("dry_run"), keep_days=options.get("keep", 200), site_id=site_id)
         else:
-            for s in modesl.Site.objects.all():
+            for s in models.Site.objects.all():
                 print(f"SITE: {s}")
                 models.clean_converted_file_cache(dry_run=options.get("dry_run"), keep_days=options.get("keep", 200), site_id=s.pk)
