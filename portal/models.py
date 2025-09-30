@@ -9541,15 +9541,33 @@ def clean_private_fils(dry_run=False):
             file_fields, lambda f: f"{f.upload_to.split('/')[0]}/"
         )
     }
+    model_fields = [
+        e
+        for e in (
+            (m, [f for f in m._meta.fields if isinstance(f, PrivateFileField)])
+            for m in apps.get_models()
+        )
+        if e[1]
+    ]
+    for m, fields in model_fields:
+        if hasattr(m, "all_objects"):
+            m.objects = m.all_objects
 
     for root, dirs, files in os.walk(root_dir):
         rel_dir = os.path.relpath(root, root_dir)
         for rel_name in files:
             filename = os.path.join(rel_dir, rel_name)
-            for f in file_fields.get(f"{rel_dir.split('/')[0]}/", []):
+            # for f in file_fields.get(f"{rel_dir.split('/')[0]}/", []):
+            #     if (
+            #         getattr(f.model, "all_objects", f.model.objects)
+            #         .filter(**{f.name: filename})
+            #         .exists()
+            #     ):
+            #         break
+            for m, fields in model_fields:
                 if (
-                    getattr(f.model, "all_objects", f.model.objects)
-                    .filter(**{f.name: filename})
+                    getattr(m, "all_objects", m.objects)
+                    .filter(Q(**{f.name: filename for f in fields},  _connector=Q.OR))
                     .exists()
                 ):
                     break
