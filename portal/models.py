@@ -9555,6 +9555,8 @@ def clean_private_fils(dry_run=False):
 
     for root, dirs, files in os.walk(root_dir):
         rel_dir = os.path.relpath(root, root_dir)
+        if "PDF" in rel_dir:
+            continue
         for rel_name in files:
             filename = os.path.join(rel_dir, rel_name)
             # for f in file_fields.get(f"{rel_dir.split('/')[0]}/", []):
