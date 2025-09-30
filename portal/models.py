@@ -9464,50 +9464,55 @@ def invite_referees(
     return count
 
 
-def clean_converted_file_cache(dry_run=False, keep_days=90):
+def clean_converted_file_cache(dry_run=False, keep_days=200, site_id=None):
+    if site_id:
+        settings.SITE_ID = site_id
     root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
     cf_count = 0
-    for cf in ConvertedFile.all_objects.filter(
-        created_at__lt=timezone.now() - timedelta(days=-keep_days)
-    ):
-        if not cf.file:
-            print(f"*** Deleted corrupted record ID: cf.pk (0 bytes)")
-            if not dry_run:
-                cf.delete()
-            cf_count += 1
-            continue
-
-        has_file = Path(cf.file.path).is_file()
-        if has_file:
-            size = os.path.getsize(cf.file.path)
-            print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
-        else:
-            print(f"*** Deleted expired file: '{cf.file.name}' (0 bytes)")
-        if not dry_run:
-            if has_file:
-                cf.file.delete()
-            cf.delete()
-            # os.remove(cf.file.path)
-        cf_count += 1
-
-    for cf in ConvertedFile.all_objects.all():
-        if not cf.file or not Path(cf.file.path).is_file():
-            print(f"*** Deleted file record with missing file: '{cf.file.name}'")
-            if not dry_run:
-                cf.delete()
-            cf_count += 1
-
-    for root, dirs, files in os.walk(root_dir):
-        rel_dir = os.path.relpath(root, root_dir)
-        for rel_name in files:
-            filename = os.path.join(rel_dir, rel_name)
-            if not ConvertedFile.all_objects.filter(file=filename).exists():
-                full_filename = os.path.join(root_dir, filename)
-                size = os.path.getsize(full_filename)
+    with transaction.atomic():
+        for cf in ConvertedFile.all_objects.filter(
+            created_at__lt=(timezone.now() - timedelta(days=keep_days))
+        ):
+            if not cf.file:
+                print(f"*** Deleted corrupted record ID: cf.pk (0 bytes)")
                 if not dry_run:
-                    os.remove(full_filename)
-                print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
+                    cf.delete()
                 cf_count += 1
+                continue
+
+            has_file = Path(cf.file.path).is_file()
+            if has_file:
+                size = os.path.getsize(cf.file.path)
+                print(f"*** Deleted expired file: '{cf.file.name}' ({size} bytes)")
+            else:
+                print(f"*** Deleted expired file: '{cf.file.name}' (0 bytes)")
+            if not dry_run:
+                if has_file:
+                    cf.file.delete()
+                cf.delete()
+                # os.remove(cf.file.path)
+            cf_count += 1
+
+    with transaction.atomic():
+        for cf in ConvertedFile.all_objects.all():
+            if not cf.file or not Path(cf.file.path).is_file():
+                print(f"*** Deleted file record with missing file: '{cf.file.name}'")
+                if not dry_run:
+                    cf.delete()
+                cf_count += 1
+
+    with transaction.atomic():
+        for root, dirs, files in os.walk(root_dir):
+            rel_dir = os.path.relpath(root, root_dir)
+            for rel_name in files:
+                filename = os.path.join(rel_dir, rel_name)
+                if not ConvertedFile.all_objects.filter(file=filename).exists():
+                    full_filename = os.path.join(root_dir, filename)
+                    size = os.path.getsize(full_filename)
+                    if not dry_run:
+                        os.remove(full_filename)
+                    print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
+                    cf_count += 1
     if cf_count:
         print(f"*** Deleted {cf_count} files")
 

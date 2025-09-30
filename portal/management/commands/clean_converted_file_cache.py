@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from portal import models
+from django.conf import settings
 
 
 class Command(BaseCommand):
@@ -16,9 +17,22 @@ class Command(BaseCommand):
             "--keep",
             type=int,
             help="Keep days of data",
-            default=90,
+            default=200,
+        )
+        parser.add_argument(
+            "--site",
+            type=int,
+            help="Site",
+            default=None,
         )
         return parser
 
     def handle(self, *args, **options):
-        models.clean_converted_file_cache(dry_run=options.get("dry_run"), keep_days=options.get("keep", 90))
+        models.ConvertedFile.objects = models.ConvertedFile.all_objects
+
+        if site_id := options.get("site"):
+            models.clean_converted_file_cache(dry_run=options.get("dry_run"), keep_days=options.get("keep", 200), site_id=site_id)
+        else:
+            for s in modesl.Site.objects.all():
+                print(f"SITE: {s}")
+                models.clean_converted_file_cache(dry_run=options.get("dry_run"), keep_days=options.get("keep", 200), site_id=s.pk)
