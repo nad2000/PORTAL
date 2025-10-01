@@ -754,17 +754,20 @@ class PdfFileMixin:
             output_dir = tempfile.gettempdir()
             output_path = self.get_converted_to_pdf(file.path, output_dir=output_dir)
             output_filename = os.path.basename(output_path)
+            output_filename = os.path.join(
+                os.path.dirname(file.name), os.path.basename(output_path)
+            )
 
             with open(output_path, "rb") as of:
 
                 cf = ConvertedFile()
-                cf.file.save(output_filename, File(of))
+                cf.file.save(output_filename, File(of, name=output_filename))
                 of.seek(0)
                 pdf_reader = PdfReader(of, strict=False)
                 page_count = len(pdf_reader.pages)
                 if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
                     self.page_count = page_count
-                cf.page_count = len(pdf_reader.pages)
+                cf.page_count = page_count
                 of.seek(0)
                 cf.save()
 
@@ -2063,13 +2066,18 @@ class Recognition(Model):
 #         db_table = "nominee"
 
 
+def converted_file_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    return Path("converted") / timezone.now().strftime("%Y/%m/%d") / filename
+
+
 class ConvertedFile(HelperMixin, Base):
     site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id)
     created_at = DateTimeField(auto_now_add=True, null=True)
     objects = CurrentSiteManager()
     all_objects = Manager()
 
-    file = PrivateFileField(upload_to="converted/%Y/%m/%d", max_length=200)
+    file = PrivateFileField(upload_to=converted_file_path, max_length=200)
     page_count = PositiveSmallIntegerField(_("number of pages"), null=True, blank=True)
 
     def natural_key(self):
@@ -3920,7 +3928,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             attachments.append(
                 (
                     f"{cv.full_name} {_('Curriculum Vitae')}",
-                    settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
+                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
+                    cv.pdf_file.path,
                     include_header_page and cv.title_page,
                 )
             )
@@ -9569,7 +9578,7 @@ def clean_private_fils(dry_run=False):
             for m, fields in model_fields:
                 if (
                     getattr(m, "all_objects", m.objects)
-                    .filter(Q(**{f.name: filename for f in fields},  _connector=Q.OR))
+                    .filter(Q(**{f.name: filename for f in fields}, _connector=Q.OR))
                     .exists()
                 ):
                     break
