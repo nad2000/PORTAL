@@ -40,7 +40,7 @@
         <div class="dropdown-menu" aria-labelledby="active-round-menu-link">
           {% for r in rounds %}
             {% if r.id != round.id %}
-            <a class="dropdown-item" href="{% if state %}{% url view_name round_id=r.id state=state %}{% else %}{% url view_name round_id=r.id %}{% endif %}">
+            <a class="dropdown-item" href="{% if state %}{% url 'round-application-list-with-state' round_id=r.id state=state %}{% else %}{% url 'round-application-list' round_id=r.id %}{% endif %}">
               {{ r.title }} <span class="badge badge-primary"> {{ r.total_applications }}</span>
               </a>
             {% else %}
