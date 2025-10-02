@@ -4612,14 +4612,20 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
 
     @classmethod
     def outstanding_requests(cls, user):
-        return cls.objects.raw(
-            "SELECT DISTINCT m.* FROM member AS m JOIN account_emailaddress AS ae ON ae.email = m.email "
-            "  JOIN application AS a ON a.id = m.application_id "
-            "  JOIN scheme AS s ON s.current_round_id = a.round_id "
-            "WHERE (m.user_id=%s OR ae.user_id=%s) "
-            "  AND NOT (m.state IS NULL OR m.state IN ('authorized', 'opted_out'))",
-            [user.pk, user.pk],
-        )
+        # qs = cls.objects.raw(
+        #     "SELECT DISTINCT m.* FROM member AS m JOIN account_emailaddress AS ae ON ae.email = m.email "
+        #     "  JOIN application AS a ON a.id = m.application_id "
+        #     "  JOIN scheme AS s ON s.current_round_id = a.round_id "
+        #     "WHERE (m.user_id=%s OR ae.user_id=%s) "
+        #     "  AND NOT (m.state IS NULL OR m.state IN ('authorized', 'opted_out'))",
+        #     [user.pk, user.pk],
+        # )
+        qs = cls.where(
+            ~Q(state__in=["authorized", "opted_out", None]),
+            Q(Q(user=user) | Q(email__in=EmailAddress.objects.filter(user=user).values("email"))),
+            application__round__scheme__current_round=F("application__round"),
+        ).distinct()
+        return qs
 
     class Meta:
         db_table = "member"
