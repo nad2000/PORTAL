@@ -363,7 +363,6 @@ class UnaccentMixin:
 
     def get_search_fields(self, request):
         sf = super().get_search_fields(request)
-        breakpoint()
         if settings.ENV == "prod":
             return ["_name" in f and f.replace("_name", "_name__unaccent") or f for f in sf]
         return sf
