@@ -3963,10 +3963,8 @@ class ReadOnlyApplicationWidget(Widget):
 
 
 class ScoreForm(ModelForm):
-    value = forms.TypedChoiceField(choices=zip(range(1, 10), range(1, 10)))
 
     def __init__(self, *args, **kwargs):
-        self.value = forms.TypedChoiceField(choices=range(10))
         super().__init__(*args, **kwargs)
 
         self.helper = FormHelper(self)
@@ -3976,30 +3974,32 @@ class ScoreForm(ModelForm):
             Field("criterion"),
             Field("value"),
         ]
-        criterion = (
-            self.instance.criterion
-            if hasattr(self.instance, "criterion")
-            else self.initial.get("criterion")
+        c = (
+            (
+                self.instance.criterion
+                if self.instance and hasattr(self.instance, "criterion")
+                else self.initial.get("criterion")
+            )
+            or "initial" in kwargs
+            and kwargs["initial"].get("criterion")
         )
         self.fields["comment"].widget.attrs = {"rows": 3}
-        if criterion:
-            self.fields["comment"].required = criterion.comment
-            self.comment_required = criterion.comment
-            if criterion.comment:
+        if c:
+            self.fields["comment"].required = c.comment
+            self.comment_required = c.comment
+            if c.comment:
                 fields.append(Field("comment", required=True))
                 self.fields["comment"].widget.attrs["required"] = True
             else:
                 fields.append(Field("comment"))
-        self.fields["value"] = forms.TypedChoiceField(
-            choices=(
-                zip(
-                    range(criterion.min_score, criterion.max_score + 1),
-                    range(criterion.min_score, criterion.max_score + 1),
+            self.fields["value"] = forms.TypedChoiceField(
+                choices=(
+                    zip(
+                        range(c.min_score, c.max_score + 1),
+                        range(c.min_score, c.max_score + 1),
+                    )
                 )
-                if criterion
-                else zip(range(11), range(11))
             )
-        )
         self.helper.layout = Layout(*fields)
 
     class Meta:
