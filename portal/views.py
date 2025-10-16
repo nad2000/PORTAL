@@ -12661,6 +12661,18 @@ def survey_response(request, referee_id):
     return response
 
 
+
+# @api_view(["GET", "PUT", "POST"])
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
+# def handle_email(request):
+#     data = json.loads(request.body)
+#     # https://puanga.prodata.nz/limesurvey/printanswers/view?surveyid=655512
+#     # https://puanga.prodata.nz/limesurvey/statistics_user/655512?language=en
+#     # capture_message(f"incoming request form lime survey:\n{request.body}\n\n\n{data}")
+#     pass
+
+
 @login_required
 def demo(request, pk=None):
     # a = Application.get(1683)

@@ -175,7 +175,8 @@ class CurrentSiteManager(CurrentSiteManager):
     """Select all entries if SITE_ID==0."""
 
     def get_queryset(self):
-        if bool(settings.SITE_ID):
+        # if bool(settings.SITE_ID):
+        if settings.SITE_ID != 0:
             return super().get_queryset()
         return super(Manager, self).get_queryset()
 
