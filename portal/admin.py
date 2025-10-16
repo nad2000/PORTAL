@@ -3907,7 +3907,7 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         qs = super().get_queryset(request)
         return qs.filter(application__site_id=settings.SITE_ID)
 
-    class ScoreInline(admin.StackedInline):
+    class ScoreInline(StaffPermsMixin, admin.StackedInline):
         extra = 0
         model = models.Score
         view_on_site = False
