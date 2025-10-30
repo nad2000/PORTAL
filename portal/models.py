@@ -1486,6 +1486,7 @@ class Organisation(Model):
     # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     notes = TextField(blank=True, null=True)
     website = URLField(max_length=255, blank=True, null=True)
+    provider_type = CharField(max_length=200, blank=True, null=True, db_comment="stage.source.provider_type")
     history = HistoricalRecords(table_name="organisation_history")
 
     @cached_property
