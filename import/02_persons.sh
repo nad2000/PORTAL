@@ -9,3 +9,12 @@ FROM stage.person AS s LEFT JOIN account_emailaddress AS ea
   ON ea.email=lower(s.email)
 WHERE (d.user_id=ea.user_id OR d.code=s.code) AND d.is_maori_decendent IS NULL;
 EOF
+
+
+# POSTACTION:
+psql <<EOF
+\echo *** UPDATE organisation AS d SET coordinator_id=p.id ...
+UPDATE organisation AS d SET coordinator_id=p.id
+FROM stage.source AS s JOIN person AS p ON p.code=s.coordinator_code
+WHERE d.code=s.code AND d.coordinator_id IS NULL AND s.coordinator_id IS NOT NULL;
+EOF

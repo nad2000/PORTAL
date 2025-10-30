@@ -1483,6 +1483,15 @@ class Organisation(Model):
         null=True,
         limit_choices_to={"affiliations__type": "EMP"},
     )
+    coordinator = ForeignKey(
+        "Person",
+        verbose_name=_("coordinator"),
+        on_delete=PROTECT,
+        related_name="coordinator_for",
+        blank=True,
+        null=True,
+        limit_choices_to={"affiliations__type": "EMP"},
+    )
     # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     notes = TextField(blank=True, null=True)
     website = URLField(max_length=255, blank=True, null=True)
