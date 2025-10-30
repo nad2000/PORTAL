@@ -1486,8 +1486,9 @@ class Organisation(Model):
     coordinator = ForeignKey(
         "Person",
         verbose_name=_("coordinator"),
-        on_delete=PROTECT,
+        on_delete=SET_NULL,
         related_name="coordinator_for",
+        db_comment="stage.source.coordinator_code",
         blank=True,
         null=True,
         limit_choices_to={"affiliations__type": "EMP"},
