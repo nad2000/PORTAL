@@ -228,7 +228,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
                       </li>
                     {% endif %}
-                    {% if user.is_superuser or user.is_site_staff %}
+                    {% if user.is_admin %}
                       <li class="nav-item" id="admin:index">
                         <a id="admin-link" class="nav-link" href="{% url 'admin:index' %}">
                           <i class="fas fa-radiation"></i> {% trans "Admin" %}</a>
@@ -250,6 +250,12 @@ table.table .asteriskField,.popover-header {color: gray;}
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'invitation-create' %}">
                           <i class="fas fa-paper-plane"></i> {% trans "Invite to join" %}
+                        </a>
+                      </li>
+                      <li class="nav-item" id="tags">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a class="nav-link" href="{% url 'tags' %}">
+                          <i class="fas fa-tags"></i> {% trans "Tags" %}
                         </a>
                       </li>
                     {% endif %}
