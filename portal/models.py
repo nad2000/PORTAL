@@ -2307,7 +2307,7 @@ def photo_identity_help_text():
     return _("Please upload a scanned copy of your passport in PDF, JPG, or PNG format")
 
 
-class Keyword(TagBase):
+class Keyword(HelperMixin, TagBase):
 
     def natural_key(self):
         return self.name

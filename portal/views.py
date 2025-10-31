@@ -8271,6 +8271,13 @@ class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         # return models.Keyword.objects.all().filter(name__istartswith=self.q)
         return self.model.objects.all().filter(name__istartswith=self.q)
 
+    def create_object(self, text):
+        for t in [t.strip() for t in text.split(",")][::-1]:
+            if t:
+                kw, _ = self.model.get_or_create(**{self.create_field: t})
+        if t and kw:
+            return kw
+
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return True  # request.user.is_authenticated
@@ -12659,7 +12666,6 @@ def survey_response(request, referee_id):
     response = FileResponse(output, content_type=mime_type)
     response["Content-Disposition"] = f"inline; filename={filename}"
     return response
-
 
 
 # @api_view(["GET", "PUT", "POST"])
