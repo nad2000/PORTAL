@@ -12,7 +12,7 @@ from functools import wraps
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 from itertools import groupby
-from taggit.models import TaggedItem
+from taggit.models import Tag, TaggedItem
 
 from django.contrib.contenttypes.forms import (
     BaseGenericInlineFormSet,
@@ -255,7 +255,7 @@ def about(request):
     return render(request, "pages/about.html", locals())
 
 
-@user_passes_test(lambda u: u.is_superuser or u.is_staff or u.is_site_staff)
+@user_passes_test(lambda u: u.is_admin)
 def pyinfo(request, message=None):
     """Show Python and runtime environment and settings or test exception handling."""
     if message:
@@ -269,6 +269,7 @@ def pyinfo(request, message=None):
     return render(request, "pyinfo.html", info)
 
 
+@user_passes_test(lambda u: u.is_admin)
 def tags(request, tag_name=None):
     if tag_name:
         tag = get_object_or_404(models.Tag, name__iexact=tag_name)
@@ -276,12 +277,13 @@ def tags(request, tag_name=None):
         tagged_items = tag.taggit_taggeditem_items.all()
 
     # tags = TaggedItem.objects.annotate(name=F("tag__name")).values("name").annotate(count=Count("pk")).order_by("-count")
-    tags = (
-        TaggedItem.objects.annotate(name=F("tag__name"), slug=F("tag__slug"))
-        .values("name", "slug")
-        .annotate(count=Count("pk"))
-        .order_by("name")
-    )
+    # tags = (
+    #     TaggedItem.objects.annotate(name=F("tag__name"), slug=F("tag__slug"))
+    #     .values("name", "slug")
+    #     .annotate(count=Count("pk"))
+    #     .order_by("name")
+    # )
+    tags = Tag.objects.values("name", "slug").annotate(count=Count("taggit_taggeditem_items")).order_by("name")
     return render(request, "tags.html", locals())
 
 

@@ -17,6 +17,7 @@ def handle_pages(request, *args, url, **kwargs):
         response = flatpage(request, url=url)
     except Http404:
         return flatpage(request, url=f"{request.LANGUAGE_CODE or 'en'}/{url}")
+    # TODO: redirect to a page creation (for admins) if the page is absent...
     return response
 
 
