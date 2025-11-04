@@ -875,7 +875,6 @@ class Migration(migrations.Migration):
                         default=django.utils.timezone.now, editable=False, null=True
                     ),
                 ),
-                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
                 ("object_id", models.PositiveIntegerField()),
                 (
                     "content_type",

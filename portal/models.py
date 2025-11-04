@@ -889,7 +889,8 @@ class Note(Model):
     #     return reverse('notes-view', kwargs={ 'pk': self.pk})
 
 
-class Favorite(Model):
+class Favorite(HelperMixin, Base):
+    created_at = DateTimeField(null=True, default=timezone.now, editable=False)
     user = ForeignKey(User, on_delete=CASCADE, related_name="stared_objects")
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
     object_id = PositiveIntegerField()
