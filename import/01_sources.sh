@@ -113,3 +113,69 @@ WHERE s.address_id IS NULL
 	OR FORMAT('%s/%s', s.city, s.country) = a.address);
 
 EOF
+
+psql <<EOF
+MERGE INTO organisation AS d
+USING (
+	SELECT DISTINCT ON (code, institution, gst, ror, grid, nzbn, legal_name, alt_name) *
+	FROM stage.source
+	WHERE code IS NOT NULL AND institution IS NOT NULL
+	ORDER BY code, institution, gst, ror, grid, nzbn, legal_name, alt_name
+) AS s
+ ON s.code=d.code
+ 	/*OR (s.institution=d.name
+	 AND s.gst IS NOT DISTINCT FROM s.gst
+	 AND s.ror IS NOT DISTINCT FROM s.ror
+	 AND s.grid IS NOT DISTINCT FROM s.grid
+	 AND s.nzbn IS NOT DISTINCT FROM s.nzbn
+	 AND s.legal_name = s.legal_name
+	 AND s.alt_name IS NOT DISTINCT FROM d.alt_name)*/
+WHEN NOT MATCHED AND s.institution IS NOT NULL THEN INSERT(
+	"name",
+	alt_name,
+	code,
+	grid,
+	gst,
+	is_active,
+	legal_name,
+	notes,
+	nz_ris_type,
+	nzbn,
+	provider_type,
+	ror,
+	website,
+	sector,
+	address_id
+) VALUES (
+	s.institution,
+	s.alt_name,
+	s.code,
+	s.grid,
+	s.gst,
+	s.is_active,
+	s.legal_name,
+	s.notes,
+	s.nz_ris_type,
+	s.nzbn,
+	s.provider_type,
+	s.ror,
+	s.website,
+	s.sector,
+	s.address_id)
+WHEN MATCHED  AND s.institution IS NOT NULL THEN UPDATE
+SET
+	address_id=coalesce(s.address_id, d.address_id),
+	alt_name=coalesce(d.alt_name, s.alt_name),
+	grid=coalesce(d.grid, s.grid),
+	gst=coalesce(d.gst, s.gst),
+	is_active=coalesce(d.is_active, s.is_active),
+	legal_name=coalesce(d.legal_name, s.legal_name),
+	notes=coalesce(d.notes, s.notes),
+	nz_ris_type=coalesce(d.nz_ris_type, s.nz_ris_type),
+	nzbn=coalesce(d.nzbn, s.nzbn),
+	provider_type=coalesce(d.provider_type, s.provider_type),
+	ror=coalesce(d.ror, s.ror),
+	website=coalesce(d.website, s.website),
+	sector=coalesce(d.sector, s.sector);
+EOF
+
