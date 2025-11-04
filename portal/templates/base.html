@@ -92,7 +92,7 @@
       {% endif %}
 
       <!-- Your stuff: Third-party CSS libraries go here -->
-      {% compress css %}
+      {#% compress css %#}
         {% block localcss %}
           <!-- This file stores project-specific CSS -->
           <style>
@@ -135,7 +135,7 @@ table.table .asteriskField,.popover-header {color: gray;}
 }
 </style>
         {% endblock %}
-      {% endcompress %}
+      {#% endcompress %#}
     {% endblock %}
 
     {% block headerjs %}
