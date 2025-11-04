@@ -62,6 +62,7 @@ from django.db.models import (
     FloatField,
     ForeignKey,
     # GeneratedField,
+    Index,
     IntegerField,
     Manager,
     ManyToManyField,
@@ -888,6 +889,25 @@ class Note(Model):
     #     return reverse('notes-view', kwargs={ 'pk': self.pk})
 
 
+class Favorite(Model):
+    user = ForeignKey(User, on_delete=CASCADE, related_name="stared_objects")
+    content_type = ForeignKey(ContentType, on_delete=CASCADE)
+    object_id = PositiveIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+
+    class Meta:
+        # Ensures a user can favorite an object only once
+        unique_together = ("user", "content_type", "object_id")
+        # Add an index for performance
+        indexes = [
+            Index(fields=["content_type", "object_id"]),
+        ]
+        db_table = "favorite"
+
+    def __str__(self):
+        return f"{self.user.username} favorited {self.content_object}"
+
+
 class Country(Model):
     code = FixedCharField(max_length=2, primary_key=True)
     code3 = FixedCharField(max_length=3, unique=True)
@@ -1496,7 +1516,9 @@ class Organisation(Model):
     # signatory_position = CharField(_("signatory position"), max_length=255, blank=True, null=True)
     notes = TextField(blank=True, null=True)
     website = URLField(max_length=255, blank=True, null=True)
-    provider_type = CharField(max_length=200, blank=True, null=True, db_comment="stage.source.provider_type")
+    provider_type = CharField(
+        max_length=200, blank=True, null=True, db_comment="stage.source.provider_type"
+    )
     sector = CharField(max_length=3, blank=True, null=True, db_comment="stage.source.sector")
     history = HistoricalRecords(table_name="organisation_history")
 
@@ -1818,7 +1840,9 @@ class Person(PersonMixin, Model):
     # publish = models.BooleanField()
     # rcc_comment = models.TextField(blank=True, null=True, verbose_name="RCC comments")
 
-    is_maori_decendent = BooleanField(null=True, blank=True, db_comment="stage.person.maori_descent")
+    is_maori_decendent = BooleanField(
+        null=True, blank=True, db_comment="stage.person.maori_descent"
+    )
     # year_hipd = models.IntegerField(blank=True, null=True)
     # year_hipd_since = models.IntegerField(blank=True, null=True)
     # marsden_newsletter = models.BooleanField(null=True, blank=True)
@@ -2832,6 +2856,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     # at the time of submission:
     # applicant_declaration_accepted_at = DateTimeField(null=True, blank=True)
     notes = GenericRelation(Note)
+    favorites = GenericRelation(Favorite)
 
     @property
     def is_wip(self):
@@ -10091,6 +10116,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     # notes = TextField(blank=True, null=True)
     notes = GenericRelation(Note)
+    favorites = GenericRelation(Favorite)
     abstract = TextField(blank=True, null=True)
     completed_on = DateField(blank=True, null=True)
 
@@ -12305,6 +12331,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         monitor="state", when=["assessed"], null=True, default=None, blank=True
     )
     notes = GenericRelation(Note)
+    favorites = GenericRelation(Favorite)
 
     @cached_property
     def due_date(self):

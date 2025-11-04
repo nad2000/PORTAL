@@ -39,6 +39,9 @@
       {{ object|title }}
     {% endif %}
     {% endblock %}
+    <span id="favorite-{{ object.pk }}">
+      {% include 'snippets/favorite_button.html' with object_id=object.pk is_favorited=user|is_favorited:object %}
+    </span>
   </h1>
 
   <div class="row">

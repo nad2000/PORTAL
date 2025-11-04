@@ -283,7 +283,11 @@ def tags(request, tag_name=None):
     #     .annotate(count=Count("pk"))
     #     .order_by("name")
     # )
-    tags = Tag.objects.values("name", "slug").annotate(count=Count("taggit_taggeditem_items")).order_by("name")
+    tags = (
+        Tag.objects.values("name", "slug")
+        .annotate(count=Count("taggit_taggeditem_items"))
+        .order_by("name")
+    )
     return render(request, "tags.html", locals())
 
 
@@ -534,6 +538,31 @@ class StateInPathMixin:
                             state__in=["submitted", "approved", "cancelled"]
                         )
         return queryset
+
+
+class FavoriteMixin:
+
+    def put(self, request, *args, **kwargs):
+        obj = self.get_object()
+        content_type = ContentType.objects.get_for_model(self.model)
+        favorite, is_favorited = models.Favorite.objects.get_or_create(
+            user=request.user,
+            content_type=content_type,
+            object_id=obj.pk,
+        )
+        if not is_favorited:
+            favorite.delete()
+        object_id = obj.pk
+        # context = {
+        #     "is_favorited": is_favorited,
+        #     "object_id": obj.pk,
+        #     # "content_type_id": content_type_id,
+        #     # You might also want to pass the count of favorites
+        # }
+        return render(request, "snippets/favorite_button.html", locals())
+        # return HttpResponse(
+        #     render_to_string("snippets/favorite_button.html", context, request=request)
+        # )
 
 
 class NotesMixin:
@@ -2126,7 +2155,7 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
         return queryset
 
 
-class ReportDetail(DetailView):
+class ReportDetail(FavoriteMixin, DetailView):
     template_name = "portal/report_detail.html"
     model = models.Report
 
@@ -3950,7 +3979,7 @@ class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
         }
 
 
-class ApplicationDetail(DetailView):
+class ApplicationDetail(FavoriteMixin, DetailView):
     model = Application
     template_name = "portal/application_detail.html"
 
@@ -6502,7 +6531,7 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
         ).distinct()
 
 
-class ContractDetail(DetailView):
+class ContractDetail(FavoriteMixin, DetailView):
     template_name = "portal/contract_detail.html"
     model = models.Contract
     slug_field = "number"
@@ -12679,6 +12708,43 @@ def survey_response(request, referee_id):
 #     # https://puanga.prodata.nz/limesurvey/statistics_user/655512?language=en
 #     # capture_message(f"incoming request form lime survey:\n{request.body}\n\n\n{data}")
 #     pass
+
+
+@login_required
+@require_http_methods(["PUT", "POST"])
+def toggle_favorite(request, content_type_id, object_id):
+    content_type = get_object_or_404(ContentType, id=content_type_id)
+    # Basic security check to prevent favoring unauthorized models
+    if content_type.model not in ["post", "product"]:
+        return HttpResponse("Invalid content type", status=400)
+
+    try:
+        obj = content_type.get_object_for_this_type(id=object_id)
+    except obj.DoesNotExist:
+        return HttpResponse("Object not found", status=404)
+
+    favorite, created = models.Favorite.objects.get_or_create(
+        user=request.user, content_type=content_type, object_id=object_id
+    )
+
+    if not created:
+        # If it already existed, unfavorite it
+        favorite.delete()
+        is_favorited = False
+    else:
+        # If it was created, it is now favorited
+        is_favorited = True
+
+    # Render a small template fragment to update the UI
+    context = {
+        "is_favorited": is_favorited,
+        "object_id": object_id,
+        "content_type_id": content_type_id,
+        # You might also want to pass the count of favorites
+    }
+    return HttpResponse(
+        render_to_string("partials/favorite_button.html", context, request=request)
+    )
 
 
 @login_required

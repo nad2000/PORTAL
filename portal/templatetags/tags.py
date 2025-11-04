@@ -8,6 +8,7 @@ import jinja2
 
 # import jinja2
 from django import forms, template
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.manager import Manager
 from django.forms.widgets import NullBooleanSelect
@@ -27,6 +28,13 @@ register = template.Library()
 @register.filter(is_safe=True)
 def report_state(state):
     return _(m.Report.STATES[state])
+
+
+@register.filter(is_safe=True)
+def is_favorited(user, obj=None):
+    return m.Favorite.objects.filter(
+        user=user, object_id=obj.pk, content_type=ContentType.objects.get_for_model(obj)
+    ).exists()
 
 
 @register.filter(is_safe=True)
@@ -435,9 +443,11 @@ def document_action_button(
     output = get_template("partials/document_action_button.html").render(locals())
     return Markup(output)
 
+
 @register.filter(is_safe=False)
 def filter_documents(documents, required_document):
     return [d for d in documents if d.required_document == required_document]
+
 
 @register.filter(is_safe=False)
 def length_is(value, arg):
