@@ -219,7 +219,10 @@ class Model(TimeStampMixin, HelperMixin, Base):
             return reverse(f"{model_name_slug}-detail", args=[str(number)])
         elif hasattr(self, "code") and (code := self.code):
             return reverse(f"{model_name_slug}-detail", args=[str(code)])
-        return reverse(model_name_slug, args=[str(self.pk)])
+        try:
+            return reverse(model_name_slug, args=[str(self.pk)])
+        except:
+            return reverse(f"{model_name_slug}s", args=[str(self.pk)])
 
     def get_full_detail_url(self, request=None):
         return self.get_full_url(self.detail_url, request=request)

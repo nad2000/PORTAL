@@ -3,7 +3,7 @@
         hx-swap="outerHTML"
         class="{% if is_favorited %}favorited{% else %}not-favorited{% endif %}"
 >
-    {% if is_favorited %}<i class="fa fa-star" aria-hidden="true"></i>{% else %}<i class="far fa-star" aria-hidden="true"></i>{% endif %}
+    <i class="fa fa-star" aria-hidden="true"></i>{% else %}<i class="far fa-star" aria-hidden="true"></i>{% endif %}
     {% comment %}
     {#% if is_favorited %} ★ Starred {% else %} ☆ Unstarred {% endif %#}
     {% endcomment %}

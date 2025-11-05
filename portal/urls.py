@@ -25,6 +25,10 @@ urlpatterns = [
     path("about", views.about, name="about"),
     path("logout", views.logout, name="logout"),
     path("status", views.status, name="status"),
+    path("bookmarked", views.favorites, name="bookmarked"),
+    path("bookmarks", views.favorites, name="bookmarks"),
+    path("stared", views.favorites, name="stared"),
+    path("favorites", views.favorites, name="favorites"),
     path("tags", views.tags, name="tags"),
     path("tags/<tag_name>", views.tags, name="tag"),
     path(
@@ -697,7 +701,8 @@ urlpatterns = [
                 path(
                     "<int:pk>/~update", views.TestimonialView.as_view(), name="testimonial-update"
                 ),
-                path("<int:pk>", views.TestimonialDetail.as_view(), name="testimonial-detail"),
+                # path("<int:pk>", views.TestimonialDetail.as_view(), name="testimonial-detail"),
+                path("<int:pk>", views.TestimonialDetail.as_view(), name="testimonial"),
                 path("draft", views.TestimonialList.as_view(), name="testimonials-draft"),
                 path("submitted", views.TestimonialList.as_view(), name="testimonials-submitted"),
                 path("", views.TestimonialList.as_view(), name="testimonials"),

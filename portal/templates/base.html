@@ -258,6 +258,12 @@ table.table .asteriskField,.popover-header {color: gray;}
                           <i class="fas fa-tags"></i> {% trans "Tags" %}
                         </a>
                       </li>
+                      <li class="nav-item" id="stared">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a class="nav-link" href="{% url 'stared' %}">
+                          <i class="fas fa-star" aria-hidden="true"></i> {% trans "Favorites" %}
+                        </a>
+                      </li>
                     {% endif %}
                     {% endcache %}
                   {% endif %}
@@ -493,7 +499,7 @@ You have a request to review a {{ site_name }} application to act on.
                         {% trans 'Please click here to complete the referee report' %}!
                       </a>
                     {% else %}
-                      <a href="{% url 'testimonial-detail' pk=o.testimonial_id %}" class="alert-link">
+                      <a href="{% url 'testimonial' pk=o.testimonial_id %}" class="alert-link">
                         {% trans 'Please click here to view the review request' %}!
                       </a>
                     {% endif %}
@@ -671,8 +677,9 @@ You have a request to review a {{ site_name }} application to act on.
       <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js" integrity="sha512-LsnSViqQyaXpD4mBBdRYeP6sRwJiJveh2ZIbW41EBrNmKxgr/LFZIiWT6yr+nycvhvauz8c2nYMhrP80YhG7Cw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
       <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.js"></script -->
       <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha512-T/tUfKSV1bihCnd+MxKD0Hm1uBBroVYBOYSk1knyvQ9VyZJpc/ALb4P0r6ubwVPSGB2GvjeoMAJJImBG12TiaQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script -->
-      <script src="https://unpkg.com/htmx.org@2.0.2"></script>
-      <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+      <!-- script src="https://unpkg.com/htmx.org@2.0.2"></script -->
+      <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+      <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
       <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
       <!-- Your stuff: Third-party javascript libraries go here -->

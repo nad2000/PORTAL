@@ -232,7 +232,7 @@ class TestimonialTable(Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(
         accessor="referee__application__number",
-        linkify=lambda record: reverse("testimonial-detail", kwargs=dict(pk=record.id)),
+        linkify=lambda record: reverse("testimonial", kwargs=dict(pk=record.id)),
     )
     application_title = tables.Column(accessor="referee__application__application_title")
     referee = tables.Column(

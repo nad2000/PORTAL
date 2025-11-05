@@ -6473,6 +6473,7 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
     )
     state = StateField(_("testimonial state"), default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    favorites = GenericRelation(Favorite)
 
     @cached_property
     def application(self):
@@ -8622,6 +8623,7 @@ class Evaluation(EvaluationMixin, Model):
     # scores = ManyToManyField(Criterion, blank=True, through="Score")
     total_score = PositiveIntegerField(_("Total Score"), default=0)
     state = StateField(null=True, blank=True, default="new")
+    favorites = GenericRelation(Favorite)
 
     def natural_key(self):
         return (self.application.number, self.panellist.email)
@@ -9047,6 +9049,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     state = StateField(_("state"), null=True, blank=True, default="new")
+    favorites = GenericRelation(Favorite)
 
     def natural_key(self):
         return (self.round.code, self.email)

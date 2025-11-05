@@ -30,7 +30,7 @@
     </div>
   {% endif %}
 
-  {% if view_name == 'testimonial-detail' and object.referee.user == user and not application.round.survey_id %}
+  {% if view_name == 'testimonial' and object.referee.user == user and not application.round.survey_id %}
     {% if object.state == 'new' or object.state == 'draft' %}
       {% if can_submit_testimonial %}
         <button type="button"

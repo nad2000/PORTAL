@@ -292,6 +292,21 @@ def tags(request, tag_name=None):
 
 
 @login_required
+def favorites(request):
+    # tags = TaggedItem.objects.annotate(name=F("tag__name")).values("name").annotate(count=Count("pk")).order_by("-count")
+    # tags = (
+    #     TaggedItem.objects.annotate(name=F("tag__name"), slug=F("tag__slug"))
+    #     .values("name", "slug")
+    #     .annotate(count=Count("pk"))
+    #     .order_by("name")
+    # )
+    favorites = (
+        models.Favorite.objects.filter(user=request.user)
+    )
+    return render(request, "favorites.html", locals())
+
+
+@login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
     if (
@@ -553,16 +568,29 @@ class FavoriteMixin:
         if not is_favorited:
             favorite.delete()
         object_id = obj.pk
+        with_class_name = request.GET.get("with_class_name", False)
         # context = {
         #     "is_favorited": is_favorited,
         #     "object_id": obj.pk,
         #     # "content_type_id": content_type_id,
         #     # You might also want to pass the count of favorites
         # }
-        return render(request, "snippets/favorite_button.html", locals())
+        # return render(request, "snippets/favorite_button.html", locals())
         # return HttpResponse(
         #     render_to_string("snippets/favorite_button.html", context, request=request)
         # )
+
+        if request.GET.get("with_class_name", False):
+            return HttpResponse(f"""
+              <i id="favorite-status-{ obj.calss_name }-{ object_id }"
+              class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
+              </i>
+            """)
+        return HttpResponse(f"""
+          <i id="favorite-status-{ object_id }"
+          class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
+          </i>
+        """)
 
 
 class NotesMixin:
@@ -1469,7 +1497,7 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
         t = models.Testimonial.where(referee=r).order_by("-pk").first()
         if t:
-            return redirect("testimonial-detail", pk=t.pk)
+            return redirect("testimonial", pk=t.pk)
         elif r.application_id:
             return redirect("application", pk=r.application_id)
         return redirect(request.META.get("HTTP_REFERER", "index"))
@@ -1834,7 +1862,7 @@ def check_profile(request, token=None):
                     if not (r.survey_token_id or r.survey_token) and (
                         t := models.Testimonial.where(referee=r).last()
                     ):
-                        next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
+                        next_url = reverse("testimonial", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
                         # messages.info(
                         #     request,
@@ -9385,7 +9413,7 @@ class NominationView(CreateUpdateView):
         )
 
 
-class TestimonialView(CreateUpdateView):
+class TestimonialView(FavoriteMixin, CreateUpdateView):
     model = models.Testimonial
     form_class = forms.TestimonialForm
     template_name = "testimonial.html"
@@ -9691,7 +9719,7 @@ class TestimonialView(CreateUpdateView):
                 self.request,
                 _("Testimonial is already submitted."),
             )
-        return redirect("testimonial-detail", pk=t.id)
+        return redirect("testimonial", pk=t.id)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -9903,7 +9931,7 @@ class TestimonialList(
         return kwargs
 
 
-class TestimonialDetail(DetailView):
+class TestimonialDetail(FavoriteMixin, DetailView):
     model = models.Testimonial
     template_name = "testimonial_detail.html"
 
@@ -10935,7 +10963,7 @@ class CreateEvaluation(LoginRequiredMixin, EvaluationMixin, CreateWithInlinesVie
         return super().form_valid(form)
 
 
-class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesView):
+class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, FavoriteMixin, UpdateWithInlinesView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
         if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
@@ -10960,7 +10988,7 @@ class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesVie
         return resp
 
 
-class EvaluationDetail(DetailView):
+class EvaluationDetail(FavoriteMixin, DetailView):
     model = models.Evaluation
     template_name = "evaluation.html"
 
