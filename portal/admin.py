@@ -49,6 +49,7 @@ from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from . import filters, models
+from .forms import ModelSelect2NoPK
 
 # from dalf.admin import DALFModelAdmin, DALFRelatedOnlyField, DALFRelatedFieldAjax
 # from autocompletefilter.admin import AutocompleteFilterMixin
@@ -207,6 +208,13 @@ djhacker.formfield(
         ],
     ),
 )
+
+
+# djhacker.formfield(
+#     models.Person.code,
+#     forms.ChoiceField,
+#     widget=ModelSelect2NoPK(url="person-code-autocomplete"),
+# )
 
 # categories=autocomplete.ModelSelect2Multiple(
 #     url="change-category-autocomplete",

@@ -517,6 +517,13 @@ urlpatterns = [
                     ),
                     name="org-email-autocomplete",
                 ),
+                path(
+                    "person-code/",
+                    views.PersonCodeAutocomplete.as_view(
+                        model=models.Person, create_field="code"
+                    ),
+                    name="person-code-autocomplete",
+                ),
                 # path(
                 #     "ro-org/",
                 #     views.OrgAutocomplete.as_view(model=models.Organisation),
@@ -823,14 +830,14 @@ urlpatterns = [
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
 
-if settings.DEBUG:
-    urlpatterns.extend(
-        [
-            path("demo/", views.demo),
-            path("demo/<int:pk>/", views.demo),
-            path("demo/~create", views.demo_create, name="demo-create"),
-        ]
-    )
+# if settings.DEBUG:
+#     urlpatterns.extend(
+#         [
+#             path("demo/", views.demo),
+#             path("demo/<int:pk>/", views.demo),
+#             path("demo/~create", views.demo_create, name="demo-create"),
+#         ]
+#     )
 
 if settings.SENTRY_DSN:
     from django.contrib.auth.decorators import login_required

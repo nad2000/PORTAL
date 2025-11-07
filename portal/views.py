@@ -8210,6 +8210,31 @@ class Unaccent(Func):
     function = "unaccent"
 
 
+class PersonCodeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        q = self.model.objects.all()
+        if self.q:
+            q = q.filter(code__istartswith=self.q)
+        return q.order_by("code")
+
+    def has_add_permission(self, request):
+        return True
+
+    def get_result_label(self, result):
+        if isinstance(result, models.Person):
+            return result.code
+        return result
+
+    def get_result_value(self, result):
+        if isinstance(result, models.Person):
+            return result.code
+        return result
+
+    def create_object(self, text):
+        return text
+
+
 class DocumentTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
@@ -11849,34 +11874,34 @@ class AffiliationForm(ModelForm):
         }
 
 
-class DemoForm(ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+# class DemoForm(ModelForm):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#     class Meta:
+#         model = models.Person
+#         fields = ["code", "first_name", "last_name"]
+#         # exclude = ["state"]
+#         # fields = ["email", "first_name", "middle_names", "last_name", "user", "role"]
+#         widgets = {
+#             "code": forms.TextInput(attrs={"class": "form-control"}),
+#             "first_name": forms.TextInput(attrs={"class": "form-control"}),
+#             "last_name": forms.TextInput(attrs={"class": "form-control"}),
+#         }
+#
+#     # class DemoForm(Form):
+#     # field1 = fields.CharField(max_length=100, required=True)
+#     # field2 = fields.CharField(max_length=50, required=True)
+#     # field3 = fields.CharField(max_length=50, required=True)
 
-    class Meta:
-        model = models.Person
-        fields = ["code", "first_name", "last_name"]
-        # exclude = ["state"]
-        # fields = ["email", "first_name", "middle_names", "last_name", "user", "role"]
-        widgets = {
-            "code": forms.TextInput(attrs={"class": "form-control"}),
-            "first_name": forms.TextInput(attrs={"class": "form-control"}),
-            "last_name": forms.TextInput(attrs={"class": "form-control"}),
-        }
 
-    # class DemoForm(Form):
-    # field1 = fields.CharField(max_length=100, required=True)
-    # field2 = fields.CharField(max_length=50, required=True)
-    # field3 = fields.CharField(max_length=50, required=True)
-
-
-@login_required
-def demo_create(request):
-    form = DemoForm()
-    if request.method == "POST":
-        pass
-
-    return render(request, "partials/form.html", locals())
+# @login_required
+# def demo_create(request):
+#     form = DemoForm()
+#     if request.method == "POST":
+#         pass
+#
+#     return render(request, "partials/form.html", locals())
 
 
 class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
@@ -12775,65 +12800,65 @@ def toggle_favorite(request, content_type_id, object_id):
     )
 
 
-@login_required
-def demo(request, pk=None):
-    # a = Application.get(1683)
-    a = Application.where(pk=pk).last() if pk else Application.last()
-    obj = models.Person.where(pk=pk).last() if pk else models.Person.last()
-
-    duration = 3
-    MemberFTEFormSet = forms.inlineformset_factory(
-        models.Application,
-        models.Member,
-        form=MemberFTEForm,
-        formset=forms.MandatoryApplicationFormInlineFormSet,
-        exclude=["state"],
-        edit_only=True,
-        can_delete_extra=False,
-    )
-    AffiliationFormSet = forms.inlineformset_factory(
-        models.Person,
-        models.Affiliation,
-        # form=MemberFTEForm,
-        # formset=forms.MandatoryApplicationFormInlineFormSet,
-        exclude=["put_code"],
-        edit_only=True,
-        can_delete_extra=False,
-    )
-    if request.method == "POST":
-        # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
-        # formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
-        formset = AffiliationFormSet(request.POST, instance=obj, prefix="demo")
-        form = DemoForm(data=request.POST or None, instance=obj)
-
-        if formset.is_valid():
-            pass
-    else:
-        form = DemoForm(instance=obj)
-        # formset = MemberFTEFormSet(instance=a, prefix="demo")
-        formset = AffiliationFormSet(instance=obj, prefix="demo")
-
-    form.helper = FormHelper()
-    form.helper.help_text_inline = True
-    form.helper.html5_required = True
-    form.helper.layout = Layout(
-        forms.Div(
-            forms.TableInlineFormset("formset"),
-            css_id="demo",
-        )
-    )
-
-    # formset.helper = FormHelper()
-    # formset.helper.help_text_inline = True
-    # formset.helper.html5_required = True
-    # formset.helper.layout = Layout(
-    #     forms.Div(
-    #         forms.TableInlineFormset("formset"),
-    #         css_id="demo",
-    #     )
-    # )
-
-    return render(request, "demo.html", locals())
+# @login_required
+# def demo(request, pk=None):
+#     # a = Application.get(1683)
+#     a = Application.where(pk=pk).last() if pk else Application.last()
+#     obj = models.Person.where(pk=pk).last() if pk else models.Person.last()
+#
+#     duration = 3
+#     MemberFTEFormSet = forms.inlineformset_factory(
+#         models.Application,
+#         models.Member,
+#         form=MemberFTEForm,
+#         formset=forms.MandatoryApplicationFormInlineFormSet,
+#         exclude=["state"],
+#         edit_only=True,
+#         can_delete_extra=False,
+#     )
+#     AffiliationFormSet = forms.inlineformset_factory(
+#         models.Person,
+#         models.Affiliation,
+#         # form=MemberFTEForm,
+#         # formset=forms.MandatoryApplicationFormInlineFormSet,
+#         exclude=["put_code"],
+#         edit_only=True,
+#         can_delete_extra=False,
+#     )
+#     if request.method == "POST":
+#         # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
+#         # formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
+#         formset = AffiliationFormSet(request.POST, instance=obj, prefix="demo")
+#         form = DemoForm(data=request.POST or None, instance=obj)
+#
+#         if formset.is_valid():
+#             pass
+#     else:
+#         form = DemoForm(instance=obj)
+#         # formset = MemberFTEFormSet(instance=a, prefix="demo")
+#         formset = AffiliationFormSet(instance=obj, prefix="demo")
+#
+#     form.helper = FormHelper()
+#     form.helper.help_text_inline = True
+#     form.helper.html5_required = True
+#     form.helper.layout = Layout(
+#         forms.Div(
+#             forms.TableInlineFormset("formset"),
+#             css_id="demo",
+#         )
+#     )
+#
+#     # # formset.helper = FormHelper()
+#     # # formset.helper.help_text_inline = True
+#     # # formset.helper.html5_required = True
+#     # # formset.helper.layout = Layout(
+#     # #     forms.Div(
+#     # #         forms.TableInlineFormset("formset"),
+#     # #         css_id="demo",
+#     # #     )
+#     # # )
+#     #
+#     # return render(request, "demo.html", locals())
 
 
 # def accel(request):

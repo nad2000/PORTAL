@@ -196,7 +196,12 @@ def site_contact_email(site_id=None):
 
 
 GENDERS = Choices(
-    (0, _("Prefer not to say")), (1, _("Male")), (2, _("Female")), (3, _("Gender diverse"))
+    # (0, _("Prefer not to say")), (1, _("Male")), (2, _("Female")), (3, _("Gender diverse"))
+    ('X', _("Prefer not to say")),
+    ('N', _("Prefer not to answer")),
+    ('M', _("Male")),
+    ('F', _("Female")),
+    ('D', _("Gender diverse"))
 )
 
 AFFILIATION_TYPES = Choices(
@@ -1737,12 +1742,12 @@ class Person(PersonMixin, Model):
     other_names = CharField(max_length=200, blank=True, null=True)
     friendly_name = CharField(max_length=50, blank=True, null=True)
     label_name = CharField(max_length=120, blank=True, null=True)
-    gender = PositiveSmallIntegerField(
+    gender = FixedCharField(
         _("gender"),
         choices=GENDERS,
+        max_length=1,
         null=True,
         blank=False,
-        default=0,
         db_comment="\n".join(f"{k}: {v}" for (k, v) in GENDERS),
     )
     date_of_birth = DateField(_("date of birth"), null=True, blank=True, validators=[validate_bod])
@@ -1836,7 +1841,7 @@ class Person(PersonMixin, Model):
     # home_phone = models.CharField(max_length=80, blank=True, null=True, editable=False)
     # mobile_phone = models.CharField(max_length=80, blank=True, null=True, editable=False)
 
-    # active = models.BooleanField()
+    is_active = BooleanField(default=True, blank=True, null=True)
     # notes = models.TextField(blank=True, null=True)
     # publish = models.BooleanField()
     # rcc_comment = models.TextField(blank=True, null=True, verbose_name="RCC comments")

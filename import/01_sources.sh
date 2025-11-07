@@ -27,8 +27,7 @@ psql <<EOF
 UPDATE "address" SET city=regexp_replace(trim(city), '\s+', ' ')
 WHERE
     city IS NOT NULL
-    AND trim(city) != ''
-    AND city!=regexp_replace(trim(city), '\s+' , ' ');
+    AND (city ~ '\s{2,}' OR trim(city) != city);
 EOF
 
 psql <<EOF
