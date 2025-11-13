@@ -366,6 +366,9 @@ thead th.orderable.desc > a {
         {% if user.is_staff or user.is_superuser or user.is_site_staff %}
           {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
             <button type="button" class="btn btn-primary ml-2" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
+            {% if outcome_file_url %}
+              <a type="button" class="btn btn-outline-primary ml-1" data-toggle="tooltip" title="Generate an outcome file..." href="{{ outcome_file_url }}">New outcomes</a>
+            {% endif %}
           {% endif %}
         {% endif %}
 
@@ -382,6 +385,9 @@ thead th.orderable.desc > a {
 
         {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
           <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
+          {% if outcome_file_url %}
+            <a type="button" class="btn btn-outline-primary ml-1" data-toggle="tooltip" title="Generate an outcome file..." href="{{ outcome_file_url }}">New outcomes</a>
+          {% endif %}
         {% endif %}
 
       </div>

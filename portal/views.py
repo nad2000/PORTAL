@@ -1,4 +1,5 @@
 import base64
+import csv
 import io
 import json
 import mimetypes
@@ -7503,6 +7504,36 @@ class ApplicationList(
     filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
+    def get(self, request, *args, **kwargs):
+        if "outcome_file" in request.GET:
+
+            class Echo:
+                """An object that implements just the write method of the file-like interface.
+                This is used to write data to the response without buffering it all in memory."""
+                def write(self, value):
+                    return value
+
+            response = HttpResponse(
+                content_type="text/csv",
+                headers={"Content-Disposition": 'attachment; filename="outcomes.csv"'}
+            )
+            writer = csv.writer(response)
+            writer.writerow(["NUMBER", "DECISION", "AMOUNT", "START", "END"])
+            # Simulate fetching and writing data in chunks
+            for a in self.get_queryset():
+                row_data = [
+                    a.number,
+                    "Y",
+                    (a.awarded_amount or a.requested_amount) or '',
+                    a.proposed_start_date and a.proposed_start_date.isoformat() or '',
+                    (a.proposed_start_date + relativedelta(years=a.round.duration)) if a.proposed_start_date and a.round.duration else '',
+                ]
+                writer.writerow(row_data)
+
+            return response
+
+        return super().get(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         if {"duration", "awarded_amount", "application"}.issubset(request.POST):
             duration = int(request.POST["duration"])
@@ -7556,7 +7587,7 @@ class ApplicationList(
                         a = Application.where(number=number).last()
                         if a:
                             if decision in ["Y", "1", "YES"]:
-                                awarded_amount = rest[0] if rest and rest[0] else None
+                                awarded_amount = Decimal(rest[0]) if rest and rest[0] else None
                                 start_date = parse_date(rest[1]) if len(rest) > 1 and rest[1] else None
                                 end_date = parse_date(rest[2]) if len(rest) > 2  and rest[2] else None
                                 if a.state != "funded":
@@ -7694,6 +7725,12 @@ class ApplicationList(
             "cancelled",
         ]:
             context["state"] = state
+
+        if state == "in_review" and self.request.user.is_admin:
+            params = self.request.GET.copy()
+            params["outcome_file"] = "selected"
+            url = f"{self.request.path}?{params.urlencode()}"
+            context["outcome_file_url"] = url
 
         return context
 
