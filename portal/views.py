@@ -7556,9 +7556,9 @@ class ApplicationList(
                         a = Application.where(number=number).last()
                         if a:
                             if decision in ["Y", "1", "YES"]:
-                                awarded_amount = rest[0] if rest else None
-                                start_date = parse_date(rest[1]) if len(rest) > 1 else None
-                                end_date = parse_date(rest[2]) if len(rest) > 2 else None
+                                awarded_amount = rest[0] if rest and rest[0] else None
+                                start_date = parse_date(rest[1]) if len(rest) > 1 and rest[1] else None
+                                end_date = parse_date(rest[2]) if len(rest) > 2  and rest[2] else None
                                 if a.state != "funded":
                                     contracts.append(
                                         a.fund(
@@ -7634,6 +7634,7 @@ class ApplicationList(
             except Exception as ex:
                 capture_exception(ex)
                 messages.error(request, getattr(ex, "message", str(ex)))
+                return redirect(request.path)
 
         if funded_count:
             reset_cache(self.request)

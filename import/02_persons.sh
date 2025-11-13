@@ -47,6 +47,10 @@ WHERE
     country_name IS NOT NULL
     AND (country_name ~ '\s{2,}' OR trim(country_name) != country_name);
 
+UPDATE stage.person
+SET city=trim(city), address=trim(address)
+WHERE city!=trim(city) OR address!=trim(address);
+
 -- Fix country codes:
 UPDATE stage.person SET country='AE', city=coalesce(city, 'ABU DHABI') WHERE country_name='ABU DHABI' AND country IS DISTINCT FROM 'AE';
 UPDATE stage.person SET country='AU' WHERE country_name='AUSRALIA' AND country IS DISTINCT FROM 'AU';
@@ -111,7 +115,10 @@ UPDATE stage.person SET country='US', address=CASE WHEN address ~* 'OREGON' THEN
 UPDATE stage.person SET country='US', address=CASE WHEN address ~* 'TEXAS' THEN address ELSE address||',\rTEXAS' END WHERE country_name='TEXAS' AND country IS DISTINCT FROM 'US';
 UPDATE stage.person SET country='UY' WHERE country_name='URUGAY' AND country IS DISTINCT FROM 'UY';
 UPDATE stage.person SET country='VN' WHERE country_name='SOCIALIST REPUBLIC OF VIETNAM' AND country IS DISTINCT FROM 'VN';
-
+--
+UPDATE address
+SET city=trim(city), address=trim(address)
+WHERE city!=trim(city) OR address!=trim(address);
 --
 WITH c AS (
 	SELECT DISTINCT
@@ -120,16 +127,16 @@ WITH c AS (
 		upper(cc.name) AS country_name
 	FROM "address" AS a LEFT JOIN "country" AS c ON c.name ~* a.city
 	  LEFT JOIN "country" AS cc ON cc.code=a.country
-	WHERE c.code IS NULL AND a.city IS NOT NULL AND TRIM(a.city)!= ''
+	WHERE c.code IS NULL AND a.city IS NOT NULL AND a.city!= ''
 )
 UPDATE stage.person AS s
 SET
     city=c.city,
     country=coalesce(s.country, c.country_code)
 FROM c
-WHERE (s.city IS NULL OR trim(c.city)='')
+WHERE (s.city IS NULL OR c.city='')
 	AND s.address IS NOT NULL
-	AND TRIM(s.address)!= ''
+	AND s.address!= ''
 	AND s.address ~* c.city;
 
 \echo populate with address entries:
@@ -144,7 +151,7 @@ VALUES (
     s.country,
     s.city,
     CASE
-      WHEN s.address IS NULL OR trim(s.address)='' THEN FORMAT('%s/%s', s.city, s.country)
+      WHEN s.address IS NULL OR s.address='' THEN FORMAT('%s/%s', s.city, s.country)
       ELSE s.address
     END
 );
@@ -203,7 +210,7 @@ WHERE
   u.code=s.code AND s.user_id IS NULL;
 -- Merge persons:
 MERGE INTO person AS d
-USING stage.person AS s ON s.code=d.code
+USING stage.person AS s ON s.code=d.code OR s.email=d.email
 WHEN NOT MATCHED AND s.institution IS NOT NULL THEN INSERT(
 	user_id,
 	created_at,
@@ -261,6 +268,7 @@ WHEN MATCHED AND (
 THEN UPDATE
 SET
 	user_id=coalesce(d.user_id, s.user_id),
+	code=coalesce(d.code, s.code),
 	created_at=coalesce(d.created_at, s.date_added),
 	updated_at=coalesce(d.updated_at, s.date_changed),
 	activity=coalesce(d.activity, s.activity),

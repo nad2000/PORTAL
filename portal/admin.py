@@ -1254,6 +1254,9 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
         "user__email",
         "user__first_name",
         "user__last_name",
+        "first_name",
+        "last_name",
+        "email",
     ]
     list_display = ["username", "code", "user", "full_name_with_email", "created_at"]
     # list_display_links = ["username"]
