@@ -10,16 +10,10 @@ import traceback
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
+from itertools import groupby
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
-from itertools import groupby
-from taggit.models import Tag, TaggedItem
 
-from django.contrib.contenttypes.forms import (
-    BaseGenericInlineFormSet,
-    generic_inlineformset_factory,
-)
-from django_q.models import OrmQ
 import django.utils.translation
 import django_tables2
 import jinja2
@@ -43,6 +37,10 @@ from django.contrib.auth.mixins import (
     AccessMixin,
     LoginRequiredMixin,
     UserPassesTestMixin,
+)
+from django.contrib.contenttypes.forms import (
+    BaseGenericInlineFormSet,
+    generic_inlineformset_factory,
 )
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
@@ -116,6 +114,7 @@ from django.views.generic import DetailView, FormView, TemplateView
 from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
+from django_q.models import OrmQ
 from django_select2 import forms as s2forms
 from django_summernote.widgets import SummernoteInplaceWidget
 from django_tables2 import SingleTableMixin, SingleTableView
@@ -138,6 +137,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
+from taggit.models import Tag, TaggedItem
 from weasyprint import HTML
 
 from . import filters, forms, models, tables
@@ -301,9 +301,7 @@ def favorites(request):
     #     .annotate(count=Count("pk"))
     #     .order_by("name")
     # )
-    favorites = (
-        models.Favorite.objects.filter(user=request.user)
-    )
+    favorites = models.Favorite.objects.filter(user=request.user)
     return render(request, "favorites.html", locals())
 
 
@@ -582,16 +580,20 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(f"""
+            return HttpResponse(
+                f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """)
-        return HttpResponse(f"""
+            """
+            )
+        return HttpResponse(
+            f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """)
+        """
+        )
 
 
 class NotesMixin:
@@ -7516,24 +7518,28 @@ class ApplicationList(
                 or filterset.is_valid()
                 or not self.get_strict()
             ):
-                object_list = self.filterset.qs
+                object_list = filterset.qs
             else:
                 object_list =  self.get_queryset()
 
             response = HttpResponse(
                 content_type="text/csv",
-                headers={"Content-Disposition": 'attachment; filename="outcomes.csv"'}
+                headers={"Content-Disposition": 'attachment; filename="outcomes.csv"'},
             )
             writer = csv.writer(response)
             writer.writerow(["NUMBER", "DECISION", "AMOUNT", "START", "END"])
             # Simulate fetching and writing data in chunks
-            for a in self.get_queryset():
+            for a in object_list:
                 row_data = [
                     a.number,
                     "Y",
-                    (a.awarded_amount or a.requested_amount) or '',
-                    a.proposed_start_date and a.proposed_start_date.isoformat() or '',
-                    (a.proposed_start_date + relativedelta(years=a.round.duration)) if a.proposed_start_date and a.round.duration else '',
+                    (a.awarded_amount or a.requested_amount) or "",
+                    a.proposed_start_date and a.proposed_start_date.isoformat() or "",
+                    (
+                        (a.proposed_start_date + relativedelta(years=a.round.duration, days=-1))
+                        if a.proposed_start_date and a.round.duration
+                        else ""
+                    ),
                 ]
                 writer.writerow(row_data)
 
@@ -7595,8 +7601,12 @@ class ApplicationList(
                         if a:
                             if decision in ["Y", "1", "YES"]:
                                 awarded_amount = Decimal(rest[0]) if rest and rest[0] else None
-                                start_date = parse_date(rest[1]) if len(rest) > 1 and rest[1] else None
-                                end_date = parse_date(rest[2]) if len(rest) > 2  and rest[2] else None
+                                start_date = (
+                                    parse_date(rest[1]) if len(rest) > 1 and rest[1] else None
+                                )
+                                end_date = (
+                                    parse_date(rest[2]) if len(rest) > 2 and rest[2] else None
+                                )
                                 if a.state != "funded":
                                     contracts.append(
                                         a.fund(
