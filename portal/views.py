@@ -7507,11 +7507,18 @@ class ApplicationList(
     def get(self, request, *args, **kwargs):
         if "outcome_file" in request.GET:
 
-            class Echo:
-                """An object that implements just the write method of the file-like interface.
-                This is used to write data to the response without buffering it all in memory."""
-                def write(self, value):
-                    return value
+
+            filterset_class = self.get_filterset_class()
+            filterset = self.get_filterset(filterset_class)
+
+            if (
+                not filterset.is_bound
+                or filterset.is_valid()
+                or not self.get_strict()
+            ):
+                object_list = self.filterset.qs
+            else:
+                object_list =  self.get_queryset()
 
             response = HttpResponse(
                 content_type="text/csv",
