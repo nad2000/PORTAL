@@ -7572,8 +7572,9 @@ class ApplicationList(
 
         if "outcome_file" in request.FILES:
             file = request.FILES["outcome_file"]
+            content_type, _ = mimetypes.guess_type(file.name)
             outcomes = tablib.Dataset()
-            if file.content_type == "text/csv":
+            if file.content_type == "text/csv" or content_type == "text/csv":
                 first_line = file.readline().decode()
                 file.seek(0)
                 outcomes.load(
