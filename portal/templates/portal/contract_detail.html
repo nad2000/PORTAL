@@ -66,27 +66,26 @@
   <div class="table-responsive"> {% contract_summary %} </div>
 {% endblock %}
 
-{% if tabbed_ui %}
-  {% with object.change_requests.all as crs %}
-  {% if can_edit and crs.exists %}
-    {% block object_details_extra_tabs %}
+{% with object.change_requests.all as crs %}
+  {% block object_details_extra_tabs %}
+    {% if tabbed_ui and can_edit and crs.exists %}
       <li class="nav-item">
         <a class="nav-link" href="#change_requests" data-toggle="tab">
           {% if crs.count > 1 %}{% trans 'Change Requests' %}{% else %}{% trans 'Change Request' %}{% endif %}
         </a>
       </li>
-    {% endblock %}
-    {% block object_details_extra_panes %}
+    {% endif %}
+  {% endblock %}
+  {% block object_details_extra_panes %}
+    {% if tabbed_ui and can_edit and crs.exists %}
       <div id="change_requests" class="tab-pane">
         <div class="table-responsive">
           {% jinja 'partials/change_request_table.html' objects=crs  %}
         </div>
       </div>
-    {% endblock object_details_extra_panes %}
-  {% endif %}
-  {% endwith %}
-{% endif %}
-
+    {% endif %}
+  {% endblock object_details_extra_panes %}
+{% endwith %}
 
 {% block object_details %}
 {% with object.change_requests.all as crs %}
