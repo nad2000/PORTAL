@@ -332,6 +332,7 @@ class AutocompleteFilterMixin:
             media._css["screen"].extend(extra_css)
         return media
 
+
 class InlineNoteForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
@@ -362,6 +363,7 @@ class NoteInline(GenericTabularInline):
 
 
 admin.site.register(models.Note)
+
 
 class StateLogInline(StateLogInline):
     classes = ["collapse"]
@@ -1371,6 +1373,42 @@ def refresh_page_counts(modeladmin, request, queryset):
     messages.success(request, f"{count} document page counts refreshed.")
 
 
+@admin.action(description="Revert Object States")
+def revert_object_states(modeladmin, request, queryset):
+    count = 0
+    objects = []
+
+    content_type = models.ContentType.objects.get_for_model(modeladmin.model)
+
+    # StateLog.objects.for_(a).order_by("-id").first()
+    for obj in queryset:
+        state_log_entry = (
+            models.StateLog.objects.for_(obj)
+            .filter(~Q(source_state=obj.state))
+            .order_by("-id")
+            .first()
+        )
+        if state_log_entry:
+            obj._change_reason = (
+                f"State reverted form {obj.state} to {state_log_entry.source_state} by admin ({request.user}).",
+            )
+            obj.state = state_log_entry.source_state
+            obj.state_changed_at = state_log_entry.timestamp
+            obj.updated_at = timezone.now()
+            objects.append(obj)
+            count += 1
+    if objects:
+        # modeladmin.model.objects.bulk_update(objects)
+        bulk_update_with_history(
+            objects,
+            modeladmin.model,
+            ["state", "state_changed_at", "updated_at"],
+            default_user=request.user,
+            manager=modeladmin.model.objects,
+        )
+    messages.success(request, f"{count} object state(s) were reverted.")
+
+
 @admin.action(description="Archive Objects")
 def archive_objects(modeladmin, request, queryset):
     count = 0
@@ -1947,6 +1985,7 @@ class ApplicationAdmin(
         "request_resubmission",
         "send_identity_verification_reminder",
         archive_objects,
+        revert_object_states,
     ]
 
     # def get_actions(self, request):
@@ -3817,6 +3856,7 @@ class RoundAdmin(
             self.PerformanceFlagInline,
         ]
 
+
 class IsActiveRoundEvaluationListFilter(admin.SimpleListFilter):
     title = "Is Active Round"
 
@@ -3831,7 +3871,9 @@ class IsActiveRoundEvaluationListFilter(admin.SimpleListFilter):
             ),
             "PREVIOUS__c": models.Count(
                 pk_attname,
-                filter=~Q(application__round__scheme__current_round__id=F("application__round_id")),
+                filter=~Q(
+                    application__round__scheme__current_round__id=F("application__round_id")
+                ),
             ),
             "All__c": models.Count(pk_attname),
         }
@@ -3863,11 +3905,14 @@ class IsActiveRoundEvaluationListFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == "ACTIVE" or self.value() is None:
-            return queryset.filter(application__round__scheme__current_round__id=F("application__round_id"))
+            return queryset.filter(
+                application__round__scheme__current_round__id=F("application__round_id")
+            )
         if self.value() == "PREVIOUS":
-            return queryset.filter(~Q(application__round__scheme__current_round__id=F("application__round_id")))
+            return queryset.filter(
+                ~Q(application__round__scheme__current_round__id=F("application__round_id"))
+            )
         return queryset
-
 
 
 @admin.register(models.Evaluation)
@@ -4283,7 +4328,7 @@ class ContractAdmin(
             ),
         )
 
-    actions = [start_reporting, refresh_page_counts, archive_objects]
+    actions = [start_reporting, refresh_page_counts, archive_objects, revert_object_states]
 
     def get_form(self, request, obj=None, change=False, **kwargs):
         form = super().get_form(request, obj=obj, change=change, **kwargs)
