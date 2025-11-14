@@ -6582,13 +6582,14 @@ class ContractDetail(FavoriteMixin, DetailView):
             )
         ):
             context["can_edit"] = True
-            change_request_form = forms.ChangeRequestForm(
-                initial={"contract": self.object},
-            )
-            change_request_form.fields.pop("categories")
-            change_request_form.fields.pop("subcategories")
-            change_request_form.fields.pop("tags", None)
-            context["change_request_form"] = change_request_form
+            if self.object.state == "current":
+                change_request_form = forms.ChangeRequestForm(
+                    initial={"contract": self.object},
+                )
+                change_request_form.fields.pop("categories")
+                change_request_form.fields.pop("subcategories")
+                change_request_form.fields.pop("tags", None)
+                context["change_request_form"] = change_request_form
         context["tabbed_ui"] = (
             context.get("tabbed_ui", False)
             or context.get("can_edit", False)
