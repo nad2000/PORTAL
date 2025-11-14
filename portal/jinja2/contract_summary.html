@@ -204,9 +204,13 @@
             </td>
             {% if not export %}
               <td>
-                <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a>
-                {% if d.convert_file %}
-                  (<a href="{{ d.convert_file.url }}">{{ d.convert_file.name|basename }}</a>)
+                {% if d.file %}
+                  <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a>
+                  {% if d.convert_file %}
+                    (<a href="{{ d.convert_file.url }}">{{ d.convert_file.name|basename }}</a>)
+                  {% endif %}
+                {% else %}
+                  {{ _('Not uploaded yet') }}
                 {% endif %}
               </td>
             {% endif %}
