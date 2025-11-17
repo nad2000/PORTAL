@@ -12559,26 +12559,27 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         obj = super().create(*args, **kwargs)
         # obj.fors.add(*c.fors.all())
         # obj.seos.add(*c.seos.all())
-        obj.fors.through.bulk_create(
-            [
-                obj.fors.through(
-                    report=obj,
-                    code=o.code,
-                    share=o.share,
-                )
-                for o in c.fors.through.objects.filter(contract=c)
-            ]
-        )
-        obj.seos.through.bulk_create(
-            [
-                obj.seos.through(
-                    report=obj,
-                    code=o.code,
-                    share=o.share,
-                )
-                for o in c.seos.through.objects.filter(contract=c)
-            ]
-        )
+        self.import_categories_from_contract()
+        # obj.fors.through.bulk_create(
+        #     [
+        #         obj.fors.through(
+        #             report=obj,
+        #             code=o.code,
+        #             share=o.share,
+        #         )
+        #         for o in c.fors.through.objects.filter(contract=c)
+        #     ]
+        # )
+        # obj.seos.through.bulk_create(
+        #     [
+        #         obj.seos.through(
+        #             report=obj,
+        #             code=o.code,
+        #             share=o.share,
+        #         )
+        #         for o in c.seos.through.objects.filter(contract=c)
+        #     ]
+        # )
         obj.keywords.add(*c.keywords.all())
         obj.priorities.add(*c.priorities.all())
 
@@ -12767,6 +12768,23 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
+
+    def import_categories_from_contract(self):
+        c = self.contract
+        for src, dst in [(c.fors, self.fors), (c.seos, self.seos)]:
+            dst.through.bulk_create(
+                [
+                    dst.through(
+                        report=self,
+                        code=o.code,
+                        share=o.share,
+                    )
+                    for o in src.through.objects.filter(contract=c)
+                ],
+                update_conflicts=True,
+                update_fields=["share"],
+                unique_fields=["report", "code"],
+            )
 
     def host_contact(self):
         if self.host_contact_email:
