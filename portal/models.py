@@ -12771,15 +12771,15 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     def import_categories_from_contract(self):
         c = self.contract
-        for src, dst in [(c.fors, self.fors), (c.seos, self.seos)]:
-            dst.through.bulk_create(
+        for src, dst in [(c.concract_fors, self.report_fors), (c.concract_seos, self.report_seos)]:
+            dst.bulk_create(
                 [
-                    dst.through(
+                    dst(
                         report=self,
                         code=o.code,
                         share=o.share,
                     )
-                    for o in src.through.objects.filter(contract=c)
+                    for o in src.all()
                 ],
                 update_conflicts=True,
                 update_fields=["share"],
