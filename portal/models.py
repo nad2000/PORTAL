@@ -250,6 +250,14 @@ EMPLOYMENT_STATUS = Choices(
     (5, "Not stated"),
 )
 
+REPORT_TYPES = Choices(
+    ("A", _("Annual")),
+    ("E", _("Exchange")),
+    ("F", _("Final")),
+    ("I", _("Interim")),
+    ("L", _("Follow up")),
+)
+
 LANGUAGES = Choices(
     "Afrikaans",
     "Arabic",
@@ -6779,11 +6787,15 @@ class Scheme(Model):
 def round_template_path(instance, filename):
     r = instance if hasattr(instance, "title") else instance.round
     if r.opens_on:
-        return f"rounds/{r.scheme.code}-{r.opens_on.year}/{filename}"
-    title = (r.title or r.scheme.title).lower().replace(" ", "-")
-    if len(title) > 50:
-        title = hashlib.shake_256(title.encode()).hexdigest(9)
-    return f"rounds/{title}/{filename}"
+        path = f"rounds/{r.scheme.code}-{r.opens_on.year}"
+    else:
+        title = (r.title or r.scheme.title).lower().replace(" ", "-")
+        if len(title) > 50:
+            title = hashlib.shake_256(title.encode()).hexdigest(9)
+        path = f"rounds/{title}"
+    if isinstance(instance, ReportTemplate):
+        path = f"{path}/report_templates"
+    return f"{path}/{filename}"
 
 
 def notify_site_staff_about_new_org(
@@ -7470,6 +7482,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 self.required_contract_documents,
                 self.templates,
                 self.performance_flags,
+                self.report_templates,
             ]:
                 objs = [o for o in m.all()]
                 for o in objs:
@@ -8289,6 +8302,43 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     class Meta(OrderableModel.Meta):
         db_table = "round"
+
+
+class ReportTemplate(TimeStampMixin, HelperMixin, OrderableModel):
+    round = ForeignKey(Round, on_delete=CASCADE, related_name="report_templates")
+    type = FixedCharField(
+        max_length=1,
+        choices=REPORT_TYPES,
+        help_text=_("Reporting Type"),
+    )
+    file = FileField(
+        null=True,
+        blank=True,
+        upload_to=round_template_path,
+        verbose_name=_("Application Template"),
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "doc",
+                    "docx",
+                    "dot",
+                    "dotx",
+                    "docm",
+                    "dotm",
+                    "docb",
+                    "odt",
+                    "ott",
+                    "oth",
+                    "odm",
+                    "rtf",
+                    "tex",
+                ]
+            )
+        ],
+    )
+
+    class Meta(OrderableModel.Meta):
+        db_table = "report_template"
 
 
 class PerformanceFlag(TimeStampMixin, HelperMixin, OrderableModel):
@@ -12054,13 +12104,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
     period = PositiveSmallIntegerField(_("period"))
     type = FixedCharField(
         max_length=1,
-        choices=Choices(
-            ("A", _("Annual")),
-            ("E", _("Exchange")),
-            ("F", _("Final")),
-            ("I", _("Interim")),
-            ("L", _("Follow up")),
-        ),
+        choices=REPORT_TYPES,
         help_text=_("Reporting Type"),
     )
     due_date = DateField(blank=True, null=True)
@@ -12250,7 +12294,6 @@ class ReportSeo(Model):
         verbose_name = _("report SEO")
         verbose_name_plural = _("report SEOs")
 
-
 class ReportMixin:
     STATES = Choices(
         ("accepted", _("Accepted")),
@@ -12283,13 +12326,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     period = PositiveSmallIntegerField(_("period"))
     type = FixedCharField(
         max_length=1,
-        choices=Choices(
-            ("A", _("Annual")),
-            ("E", _("Exchange")),
-            ("F", _("Final")),
-            ("I", _("Interim")),
-            ("L", _("Follow up")),
-        ),
+        choices=REPORT_TYPES,
         help_text=_("Reporting Type"),
     )
     host_contact_email = EmailField(

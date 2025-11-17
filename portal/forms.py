@@ -4773,23 +4773,31 @@ class ReportForm(ModelForm):
             # self.fields["assessment"].required = True
         else:
             self.fields.pop("assessment", None)
-            if round.nomination_template:
-                help_text = _(
-                    'You can download the research report template at <strong><a href="%s">%s</a></strong>'
-                ) % (round.report_template.url, os.path.basename(round.report_template.name))
+            templates = round.report_templates.filter(type=instance.type)
+
+            if templates.exists():
+                templates = [t.file for t in templates.order_by("ordering")]
+                template_urls = ", ".join(
+                    '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
+                    for t in templates[:-1]
+                )
+                if len(templates) > 2:
+                    template_urls += ","
+                template_urls += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
+                    templates[-1].url,
+                    os.path.basename(templates[-1].name),
+                )
+                help_text = _("You can download the research report template(s) at ") + template_urls
+
                 fields = [
                     HTML(
                         '<div class="alert alert-dark" role="alert">%s</div>'
                         % (
                             _(
-                                "Please download the research report template at "
-                                '<strong><a href="%s">%s</a></strong>, '
-                                "complete then upload below."
+                                "Please download the research report template at %s, "
+                                "complete and then upload the compled report below."
                             )
-                            % (
-                                round.report_template.url,
-                                os.path.basename(round.report_template.name),
-                            )
+                            % template_urls
                         )
                     ),
                     Field("file", label=help_text, help_text=help_text),
@@ -5091,7 +5099,7 @@ class ReportForm(ModelForm):
                         _("Save"),
                         css_class="btn-primary",
                         data_toggle="tooltip",
-                        title=_("Save draft contract"),
+                        title=_("Save draft report"),
                     ),
                     submit_button,
                     HTML(

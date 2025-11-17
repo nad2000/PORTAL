@@ -3833,6 +3833,12 @@ class RoundAdmin(
         ordering_field_hide_input = True
         classes = ["collapse"]
 
+    class ReportTemplateInline(StaffPermsMixin, OrderableAdmin, admin.TabularInline):
+        extra = 0
+        model = models.ReportTemplate
+        view_on_site = False
+        ordering_field_hide_input = True
+
     def get_inlines(self, request, obj):
         if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [2, 4, 5]:
             return [
@@ -3844,6 +3850,7 @@ class RoundAdmin(
                 self.RequiredContractDocumentInline,
                 self.RoundContractClauseInline,
                 self.PerformanceFlagInline,
+                self.ReportTemplateInline,
             ]
 
         return [
@@ -3854,6 +3861,7 @@ class RoundAdmin(
             self.RequiredContractDocumentInline,
             self.RoundContractClauseInline,
             self.PerformanceFlagInline,
+            self.ReportTemplateInline,
         ]
 
 
