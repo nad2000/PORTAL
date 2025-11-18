@@ -54,6 +54,7 @@ if __name__ == "__main__":
                 from msg_parser import MsOxMessage
                 from msg_parser.email_builder import EmailFormatter
                 import tempfile
+
                 msg_obj = MsOxMessage(filename)
                 filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.eml")
                 msg_fmt = EmailFormatter(msg_obj)
@@ -74,6 +75,8 @@ if __name__ == "__main__":
     to = msg["to"]
     subject = msg["subject"]
     sender = msg["from"]
+    thread_index = msg["thread-index"]
+    thread_topic = msg["thread-topic"]
     from_addresses = []
 
     if subject:
@@ -242,7 +245,7 @@ if __name__ == "__main__":
 
     if (
         to
-        and message_id
+        and (message_id or thread_index)
         and (
             to.startswith("contracts")
             or to.startswith("comments")
@@ -256,7 +259,17 @@ if __name__ == "__main__":
         if not reply_to:
             pass
 
-        o = reply_to.object
+        if message_id:
+            o = reply_to.object
+        elif to.startswith("contracts"):
+            contract = o = models.Contract.get_by_thread_index(thread_index=thread_index)
+        elif to.startswith("change-requests") or to.startswith("variations"):
+            o = models.ChangeRequest.get_by_thread_index(thread_index=thread_index)
+            contract = o.contract if o else None
+        elif to.startswith("comments"):
+            o = models.Model.get_by_thread_index(thread_index=thread_index)
+            contract = o.contract if o else None
+
         if contract := (
             reply_to.object.contract
             if to.startswith("change-requests")
@@ -270,7 +283,7 @@ if __name__ == "__main__":
                 settings.SITE_ID = site.pk
 
             by = models.User.where(
-                models.Q(email=sender) | models.Q(emailaddress__email=sender)
+                models.Q(email__icontains=sender) | models.Q(emailaddress__email__icontains=sender)
             ).first()
             body = msg["body"]
             if not msg.is_multipart():
@@ -338,35 +351,50 @@ if __name__ == "__main__":
                                 )
                             ]
                         )
-                    respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
-                    html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{contract.number}">{contract}</data>'
-                    html_message += f":</p>{body}" if body else "."
-                    html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                    send_mail(
-                        from_email=to,
-                        subject=f"Comment posted by {by.full_name_with_email} to {contract}",
-                        html_message=html_message,
-                        cc=[by.full_email_address],
-                        attachments=attachments or None,
-                        recipients=recipients,
-                        thread_index=contract.thread_index,
-                        thread_topic=contract.thread_topic,
-                        token=token,
-                        site=site,
-                    )
+                elif reply_to and reply_to.submitted_by:
+                    recipients = [reply_to.submitted_by]
+                else:
+                    if (round := contract.application.round) and round.contact_email:
+                        recipients = [round.contact_email]
+                    elif (agency := contract.agency) and agency.reporting_contact_email:
+                        recipients = [agency.reporting_contact_email]
+                    else:
+                        recipients = contract.agency_recipients
 
+                respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
+                html_message = f'<p>Comment posted by {by and by.full_name_with_email or sender} to <data value="{contract.number}">{contract}</data>'
+                html_message += f":</p>{body}" if body else "."
+                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                send_mail(
+                    from_email=to,
+                    subject=f"Comment posted by {by and by.full_name_with_email or sender} to {contract}",
+                    html_message=html_message,
+                    cc=[by.full_email_address if by else sender],
+                    attachments=attachments or None,
+                    recipients=recipients,
+                    thread_index=contract.thread_index,
+                    thread_topic=contract.thread_topic,
+                    token=token,
+                    site=site,
+                )
+
+    reply_to = None
     if (
         to
         and to.startswith("reports")
-        and message_id
-        and (reply_to := models.ReportComment.where(token=message_id).last())
+        and thread_index
+        or (message_id and (reply_to := models.ReportComment.where(token=message_id).last()))
     ):
-        report = reply_to.report
+        if reply_to:
+            report = reply_to.report
+        else:
+            report = o = models.Report.get_by_thread_index(thread_index=thread_index)
+
         if site := report.contract.site:
             settings.SITE_ID = site.pk
 
         by = models.User.where(
-            models.Q(email=sender) | models.Q(emailaddress__email=sender)
+            models.Q(email__icontains=sender) | models.Q(emailaddress__email__icontains=sender)
         ).first()
         body = msg["body"]
         if not msg.is_multipart():
@@ -403,11 +431,12 @@ if __name__ == "__main__":
                 reply_to=reply_to,
                 # attachment=attachments and attachments[0] or None,
             )
-            models.ReportCommentRecipient.create(
-                comment=comment,
-                user=reply_to.submitted_by,
-                email=reply_to.submitted_by.email,
-            )
+            if reply_to and reply_to.submitted_by:
+                models.ReportCommentRecipient.create(
+                    comment=comment,
+                    user=reply_to.submitted_by,
+                    email=reply_to.submitted_by.email,
+                )
             attachments.append(
                 File(io.BytesIO(msg.as_bytes()), name=f"{models.hash_int(comment.pk)}.eml")
             )
@@ -418,24 +447,32 @@ if __name__ == "__main__":
                 ca.attachment.save(content=a, name=a.name)
                 ca.save()
 
-            if by:
-                domain = to.split("@")[1]
+            domain = to.split("@")[1]
+            if reply_to and reply_to.submitted_by:
                 recipients = [reply_to.submitted_by]
-                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=report.pk))}#correspondence"
-                html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{report}">{report}</data>'
-                html_message += f":</p>{body}" if body else "."
-                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                send_mail(
-                    from_email=to,
-                    subject=f"Comment posted by {by.full_name_with_email} to {report}",
-                    html_message=html_message,
-                    cc=[by.full_email_address],
-                    attachments=attachments or None,
-                    recipients=recipients,
-                    thread_index=report.thread_index,
-                    thread_topic=report.thread_topic,
-                    token=token,
-                    site=site,
-                )
+            else:
+                if (round := report.application.round) and round.contact_email:
+                    recipients = [round.contact_email]
+                elif (agency := report.contract.agency) and agency.reporting_contact_email:
+                    recipients = [agency.reporting_contact_email]
+                else:
+                    recipients = report.agency_recipients
+
+            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=report.pk))}#correspondence"
+            html_message = f'<p>Comment posted by {by and by.full_name_with_email or sender} to <data value="{report}">{report}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                from_email=to,
+                subject=f"Comment posted by {by and by.full_name_with_email or sender} to {report}",
+                html_message=html_message,
+                cc=[by.full_email_address if by else sender],
+                attachments=attachments or None,
+                recipients=recipients,
+                thread_index=report.thread_index,
+                thread_topic=report.thread_topic,
+                token=token,
+                site=site,
+            )
 
 # vim:set ft=python.django:

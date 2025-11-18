@@ -3,6 +3,7 @@ import copy
 
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core import checks, validators
 from django.db import connection, connections, models, router
@@ -12,7 +13,7 @@ from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.functional import cached_property, LazyObject
+from django.utils.functional import LazyObject, cached_property
 from django.utils.safestring import mark_safe
 from model_utils import Choices
 
@@ -59,6 +60,7 @@ class TimeStampMixin(Base):
     class Meta:
         abstract = True
         get_latest_by = "updated_at"
+
 
 # class TimeStampedModel(models.Model):
 #     """
@@ -137,8 +139,36 @@ class HelperMixin:
             return mark_safe(f"<b>{self.get_state_display().upper()}</b>")
         return ""
 
+    @classmethod
+    def get_by_thread_index(cls, thread_index, thread_topic=None):
+        try:
+            decoded = base64.b64decode(thread_index).decode()
+            parts = decoded.split(":")
+            # site_id = None
+            model = None
+            if len(parts) == 3:
+                site_id = parts[0]
+                model = parts[1]
+                pk = parts[3]
+            elif len(parts) == 2:
+                model = parts[0]
+                pk = parts[1]
+            else:
+                pk = parts[0]
+            if model and cls._meta.abstract:
+                if model.isdigit():
+                    ct = ContentType.objects.get_for_id(int(model))
+                    cls = ct.model_class()
+                else:
+                    cls = cls._meta.apps.get_model(model)
+            return getattr(cls, "all_objects", cls.objects).get(pk=pk)
+        except Exception:
+            return None
+
     @property
     def thread_index(self):
+        if ct := ContentType.objects.get_for_model(self):
+            return base64.b64encode(f"{ct.pk}:{self.pk}".encode()).decode()
         if site_id := getattr(self, "site_id", None):
             return base64.b64encode(f"{site_id}:{self.pk}".encode()).decode()
         return base64.b64encode(f"{self.pk}".encode()).decode()

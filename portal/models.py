@@ -11100,6 +11100,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @property
     def thread_index(self):
+        if ct := ContentType.objects.get_for_model(self):
+            return base64.b64encode(f"{ct.pk}:{self.pk}".encode()).decode()
         return base64.b64encode(
             f"{self.site_id}:{self._meta.model_name}:{self.pk}".encode()
         ).decode()
@@ -12771,10 +12773,10 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     def import_categories_from_contract(self):
         c = self.contract
-        for src, dst in [(c.concract_fors, self.report_fors), (c.concract_seos, self.report_seos)]:
-            dst.bulk_create(
+        for src, dst in [(c.contract_fors, self.report_fors), (c.contract_seos, self.report_seos)]:
+            dst.model.bulk_create(
                 [
-                    dst(
+                    dst.model(
                         report=self,
                         code=o.code,
                         share=o.share,
@@ -12785,6 +12787,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
                 update_fields=["share"],
                 unique_fields=["report", "code"],
             )
+        return
 
     def host_contact(self):
         if self.host_contact_email:
