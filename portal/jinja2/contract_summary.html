@@ -133,18 +133,21 @@
       {% endif %}
 
       {#% if (request.user.is_staff or request.user.is_superuser or request.user.is_site_staff) and c.org.research_offices.exists() %#}
-      {% if (is_staff or request.user.is_superuser) and c.org.research_offices.exists() %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Research Office') }}
-        </th>
-        <td>
-            {% for ro in c.org.research_offices.order_by("user__first_name") %}
-                {{ ro.user.full_name_with_email }}
-                {% if not loop.last %}, {% endif %}
-            {% endfor %}
-        </td>
-      </tr>
+      {% if (is_staff or is_admin or request.user.is_admin) %}
+        {% set research_officers = c.research_officers %}
+        {% if research_officers %}
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Research Office') }}
+            </th>
+            <td>
+                {% for ro in research_officers %}
+                    {{ ro.full_name_with_email }}
+                    {% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+          </tr>
+        {% endif %}
       {% endif %}
 
       {% if c.address %}

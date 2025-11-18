@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 
 from portal import models
 from django.conf import settings
+from loguru import logger
 
 class Command(BaseCommand):
     help = "Sent reporting reminders and initiate new reports"
@@ -19,3 +20,7 @@ class Command(BaseCommand):
             settings.SITE_ID = site_id
             # models.refresh_page_counts(dry_run=options.get("dry_run"))
             reports = list(models.Contract.start_reporting())
+            if reports:
+                logger.info(f"Created {len(reports)} report(s).")
+                for r in reports:
+                    logger.info(f"** {r}")

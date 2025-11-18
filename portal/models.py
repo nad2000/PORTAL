@@ -10347,6 +10347,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
         return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
 
+
+    @property
+    def research_officers(self):
+        return sorted(set([ro.user for ro in self.object.org.research_offices.all()]), key=lambda o: (o.first_name, o.last_name))
+
     @property
     def update_url(self):
         return reverse("report-update", kwargs={"pk": r.pk})
@@ -10437,6 +10442,24 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         q = q.distinct()
 
         return q
+
+    def import_categories_from_application(self):
+        a = self.application
+        for src, dst in [(a.application_fors, self.contract_fors), (a.application_seos, self.contract_seos)]:
+            dst.model.bulk_create(
+                [
+                    dst.model(
+                        contract=self,
+                        code=o.code,
+                        share=o.share,
+                    )
+                    for o in src.all()
+                ],
+                update_conflicts=True,
+                update_fields=["share"],
+                unique_fields=["contract", "code"],
+            )
+        return
 
     @classmethod
     def create_from_application(
@@ -10595,26 +10618,27 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             c = cls.create(**params)
             # c.fors.add(*a.fors.all())
             # c.seos.add(*a.seos.all())
-            c.fors.through.bulk_create(
-                [
-                    c.fors.through(
-                        contract=c,
-                        code=o.code,
-                        share=o.share,
-                    )
-                    for o in a.fors.through.objects.filter(application=a)
-                ]
-            )
-            c.seos.through.bulk_create(
-                [
-                    c.seos.through(
-                        contract=c,
-                        code=o.code,
-                        share=o.share,
-                    )
-                    for o in a.seos.through.objects.filter(application=a)
-                ]
-            )
+            # c.fors.through.bulk_create(
+            #     [
+            #         c.fors.through(
+            #             contract=c,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in a.fors.through.objects.filter(application=a)
+            #     ]
+            # )
+            # c.seos.through.bulk_create(
+            #     [
+            #         c.seos.through(
+            #             contract=c,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in a.seos.through.objects.filter(application=a)
+            #     ]
+            # )
+            c.import_categories_from_application()
             c.keywords.add(*a.keywords.all())
             c.priorities.add(*a.priorities.all())
             documents = []
@@ -12561,7 +12585,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         obj = super().create(*args, **kwargs)
         # obj.fors.add(*c.fors.all())
         # obj.seos.add(*c.seos.all())
-        self.import_categories_from_contract()
+        obj.import_categories_from_contract()
         # obj.fors.through.bulk_create(
         #     [
         #         obj.fors.through(

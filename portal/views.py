@@ -6572,9 +6572,7 @@ class ContractDetail(FavoriteMixin, DetailView):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
         if (
-            u.is_superuser
-            or u.is_staff
-            or u.is_site_staff
+            u.is_admin
             or (
                 self.object
                 and (org := self.object.org or self.object.application.org)
@@ -6590,10 +6588,13 @@ class ContractDetail(FavoriteMixin, DetailView):
                 change_request_form.fields.pop("subcategories")
                 change_request_form.fields.pop("tags", None)
                 context["change_request_form"] = change_request_form
+                if u.is_admin:
+                    context["is_admin"] = True
         context["tabbed_ui"] = (
             context.get("tabbed_ui", False)
             or context.get("can_edit", False)
             or self.object.change_requests.exists()
+            or self.object.reports.exists()
         )
         return context
 
