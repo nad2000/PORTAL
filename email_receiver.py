@@ -22,8 +22,20 @@ from django.shortcuts import reverse
 # from django.contrib.sites.models import Site
 from django.db.models import Value, F
 
-EMAIL_EX = re.compile(r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+", re.I)
+EMAIL_EX = re.compile(r"([a-z0-9]+[.-_+])*[a-z0-9]+@[a-z0-9-.]+(\.[a-z]{2,})+", re.I | re.S)
 message_id = None
+site = None
+
+
+def extract_addresses(address):
+    if address:
+        address = address.strip().lower()
+        if "<" in address:
+            address = address.split("<")[1].strip()
+        match = EMAIL_EX.search(address)
+        if match:
+            address = match[0].lower()
+    return address
 
 
 if __name__ == "__main__":
@@ -43,6 +55,7 @@ if __name__ == "__main__":
     from portal import models
     from portal.utils import send_mail
     from django.conf import settings
+    from multisite.models import Alias
 
     # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
     # msg = email.message_from_string(full_msg)
@@ -80,7 +93,7 @@ if __name__ == "__main__":
     from_addresses = []
 
     if subject:
-        subject = str(make_header(decode_header(subject)))
+        subject = str(make_header(decode_header(subject))).strip()
 
     # Skip CCed emails:
     if (
@@ -102,12 +115,8 @@ if __name__ == "__main__":
         and auto_submitted.lower() == "auto-replied"
     )
 
-    if sender and (match := EMAIL_EX.search(sender)):
-        sender = match[0].lower()
-        from_addresses.append(sender)
-
-    if to and (recipient_match := EMAIL_EX.search(to)):
-        to = recipient_match[0].lower()
+    sender = extract_addresses(sender)
+    to = extract_addresses(to)
 
     body = msg["body"]
     if not msg.is_multipart():
@@ -128,9 +137,8 @@ if __name__ == "__main__":
         if has_delivery_status:
             for line in part.as_string().splitlines():
                 if line and re.search(r"(final-recipient|original-recipient)", line, re.I):
-                    match = EMAIL_EX.search(line)
-                    if match:
-                        final_recipient = match[0].lower()
+                    final_recipient = extract_addresses(line)
+                    if final_recipient:
                         from_addresses.append(final_recipient)
 
         if has_disposition_notification or (
@@ -142,9 +150,8 @@ if __name__ == "__main__":
                     body = p.get_payload(decode=True)
                 if message_id:
                     break
-            match = EMAIL_EX.search(part.as_string())
-            if match:
-                final_recipient = match[0].lower()
+            final_recipient = extract_addresses(part.as_string())
+            if final_recipient:
                 from_addresses.append(final_recipient)
 
         if not message_id:
@@ -243,6 +250,14 @@ if __name__ == "__main__":
         else:
             message_id = None
 
+    reply_to = None
+    token = models.get_unique_mail_token()
+    domain = to.split("@")[1].lower()
+    if not site:
+        site = (alias := Alias.objects.filter(domain__contains=domain).first()) and alias.site
+    by = models.User.where(
+        models.Q(email__istartswith=sender) | models.Q(emailaddress__email__istartswith=sender)
+    ).first()
     if (
         to
         and (message_id or thread_index)
@@ -252,17 +267,25 @@ if __name__ == "__main__":
             or to.startswith("change-requests")
         )
     ):
-        if to.startswith("change-requests"):
-            reply_to = models.ChangeRequestComment.where(token=message_id).order_by("-pk").first()
-        else:
-            reply_to = models.ContractComment.where(token=message_id).last()
-        if not reply_to:
-            pass
-
         if message_id:
+            if to.startswith("change-requests"):
+                reply_to = (
+                    models.ChangeRequestComment.where(token=message_id).order_by("-pk").first()
+                )
+            else:
+                reply_to = models.ContractComment.where(token=message_id).last()
             o = reply_to.object
+
         elif to.startswith("contracts"):
-            contract = o = models.Contract.get_by_thread_index(thread_index=thread_index)
+            contract = o = (
+                models.Contract.get_by_thread_index(thread_index=thread_index)
+                or models.Contract.all_objects.annotate(
+                    subject=Value(f"{subject} - {thread_topic}")
+                )
+                .filter(subject__icontains=F("number"))
+                .order_by("-id")
+                .first()
+            )
         elif to.startswith("change-requests") or to.startswith("variations"):
             o = models.ChangeRequest.get_by_thread_index(thread_index=thread_index)
             contract = o.contract if o else None
@@ -270,21 +293,23 @@ if __name__ == "__main__":
             o = models.Model.get_by_thread_index(thread_index=thread_index)
             contract = o.contract if o else None
 
-        if contract := (
-            reply_to.object.contract
-            if to.startswith("change-requests")
-            else (
-                models.Contract.all_objects.filter(comments__token=message_id).last()
-                or models.ChangeRequest.where(token=message_id).first()
+        if not contract and (reply_to or message_id):
+            contract = (
+                reply_to and reply_to.object.contract
+                if to.startswith("change-requests")
+                else message_id
+                and (
+                    models.Contract.all_objects.filter(comments__token=message_id).last()
+                    or models.ChangeRequest.where(token=message_id).first()
+                )
             )
-        ):
 
-            if site := contract.site:
+        if contract:
+            if not site:
+                site = contract.site
+            if site:
                 settings.SITE_ID = site.pk
 
-            by = models.User.where(
-                models.Q(email__icontains=sender) | models.Q(emailaddress__email__icontains=sender)
-            ).first()
             body = msg["body"]
             if not msg.is_multipart():
                 body = msg.get_payload(decode=True)
@@ -331,7 +356,6 @@ if __name__ == "__main__":
 
                 if by:
                     a = contract.application
-                    domain = to.split("@")[1]
                     if (
                         contract.org.research_offices.filter(user=by).exists()
                         or a.submitted_by == by
@@ -356,8 +380,8 @@ if __name__ == "__main__":
                 else:
                     if (round := contract.application.round) and round.contact_email:
                         recipients = [round.contact_email]
-                    elif (agency := contract.agency) and agency.reporting_contact_email:
-                        recipients = [agency.reporting_contact_email]
+                    elif (agency := contract.agency) and agency.contract_contact_email:
+                        recipients = [agency.contract_contact_email]
                     else:
                         recipients = contract.agency_recipients
 
@@ -377,8 +401,39 @@ if __name__ == "__main__":
                     token=token,
                     site=site,
                 )
+        else:
+            # Could not find contract
+            attachments = [
+                File(
+                    io.BytesIO(msg.as_bytes()),
+                    name=f"{subject or models.hash_int(comment.pk)}.eml",
+                )
+            ]
+            if site:
+                recipients = (
+                    ["tawhia@royalsociety.org.nz"]
+                    if site.pk == 5
+                    else [u for u in site.staff_users.all()]
+                    or [u for u in models.User.where(is_superuser=True)]
+                )
+            else:
+                recipients = [u for u in models.User.where(is_superuser=True)]
+            send_mail(
+                from_email=to,
+                subject=f"FW: {subject or 'No Subject'}",
+                html_message=(
+                    "<p>This is an automated message.</p>"
+                    "<p>Could not find contract for message sent by "
+                    f"{by and by.full_name_with_email or sender} to {to}.</p>"
+                ),
+                cc=[by.full_email_address if by else sender],
+                attachments=attachments,
+                recipients=recipients,
+                token=token,
+                site=site,
+                reply_to=by and by.full_email_address or sender,
+            )
 
-    reply_to = None
     if (
         to
         and to.startswith("reports")
@@ -394,7 +449,7 @@ if __name__ == "__main__":
             settings.SITE_ID = site.pk
 
         by = models.User.where(
-            models.Q(email__icontains=sender) | models.Q(emailaddress__email__icontains=sender)
+            models.Q(email__istatswith=sender) | models.Q(emailaddress__email__istatswith=sender)
         ).first()
         body = msg["body"]
         if not msg.is_multipart():
