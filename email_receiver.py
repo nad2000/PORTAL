@@ -267,6 +267,7 @@ if __name__ == "__main__":
             or to.startswith("change-requests")
         )
     ):
+        contract = None
         if message_id:
             if to.startswith("change-requests"):
                 reply_to = (
@@ -345,9 +346,14 @@ if __name__ == "__main__":
                     # attachment=attachments and attachments[0] or None,
                 )
 
-                attachments.append(
-                    File(io.BytesIO(msg.as_bytes()), name=f"{models.hash_int(comment.pk)}.eml")
-                )
+                try:
+                    attachments.append(
+                        File(io.BytesIO(msg.as_bytes()), name=f"{subject or models.hash_int(comment.pk)}.eml")
+                    )
+                except UnicodeEncodeError:
+                    attachments.append(
+                        File(io.BytesIO(msg.as_string().encode()), name=f"{subject or models.hash_int(comment.pk)}.eml")
+                    )
                 # for a in attachments[1:]:
                 for a in attachments:
                     ca = models.ContractCommentAttachment(comment=comment)

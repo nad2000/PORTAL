@@ -10042,6 +10042,7 @@ class ContractCommentAttachment(Model):
             hash_int(instance.comment_id),
             "attachments",
         ],
+        max_length=400,
         null=True,
         blank=True,
     )
@@ -13311,6 +13312,7 @@ class ReportCommentAttachment(Model):
             hash_int(instance.comment_id),
             "attachments",
         ],
+        max_length=400,
         null=True,
         blank=True,
     )
@@ -13922,6 +13924,7 @@ class ChangeRequestCommentAttachment(Model):
             hash_int(instance.comment_id),
             "attachments",
         ],
+        max_length=400,
         null=True,
         blank=True,
     )
