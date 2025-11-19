@@ -96,5 +96,5 @@ ooopy
 django-taggit
 limesurveyrc2api
 odfdo
-colorlog
+# colorlog
 loguru
