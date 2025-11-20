@@ -19,6 +19,7 @@ from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
 
+import py7zr
 import pikepdf
 import simple_history
 from admin_ordering.models import OrderableModel
