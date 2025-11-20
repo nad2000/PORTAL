@@ -19,8 +19,8 @@ from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
 
-import py7zr
 import pikepdf
+import py7zr
 import simple_history
 from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
@@ -45,7 +45,7 @@ from django.core.validators import (
     RegexValidator,
 )
 from django.db import connection, transaction
-from django.db.models import (
+from django.db.models import (  # GeneratedField,
     CASCADE,
     DO_NOTHING,
     PROTECT,
@@ -62,7 +62,6 @@ from django.db.models import (
     FileField,
     FloatField,
     ForeignKey,
-    # GeneratedField,
     Index,
     IntegerField,
     Manager,
@@ -198,11 +197,11 @@ def site_contact_email(site_id=None):
 
 GENDERS = Choices(
     # (0, _("Prefer not to say")), (1, _("Male")), (2, _("Female")), (3, _("Gender diverse"))
-    ('X', _("Prefer not to say")),
-    ('N', _("Prefer not to answer")),
-    ('M', _("Male")),
-    ('F', _("Female")),
-    ('D', _("Gender diverse"))
+    ("X", _("Prefer not to say")),
+    ("N", _("Prefer not to answer")),
+    ("M", _("Male")),
+    ("F", _("Female")),
+    ("D", _("Gender diverse")),
 )
 
 AFFILIATION_TYPES = Choices(
@@ -9497,12 +9496,14 @@ class MailLog(Model):
 
 class Recipient(HelperMixin, Base):
     """Recipient of an email message."""
+
     message = ForeignKey(MailLog, on_delete=CASCADE, related_name="recipients")
     recipient = CharField(max_length=200, db_index=True)
     type = CharField(max_length=10, choices=(("to", "to"), ("cc", "cc"), ("bcc", "bcc")))
 
     class Meta:
         db_table = "recipient"
+
 
 class ScoreSheet(Model):
     objects = RoundSiteManager()
@@ -9651,16 +9652,26 @@ def refresh_page_counts(dry_run=False):
 
 
 def clean_private_fils(dry_run=False):
+
+    def field_first_level_dir(field):
+        return (
+            field.upload_to
+            if isinstance(field.upload_to, str)
+            else str(field.upload_to("instance", "default"))
+        ).split("/")[0]
+
     root_dir = settings.PRIVATE_STORAGE_ROOT
     total = 0
+
     file_fields = sorted(
         [f for m in apps.get_models() for f in m._meta.fields if isinstance(f, PrivateFileField)],
-        key=lambda f: f.upload_to.split("/")[0],
+        key=field_first_level_dir,
     )
     file_fields = {
         dir_name: list(file_fields)
         for (dir_name, file_fields) in groupby(
-            file_fields, lambda f: f"{f.upload_to.split('/')[0]}/"
+            file_fields,
+            lambda f: f"{field_first_level_dir}/",
         )
     }
     model_fields = [
@@ -10358,10 +10369,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
         return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
 
-
     @property
     def research_officers(self):
-        return sorted(set([ro.user for ro in self.object.org.research_offices.all()]), key=lambda o: (o.first_name, o.last_name))
+        return sorted(
+            set([ro.user for ro in self.object.org.research_offices.all()]),
+            key=lambda o: (o.first_name, o.last_name),
+        )
 
     @property
     def update_url(self):
@@ -10456,7 +10469,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     def import_categories_from_application(self):
         a = self.application
-        for src, dst in [(a.application_fors, self.contract_fors), (a.application_seos, self.contract_seos)]:
+        for src, dst in [
+            (a.application_fors, self.contract_fors),
+            (a.application_seos, self.contract_seos),
+        ]:
             dst.model.bulk_create(
                 [
                     dst.model(
@@ -12334,6 +12350,7 @@ class ReportSeo(Model):
         unique_together = (("report", "code"),)
         verbose_name = _("report SEO")
         verbose_name_plural = _("report SEOs")
+
 
 class ReportMixin:
     STATES = Choices(
