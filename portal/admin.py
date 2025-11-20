@@ -2573,6 +2573,13 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
     list_filter = ["sent_at", "updated_at", "was_sent_successfully"]
     date_hierarchy = "sent_at"
 
+    class RecipientInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.Recipient
+        fields = ["type", "recipient"]
+
+    inlines = [RecipientInline]
+
     def html_message_content(self, obj):
         return mark_safe(obj.html_message or "-")
 
