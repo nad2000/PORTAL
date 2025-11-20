@@ -13,8 +13,6 @@ find ./archive -mtime +7 -name pmspp_\*.sql.xz -exec rm -f {} \;
 pg_dump -U postgres pmspp | xz -z -3 -c - >./backup/${OUTPUT}
 pg_dumpall --globals-only -U postgres >./backup/globals${TS_LABEL}.sql
 mv ./backup/global*.sql ./backup/${OUTPUT} ./archive/
-# pg_dump -U postgres lime | xz -z -3 -c - >./backup/${LIME_OUTPUT}
-# mv ./backup/${LIME_OUTPUT} ./archive/
 
 # # SEE: https://www.vultr.com/docs/how-to-use-s3cmd-with-vultr-object-storage
 # if which s3cmd && [ -f $HOME/.s3cfg ] ; then
