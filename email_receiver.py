@@ -24,7 +24,6 @@ from django.db.models import Value, F
 
 EMAIL_EX = re.compile(r"([a-z0-9]+[.-_+])*[a-z0-9]+@[a-z0-9-.]+(\.[a-z]{2,})+", re.I | re.S)
 message_id = None
-site = None
 
 
 def extract_addresses(address):
@@ -38,52 +37,22 @@ def extract_addresses(address):
     return address
 
 
-if __name__ == "__main__":
-    env_name = os.getenv("ENV", "local")
-    try:
-        importlib.import_module(f"config.settings.{env_name}")
-    except ModuleNotFoundError:
-        parent_dir = os.path.basename(__file__)
-        env_name = parent_dir if parent_dir in ["local", "test", "dev"] else "prod"
-    current_path = Path(__file__).parent.resolve()
-    sys.path.append(str(current_path / "portal"))
+def is_binary_file(filename, chunk_size=1024):
+    """
+    Heuristically checks if a file is binary by looking for null bytes.
+    """
+    with open(filename, "rb") as f:
+        chunk = f.read(chunk_size)
+        if b"\x00" in chunk:
+            return True
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"config.settings.{env_name}")
+        if not chunk:  # Empty file
+            return False
 
-    django.setup()
+    return False
 
-    from portal import models
-    from portal.utils import send_mail
-    from django.conf import settings
-    from multisite.models import Alias
 
-    # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
-    # msg = email.message_from_string(full_msg)
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-        if os.path.isfile(filename):
-            root, ext = os.path.splitext(filename)
-            if ext.lower() == ".msg":
-                from msg_parser import MsOxMessage
-                from msg_parser.email_builder import EmailFormatter
-                import tempfile
-
-                msg_obj = MsOxMessage(filename)
-                filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.eml")
-                msg_fmt = EmailFormatter(msg_obj)
-                with open(filename, "w") as f:
-                    f.write(msg_fmt.build_email())
-                msg = msg_fmt.message
-            else:
-                with open(filename, "r") as f:
-                    msg = email.message_from_file(f)
-        else:
-            message_id = filename
-            msg = email.message_from_file(sys.stdin)
-    else:
-        msg = email.message_from_file(sys.stdin)
-    if len(sys.argv) > 2 and not message_id:
-        message_id = sys.argv[2]
+def process_email(msg, message_id=None, site=None):
 
     to = msg["to"]
     subject = msg["subject"]
@@ -91,6 +60,7 @@ if __name__ == "__main__":
     thread_index = msg["thread-index"]
     thread_topic = msg["thread-topic"]
     from_addresses = []
+    raise Exception("Debugging email receiver")
 
     if subject:
         subject = str(make_header(decode_header(subject))).strip()
@@ -348,11 +318,17 @@ if __name__ == "__main__":
 
                 try:
                     attachments.append(
-                        File(io.BytesIO(msg.as_bytes()), name=f"{subject or models.hash_int(comment.pk)}.eml")
+                        File(
+                            io.BytesIO(msg.as_bytes()),
+                            name=f"{subject or models.hash_int(comment.pk)}.eml",
+                        )
                     )
                 except UnicodeEncodeError:
                     attachments.append(
-                        File(io.BytesIO(msg.as_string().encode()), name=f"{subject or models.hash_int(comment.pk)}.eml")
+                        File(
+                            io.BytesIO(msg.as_string().encode()),
+                            name=f"{subject or models.hash_int(comment.pk)}.eml",
+                        )
                     )
                 # for a in attachments[1:]:
                 for a in attachments:
@@ -535,5 +511,90 @@ if __name__ == "__main__":
                 token=token,
                 site=site,
             )
+
+
+if __name__ == "__main__":
+    env_name = os.getenv("ENV", "local")
+    try:
+        importlib.import_module(f"config.settings.{env_name}")
+    except ModuleNotFoundError:
+        parent_dir = os.path.basename(__file__)
+        env_name = parent_dir if parent_dir in ["local", "test", "dev"] else "prod"
+    current_path = Path(__file__).parent.resolve()
+    sys.path.append(str(current_path / "portal"))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"config.settings.{env_name}")
+
+    django.setup()
+
+    from portal import models
+    from portal.utils import send_mail
+    from django.conf import settings
+    from multisite.models import Alias
+    from sentry_sdk import capture_exception
+
+    # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
+    # msg = email.message_from_string(full_msg)
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        if os.path.isfile(filename):
+            root, ext = os.path.splitext(filename)
+            if ext.lower() == ".msg" and is_binary_file(filename):
+                from msg_parser import MsOxMessage
+                from msg_parser.email_builder import EmailFormatter
+                import tempfile
+
+                msg_obj = MsOxMessage(filename)
+                filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.eml")
+                msg_fmt = EmailFormatter(msg_obj)
+                with open(filename, "w") as f:
+                    f.write(msg_fmt.build_email())
+                msg = msg_fmt.message
+            else:
+                with open(filename, "r") as f:
+                    msg = email.message_from_file(f)
+        else:
+            message_id = filename
+            msg = email.message_from_file(sys.stdin)
+    else:
+        msg = email.message_from_file(sys.stdin)
+    if len(sys.argv) > 2 and not message_id:
+        message_id = sys.argv[2]
+
+    try:
+        process_email(msg, message_id=message_id)
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        subject = msg["subject"]
+        sender = msg["from"]
+        to = msg["to"]
+        body = msg["body"]
+        capture_exception(e)
+
+        if not msg.is_multipart():
+            body = msg.get_payload(decode=True)
+        if not body:
+            body = f"Error processing incoming email: {subject}"
+        send_mail(
+            site = (
+                (recipient := extract_addresses(to))
+                and (domain := recipient.split("@")[1].strip())
+                and (alias := Alias.objects.filter(domain__contains=domain).first())
+                and alias.site
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            subject=f"Error processing incoming email: {subject}",
+            html_message=(
+                f"<p>This is an automated message.</p>"
+                f"<p>Error details:</p><pre>{str(e)}</pre>"
+                f"<p>Sender: {sender}</p>"
+                f"<p>Recipient: {to}</p>"
+                f"<p>Subject: {subject}</p>"
+                f"<p>Body:</p><pre>{body}</pre>"
+            ),
+            recipients=[u for u in models.User.where(is_superuser=True)],
+        )
 
 # vim:set ft=python.django:

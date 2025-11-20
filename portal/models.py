@@ -9494,6 +9494,15 @@ class MailLog(Model):
         db_table = "mail_log"
 
 
+class Recipient(HelperMixin, Base):
+    """Recipient of an email message."""
+    message = ForeignKey(MailLog, on_delete=CASCADE, related_name="recipients")
+    recipient = CharField(max_length=200, db_index=True)
+    type = CharField(max_length=10, choices=(("to", "to"), ("cc", "cc"), ("bcc", "bcc")))
+
+    class Meta:
+        db_table = "recipient"
+
 class ScoreSheet(Model):
     objects = RoundSiteManager()
     all_objects = Manager()

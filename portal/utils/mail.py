@@ -1,5 +1,6 @@
 import getpass
 from urllib.parse import urljoin
+import itertools
 
 import html2text
 from django.conf import settings
@@ -243,9 +244,12 @@ def send_mail(
     thread_index=None,
     site=None,
 ):
+    breakpoint()
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
-    if not request and from_email and "@" in from_email:
+    if site:
+        domain = site.domain
+    elif not request and from_email and "@" in from_email:
         domain = from_email.split("@")[1]
     else:
         domain = request and request.get_host() or site.domain
@@ -370,21 +374,49 @@ def send_mail(
         if isinstance(recipients, set)
         else ((recipients or []) + (bcc or []))
     )
-    for no, r in enumerate(all_recipients):
-        models.MailLog.create(
-            user=request.user if request and request.user.is_authenticated else None,
-            recipient=r,
-            sender=from_email,
-            subject=subject,
-            was_sent_successfully=resp,
-            token=f"{token}#{no}" if no else token,
-            invitation=invitation,
-            site=site,
-            thread_index=thread_index,
-            thread_topic=thread_topic,
-            message=message,
-            html_message=html_message,
-        )
+    # for no, r in enumerate(all_recipients):
+    #     models.MailLog.create(
+    #         user=request.user if request and request.user.is_authenticated else None,
+    #         recipient=r,
+    #         sender=from_email,
+    #         subject=subject,
+    #         was_sent_successfully=resp,
+    #         token=f"{token}#{no}" if no else token,
+    #         invitation=invitation,
+    #         site=site,
+    #         thread_index=thread_index,
+    #         thread_topic=thread_topic,
+    #         message=message,
+    #         html_message=html_message,
+    #     )
+    ml = models.MailLog.create(
+        user=request.user if request and request.user.is_authenticated else None,
+        recipient=recipients[0],
+        sender=from_email,
+        subject=subject,
+        was_sent_successfully=resp,
+        token=token,
+        invitation=invitation,
+        site=site,
+        thread_index=thread_index,
+        thread_topic=thread_topic,
+        message=message,
+        html_message=html_message,
+    )
+    models.Recipient.bulk_create(
+        [
+            models.Recipient(
+                message=ml,
+                recipient=r,
+            )
+            for t, r in itertools.chain(
+                (("to", r) for r in (recipients or [])),
+                (("bcc", r) for r in (bcc or [])),
+                (("cc", r) for r in (cc or [])),
+            )
+        ]
+    )
+
     if not resp:
         if isinstance(resp, int):
             raise Exception(
