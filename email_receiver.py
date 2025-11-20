@@ -60,7 +60,6 @@ def process_email(msg, message_id=None, site=None):
     thread_index = msg["thread-index"]
     thread_topic = msg["thread-topic"]
     from_addresses = []
-    raise Exception("Debugging email receiver")
 
     if subject:
         subject = str(make_header(decode_header(subject))).strip()

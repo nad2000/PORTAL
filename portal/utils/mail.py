@@ -332,6 +332,8 @@ def send_mail(
         }
 
     subject_prefix = f"[{site.name}]" if site else settings.EMAIL_SUBJECT_PREFIX
+    if subject and "\n" in subject:
+        subject = subject.replace("\n", " -- ")
     if not subject.startswith(subject_prefix):
         subject = f"{subject_prefix} {subject}"
     if not thread_topic:
@@ -374,21 +376,6 @@ def send_mail(
         if isinstance(recipients, set)
         else ((recipients or []) + (bcc or []))
     )
-    # for no, r in enumerate(all_recipients):
-    #     models.MailLog.create(
-    #         user=request.user if request and request.user.is_authenticated else None,
-    #         recipient=r,
-    #         sender=from_email,
-    #         subject=subject,
-    #         was_sent_successfully=resp,
-    #         token=f"{token}#{no}" if no else token,
-    #         invitation=invitation,
-    #         site=site,
-    #         thread_index=thread_index,
-    #         thread_topic=thread_topic,
-    #         message=message,
-    #         html_message=html_message,
-    #     )
     ml = models.MailLog.create(
         user=request.user if request and request.user.is_authenticated else None,
         recipient=recipients[0],
