@@ -4320,6 +4320,50 @@ class ContractAdmin(
         StateLogInline,
     ]
 
+    @admin.action(description="Link Documents (copy missing documents from the application)")
+    def link_documents(self, request, queryset, *args, **kwargs):
+        missing_documents = models.ApplicationDocument.where(
+            application__contracts__in=queryset,
+            required_document__contract_required_documents__isnull=False,
+            required_document__contract_required_documents__documents__isnull=True,
+            application__contracts__isnull=False
+        ).annotate(
+            contract=F("application__contracts"),
+            contract_required_document=F("required_document__contract_required_documents"),
+        ).order_by("contract")
+        documents = [
+            models.ContractDocument(
+                contract_id=d.contract,
+                page_count=d.page_count or d.update_page_count(),
+                document_type=d.document_type
+                or d.document_type
+                or d.required_document.document_type,
+                required_document_id=d.contract_required_document,
+                file=d.file,
+                converted_file=d.converted_file,
+                state="draft",
+            ) for d in missing_documents
+        ]
+        documents = bulk_create_with_history(
+            documents,
+            models.ContractDocument,
+            ignore_conflicts=True,
+            default_user=request.user,
+            default_change_reason=f"{request.user} re-linked/copied the missing contract documents from the contract applications",
+        )
+        contracts = set(d.contract for d in documents)
+
+        if not len(documents):
+            messages.warning(request, "No documents were linked; make sure the contract required documents are linked to the application required documents.")
+            return
+        messages.info(
+            request,
+            mark_safe(
+                f"{len(documents)} documents linked; updated contract(s): "
+                + ", ".join(f'<a href="{c.update_url}" target="_blank">{c}</a>' for c in contracts)
+            ),
+        )
+
     @admin.action(description="Start Reporting")
     def start_reporting(self, request, queryset, *args, **kwargs):
         reports = list(
@@ -4336,7 +4380,7 @@ class ContractAdmin(
             ),
         )
 
-    actions = [start_reporting, refresh_page_counts, archive_objects, revert_object_states]
+    actions = [start_reporting, refresh_page_counts, link_documents, archive_objects, revert_object_states]
 
     def get_form(self, request, obj=None, change=False, **kwargs):
         form = super().get_form(request, obj=obj, change=change, **kwargs)

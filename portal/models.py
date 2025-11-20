@@ -10355,7 +10355,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @property
     def update_url(self):
-        return reverse("report-update", kwargs={"pk": r.pk})
+        return reverse("contract-update", kwargs={"pk": self.pk})
 
     @classmethod
     def start_reporting(cls, request=None, queryset=None, *args, **kwargs):
@@ -11137,10 +11137,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def key_person(self):
+        if self.members.filter(role_id="CP").exists():
+            return self.members.filter(role_id="CP").last()
         return self.members.filter(role_id="PI").last()
 
     @cached_property
     def other_key_personnel(self):
+        if self.members.filter(role_id="CP").exists():
+            return list(self.members.filter(~Q(role_id="CP"), role__is_key_person=True).all())
         return list(self.members.filter(~Q(role_id="PI"), role__is_key_person=True).all())
 
     @classmethod
