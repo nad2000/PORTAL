@@ -113,6 +113,7 @@ from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
 
 from common.models import (
+    archive_storage,
     Base,
     EmailField,
     FixedCharField,
@@ -2670,6 +2671,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Please upload completed application form"),
         upload_to="applications",
         upload_subfolder=lambda instance: [hash_int(instance.round_id)],
+        storage=archive_storage,
         validators=[
             FileExtensionValidator(
                 allowed_extensions=[

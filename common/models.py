@@ -1,6 +1,8 @@
 import base64
 import copy
+import os
 
+import boto3
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
@@ -16,6 +18,7 @@ from django.utils import timezone
 from django.utils.functional import LazyObject, cached_property
 from django.utils.safestring import mark_safe
 from model_utils import Choices
+from private_storage.storage.files import PrivateFileSystemStorage
 
 EmailField.register_lookup(Lower)
 
@@ -50,6 +53,127 @@ def domain_to_macrons(url):
         p2 = f"xn--{p2}".encode().decode("idna")
         return f"{p1}{p2}"
     return url
+
+# class PrivateFile(PivateFile):
+#     pass
+
+class ArchivalStorage(PrivateFileSystemStorage):
+    def __init__(
+        self,
+        location=None,
+        base_url=None,
+        file_permissions_mode=None,
+        directory_permissions_mode=None,
+        allow_overwrite=False,
+        archive_pefix=None,
+        archive_location=None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            location=location,
+            base_url=base_url,
+            file_permissions_mode=file_permissions_mode,
+            directory_permissions_mode=directory_permissions_mode,
+            allow_overwrite=allow_overwrite,
+            *args,
+            **kwargs,
+        )
+        if not archive_pefix:
+            archive_prefix = "archive"
+        self.archive_prefix
+        if not archive_location:
+            archive_location = os.path.join(self._location, archive_pefix)
+        self.archive_location = archive_location
+
+        secret_key = "TuoezMtsQQCpSFagHBbJwt7nfdPM7YQA0ak8LZMv"
+        access_key = "K7INM44H4BSFQ0CKIY6W"
+        # website_endpoint ="http://%(bucket)s.s3-website-%(location)s.amazonaws.com/"
+        # website_endpoint_format ="http://%(bucket)s.s3-website-%(location)s.amazonaws.com/"
+        hostname = "ewr1.vultrobjects.com"
+        bucket = self.bucket = "rsta-portal-archive"  # "pmspp-archive"
+
+        session = boto3.session.Session()
+        client = session.client(
+            "s3",
+            region_name="ewr1",
+            endpoint_url=f"https://{hostname}",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+        )
+        # resp=client.list_buckets()
+        self.s3 = client
+
+    def retrieve_from_archive(self, name, mode="rb"):
+        archive_path = os.path.join(self.archive_location, name)
+        if os.path.exists(archive_path):
+            return super().open(archive_path, mode)
+        else:  # retriev from S3
+            # response = self.s3.get_object(Bucket='archive', Key=name)
+            # return response['Body']
+            s3.download_file(self.bucket, name, archive_path)
+            return super().open(archive_path, mode)
+        raise FileNotFoundError(f"[Errno 2] No such file or directory: '{name}'")
+
+    def open(self, name, mode="rb"):
+        # Try to open from primary location first
+        breakpoint()
+        try:
+            return super().open(name, mode)
+        except FileNotFoundError as e:
+            # If not found, check the archive location
+            archive_path = os.path.join(self.archive_location, os.path.basename(name))
+            if os.path.exists(archive_path):
+                # Optional: Logic to move it back to primary storage if needed (automatic retrieval)
+                # For simplicity here, we just open it from the archive
+                return super().open(archive_path, mode)
+            else:  # retriev from S3
+                try:
+                    # response = self.s3.get_object(Bucket='archive', Key=name)
+                    # return response['Body']
+                    s3.download_file(self.bucket, name, archive_path)
+                    return super().open(archive_path, mode)
+                except self.s3.exceptions.NoSuchKey:
+                    raise e
+            raise  # Re-raise if not found anywhere
+
+    def exists(self, name):
+        # Check in both locations
+        if not name.startswith(self.archive_pefix):
+            archive_path = os.path.join(self.location, name)
+            if os.path.exists(archive_path):
+                return True
+            else:
+                # check if exists in S3
+                pass
+        if super().exists(name):
+            return True
+        archive_path = os.path.join(self.archive_location, name)
+        # TODO updat file name ot include archive prefix
+        return os.path.exists(archive_path)
+
+    def path(self, name):
+        path = os.path.join(self.location, name)
+        if os.path.exists(path):
+            return path
+        # TODO: check if in S3
+        return os.path.join(self.archive_location, name)
+
+    # You would also need to override 'url', 'path', etc. to handle the archive location correctly
+    # based on your specific requirements.
+
+
+archive_storage = ArchivalStorage()
+
+
+class TimeStampModel(Base):
+    # created_at = DateTimeField(auto_now_add=True, null=True)
+    created_at = DateTimeField(null=True, default=timezone.now, editable=False)
+    updated_at = DateTimeField(auto_now=True, null=True)
+
+    class Meta:
+        abstract = True
+        get_latest_by = "updated_at"
 
 
 class TimeStampMixin(Base):
@@ -234,7 +358,7 @@ class HelperMixin:
         )
 
 
-class Model(TimeStampMixin, HelperMixin, Base):
+class Model(HelperMixin, TimeStampModel):
     # TODO: figure out how to make generic table naming:
     # history = HistoricalRecords(inherit=True)
 

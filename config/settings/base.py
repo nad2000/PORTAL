@@ -304,6 +304,7 @@ MEDIA_URL = "/media/"
 # Protected storage:
 PRIVATE_STORAGE_ROOT = str(ROOT_DIR / "private-media")
 PRIVATE_STORAGE_AUTH_FUNCTION = "private_storage.permissions.allow_authenticated"
+PRIVATE_STORAGE_CLASS = "common.models.ArchivalStorage"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
@@ -393,7 +394,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # workaround for https://github.com/shestera/django-multisite/issues/9
 # SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - ours is an object
-SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101", 'captcha.recaptcha_test_key_error']
+SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101", "captcha.recaptcha_test_key_error"]
 
 # EMAIL
 # ------------------------------------------------------------------------------
