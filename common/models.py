@@ -19,6 +19,7 @@ from django.utils.functional import LazyObject, cached_property
 from django.utils.safestring import mark_safe
 from model_utils import Choices
 from private_storage.storage.files import PrivateFileSystemStorage
+from private_storage.servers import DjangoServer, add_no_cache_headers
 
 EmailField.register_lookup(Lower)
 
@@ -57,6 +58,20 @@ def domain_to_macrons(url):
 # class PrivateFile(PivateFile):
 #     pass
 
+# class ArchivalDjangoServer(DjangoServer):
+
+#     @staticmethod
+#     @add_no_cache_headers
+#     def serve(private_file):
+#         # retrieve the file from archive storage if needed
+#         if not private_file.exists_locally(name):
+#             private_file.storage.retrieve_from_archive(private_file.relative_name)
+
+#         response = super().serve(private_file)
+#         return response
+#         pass
+
+
 class ArchivalStorage(PrivateFileSystemStorage):
     def __init__(
         self,
@@ -65,7 +80,7 @@ class ArchivalStorage(PrivateFileSystemStorage):
         file_permissions_mode=None,
         directory_permissions_mode=None,
         allow_overwrite=False,
-        archive_pefix=None,
+        archive_prefix=None,
         archive_location=None,
         *args,
         **kwargs,
@@ -79,11 +94,11 @@ class ArchivalStorage(PrivateFileSystemStorage):
             *args,
             **kwargs,
         )
-        if not archive_pefix:
+        if not archive_prefix:
             archive_prefix = "archive"
-        self.archive_prefix
+        self.archive_prefix = archive_prefix
         if not archive_location:
-            archive_location = os.path.join(self._location, archive_pefix)
+            archive_location = os.path.join(self._location, archive_prefix)
         self.archive_location = archive_location
 
         secret_key = "TuoezMtsQQCpSFagHBbJwt7nfdPM7YQA0ak8LZMv"
@@ -111,8 +126,9 @@ class ArchivalStorage(PrivateFileSystemStorage):
         else:  # retriev from S3
             # response = self.s3.get_object(Bucket='archive', Key=name)
             # return response['Body']
+            # s3.download_file(self.bucket, name, archive_path)
+
             s3.download_file(self.bucket, name, archive_path)
-            return super().open(archive_path, mode)
         raise FileNotFoundError(f"[Errno 2] No such file or directory: '{name}'")
 
     def open(self, name, mode="rb"):
@@ -137,20 +153,30 @@ class ArchivalStorage(PrivateFileSystemStorage):
                     raise e
             raise  # Re-raise if not found anywhere
 
+    def eixsts_in_archive(self, name):
+        try:
+            self.s3.head_object(Bucket=self.bucket, Key=name)
+            return True
+        except self.s3.exceptions.NoSuchKey:
+            return False
+
+    def exists_locally(self, name):
+        return super().exists(name)
+
     def exists(self, name):
         # Check in both locations
-        if not name.startswith(self.archive_pefix):
+        if name.startswith(self.archive_prefix):
             archive_path = os.path.join(self.location, name)
             if os.path.exists(archive_path):
                 return True
             else:
-                # check if exists in S3
-                pass
-        if super().exists(name):
+                return self.eixsts_in_archive(name)
+        if self.exists_locally(name):
             return True
         archive_path = os.path.join(self.archive_location, name)
-        # TODO updat file name ot include archive prefix
-        return os.path.exists(archive_path)
+        if os.path.exists(archive_path):
+            return True
+        return self.eixsts_in_archive(name)
 
     def path(self, name):
         path = os.path.join(self.location, name)
@@ -158,6 +184,7 @@ class ArchivalStorage(PrivateFileSystemStorage):
             return path
         # TODO: check if in S3
         return os.path.join(self.archive_location, name)
+        # private_storage.views.PrivateStorageView
 
     # You would also need to override 'url', 'path', etc. to handle the archive location correctly
     # based on your specific requirements.
