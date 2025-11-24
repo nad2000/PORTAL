@@ -1680,11 +1680,18 @@ class ApplicationForm(ModelForm):
 
 class ContractMemberForm(FTEMixin, ModelForm):
 
-    role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(for_application=True).order_by(
-            models.Coalesce("name", "code")
-        )
-    )
+    # role = forms.ModelChoiceField(
+    #     queryset=models.RoleType.where(for_contracting=True).order_by(
+    #         models.Coalesce("name", "code")
+    #     )
+    # )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        filters = Q(for_contracting=True)
+        if (instance := self.instance or kwargs.get("instance")) and instance.role:
+            filters.add(Q(pk=instance.role.pk), Q.OR)
+        self.fields["role"].queryset = self.fields["role"].queryset.filter(filters)
 
     class Meta:
         model = models.ContractMember
