@@ -8827,9 +8827,16 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
 
 
 class ChangeTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    # search_fields = ["description", "definition"]
+    search_fields = ["description"]
+
     def has_add_permission(self, request):
         return False
 
+    # def get_queryset(self):
+    #     qs = super().get_queryset()
+    #     return qs
 
 class ChangeCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
