@@ -304,7 +304,7 @@ MEDIA_URL = "/media/"
 # Protected storage:
 PRIVATE_STORAGE_ROOT = str(ROOT_DIR / "private-media")
 PRIVATE_STORAGE_AUTH_FUNCTION = "private_storage.permissions.allow_authenticated"
-PRIVATE_STORAGE_CLASS = "common.models.ArchivalStorage"
+# PRIVATE_STORAGE_CLASS = "common.models.ArchivalStorage"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
