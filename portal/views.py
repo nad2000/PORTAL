@@ -127,7 +127,8 @@ from extra_views import (
 )
 from geopy.geocoders import Nominatim
 from limesurveyrc2api.exceptions import LimeSurveyError
-from private_storage.views import PrivateStorageDetailView
+from private_storage.views import PrivateStorageDetailView, PrivateStorageView
+# from private_storage.models import PrivateFile
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
@@ -147,6 +148,7 @@ from .pyinfo import info
 from .utils import send_mail, vignere
 from .utils.date_utils import FuzzyDate
 from .utils.orcid import OrcidHelper
+from common.models import archive_storage
 
 # from .tasks import notify_user
 
@@ -453,6 +455,54 @@ def should_be_approved(function):
         return function(request, *args, **kwargs)
 
     return wrap
+
+
+
+class ArchivalPrivateStorageView(PrivateStorageView):
+    """A view to serve files from the archival storage."""
+
+    storage = archive_storage
+    # server_class = get_server_class(appconfig.PRIVATE_STORAGE_SERVER)
+
+    #: Whether the file should be displayed ``inline`` or show a download box (``attachment``).
+    ## content_disposition = None
+
+    #: The filename to use when :attr:`content_disposition` is set.
+    ## content_disposition_filename = None
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handle incoming GET requests
+        """
+        private_file = self.get_private_file()
+
+        if not self.can_access_file(private_file):
+            raise PermissionDenied(self.permission_denied_message)
+
+        breakpoint()
+        storage = self.storage
+        if storage.exists_locally(private_file.relative_name):
+            return self.serve_file(private_file)
+
+        if storage.exists_in_archive(private_file.relative_name):
+            storage.retrieve_from_archive(private_file.relative_name)
+            return self.serve_file(private_file)
+
+        return self.serve_file_not_found(private_file)
+
+    def serve_file(self, private_file):
+
+        response = self.server_class().serve(private_file)
+
+        if self.content_disposition:
+            # Join syntax works in all Python versions. Python 3 doesn't support b'..'.format(),
+            # and % formatting was added for bytes in 3.5: https://bugs.python.org/issue3982
+            filename = self.get_content_disposition_filename(private_file)
+            response['Content-Disposition'] = b'; '.join([
+                self.content_disposition.encode(), self._encode_filename_header(filename)
+            ])
+
+        return response
 
 
 class AdminRequiredMixin(AccessMixin):

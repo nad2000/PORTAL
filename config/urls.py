@@ -1,4 +1,3 @@
-import private_storage.urls
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -36,7 +35,6 @@ urlpatterns = [
     path("", include("portal.urls")),
     path("summernote/", include("django_summernote.urls")),
     path("tinymce/", include("tinymce.urls")),
-    path("private-media/", include(private_storage.urls)),
     path("pages/<path:url>", handle_pages, name="flatpage"),
     path("pages/", TemplateView.as_view(template_name="flatpages/list.html"), name="page-list"),
     # re_path("^pages/(?P<url>!((en|mi)/).*)/", handle_pages),
@@ -51,6 +49,13 @@ urlpatterns += [
     path("select2/", include("django_select2.urls")),
     path("explorer/", include("explorer.urls")),
 ]
+
+if settings.PRIVATE_STORAGE_CLASS != "common.models.ArchivalStorage":
+    import private_storage.urls  # avoid pylint warning
+
+    urlpatterns.append(
+        path("private-media/", include(private_storage.urls)),
+    )  # avoid pylint warning
 
 if settings.DEBUG:
     # This allows the error pages to be debugged during development, just visit

@@ -153,7 +153,7 @@ class ArchivalStorage(PrivateFileSystemStorage):
                     raise e
             raise  # Re-raise if not found anywhere
 
-    def eixsts_in_archive(self, name):
+    def exists_in_archive(self, name):
         try:
             self.s3.head_object(Bucket=self.bucket, Key=name)
             return True
@@ -170,13 +170,13 @@ class ArchivalStorage(PrivateFileSystemStorage):
             if os.path.exists(archive_path):
                 return True
             else:
-                return self.eixsts_in_archive(name)
+                return self.exists_in_archive(name)
         if self.exists_locally(name):
             return True
         archive_path = os.path.join(self.archive_location, name)
         if os.path.exists(archive_path):
             return True
-        return self.eixsts_in_archive(name)
+        return self.exists_in_archive(name)
 
     def path(self, name):
         path = os.path.join(self.location, name)

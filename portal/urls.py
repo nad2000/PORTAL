@@ -519,9 +519,7 @@ urlpatterns = [
                 ),
                 path(
                     "person-code/",
-                    views.PersonCodeAutocomplete.as_view(
-                        model=models.Person, create_field="code"
-                    ),
+                    views.PersonCodeAutocomplete.as_view(model=models.Person, create_field="code"),
                     name="person-code-autocomplete",
                 ),
                 # path(
@@ -829,7 +827,14 @@ urlpatterns = [
     path("switch-back", views.switch_back, name="switch-back"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
-
+if settings.PRIVATE_STORAGE_CLASS == "common.models.ArchivalStorage":
+    urlpatterns.append(
+        re_path(
+            r"private-media/(?P<path>.*)$",
+            views.ArchivalPrivateStorageView.as_view(),
+            name="serve_private_file",
+        )
+    )  # avoid pylint warning
 # if settings.DEBUG:
 #     urlpatterns.extend(
 #         [
