@@ -641,13 +641,24 @@ class PdfFileMixin:
                 return
 
         if hasattr(self, "page_count"):
-            if isinstance(file, str):
-                with open(file, "rb") as f:
-                    pdf_reader = PdfReader(f, strict=False)
-                    page_count = len(pdf_reader.pages)
-            else:
+            try:
                 pdf_reader = PdfReader(file, strict=False)
                 page_count = len(pdf_reader.pages)
+            except PdfReadError as ex:
+                capture_exception(ex)
+                pdf = pikepdf.Pdf.open(file)
+                mended = os.path.join(tempfile.mkdtemp(), os.path.basename(file))
+                pdf.save(mended, normalize_content=True)
+                pdf_reader = PdfReader(mended, strict=False)
+                page_count = len(pdf_reader.pages)
+
+            # if isinstance(file, str):
+            #     with open(file, "rb") as f:
+            #         pdf_reader = PdfReader(f, strict=False)
+            #         page_count = len(pdf_reader.pages)
+            # else:
+            #     pdf_reader = PdfReader(file, strict=False)
+            #     page_count = len(pdf_reader.pages)
 
             if not self.page_count or pdf_reader and page_count != self.page_count:
                 self.page_count = page_count
