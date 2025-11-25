@@ -1,0 +1,15 @@
+{% for t in transitions %}
+  <button id="id_{{ t.0 }}"
+          type="button"
+          class="btn btn-outline-primary"
+          name="{{ t.0 }}"
+          {% if t.2 %}
+          data-tooltip="tooltip"
+          title="{{ t.2 }}"
+          {% endif %}
+          data-toggle="modal"
+          data-action="{{ t.0 }}"
+          data-target="#id_resolution_modal"
+          value="{{ t.1 }}"> {{ t.1 }}</button>
+{% endfor %}
+{# vim:set ft=htmldjango: #}
