@@ -13,8 +13,10 @@ from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_update_with_history
+from django.utils.safestring import mark_safe
 
 from portal.models import (
+    Affiliation,
     CurriculumVitae,
     Person,
     ResearchOffice,
@@ -24,6 +26,8 @@ from portal.models import (
 
 
 from .forms import UserChangeForm, UserCreationForm
+from common.admin import StaffViewPermsMixin
+
 
 User = get_user_model()
 
@@ -56,7 +60,7 @@ class IsStaff(SimpleListFilter):
 
 
 @admin.register(User)
-class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
+class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
     fieldsets = (
@@ -133,11 +137,75 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
     )
     date_hierarchy = "date_joined"
 
+    def email_address_list(self, obj):
+        return ", ".join(obj.emailaddress_set.order_by("-primary", "pk").values_list("email", flat=True))
+
+    email_address_list.description = "All user email address(-es)."
+
+    def affiliations(self, obj):
+        affiliations = Affiliation.where(person__user=obj).order_by("start_date", "pk")
+        if affiliations.count():
+            return mark_safe(f"""
+            <table>
+              <caption>Affiliation(s)</caption>
+                <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Organisation</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {" ".join((a.html_table_row for a in affiliations))}
+              </tbody>
+            </table>
+            """)
+        return "N/A"
+
+    affiliations.description = "User affiliation(s)."
+
     def is_site_staff(self, obj):
         return obj.is_site_staff
 
     is_site_staff.description = "Designates whether the user can log into this admin site."
     is_site_staff.boolean = True
+
+    def get_fieldsets(self, request, obj=None):
+        if (u := request.user) and not u.is_superuser and (u.is_staff or u.is_site_staff):
+            return (
+                (
+                    None,
+                    {
+                        "fields": (
+                            "title",
+                            "first_name",
+                            "middle_names",
+                            "last_name",
+                            "email_address_list",
+                            "affiliations",
+                        )
+                    },
+                ),
+                (
+                    _("Permissions"),
+                    {
+                        "fields": (
+                            "is_approved",
+                            "is_identity_verified",
+                            "is_active",
+                            "is_staff",
+                            "is_site_staff",
+                            "staff_of_sites",
+                            "is_superuser",
+                            "groups",
+                            "user_permissions",
+                        ),
+                    },
+                ),
+                (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+            )
+
+        return super().get_fieldsets(request, obj)
 
     class EmailAddressInline(admin.TabularInline):
         extra = 0
