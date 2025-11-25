@@ -128,6 +128,7 @@ from extra_views import (
 from geopy.geocoders import Nominatim
 from limesurveyrc2api.exceptions import LimeSurveyError
 from private_storage.views import PrivateStorageDetailView, PrivateStorageView
+
 # from private_storage.models import PrivateFile
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
@@ -457,7 +458,6 @@ def should_be_approved(function):
     return wrap
 
 
-
 class ArchivalPrivateStorageView(PrivateStorageView):
     """A view to serve files from the archival storage."""
 
@@ -498,9 +498,9 @@ class ArchivalPrivateStorageView(PrivateStorageView):
             # Join syntax works in all Python versions. Python 3 doesn't support b'..'.format(),
             # and % formatting was added for bytes in 3.5: https://bugs.python.org/issue3982
             filename = self.get_content_disposition_filename(private_file)
-            response['Content-Disposition'] = b'; '.join([
-                self.content_disposition.encode(), self._encode_filename_header(filename)
-            ])
+            response["Content-Disposition"] = b"; ".join(
+                [self.content_disposition.encode(), self._encode_filename_header(filename)]
+            )
 
         return response
 
@@ -863,7 +863,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 return f"{name} {model_name} {obj}"
             else:
                 # Make the function name the button title, but prettier
-                return "{0} {1} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
+                return "{0} {1} {2}".format(
+                    transition.name.replace("_", " "), model_name, obj
+                ).title()
 
         if not getattr(self, "object", None):
             self.object = self.get_object()
@@ -983,7 +985,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         i = self.object
         if self.model is models.Contract:
             c = i
-        elif self.model is models.Report:
+        elif self.model is models.Report or self.model is models.ChangeRequest:
             c = i.contract
         u = request.user
         is_ro = c.org.research_offices.filter(user=u).exists()
@@ -6630,13 +6632,10 @@ class ContractDetail(FavoriteMixin, DetailView):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
-        if (
-            u.is_admin
-            or (
-                self.object
-                and (org := self.object.org or self.object.application.org)
-                and org.research_offices.filter(user=u).exists()
-            )
+        if u.is_admin or (
+            self.object
+            and (org := self.object.org or self.object.application.org)
+            and org.research_offices.filter(user=u).exists()
         ):
             context["can_edit"] = True
             if self.object.state == "current":
@@ -7570,18 +7569,13 @@ class ApplicationList(
     def get(self, request, *args, **kwargs):
         if "outcome_file" in request.GET:
 
-
             filterset_class = self.get_filterset_class()
             filterset = self.get_filterset(filterset_class)
 
-            if (
-                not filterset.is_bound
-                or filterset.is_valid()
-                or not self.get_strict()
-            ):
+            if not filterset.is_bound or filterset.is_valid() or not self.get_strict():
                 object_list = filterset.qs
             else:
-                object_list =  self.get_queryset()
+                object_list = self.get_queryset()
 
             response = HttpResponse(
                 content_type="text/csv",
@@ -8896,6 +8890,7 @@ class ChangeTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetVie
     # def get_queryset(self):
     #     qs = super().get_queryset()
     #     return qs
+
 
 class ChangeCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def has_add_permission(self, request):
@@ -12625,11 +12620,7 @@ class ChangeRequestViewMixin:
         u = self.request.user
         contract = self.object and self.object.contract or self.contract
         org = contract and contract.org
-        is_ro = (
-            org
-            and org.research_offices.filter(user=u).exists()
-            or not u.is_admin
-        )
+        is_ro = org and org.research_offices.filter(user=u).exists() or not u.is_admin
 
         try:
             with transaction.atomic():

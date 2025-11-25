@@ -2682,7 +2682,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Please upload completed application form"),
         upload_to="applications",
         upload_subfolder=lambda instance: [hash_int(instance.round_id)],
-        storage=archive_storage,
+        # storage=archive_storage,
         validators=[
             FileExtensionValidator(
                 allowed_extensions=[
@@ -3044,7 +3044,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["in_review", "submitted", "cancelled"],
+        source=["in_review", "submitted", "cancelled", "accepted"],
         target="archived",
         custom=dict(verbose="Archive", button_name="Archive"),
     )
@@ -11775,7 +11775,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             # check if number is unique
             while self.__class__.all_objects.filter(number=number).exists():
                 parts = number.rsplit(":")
-                number =f"{':'.join(parts[:-1])}:{int(parts[-1]) + 1}"
+                number = f"{':'.join(parts[:-1])}:{int(parts[-1]) + 1}"
         else:
             assert change_request.new_host != self.org, (
                 "Transfrer must have and organisation and "
@@ -11809,7 +11809,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         source=["*"],
         target="archived",
         custom=dict(verbose="Decline the change reqeust", button_name="Decline"),
-        permission=lambda instance, user: user.is_admin and (ChangeRequest.where(derivative=instance, state__in=["acknowledged", "accepted"]).exists())
+        permission=lambda instance, user: user.is_admin
+        and (
+            ChangeRequest.where(
+                derivative=instance, state__in=["acknowledged", "accepted"]
+            ).exists()
+        ),
     )
     def decline(self, request=None, by=None, description=None, *args, **kwargs):
         cascade = kwargs.pop("cascade", True)
@@ -12784,7 +12789,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         *args,
         **kwargs,
     ):
-        q = (queryset or cls.objects.all()).filter(contract__site_id=request and request.site_id or settings.SITE_ID)
+        q = (queryset or cls.objects.all()).filter(
+            contract__site_id=request and request.site_id or settings.SITE_ID
+        )
         # q = cls.where(round__site=Site.objects.get_current())
 
         if select_related:
@@ -13764,7 +13771,16 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         if not contract and self.pk and self.contract_id:
             contract = self.contract
 
-        q = ChangeRequest.objects.filter(~Q(number=""), number__isnull=False, contract=contract)
+        # find the original contract:
+        if contract:
+            original_number = contract.number.split(":")[0]
+            contract = Contract.get(number=original_number)
+
+        q = ChangeRequest.objects.filter(
+            (Q(contract=contract) | Q(number__startswith=contract.number)),
+            ~Q(number=""),
+            number__isnull=False,
+        )
         if self.pk:
             q = q.exclude(pk=self.pk)
         v = (
