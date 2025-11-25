@@ -63,16 +63,7 @@
     {% endif %}
   {% else %}
     {% if transitions %}
-      {% for t in transitions %}
-        <button id="id_{{ t.0 }}"
-                type="button"
-                class="btn btn-outline-primary"
-                name="{{ t.0 }}"
-                data-toggle="modal"
-                data-action="{{ t.0 }}"
-                data-target="#id_resolution_modal"
-                value="{{ t.1 }}"> {{ t.1 }}</button>
-      {% endfor %}
+      {% include 'snippets/detail_transition_buttons.html' %}
     {% endif %}
   {% endif %}
 

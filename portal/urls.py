@@ -827,7 +827,7 @@ urlpatterns = [
     path("switch-back", views.switch_back, name="switch-back"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
 ]
-if settings.PRIVATE_STORAGE_CLASS == "common.models.ArchivalStorage":
+if getattr(settings, "PRIVATE_STORAGE_CLASS ", None) == "common.models.ArchivalStorage":
     urlpatterns.append(
         re_path(
             r"private-media/(?P<path>.*)$",

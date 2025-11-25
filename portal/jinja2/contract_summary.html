@@ -18,6 +18,7 @@
         </td>
       </tr>
 
+      {#
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Type') }}
@@ -26,18 +27,29 @@
           TODO: Visit
         </td>
       </tr>
+      #}
+      {% if not export %}
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Contract Number') }}
+          </th>
+          <td>
+            {{ c.number }} (&lt;<strong>{{ c.get_state_display()|upper }}</strong>&gt;)
+          </td>
+        </tr>
+      {% endif %}
 
       {% if c.source %}
 
         <tr>
           <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {% if c.is_variation %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }}{% endif %}
+          {% if c.is_variation %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }} {% endif %}
           </th>
           <td>
             {% if export %}
               {{ c.source }}
             {% else %}
-              <a href="{{ c.source.get_absolute_url }}" target="_blank">{{ c.source }}</a>
+              <a href="{{ c.source.get_absolute_url }}" target="_blank">{{ c.source }}</a> (&lt;<strong>{{ c.source.get_state_display()|upper }}</strong>&gt;)
             {% endif %}
           </td>
         </tr>

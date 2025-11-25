@@ -849,19 +849,28 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
         def button_name(transition):
             if hasattr(transition, "custom") and (
-                name := transition.custom.get("verbose") or transition.custom.get("button_name")
+                name := transition.custom.get("button_name") or transition.custom.get("verbose")
             ):
                 return name
             else:
                 # Make the function name the button title, but prettier
                 return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
 
+        def button_tooltip(obj, transition):
+            if hasattr(transition, "custom") and (
+                name := transition.custom.get("verbose") or transition.custom.get("button_name")
+            ):
+                return f"{name} {model_name} {obj}"
+            else:
+                # Make the function name the button title, but prettier
+                return "{0} {1} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
+
         if not getattr(self, "object", None):
             self.object = self.get_object()
         return [
-            (t.name, button_name(t))
+            (t.name, button_name(t), button_tooltip(self.object, t))
             for t in self.object.get_available_user_state_transitions(self.request.user)
-            if t.name not in ["save_draft"]
+            if t.name not in ["save_draft"] and t.custom.get("internal") is not True
         ]
 
     def tag_form(self, *args, **kwargs):
@@ -1055,7 +1064,8 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 self.object = self.get_object()
             if method := getattr(self.object, action, None):
                 method(request=request, description=description, by=request.user)
-                self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
+                # self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
+                self.object.save()
                 state = self.object.state
                 messages.success(request, _(f"The change request was {state}."))
             elif self.model is models.Testimonial and action == "turn_down":
@@ -12600,22 +12610,29 @@ class ChangeRequestViewMixin:
         contract_pk = self.kwargs.get("pk")
         return get_object_or_404(models.Contract, pk=contract_pk)
 
+    # def post(self, request, *args, **kwargs):
+    #     return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
 
-        u = models.User.get(self.request.user.pk)
-        org = self.object and self.object.contract and self.object.contract.org
+        # u = models.User.get(self.request.user.pk)
+        u = self.request.user
+        contract = self.object and self.object.contract or self.contract
+        org = contract and contract.org
         is_ro = (
             org
             and org.research_offices.filter(user=u).exists()
-            or not (u.is_site_staff or u.is_superuser)
+            or not u.is_admin
         )
 
         try:
             with transaction.atomic():
 
                 i = form.instance
+                if not i.contract_id:
+                    i.contract = contract
                 if i and not i.submitted_by and is_ro:
-                    form.instance.submitte_by = u
+                    i.submitte_by = u
                 resp = super().form_valid(form)
 
                 if action := form.data.get("action"):

@@ -11680,7 +11680,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         field=state,
         source=["new", "draft", "submitted"],
         target="submitted",
-        custom=dict(verbose="Submit", button_name="submit"),
+        custom=dict(verbose="Submit", button_name="Submit", internal=True),
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
@@ -11712,7 +11712,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         source=["new", "draft", "submitted", "released"],
         # target="released",
         target="submitted",
-        custom=dict(verbose="Release", button_name="release"),
+        custom=dict(verbose="Release", button_name="Release", internal=True),
     )
     def release(self, *args, **kwargs):
         request = kwargs.get("request")
@@ -11761,6 +11761,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         if is_variation:
             number = change_request.number
+            # check if number is unique
+            while self.__class__.all_objects.filter(number=number).exists():
+                parts = number.rsplit(":")
+                number =f"{':'.join(parts[:-1])}:{int(parts[-1]) + 1}"
         else:
             assert change_request.new_host != self.org, (
                 "Transfrer must have and organisation and "
@@ -11786,6 +11790,57 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             )
 
             return nc
+
+    @fsm_log
+    @transition(
+        field=state,
+        # source=["draft", "submitted", "released"],
+        source=["*"],
+        target="archived",
+        custom=dict(verbose="Decline the change reqeust", button_name="Decline"),
+        permission=lambda instance, user: user.is_admin and (ChangeRequest.where(derivative=instance, state__in=["acknowledged", "accepted"]).exists())
+    )
+    def decline(self, request=None, by=None, description=None, *args, **kwargs):
+        cascade = kwargs.pop("cascade", True)
+        change_request = self.originated_by
+        if not by and request:
+            by = request.user
+        url = change_request.get_full_detail_url(request=request)
+        contract_url = self.get_full_detail_url(request=request)
+        contract_link_name = domain_to_macrons(contract_url)
+        link_name = domain_to_macrons(url)
+        html_message = (
+            f"<p>Kia ora {change_request.submitted_by.full_name}</p>"
+            if change_request.submitted_by
+            else "<p>Kia ora!</p>"
+            f'<p>The change request <a href="{url}">{link_name}'
+            "</a> was declined by {by}.</p>"
+        )
+        recipients = change_request.host_recipients
+        if description:
+            html_message += f"<p>Reason:<p><pre>{description}</pre>"
+        send_mail(
+            from_email="variations",
+            subject=f"Change request was declined by {by.full_name_with_email}",
+            html_message=html_message,
+            cc=by.email,
+            recipients=recipients,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+            request=request,
+            site=self.site,
+        )
+        if request:
+            messages.info(
+                request,
+                "Notification was sent to "
+                f"{', '.join(r if isinstance(r, str) else r.full_name_with_email for r in recipients)}.",
+            )
+        if cascade:
+            change_request.decline(
+                request=request, by=by, description=description, cascade=False, *args, **kwargs
+            )
+            change_request.save()
 
     class Meta:
         db_table = "contract"
@@ -13518,7 +13573,6 @@ class ChangeRequestMixin:
         ("accepted", _("Under Review")),
         ("acknowledged", _("Acknowledged")),
         ("approved", _("Approved")),
-        ("application", _("Application")),
         ("archived", _("Archived")),
         ("cancelled", _("Cancelled")),
         ("declined", _("Declined")),
@@ -13559,7 +13613,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         blank=True,
     )
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
-    derivative = ForeignKey(
+    derivative = OneToOneField(
         Contract,
         on_delete=CASCADE,
         null=True,
@@ -13734,7 +13788,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["accepted", "approved", "declined"],
+        source=["accepted", "approved", "declined", "withdrawn"],
         target="archived",
         custom=dict(verbose="Archive", button_name="Archive"),
         permission=lambda instance, user: instance.is_admin(user),
@@ -13760,7 +13814,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "submitted", "accepted", "approved"],
+        source=["draft", "submitted", "accepted", "approved", "acknowledged"],
         target="withdrawn",
         custom=dict(verbose="Withdraw", button_name="Withdraw"),
         permission=lambda instance, user: instance.is_ro(user),
@@ -13802,8 +13856,28 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @transition(
         field=state,
         source=["submitted"],
+        target="acknowledged",
+        custom=dict(verbose="Proceed", button_name="Proceed"),
+        permission=lambda instance, user: instance.is_admin(user),
+    )
+    def proceed(self, request=None, by=None, description=None, *args, **kwargs):
+        assert self.contract, "Contract is required to approve the change request."
+        if not self.derivative:
+            try:
+                self.create_new_contract(
+                    request=request, by=by, description=description, *args, **kwargs
+                )
+            except Exception as e:
+                if request:
+                    messages.error(request, f"Failed to procees with the change request: {e}")
+                capture_exception(e)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
         target="approved",
-        custom=dict(verbose="Approve", button_name="Approve"),
+        custom=dict(verbose="Approve", button_name="Approve", internal=True),
         permission=lambda instance, user: instance.is_admin(user),
     )
     def approve(self, request=None, by=None, description=None, *args, **kwargs):
@@ -13838,12 +13912,13 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["draft", "submitted"],
+        source=["draft", "submitted", "accepted", "acknowledged"],
         target="declined",
         custom=dict(verbose="Decline", button_name="Decline", admin=False),
         permission=lambda instance, user: instance.is_admin(user),
     )
     def decline(self, request=None, by=None, description=None, *args, **kwargs):
+        cascade = kwargs.pop("cascade", True)
         if not by and request:
             by = request.user
         url = self.get_full_detail_url(request=request)
@@ -13874,6 +13949,17 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 request,
                 "Notification was sent to "
                 f"{', '.join(r if isinstance(r, str) else r.full_name_with_email for r in recipients)}.",
+            )
+        if cascade and self.derivative:
+            self.derivative.archive(
+                request=request,
+                by=by,
+                description=(
+                    f"Parent change request was declined: {description}."
+                    if description
+                    else "Parent change request was declined."
+                ),
+                cascade=False,
             )
 
     @property

@@ -27,6 +27,9 @@
 <div class="row">
   <div class="col-12">
       <div class="buttonHolder mb-5 mt-3 float-right">
+        {% if transitions %}
+          {% include 'snippets/detail_transition_buttons.html' %}
+        {% endif %}
       {#% include 'snippets/detail_buttons.html' %#}
         <div class="tooltip-wrapper{% if not can_edit %} disabled{% endif %}"
              data-html="true"

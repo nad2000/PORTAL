@@ -50,7 +50,7 @@ urlpatterns += [
     path("explorer/", include("explorer.urls")),
 ]
 
-if settings.PRIVATE_STORAGE_CLASS != "common.models.ArchivalStorage":
+if getattr(settings, "PRIVATE_STORAGE_CLASS ", None) != "common.models.ArchivalStorage":
     import private_storage.urls  # avoid pylint warning
 
     urlpatterns.append(
