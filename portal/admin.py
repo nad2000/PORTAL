@@ -1040,6 +1040,14 @@ class ChangeTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
 class ChangeCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
+    search_fields = ["description", "definition", "type__description", "type__definition"]
+    list_display = ["type__code", "code", "description"]
+    list_display_links = ["code", "description"]
+
+    class SubCategoryInline(admin.TabularInline):
+        model = models.ChangeCategory
+        extra = 0
+        view_on_site = False
 
     class ChangeCategoryResource(CodeResource):
         class Meta:
@@ -1047,6 +1055,7 @@ class ChangeCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
 
     search_fields = ["description", "definition"]
     resource_classes = [ChangeCategoryResource]
+    inlines = [SubCategoryInline]
 
 
 @admin.register(models.ApplicationDecision)
