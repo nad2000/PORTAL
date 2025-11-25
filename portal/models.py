@@ -12784,7 +12784,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         *args,
         **kwargs,
     ):
-        q = (queryset or cls.objects.all()).filter(contract__site_id=settings.SITE_ID)
+        q = (queryset or cls.objects.all()).filter(contract__site_id=request and request.site_id or settings.SITE_ID)
         # q = cls.where(round__site=Site.objects.get_current())
 
         if select_related:

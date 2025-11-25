@@ -2239,11 +2239,10 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
     filterset_class = filters.ReportFilterSet
 
     def get_queryset(self, *args, **kwargs):
-        queryset = super().get_queryset(*args, **kwargs)
-        queryset = queryset.filter(
-            Q(contract__members__isnull=True) | Q(contract__members__role="PI")
-        )
-        return queryset
+        u = self.request.user
+        qs = super().get_queryset(*args, **kwargs)
+        qs = self.model.user_objects(user=u, queryset=qs, request=self.request)
+        return qs
 
 
 class ReportDetail(FavoriteMixin, DetailView):
