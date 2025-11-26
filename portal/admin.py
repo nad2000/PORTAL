@@ -2658,7 +2658,7 @@ class NominationAdmin(UnaccentMixin, PdfFileAdminMixin, FSMTransitionMixin, Hist
         "site",
     ]
     autocomplete_fields = ["application", "user", "round", "nominator", "cv", "org"]
-    actions = ["resend_invitations"]
+    actions = ["resend_invitations", archive_objects]
     inlines = [StateLogInline]
 
     @admin.display(description="invitation")
@@ -3156,7 +3156,7 @@ class TestimonialAdmin(
         if rounds.count() > 1:
             messages.info(request, f"In total synced {count} referee(s) and testimonial(s)")
 
-    actions = ["sync_referee_surveys"]
+    actions = ["sync_referee_surveys", archive_objects]
 
 
 class SchemeResource(ModelResource):

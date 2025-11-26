@@ -6465,11 +6465,12 @@ simple_history.register(
 
 
 TESTIMONIAL_STATES = Choices(
-    (None, None),
     ("new", _("New")),
     ("draft", _("Draft")),
     ("submitted", _("Submitted")),
     ("excluded", _("Excluded")),
+    ("archived", _("Archived")),
+    (None, None),
 )
 
 
@@ -6550,6 +6551,17 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(field=state, source=["testified"], target="excluded")
     def exclude(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="archived",
+        custom=dict(verbose="Archive", button_name="Archive"),
+        permission=lambda instance, user: user.is_admin,
+    )
+    def archive(self, *args, **kwargs):
         pass
 
     @classmethod
@@ -9028,6 +9040,7 @@ NOMINATION_STATES = Choices(
     ("sent", _("sent")),
     ("submitted", _("submitted")),
     ("withdrawn", _("withdrawn")),
+    ("archived", _("Archived")),
     (None, None),
 )
 
@@ -9128,6 +9141,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     state = StateField(_("state"), null=True, blank=True, default="new")
+    state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     favorites = GenericRelation(Favorite)
 
     def natural_key(self):
@@ -9219,7 +9233,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         source=[
             "new",
             "draft",
-            "submitted",
+            # "submitted",
             "bounced",
         ],
         target="submitted",
@@ -9240,8 +9254,20 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             "bounced",
         ],
         target="accepted",
+        permission=lambda instance, user: user.emailaddress_set.filter(email__iexact=instance.email).exists(),
     )
     def accept(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["*"],
+        target="archived",
+        custom=dict(verbose="Archive", button_name="Archive"),
+        permission=lambda instance, user: user.is_admin,
+    )
+    def archive(self, *args, **kwargs):
         pass
 
     @classmethod
@@ -9285,6 +9311,8 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 q = q.filter(state=state)
         if exclude_states:
             q = q.filter(~Q(state__in=exclude_states))
+        # always exclude archived nominations unless explicitly requested
+        q = q.filter(~Q(state="archived"))
 
         return q
 

@@ -99,6 +99,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
+from django.urls import NoReverseMatch
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.decorators import method_decorator
@@ -128,7 +129,6 @@ from extra_views import (
 from geopy.geocoders import Nominatim
 from limesurveyrc2api.exceptions import LimeSurveyError
 from private_storage.views import PrivateStorageDetailView, PrivateStorageView
-
 # from private_storage.models import PrivateFile
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
@@ -142,6 +142,8 @@ from sentry_sdk import capture_exception, capture_message, last_event_id
 from taggit.models import Tag, TaggedItem
 from weasyprint import HTML
 
+from common.models import archive_storage
+
 from . import filters, forms, models, tables
 from .forms import Submit
 from .models import Address, Application, Person, PersonCareerStage, Subscription, User
@@ -149,7 +151,6 @@ from .pyinfo import info
 from .utils import send_mail, vignere
 from .utils.date_utils import FuzzyDate
 from .utils.orcid import OrcidHelper
-from common.models import archive_storage
 
 # from .tasks import notify_user
 
@@ -157,6 +158,14 @@ from common.models import archive_storage
 def __(s):
     """Temporarily disable 'gettex'"""
     return s
+
+
+def route_exists(url_name, *args, **kwargs):
+    try:
+        reverse(url_name, args=args, kwargs=kwargs)
+        return True
+    except NoReverseMatch:
+        return False
 
 
 def check_selected_orgs(request):
@@ -859,10 +868,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             if hasattr(transition, "custom") and (
                 name := transition.custom.get("verbose") or transition.custom.get("button_name")
             ):
-                return f"{name} {model_name} {obj}"
+                return f"{name} {obj}"
             else:
                 # Make the function name the button title, but prettier
-                return "{0} {1} {2}".format(
+                return "{0} {2}".format(
                     transition.name.replace("_", " "), model_name, obj
                 ).title()
 
@@ -1049,32 +1058,72 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             return redirect(request.path.split("#")[0] + "#correspondence")
 
     def post(self, request, *args, **kwargs):
-        if hasattr(self.model, "tags"):
+
+        if not getattr(self, "object", None):
             self.object = self.get_object()
+
+        if hasattr(self.model, "tags"):
             form = self.tag_form()
             if "save_tags" in form.data and form.is_valid():
                 form.save()
 
         if "post_comment" in request.POST and hasattr(self.model, "comments"):
-            self.object = self.get_object()
             return self.post_comment(request, *args, **kwargs)
 
+        return_url = request.POST.get("return_url")
+        old_state = state = getattr(self.object, "state", None)
         action, description = request.POST.get("action"), request.POST.get("resolution", None)
+
         if action:
-            if not getattr(self, "object", None):
-                self.object = self.get_object()
             if method := getattr(self.object, action, None):
+                if not description and action == "withdraw":
+                    description = f"{request.user} withdrew the {self.object.model_name} {self.object}."
+                old_state = self.object.state
                 method(request=request, description=description, by=request.user)
                 # self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
-                self.object.save()
                 state = self.object.state
-                messages.success(request, _(f"The change request was {state}."))
+                if state != old_state:
+                    self.object.save()
+                if self.model is models.Nomination and action == "withdraw":
+                    messages.info(request, _(f"The nomination {n} has been withdrawn."))
+                else:
+                    messages.success(request, _(f"The {self.object._meta.verbose_name} {self.object} was {state}."))
+                if self.model is models.Nomination and (a := self.object.application) and a.is_wip:
+                    old_state = a.object.state
+                    a.cancel(
+                        request=request,
+                        by=request.user,
+                        description=description,
+                    )
+                    state = a.object.state
+                    if state != old_state:
+                        a.save()
+                    messages.info(request, _(f"The application {a} has been cancelled."))
+
             elif self.model is models.Testimonial and action == "turn_down":
                 t = self.object
-                t.referee.opt_out(user=self.request.user, request=self.request)
+                t.referee.opt_out(user=request.user, request=request)
                 t.referee.save()
-                reset_cache(self.request)
-                return redirect("testimonials")
+
+            if state != old_state:
+                reset_cache(request)
+
+            if return_url:
+                return redirect(return_url)
+
+            if state:
+                if state == "archived":
+                    route =  f"{self.object.model_name}s-{old_state}"
+                else:
+                    if state == "new":
+                        state = "draft"
+                    route =  f"{self.object.model_name}s-{state}"
+                if route_exists(route):
+                    return redirect(route)
+
+            route =  f"{self.object.model_name}s"
+            if route_exists(route):
+                return redirect(route)
 
         return redirect(request.path)
 
@@ -8531,6 +8580,16 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
         return result
 
     def create_object(self, text):
+        if (referer := self.request.META.get("HTTP_REFERER")):
+            if (m := re.search(r"contracts/(\d+)/", referer)):
+                if (contract := models.Contract.where(pk=m.group(1)).first()) and contract.host_contact_email != text:
+                    contract.host_contact_email = text
+                    contract.save(update_fields=["host_contact_email", "updated_at"])
+            elif (m := re.search(r"contracts/([A-Za-z0-9:-]+)/", referer)):
+                if (contract := models.Contract.where(number=m.group(1)).first()) and contract.host_contact_email != text:
+                    contract.host_contact_email = text
+                    contract.save(update_fields=["host_contact_email", "updated_at"])
+
         return text
 
     def get_queryset(self):
@@ -9949,39 +10008,6 @@ class NominationDetail(DetailView):
                 ),
             )
         return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        action = request.POST.get("action")
-        return_url = request.POST.get("return_url")
-        if action == "withdraw":
-            n = self.object = self.get_object()
-            state = n.state
-            resolution = request.POST.get("resolution", f"{request.user} withdrew the nomination")
-            n.withdraw(
-                request=request,
-                by=request.user,
-                description=resolution,
-            )
-            n.save()
-            messages.info(request, f"The nomination {n} has been withdrawn.")
-            if (a := n.application) and a.is_wip:
-                a.cancel(
-                    request=request,
-                    by=request.user,
-                    description=resolution,
-                )
-                a.save()
-                messages.info(request, f"The application {a} has been cancelled.")
-
-            if return_url:
-                return redirect(return_url)
-            if not state or state in ["new", "draft"]:
-                return redirect("nominations-draft")
-            if state == "submitted":
-                return redirect("nominations-submitted")
-            if state == "accepted":
-                return redirect("nominations-accepted")
-        return redirect(return_url or "nominations")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
