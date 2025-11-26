@@ -1,11 +1,9 @@
 import base64
 import copy
 import os
+import pathlib
 
 import boto3
-from sentry_sdk import capture_exception
-from django_q.tasks import async_task
-
 from botocore.exceptions import ClientError
 from django.conf import settings
 from django.contrib import admin
@@ -19,12 +17,14 @@ from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.deconstruct import deconstructible
 from django.utils.functional import LazyObject, cached_property
 from django.utils.safestring import mark_safe
+from django_q.tasks import async_task
 from model_utils import Choices
-from private_storage.storage.files import PrivateFileSystemStorage
 from private_storage.servers import DjangoServer, add_no_cache_headers
-from django.utils.deconstruct import deconstructible
+from private_storage.storage.files import PrivateFileSystemStorage
+from sentry_sdk import capture_exception
 
 EmailField.register_lookup(Lower)
 
@@ -204,14 +204,15 @@ class ArchivalStorage(PrivateFileSystemStorage):
         # full_path = self.path(name)
         # directory = os.path.dirname(full_path)
         # shaddow copy to archive location
-        try:
-            async_task(
-                save_to_archive,
-                # sync=True,
-                name=name,
-            )
-        except Exception as e:
-            capture_exception(e)
+        if pathlib.Path(name).parts[0] not in ["archive", "temp", "tmp", "converted"]:
+            try:
+                async_task(
+                    save_to_archive,
+                    # sync=True,
+                    name=name,
+                )
+            except Exception as e:
+                capture_exception(e)
 
         return name
 
