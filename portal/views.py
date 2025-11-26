@@ -479,7 +479,6 @@ class ArchivalPrivateStorageView(PrivateStorageView):
         if not self.can_access_file(private_file):
             raise PermissionDenied(self.permission_denied_message)
 
-        breakpoint()
         storage = self.storage
         if storage.exists_locally(private_file.relative_name):
             return self.serve_file(private_file)
@@ -490,19 +489,19 @@ class ArchivalPrivateStorageView(PrivateStorageView):
 
         return self.serve_file_not_found(private_file)
 
-    def serve_file(self, private_file):
+    # def serve_file(self, private_file):
 
-        response = self.server_class().serve(private_file)
+    #     response = self.server_class().serve(private_file)
 
-        if self.content_disposition:
-            # Join syntax works in all Python versions. Python 3 doesn't support b'..'.format(),
-            # and % formatting was added for bytes in 3.5: https://bugs.python.org/issue3982
-            filename = self.get_content_disposition_filename(private_file)
-            response["Content-Disposition"] = b"; ".join(
-                [self.content_disposition.encode(), self._encode_filename_header(filename)]
-            )
+    #     if self.content_disposition:
+    #         # Join syntax works in all Python versions. Python 3 doesn't support b'..'.format(),
+    #         # and % formatting was added for bytes in 3.5: https://bugs.python.org/issue3982
+    #         filename = self.get_content_disposition_filename(private_file)
+    #         response["Content-Disposition"] = b"; ".join(
+    #             [self.content_disposition.encode(), self._encode_filename_header(filename)]
+    #         )
 
-        return response
+    #     return response
 
 
 class AdminRequiredMixin(AccessMixin):
@@ -7099,7 +7098,7 @@ class ContractViewMixin:
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
         context["state"] = self.object and self.object.state or "draft"
-        if i.is_variation and u.is_admin and i.originated_by.exists():
+        if i.is_variation and u.is_admin and i.originated_by:
             context["change_request_reply_form"] = self.get_change_request_reply_form()
 
         return context

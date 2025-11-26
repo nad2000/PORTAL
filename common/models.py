@@ -3,6 +3,10 @@ import copy
 import os
 
 import boto3
+from sentry_sdk import capture_exception
+from django_q.tasks import async_task
+
+from botocore.exceptions import ClientError
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
@@ -20,6 +24,7 @@ from django.utils.safestring import mark_safe
 from model_utils import Choices
 from private_storage.storage.files import PrivateFileSystemStorage
 from private_storage.servers import DjangoServer, add_no_cache_headers
+from django.utils.deconstruct import deconstructible
 
 EmailField.register_lookup(Lower)
 
@@ -55,6 +60,7 @@ def domain_to_macrons(url):
         return f"{p1}{p2}"
     return url
 
+
 # class PrivateFile(PivateFile):
 #     pass
 
@@ -72,6 +78,7 @@ def domain_to_macrons(url):
 #         pass
 
 
+@deconstructible
 class ArchivalStorage(PrivateFileSystemStorage):
     def __init__(
         self,
@@ -94,24 +101,24 @@ class ArchivalStorage(PrivateFileSystemStorage):
             *args,
             **kwargs,
         )
-        if not archive_prefix:
-            archive_prefix = "archive"
-        self.archive_prefix = archive_prefix
+        # if not archive_prefix:
+        #     archive_prefix = "archive"
+        # self.archive_prefix = archive_prefix
         if not archive_location:
-            archive_location = os.path.join(self._location, archive_prefix)
+            archive_location = self._location  # os.path.join(self._location, archive_prefix)
         self.archive_location = archive_location
 
-        secret_key = "TuoezMtsQQCpSFagHBbJwt7nfdPM7YQA0ak8LZMv"
-        access_key = "K7INM44H4BSFQ0CKIY6W"
-        # website_endpoint ="http://%(bucket)s.s3-website-%(location)s.amazonaws.com/"
+        access_key = getattr(settings, "AWS_ACCESS_KEY_ID", None)
+        secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY", None)
+        self.bucket = bucket = getattr(settings, "AWS_STORAGE_BUCKET_NAME", "rsta-portal-archive")
+        region_name = getattr(settings, "AWS_S3_REGION_NAME", None)
         # website_endpoint_format ="http://%(bucket)s.s3-website-%(location)s.amazonaws.com/"
-        hostname = "ewr1.vultrobjects.com"
-        bucket = self.bucket = "rsta-portal-archive"  # "pmspp-archive"
+        hostname = f"{region_name}.vultrobjects.com"
 
         session = boto3.session.Session()
         client = session.client(
             "s3",
-            region_name="ewr1",
+            region_name=region_name,
             endpoint_url=f"https://{hostname}",
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
@@ -133,7 +140,6 @@ class ArchivalStorage(PrivateFileSystemStorage):
 
     def open(self, name, mode="rb"):
         # Try to open from primary location first
-        breakpoint()
         try:
             return super().open(name, mode)
         except FileNotFoundError as e:
@@ -159,23 +165,29 @@ class ArchivalStorage(PrivateFileSystemStorage):
             return True
         except self.s3.exceptions.NoSuchKey:
             return False
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return False  # Object does not exist
+            else:
+                # Re-raise for other errors (e.g., permission issues, network problems)
+                raise e
 
     def exists_locally(self, name):
         return super().exists(name)
 
     def exists(self, name):
         # Check in both locations
-        if name.startswith(self.archive_prefix):
-            archive_path = os.path.join(self.location, name)
-            if os.path.exists(archive_path):
-                return True
-            else:
-                return self.exists_in_archive(name)
+        # if name.startswith(self.archive_prefix):
+        #     archive_path = os.path.join(self.location, name)
+        #     if os.path.exists(archive_path):
+        #         return True
+        #     else:
+        #         return self.exists_in_archive(name)
         if self.exists_locally(name):
             return True
-        archive_path = os.path.join(self.archive_location, name)
-        if os.path.exists(archive_path):
-            return True
+        # archive_path = os.path.join(self.archive_location, name)
+        # if os.path.exists(archive_path):
+        #     return True
         return self.exists_in_archive(name)
 
     def path(self, name):
@@ -184,13 +196,41 @@ class ArchivalStorage(PrivateFileSystemStorage):
             return path
         # TODO: check if in S3
         return os.path.join(self.archive_location, name)
-        # private_storage.views.PrivateStorageView
+        # private_storage.vi
+
+    def save(self, name, content, max_length=None):
+        name = super().save(name=name, content=content, max_length=max_length)
+
+        # full_path = self.path(name)
+        # directory = os.path.dirname(full_path)
+        # shaddow copy to archive location
+        try:
+            async_task(
+                save_to_archive,
+                # sync=True,
+                name=name,
+            )
+        except Exception as e:
+            capture_exception(e)
+
+        return name
 
     # You would also need to override 'url', 'path', etc. to handle the archive location correctly
     # based on your specific requirements.
 
 
 archive_storage = ArchivalStorage()
+
+
+def save_to_archive(name):
+
+    full_path = archive_storage.path(name)
+    # directory = os.path.dirname(full_path)
+    try:
+        archive_storage.s3.upload_file(full_path, archive_storage.bucket, name)
+    except Exception as e:
+        capture_exception(e)
+        raise e
 
 
 class TimeStampModel(Base):
