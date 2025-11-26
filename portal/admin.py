@@ -50,6 +50,7 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 from . import filters, models
 from .forms import ModelSelect2NoPK
+from common.admin import StaffPermsMixin
 
 # from dalf.admin import DALFModelAdmin, DALFRelatedOnlyField, DALFRelatedFieldAjax
 # from autocompletefilter.admin import AutocompleteFilterMixin
@@ -529,35 +530,35 @@ class PdfFileAdminMixin:
                 raise
 
 
-class StaffPermsMixin:
-    def get_model_perms(self, request):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return {"add": True, "change": True, "delete": True, "view": True}
-        return super().get_model_perms(request)
-
-    def has_add_permission(self, request, *args):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_add_permission(request, *args)
-
-    def has_change_permission(self, request, obj=None):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_change_permission(request, obj)
-
-    def has_delete_permission(self, request, obj=None):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_delete_permission(request, obj)
-
-    def has_view_permission(self, request, obj=None):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_view_permission(request, obj)
-
-    def has_module_permission(self, request):
-        return request.user.is_active and (request.user.is_superuser or request.user.is_site_staff)
-
+# class StaffPermsMixin:
+#     def get_model_perms(self, request):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return {"add": True, "change": True, "delete": True, "view": True}
+#         return super().get_model_perms(request)
+#
+#     def has_add_permission(self, request, *args):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_add_permission(request, *args)
+#
+#     def has_change_permission(self, request, obj=None):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_change_permission(request, obj)
+#
+#     def has_delete_permission(self, request, obj=None):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_delete_permission(request, obj)
+#
+#     def has_view_permission(self, request, obj=None):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_view_permission(request, obj)
+#
+#     def has_module_permission(self, request):
+#         return request.user.is_active and (request.user.is_superuser or request.user.is_site_staff)
+#
 
 class HistoryAdmin(SimpleHistoryAdmin):
 

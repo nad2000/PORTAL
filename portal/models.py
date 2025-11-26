@@ -1717,6 +1717,17 @@ class Affiliation(Model):
             return f"{self.org}: until {self.end_date}"
         return f"{self.org}: {self.start_date} to {self.end_date}"
 
+
+    @property
+    def html_table_row(self):
+        return f"""
+            <tr>
+              <td>{self.get_type_display()}</td>
+              <td>{self.org}</td>
+              <td>{self.role or 'N/A'}</td>
+            </tr>
+        """
+
     class Meta:
         db_table = "affiliation"
 
