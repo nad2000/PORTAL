@@ -7082,7 +7082,7 @@ class ContractViewMixin:
         i = self.object
         u = self.request.user
 
-        if i.is_variation and u.is_admin and (cr := i.originated_by.last()):
+        if i.is_variation and u.is_admin and (cr := i.originated_by):
             form = model_forms.modelform_factory(
                 models.ChangeRequest,
                 fields=("reply",),
@@ -7266,7 +7266,7 @@ class ContractViewMixin:
                     budget.converted_file = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
 
-                if i.is_variation and u.is_admin and i.originated_by.exists():
+                if i.is_variation and u.is_admin and i.originated_by:
                     reply_form = self.get_change_request_reply_form()
                     if reply_form.changed_data and reply_form.is_valid():
                         reply_form.save()
