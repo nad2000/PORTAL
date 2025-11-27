@@ -198,8 +198,8 @@ def site_contact_email(site_id=None):
 
 GENDERS = Choices(
     # (0, _("Prefer not to say")), (1, _("Male")), (2, _("Female")), (3, _("Gender diverse"))
+    ("N", _("Blank / Prefer not to answer")),
     ("X", _("Prefer not to say")),
-    ("N", _("Prefer not to answer")),
     ("M", _("Male")),
     ("F", _("Female")),
     ("D", _("Gender diverse")),
@@ -1776,7 +1776,7 @@ class Person(PersonMixin, Model):
     gender = FixedCharField(
         _("gender"),
         choices=GENDERS,
-        # default="N",
+        default="N",
         max_length=1,
         null=False,
         blank=False,
