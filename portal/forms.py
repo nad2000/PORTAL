@@ -5245,7 +5245,7 @@ class ChangeRequestForm(ModelForm):
         label="Request letter",
         widget=forms.ClearableFileInput(
             attrs={
-                "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
+                "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex,.pdf,.xls,.xlsx"
             }
         ),
     )
