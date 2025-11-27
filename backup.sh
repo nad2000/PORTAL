@@ -11,7 +11,7 @@ else
     STORAGE_BUCKET=rsta-portal-archive
 fi
 export STORAGE_BUCKET
-STORAGE_DIR=./prod/private-media/
+STORAGE_DIR=$HOME/prod/private-media/
 
 [ ! -f docker-compose.yml ] && cd $HOME
 sudo find ./archive -mtime +1 -exec rm -f {} \;
