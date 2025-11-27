@@ -197,12 +197,11 @@ def site_contact_email(site_id=None):
 
 
 GENDERS = Choices(
-    # (0, _("Prefer not to say")), (1, _("Male")), (2, _("Female")), (3, _("Gender diverse"))
-    ("N", _("Blank / Prefer not to answer")),
-    ("X", _("Prefer not to say")),
+     # ("N", _("Blank / Prefer not to answer")),
+    ("X", _("Blank / Prefer not to answer")),
     ("M", _("Male")),
     ("F", _("Female")),
-    ("D", _("Gender diverse")),
+    ("D", _("Another gender")),
 )
 
 AFFILIATION_TYPES = Choices(
@@ -1776,10 +1775,9 @@ class Person(PersonMixin, Model):
     gender = FixedCharField(
         _("gender"),
         choices=GENDERS,
-        default="N",
         max_length=1,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
         db_comment="\n".join(f"{k}: {v}" for (k, v) in GENDERS),
     )
     date_of_birth = DateField(_("date of birth"), null=True, blank=True, validators=[validate_bod])
