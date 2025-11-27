@@ -1644,6 +1644,7 @@ def index(request):
             Q(user=user)
             | Q(email__lower=user.email.lower())
             | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__lower"))),
+            ~Q(invitations__state__in=['accepted', 'expired', 'revoked', 'new', 'draft']),
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
@@ -4046,7 +4047,7 @@ class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
         # self.fields["file"].required = True
         # self.fields["country"].required = True
 
-    cv = FileField(
+    cv_file = FileField(
         required=False,
         label=gettext_lazy("Curriculum Vitae"),
         help_text=gettext_lazy("The most current CV"),
@@ -4065,7 +4066,7 @@ class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
     #     return True
     class Meta:
         model = models.Member
-        fields = ["cv", "file", "country", "org"]
+        fields = ["cv_file", "file", "country", "org"]
         widgets = {
             "country": autocomplete.ModelSelect2(
                 "country-autocomplete",
@@ -4089,7 +4090,7 @@ class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
                     "data-required": 1,
                 },
             ),
-            "cv": widgets.ClearableFileInput(
+            "cv_file": widgets.ClearableFileInput(
                 attrs={
                     "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
                     "data-required": 1,
@@ -4218,19 +4219,37 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                 if self.object.site_id == 2:
                     form = self.get_member_form(instance=member)
                     if form.is_valid():
-                        if "cv" in form.changed_data and (cv_file := request.FILES.get("cv")):
-                            models.CurriculumVitae.create(
+                        member = form.save(commit=False)
+                        was_changed = False
+                        cv = models.CurriculumVitae.last_user_cv(u)
+                        if cv and not member.cv:
+                            member.cv = cv
+                            was_changed = True
+                        if not member.first_name:
+                            member.first_name = u.first_name or u.person.first_name
+                            was_changed = True
+                        if not member.last_name:
+                            member.last_name = u.last_name or u.person.last_name
+                            was_changed = True
+
+                        if "cv_file" in form.changed_data and (cv_file := request.FILES.get("cv_file")):
+                            cv = models.CurriculumVitae.create(
                                 file=cv_file,
                                 owner=u,
                                 person=u.person,
                                 title=_(f"For application {member.application.number}"),
                             )
-                        form.save(commit=False)
+                            member.cv = cv
+                            was_changed = True
+
+                        if form.changed_data or was_changed:
+                            member.save()
+
                         if (
                             member.file == ""
                             or not member.country
                             or not member.org
-                            or not models.CurriculumVitae.where(owner=u).exists()
+                            or not member.cv
                         ):
                             messages.error(
                                 request,
@@ -4238,8 +4257,6 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                                     "Please upload the host support letter and the current CV, and indicate the county of the origin."
                                 ),
                             )
-                            if form.changed_data:
-                                member.save()
                             return redirect(request.path)
 
                     else:
@@ -4352,7 +4369,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
             p = u.person
             initial = initial or {}
             if cv := models.CurriculumVitae.last_user_cv(u):
-                initial["cv"] = cv.file
+                initial["cv_file"] = cv.file
             if (
                 not (instance and instance.country)
                 and "country" not in initial
@@ -4424,8 +4441,11 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                 )
 
             country = m.country_id or self.request.session.get("country")
-            initial = country and {"country": country}
+            initial = country and {"country": country} or {}
+            if cv := models.CurriculumVitae.last_user_cv(u):
+                initial["cv_file"] = cv.file
             context["form"] = self.get_member_form(instance=m, initial=initial)
+            context["cv_upload_required"] = True
         is_ro = site_id in [2, 4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())

@@ -1776,8 +1776,9 @@ class Person(PersonMixin, Model):
     gender = FixedCharField(
         _("gender"),
         choices=GENDERS,
+        # default="N",
         max_length=1,
-        null=True,
+        null=False,
         blank=False,
         db_comment="\n".join(f"{k}: {v}" for (k, v) in GENDERS),
     )
@@ -4539,6 +4540,15 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
     )
     is_funded = BooleanField(default=True, verbose_name=_("funded"))
+    cv = ForeignKey(
+        "CurriculumVitae",
+        editable=False,
+        null=True,
+        blank=True,
+        on_delete=PROTECT,
+        verbose_name=_("curriculum vitae"),
+        related_name="members"
+    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -6692,7 +6702,7 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
 
     @classmethod
     def last_user_cv(cls, user):
-        return cls.where(Q(owner=user) | Q(person__user=user)).order_by("-id").first()
+        return cls.where(Q(owner=user) | Q(person__user=user)).order_by("-updated_at").first()
 
     def __str__(self):
         return self.filename

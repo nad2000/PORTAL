@@ -360,7 +360,29 @@
 {% endblock buttons_above %}
 
 {% block object_details_table %}
-{% if form %}{% crispy form %}{% endif %}
+{% if form %}
+  {% if cv_upload_required %}
+    <div class="jumbotron">
+    {% if SITE_ID == 2 %}
+      {% blocktrans %}
+        Curriculum Vitae are required from applicants to Fund, with the exception of Falling Walls where the CV
+        can be obtained from the application shared by Falling Walls Lab Foundation Berlin:
+        If in doubt skip this step, and when required a CV will be requested.<br><br>
+        For NZ-based researchers, a current CV in the
+        <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+        All others, please provide a CV in whatever is your preferred format.
+      {% endblocktrans %}
+    {% else %}
+      {% blocktrans %}
+        For NZ-based researchers, a current CV in the
+        <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+      {% endblocktrans %}
+    {% endif %}
+    </div>
+  {% endif %}
+  {% crispy form %}
+{% endif %}
+
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
 <div class="table-responsive">
   {% include 'snippets/application_detail_table.html' %}

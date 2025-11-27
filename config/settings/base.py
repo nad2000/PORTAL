@@ -189,7 +189,7 @@ Q_CLUSTER = {
     "timeout": 90,
     "bulk": 10,
     "queue_limit": 500,
-    "sync": DEBUG,
+    "sync": False if ENV == "prod" else DEBUG,
     "orm": "default",
 }
 

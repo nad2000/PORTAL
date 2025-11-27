@@ -2977,6 +2977,10 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         else:
             application = cleaned_data.get("application")
         email = cleaned_data.get("email")
+
+        if not cleaned_data.get("country") and (org := cleaned_data.get("org")) and org.address and org.address.country:
+            cleaned_data["country"] = org.address.country
+
         if not email:
             raise forms.ValidationError(_("Team member email address is mandatory"))
         if application and application.pk:
