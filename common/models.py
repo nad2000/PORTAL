@@ -17,6 +17,7 @@ from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.utils.deconstruct import deconstructible
 from django.utils.functional import LazyObject, cached_property
 from django.utils.safestring import mark_safe
@@ -87,8 +88,6 @@ class ArchivalStorage(PrivateFileSystemStorage):
         file_permissions_mode=None,
         directory_permissions_mode=None,
         allow_overwrite=False,
-        archive_prefix=None,
-        archive_location=None,
         *args,
         **kwargs,
     ):
@@ -101,12 +100,6 @@ class ArchivalStorage(PrivateFileSystemStorage):
             *args,
             **kwargs,
         )
-        # if not archive_prefix:
-        #     archive_prefix = "archive"
-        # self.archive_prefix = archive_prefix
-        if not archive_location:
-            archive_location = self._location  # os.path.join(self._location, archive_prefix)
-        self.archive_location = archive_location
 
         access_key = getattr(settings, "AWS_ACCESS_KEY_ID", None)
         secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY", None)
@@ -126,37 +119,22 @@ class ArchivalStorage(PrivateFileSystemStorage):
         # resp=client.list_buckets()
         self.s3 = client
 
-    def retrieve_from_archive(self, name, mode="rb"):
-        archive_path = os.path.join(self.archive_location, name)
-        if os.path.exists(archive_path):
-            return super().open(archive_path, mode)
-        else:  # retriev from S3
-            # response = self.s3.get_object(Bucket='archive', Key=name)
-            # return response['Body']
-            # s3.download_file(self.bucket, name, archive_path)
-
-            s3.download_file(self.bucket, name, archive_path)
-        raise FileNotFoundError(f"[Errno 2] No such file or directory: '{name}'")
+    def get_alternative_name(self, file_root, file_ext):
+        return "%s_%s%s" % (file_root, get_random_string(2), file_ext)
 
     def open(self, name, mode="rb"):
         # Try to open from primary location first
         try:
             return super().open(name, mode)
         except FileNotFoundError as e:
-            # If not found, check the archive location
-            archive_path = os.path.join(self.archive_location, os.path.basename(name))
-            if os.path.exists(archive_path):
-                # Optional: Logic to move it back to primary storage if needed (automatic retrieval)
-                # For simplicity here, we just open it from the archive
-                return super().open(archive_path, mode)
-            else:  # retriev from S3
-                try:
-                    # response = self.s3.get_object(Bucket='archive', Key=name)
-                    # return response['Body']
-                    s3.download_file(self.bucket, name, archive_path)
-                    return super().open(archive_path, mode)
-                except self.s3.exceptions.NoSuchKey:
-                    raise e
+            try:
+                # response = self.s3.get_object(Bucket='archive', Key=name)
+                # return response['Body']
+                full_path = os.path.join(self.location, name)
+                s3.download_file(self.bucket, name, full_path)
+                return super().open(full_path, mode)
+            except self.s3.exceptions.NoSuchKey:
+                raise e
             raise  # Re-raise if not found anywhere
 
     def exists_in_archive(self, name):
@@ -176,27 +154,9 @@ class ArchivalStorage(PrivateFileSystemStorage):
         return super().exists(name)
 
     def exists(self, name):
-        # Check in both locations
-        # if name.startswith(self.archive_prefix):
-        #     archive_path = os.path.join(self.location, name)
-        #     if os.path.exists(archive_path):
-        #         return True
-        #     else:
-        #         return self.exists_in_archive(name)
         if self.exists_locally(name):
             return True
-        # archive_path = os.path.join(self.archive_location, name)
-        # if os.path.exists(archive_path):
-        #     return True
         return self.exists_in_archive(name)
-
-    def path(self, name):
-        path = os.path.join(self.location, name)
-        if os.path.exists(path):
-            return path
-        # TODO: check if in S3
-        return os.path.join(self.archive_location, name)
-        # private_storage.vi
 
     def save(self, name, content, max_length=None):
         name = super().save(name=name, content=content, max_length=max_length)
@@ -204,7 +164,7 @@ class ArchivalStorage(PrivateFileSystemStorage):
         # full_path = self.path(name)
         # directory = os.path.dirname(full_path)
         # shaddow copy to archive location
-        if pathlib.Path(name).parts[0] not in ["archive", "temp", "tmp", "converted"]:
+        if pathlib.Path(name).parts[0] not in ["converted", "archive", "archived", "temp", "tmp"]:
             try:
                 async_task(
                     save_to_archive,
@@ -223,15 +183,27 @@ class ArchivalStorage(PrivateFileSystemStorage):
 archive_storage = ArchivalStorage()
 
 
-def save_to_archive(name):
+def save_to_archive(name=None, names=None, keep=True):
 
-    full_path = archive_storage.path(name)
-    # directory = os.path.dirname(full_path)
-    try:
-        archive_storage.s3.upload_file(full_path, archive_storage.bucket, name)
-    except Exception as e:
-        capture_exception(e)
-        raise e
+    if name:
+        names = [name]
+    for n in names:
+        if n.startswith(archive_storage.base_location):
+            full_path = n
+            n = n.removeprefix(archive_storage.base_location)
+        else:
+            full_path = archive_storage.path(n)
+
+        try:
+            if not archive_storage._allow_overwrite and not archive_storage.exists_in_archive(n):
+                archive_storage.s3.upload_file(full_path, archive_storage.bucket, n)
+        except Exception as e:
+            capture_exception(e)
+            raise e
+        else:
+            if keep is False and kepp is not None:
+                if archive_storage.exists_locally(n):
+                    os.remove(full_path)
 
 
 class TimeStampModel(Base):

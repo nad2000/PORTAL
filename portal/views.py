@@ -471,13 +471,6 @@ class ArchivalPrivateStorageView(PrivateStorageView):
     """A view to serve files from the archival storage."""
 
     storage = archive_storage
-    # server_class = get_server_class(appconfig.PRIVATE_STORAGE_SERVER)
-
-    #: Whether the file should be displayed ``inline`` or show a download box (``attachment``).
-    ## content_disposition = None
-
-    #: The filename to use when :attr:`content_disposition` is set.
-    ## content_disposition_filename = None
 
     def get(self, request, *args, **kwargs):
         """
@@ -497,20 +490,6 @@ class ArchivalPrivateStorageView(PrivateStorageView):
             return self.serve_file(private_file)
 
         return self.serve_file_not_found(private_file)
-
-    # def serve_file(self, private_file):
-
-    #     response = self.server_class().serve(private_file)
-
-    #     if self.content_disposition:
-    #         # Join syntax works in all Python versions. Python 3 doesn't support b'..'.format(),
-    #         # and % formatting was added for bytes in 3.5: https://bugs.python.org/issue3982
-    #         filename = self.get_content_disposition_filename(private_file)
-    #         response["Content-Disposition"] = b"; ".join(
-    #             [self.content_disposition.encode(), self._encode_filename_header(filename)]
-    #         )
-
-    #     return response
 
 
 class AdminRequiredMixin(AccessMixin):
