@@ -377,7 +377,11 @@ class HelperMixin:
 
     @classmethod
     def bulk_create(cls, *args, **kwargs):
-        return cls.objects.bulk_create(*args, **kwargs)
+        return getattr(cls, "all_objects", cls.objects).bulk_create(*args, **kwargs)
+
+    @classmethod
+    def bulk_update(cls, *args, **kwargs):
+        return getattr(cls, "all_objects", cls.objects).bulk_update(*args, **kwargs)
 
     @classmethod
     def get_or_create(cls, defaults=None, **kwargs):

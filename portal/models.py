@@ -11834,7 +11834,27 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         description= kwargs.pop("description", None) or request and  request.POST.get("resolution", None) or f"User {by} approved the C.R. {cr} and the derived contract."
         source.archive(by=by, description=description, *args, **kwargs)
         cr.approve(by=by, description=description, *args, **kwargs)
+
+        def relink(c):
+            c.contract=self
+            return c
+
         with transaction.atomic():
+
+            if self.org == source.org:
+                reports = [relink(c) for c in source.reports.all()]
+                comments = [relink(c) for c in source.comments.all()]
+                if reports:
+                    bulk_update_with_history(
+                        reports,
+                        Report,
+                        ["contract", "updated_at"],
+                        default_user=by,
+                        default_change_reason=f"relink the reports from the original contract {source}",
+                    )
+                if comments:
+                    ContractComment.bulk_update(comments, ["contract", "updated_at"])
+
             source.save()
             cr.save()
 
