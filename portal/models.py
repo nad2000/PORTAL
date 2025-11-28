@@ -12527,6 +12527,7 @@ class ReportMixin:
         ("new", _("New")),
         ("submitted", _("Submitted")),
         ("reported", _("Reported")),
+        ("assigned", _("Assigned")),
         # ("withdrawn", _("withdrawn")),
     )
 
@@ -12964,6 +12965,20 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
                 thread_index=self.thread_index,
                 thread_topic=self.thread_topic,
             )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["acknowledged"],
+        target="assigned",
+        custom=dict(verbose="Assign an assessor", button_name="Assign"),
+        conditions = [lambda self: not self.assessor],
+        permission=lambda instance, user: user.is_admin,
+    )
+    def assign_assessor(self, request=None, by=None, assessor=None, *args, **kwargs):
+        if not assessor:
+            assessor = by or request and request.user
+        self.assessor = assessor
 
     @fsm_log
     @transition(

@@ -4462,6 +4462,26 @@ class PublicationAdmin(StaffPermsMixin, HistoryAdmin):
 class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     show_close_button = True
+    date_hierarchy = "created_at"
+
+    actions = [archive_objects, revert_object_states, "assign_yourself"]
+
+    @admin.action(description="Assign yourself")
+    def assign_yourself(self, request, queryset, *args, **kwargs):
+        u = request.user
+        assigned_reports = list(queryset.filter(assessor__isnull=True, state="acknowledged"))
+        if assigned_reports:
+            for r in assigned_reports:
+                r.assign_assessor(request=request, by=u, assessor=u)
+            bulk_update_with_history(
+                assigned_reports,
+                self.model,
+                ["state", "state_changed_at", "updated_at", "assessor"],
+                default_user=u,
+                default_change_reason=f"User {u} assigned themselves...",
+                manager=self.model.objects,
+            )
+
 
     list_display = (
         # "number",
@@ -4470,8 +4490,10 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         "contract",
         "type",
         "period",
+        "reported_at",
         # "application",
         "state",
+        "assessor",
     )
 
     list_filter = [
