@@ -12972,7 +12972,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["acknowledged"],
         target="assigned",
         custom=dict(verbose="Assign an assessor", button_name="Assign"),
-        conditions = [lambda self: not self.assessor],
+        # conditions = [lambda self: not self.assessor],
         permission=lambda instance, user: user.is_admin,
     )
     def assign_assessor(self, request=None, by=None, assessor=None, *args, **kwargs):
@@ -12983,7 +12983,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "assessed"],
+        source=["assigned"],
         target="assessed",
         custom=dict(verbose="Assess", button_name="Assess", internal=False),
         permission=lambda instance, user: instance.assessor == user,
