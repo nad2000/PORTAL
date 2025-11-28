@@ -1,6 +1,7 @@
 {% set c=contract %}
 {% set a=c.application %}
 {% set application_number=a and a.number or _("N/A") %}
+{% set u=request.user %}
 <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
@@ -43,13 +44,17 @@
 
         <tr>
           <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {% if c.is_variation %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }} {% endif %}
+          {% if c.is_variation or c.source %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }} {% endif %}
           </th>
           <td>
             {% if export %}
               {{ c.source }}
             {% else %}
               <a href="{{ c.source.get_absolute_url() }}" target="_blank">{{ c.source }}</a> (&lt;<strong>{{ c.source.get_state_display()|upper }}</strong>&gt;)
+              {% if c.originated_by %}
+                {{ _('by the change request') }}
+                <a href="{{ c.originated_by.get_absolute_url() }}" target="_blank">{{ c.originated_by }}</a> (&lt;<strong>{{ c.originated_by.get_state_display()|upper }}</strong>&gt;)
+              {% endif %}
             {% endif %}
           </td>
         </tr>
@@ -73,7 +78,7 @@
         </th>
         <td>
             {% if c.org %}
-                {% if request.user.is_superuser %}
+                {% if u.is_admin %}
                   <a href="{{ url('admin:portal_organisation_change', object_id=c.org_id) }}" target="_blank">{{ c.org }}</a>
                 {% else %}
                   {{ c.org }}
@@ -145,7 +150,7 @@
       {% endif %}
 
       {#% if (request.user.is_staff or request.user.is_superuser or request.user.is_site_staff) and c.org.research_offices.exists() %#}
-      {% if (is_staff or is_admin or request.user.is_admin) %}
+      {% if u.is_admin %}
         {% set research_officers = c.research_officers %}
         {% if research_officers %}
           <tr>

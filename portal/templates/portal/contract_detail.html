@@ -30,19 +30,22 @@
         {% if transitions %}
           {% include 'snippets/detail_transition_buttons.html' %}
         {% endif %}
-      {#% include 'snippets/detail_buttons.html' %#}
+        {#% include 'snippets/detail_buttons.html' %#}
         <div class="tooltip-wrapper{% if not can_edit %} disabled{% endif %}"
              data-html="true"
              {% if not can_edit %}
                disabled
-               {% if not is_superuser and not is_staff and not is_ro %}
+               {% if not is_admin and not is_ro %}
                 title="{% trans 'Only R.O. can edit this contract.' %}"
                {% else %}
                   title="{% trans 'Contract was already released.' %}"
                 {% endif %}
+              {% elif object.state == "submitted" %}
+                 disabled
+                 title="{% trans 'Contract was already released.' %}"
               {% endif %}
          >
-         <a class="btn btn-primary{% if not can_edit %} disabled{% endif %}" href="{% url 'contract-update' object.pk %}">{% trans 'Edit' %}</a>
+         <a class="btn btn-primary{% if not can_edit or is_ro and object.state == "submitted" %} disabled{% endif %}" href="{% url 'contract-update' object.pk %}">{% trans 'Edit' %}</a>
         </div>
       <a class="btn btn-primary" href="{% url 'contract-export' object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
       <!-- a class="btn btn-danger" href="{% url 'change-request-create' object.pk %}" target="_blank">{% trans 'Request Changes' %}</a-->

@@ -10432,9 +10432,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     @property
     def research_officers(self):
         return sorted(
-            set([ro.user for ro in self.object.org.research_offices.all()]),
+            set([ro.user for ro in self.org.research_offices.all()]),
             key=lambda o: (o.first_name, o.last_name),
         )
+
+    @property
+    def is_current(self):
+        return self.state in ["current", "CUR"]
 
     @property
     def update_url(self):
@@ -11800,10 +11804,39 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         field=state,
         source=["submitted", "released"],
         target="current",
+        conditions=[lambda self: not(self.source or ChangeRequest.where(derivative=self).exists())],
+        permission=lambda instance, user: user.is_admin,
         custom=dict(verbose="Make Current", button_name="Make Current"),
     )
     def make_current(self, *args, **kwargs):
         pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted", "released"],
+        target="current",
+        conditions=[lambda self: self.source or ChangeRequest.where(derivative=self).exists()],
+        permission=lambda instance, user: user.is_admin,
+        custom=dict(verbose="Approve the Change Request and mark the contract 'Current'", button_name="Accept Changes"),
+    )
+    def approve(self, *args, **kwargs):
+        cr = ChangeRequest.where(derivative=self).order_by("-pk").first()
+        source = self.source or cr and cr.contract
+        if not source:
+            if cr:
+                raise Exception(f"Missing source contract for the derived contract {self} based on {cr}")
+            else:
+                raise Exception(f"Missing a change request and the source contract for the derived contract {self}")
+
+        request = kwargs.get("request")
+        by = kwargs.pop("by", None) or request and request.user
+        description= kwargs.pop("description", None) or request and  request.POST.get("resolution", None) or f"User {by} approved the C.R. {cr} and the derived contract."
+        source.archive(by=by, description=description, *args, **kwargs)
+        cr.approve(by=by, description=description, *args, **kwargs)
+        with transaction.atomic():
+            source.save()
+            cr.save()
 
     def clone(self, is_variation=None, change_request=None, *args, **kwargs):
         """Clone the contract to create a variation of a transfer."""
@@ -11852,10 +11885,20 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     @fsm_log
     @transition(
         field=state,
-        # source=["draft", "submitted", "released"],
-        source=["*"],
+        source=["current", "CUR"],
         target="archived",
-        custom=dict(verbose="Decline the change reqeust", button_name="Decline"),
+        custom=dict(verbose="Decline the change request", button_name="Decline"),
+        permission=lambda instance, user: user.is_admin
+    )
+    def archive(self, *args, **kwargs):
+        pass
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["draft", "submitted", "released"],
+        target="archived",
+        custom=dict(verbose="Decline the change request", button_name="Decline"),
         permission=lambda instance, user: user.is_admin
         and (
             ChangeRequest.where(
@@ -12927,7 +12970,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         field=state,
         source=["submitted", "assessed"],
         target="assessed",
-        custom=dict(verbose="Assess", button_name="assess"),
+        custom=dict(verbose="Assess", button_name="Assess", internal=False),
         permission=lambda instance, user: instance.assessor == user,
     )
     def assess(self, *args, **kwargs):
@@ -13717,18 +13760,21 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             FileExtensionValidator(
                 allowed_extensions=[
                     "doc",
+                    "docb",
+                    "docm",
                     "docx",
                     "dot",
-                    "dotx",
-                    "docm",
                     "dotm",
-                    "docb",
-                    "odt",
-                    "ott",
-                    "oth",
+                    "dotx",
                     "odm",
+                    "odt",
+                    "oth",
+                    "ott",
+                    "pdf",
                     "rtf",
                     "tex",
+                    "xls",
+                    "xlsx",
                 ]
             )
         ],
@@ -13931,7 +13977,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         field=state,
         source=["submitted"],
         target="acknowledged",
-        custom=dict(verbose="Proceed", button_name="Proceed"),
+        custom=dict(verbose="Proceed with the change request", button_name="Proceed"),
         permission=lambda instance, user: instance.is_admin(user),
     )
     def proceed(self, request=None, by=None, description=None, *args, **kwargs):
@@ -13945,11 +13991,14 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 if request:
                     messages.error(request, f"Failed to procees with the change request: {e}")
                 capture_exception(e)
+        if not self.derivative.source:
+            self.derivative.source = self.contract
+            self.derivative.save()
 
     @fsm_log
     @transition(
         field=state,
-        source=["submitted"],
+        source=["submitted", "acknowledged"],
         target="approved",
         custom=dict(verbose="Approve", button_name="Approve", internal=True),
         permission=lambda instance, user: instance.is_admin(user),

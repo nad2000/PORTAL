@@ -6679,15 +6679,16 @@ class ContractDetail(FavoriteMixin, DetailView):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
+        o = self.object
         if u.is_admin or (
-            self.object
-            and (org := self.object.org or self.object.application.org)
+            o
+            and (org := o.org or o.application.org)
             and org.research_offices.filter(user=u).exists()
         ):
             context["can_edit"] = True
-            if self.object.state == "current":
+            if o.is_current and not (cr := models.ChangeRequest.where(~Q(state__in=["accepted", "acknowledged"]), contract=o).order_by("-pk")):
                 change_request_form = forms.ChangeRequestForm(
-                    initial={"contract": self.object},
+                    initial={"contract": o},
                 )
                 change_request_form.fields.pop("categories")
                 change_request_form.fields.pop("subcategories")
@@ -6698,8 +6699,8 @@ class ContractDetail(FavoriteMixin, DetailView):
         context["tabbed_ui"] = (
             context.get("tabbed_ui", False)
             or context.get("can_edit", False)
-            or self.object.change_requests.exists()
-            or self.object.reports.exists()
+            or o.change_requests.exists()
+            or o.reports.exists()
         )
         return context
 
