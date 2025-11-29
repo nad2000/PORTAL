@@ -7483,9 +7483,20 @@ class ContractViewMixin:
                 body = body.strip()
 
             if body or attachment:
-                comment = i.comments.model.create(
-                    contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
-                )
+                with transaction.atomic():
+                    comment = i.comments.model.create(
+                        contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
+                    )
+                    comment.recipients.model.objects.bulk_create(
+                        [
+                            (
+                                comment.recipients.model(comment=comment, user=r, email=r.email)
+                                if isinstance(r, models.User)
+                                else comment.recipients.model(comment=comment, email=r)
+                            )
+                            for r in recipients
+                        ]
+                    )
 
                 respond_url = (
                     self.request.build_absolute_uri(
@@ -7509,16 +7520,6 @@ class ContractViewMixin:
                     token=token,
                 )
 
-                comment.recipients.model.objects.bulk_create(
-                    [
-                        (
-                            comment.recipients.model(comment=comment, user=r, email=r.email)
-                            if isinstance(r, models.User)
-                            else comment.recipients.model(comment=comment, email=r)
-                        )
-                        for r in recipients
-                    ]
-                )
                 return redirect(
                     reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
                 )
