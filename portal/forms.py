@@ -1976,30 +1976,52 @@ class ContractForm(ModelForm):
             and application.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
         )
-        submit_button = Submit(
-            "submit_contract",  # NB! Never call a button 'submit'!
-            _("Release"),
-            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
-            data_toggle="tooltip",
-            title=(
-                _("Contract was already submitted")
-                if instance.state not in ["new", "draft"]
-                else (
-                    _("Only R.O. can submit the contract")
-                    if not (is_pi or is_ro)
+
+        if (
+            instance
+            and user.is_admin
+            and instance.is_variation
+            and instance.state in ["new", "draft", "draft", "released"]
+        ):
+            # Admins can approve the variation contracts:
+            submit_button = Button(
+                "approve_variant",  # NB! Never call a button 'submit'!
+                _("Accept Changes"),
+                # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+                data_tooltip="tooltip",
+                data_toggle="modal",
+                data_target="#id_resolution_modal",
+                data_action="approve_variant",
+                title=_(
+                    "Approve the contract variation and mark it 'current' (the original contract will be archived)"
+                ),
+                css_class="btn-outline-danger",
+            )
+        else:
+            submit_button = Submit(
+                "submit_contract",  # NB! Never call a button 'submit'!
+                _("Release"),
+                # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+                data_toggle="tooltip",
+                title=(
+                    _("Contract was already submitted")
+                    if instance.state not in ["new", "draft"]
                     else (
-                        _(
-                            # "Not all the parts/appendices of the contract were approved and/or accepted"
-                            "Not all the parts/appendices of the contract were approved and/or released"
+                        _("Only R.O. can submit the contract")
+                        if not (is_pi or is_ro)
+                        else (
+                            _(
+                                # "Not all the parts/appendices of the contract were approved and/or accepted"
+                                "Not all the parts/appendices of the contract were approved and/or released"
+                            )
+                            if submission_disabled
+                            else _("Release the contract")
                         )
-                        if submission_disabled
-                        else _("Release the contract")
                     )
-                )
-            ),
-            css_class="btn-outline-primary",
-            disabled=submission_disabled or not (is_pi or is_ro),
-        )
+                ),
+                css_class="btn-outline-primary",
+                disabled=submission_disabled or not (is_pi or is_ro),
+            )
         # if is_pi or is_ro:
         #     pass
         # else:
@@ -2902,6 +2924,7 @@ class ContractForm(ModelForm):
             "submitted_by",
             "state_changed_at",
             "is_variation",
+            "source",
         ]
         widgets = dict(
             start_date=DateInput(),
@@ -2978,7 +3001,12 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             application = cleaned_data.get("application")
         email = cleaned_data.get("email")
 
-        if not cleaned_data.get("country") and (org := cleaned_data.get("org")) and org.address and org.address.country:
+        if (
+            not cleaned_data.get("country")
+            and (org := cleaned_data.get("org"))
+            and org.address
+            and org.address.country
+        ):
             cleaned_data["country"] = org.address.country
 
         if not email:
@@ -4798,7 +4826,9 @@ class ReportForm(ModelForm):
                     templates[-1].url,
                     os.path.basename(templates[-1].name),
                 )
-                help_text = _("You can download the research report template(s) at ") + template_urls
+                help_text = (
+                    _("You can download the research report template(s) at ") + template_urls
+                )
 
                 fields = [
                     HTML(

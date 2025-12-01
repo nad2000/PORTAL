@@ -107,7 +107,7 @@
 
   <!-- Placeholder for the modal -->
   {% if change_request_form %}
-  <div id="change-request-form-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+  <div id="change-request-form-modal" class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
     <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" >
       <form method="post" enctype="multipart/form-data" id="object_form" action="{% url 'change-request-create' pk=object.pk %}?contract={{ object.pk }}">
         {% csrf_token %}

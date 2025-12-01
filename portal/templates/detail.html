@@ -25,7 +25,7 @@
   {% endif %}
 
   <!-- Placeholder for the modal -->
-  <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+  <div id="form-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
     <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this"></div>
   </div>
 
@@ -130,7 +130,7 @@
             <td>
               {% if not value and value != 0 %}
                 {% trans 'N/A' %}
-              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description"  or field.name == "reply" %}
+              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description"  or field.name == "description" %}
                 {{ value|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>

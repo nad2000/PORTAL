@@ -197,7 +197,7 @@ def site_contact_email(site_id=None):
 
 
 GENDERS = Choices(
-     # ("N", _("Blank / Prefer not to answer")),
+    # ("N", _("Blank / Prefer not to answer")),
     ("X", _("Blank / Prefer not to answer")),
     ("M", _("Male")),
     ("F", _("Female")),
@@ -1715,7 +1715,6 @@ class Affiliation(Model):
         if not self.start_date:
             return f"{self.org}: until {self.end_date}"
         return f"{self.org}: {self.start_date} to {self.end_date}"
-
 
     @property
     def html_table_row(self):
@@ -4545,7 +4544,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         blank=True,
         on_delete=PROTECT,
         verbose_name=_("curriculum vitae"),
-        related_name="members"
+        related_name="members",
     )
 
     def natural_key(self):
@@ -9262,7 +9261,9 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             "bounced",
         ],
         target="accepted",
-        permission=lambda instance, user: user.emailaddress_set.filter(email__iexact=instance.email).exists(),
+        permission=lambda instance, user: user.emailaddress_set.filter(
+            email__iexact=instance.email
+        ).exists(),
     )
     def accept(self, *args, **kwargs):
         pass
@@ -11804,7 +11805,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         field=state,
         source=["submitted", "released"],
         target="current",
-        conditions=[lambda self: not(self.source or ChangeRequest.where(derivative=self).exists())],
+        conditions=[
+            lambda self: not (self.source or ChangeRequest.where(derivative=self).exists())
+        ],
         permission=lambda instance, user: user.is_admin,
         custom=dict(verbose="Make Current", button_name="Make Current"),
     )
@@ -11814,29 +11817,54 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     @fsm_log
     @transition(
         field=state,
-        source=["submitted", "released"],
+        source=["submitted", "released", "draft", "WIP"],
         target="current",
         conditions=[lambda self: self.source or ChangeRequest.where(derivative=self).exists()],
         permission=lambda instance, user: user.is_admin,
-        custom=dict(verbose="Approve the Change Request and mark the contract 'Current'", button_name="Accept Changes"),
+        custom=dict(
+            verbose="Approve the Change Request and mark the contract 'Current'",
+            button_name="Accept Changes",
+        ),
     )
-    def approve(self, *args, **kwargs):
+    def approve(self, request=None, by=None, *args, **kwargs):
         cr = ChangeRequest.where(derivative=self).order_by("-pk").first()
+        cr_update_needed = False
         source = self.source or cr and cr.contract
+        source_update_needed = False
+        by = kwargs.pop("by", None) or request and request.user
+
         if not source:
             if cr:
-                raise Exception(f"Missing source contract for the derived contract {self} based on {cr}")
+                raise Exception(
+                    f"Missing source contract for the derived contract {self} based on {cr}"
+                )
             else:
-                raise Exception(f"Missing a change request and the source contract for the derived contract {self}")
+                raise Exception(
+                    f"Missing a change request and the source contract for the derived contract {self}"
+                )
 
-        request = kwargs.get("request")
-        by = kwargs.pop("by", None) or request and request.user
-        description= kwargs.pop("description", None) or request and  request.POST.get("resolution", None) or f"User {by} approved the C.R. {cr} and the derived contract."
-        source.archive(by=by, description=description, *args, **kwargs)
-        cr.approve(by=by, description=description, *args, **kwargs)
+        description = (
+            kwargs.pop("description", None)
+            or request
+            and request.POST.get("resolution", None)
+            or f"User {by} approved the C.R. {cr} and the derived contract."
+        )
+        if source.state != "archived":
+            source_update_needed = True
+            source.archive(request=request, by=by, description=description, *args, **kwargs)
+            if request:
+                messages.info(
+                    request,
+                    f"The source contract {source} was archived as part of approving the change request {cr}.",
+                )
+        if cr.state != "approved":
+            cr_update_needed = True
+            cr.approve(request=request, by=by, description=description, *args, **kwargs)
+            if request:
+                messages.info(request, f"The change request {cr} was approved.")
 
         def relink(c):
-            c.contract=self
+            c.contract = self
             return c
 
         with transaction.atomic():
@@ -11855,8 +11883,31 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 if comments:
                     ContractComment.bulk_update(comments, ["contract", "updated_at"])
 
-            source.save()
+            documents = [d for d in self.documents.filter(~Q(state="accepted"))]
+            for d in documents:
+                d.accept(request=request, by=by, *args, **kwargs)
+
+            if documents:
+                bulk_update_with_history(
+                    documents,
+                    self.documents.model,
+                    ["state", "updated_at"],
+                    default_user=by,
+                    default_change_reason=f"automatically accepted all document at the apprvoval of the variation {self}",
+                )
+
+            if not self.source:
+                self.source = source
+
+            if source_update_needed:
+                source.save()
             cr.save()
+
+        if request:
+            messages.success(
+                request,
+                f"The contract {source} variation {self} was successfully approved as part of approving the change request {cr}.",
+            )
 
     def clone(self, is_variation=None, change_request=None, *args, **kwargs):
         """Clone the contract to create a variation of a transfer."""
@@ -11908,7 +11959,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         source=["current", "CUR"],
         target="archived",
         custom=dict(verbose="Decline the change request", button_name="Decline"),
-        permission=lambda instance, user: user.is_admin
+        permission=lambda instance, user: user.is_admin,
     )
     def archive(self, *args, **kwargs):
         pass

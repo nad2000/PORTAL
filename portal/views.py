@@ -7189,7 +7189,7 @@ class ContractViewMixin:
                 u.is_superuser or u.is_site_staff
             )
             with transaction.atomic():
-
+                action = self.request.POST.get("action", None)
                 address_form = self.get_address_form()
                 if address_form.changed_data or not self.object.address:
                     if address_form.data.get("address") and form.data.get("address").strip():
@@ -7204,6 +7204,8 @@ class ContractViewMixin:
                     i.submitted_by = u
                     # self.instance.state_changed_at = self.instance.submitted_at = timezone.now()
                     i.submit(request=self.request, user=u)
+                elif "approve_contract" in form.data or action in ["approve_contract", "approve_variant"]:
+                    i.approve(request=self.request, by=u)
                 resp = super().form_valid(form)
 
                 fs = self.get_allocation_formset()

@@ -53,7 +53,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 {% block content %}
 
 <!-- Modal -->
-<div class="modal fade" id="roundDetail" tabindex="-1" role="dialog">
+<div class="modal fade" data-keyboard="true" id="roundDetail" tabindex="-1" role="dialog">
   <div class="modal-dialog{% if SITE_ID == 2 or SITE_ID == 5 %} modal-lg{% endif %}" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -112,7 +112,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="previous-application" tabindex="-1" role="dialog">
+<div class="modal fade" data-keyboard="true" id="previous-application" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -154,7 +154,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
 <!-- Request to RO -->
 {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}{% if has_ro and not is_ro %}
-<div class="modal fade" tabindex="-1" role="dialog" id="id_request_modal">
+<div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_request_modal">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -186,7 +186,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
 <!-- Required documents and templates -->
 {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
-<div class="modal fade" tabindex="-1" role="dialog" id="id_required_documents_modal">
+<div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_required_documents_modal">
   <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">

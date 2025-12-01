@@ -28,7 +28,8 @@
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
     <input type="hidden" name="doc_action" id="id_doc_action" value="">
-    <div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
+    <input type="hidden" name="action" id="id_action" value="">
+    <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_resolution_modal">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -54,10 +55,9 @@
       </div>
     </div>
     <!-- Placeholder for the modal -->
-    <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="form-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
-
     {% if form.helper %}
       {% crispy form form.helper %}
     {% else %}
@@ -93,6 +93,7 @@
     var doc_role = null;
     var doc_type = null;
     var doc_action = null;
+    var action = null;
     var required_doc = null;
     {% if object and object.pk %}
       var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
@@ -111,6 +112,7 @@
         $("#id_doc_role").val(doc_role);
         $("#id_doc_type").val(doc_type);
         $("#id_doc_action").val(doc_action || "approve");
+        if (action) $("#id_action").val(action);
         $(val).closest("form").submit();
         return true;
     };
@@ -125,6 +127,14 @@
         doc_action == "request_correction" ? "{% trans 'Request Correction' %}" : (
         doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : this.value||"{% trans 'Approve' %}")
       );
+      $('#id_resolution_modal').modal('show');
+      return false;
+    });
+    $('#button-id-approve_variant').on("click", function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      action = this.dataset["action"];
+      $("#id_confirm_action").text("{% trans 'Accept Changes' %}");
       $('#id_resolution_modal').modal('show');
       return false;
     });
