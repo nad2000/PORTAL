@@ -4857,13 +4857,14 @@ class ReportForm(ModelForm):
                 "accept"
             ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
 
-        tabs.append(
-            Tab(
-                mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
-                *fields,
-                css_id="report",
+        if not is_assessor and instance.file != "":
+            tabs.append(
+                Tab(
+                    mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
+                    *fields,
+                    css_id="report",
+                )
             )
-        )
         if instance and instance.pk:
             if is_assessor:
                 self.fields["recipients"] = forms.MultipleChoiceField(
@@ -4978,22 +4979,44 @@ class ReportForm(ModelForm):
                 )
             )
         if is_assessor:
+            if instance.file != "":
+                fields = [
+                    HTML(
+                        """{% load tags %}
+                        <div class="table-responsive">
+                        <table class="table table-bordered searchable">
+                        <tbody>
+                        <tr>
+                        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                        Completed Report:
+                        </th>
+                        <td>
+                            <a href="{{ object.file.url }}" target="_blank">
+                            {{ object.file|basename }}
+                            </a>
+                        </td>
+                        </tr>
+                        </tbody>
+                        </table>
+                        </div>"""
+                    ),
+                    "assessment",
+                ]
+                self.fields.pop("file", None)
+                self.fields["assessment"].required = True
+                tabs.append(
+                    Tab(
+                        mark_safe(f'<i class="fas fa-flag"></i> {_("Assessment")}'),
+                        *fields,
+                        css_id="assesssment",
+                    )
+                )
+
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-flag"></i> {_("Performance")}'),
-                    TabHolder(
-                        Tab(
-                            _("Performance Data"),
-                            TableInlineFormset(
-                                "performance", template="portal/performance_inline_formset.html"
-                            ),
-                            css_id="performance_data",
-                        ),
-                        Tab(
-                            _("Assessment"),
-                            "assessment",
-                            css_id="assessment",
-                        ),
+                    TableInlineFormset(
+                        "performance", template="portal/performance_inline_formset.html"
                     ),
                     css_id="performance",
                 )
