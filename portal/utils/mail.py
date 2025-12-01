@@ -246,7 +246,9 @@ def send_mail(
 ):
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
-    if site:
+    if request:
+        domain = request.get_host()
+    elif site:
         domain = site.domain
     elif not request and from_email and "@" in from_email:
         domain = from_email.split("@")[1]
@@ -254,10 +256,15 @@ def send_mail(
         domain = request and request.get_host() or site.domain
     # if ":" in domain:
     #     domain = domain.split(":")[0]
-    utf_domain = domain
     if domain and domain.startswith("xn--"):
         utf_domain = domain.encode().decode("idna")
+    else:
+        utf_domain = domain
     root = f"https://{domain}"
+
+    if not recipients:
+        recipients = settings.ADMINS
+
     if recipients and isinstance(recipients, (list, tuple, query.QuerySet)):
         recipients = [
             (
@@ -370,14 +377,14 @@ def send_mail(
 
     resp = msg.send()
 
-    all_recipients = (
+    all_recipients = list(
         recipients.union(bcc or [])
         if isinstance(recipients, set)
         else ((recipients or []) + (bcc or []))
     )
     ml = models.MailLog.create(
         user=request.user if request and request.user.is_authenticated else None,
-        recipient=recipients[0],
+        recipient=all_recipients[0],
         sender=from_email,
         subject=subject,
         was_sent_successfully=resp,
