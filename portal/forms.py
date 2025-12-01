@@ -4129,6 +4129,13 @@ class AssessedPerformanceForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["comment"].widget.attrs = {"rows": 3}
+
+        def flag_choice(parts):
+            if len(parts) > 1:
+                return (parts[1].strip(), parts[0].strip())
+            value = parts[0].strip()
+            return (value, value)
+
         if instance := kwargs.get("instance"):
             f = instance.flag
             self.fields["flag"].label = f.name
@@ -4136,7 +4143,7 @@ class AssessedPerformanceForm(ModelForm):
             self.fields["flag"].widget = forms.HiddenInput()
             if f.value_choices:
                 choices = [
-                    (e.strip() for e in r.strip().split(":"))
+                    flag_choice(r.strip().split(":"))
                     for r in f.value_choices.split(";")
                     if r.strip()
                 ]
@@ -4806,7 +4813,7 @@ class ReportForm(ModelForm):
                     </table>
                     </div>"""
                 ),
-                "assessment",
+                # "assessment",
             ]
             self.fields.pop("file", None)
             # self.fields["assessment"].required = True
@@ -4974,8 +4981,19 @@ class ReportForm(ModelForm):
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-flag"></i> {_("Performance")}'),
-                    TableInlineFormset(
-                        "performance", template="portal/performance_inline_formset.html"
+                    TabHolder(
+                        Tab(
+                            _("Performance Data"),
+                            TableInlineFormset(
+                                "performance", template="portal/performance_inline_formset.html"
+                            ),
+                            css_id="performance_data",
+                        ),
+                        Tab(
+                            _("Assessment"),
+                            "assessment",
+                            css_id="assessment",
+                        ),
                     ),
                     css_id="performance",
                 )

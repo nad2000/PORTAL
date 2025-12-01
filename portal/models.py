@@ -12651,6 +12651,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
                     "ott",
                     "oth",
                     "odm",
+                    "pdf",
                     "rtf",
                     "tex",
                 ]

@@ -2279,7 +2279,6 @@ class SelfAssignMixin:
 
     def put(self, request, *args, **kwargs):
         url = request.META.get("HTTP_REFERER", "") or requst.path
-        breakpoint()
         if (action := request.GET.get("action")) == "assign-self":
             obj = self.get_object()
             u = request.user
