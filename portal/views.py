@@ -2275,7 +2275,32 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
         return qs
 
 
-class ReportDetail(FavoriteMixin, DetailView):
+class SelfAssignMixin:
+
+    def put(self, request, *args, **kwargs):
+        url = request.META.get("HTTP_REFERER", "") or requst.path
+        breakpoint()
+        if (action := request.GET.get("action")) == "assign-self":
+            obj = self.get_object()
+            u = request.user
+            if not u.is_admin:
+                messages.error(request, _("You have no permission to assign yourself the report."))
+            elif obj.assessor and obj.assessor != u:
+                messages.error(request, _("The report was already assigned to {obj.assessor}."))
+            elif obj.assessor and obj.assessor == u:
+                messages.error(request, _("You are already the assessor of this report."))
+            elif not obj.assessor:
+                obj.assign_assessor(by=u, assessor=u, request=request)
+                obj.save(update_fields=["assessor", "updated_at", "state", "state_changed_at"])
+                messages.success(request, _("You successfully assigned yourself as the assessor of this report."))
+            response = HttpResponse(status=200)
+            response["HX-Redirect"] = url
+            return response
+        else:
+            return super().put(request, *args, **kwargs)
+
+
+class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
     template_name = "portal/report_detail.html"
     model = models.Report
 
@@ -2339,6 +2364,25 @@ class AssessedPerformanceInline(InlineFormSetFactory):
 class ReportViewMixin:
 
     inlines = [PersonnelInline]
+
+    def put(self, request, *args, **kwargs):
+        breakpoint()
+        if (action := request.GET.get("action")) == "assign-self":
+            obj = self.get_object()
+            u = request.user
+            if not u.is_admin:
+                messages.error(request, _("You have no permission to assign yourself the report."))
+            elif obj.assessor and obj.assessor != u:
+                messages.error(request, _("The report was already assigned to {obj.assessor}."))
+            elif obj.assessor and obj.assessor == u:
+                messages.error(request, _("You are already the assessor of this report."))
+            elif not obj.assessor:
+                obj.assign_assessor(by=u, assessor=u, request=request)
+                obj.save(update_fields=["assessor", "updated_at", "state", "state_changed_at"])
+                messages.success(request, _("You successfully assigned yourself as the assessor of this report."))
+            return self.get(request, *args, **kwargs)
+        else:
+            return super().put(request, *args, **kwargs)
 
     def get_inlines(self):
         inlines = super().get_inlines()
@@ -3443,7 +3487,7 @@ class ReportCreate(NotesMixin, ReportViewMixin, CreateWithInlinesView):
         return initial
 
 
-class ReportUpdate(LoginRequiredMixin, NotesMixin, ReportViewMixin, UpdateWithInlinesView):
+class ReportUpdate(LoginRequiredMixin, NotesMixin, SelfAssignMixin, ReportViewMixin, UpdateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
 

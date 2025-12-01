@@ -30,13 +30,26 @@
       </tr>
       {% endif %}
 
-      {% if r.assessor %}
+      {% if r.assessor or request.user.is_admin  %}
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Assessor') }}
         </th>
         <td>
-          {{ r.assessor  }}
+          {% if not r.assessor %}
+            <em>{{ _('Not assigned') }}</em>
+            {% if r.state in ["submitted", "reported", "acknowledged", "assigned"] %}
+              <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary ms-2"
+                  hx-put="{{ request.path }}?action=assign-self"
+                  hx-swap="none">
+                {{ _('Assign yourself') }}
+              </button>
+            {% endif %}
+          {% else %}
+            {{ r.assessor  }}
+          {% endif %}
           <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
         </td>
       </tr>

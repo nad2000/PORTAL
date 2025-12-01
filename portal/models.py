@@ -12672,6 +12672,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     notes = GenericRelation(Note)
     favorites = GenericRelation(Favorite)
 
+    def put(self, *args, **kwargs):
+        pass
+
     @cached_property
     def due_date(self):
         se = self.schedule_entry
@@ -13040,10 +13043,10 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["acknowledged"],
+        source=["acknowledged", "submitted", "reported", "assigned"],
         target="assigned",
         custom=dict(verbose="Assign an assessor", button_name="Assign"),
-        # conditions = [lambda self: not self.assessor],
+        conditions = [lambda self: not self.assessor or self.state != "assigned"],
         permission=lambda instance, user: user.is_admin,
     )
     def assign_assessor(self, request=None, by=None, assessor=None, *args, **kwargs):
