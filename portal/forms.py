@@ -4817,6 +4817,38 @@ class ReportForm(ModelForm):
             ]
             self.fields.pop("file", None)
             # self.fields["assessment"].required = True
+        elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessment):
+            fields = [
+                HTML(
+                    """{% load tags %}
+                    <div class="table-responsive">
+                    <table class="table table-bordered searchable">
+                    <tbody>
+                    <tr>
+                    <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                    Completed Report:
+                    </th>
+                    <td>
+                        <a href="{{ object.file.url }}" target="_blank">
+                        {{ object.file|basename }}
+                        </a>
+                    </td>
+                    </tr>
+                        <tr>
+                            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                            Assessment:
+                        </th>
+                        <td>
+                            {{ object.assessment|default:'N/A'|safe }}
+                        </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                    </div>"""
+                ),
+            ]
+            self.fields.pop("file", None)
+            self.fields.pop("assessment", None)
         else:
             self.fields.pop("assessment", None)
             templates = round.report_templates.filter(type=instance.type)
@@ -4857,7 +4889,7 @@ class ReportForm(ModelForm):
                 "accept"
             ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
 
-        if not is_assessor and instance.file != "":
+        if not is_assessor:
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
@@ -4865,6 +4897,7 @@ class ReportForm(ModelForm):
                     css_id="report",
                 )
             )
+
         if instance and instance.pk:
             if is_assessor:
                 self.fields["recipients"] = forms.MultipleChoiceField(

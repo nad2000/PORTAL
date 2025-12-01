@@ -141,6 +141,12 @@ class StateColumn(tables.Column):
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
             title = _(f"The {name} was assessed")
+        elif state == "assigned":
+            css_classes = "fas fa-plus text-success text-center"
+            if getattr(record, "assessor", False):
+                title = _(f"The {name} was assigned to {record.assessor.full_name_with_email}")
+            else:
+                title = _(f"The {name} was assigned")
         else:
             if isinstance(record, (models.Testimonial, models.Application)):
                 return mark_safe(
