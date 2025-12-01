@@ -48,7 +48,8 @@
               </button>
             {% endif %}
           {% else %}
-            {{ r.assessor  }}
+            {{ r.assessor.full_name_with_email }} /
+            {{ r.assessor.username  }}
           {% endif %}
           <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
         </td>
