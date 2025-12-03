@@ -4310,14 +4310,14 @@ class ReportForm(ModelForm):
                 data_toggle="tooltip",
                 css_id="submit-id-submit",
                 title=(
-                    _("Only PI or RO can submit the report")
+                    _("Only PI can submit the report")
                     if not is_pi
                     else (
                         _(
                             "Not all the parts/appendices of the contract were approved and/or accepted"
                         )
                         if submission_disabled
-                        else _("Submit the contract")
+                        else _("Submit the report")
                     )
                 ),
                 css_class="btn-outline-primary",

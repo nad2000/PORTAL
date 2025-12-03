@@ -12676,6 +12676,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     def put(self, *args, **kwargs):
         pass
 
+    def is_ro(self, user):
+        return self.contract and self.contract.org.research_offices.filter(user=user).exists()
+
     @cached_property
     def due_date(self):
         se = self.schedule_entry
@@ -12707,6 +12710,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @cached_property
     def agency_recipients(self):
+        if self.assessor:
+            return [self.assessor]
         c = self.contract
         return [c.fund.email] if c.fund and c.fund.email else c.site.staff_users.all()
 
@@ -13016,38 +13021,118 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["new", "draft", "submitted"],
+        source=["new", "draft"],
         target="submitted",
-        custom=dict(verbose="Submit", button_name="submit"),
+        custom=dict(verbose="Submit the report to your R.O.", button_name="Submit"),
+        conditions=[lambda self: self.file != ""],
         permission=lambda instance, user: instance.pi == user,
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
         by = kwargs.get("by") or request and request.user
+        description = kwargs.get("description") or (
+            request and (request.POST.get("description") or request.POST.get("resolution"))
+        )
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
 
-        if self.assessor:
-            url = self.get_full_detail_url(request=request)
-            link_name = domain_to_macrons(url)
+        send_mail(
+            f"Report {self} Submitted",
+            message=(
+                f"User {by} submitted the report {self}: {url}\n\nNotes:\n\n{description}."
+                if description
+                else f"User {by} submitted the report {self}: {url}."
+            ),
+            from_email="reports",
+            recipients=self.ro_recipients,
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,e
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
 
-            send_mail(
-                f"Report {self} Submitted",
-                message=f"User {by} submitted the report {self}.",
-                from_email="reports",
-                recipients=[self.assessor],
-                fail_silently=False,
-                request=request,
-                # reply_to=settings.DEFAULT_FROM_EMAIL,
-                thread_index=self.thread_index,
-                thread_topic=self.thread_topic,
-            )
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted", "reported", "approved", "assigned"],
+        target="draft",
+        custom=dict(
+            verbose="Request the PI to resubmit the report", button_name="Request Resubmission"
+        ),
+        permission=lambda instance, user: user.is_admin
+        or instance.state in ["sumbmitted", "reported"]
+        and instance.is_ro(user),
+    )
+    def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
+        if not by and request:
+            by = request.user
+        if not description and request:
+            description = request.POST.get("description") or request.POST.get("resolution")
+
+        url = self.get_full_update_url(request=request)
+
+        html_message = f"""
+            <p>Please review, amend and resubmit your report:
+            <a href="{url}">{self}</a>"""
+        if description:
+            html_message = f"{html_message}:</p> <pre>{description}</pre>"
+        else:
+            html_message = f"{html_message}.</p>"
+
+        send_mail(
+            "Report {self} amendment and resubmission required",
+            html_message=html_message,
+            from_email="reports",
+            recipients=[self.pi],
+            fail_silently=False,
+            request=request,
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="approved",
+        custom=dict(verbose="Approve and release the report", button_name="Approve"),
+        permission=lambda instance, user: instance.contract.org.is_ro(user),
+    )
+    def approve(self, request=None, by=None, description=None, *args, **kwargs):
+        assert self.contract, "Contract is required to approve the change request."
+        if not by and request:
+            by = request.user
+        if not description and request:
+            description = request.POST.get("description") or request.POST.get("resolution")
+        if description:
+            description = description.strip()
+        url = self.get_full_detail_url(request=request)
+        link_name = domain_to_macrons(url)
+
+        send_mail(
+            f"Report {self} Approved",
+            message=(
+                f"User {by} approved the report {self}: {url}\n\nResolution:\n\n{description}."
+                if description
+                else f"User {by} approved the report {self}: {url}."
+            ),
+            from_email="reports",
+            recipients=self.agency_recipients,
+            fail_silently=False,
+            request=request,
+            # reply_to=settings.DEFAULT_FROM_EMAIL,e
+            thread_index=self.thread_index,
+            thread_topic=self.thread_topic,
+        )
 
     @fsm_log
     @transition(
         field=state,
         source=["acknowledged", "submitted", "reported", "assigned"],
         target="assigned",
-        custom=dict(verbose="Assign an assessor", button_name="Assign"),
-        conditions = [lambda self: not self.assessor or self.state != "assigned"],
+        custom=dict(verbose="Assign an assessor", button_name="Assign Yourself"),
+        conditions=[lambda self: not self.assessor or self.state != "assigned"],
         permission=lambda instance, user: user.is_admin,
     )
     def assign_assessor(self, request=None, by=None, assessor=None, *args, **kwargs):
@@ -13100,17 +13185,21 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             )
         return
 
+    @property
+    def ro_recipients(self):
+        if self.host_contact_email:
+            return [self.host_contact_email]
+        org = self.contract.org or self.contract.application.org
+        if ro_email := (org.reporting_contact_email or org.ro_email):
+            return [ro_email]
+        return self.contract.research_officers
+
     def host_contact(self):
         if self.host_contact_email:
             return self.host_contact_email
-        if (
-            org := (c := self.contract)
-            and (
-                self.contract.org
-                or (a := self.contract.application)
-                and self.contract.application.org
-            )
-        ) and (email := org.reporting_contact_email or org.ro_email):
+        if (org := (c := self.contract) and (c.org or (a := c.application) and a.org)) and (
+            email := org.reporting_contact_email or org.ro_email
+        ):
             return email
         return c.host_contact_email or ""
 
