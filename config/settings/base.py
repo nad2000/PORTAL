@@ -209,6 +209,8 @@ EXPLORER_DATA_EXPORTERS = [
 # EXPLORER_PERMISSION_CHANGE = lambda r: r.user.is_staff or r.user.is_site_staff
 # EXPLORER_PERMISSION_CONNECTIONS = lambda r: r.user.is_staff or r.user.is_site_staff
 ### EXPLORER_CHARTS_ENABLED = True
+EXPLORER_DB_CONNECTIONS_ENABLED = True
+EXPLORER_USER_UPLOADS_ENABLED = True
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------

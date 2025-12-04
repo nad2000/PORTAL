@@ -640,6 +640,16 @@ class ContractDocumentAdmin(StaffPermsMixin, HistoryAdmin):
     exclude = ["document_type"]
 
 
+@admin.register(models.Currency)
+class CurrencyAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["code", "currency", "numeric_code", "minor_unit"]
+    search_fields = ["code", "currency"]
+    date_hierarchy = "updated_at"
+    ordering = ["code", "currency"]
+
+
 @admin.register(models.Country)
 class CountryAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
     view_on_site = False

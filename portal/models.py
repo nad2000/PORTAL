@@ -6735,7 +6735,7 @@ class Currency(Model):
     class Meta:
         db_table = "currency"
         db_table_comment = "ISO 4217 Currency Codes - https://datahub.io/core/currency-codes"
-
+        verbose_name_plural = _("currencies")
 
 def default_scheme_code(title):
     title = title.lower()
