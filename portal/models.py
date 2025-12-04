@@ -6737,6 +6737,7 @@ class Currency(Model):
         db_table_comment = "ISO 4217 Currency Codes - https://datahub.io/core/currency-codes"
         verbose_name_plural = _("currencies")
 
+
 def default_scheme_code(title):
     title = title.lower()
     code = "".join(w[0] for w in title.split() if w).upper()
@@ -10873,7 +10874,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         first_name=m.first_name or u and u.first_name,
                         middle_names=m.middle_names or u and u.middle_names,
                         last_name=m.last_name or u and u.last_name,
-                        role=m.role,
+                        role_id="PC" if m.role_id == "PI" else m.role_id,  # Remap roles
                         user=u,
                         address=u and u.person and u.person.address,
                         is_funded=m.is_funded,
@@ -10888,7 +10889,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         first_name=a.first_name,
                         middle_names=a.middle_names,
                         last_name=a.last_name,
-                        role_id="PI",
+                        role_id="PC",
                         user=u,
                         address=a.address or u.person.address,
                         is_funded=True,
@@ -10903,7 +10904,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                     ContractMemberEffort(
                         member=m,
                         period=e.period,
-                        fte=e.fte or (0.8 if m.role_id == "PI" else None),
+                        fte=e.fte or (0.8 if m.role_id in ["PC", "PI"] else None),
                     )
                     for e in MemberEffort.where(member__user=m.user, member__application=a)
                 )
@@ -11148,7 +11149,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     @cached_property
     def pi(self):
         return (
-            (pi := self.members.filter(role="PI").last())
+            (pi := self.members.filter(role="PC").last() or self.members.filter(role="PI").last())
             and pi.user
             or self.submitted_by
             or self.application.pi
@@ -11230,13 +11231,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     def key_person(self):
         if self.members.filter(role_id="CP").exists():
             return self.members.filter(role_id="CP").last()
-        return self.members.filter(role_id="PI").last()
+        return self.pi
 
     @cached_property
     def other_key_personnel(self):
         if self.members.filter(role_id="CP").exists():
             return list(self.members.filter(~Q(role_id="CP"), role__is_key_person=True).all())
-        return list(self.members.filter(~Q(role_id="PI"), role__is_key_person=True).all())
+        return list(self.members.filter(~Q(role_id__in=["PC", "PI"]), role__is_key_person=True).all())
 
     @classmethod
     def new_number(cls, application, org=None, year=None):
@@ -11681,7 +11682,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         return template.render(locals())
 
     def to_odt(self, request=None, user=None, add_headers=None, skip_excluded=False):
-        pi = self.members.filter(role__code="PI").last() or self.application.submitted_by
+        pi = self.pi
         fields = {
             "START_DATE": self.start_date.strftime("%d %B, %Y"),
             "END_DATE": self.end_date and self.end_date.strftime("%d %B, %Y"),
@@ -12716,7 +12717,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @cached_property
     def pi(self):
         return (
-            (pi := self.efforts.filter(role="PI", person__user__isnull=False).last())
+            (pi := self.efforts.filter(role__in=["PC", "PI"], person__user__isnull=False).last())
             and pi.person.user
             or self.contract.pi
         )
@@ -13004,8 +13005,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             Q(assessor=user)
             | Q(contract__application__submitted_by=user)
             | Q(contract__org__research_offices__user=user)
-            | Q(contract__members__user=user, contract__members__role="PI")
-            | Q(efforts__person__user=user, efforts__role="PI"),
+            | Q(contract__members__user=user, contract__members__role_id__in=["PC", "PI"])
+            | Q(efforts__person__user=user, efforts__role_id__in=["PC", "PI"]),
             # | Q(members__user=user, members__state="authorized")
             # | Q(referees__user=user)
             # | Q(nomination__nominator=user)
