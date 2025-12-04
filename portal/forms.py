@@ -4194,6 +4194,13 @@ class ReportedEffortForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if (i := self.instance) and i.role_id:
+            # c = i.report.contract
+            self.fields["role"].queryset = models.RoleType.where(
+                # Q(pk__in=c.members.values_list("role", flat=True))
+                Q(pk=i.role_id)
+                | Q(for_contracting=True)
+            ).order_by(models.Coalesce("name", "code"))
         self.helper = FormHelper(self)
 
     role = forms.ModelChoiceField(

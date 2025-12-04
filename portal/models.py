@@ -12429,8 +12429,8 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
         c = self.contract
         a = c.application
         org = c.org or a.org
-        if pr := c.reports.filter(period__lt=self.period).order_by("pk").last():
-            if host_contact_email := (
+        if pr := c.reports.filter(period__lte=self.period).order_by("-pk").first():
+            host_contact_email = (
                 pr.host_contact_email
                 or (
                     last_report := Report.where(
@@ -12445,8 +12445,7 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 or c.host_contact_email
                 or org
                 and (org.email or org.ro_email)
-            ):
-                params["host_contact_email"] = host_contact_email
+            ) or None
             r = pr.clone(
                 schedule_entry=self,
                 period=self.period,
@@ -12459,31 +12458,45 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
                 host_contact_email=host_contact_email,
                 exclude_related_models=[ReportedEffort],
             )
+            ReportedEffort.bulk_create(
+                [
+                    ReportedEffort(
+                        report=r,
+                        member_effort=me,
+                        person=me.member.user and me.member.user.person,
+                        full_name=me.member.full_name,
+                        role=me.member.role,
+                        fte=me.fte,
+                    )
+                    for me in ContractMemberEffort.where(period=r.period, member__contract=c)
+                ]
+            )
 
             # r.fors.add(*pr.fors.all())
             # r.seos.add(*pr.seos.all())
-            r.fors.through.bulk_create(
-                [
-                    r.fors.through(
-                        report=r,
-                        code=o.code,
-                        share=o.share,
-                    )
-                    for o in r.fors.through.objects.filter(report=pr)
-                ]
-            )
-            r.seos.through.bulk_create(
-                [
-                    r.seos.through(
-                        report=r,
-                        code=o.code,
-                        share=o.share,
-                    )
-                    for o in r.seos.through.objects.filter(report=pr)
-                ]
-            )
-            r.keywords.add(*pr.keywords.all())
-            r.priorities.add(*pr.priorities.all())
+
+            # r.fors.through.bulk_create(
+            #     [
+            #         r.fors.through(
+            #             report=r,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in r.fors.through.objects.filter(report=pr)
+            #     ]
+            # )
+            # r.seos.through.bulk_create(
+            #     [
+            #         r.seos.through(
+            #             report=r,
+            #             code=o.code,
+            #             share=o.share,
+            #         )
+            #         for o in r.seos.through.objects.filter(report=pr)
+            #     ]
+            # )
+            # r.keywords.add(*pr.keywords.all())
+            # r.priorities.add(*pr.priorities.all())
         else:
             r = Report.create(
                 schedule_entry=self,

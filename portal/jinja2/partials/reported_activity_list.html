@@ -1,6 +1,6 @@
 <div class="table-responsible">
 <table class="table table-striped">
-{% if report.publicities.count() > 0 %}
+{#% if report.publicities.count() > 0 %#}
   <tr>
     <th colspan="3" class="table-dark">Publicity
       <button
@@ -43,8 +43,8 @@
     </td>
   </tr>
 {% endfor %}
-{% endif %}
-{% if report.collaborations.count() > 0 %}
+{#% endif %}
+{% if report.collaborations.count() > 0 %#}
   <tr><th colspan="3" class="table-dark">Collaboration
       <button
         style="float: right;"
@@ -86,8 +86,8 @@
     </td>
   </tr>
 {% endfor %}
-{% endif %}
-{% if report.visits.count() > 0 %}
+{#% endif %}
+{% if report.visits.count() > 0 %#}
   <tr><th colspan="3" class="table-dark">Visits
       <button
         style="float: right;"
@@ -129,8 +129,8 @@
     </td>
   </tr>
 {% endfor %}
-{% endif %}
-{% if report.awards.count() > 0 %}
+{#% endif %}
+{% if report.awards.count() > 0 %#}
   <tr>
     <th colspan="3" class="table-dark">Awards
       <button
@@ -173,7 +173,7 @@
     </td>
   </tr>
 {% endfor %}
-{% endif %}
+{#% endif %#}
 <tr>
   <td>&nbsp;</td>
   <!-- td>&nbsp;</td -->
