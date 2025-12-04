@@ -2365,7 +2365,6 @@ class ReportViewMixin:
     inlines = [PersonnelInline]
 
     def put(self, request, *args, **kwargs):
-        breakpoint()
         if (action := request.GET.get("action")) == "assign-self":
             obj = self.get_object()
             u = request.user
