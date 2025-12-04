@@ -12370,7 +12370,7 @@ class ReportedFundingViewMixin:
         if self.request.GET.get("_modal_dialog"):
             form.helper.form_tag = False
         form.helper.layout = Layout(
-            Row(Column("type"), Column("state")),
+            Row(Column("type"), Column("status")),
             "subtype",
             "title",
             "url",

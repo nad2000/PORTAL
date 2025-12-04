@@ -13418,7 +13418,20 @@ class ReportedFunding(ReportedFundingMixin, Model):
         on_delete=CASCADE,
         related_name="fundings",
     )
-    state = StateField(default="new", verbose_name=_("status"))
+    # state = StateField(default="new", verbose_name=_("status"))
+    status = FixedCharField(
+        null=True,
+        blank=True,
+        max_length=1,
+        choices=Choices(
+            (None, _("N/A")),
+            ("I", _("In preparation")),
+            ("S", _("Submitted")),
+            ("A", _("Awarded")),
+            ("U", _("Unsuccessful")),
+        ),
+        verbose_name=_("status"),
+    )
     type = FixedCharField(
         _("Type"), max_length=1, choices=FUNDING_TYPES, help_text=_("Funding Type")
     )
@@ -13452,7 +13465,6 @@ class ReportedFunding(ReportedFundingMixin, Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         default=100,
     )
-
     start_date = DateField(blank=True, null=True)
     end_date = DateField(blank=True, null=True)
     agency = ForeignKey(
