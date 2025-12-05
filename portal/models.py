@@ -13086,7 +13086,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         if request:
             f"Report {self} Submitted",
             messages.success(
-                self.request,
+                request,
                 (
                     _(
                         "Your report has been successfully submitted and a notification was sent to your Research Office. "

@@ -147,6 +147,41 @@
             "required": $t.attr("data-required")
           });
         });
+        $("input[data-required='1']").not("[name*='__prefix__']").filter("[type='file']").each(function() {
+          var $t = $(this);
+          // $t.css("border-color", "var(--red)");
+          // $t.siblings().filter("label").css("border-color", "var(--red)");
+          if (!$t.closest("div.form-group").find("span > a").length) {
+            $t.attr({
+              "required": $t.attr("data-required")
+            }); // .removeAttr('required');
+          }
+        });
+        var has_invalid_fields = $("input:invalid,textarea:invalid").length;
+        formset_set_inputs(prefix="personnel");
+        // formset_set_inputs(prefix="referees");
+        if (!has_invalid_fields) {
+          // workaround to disable 'beforeunload' hadling:
+          $(window).off("beforeunload"); $("form").data("changed", false);
+        }
+        return true;
+      });
+      // Focus on the first tab with invalid input:
+      $('#submit-id-save_draft,#submit-id-submit').click(function () {
+          $('input:invalid,textarea:invalid').css("border-color", "var(--red)");
+          $('input:invalid,textarea:invalid').siblings().filter("label").css("border-color", "var(--red)");
+          $('input:invalid,textarea:invalid').each(function () {
+            // Find the tab-pane that this element is inside, and get the id
+            var el = $(this)
+            var $closest = el.closest('.tab-pane');
+            var id = $closest.attr('id');
+            // Find the link that corresponds to the pane and have it show
+            $('.nav a[href="#' + id + '"]').tab('show');
+            el.focus();
+            // Only want to do it once
+            // return false;
+            return false;
+          });
       });
     });
   </script>

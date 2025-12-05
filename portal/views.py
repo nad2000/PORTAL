@@ -2848,7 +2848,7 @@ class ReportViewMixin:
         u = self.request.user
         # context["current_date"] = timezone.localdate()
         context["current_date"] = timezone.now().date()
-        context["report"] = r = self.object
+        r = self.object
 
         # self.allocations = context["allocations"] = self.get_allocation_formset()
         # self.reporting_schedule = context["reporting_schedule"] = (
@@ -2864,9 +2864,9 @@ class ReportViewMixin:
             and self.object.is_pi(u)
             # and self.object.contract.members.filter(role="PI").exists()
         )
-        if self.object and self.object.pk:
+        if r and r.pk:
             context["needs_attention"] = ["research", "finances"]
-            if not self.object.file or self.object.assessor == u:
+            if not r or r.assessor == u:
                 context["needs_attention"].append("report")
 
         if round.has_fors:
@@ -2878,33 +2878,33 @@ class ReportViewMixin:
             context["seos"] = fs
 
         # Effort:
-        fsc = forms.inlineformset_factory(
-            self.model,
-            models.ReportedEffort,
-            form=forms.ReportedEffortForm,
-            extra=1,
-            can_delete=True,
-            # exclude=["member_effort", "person", "state"],
-            labels={"full_name": _("Name"), "fte": _("FTE from contract")},
-            # help_texts={
-            #     "": _("Socio-Economic Objective"),
-            #     "share": _("Share in %"),
-            # },
-            # widgets={
-            #     "code": autocomplete.ModelSelect2(
-            #         "seo-autocomplete",
-            #         forward=("pk", "model_name",),
-            #         attrs={
-            #             "data-placeholder": _("Choose a ..."),
-            #             "placeholder": _("Choose a Socio-Economic Objective..."),
-            #             "data-required": 1,
-            #             "oninvalid": "this.setCustomValidity('%s')"
-            #             % _("Socio-Economic Objective is required"),
-            #             "oninput": "this.setCustomValidity('')",
-            #         },
-            #     ),
-            # },
-        )
+        # fsc = forms.inlineformset_factory(
+        #     self.model,
+        #     models.ReportedEffort,
+        #     form=forms.ReportedEffortForm,
+        #     extra=1,
+        #     can_delete=True,
+        #     # exclude=["member_effort", "person", "state"],
+        #     labels={"full_name": _("Name"), "fte": _("FTE from contract")},
+        #     # help_texts={
+        #     #     "": _("Socio-Economic Objective"),
+        #     #     "share": _("Share in %"),
+        #     # },
+        #     # widgets={
+        #     #     "code": autocomplete.ModelSelect2(
+        #     #         "seo-autocomplete",
+        #     #         forward=("pk", "model_name",),
+        #     #         attrs={
+        #     #             "data-placeholder": _("Choose a ..."),
+        #     #             "placeholder": _("Choose a Socio-Economic Objective..."),
+        #     #             "data-required": 1,
+        #     #             "oninvalid": "this.setCustomValidity('%s')"
+        #     #             % _("Socio-Economic Objective is required"),
+        #     #             "oninput": "this.setCustomValidity('')",
+        #     #         },
+        #     #     ),
+        #     # },
+        # )
         # initial_seos = (
         #     [
         #         dict(
@@ -2924,7 +2924,9 @@ class ReportViewMixin:
         # # fs.extra = len(initial_seos) or 1
         # fs.extra = 1
         # context["personnel"] = fs
-        context.update((fs.prefix, fs) for fs in kwargs.get("inlines", []))
+
+        inlines = kwargs.get("inlines", []) or context.get("inlines") or self.construct_inlines()
+        context.update((fs.prefix, fs) for fs in inlines)
 
         # self.documents = context["documents"] = self.get_document_formset()
         # context["required_documents"] = {
@@ -3494,9 +3496,13 @@ class ReportCreate(NotesMixin, ReportViewMixin, CreateWithInlinesView):
 
 
 class ReportUpdate(LoginRequiredMixin, NotesMixin, SelfAssignMixin, ReportViewMixin, UpdateWithInlinesView):
+
     model = models.Report
     form_class = forms.ReportForm
 
+    # def get_context_data(self, *args, **kwargs):
+    #     context = super().get_context_data(*args, **kwargs)
+    #     return context
 
 class FileImportForm(Form):
 

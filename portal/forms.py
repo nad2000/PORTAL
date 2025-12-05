@@ -4954,7 +4954,7 @@ class ReportForm(ModelForm):
                             % template_urls
                         )
                     ),
-                    Field("file", label=help_text, help_text=help_text),
+                    Field("file", label=help_text, help_text=help_text, data_required=1),
                 ]
                 self.fields["file"].help_text = help_text
             else:
@@ -4962,6 +4962,7 @@ class ReportForm(ModelForm):
             self.fields["file"].widget.attrs[
                 "accept"
             ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+            self.fields["file"].widget.attrs["data-required"] = 1
 
         if not is_assessor:
             tabs.append(
