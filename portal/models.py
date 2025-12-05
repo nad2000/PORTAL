@@ -11155,6 +11155,12 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             or self.application.pi
         )
 
+    def is_pi(self, user):
+        return (
+            self.members.filter(user=user, role_id__in=["PC", "PI"]).exists()
+            or self.application.members.filter(user=user, role_id="PI").exists()
+        )
+
     @property
     def host_emails(self):
         if self.host_contact_email:
@@ -12719,9 +12725,19 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @cached_property
     def pi(self):
         return (
-            (pi := self.efforts.filter(role__in=["PC", "PI"], person__user__isnull=False).last())
+            (
+                pi := self.efforts.filter(
+                    role_id__in=["PC", "PI"], person__user__isnull=False
+                ).last()
+            )
             and pi.person.user
             or self.contract.pi
+        )
+
+    def is_pi(self, user):
+        return (
+            self.contract.is_pi(user)
+            or self.efforts.filter(person__user=user, role_id__in=["PC", "PI"]).exists()
         )
 
     @cached_property
@@ -13041,7 +13057,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         target="submitted",
         custom=dict(verbose="Submit the report to your R.O.", button_name="Submit"),
         conditions=[lambda self: self.file != ""],
-        permission=lambda instance, user: instance.pi == user,
+        permission=lambda instance, user: instance.is_pi(user) or use.is_admin,
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
@@ -13067,6 +13083,17 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             thread_index=self.thread_index,
             thread_topic=self.thread_topic,
         )
+        if request:
+            f"Report {self} Submitted",
+            messages.success(
+                self.request,
+                (
+                    _(
+                        "Your report has been successfully submitted and a notification was sent to your Research Office. "
+                        "The Research Office will be in touch if there is anything more needed."
+                    )
+                ),
+            )
 
     @fsm_log
     @transition(
@@ -13077,7 +13104,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             verbose="Request the PI to resubmit the report", button_name="Request Resubmission"
         ),
         permission=lambda instance, user: user.is_admin
-        or instance.state in ["sumbmitted", "reported"]
+        or instance.state in ["submitted", "reported"]
         and instance.is_ro(user),
     )
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):

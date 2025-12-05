@@ -2698,6 +2698,13 @@ class ReportViewMixin:
                     "description": "Principal Investigator",
                 },
             )
+            pc, _ = models.RoleType.objects.get_or_create(
+                code="PC",
+                defaults={
+                    "name": "Principal Investigator (Contract)",
+                    "description": "Principal Investigator (Contract)",
+                },
+            )
 
             initial = [
                 dict(
@@ -2705,7 +2712,7 @@ class ReportViewMixin:
                     first_name=a.first_name or a.submitted_by and a.submitted_by.first_name,
                     middle_names=a.middle_names,
                     last_name=a.last_name or a.submitted_by and a.submitted_by.last_name,
-                    role=pi.code,
+                    role=pc.code,
                     user=a.submitted_by,
                 ),
                 *[
@@ -2854,7 +2861,8 @@ class ReportViewMixin:
         context["is_pi"] = (a.submitted_by == u) or (
             self.object
             and self.object.pk
-            and self.object.contract.members.filter(role="PI").exists()
+            and self.object.is_pi(u)
+            # and self.object.contract.members.filter(role="PI").exists()
         )
         if self.object and self.object.pk:
             context["needs_attention"] = ["research", "finances"]
@@ -7166,7 +7174,7 @@ class ContractViewMixin:
         context["is_pi"] = (
             self.object
             and self.object.pk
-            and self.object.members.filter(role="PI", user=u).exists()
+            and self.object.is_pi(u)
         )
         if self.object and self.object.pk:
             c = self.object

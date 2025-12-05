@@ -4289,8 +4289,9 @@ class ReportForm(ModelForm):
         # )
 
         is_pi = instance and (
-            contract.submitted_by == user
-            or (contract.pk and contract.members.filter(user=user, role__code="PI").exists())
+            instance.is_pi(user)
+            or contract.submitted_by == user
+            # or (contract.pk and contract.members.filter(user=user, role__code="PI").exists())
             # or application.submitted_by == user
             # or (application.pk and application.members.filter(user=user, role__code="PI").exists())
         )
