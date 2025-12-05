@@ -11237,7 +11237,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
     def other_key_personnel(self):
         if self.members.filter(role_id="CP").exists():
             return list(self.members.filter(~Q(role_id="CP"), role__is_key_person=True).all())
-        return list(self.members.filter(~Q(role_id__in=["PC", "PI"]), role__is_key_person=True).all())
+        return list(
+            self.members.filter(~Q(role_id__in=["PC", "PI"]), role__is_key_person=True).all()
+        )
 
     @classmethod
     def new_number(cls, application, org=None, year=None):
@@ -13463,7 +13465,10 @@ class ReportedFunding(ReportedFundingMixin, Model):
     )
     share = PositiveSmallIntegerField(
         _("Share available"),
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        validators=[
+            MinValueValidator(0)
+            # , MaxValueValidator(100)
+        ],
         default=100,
     )
     start_date = DateField(blank=True, null=True)

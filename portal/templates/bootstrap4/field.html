@@ -23,7 +23,8 @@
     </div>
   </td>
 {% elif field|is_readonly_nullbooleanfield %}
-    <{% if tag %}{{ tag }}{% else %}div{% endif %} id="div_{{ field.auto_id }}" class="{% if not field|is_checkbox %}form-group{% if 'form-horizontal' in form_class %} row{% endif %}{% else %}{%if use_custom_control%}custom-control custom-checkbox{% endif %}{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %} align-middle text-center"{% if field.help_text and not form_show_labels %} data-toggle="tooltip" data-html="true" title="{{ field.help_text|safe }}"{% endif %}>
+<{% if tag %}{{ tag }}{% else %}div{% endif %} id="div_{{ field.auto_id }}" class="{% if not field|is_checkbox %}form-group{% if 'form-horizontal' in form_class %} row{% endif %}{% else %}{%if use_custom_control%}custom-control custom-checkbox{% endif %}{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %} align-middle text-center"{% if field.help_text and not form_show_labels %} data-toggle="tooltip" data-html="true" title="{{ field.help_text|safe }}"
+{% endif %}>
     <input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}"
       value="{% if field.value is None %}unknown{% elif field.value == True %}true{% else %}false{% endif %}">
       {% if field.value == True %}
@@ -39,11 +40,23 @@
             <div class="{% for offset in bootstrap_checkbox_offsets %}{{ offset }} {% endfor %}{{ field_class }}">
         {% endif %}
     {% endif %}
-    <{% if tag %}{{ tag }}{% else %}div{% endif %} id="div_{{ field.auto_id }}" class="{% if not field|is_checkbox %}form-group{% if 'form-horizontal' in form_class %} row{% endif %}{% else %}{%if use_custom_control%}custom-control custom-checkbox{% else %}form-check{% endif %}{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %}"{% if field.help_text and not form_show_labels and not field.value %} data-toggle="tooltip" data-html="true" title="{{ field.help_text|safe }}"{% endif %}>
+    <{% if tag %}{{ tag }}{% else %}div{% endif %} id="div_{{ field.auto_id }}" class="{% if not field|is_checkbox %}form-group{% if 'form-horizontal' in form_class %} row{% endif %}{% else %}{%if use_custom_control%}custom-control custom-checkbox{% else %}form-check{% endif %}{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %}"{% if field.help_text and field.help_text|length < 43 and not form_show_labels and not field.value %} data-toggle="tooltip" data-html="true" title="{{ field.help_text|safe }}"{% endif %}>
         {% if field.label and not field|is_checkbox and form_show_labels %}
-        <label for="{{ field.id_for_label }}" class="{% if 'form-horizontal' in form_class %}col-form-label {% endif %}{{ label_class }}{% if field.field.required %} requiredField{% endif %}"{% if field.help_text or flat_attrs.help_text %}data-toggle="tooltip" data-html="true" title="{% if help_text %}{{ help_text|safe }}{% elif flat_attrs.help_text %}{{ flat_attrs.help_text|safe }}{% else %}{{ field.help_text }}{% endif %}"{% endif %}>
-        {% if field_label %}{{ field_label|safe }}{% else %}{{ field.label|safe }}{% endif %}{% if field.field.required %}<span class="asteriskField">*</span>{% elif field|is_data_required %}<span class="greyAsteriskField">*</span>{% endif %}
+        <label for="{{ field.id_for_label }}" class="{% if 'form-horizontal' in form_class %}col-form-label {% endif %}{{ label_class }}{% if field.field.required %} requiredField{% endif %}"{% if field.help_text and field.help_text|length < 43 or flat_attrs.help_text and flat_attrs.help_text|length < 43 %}data-toggle="tooltip" data-html="true" title="{% if help_text %}{{ help_text|safe }}{% elif flat_attrs.help_text %}{{ flat_attrs.help_text|safe }}{% else %}{{ field.help_text|safe }}{% endif %}"{% endif %}>
+        {% if field_label %}{{ field_label|safe }}{% else %}{{ field.label|safe }}{% endif %}
+        {% if field.field.required %}<span class="asteriskField">*</span>{% elif field|is_data_required %}<span class="greyAsteriskField">*</span>{% endif %}
             </label>
+{% if field.help_text and field.help_text|length > 42 %}
+<i
+  data-toggle="popover"
+  data-html="true"
+  data-trigger="focus"
+  tabindex="0"
+  title="{% if field_label %}{{ field_label|safe }}{% else %}{{ field.label|safe }}{% endif %}"
+  data-content="{{ field.help_text|safe }}"
+  class="fas fa-sm fa-question-circle">
+</i>
+{% endif %}
         {% endif %}
 
         {% if field|is_checkboxselectmultiple %}

@@ -280,6 +280,8 @@ table.table .asteriskField,.popover-header {color: gray;}
                          data-toggle="popover"
                          data-html="true"
                          data-placement="left"
+                         data-trigger="focus"
+                         tabindex="0"
                          title="{% trans 'User' %}"
                          data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ user.email }}<br/>
                                 <b>{% trans 'Name' %}:&nbsp</b>{{ user.name|default:'N/A' }}<br/>
@@ -712,6 +714,7 @@ You have a request to review a {{ site_name }} application to act on.
                   });
                   // $('[data-toggle="tooltip"]').tooltip();
                   $('[data-toggle="tooltip"],[data-tooltip="tooltip"]').tooltip({ boundary: 'window' });
+                  // $('.popover-dismiss').popover({ trigger: 'focus' });
                   $('[data-toggle="popover"][data-trigger!="manual"]').popover();
                   $('[data-toggle="popover"][data-trigger="manual"]').hover(function() {
                     $(this).popover('show');
@@ -719,6 +722,14 @@ You have a request to review a {{ site_name }} application to act on.
                       $(this).popover('hide');
                     });
                   });
+                  $('[data-toggle="popover"]').popover({trigger: 'focus'});
+                  if ($('[data-toggle="popover"]').length) {
+                    $(document).keyup(function (event) {
+                        if (event.which === 27) {
+                            $('[data-toggle="popover"]').popover('hide');
+                        }
+                    });
+                  }
                   $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %},#{{view_name}}").addClass("active");
                   document.addEventListener("htmx:confirm", function(e) {
                     e.preventDefault()

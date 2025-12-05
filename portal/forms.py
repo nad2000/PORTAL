@@ -1105,7 +1105,9 @@ class ApplicationForm(ModelForm):
                 category_fields.append(
                     Fieldset(
                         _("Type of Activities"),
-                        # Row('password1', 'password2'),
+                        # mark_safe(f"""{_("Type of Activities")}
+                        #           <i class="fas fa-question-circle"></i>
+                        # """),
                         Row(
                             Column("toa_basic", css_class="col-2"),
                             Column("toa_strategic", css_class="col-2"),
@@ -1145,13 +1147,13 @@ class ApplicationForm(ModelForm):
                 category_fields.append(
                     Fieldset(
                         _(" Vision Mātauranga Theme Categories"),
-                        # Row('password1', 'password2'),
                         Row(
                             Column("vm_ecs", css_class="col-3"),
                             Column("vm_ens", css_class="col-3"),
                             Column("vm_hsw", css_class="col-3"),
                             Column("vm_ink", css_class="col-3"),
-                            css_id="id_toas_row",
+                            css_class="exclude-help",
+                            css_id="id_vm_row",
                         ),
                         Div(
                             Row(Column("is_vm_na")),
@@ -1669,12 +1671,6 @@ class ApplicationForm(ModelForm):
             "keywords": "",
             "priorities": "",
             "is_tac_accepted": _("I have read and accept the Terms and Conditions"),
-        }
-        help_texts = {
-            "vm_ecs": None,
-            "vm_ens": None,
-            "vm_hsw": None,
-            "vm_ink": None,
         }
 
 
@@ -4495,7 +4491,20 @@ class ReportForm(ModelForm):
                 category_fields.append(
                     Fieldset(
                         _("Type of Activities"),
-                        # Row('password1', 'password2'),
+                        # mark_safe(f"""<span
+                        # data-toggle="tooltip"
+                        # data-html="true"
+                        # title="TODO: ..."
+                        # >{_("Type of Activities")}</span>
+                        # <i
+                        #     data-toggle="popover"
+                        #     data-trigger="focus"
+                        #     tabindex="0"
+                        #     data-html="true"
+                        #     title="{_("Type of Activities")}"
+                        #     data-content="{seo_info}"
+                        #     class="fas fa-sm fa-question-circle"></i>
+                        # """),
                         Row(
                             Column("toa_basic", css_class="col-2"),
                             Column("toa_strategic", css_class="col-2"),
@@ -4513,18 +4522,74 @@ class ReportForm(ModelForm):
                     ),
                 )
             if round.has_seos:
+                seo_info = """
+                The Australian and Aotearoa New Zealand Standard Research
+                Classification (ANZSRC) and <i>SEO</i> classification allow
+                Research and Development (R&D) activity in Australia and
+                Aotearoa New Zealand to be categorised according to the
+                intended purpose or outcome of the research rather than the
+                processes or techniques used in order to achieve this
+                objective. Please enter up to FIVE codes from the drop-down
+                field, using codes that are as specific as possible. For a list
+                of codes, please refer to the Socio-Economic Objectives
+                Calculator at:
+                <a
+                    href='https://royalsociety.org.nz/what-we-do/research-practice/socio-economic-objectives-calculator/'
+                    target='_blank'
+                >
+                    https://royalsociety.org.nz/what-we-do/research-practice/socio-economic-objectives-calculator/
+                </a>
+                """
                 category_fields.append(
                     Fieldset(
-                        _("Socio-Economic Objectives"),
+                        mark_safe(f"""<span
+                            data-toggle="tooltip"
+                            data-html="true"
+                            title="{seo_info}"
+                        >{_("Socio-Economic Objectives")}</span>
+                        <i
+                            data-toggle="popover"
+                            data-trigger="focus"
+                            tabindex="0"
+                            data-html="true"
+                            title="{_("Socio-Economic Objectives")}"
+                            data-content="{seo_info}"
+                            class="fas fa-sm fa-question-circle"></i>"""),
                         TableInlineFormset(
                             "seos", template="portal/category_table_inline_formset.html"
                         ),
                     )
                 )
             if round.has_fors:
+                for_info = f"""
+                    The FOR classification allows R&D activity to be
+                    categorised according to the field of research. In this
+                    respect, it is the methodology used in the R&D that is
+                    being considered. Please enter a minimum of THREE and up to
+                    FIVE codes from the list of research codes supplied in
+                    “Fields of Research Classification Codes” here. For a list
+                    of codes, please refer to the Field of Research Calculator
+                    at: <a
+                    href='https://royalsociety.org.nz/what-we-do/research-practice/field-of-research-calculator/'
+                    target='_blank'
+                    >https://royalsociety.org.nz/what-we-do/research-practice/field-of-research-calculator/</a>.
+                    Please use codes that are as specific as possible, i.e. 6
+                    digits. """
                 category_fields.append(
                     Fieldset(
-                        _("Fields of Research"),
+                        mark_safe(f"""<span
+                            data-toggle="tooltip"
+                            data-html="true"
+                            title="{for_info}"
+                        >{_("Fields of Research")}</span>
+                        <i
+                            data-toggle="popover"
+                            data-trigger="focus"
+                            tabindex="0"
+                            data-html="true"
+                            title="{_("Fields of Research")}"
+                            data-content="{for_info}"
+                            class="fas fa-sm fa-question-circle"></i>"""),
                         TableInlineFormset(
                             "fors", template="portal/category_table_inline_formset.html"
                         ),
@@ -4540,6 +4605,7 @@ class ReportForm(ModelForm):
                             Column("vm_ens", css_class="col-3"),
                             Column("vm_hsw", css_class="col-3"),
                             Column("vm_ink", css_class="col-3"),
+                            css_class="exclude-help",
                             css_id="id_toas_row",
                         ),
                         # Div(
