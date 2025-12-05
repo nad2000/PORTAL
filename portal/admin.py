@@ -3427,16 +3427,20 @@ class RoundAdmin(
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
-        if (site_id := settings.SITE_ID) and site_id in [2, 4, 5]:
-            exclude = exclude and exclude.copy() or []
+        site_id = settings.SITE_ID
+        if site_id in [2, 4, 5]:
+            exclude = exclude and exclude[:] or []
             exclude.extend(
                 [
-                    "applicant_cv_required",
+                    # "applicant_cv_required",
                     # "direct_application_allowed",
                     "ethics_statement_required",
                     "letter_of_support_required",
                 ]
             )
+            if site_id != 2:
+                exclude.append("applicant_cv_required")
+
         return exclude
 
     def get_form(self, request, obj=None, change=False, **kwargs):

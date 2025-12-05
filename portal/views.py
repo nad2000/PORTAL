@@ -129,6 +129,7 @@ from extra_views import (
 from geopy.geocoders import Nominatim
 from limesurveyrc2api.exceptions import LimeSurveyError
 from private_storage.views import PrivateStorageDetailView, PrivateStorageView
+
 # from private_storage.models import PrivateFile
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
@@ -850,9 +851,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 return f"{name} {obj}"
             else:
                 # Make the function name the button title, but prettier
-                return "{0} {2}".format(
-                    transition.name.replace("_", " "), model_name, obj
-                ).title()
+                return "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
 
         if not getattr(self, "object", None):
             self.object = self.get_object()
@@ -1056,7 +1055,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if action:
             if method := getattr(self.object, action, None):
                 if not description and action == "withdraw":
-                    description = f"{request.user} withdrew the {self.object.model_name} {self.object}."
+                    description = (
+                        f"{request.user} withdrew the {self.object.model_name} {self.object}."
+                    )
                 old_state = self.object.state
                 method(request=request, description=description, by=request.user)
                 # self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
@@ -1066,7 +1067,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 if self.model is models.Nomination and action == "withdraw":
                     messages.info(request, _(f"The nomination {n} has been withdrawn."))
                 else:
-                    messages.success(request, _(f"The {self.object._meta.verbose_name} {self.object} was {state}."))
+                    messages.success(
+                        request,
+                        _(f"The {self.object._meta.verbose_name} {self.object} was {state}."),
+                    )
                 if self.model is models.Nomination and (a := self.object.application) and a.is_wip:
                     old_state = a.object.state
                     a.cancel(
@@ -1092,15 +1096,15 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
             if state:
                 if state == "archived":
-                    route =  f"{self.object.model_name}s-{old_state}"
+                    route = f"{self.object.model_name}s-{old_state}"
                 else:
                     if state == "new":
                         state = "draft"
-                    route =  f"{self.object.model_name}s-{state}"
+                    route = f"{self.object.model_name}s-{state}"
                 if route_exists(route):
                     return redirect(route)
 
-            route =  f"{self.object.model_name}s"
+            route = f"{self.object.model_name}s"
             if route_exists(route):
                 return redirect(route)
 
@@ -1644,7 +1648,7 @@ def index(request):
             Q(user=user)
             | Q(email__lower=user.email.lower())
             | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__lower"))),
-            ~Q(invitations__state__in=['accepted', 'expired', 'revoked', 'new', 'draft']),
+            ~Q(invitations__state__in=["accepted", "expired", "revoked", "new", "draft"]),
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
@@ -2291,7 +2295,10 @@ class SelfAssignMixin:
             elif not obj.assessor:
                 obj.assign_assessor(by=u, assessor=u, request=request)
                 obj.save(update_fields=["assessor", "updated_at", "state", "state_changed_at"])
-                messages.success(request, _("You successfully assigned yourself as the assessor of this report."))
+                messages.success(
+                    request,
+                    _("You successfully assigned yourself as the assessor of this report."),
+                )
             response = HttpResponse(status=200)
             response["HX-Redirect"] = url
             return response
@@ -2377,7 +2384,10 @@ class ReportViewMixin:
             elif not obj.assessor:
                 obj.assign_assessor(by=u, assessor=u, request=request)
                 obj.save(update_fields=["assessor", "updated_at", "state", "state_changed_at"])
-                messages.success(request, _("You successfully assigned yourself as the assessor of this report."))
+                messages.success(
+                    request,
+                    _("You successfully assigned yourself as the assessor of this report."),
+                )
             return self.get(request, *args, **kwargs)
         else:
             return super().put(request, *args, **kwargs)
@@ -3495,7 +3505,9 @@ class ReportCreate(NotesMixin, ReportViewMixin, CreateWithInlinesView):
         return initial
 
 
-class ReportUpdate(LoginRequiredMixin, NotesMixin, SelfAssignMixin, ReportViewMixin, UpdateWithInlinesView):
+class ReportUpdate(
+    LoginRequiredMixin, NotesMixin, SelfAssignMixin, ReportViewMixin, UpdateWithInlinesView
+):
 
     model = models.Report
     form_class = forms.ReportForm
@@ -3503,6 +3515,7 @@ class ReportUpdate(LoginRequiredMixin, NotesMixin, SelfAssignMixin, ReportViewMi
     # def get_context_data(self, *args, **kwargs):
     #     context = super().get_context_data(*args, **kwargs)
     #     return context
+
 
 class FileImportForm(Form):
 
@@ -4288,7 +4301,9 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                             member.last_name = u.last_name or u.person.last_name
                             was_changed = True
 
-                        if "cv_file" in form.changed_data and (cv_file := request.FILES.get("cv_file")):
+                        if "cv_file" in form.changed_data and (
+                            cv_file := request.FILES.get("cv_file")
+                        ):
                             cv = models.CurriculumVitae.create(
                                 file=cv_file,
                                 owner=u,
@@ -5076,6 +5091,11 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     initial["members"] = latest_application.members
                 initial["presentation_url"] = latest_application.presentation_url
 
+        if ((o := self.object) and o.site_id == 2 and (not o.pk or o.is_pi(user))) or (
+            not self.object and settings.SITE_ID == 2
+        ):
+            if cv := models.CurriculumVitae.last_user_cv(user=user, cut_off_months=3):
+                initial["cv_file"] = cv.file
         return initial
 
     @property
@@ -5205,6 +5225,47 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
                     if has_deleted:
                         return redirect(f"{update_url or url}#applicant")
+
+                elif (
+                    not update_only_referees
+                    and a.site_id == 2
+                    and "cv_file" in form.changed_data
+                    and (cv_file := self.request.FILES.get("cv_file"))
+                ):
+                    cv, created = models.CurriculumVitae.get_or_create(
+                        owner=user,
+                        person=user.person,
+                        title=_(f"For application {a.number}"),
+                        defaults={"file": cv_file},
+                    )
+                    if not created:
+                        cv.file.save(cv_file.name, cv_file)
+                        cv.save()
+                    # instance.cv = cv
+                    pi, created = a.members.model.get_or_create(
+                        application=a,
+                        role_id="PI",
+                        user=user,
+                        defaults=dict(
+                            cv=cv,
+                            email=user.email,
+                            first_name=a.first_name or user.first_name or user.person.first_name,
+                            middle_names=a.middle_names
+                            or user.middle_names
+                            or user.person.middle_names,
+                            last_name=a.last_name or user.last_name or user.person.last_name,
+                            org=a.org,
+                            country=a.org.address and a.org.address.country,
+                            state="authorized",
+                            authorized_at=a.updated_at,
+                            role_description="The submitter of the application",
+                        ),
+                    )
+                    if not created:
+                        pi.cv = cv
+                        pi.save()
+
+                    # if letter_of_support_file.name.endswith(".pdf")
 
                 # if identity_verification_form := context.get("identity_verification"):
                 #     identity_verification_form.instance.application = a
@@ -6399,7 +6460,7 @@ class ApplicationCreate(ApplicationView, CreateView):
             )
             return redirect("home")
 
-        a = models.Application.where(submitted_by=u, round=r).order_by("-id").first()
+        a = self.model.where(submitted_by=u, round=r).order_by("-id").first()
         if nomination_id := request.GET.get("nomination") or n and n.pk:
 
             if nom := models.Nomination.get(nomination_id):
@@ -6478,7 +6539,7 @@ class ApplicationCreate(ApplicationView, CreateView):
                 )
             )
         )
-        if r and (a := models.Application.where(round=r, submitted_by=self.request.user).last()):
+        if r and (a := self.model.where(round=r, submitted_by=self.request.user).last()):
             messages.error(
                 self.request,
                 _(
@@ -6742,7 +6803,11 @@ class ContractDetail(FavoriteMixin, DetailView):
             and org.research_offices.filter(user=u).exists()
         ):
             context["can_edit"] = True
-            if o.is_current and not (cr := models.ChangeRequest.where(~Q(state__in=["accepted", "acknowledged"]), contract=o).order_by("-pk")):
+            if o.is_current and not (
+                cr := models.ChangeRequest.where(
+                    ~Q(state__in=["accepted", "acknowledged"]), contract=o
+                ).order_by("-pk")
+            ):
                 change_request_form = forms.ChangeRequestForm(
                     initial={"contract": o},
                 )
@@ -7177,11 +7242,7 @@ class ContractViewMixin:
             )
         )
         context["round"] = round = a.round
-        context["is_pi"] = (
-            self.object
-            and self.object.pk
-            and self.object.is_pi(u)
-        )
+        context["is_pi"] = self.object and self.object.pk and self.object.is_pi(u)
         if self.object and self.object.pk:
             c = self.object
             needs_attention = []
@@ -7260,7 +7321,10 @@ class ContractViewMixin:
                     i.submitted_by = u
                     # self.instance.state_changed_at = self.instance.submitted_at = timezone.now()
                     i.submit(request=self.request, user=u)
-                elif "approve_contract" in form.data or action in ["approve_contract", "approve_variant"]:
+                elif "approve_contract" in form.data or action in [
+                    "approve_contract",
+                    "approve_variant",
+                ]:
                     i.approve(request=self.request, by=u)
                 resp = super().form_valid(form)
 
@@ -7543,7 +7607,11 @@ class ContractViewMixin:
             if body or attachment:
                 with transaction.atomic():
                     comment = i.comments.model.create(
-                        contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
+                        contract=i,
+                        submitted_by=u,
+                        comment=body,
+                        attachment=attachment,
+                        token=token,
                     )
                     comment.recipients.model.objects.bulk_create(
                         [
@@ -8639,13 +8707,17 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
         return result
 
     def create_object(self, text):
-        if (referer := self.request.META.get("HTTP_REFERER")):
-            if (m := re.search(r"contracts/(\d+)/", referer)):
-                if (contract := models.Contract.where(pk=m.group(1)).first()) and contract.host_contact_email != text:
+        if referer := self.request.META.get("HTTP_REFERER"):
+            if m := re.search(r"contracts/(\d+)/", referer):
+                if (
+                    contract := models.Contract.where(pk=m.group(1)).first()
+                ) and contract.host_contact_email != text:
                     contract.host_contact_email = text
                     contract.save(update_fields=["host_contact_email", "updated_at"])
-            elif (m := re.search(r"contracts/([A-Za-z0-9:-]+)/", referer)):
-                if (contract := models.Contract.where(number=m.group(1)).first()) and contract.host_contact_email != text:
+            elif m := re.search(r"contracts/([A-Za-z0-9:-]+)/", referer):
+                if (
+                    contract := models.Contract.where(number=m.group(1)).first()
+                ) and contract.host_contact_email != text:
                     contract.host_contact_email = text
                     contract.save(update_fields=["host_contact_email", "updated_at"])
 

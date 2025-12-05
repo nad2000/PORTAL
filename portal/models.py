@@ -2908,6 +2908,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def pi(self):
         return (pi := self.members.filter(role="PI").last()) and pi.user or self.submitted_by
 
+    def is_pi(self, user):
+        return (
+            self.submitted_by_id == user.pk
+            or self.members.filter(user=user, role_id="PI").exists()
+        )
+
     @property
     def contract(self):
         """The latest contract."""
@@ -2973,18 +2979,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
         if (pi := self.submitted_by) and not self.members.filter(user=pi).exists():
+            cv = CurriculumVitae.last_user_cv(pi, cut_off_months=3 if self.site_id == 2 else 12)
             self.members.model.get_or_create(
                 application=self,
                 user=pi,
-                email=self.email or pi.email,
+                role_id="PI",
                 defaults=dict(
-                    first_name=self.first_name or pi.first_name,
-                    middle_names=self.middle_names or pi.middle_names,
-                    last_name=self.last_name or pi.last_name,
+                    email=self.email or pi.email,
+                    first_name=self.first_name or pi.first_name or pi.person.first_name,
+                    middle_names=self.middle_names or pi.middle_names or pi.person.middle_names,
+                    last_name=self.last_name or pi.last_name or pi.person.last_name,
                     state="authorized",
                     authorized_at=self.updated_at,
                     role_description="The submitter of the application",
-                    role_id="PI",
+                    cv=cv,
+                    org=self.org,
+                    country=self.org.address and self.org.address.country,
                 ),
             )
 
@@ -6698,8 +6708,11 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         return self.file.name
 
     @classmethod
-    def last_user_cv(cls, user):
-        return cls.where(Q(owner=user) | Q(person__user=user)).order_by("-updated_at").first()
+    def last_user_cv(cls, user, cut_off_months=None):
+        qs = cls.where(Q(owner=user) | Q(person__user=user)).order_by("-updated_at")
+        if cut_off_months:
+            qs = qs.filter(updated_at__gt=(timezone.now() - relativedelta(months=cut_off_months)))
+        return qs.first()
 
     def __str__(self):
         return self.filename

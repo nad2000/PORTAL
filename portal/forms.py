@@ -756,7 +756,6 @@ class ApplicationForm(ModelForm):
                 raise forms.ValidationError(
                     _("Need to attach a CV before submitting the application."),
                 )
-
         return self.cleaned_data.get("cv_file")
 
     def is_valid(self):
@@ -1011,9 +1010,14 @@ class ApplicationForm(ModelForm):
                 )
                 # self.fields["letter_of_support_file"].help_text = help_text
 
-            if round.applicant_cv_required and (
-                cv_templates := [r.file for r in round.curriculum_vitae_templates.all()]
-            ):
+        if (
+            round.applicant_cv_required
+            or site_id == 2
+            and (not instance.pk or instance.is_pi(user))
+        ):
+
+            cv_templates = [r.file for r in round.curriculum_vitae_templates.all()]
+            if cv_templates:
                 help_text = _("You can download the CV form template(s) at ") + ", ".join(
                     '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
                     for t in cv_templates[:-1]
@@ -1024,16 +1028,21 @@ class ApplicationForm(ModelForm):
                     cv_templates[-1].url,
                     os.path.basename(cv_templates[-1].name),
                 )
-
-                self.fields["cv_file"].help_text = help_text
-                summary_fields.append(
-                    Field(
-                        "cv_file",
-                        label=_("Curriculum Vitae"),
-                        data_toggle="tooltip",
-                        title=help_text,
-                    )
+            else:
+                help_text = _(
+                    """For NZ-based researchers, a current CV in the <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is requested."""
                 )
+
+            self.fields["cv_file"].help_text = help_text
+            self.fields["cv_file"].label = _("PI Curriculum Vitae") if site_id == 2 else _("Curriculum Vitae")
+            summary_fields.append(
+                Field(
+                    "cv_file",
+                    label=self.fields["cv_file"].label
+                    # data_toggle="tooltip",
+                    # title=help_text,
+                )
+            )
 
         if round.research_summary_required:
             summary_fields.extend(
@@ -1067,6 +1076,10 @@ class ApplicationForm(ModelForm):
             )
 
         if has_required_documents:
+            if site_id == 2 and (not instance.pk or instance.is_pi(user)):
+                # PI CV
+                pass
+
             summary_fields.append(
                 Div(
                     DocumentInlineFormset("documents"),
@@ -4543,7 +4556,8 @@ class ReportForm(ModelForm):
                 """
                 category_fields.append(
                     Fieldset(
-                        mark_safe(f"""<span
+                        mark_safe(
+                            f"""<span
                             data-toggle="tooltip"
                             data-html="true"
                             title="{seo_info}"
@@ -4555,7 +4569,8 @@ class ReportForm(ModelForm):
                             data-html="true"
                             title="{_("Socio-Economic Objectives")}"
                             data-content="{seo_info}"
-                            class="fas fa-sm fa-question-circle"></i>"""),
+                            class="fas fa-sm fa-question-circle"></i>"""
+                        ),
                         TableInlineFormset(
                             "seos", template="portal/category_table_inline_formset.html"
                         ),
@@ -4578,7 +4593,8 @@ class ReportForm(ModelForm):
                     digits. """
                 category_fields.append(
                     Fieldset(
-                        mark_safe(f"""<span
+                        mark_safe(
+                            f"""<span
                             data-toggle="tooltip"
                             data-html="true"
                             title="{for_info}"
@@ -4590,7 +4606,8 @@ class ReportForm(ModelForm):
                             data-html="true"
                             title="{_("Fields of Research")}"
                             data-content="{for_info}"
-                            class="fas fa-sm fa-question-circle"></i>"""),
+                            class="fas fa-sm fa-question-circle"></i>"""
+                        ),
                         TableInlineFormset(
                             "fors", template="portal/category_table_inline_formset.html"
                         ),
