@@ -2978,8 +2978,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             if self.is_preliminary:
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
-        if (pi := self.submitted_by) and not self.members.filter(user=pi).exists():
+        if pi := self.pi:
             cv = CurriculumVitae.last_user_cv(pi, cut_off_months=3 if self.site_id == 2 else 12)
+            if not self.cv and cv:
+                self.cv = cv
+                super().save(update_fields=["cv"])
+
             self.members.model.get_or_create(
                 application=self,
                 user=pi,

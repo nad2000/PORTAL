@@ -5096,6 +5096,23 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         ):
             if cv := models.CurriculumVitae.last_user_cv(user=user, cut_off_months=3):
                 initial["cv_file"] = cv.file
+
+            if self.request.method == "GET" and (not o or o.pk and not o.cv):
+                message = _(
+                    "Please ensure that you have attached "
+                    "to the application the most recent C.V."
+                )
+
+                if cv:
+                    message = f"""{message}
+                    {_('''Make suer that the select C.V.
+                <a href="%s" target="_blank">%s</a>
+                from your profile is up-to-date.''')}""" % (
+                        cv.file.url,
+                        os.path.basename(cv.file.name),
+                    )
+                messages.warning(self.request, message)
+
         return initial
 
     @property

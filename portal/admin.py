@@ -2424,6 +2424,7 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
         "state_changed_at",
         "authorized_at",
         "has_authorized",
+        "cv",
     ]
     autocomplete_fields = ["user", "application", "converted_file", "country", "org"]
 
