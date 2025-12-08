@@ -2782,8 +2782,8 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                     "contact",
                     ("email", "contact_phone"),
                     "signatory",
+                    ("ro_email", "notify_ro_on_application_submission"),
                     (
-                        "ro_email",
                         "application_contact_email",
                         "contract_contact_email",
                         "reporting_contact_email",

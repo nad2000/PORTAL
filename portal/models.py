@@ -1545,6 +1545,8 @@ class Organisation(Model):
         max_length=200, blank=True, null=True, db_comment="stage.source.provider_type"
     )
     sector = CharField(max_length=3, blank=True, null=True, db_comment="stage.source.sector")
+
+    notify_ro_on_application_submission = BooleanField(default=False)
     history = HistoricalRecords(table_name="organisation_history")
 
     @cached_property
@@ -2895,6 +2897,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     favorites = GenericRelation(Favorite)
 
     @property
+    def research_officers(self):
+        if self.org:
+            return sorted(
+                set([ro.user for ro in self.org.research_offices.all()]),
+                key=lambda o: (o.first_name, o.last_name),
+            )
+        return []
+
+    @property
+    def ro_recipients(self):
+        org = self.org
+        if ro_email := (org.ro_email or org.application_contact_email):
+            return [ro_email]
+        return self.research_officers
+
+    @property
     def is_wip(self):
         return not self.state or self.state in ["new", "draft"]
 
@@ -3300,11 +3318,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     "title": self.application_title or round.title,
                 },
                 recipients=[nominator.full_email_address],
-                # cc=[
-                #     ro.user.full_email_address
-                #     for ro in ResearchOffice.where(org=self.org)
-                #     if ro.user != nominator
-                # ],
+                cc=self.ro_recipients if self.org.notify_ro_on_application_submission else None,
                 fail_silently=False,
                 request=request,
                 reply_to=settings.DEFAULT_FROM_EMAIL,

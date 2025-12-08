@@ -5211,7 +5211,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 a = form.instance or self.object
                 # dispatch invitation to the referees or defer until the application round is closed
                 dispatch_invitations = site_id not in [2, 5] or (
-                    a.state in ["approved", "accepted", "in_review"]
+                    instance.state in ["approved", "accepted", "in_review"]
                     and round.closes_at
                     and round.closes_at <= timezone.now()
                 )
