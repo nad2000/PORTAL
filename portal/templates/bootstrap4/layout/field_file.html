@@ -22,6 +22,23 @@
         {% endif %}
         {% endcomment %}
     </div>
+        {% if widget.data.attrs.can_delete and form.instance %}
+          <button
+                    class="btn btn-danger btn-sm ml-1"
+                    id="{{ field.auto_id }}-delete"
+                    hx-delete="?delete_document_id={{ form.instance.pk }}"
+                    hx-params="none"
+                    hx-target="#documents"
+                    {% comment %}
+                    hx-on:htmx:after-request="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}hide_closest_formset_form_row(this, event)"
+                    hx-swap="beforeend scroll:bottom"
+                    {% if form.confirm_deletion %}hx-confirm="{% if form.deletion_confirmation_message %}{{ form.deletion_confirmation_message }}{% else %}{% blocktrans with name=form.instance|verbose_name obj=form.instance %}Do you wish to delete {{ name }}: {{ obj }}?{% endblocktrans %}{% endif %}"{% endif %}
+                    {% endcomment %}
+                    {% comment %}hx-on:htmx:afterSwap="console.log(this,event)" hx-target="#messages" hx-swap="beforeend" hx-trigger="console.log(this)"{% endcomment %}
+                  >
+                    <i class="fa fa-times" style="width: 12px;"></i>
+                  </button>
+        {% endif %}
 </div>
 <div class="input-group mb-0">
     <div class="input-group-prepend">

@@ -6224,56 +6224,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         context["referees"] = referee_form_set
 
         if has_required_documents:
-            initial_documents = [
-                dict(
-                    required_document=rd_id,
-                )
-                for rd_id, in (
-                    round.required_documents.values_list("id")
-                    .filter(~Q(id__in=self.object.documents.values("required_document_id")))
-                    .order_by("ordering")
-                    if (self.object and self.object.id)
-                    else round.required_documents.order_by("ordering").values_list("id")
-                )
-            ]
-            fsc = forms.inlineformset_factory(
-                self.model,
-                models.ApplicationDocument,
-                extra=len(initial_documents),
-                can_delete=False,
-                exclude=[
-                    "document_type",
-                    "converted_file",
-                ],
-                widgets={
-                    "required_document": HiddenInput(),
-                    "page_count": HiddenInput(),
-                    # "required_document": widgets.Select(attrs={"disabled": True}),
-                    # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
-                    "file": widgets.ClearableFileInput(
-                        attrs={
-                            "placeholder": _("Please upload a file ..."),
-                            "data-placeholder": _("Please upload a file ..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The file is required. Please upload a file ..."),
-                            "oninput": "this.setCustomValidity('')",
-                        }
-                    ),
-                },
-            )
-            if self.request.POST:
-                fs = fsc(
-                    not update_only_referees and self.request.POST or None,
-                    not update_only_referees and self.request.FILES or None,
-                    instance=self.object,
-                    # initial=initial_documents,
-                )
-            else:
-                fs = fsc(instance=self.object, initial=initial_documents)
-            if initial_documents:
-                fs.extra = len(initial_documents)
-            context["documents"] = fs
+            context["documents"] = self.get_document_formset()
             context["required_documents"] = {
                 rd.id: rd for rd in round.required_documents.order_by("ordering")
             }
@@ -6415,6 +6366,72 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 initial["organisation"] = no.name
 
         return kwargs
+
+    def get_document_formset(self, *args, **kwargs):
+        round = self.round
+        initial_documents = [
+            dict(
+                required_document=rd_id,
+            )
+            for rd_id, in (
+                round.required_documents.values_list("id")
+                .filter(~Q(id__in=self.object.documents.values("required_document_id")))
+                .order_by("ordering")
+                if (self.object and self.object.pk)
+                else round.required_documents.order_by("ordering").values_list("id")
+            )
+        ]
+        fsc = forms.inlineformset_factory(
+            self.model,
+            models.ApplicationDocument,
+            extra=len(initial_documents),
+            can_delete=False,
+            exclude=[
+                "document_type",
+                "converted_file",
+            ],
+            widgets={
+                "required_document": HiddenInput(),
+                "page_count": HiddenInput(),
+                # "required_document": widgets.Select(attrs={"disabled": True}),
+                # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                "file": widgets.ClearableFileInput(
+                    attrs={
+                        "placeholder": _("Please upload a file ..."),
+                        "data-placeholder": _("Please upload a file ..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("The file is required. Please upload a file ..."),
+                        "oninput": "this.setCustomValidity('')",
+                        "can_delete": True,
+                    }
+                ),
+            },
+        )
+        if self.request.POST:
+            fs = fsc(
+                not update_only_referees and self.request.POST or None,
+                not update_only_referees and self.request.FILES or None,
+                instance=self.object,
+                # initial=initial_documents,
+            )
+        else:
+            fs = fsc(instance=self.object, initial=initial_documents)
+        if initial_documents:
+            fs.extra = len(initial_documents)
+        return fs
+
+    def delete(self, request, *args, **kwargs):
+
+        a = self.object = self.get_object()
+        round = self.object.round
+        if pk := int(request.GET.get("delete_document_id")):
+            a.documents.filter(pk=pk).delete()
+
+        formset_tag = True
+        formset = self.get_document_formset()
+        required_documents = {rd.id: rd for rd in round.required_documents.order_by("ordering")}
+        return render(self.request, "portal/document_formset.html", locals())
 
 
 class ApplicationUpdate(ApplicationView, UpdateView):
