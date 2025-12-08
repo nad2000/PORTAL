@@ -13641,7 +13641,7 @@ class Publication(Model):
     publisher = CharField(max_length=100, blank=True, null=True)
     editor = CharField(max_length=100, blank=True, null=True)
     location = CharField(max_length=60, blank=True, null=True)
-    url = CharField(max_length=150, blank=True, null=True)
+    url = CharField(max_length=1000, blank=True, null=True)
     volume = CharField(max_length=10, blank=True, null=True)
     year_ref = IntegerField(blank=True, null=True)
     page_ref = CharField(max_length=14, blank=True, null=True)
