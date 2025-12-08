@@ -4935,7 +4935,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             initial["letter_of_support_file"] = self.object.letter_of_support.file
 
         if (
-            round.applicant_cv_required
+            round.is_applicant_cv_required
             and round.curriculum_vitae_templates.count() > 0
             and self.object
             and self.object.id

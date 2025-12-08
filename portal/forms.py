@@ -748,7 +748,7 @@ class ApplicationForm(ModelForm):
 
         if self.was_submitted and (round := self.round):
             if (
-                round.applicant_cv_required
+                round.is_applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0
                 and not (self.cleaned_data.get("cv_file") or self.instance.cv)
                 and self.site_id not in [2, 4, 5]
@@ -797,7 +797,7 @@ class ApplicationForm(ModelForm):
             self.cleaned_data.get("cv_file") is False
             and self.instance
             and self.instance.round
-            and self.instance.round.applicant_cv_required
+            and self.instance.round.is_applicant_cv_required
             and self.instance.round.curriculum_vitae_templates.count() > 0
         ):
             self.instance.cv = None
@@ -1011,10 +1011,9 @@ class ApplicationForm(ModelForm):
                 # self.fields["letter_of_support_file"].help_text = help_text
 
         if (
-            round.applicant_cv_required
-            or site_id == 2
-            and (not instance.pk or instance.is_pi(user))
-        ):
+            round.is_applicant_cv_required
+            or site_id == 2 and (not instance.pk or instance.is_pi(user))
+            ):
 
             cv_templates = [r.file for r in round.curriculum_vitae_templates.all()]
             if cv_templates:

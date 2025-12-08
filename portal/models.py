@@ -7354,6 +7354,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         Currency, on_delete=SET_NULL, null=True, blank=True, db_column="currency", default="NZD"
     )
 
+    @cached_property
+    def is_applicant_cv_required(self):
+        return self.applicant_cv_required and not self.required_documents.filter(Q(role="CV")|Q(document_type__role="CV")).exists()
+
     def natural_key(self):
         return (self.scheme.code, self.opens_on)
 
