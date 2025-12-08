@@ -6224,10 +6224,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         context["referees"] = referee_form_set
 
         if has_required_documents:
-            context["documents"] = self.get_document_formset()
-            context["required_documents"] = {
+            self.required_documents = context["required_documents"] = {
                 rd.id: rd for rd in round.required_documents.order_by("ordering")
             }
+            context["documents"] = self.get_document_formset()
 
         if round.has_fors:
             fsc = forms.inlineformset_factory(
@@ -6373,14 +6373,18 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             dict(
                 required_document=rd_id,
             )
-            for rd_id, in (
-                round.required_documents.values_list("id")
+            for rd_id in (
+                round.required_documents.values_list("id", flat=True)
                 .filter(~Q(id__in=self.object.documents.values("required_document_id")))
                 .order_by("ordering")
                 if (self.object and self.object.pk)
                 else round.required_documents.order_by("ordering").values_list("id")
             )
         ]
+        required_documents = {
+            rd.id: rd for rd in round.required_documents.order_by("ordering")
+        }
+
         fsc = forms.inlineformset_factory(
             self.model,
             models.ApplicationDocument,
@@ -6408,7 +6412,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 ),
             },
         )
-        if self.request.POST:
+        if self.request.method == "POST":
+            update_only_referees = self.update_only_referees()
             fs = fsc(
                 not update_only_referees and self.request.POST or None,
                 not update_only_referees and self.request.FILES or None,
@@ -6419,6 +6424,46 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             fs = fsc(instance=self.object, initial=initial_documents)
         if initial_documents:
             fs.extra = len(initial_documents)
+        help_texts = {
+            rd.pk: forms.make_help_text(required_document=rd) for rd in required_documents.values()
+        }
+        if self.request.method in ["POST", "GET"]:
+            return fs
+
+        for f in fs.forms:
+            rd_id = f.initial.get("required_document", 0)
+            if rd_id:
+                rd = required_documents.get(rd_id, None)
+                if not isinstance(rd_id, int):
+                    rd_id = rd_id.pk
+                f.fields["file"].help_text = help_texts.get(rd_id)
+                label = f"{rd}" if rd else _("Document")
+                state = f.instance and getattr(f.instance, "state", None)
+                if state:
+                    label += f' (<strong style="text-transform: uppercase;">{state}</strong>)'
+                f.form_label = f.fields["file"].label = label
+                if rd:
+                    if rd.is_optional:
+                        f.fields["file"].widget.attrs["data-required"] = 0
+                    dtf = rd.format or rd.document_type.format
+                    if dtf == "S":
+                        f.fields["file"].widget.attrs[
+                            "accept"
+                        ] = ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    elif dtf == "I":
+                        f.fields["file"].widget.attrs["accept"] = ".pdf,.jpg,.png,.jpeg"
+                    else:
+                        f.fields["file"].widget.attrs[
+                            "accept"
+                        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+        # context.update(
+        #     {
+        #         "formset": formset,
+        #         "form_id": self.form_id,
+        #         "required_documents": required_documents,
+        #     },
+        # )
+        # return render_to_string(self.template, context)
         return fs
 
     def delete(self, request, *args, **kwargs):
@@ -6428,7 +6473,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         if pk := int(request.GET.get("delete_document_id")):
             a.documents.filter(pk=pk).delete()
 
-        formset_tag = True
+        formset_tag = False
         formset = self.get_document_formset()
         required_documents = {rd.id: rd for rd in round.required_documents.order_by("ordering")}
         return render(self.request, "portal/document_formset.html", locals())
