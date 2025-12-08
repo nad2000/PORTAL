@@ -6381,9 +6381,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 else round.required_documents.order_by("ordering").values_list("id")
             )
         ]
-        required_documents = {
-            rd.id: rd for rd in round.required_documents.order_by("ordering")
-        }
+        required_documents = {rd.id: rd for rd in round.required_documents.order_by("ordering")}
 
         fsc = forms.inlineformset_factory(
             self.model,
@@ -6407,7 +6405,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         "oninvalid": "this.setCustomValidity('%s')"
                         % _("The file is required. Please upload a file ..."),
                         "oninput": "this.setCustomValidity('')",
-                        "can_delete": True,
+                        "can_delete": not self.object
+                        or self.object.is_wip
+                        or round.site_id in [2, 5]
+                        and self.object.state in ["new", "darft", "submitted"],
                     }
                 ),
             },
