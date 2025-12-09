@@ -357,6 +357,8 @@ class CommentMixin:
         self, file, filename=None, notify_author=True, request=None, by=None, reply_to=None
     ):
         ext = None
+        if not request:
+            request = self.request
         root, ext = os.path.splitext(filename)
         if ext and ext.lower() == ".msg":
             import tempfile
