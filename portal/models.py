@@ -13092,7 +13092,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         target="submitted",
         custom=dict(verbose="Submit the report to your R.O.", button_name="Submit"),
         conditions=[lambda self: self.file != ""],
-        permission=lambda instance, user: instance.is_pi(user) or use.is_admin,
+        permission=lambda instance, user: instance.is_pi(user) or user.is_admin,
     )
     def submit(self, *args, **kwargs):
         request = kwargs.get("request")
