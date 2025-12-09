@@ -326,7 +326,8 @@ TEMPLATES = [
                     # "django.template.loaders.cached.Loader",
                     "portal.template.Loader",
                     [
-                        "multisite.template.loaders.filesystem.Loader",
+                        # "multisite.template.loaders.filesystem.Loader",
+                        "portal.template.MultisiteLoader",
                         "apptemplates.Loader",
                         "django.template.loaders.app_directories.Loader",
                         "django.template.loaders.filesystem.Loader",

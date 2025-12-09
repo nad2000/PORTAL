@@ -1614,7 +1614,7 @@ class Organisation(Model):
             q = q.filter(Q(research_offices__user_id=nominator))
         if user:
             q = q.filter(Q(affiliations__person__user=user, affiliations__end_date__isnull=True))
-        if term:
+        if term and term.strip():
             s = term.lower()
             s0 = s.split(" ")
             if s0[0] == "the":
@@ -6880,7 +6880,7 @@ def notify_site_staff_about_new_org(
     org_url=None,
 ):
     if site_id and site_id != int(settings.SITE_ID):
-        settings.SITE_ID = site_id
+        settings.SITE_ID.set(site_id)
     site = Site.objects.get(pk=site_id)
     org = Organisation.get(org_id)
     u = by_id and User.get(by_id)
@@ -6913,7 +6913,7 @@ def bulk_application_export(
     regenerate=False,
 ):
     if site_id:
-        settings.SITE_ID = site_id
+        settings.SITE_ID.set(site_id)
     site = Site.objects.get(pk=site_id)
     r = round_id and Round.get(round_id)
 
@@ -6937,7 +6937,7 @@ def bulk_application_export(
         if not site_id:
             site = a.site
             site_id = site.pk
-            settings.SITE_ID = site_id
+            settings.SITE_ID.set(site_id)
         filename = os.path.join(prefix, f"{a.number}.pdf")
         file_ts = os.path.exists(filename) and timezone.datetime.fromtimestamp(
             os.path.getmtime(filename)
@@ -9647,7 +9647,7 @@ def invite_referees(
     after the round closes.
     """
     if site_id:
-        settings.SITE_ID = site_id
+        settings.SITE_ID.set(site_id)
     else:
         site_id = int(settings.SITE_ID)
     if not applications and rounds:
@@ -9686,7 +9686,7 @@ def invite_referees(
 
 def clean_converted_file_cache(dry_run=False, keep_days=200, site_id=None):
     if site_id:
-        settings.SITE_ID = site_id
+        settings.SITE_ID.set(site_id)
     root_dir = Path(settings.PRIVATE_STORAGE_ROOT) / "converted"
     cf_count = 0
     with transaction.atomic():
@@ -9694,7 +9694,7 @@ def clean_converted_file_cache(dry_run=False, keep_days=200, site_id=None):
             created_at__lt=(timezone.now() - timedelta(days=keep_days))
         ):
             if not cf.file:
-                print(f"*** Deleted corrupted record ID: cf.pk (0 bytes)")
+                print(f"*** Deleted corrupted record ID: {cf.pk} (0 bytes)")
                 if not dry_run:
                     cf.delete()
                 cf_count += 1
