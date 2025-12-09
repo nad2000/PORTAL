@@ -1571,6 +1571,7 @@ class Organisation(Model):
             return [self.ro_email]
         return [ro.user for ro in self.research_offices.all()]
 
+    @cache
     def is_ro(self, user):
         return self.research_offices.filter(user=user).exists()
 
@@ -7358,7 +7359,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     @cached_property
     def is_applicant_cv_required(self):
-        return self.applicant_cv_required and not self.required_documents.filter(Q(role="CV")|Q(document_type__role="CV")).exists()
+        return (
+            self.applicant_cv_required
+            and not self.required_documents.filter(
+                Q(role="CV") | Q(document_type__role="CV")
+            ).exists()
+        )
 
     def natural_key(self):
         return (self.scheme.code, self.opens_on)
@@ -11272,8 +11278,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     @cached_property
     def key_person(self):
-        if self.members.filter(role_id="CP").exists():
-            return self.members.filter(role_id="CP").last()
+        if self.members.filter(role_id__in=["PC", "CP", "PI"]).exists():
+            return self.members.filter(role_id__in=["PC", "CP", "PI"]).order_by("role_id").first()
         return self.pi
 
     @cached_property
@@ -13539,8 +13545,12 @@ class ReportedFunding(ReportedFundingMixin, Model):
     end_date = DateField(blank=True, null=True)
     agency_name = CharField(max_length=200, blank=True, null=True)
     agency = ForeignKey(
-        Organisation, on_delete=SET_NULL, null=True, blank=True, verbose_name=_("Funding agency"),
-        editable=False
+        Organisation,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Funding agency"),
+        editable=False,
     )
 
     # def __str__(self):

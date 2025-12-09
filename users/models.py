@@ -99,6 +99,11 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         """Test if the user is staff member or superuser"""
         return self.is_superuser or self.is_staff or self.is_site_staff
 
+    @cached_property
+    @admin.display(description=_("is R.O."), boolean=True)
+    def is_ro(self):
+        return self.research_offices.exists()
+
     @property
     def can_apply(self):
         """Admin nor staff cannot apply nor nominate other user."""

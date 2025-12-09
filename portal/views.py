@@ -974,7 +974,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         elif self.model is models.Report or self.model is models.ChangeRequest:
             c = i.contract
         u = request.user
-        is_ro = c.org.research_offices.filter(user=u).exists()
+        is_ro = u.is_ro
         recipients = i.host_recipients if is_ro else i.agency_recipients
 
         if body or attachment:
@@ -1618,7 +1618,7 @@ def index(request):
     if "error" in request.GET:
         raise Exception(request.GET["error"])
     user = request.user
-    is_ro = models.ResearchOffice.where(user=user).exists()
+    is_ro = user.is_ro
     is_admin = user.is_admin
     if site_id in [2, 4, 5]:
         has_ro = (
@@ -7411,7 +7411,7 @@ class ContractViewMixin:
         if not i.fund:
             i.fund = models.Fund.last()
         try:
-            is_ro = org.research_offices.filter(user=u).exists() and not (
+            is_ro = org.is_ro(user=u) and not (
                 u.is_superuser or u.is_site_staff
             )
             with transaction.atomic():
@@ -12903,7 +12903,7 @@ class ChangeRequestViewMixin:
         u = self.request.user
         contract = self.object and self.object.contract or self.contract
         org = contract and contract.org
-        is_ro = org and org.research_offices.filter(user=u).exists() or not u.is_admin
+        is_ro = org and org.is_ro(user=u) or not u.is_admin
 
         try:
             with transaction.atomic():
@@ -12942,7 +12942,7 @@ class ChangeRequestViewMixin:
                 ]:
                     if not org:
                         org = i.contract.org
-                        is_ro = org.research_offices.filter(user=u).exists()
+                        is_ro = org.is_ro(user=u)
                     if is_ro:
                         fund = i.contract.fund
                         recipients = (
