@@ -3114,6 +3114,7 @@ class ReportViewMixin:
                         start_date=start_date,
                         end_date=end_date,
                         agency=org,
+                        agency_name=org_name,
                     ),
                 )
 
@@ -12476,7 +12477,11 @@ class ReportedFundingViewMixin:
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
     widgets = {
-        "agency": autocomplete.ModelSelect2("org-autocomplete"),
+        "agency_name": forms.ModelSelect2NoPK(
+            "org-name-autocomplete",
+            attrs={"data-placeholder": _("Choose an agency or create a new one ...")},
+        ),
+        # "agency": autocomplete.ModelSelect2("org-autocomplete"),
         # "agency": s2forms.ModelSelect2Widget(
         #     model=models.Organisation,
         #     search_fields=["name__icontains"],
@@ -12542,7 +12547,8 @@ class ReportedFundingViewMixin:
             "url",
             Row(Column("currency"), Column("amount"), Column("share")),
             Row(
-                Column("agency", css_class="col-8"),
+                Column("agency_name", css_class="col-8"),
+                # Column("agency", css_class="col-8"),
                 Column("start_date", css_class="col-2"),
                 Column("end_date", css_class="col-2"),
             ),
@@ -12559,6 +12565,18 @@ class ReportedFundingViewMixin:
         return form
 
     def form_valid(self, form):
+        if (
+            (i := form.instance)
+            and i.agency_name
+            and (
+                org := models.Organisation.where(
+                    Q(name=i.agency_name) | Q(legal_name=i.agency_name)
+                )
+                .order_by("-pk")
+                .last()
+            )
+        ):
+            i.org = org
         resp = super().form_valid(form)
         if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
             report = self.report
@@ -12578,7 +12596,7 @@ class ReportedActivityViewMixin:
 
     # model = models.ReportedActivity
     fields = "__all__"
-    exclude = ["updated_at", "created_at"]
+    exclude = ["updated_at", "created_at", "agency"]
     widgets = {
         # "agency": autocomplete.ModelSelect2("org-autocomplete"),
         # "agency": s2forms.ModelSelect2Widget(

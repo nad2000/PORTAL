@@ -13535,8 +13535,10 @@ class ReportedFunding(ReportedFundingMixin, Model):
     )
     start_date = DateField(blank=True, null=True)
     end_date = DateField(blank=True, null=True)
+    agency_name = CharField(max_length=200, blank=True, null=True)
     agency = ForeignKey(
-        Organisation, on_delete=SET_NULL, null=True, blank=True, verbose_name=_("Funding agency")
+        Organisation, on_delete=SET_NULL, null=True, blank=True, verbose_name=_("Funding agency"),
+        editable=False
     )
 
     # def __str__(self):

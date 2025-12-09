@@ -32,19 +32,32 @@
       <div id="publication-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
     <!-- Placeholder for the modal -->
-    <div id="reported-funding-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
+    <div
+      id="reported-funding-modal"
+      class="modal fade bd-example-modal-lg"
+      data-keyboard="true"
+      tabindex="-1"
+      role="dialog"
+      data-focus="false"
+      aria-hidden="true">
       <div id="reported-funding-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
     <!-- Placeholder for the modal -->
-    <div id="activity-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="activity-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog"
+      data-focus="false"
+      aria-hidden="true">
       <div id="activity-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
     <!-- Placeholder for the modal -->
-    <div id="form-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="form-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog"
+      data-focus="false"
+      aria-hidden="true">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
 
-    <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_resolution_modal">
+    <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog"
+      data-focus="false"
+      id="id_resolution_modal">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -124,7 +137,8 @@
           });
           $(".select2-selection__arrow").remove();
           $('#reported-funding-modal').modal('show');
-          $("#id_agency").siblings(".select2").width("100%");
+          // $("#id_agency").siblings(".select2").width("100%");
+          $("#id_agency_name").siblings(".select2").width("100%");
           $(".select2-dropdown.select2-dropdown--below").width("auto");
         } else if (target_id == "reported-funding-list") {
            $('#reported-funding-modal').modal('hide');
