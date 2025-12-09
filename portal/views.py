@@ -1619,6 +1619,7 @@ def index(request):
         raise Exception(request.GET["error"])
     user = request.user
     is_ro = models.ResearchOffice.where(user=user).exists()
+    is_admin = user.is_admin
     if site_id in [2, 4, 5]:
         has_ro = (
             models.ResearchOffice.where(
@@ -1652,6 +1653,32 @@ def index(request):
             state__in=["sent", "submitted"],
             round__scheme__current_round=F("round"),
         )
+        if is_ro or not is_admin:
+            if is_ro:
+                # reports to approve
+                reports = (
+                    models.Report.where(
+                        state="submitted",
+                        contract__org__research_offices__user=user,
+                        contract__state__in=["current", "CUR"],
+                    )
+                    .distinct()
+                    .order_by("state_changed_at")[:7]
+                )
+            else:
+                reports = (
+                    models.Report.where(
+                        Q(contract__members__user=user, contract__members__role_id__in=["PC", "PI"])
+                        | Q(efforts__person__user=user, efforts__role_id__in=["PC", "PI"]),
+                        state__in=["new", "draft"],
+                        contract__state__in=["current", "CUR"],
+                    )
+                    .distinct()
+                    .order_by("state_changed_at")[:7]
+                )
+            if reports.count():
+                current_reports = reports
+
         if site_id not in [2, 4, 5, 7] or not (user.is_superuser or user.is_site_staff):
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),

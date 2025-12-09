@@ -321,6 +321,36 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 </div>
 {% endif %}
 
+{% if current_reports %}
+<div class="card text-white bg-warning border-warning mb-3">
+  <h5 class="card-header" style="text-transform: uppercase;"><strong>
+      {% if is_ro %}
+        {% trans 'Submitted Report(s)' %}
+      {% else %}
+        {% trans 'Current Report(s)' %}
+      {% endif %}
+    </strong>
+  </h5>
+    {% for r in current_reports %}
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item"><a
+          href="{{ r.detail_url }}"
+          target="_blank"
+          >{{ r }}:
+          {% if r.contract.project_title %}
+            {{ r.contract.project_title }}
+          {% elif r.contract.application.application_title %}
+            {{ r.contract.application.application_title }}
+          {% else %}
+            {{ r.contract.application.round.title }}
+          {% endif %}
+        </a>
+      </li>
+    </ul>
+    {% endfor %}
+  </div>
+{% endif %} {# if current_reports #}
+
 {% if current_applications %}
 <div class="card text-white bg-info border-info mb-3">
   <h5 class="card-header" style="text-transform: uppercase;"><strong>
