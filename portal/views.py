@@ -2244,6 +2244,7 @@ def profile_protection_patterns(request):
             contact_email = models.site_contact_email(site.id)
             if site_id == 1:
                 send_mail(
+                    request=request,
                     recipients=[request.user.full_email_address],
                     subject="Account Approval request submitted",
                     html_message=(
@@ -9511,6 +9512,7 @@ def approve_user(request, user_id=None):
         u.save()
         url = request.build_absolute_uri(reverse("index"))
         send_mail(
+            request=request,
             recipients=[u.full_email_address],
             subject=f"Confirmation of {u.email} Signup",
             html_message="<p>You have been approved by schema administrators, "

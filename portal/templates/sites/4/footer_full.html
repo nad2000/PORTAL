@@ -1,0 +1,187 @@
+{% load static i18n account socialaccount %}
+<!-- Footer -->
+<footer class="mt-auto bg-success text-center text-white" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 10%);">
+  <!-- Grid container -->
+  <div class="container p-4">
+
+    {# {% include 'snippets/social_media.html' %} #}
+
+    <!-- Section: Form -->
+    <section class="">
+      <form action="{% url 'subscription' %}" method="POST" autocomplete="on">
+        {% csrf_token %}
+        <!--Grid row-->
+        <div class="row d-flex justify-content-center">
+          <!--Grid column-->
+          <div class="col-auto">
+            <p class="pt-2">
+            <strong>{% trans 'Sign up for our newsletter' %}</strong>
+            </p>
+          </div>
+          <!--Grid column-->
+
+          <!--Grid column-->
+          <div class="col-md-4">
+            <!-- Email input -->
+            <div class="form-outline form-white mb-4">
+              <input type="email"
+                     required
+                     id="subscription-email"
+                     name="email"
+                     placeholder="{% trans 'Email address' %}"
+                     class="form-control" />
+            </div>
+          </div>
+          <!--Grid column-->
+
+          <!--Grid column-->
+          <div class="col-auto">
+
+            <!-- Submit button -->
+            <button type="submit" class="btn btn-outline-light mb-4">
+              Subscribe
+            </button>
+          </div>
+          <!--Grid column-->
+        </div>
+        <!--Grid row-->
+      </form>
+    </section>
+    <!-- Section: Form -->
+
+    <!-- Section: Text -->
+    <!-- section class="mb-4">
+      <p>
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Sunt
+        distinctio earum repellat quaerat voluptatibus placeat nam,
+        commodi optio pariatur est quia magnam eum harum corrupti dicta,
+        aliquam sequi voluptate quas.
+      </p>
+    </section -->
+    <!-- Section: Text -->
+
+    <!-- Section: Contact Info -->
+    <section class="">
+      <div class="row">
+
+        <div class="footer-col footer-left col-sm-6">
+          <div class="widget text-2 widget_text">
+            <div class="textwidget"><p>The Prime Minister’s Science Prizes is administered by the<br>
+            <strong><a href="http://www.royalsociety.org.nz/">Royal Society Te Apārangi</a>.</strong></p>
+            </div>
+          </div>
+          <div class="widget text-2 widget_text">
+            <div class="textwidget"><p>{% trans 'Contact Us' %}:<br>
+            <strong><a href="https://www.pmscienceprizes.org.nz/contact-us/">https://www.pmscienceprizes.org.nz/contact-us/</a></strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-col footer-right col-sm-6">
+          <div class="widget text-3 widget_text">
+            <div class="textwidget"><strong>The Prime Minister’s Science Prizes Secretariat</strong><br>
+              PO Box 598 |  Wellington 6001<br>
+              Tel: (04) 472 7421<br>
+              <a href="mailto:puanga@royalsociety.org.nz">puanga@royalsociety.org.nz</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section: Links -->
+    <!-- section class="">
+      <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Links</h5>
+
+          <ul class="list-unstyled mb-0">
+            <li>
+              <a href="#!" class="text-white">Link 1</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 2</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 3</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 4</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Links</h5>
+
+          <ul class="list-unstyled mb-0">
+            <li>
+              <a href="#!" class="text-white">Link 1</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 2</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 3</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 4</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Links</h5>
+
+          <ul class="list-unstyled mb-0">
+            <li>
+              <a href="#!" class="text-white">Link 1</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 2</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 3</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 4</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Links</h5>
+
+          <ul class="list-unstyled mb-0">
+            <li>
+              <a href="#!" class="text-white">Link 1</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 2</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 3</a>
+            </li>
+            <li>
+              <a href="#!" class="text-white">Link 4</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section -->
+    <!-- Section: Links -->
+
+  </div> <!-- Grid container -->
+
+  <!-- Copyright -->
+  <div
+    class="text-center p-3"
+    style="background-color: rgba(0, 0, 0, 0.2);"
+   >
+    {% include 'snippets/copyright.html' %}
+  </div>
+  <!-- Copyright -->
+
+</footer>
+<!-- Footer -->

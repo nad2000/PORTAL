@@ -9,6 +9,7 @@ from django.core import mail
 from django.urls import reverse
 from django.db.models import query
 import mimetypes
+from multisite.models import Alias
 
 from .. import models
 
@@ -246,14 +247,14 @@ def send_mail(
 ):
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
+
     if request:
         domain = request.get_host()
     elif site:
         domain = site.domain
-    elif not request and from_email and "@" in from_email:
+    elif from_email and "@" in from_email:
         domain = from_email.split("@")[1]
-    else:
-        domain = request and request.get_host() or site.domain
+
     # if ":" in domain:
     #     domain = domain.split(":")[0]
     if domain and domain.startswith("xn--"):
@@ -261,6 +262,16 @@ def send_mail(
     else:
         utf_domain = domain
     root = f"https://{domain}"
+
+    if domain:
+        if ":" in domain:
+            domain, port  = domain.split(":")
+        else:
+            port = None
+
+        if not site:
+            alias = Alias.objects.resolve(host=domain, port=port)
+            site = alias.site
 
     if not recipients:
         recipients = settings.ADMINS
@@ -282,7 +293,7 @@ def send_mail(
         recipients = [recipients.strip().lower()]
 
     if not from_email or "@" not in from_email:
-        if ":" in domain or "." not in domain:
+        if port or ":" in domain or "." not in domain:
             from_email = f"{site.name} <{from_email or 'noreply'}@{site.domain}>"
         else:
             from_email = f"{site.name} <{from_email or 'noreply'}@{domain}>"
@@ -320,7 +331,7 @@ def send_mail(
         url = request.build_absolute_uri(url)
     else:
         url = f"{urljoin(root, url)}"
-    if ":" in domain or "." not in domain:
+    if port or  ":" in domain or "." not in domain:
         headers = {
             "Message-ID": f"<{token}@{site.domain}>",
             "List-Unsubscribe": f"<{url}>",
