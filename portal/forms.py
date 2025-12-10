@@ -1012,8 +1012,9 @@ class ApplicationForm(ModelForm):
 
         if (
             round.is_applicant_cv_required
-            or site_id == 2 and (not instance.pk or instance.is_pi(user))
-            ):
+            or site_id == 2
+            and (not instance.pk or instance.is_pi(user))
+        ):
 
             cv_templates = [r.file for r in round.curriculum_vitae_templates.all()]
             if cv_templates:
@@ -1033,11 +1034,13 @@ class ApplicationForm(ModelForm):
                 )
 
             self.fields["cv_file"].help_text = help_text
-            self.fields["cv_file"].label = _("PI Curriculum Vitae") if site_id == 2 else _("Curriculum Vitae")
+            self.fields["cv_file"].label = (
+                _("PI Curriculum Vitae") if site_id == 2 else _("Curriculum Vitae")
+            )
             summary_fields.append(
                 Field(
                     "cv_file",
-                    label=self.fields["cv_file"].label
+                    label=self.fields["cv_file"].label,
                     # data_toggle="tooltip",
                     # title=help_text,
                 )
@@ -4310,7 +4313,9 @@ class ReportForm(ModelForm):
 
         is_assessor = instance and user and (instance.assessor == user)
         submission_disabled = not instance or not is_pi
-        is_ro = instance.is_ro(user) # application and application.org.research_offices.filter(user=user).exists()
+        is_ro = instance.is_ro(
+            user
+        )  # application and application.org.research_offices.filter(user=user).exists()
         if is_assessor:
             submit_button = Submit(
                 "assess",
@@ -5468,7 +5473,7 @@ class ChangeRequestForm(ModelForm):
             instance and instance.pk and instance.contract or initial and initial.get("contract")
         )
         org = contract and contract.org
-        is_ro = org and org.research_offices.filter(user=user).exists()
+        is_ro = org.is_ro(user=user)
         if is_ro:
             self.fields.pop("categories", None)
             self.fields.pop("subcategories", None)
@@ -5488,11 +5493,21 @@ class ChangeRequestForm(ModelForm):
         helper = FormHelper(self)
         helper.use_custom_control = True
         if not submission_disabled:
-            helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
+            helper.add_input(
+                Submit(
+                    "save",
+                    (
+                        _("Save Draft")
+                        if not instance or instance.state in ["new", "draft"]
+                        else _("Save")
+                    ),
+                    css_class="btn-secondary",
+                )
+            )
             helper.add_input(
                 Button(
                     "submit",
-                    _("Submit"),
+                    _("Resubmit") if instance.state == "submitted" else _("Submit"),
                     css_class="btn-primary",
                     data_toggle="modal",
                     data_target="#id_resolution_modal",
@@ -5501,32 +5516,46 @@ class ChangeRequestForm(ModelForm):
             )
         else:
             helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
-            helper.add_input(
-                Button(
-                    "resubmit",
-                    _("Resubmit"),
-                    css_class="btn-outline-danger",
-                    data_tooltip="tooltip",
-                    title=_("Request resubmission of the change request"),
-                    data_toggle="modal",
-                    data_target="#id_resolution_modal",
-                    data_action="resubmit",
+            if not is_ro and instance.state in ["draft", "WIP"]:
+                helper.add_input(
+                    Button(
+                        "decline",
+                        _("Decline"),
+                        css_class="btn-outline-danger",
+                        data_tooltip="tooltip",
+                        title=_("Decline the change request"),
+                        data_toggle="modal",
+                        data_target="#id_resolution_modal",
+                        data_action="decline",
+                    )
                 )
-            )
-            helper.add_input(
-                Button(
-                    "approve",
-                    _("Approve"),
-                    css_class="btn-success",
-                    data_tooltip="tooltip",
-                    title=_(
-                        "Approve the change request and convert it to a new contract or a contract variation"
-                    ),
-                    data_toggle="modal",
-                    data_target="#id_resolution_modal",
-                    data_action="approve",
+            if not is_ro and instance.state in ["submitted"]:
+                helper.add_input(
+                    Button(
+                        "resubmit",
+                        _("Request resubmit"),
+                        css_class="btn-outline-danger",
+                        data_tooltip="tooltip",
+                        title=_("Request resubmission of the change request"),
+                        data_toggle="modal",
+                        data_target="#id_resolution_modal",
+                        data_action="resubmit",
+                    )
                 )
-            )
+                helper.add_input(
+                    Button(
+                        "approve",
+                        _("Approve"),
+                        css_class="btn-success",
+                        data_tooltip="tooltip",
+                        title=_(
+                            "Approve the change request and convert it to a new contract or a contract variation"
+                        ),
+                        data_toggle="modal",
+                        data_target="#id_resolution_modal",
+                        data_action="approve",
+                    )
+                )
         helper.add_input(
             Button(
                 "close",

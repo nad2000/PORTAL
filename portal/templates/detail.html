@@ -130,7 +130,7 @@
             <td>
               {% if not value and value != 0 %}
                 {% trans 'N/A' %}
-              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description"  or field.name == "description" %}
+              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description"  or field.name == "reply" %}
                 {{ value|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>

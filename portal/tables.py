@@ -913,11 +913,20 @@ class ContractTable(Table):
 
 
 class ChangeRequestTable(Table):
+
     state = StateColumn(gettext_lazy("Status"))
+    updated_at = tables.Column(
+        accessor="updated_at",
+        order_by="updated_at",
+        verbose_name=gettext_lazy("Change Date"),
+        linkify=lambda value, record: reverse("change-request", kwargs=dict(pk=record.pk)),
+        # attrs={"a": {"target": "_blank"}}
+    )
     number = tables.Column(
         # accessor="pk",
         # verbose_name=gettext_lazy("ID"),
         linkify=lambda value, record: reverse("change-request", kwargs=dict(pk=record.pk)),
+        # attrs={"a": {"target": "_blank"}}
         # order_by="pk",
     )
     contract = tables.Column(
@@ -927,6 +936,7 @@ class ChangeRequestTable(Table):
         linkify=lambda value, record: reverse(
             "contract-detail", kwargs=dict(number=record.contract.number)
         ),
+        # attrs={"a": {"target": "_blank"}},
         order_by="contract__number",
     )
     pi = tables.Column(
@@ -944,6 +954,12 @@ class ChangeRequestTable(Table):
         order_by="contract__project_title",
     )
 
+    def render_updated_at(self, record, value):
+        if value:
+            # return (value or record.state_changed_at).strftime("%Y-%m-d")
+            return value.strftime("%Y-%m-%d")
+        return _("N/A")
+
     def render_description(self, record, value):
         if not value:
             return "N/A"
@@ -951,7 +967,7 @@ class ChangeRequestTable(Table):
 
     class Meta:
         model = models.ChangeRequest
-        fields = ("state", "number", "contract", "pi")
+        fields = ("state",  "updated_at", "number", "contract", "pi")
 
 
 # class ReportTable(tables.Table):

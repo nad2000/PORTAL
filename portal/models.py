@@ -1,6 +1,7 @@
 import base64
 import email
 import hashlib
+import inspect
 import io
 import logging
 import os
@@ -113,7 +114,6 @@ from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
 
 from common.models import (
-    archive_storage,
     Base,
     EmailField,
     FixedCharField,
@@ -122,6 +122,7 @@ from common.models import (
     PersonMixin,
     TimeStampMixin,
     Title,
+    archive_storage,
     domain_to_macrons,
 )
 
@@ -315,16 +316,23 @@ def fsm_log(func=None, allow_inline=False):
             request = getattr(context, "request", None)
         if not by and request and (u := request.user):
             kwargs["by"] = by = u
+        action = kwargs.get("action") or request and request.POST.get("action") or func.__name__
         with FSMLogDescriptor(instance, "by", by):
             with FSMLogDescriptor(instance, "description") as descriptor:
                 description = (
                     kwargs.get("description")
                     or (
                         request
-                        and (request.POST.get("description") or request.POST.get("resolution"))
+                        and request.POST.get("resolution")
                     )
-                    or descriptor
                 )
+                meta = func._django_fsm
+                method_name = func.__name__
+                current_state = instance.state
+                next_state = meta.next_state(current_state)
+                if not description:
+                    description = f"{by} {next_state} {instance} (from '{current_state}' state)"
+
                 if description:
                     if isinstance(description, str):
                         description = description.strip()
@@ -336,8 +344,15 @@ def fsm_log(func=None, allow_inline=False):
                     if allow_inline:
                         kwargs["description"] = descriptor
 
+                if by and "by" not in kwargs:
+                    kwargs["by"] = by
+
+                if action and "action" not in kwargs:
+                    kwargs["action"] = action
+
                 if description and not getattr(instance, "_change_reason", None):
                     instance._change_reason = description
+
                 return func(instance, *args, **kwargs)
 
     return wrapped
@@ -13985,7 +14000,6 @@ class ChangeRequestMixin:
     )
 
 
-# TODO: add history
 class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
     tags = TaggableManager(blank=True)
@@ -14186,6 +14200,87 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         self.number = f"{contract.number}:{v:1d}"
         return self.number
 
+    def notify(request=None, by=None, description=None, action=None, *args, **kwargs):
+        org = self.contract.org
+        u = by or request and request.user
+        is_ro = org.is_ro(user=u)
+
+        if action in [
+            "accept",
+            "approve",
+            "cancel",
+            "reject",
+            "request_resubmission",
+            "resubmit",
+            "submit",
+        ]:
+
+            if is_ro:
+                fund = self.contract.fund
+                recipients = (
+                    [fund.email] if fund and fund.email else self.contract.site.staff_users.all()
+                )
+            else:
+                recipients = (
+                    [self.submitted_by] if self.submitted_by else self.contract.application.ro_recipients
+                )
+            url = reverse("change-request-update", args=[self.pk])
+            url = request.build_absolute_uri(url)
+            contract_url = request.build_absolute_uri(reverse("contract", args=[self.contract.pk]))
+            if action == "submit" and not (self.state == "submitted" and u.is_admin):
+                subject = f"Change Request {self.number} submitted by {u}"
+            elif action in ["request_resubmission", "resubmit", "reject", "cancel"] or (
+                self.state == "submitted" and u.is_admin
+            ):
+                subject = f"Change Request {self.number} required resubmission"
+            elif action == "approved":
+                subject = f"Change Request {self.number} approved by {u}"
+            else:
+                subject = f"Change Request {self.number} updated by {u}"
+
+            if action == "submit" and not (self.state == "submitted" and u.is_admin):
+                html_body = (
+                    "<p>Tēnā koe,</p>"
+                    f'<p>{u} has submitted a change request <a href="{url}">{self.number}</a> '
+                    f'of the contract <a href="{contract_url}">{self.contract}</a></p>'
+                    "<p>Please review the change request.</p>"
+                )
+            else:
+                html_body = (
+                    "<p>Tēnā koe,</p>"
+                    f'<p>{u} has update the change request <a href="{url}">{self.number}</a> '
+                    f'of the contract <a href="{contract_url}">{self.contract}</a></p>'
+                    "<p>Please review the changes and update the request.</p>"
+                )
+
+            cc=(
+                self.contract.application.ro_recipients
+                if not is_ro
+                and self.submitte_by
+                and self.contract.application.round.notify_ro_on_application_submission
+                else None
+            )
+            send_mail(
+                subject,
+                html_message=html_body,
+                recipients=recipients,
+                cc=cc,
+                fail_silently=False,
+                from_email="variations",
+                request=request,
+                # reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
+                thread_index=self.contract.thread_index,
+                thread_topic=self.contract.thread_topic,
+            )
+
+            emails = [getattr(r, "email", r) or str(r) for r in recipients]
+            if request:
+                msg = f"Notification of change request {self.number} sent to {', '.join(emails)}."
+                if cc:
+                    emails = [getattr(r, "email", r) or str(r) for r in recipients]
+                    msg = f"{msg} (CC: {', '.join(emails)}))"
+                messages.success(request, msg)
+
     @fsm_log
     @transition(
         field=state,
@@ -14213,17 +14308,26 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["new", "draft"],
+        source=["new", "draft", "submitted"],
         target="submitted",
         custom=dict(verbose="Submit", button_name="Submit for review", admin=False),
         permission=lambda instance, user: instance.is_ro(user),
     )
-    def submit(self, *args, **kwargs):
+    def submit(self, by=None, *args, **kwargs):
         if not self.submitted_by:
-            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
-            if not (by.is_superuser or by.is_site_staff):
-                self.submitted_by = by
-        pass
+            self.submitted_by = by
+        self.notify(by=by, *args, **kwargs)
+
+    @fsm_log
+    @transition(
+        field=state,
+        source=["submitted"],
+        target="draft",
+        custom=dict(verbose="Request resubmit", button_name="Resubmit"),
+        permission=lambda instance, user: user.is_admin,
+    )
+    def request_resubmit(self, *args, **kwargs):
+        self.notify(*args, **kwargs)
 
     @fsm_log
     @transition(
@@ -14245,6 +14349,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 messages.info(
                     request, f"The contract variation and/or transfer record {d} was deleted."
                 )
+        self.notify(*args, **kwargs)
 
     def create_new_contract(self, request=None, by=None, description=None, *args, **kwargs):
         is_variation = not self.types.filter(code="TR").exists()
@@ -14288,6 +14393,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         if not self.derivative.source:
             self.derivative.source = self.contract
             self.derivative.save()
+        self.notify(request=request, by=by, description=description, *args, **kwargs)
 
     @fsm_log
     @transition(
@@ -14308,6 +14414,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 if request:
                     messages.error(request, f"Failed to approve the change request: {e}")
                 capture_message(e)
+        self.notify(request=request, by=by, description=description, *args, **kwargs)
 
     # @fsm_log
     # @transition(

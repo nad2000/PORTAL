@@ -2313,7 +2313,7 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
 class SelfAssignMixin:
 
     def put(self, request, *args, **kwargs):
-        url = request.META.get("HTTP_REFERER", "") or requst.path
+        url = request.META.get("HTTP_REFERER", "") or request.path
         if (action := request.GET.get("action")) == "assign-self":
             obj = self.get_object()
             u = request.user
@@ -12930,8 +12930,8 @@ class ChangeRequestViewMixin:
 
     def form_valid(self, form):
 
-        # u = models.User.get(self.request.user.pk)
         u = self.request.user
+        request = self.request
         contract = self.object and self.object.contract or self.contract
         org = contract and contract.org
         is_ro = org and org.is_ro(user=u) or not u.is_admin
@@ -12949,92 +12949,107 @@ class ChangeRequestViewMixin:
                 if action := form.data.get("action"):
                     action = action.lower()
                     if action == "submit":
-                        i.submit(user=u, request=self.request)
+                        if i.state == "submitted" and u.is_admin:
+                            i.request_resubmit(by=u, request=request)
+                        else:
+                            i.submit(user=u, by=u, request=request)
                     elif action == "approve":
-                        i.approve(user=u, request=self.request)
+                        i.approve(by=u, request=request)
                     elif action == "accept":
-                        i.accept(user=u, request=self.request)
+                        i.accept(by=u, request=request)
                     elif action == "reject":
-                        i.reject(user=u, request=self.request)
+                        i.reject(by=u, request=request)
                     elif action == "cancel":
-                        i.cancel(user=u, request=self.request)
+                        i.cancel(by=u, request=request)
                     elif action in ["request_resubmission", "resubmit"]:
-                        i.save_draft(user=u, request=self.request)
+                        i.request_resubmit(by=u, request=request)
                     i.save()
 
-                if action in [
-                    "accept",
-                    "approve",
-                    "cancel",
-                    "reject",
-                    "request_resubmission",
-                    "resubmit",
-                    "submit",
-                ]:
-                    if not org:
-                        org = i.contract.org
-                        is_ro = org.is_ro(user=u)
-                    if is_ro:
-                        fund = i.contract.fund
-                        recipients = (
-                            [fund.email]
-                            if fund and fund.email
-                            else i.contract.site.staff_users.all()
-                        )
-                    else:
-                        recipients = (
-                            [i.submitted_by]
-                            if i.submitted_by
-                            else [ro.user for ro in i.contract.org.research_offices.all()]
-                        )
-                    url = reverse("change-request-update", args=[i.pk])
-                    url = self.request.build_absolute_uri(url)
-                    contract_url = self.request.build_absolute_uri(
-                        reverse("contract", args=[i.contract.pk])
-                    )
-                    if action == "submit":
-                        subject = f"Change Request {i.number} submitted by {u}"
-                    elif action in ["request_resubmission", "resubmit", "reject", "cancel"]:
-                        subject = f"Change Request {i.number} required resubmission"
-                    elif action == "approved":
-                        subject = f"Change Request {i.number} approved by {u}"
-                    else:
-                        subject = f"Change Request {i.number} updated by {u}"
+                #############################################
+                # if action in [
+                #     "accept",
+                #     "approve",
+                #     "cancel",
+                #     "reject",
+                #     "request_resubmission",
+                #     "resubmit",
+                #     "submit",
+                # ]:
+                #     if not org:
+                #         org = i.contract.org
+                #         is_ro = org.is_ro(user=u)
 
-                    if action == "submit":
-                        html_body = (
-                            "<p>Tēnā koe,</p>"
-                            f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
-                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
-                            "<p>Please review the change request.</p>"
-                        )
-                    else:
-                        html_body = (
-                            "<p>Tēnā koe,</p>"
-                            f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
-                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
-                            "<p>Please review the changes and update the request.</p>"
-                        )
+                #     if is_ro:
+                #         fund = i.contract.fund
+                #         recipients = (
+                #             [fund.email]
+                #             if fund and fund.email
+                #             else i.contract.site.staff_users.all()
+                #         )
+                #     else:
+                #         recipients = (
+                #             [i.submitted_by]
+                #             if i.submitted_by
+                #             else i.contract.application.ro_recipients
+                #         )
+                #     url = reverse("change-request-update", args=[i.pk])
+                #     url = request.build_absolute_uri(url)
+                #     contract_url = request.build_absolute_uri(
+                #         reverse("contract", args=[i.contract.pk])
+                #     )
+                #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
+                #         subject = f"Change Request {i.number} submitted by {u}"
+                #     elif action in ["request_resubmission", "resubmit", "reject", "cancel"] or (
+                #         i.state == "submitted" and u.is_admin
+                #     ):
+                #         subject = f"Change Request {i.number} required resubmission"
+                #     elif action == "approved":
+                #         subject = f"Change Request {i.number} approved by {u}"
+                #     else:
+                #         subject = f"Change Request {i.number} updated by {u}"
 
-                    send_mail(
-                        subject,
-                        html_message=html_body,
-                        recipients=recipients,
-                        fail_silently=False,
-                        from_email="contracts",
-                        request=self.request,
-                        reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
-                        thread_index=i.contract.thread_index,
-                        thread_topic=i.contract.thread_topic,
-                    )
+                #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
+                #         html_body = (
+                #             "<p>Tēnā koe,</p>"
+                #             f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
+                #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                #             "<p>Please review the change request.</p>"
+                #         )
+                #     else:
+                #         html_body = (
+                #             "<p>Tēnā koe,</p>"
+                #             f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
+                #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                #             "<p>Please review the changes and update the request.</p>"
+                #         )
 
-                    emails = [getattr(r, "email", r) or str(r) for r in recipients]
-                    messages.success(
-                        self.request,
-                        f"Notification of change request {i.number} sent to {', '.join(emails)}.",
-                    )
+                #     send_mail(
+                #         subject,
+                #         html_message=html_body,
+                #         recipients=recipients,
+                #         cc=(
+                #             i.contract.application.ro_recipients
+                #             if not is_ro
+                #             and i.submitte_by
+                #             and i.contract.application.round.notify_ro_on_application_submission
+                #             else None
+                #         ),
+                #         fail_silently=False,
+                #         from_email="contracts",
+                #         request=request,
+                #         reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
+                #         thread_index=i.contract.thread_index,
+                #         thread_topic=i.contract.thread_topic,
+                #     )
 
-                    reset_cache(self.request)
+                #     emails = [getattr(r, "email", r) or str(r) for r in recipients]
+                #     messages.success(
+                #         request,
+                #         f"Notification of change request {i.number} sent to {', '.join(emails)}.",
+                #     )
+                    #########
+
+                    reset_cache(request)
                     if action == "accept":
                         return redirect(reverse("contract-update", args=[i.derivative.pk]))
 
