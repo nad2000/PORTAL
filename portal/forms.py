@@ -4310,13 +4310,22 @@ class ReportForm(ModelForm):
 
         is_assessor = instance and user and (instance.assessor == user)
         submission_disabled = not instance or not is_pi
-        is_ro = application and application.org.research_offices.filter(user=user).exists()
+        is_ro = instance.is_ro(user) # application and application.org.research_offices.filter(user=user).exists()
         if is_assessor:
             submit_button = Submit(
                 "assess",
                 _("Assess"),
                 css_id="submit-id-submit",
                 css_class="btn-outline-primary",
+            )
+        elif is_ro and instance.state in ["submitted"]:
+            submit_button = Submit(
+                "approve",
+                _("Approve"),
+                css_id="submit-id-submit",
+                css_class="btn-outline-primary",
+                data_toggle="tooltip",
+                title=_("Approve the submitted report"),
             )
         else:
             submit_button = Submit(

@@ -848,7 +848,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             if hasattr(transition, "custom") and (
                 name := transition.custom.get("verbose") or transition.custom.get("button_name")
             ):
-                return (f"{name} {obj}" "PI",)
+                return f"{name} {obj}"
             else:
                 # Make the function name the button title, but prettier
                 return "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
@@ -3220,9 +3220,11 @@ class ReportViewMixin:
                 if "submit_report" in form.data:
                     i.submit(request=self.request)
                     i.save()
-
-                if "assess" in form.data:
+                elif "assess" in form.data:
                     i.assess(request=self.request)
+                    i.save()
+                elif "approve" in form.data:
+                    i.approve(request=self.request)
                     i.save()
 
         except Exception as ex:
