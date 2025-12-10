@@ -848,7 +848,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             if hasattr(transition, "custom") and (
                 name := transition.custom.get("verbose") or transition.custom.get("button_name")
             ):
-                return f"{name} {obj}"
+                return (f"{name} {obj}" "PI",)
             else:
                 # Make the function name the button title, but prettier
                 return "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
@@ -1668,7 +1668,10 @@ def index(request):
             else:
                 reports = (
                     models.Report.where(
-                        Q(contract__members__user=user, contract__members__role_id__in=["PC", "PI"])
+                        Q(
+                            contract__members__user=user,
+                            contract__members__role_id__in=["PC", "PI"],
+                        )
                         | Q(efforts__person__user=user, efforts__role_id__in=["PC", "PI"]),
                         state__in=["new", "draft"],
                         contract__state__in=["current", "CUR"],
@@ -2343,6 +2346,15 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
             return {"pk": int(value)}
         n, p, t = value.split(":")
         return {"period": p, "type": t, "contract__number": n}
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        u = self.request.user
+        o = self.object
+        context["is_ro"] = o.is_ro(u)
+        context["can_edit"] = o.can_edit(u)
+        context["is_admin"] = u.is_admin
+        return context
 
     # def get(self, request, *args, **kwargs):
     #     return super().get(request, *args, **kwargs)
@@ -3535,11 +3547,25 @@ class ReportCreate(NotesMixin, ReportViewMixin, CreateWithInlinesView):
 
 
 class ReportUpdate(
-    LoginRequiredMixin, NotesMixin, SelfAssignMixin, ReportViewMixin, UpdateWithInlinesView
+    LoginRequiredMixin,
+    NotesMixin,
+    SelfAssignMixin,
+    ReportViewMixin,
+    UserPassesTestMixin,
+    UpdateWithInlinesView,
 ):
 
     model = models.Report
     form_class = forms.ReportForm
+    permission_denied_message = _("Only the round panellist and staff can export the application")
+
+    def get_permission_denied_message(self):
+        o = self.get_object()
+        return f"You have not permission to edit {o}"
+
+    def test_func(self):
+        u = self.request.user
+        return u.is_admin or (o := self.get_object()) and o.can_edit(u)
 
     # def get_context_data(self, *args, **kwargs):
     #     context = super().get_context_data(*args, **kwargs)
@@ -7411,9 +7437,7 @@ class ContractViewMixin:
         if not i.fund:
             i.fund = models.Fund.last()
         try:
-            is_ro = org.is_ro(user=u) and not (
-                u.is_superuser or u.is_site_staff
-            )
+            is_ro = org.is_ro(user=u) and not (u.is_superuser or u.is_site_staff)
             with transaction.atomic():
                 action = self.request.POST.get("action", None)
                 address_form = self.get_address_form()

@@ -73,6 +73,9 @@
          {% if object.state == "submitted" and not is_ro %}
            disabled
            data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
+         {% elif is_ro and not object.is_wip or ir_ro and object.state != "submitted" %}
+           disabled
+           title="{% blocktrans with object=object %}You cannot alter {{ object }} after it was approved.{% endblocktrans %}"
          {% elif object.state == "accepted" %}
            disabled
              {% if SITE_ID == 1 %}
@@ -87,8 +90,11 @@
            data-title="{% trans 'Update the entry and re-submit.' %}"
        {% endif %}{% endif %}
          >
-         <a class="btn btn-primary{% if not can_edit %}{% if object.state == "submitted" and not is_ro or object.state == "accepted" or reviewing_disabled %} disabled{% endif %}{% endif %}"
-            href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
+         <a class="btn btn-primary{% if not can_edit %}{% if object.state == "submitted" and not is_ro or not object.is_wip or reviewing_disabled %} disabled{% endif %}{% endif %}"
+            id="id_update_button"
+            href="{% url update_view_name pk=object.pk %}">
+            {% trans update_button_name %}
+         </a>
     </div>
   {% endif %}
 

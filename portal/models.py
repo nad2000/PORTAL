@@ -12992,6 +12992,15 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         "Publication", blank=True, db_table="report_publication", related_name="reports"
     )
 
+    @cache
+    def can_edit(self, user):
+        return (
+            self.is_ro(user)
+            and self.state in ["new", "draft", "WIP", "submitted"]
+            or user.is_admin
+            or self.state in ["new", "draft", "WIP"]
+        )
+
     @property
     def number(self):
         return f"{self.contract.number}:{self.period}:{self.type}"
