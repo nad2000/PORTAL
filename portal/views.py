@@ -3224,7 +3224,12 @@ class ReportViewMixin:
                     i.assess(request=self.request)
                     i.save()
                 elif "approve" in form.data:
-                    i.approve(request=self.request)
+                    description = (
+                        self.request.POST.get("description")
+                        or self.request.POST.get("resolution")
+                        or f"{u} approved report {i}"
+                    )
+                    i.approve(request=self.request, description=description)
                     i.save()
 
         except Exception as ex:

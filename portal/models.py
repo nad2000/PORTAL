@@ -12992,7 +12992,6 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         "Publication", blank=True, db_table="report_publication", related_name="reports"
     )
 
-    @cache
     def can_edit(self, user):
         return (
             self.is_ro(user)
