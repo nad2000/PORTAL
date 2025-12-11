@@ -338,7 +338,7 @@ def impersonate(request, username):
             request, _(f"A user matching the entered parameter '{username}' does not exist!")
         )
     elif request.user.pk != u.pk:
-        resp.set_cookie("original_user_id", request.user.pk, max_age=36000, secure=True)
+        resp.set_cookie("previous_user_id", request.user.pk, max_age=36000, secure=True)
         log_rec = models.Impersonation.create(user=request.user, impersonated=u)
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
         messages.info(request, _(f"The 'impersonation' recoded at {log_rec.impersonated_at}."))
@@ -348,12 +348,15 @@ def impersonate(request, username):
 @login_required
 def switch_back(request):
     resp = redirect(request.META.get("HTTP_REFERER") or "start")
-    if pk := request.COOKIES.get("original_user_id"):
-        del request.COOKIES["original_user_id"]
-        resp.delete_cookie("original_user_id")
+    if pk := request.COOKIES.get("previous_user_id"):
+        # del request.COOKIES["previous_user_id"]
+        # resp.delete_cookie("previous_user_id")
         u = User.get(pk=pk)
         if request.user.pk != u.pk:
+            resp.set_cookie("previous_user_id", request.user.pk, max_age=36000, secure=True)
             login(request, u, backend="django.contrib.auth.backends.ModelBackend")
+            log_rec = models.Impersonation.create(user=request.user, impersonated=u)
+            messages.info(request, _(f"You switched back to {u}. The 'impersonation' recoded at {log_rec.impersonated_at}."))
     return resp
 
 
@@ -427,6 +430,8 @@ def shoud_be_onboarded(function):
 @login_required
 def logout(request):
     account_logout = reverse("account_logout")
+    del request.COOKIES["previous_user_id"]
+    resp.delete_cookie("previous_user_id")
 
     if request.user.has_rapidconnect_account:
         return_url = request.build_absolute_uri(account_logout)
@@ -6942,16 +6947,17 @@ class ContractDetail(FavoriteMixin, DetailView):
         if u.is_admin or (
             o
             and (org := o.org or o.application.org)
-            and org.research_offices.filter(user=u).exists()
+            and org.is_ro(user=u)
         ):
             context["can_edit"] = True
-            if o.is_current and not (
-                cr := models.ChangeRequest.where(
-                    ~Q(state__in=["accepted", "acknowledged"]), contract=o
-                ).order_by("-pk")
+            if (
+                o.is_current
+                and not o.change_requests.filter(
+                    state__in=["draft", "submitted", "acknowledged", "accepted"]
+                ).exists()
             ):
                 change_request_form = forms.ChangeRequestForm(
-                    initial={"contract": o},
+                    initial={"contract": o, "submitted_by": u},
                 )
                 change_request_form.fields.pop("categories")
                 change_request_form.fields.pop("subcategories")
@@ -12961,92 +12967,92 @@ class ChangeRequestViewMixin:
                         i.reject(by=u, request=request)
                     elif action == "cancel":
                         i.cancel(by=u, request=request)
-                    elif action in ["request_resubmission", "resubmit"]:
+                    elif action in ["request_resubmit", "request_resubmission", "resubmit"]:
                         i.request_resubmit(by=u, request=request)
                     i.save()
 
-                #############################################
-                # if action in [
-                #     "accept",
-                #     "approve",
-                #     "cancel",
-                #     "reject",
-                #     "request_resubmission",
-                #     "resubmit",
-                #     "submit",
-                # ]:
-                #     if not org:
-                #         org = i.contract.org
-                #         is_ro = org.is_ro(user=u)
+                    #############################################
+                    # if action in [
+                    #     "accept",
+                    #     "approve",
+                    #     "cancel",
+                    #     "reject",
+                    #     "request_resubmission",
+                    #     "resubmit",
+                    #     "submit",
+                    # ]:
+                    #     if not org:
+                    #         org = i.contract.org
+                    #         is_ro = org.is_ro(user=u)
 
-                #     if is_ro:
-                #         fund = i.contract.fund
-                #         recipients = (
-                #             [fund.email]
-                #             if fund and fund.email
-                #             else i.contract.site.staff_users.all()
-                #         )
-                #     else:
-                #         recipients = (
-                #             [i.submitted_by]
-                #             if i.submitted_by
-                #             else i.contract.application.ro_recipients
-                #         )
-                #     url = reverse("change-request-update", args=[i.pk])
-                #     url = request.build_absolute_uri(url)
-                #     contract_url = request.build_absolute_uri(
-                #         reverse("contract", args=[i.contract.pk])
-                #     )
-                #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
-                #         subject = f"Change Request {i.number} submitted by {u}"
-                #     elif action in ["request_resubmission", "resubmit", "reject", "cancel"] or (
-                #         i.state == "submitted" and u.is_admin
-                #     ):
-                #         subject = f"Change Request {i.number} required resubmission"
-                #     elif action == "approved":
-                #         subject = f"Change Request {i.number} approved by {u}"
-                #     else:
-                #         subject = f"Change Request {i.number} updated by {u}"
+                    #     if is_ro:
+                    #         fund = i.contract.fund
+                    #         recipients = (
+                    #             [fund.email]
+                    #             if fund and fund.email
+                    #             else i.contract.site.staff_users.all()
+                    #         )
+                    #     else:
+                    #         recipients = (
+                    #             [i.submitted_by]
+                    #             if i.submitted_by
+                    #             else i.contract.application.ro_recipients
+                    #         )
+                    #     url = reverse("change-request-update", args=[i.pk])
+                    #     url = request.build_absolute_uri(url)
+                    #     contract_url = request.build_absolute_uri(
+                    #         reverse("contract", args=[i.contract.pk])
+                    #     )
+                    #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
+                    #         subject = f"Change Request {i.number} submitted by {u}"
+                    #     elif action in ["request_resubmission", "resubmit", "reject", "cancel"] or (
+                    #         i.state == "submitted" and u.is_admin
+                    #     ):
+                    #         subject = f"Change Request {i.number} required resubmission"
+                    #     elif action == "approved":
+                    #         subject = f"Change Request {i.number} approved by {u}"
+                    #     else:
+                    #         subject = f"Change Request {i.number} updated by {u}"
 
-                #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
-                #         html_body = (
-                #             "<p>Tēnā koe,</p>"
-                #             f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
-                #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
-                #             "<p>Please review the change request.</p>"
-                #         )
-                #     else:
-                #         html_body = (
-                #             "<p>Tēnā koe,</p>"
-                #             f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
-                #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
-                #             "<p>Please review the changes and update the request.</p>"
-                #         )
+                    #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
+                    #         html_body = (
+                    #             "<p>Tēnā koe,</p>"
+                    #             f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
+                    #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                    #             "<p>Please review the change request.</p>"
+                    #         )
+                    #     else:
+                    #         html_body = (
+                    #             "<p>Tēnā koe,</p>"
+                    #             f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
+                    #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                    #             "<p>Please review the changes and update the request.</p>"
+                    #         )
 
-                #     send_mail(
-                #         subject,
-                #         html_message=html_body,
-                #         recipients=recipients,
-                #         cc=(
-                #             i.contract.application.ro_recipients
-                #             if not is_ro
-                #             and i.submitte_by
-                #             and i.contract.application.round.notify_ro_on_application_submission
-                #             else None
-                #         ),
-                #         fail_silently=False,
-                #         from_email="contracts",
-                #         request=request,
-                #         reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
-                #         thread_index=i.contract.thread_index,
-                #         thread_topic=i.contract.thread_topic,
-                #     )
+                    #     send_mail(
+                    #         subject,
+                    #         html_message=html_body,
+                    #         recipients=recipients,
+                    #         cc=(
+                    #             i.contract.application.ro_recipients
+                    #             if not is_ro
+                    #             and i.submitte_by
+                    #             and i.contract.application.round.notify_ro_on_application_submission
+                    #             else None
+                    #         ),
+                    #         fail_silently=False,
+                    #         from_email="contracts",
+                    #         request=request,
+                    #         reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
+                    #         thread_index=i.contract.thread_index,
+                    #         thread_topic=i.contract.thread_topic,
+                    #     )
 
-                #     emails = [getattr(r, "email", r) or str(r) for r in recipients]
-                #     messages.success(
-                #         request,
-                #         f"Notification of change request {i.number} sent to {', '.join(emails)}.",
-                #     )
+                    #     emails = [getattr(r, "email", r) or str(r) for r in recipients]
+                    #     messages.success(
+                    #         request,
+                    #         f"Notification of change request {i.number} sent to {', '.join(emails)}.",
+                    #     )
                     #########
 
                     reset_cache(request)
@@ -13065,6 +13071,7 @@ class ChangeRequestCreateView(ChangeRequestViewMixin, CreateView):
     def get_initial(self):
         initial = super().get_initial()
         initial["contract"] = self.contract
+        initial["submitted_by"] = self.request.user
         return initial
 
 

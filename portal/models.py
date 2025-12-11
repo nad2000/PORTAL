@@ -317,6 +317,7 @@ def fsm_log(func=None, allow_inline=False):
         if not by and request and (u := request.user):
             kwargs["by"] = by = u
         action = kwargs.get("action") or request and request.POST.get("action") or func.__name__
+        action = action.lower()
         with FSMLogDescriptor(instance, "by", by):
             with FSMLogDescriptor(instance, "description") as descriptor:
                 description = (
@@ -13987,16 +13988,16 @@ class ChangeCategory(Model):
 
 class ChangeRequestMixin:
     STATES = Choices(
-        ("accepted", _("Under Review")),
+        ("draft", _("WIP")),
         ("acknowledged", _("Acknowledged")),
-        ("approved", _("Approved")),
-        ("archived", _("Archived")),
         ("cancelled", _("Cancelled")),
         ("declined", _("Declined")),
-        ("draft", _("WIP")),
         ("submitted", _("Received")),
+        ("accepted", _("Under Review")),
+        ("approved", _("Approved")),
         # ("submitted", _("Submitted")),
         ("withdrawn", _("Withdrawn")),
+        ("archived", _("Archived")),
     )
 
 
@@ -14031,7 +14032,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     contract = ForeignKey(Contract, on_delete=CASCADE, related_name="change_requests")
     derivative = OneToOneField(
         Contract,
-        on_delete=CASCADE,
+        on_delete=SET_NULL,
         null=True,
         blank=True,
         related_name="originated_by",
@@ -14047,9 +14048,9 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
     )
     submitted_by = ForeignKey(
         User,
-        null=True,
-        blank=True,
-        on_delete=SET_NULL,
+        # null=True,
+        # blank=True,
+        on_delete=CASCADE,
         related_name="change_requests",
     )
     description = TextField(null=True, blank=True)
@@ -14200,7 +14201,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         self.number = f"{contract.number}:{v:1d}"
         return self.number
 
-    def notify(request=None, by=None, description=None, action=None, *args, **kwargs):
+    def notify(self, request=None, by=None, description=None, action=None, *args, **kwargs):
         org = self.contract.org
         u = by or request and request.user
         is_ro = org.is_ro(user=u)
@@ -14211,8 +14212,10 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             "cancel",
             "reject",
             "request_resubmission",
+            "request_resubmit",
             "resubmit",
             "submit",
+            "withdraw",
         ]:
 
             if is_ro:
@@ -14229,12 +14232,14 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             contract_url = request.build_absolute_uri(reverse("contract", args=[self.contract.pk]))
             if action == "submit" and not (self.state == "submitted" and u.is_admin):
                 subject = f"Change Request {self.number} submitted by {u}"
-            elif action in ["request_resubmission", "resubmit", "reject", "cancel"] or (
+            elif action in ["request_resubmission", "request_resubmit", "resubmit", "reject", "cancel"] or (
                 self.state == "submitted" and u.is_admin
             ):
                 subject = f"Change Request {self.number} required resubmission"
             elif action == "approved":
                 subject = f"Change Request {self.number} approved by {u}"
+            elif action == "withdraw":
+                subject = f"Change Request {self.number} withdrawn by {u}"
             else:
                 subject = f"Change Request {self.number} updated by {u}"
 
@@ -14256,10 +14261,12 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             cc=(
                 self.contract.application.ro_recipients
                 if not is_ro
-                and self.submitte_by
-                and self.contract.application.round.notify_ro_on_application_submission
+                and self.submitted_by
+                and self.contract.org.notify_ro_on_application_submission
                 else None
             )
+            if cc and self.submitted_by:
+                cc = [r for r in cc if r != self.submitted_by and r != self.submitted_by.email] or None
             send_mail(
                 subject,
                 html_message=html_body,
@@ -14277,8 +14284,8 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             if request:
                 msg = f"Notification of change request {self.number} sent to {', '.join(emails)}."
                 if cc:
-                    emails = [getattr(r, "email", r) or str(r) for r in recipients]
-                    msg = f"{msg} (CC: {', '.join(emails)}))"
+                    emails = [getattr(r, "email", r) or str(r) for r in cc]
+                    msg = f"{msg} (CC: {', '.join(emails)})"
                 messages.success(request, msg)
 
     @fsm_log
@@ -14288,9 +14295,8 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         target="draft",
         custom=dict(verbose="Save Draft", button_name="Save Draft", admin=False),
     )
-    def save_draft(self, *args, **kwargs):
-        if not self.submitted_by:
-            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
+    def save_draft(self, by=None, *args, **kwargs):
+        if not self.submitted_by and by and not by.is_admin:
             if not (by.is_superuser or by.is_site_staff):
                 self.submitted_by = by
 
@@ -14314,7 +14320,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         permission=lambda instance, user: instance.is_ro(user),
     )
     def submit(self, by=None, *args, **kwargs):
-        if not self.submitted_by:
+        if not self.submitted_by and by and not by.is_admin:
             self.submitted_by = by
         self.notify(by=by, *args, **kwargs)
 
@@ -14323,7 +14329,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         field=state,
         source=["submitted"],
         target="draft",
-        custom=dict(verbose="Request resubmit", button_name="Resubmit"),
+        custom=dict(verbose="Request resubmission", button_name="Request Resubmit"),
         permission=lambda instance, user: user.is_admin,
     )
     def request_resubmit(self, *args, **kwargs):
@@ -14337,19 +14343,17 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         custom=dict(verbose="Withdraw", button_name="Withdraw"),
         permission=lambda instance, user: instance.is_ro(user),
     )
-    def withdraw(self, *args, **kwargs):
+    def withdraw(self, by=None, *args, **kwargs):
         request = kwargs.get("request")
-        if not self.submitted_by:
-            by = kwargs.get("by") or kwargs.get("request") and kwargs["request"].user
-            if not (by.is_superuser or by.is_site_staff):
-                self.submitted_by = by
+        if not self.submitted_by and by and not by.is_admin:
+            self.submitted_by = by
         if d := self.derivative:
             d.delete()
             if request:
                 messages.info(
                     request, f"The contract variation and/or transfer record {d} was deleted."
                 )
-        self.notify(*args, **kwargs)
+        self.notify(by=by, *args, **kwargs)
 
     def create_new_contract(self, request=None, by=None, description=None, *args, **kwargs):
         is_variation = not self.types.filter(code="TR").exists()
