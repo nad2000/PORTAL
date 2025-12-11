@@ -349,14 +349,15 @@ def impersonate(request, username):
 def switch_back(request):
     resp = redirect(request.META.get("HTTP_REFERER") or "start")
     if pk := request.COOKIES.get("previous_user_id"):
-        # del request.COOKIES["previous_user_id"]
-        # resp.delete_cookie("previous_user_id")
         u = User.get(pk=pk)
         if request.user.pk != u.pk:
             resp.set_cookie("previous_user_id", request.user.pk, max_age=36000, secure=True)
             login(request, u, backend="django.contrib.auth.backends.ModelBackend")
             log_rec = models.Impersonation.create(user=request.user, impersonated=u)
             messages.info(request, _(f"You switched back to {u}. The 'impersonation' recoded at {log_rec.impersonated_at}."))
+        else:
+            del request.COOKIES["previous_user_id"]
+            resp.delete_cookie("previous_user_id")
     return resp
 
 
