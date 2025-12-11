@@ -12018,6 +12018,24 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                     else {}
                 ),
             )
+            # copy over FTEs:
+            efforts = list(ContractMemberEffort.where(member__contract=self).all())
+            if efforts:
+                for e in efforts:
+                    e.pk = None
+                    setattr(e, "created_at", timezone.now())
+                    setattr(e, "updated_at", None)
+                    filters = []
+                    if e.member.user_id:
+                        filters.append(Q(user_id=e.member.user_id))
+                    if e.member.role_id:
+                        filters.append(Q(role_id=e.member.role_id))
+                    if e.member.email:
+                        filters.append(Q(email=e.member.email))
+
+                    m = nc.members.filter(*filters).first()
+                    e.member = m
+                ContractMemberEffort.bulk_create( efforts)
 
             return nc
 
