@@ -2350,7 +2350,9 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
     def get_object_filter(self, value):
         if isinstance(value, int) or value.isnumeric():
             return {"pk": int(value)}
-        n, p, t = value.split(":")
+        parts = value.split(":")
+        t, p, *n = parts[::-1]
+        n = ":".join(n[::-1])
         return {"period": p, "type": t, "contract__number": n}
 
     def get_context_data(self, *args, **kwargs):
