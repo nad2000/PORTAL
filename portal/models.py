@@ -320,12 +320,8 @@ def fsm_log(func=None, allow_inline=False):
         action = action.lower()
         with FSMLogDescriptor(instance, "by", by):
             with FSMLogDescriptor(instance, "description") as descriptor:
-                description = (
-                    kwargs.get("description")
-                    or (
-                        request
-                        and request.POST.get("resolution")
-                    )
+                description = kwargs.get("description") or (
+                    request and request.POST.get("resolution")
                 )
                 meta = func._django_fsm
                 method_name = func.__name__
@@ -7372,6 +7368,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     funding_currency = ForeignKey(
         Currency, on_delete=SET_NULL, null=True, blank=True, db_column="currency", default="NZD"
     )
+    final_report_deferral = SmallIntegerField(
+        null=True, blank=True, help_text="Final report deferral in months"
+    )
 
     @cached_property
     def is_applicant_cv_required(self):
@@ -10979,7 +10978,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             period=p,
                             type="A" if p != c.duration else "F",
                             due_date=(c.start_date + relativedelta(years=p)).replace(day=1)
-                            + relativedelta(days=-1),
+                            + (
+                                relativedelta(days=-1, month=r.final_report_deferral)
+                                if p == c.duration and r.final_report_deferral
+                                else relativedelta(days=-1)
+                            ),
                             date_first_remind=(c.start_date + relativedelta(years=p)).replace(
                                 day=1
                             )
@@ -12035,7 +12038,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
                     m = nc.members.filter(*filters).first()
                     e.member = m
-                ContractMemberEffort.bulk_create( efforts)
+                ContractMemberEffort.bulk_create(efforts)
 
             return nc
 
@@ -14243,16 +14246,22 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 )
             else:
                 recipients = (
-                    [self.submitted_by] if self.submitted_by else self.contract.application.ro_recipients
+                    [self.submitted_by]
+                    if self.submitted_by
+                    else self.contract.application.ro_recipients
                 )
             url = reverse("change-request-update", args=[self.pk])
             url = request.build_absolute_uri(url)
             contract_url = request.build_absolute_uri(reverse("contract", args=[self.contract.pk]))
             if action == "submit" and not (self.state == "submitted" and u.is_admin):
                 subject = f"Change Request {self.number} submitted by {u}"
-            elif action in ["request_resubmission", "request_resubmit", "resubmit", "reject", "cancel"] or (
-                self.state == "submitted" and u.is_admin
-            ):
+            elif action in [
+                "request_resubmission",
+                "request_resubmit",
+                "resubmit",
+                "reject",
+                "cancel",
+            ] or (self.state == "submitted" and u.is_admin):
                 subject = f"Change Request {self.number} required resubmission"
             elif action == "approved":
                 subject = f"Change Request {self.number} approved by {u}"
@@ -14276,7 +14285,7 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                     "<p>Please review the changes and update the request.</p>"
                 )
 
-            cc=(
+            cc = (
                 self.contract.application.ro_recipients
                 if not is_ro
                 and self.submitted_by
@@ -14284,7 +14293,9 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
                 else None
             )
             if cc and self.submitted_by:
-                cc = [r for r in cc if r != self.submitted_by and r != self.submitted_by.email] or None
+                cc = [
+                    r for r in cc if r != self.submitted_by and r != self.submitted_by.email
+                ] or None
             send_mail(
                 subject,
                 html_message=html_body,

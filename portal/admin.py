@@ -560,6 +560,7 @@ class PdfFileAdminMixin:
 #         return request.user.is_active and (request.user.is_superuser or request.user.is_site_staff)
 #
 
+
 class HistoryAdmin(SimpleHistoryAdmin):
 
     def view_on_site(self, obj):
@@ -3294,7 +3295,14 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
 class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["code", "name", "for_application", "for_contracting", "is_key_person", "ordering"]
+    list_display = [
+        "code",
+        "name",
+        "for_application",
+        "for_contracting",
+        "is_key_person",
+        "ordering",
+    ]
     list_display_links = ["code", "name"]
     search_fields = ["name_en", "name_mi"]
     # list_editable = ["role", "name_en", "name_mi"]
@@ -3575,6 +3583,19 @@ class RoundAdmin(
                 },
             ),
             (
+                "Reporting Options",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        (
+                            "final_report_deferral"
+                            if site_id in [2, 4, 5]
+                            else ("report_template", "final_report_deferral")
+                        ),
+                    ],
+                },
+            ),
+            (
                 (
                     "Other Templates",
                     {
@@ -3593,7 +3614,6 @@ class RoundAdmin(
                             "nomination_template",
                             "referee_template",
                             "budget_template",
-                            "report_template",
                         ]
                     },
                 )
@@ -4354,15 +4374,19 @@ class ContractAdmin(
 
     @admin.action(description="Link Documents (copy missing documents from the application)")
     def link_documents(self, request, queryset, *args, **kwargs):
-        missing_documents = models.ApplicationDocument.where(
-            application__contracts__in=queryset,
-            required_document__contract_required_documents__isnull=False,
-            required_document__contract_required_documents__documents__isnull=True,
-            application__contracts__isnull=False
-        ).annotate(
-            contract=F("application__contracts"),
-            contract_required_document=F("required_document__contract_required_documents"),
-        ).order_by("contract")
+        missing_documents = (
+            models.ApplicationDocument.where(
+                application__contracts__in=queryset,
+                required_document__contract_required_documents__isnull=False,
+                required_document__contract_required_documents__documents__isnull=True,
+                application__contracts__isnull=False,
+            )
+            .annotate(
+                contract=F("application__contracts"),
+                contract_required_document=F("required_document__contract_required_documents"),
+            )
+            .order_by("contract")
+        )
         documents = [
             models.ContractDocument(
                 contract_id=d.contract,
@@ -4374,7 +4398,8 @@ class ContractAdmin(
                 file=d.file,
                 converted_file=d.converted_file,
                 state="draft",
-            ) for d in missing_documents
+            )
+            for d in missing_documents
         ]
         documents = bulk_create_with_history(
             documents,
@@ -4386,7 +4411,10 @@ class ContractAdmin(
         contracts = set(d.contract for d in documents)
 
         if not len(documents):
-            messages.warning(request, "No documents were linked; make sure the contract required documents are linked to the application required documents.")
+            messages.warning(
+                request,
+                "No documents were linked; make sure the contract required documents are linked to the application required documents.",
+            )
             return
         messages.info(
             request,
@@ -4412,7 +4440,13 @@ class ContractAdmin(
             ),
         )
 
-    actions = [start_reporting, refresh_page_counts, link_documents, archive_objects, revert_object_states]
+    actions = [
+        start_reporting,
+        refresh_page_counts,
+        link_documents,
+        archive_objects,
+        revert_object_states,
+    ]
 
     def get_form(self, request, obj=None, change=False, **kwargs):
         form = super().get_form(request, obj=obj, change=change, **kwargs)
@@ -4496,7 +4530,6 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
                 default_change_reason=f"User {u} assigned themselves...",
                 manager=self.model.objects,
             )
-
 
     list_display = (
         # "number",
