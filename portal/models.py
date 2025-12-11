@@ -10512,7 +10512,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         qs = queryset.model.reporting_schedule.field.model.where(
             Q(contract__in=queryset) if queryset else Q(state__in=["current", "CUR"]),
-            Q(due_date__lte=now) | Q(date_first_remind__lte=now),
+            Q(due_date__lte=(now - relativedelta(month=1))) | Q(date_first_remind__lte=now),
             report__isnull=True,
         )
         for rse in qs:
@@ -10986,7 +10986,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                             date_first_remind=(c.start_date + relativedelta(years=p)).replace(
                                 day=1
                             )
-                            + relativedelta(days=-1, months=-1),
+                            + (
+                                relativedelta(days=-1, months=r.final_report_deferral - 1)
+                                if p == c.duration and r.final_report_deferral
+                                else relativedelta(days=-1, months=-1)
+                            ),
                         )
                         for p in range(1, c.duration + 1)
                     ]
