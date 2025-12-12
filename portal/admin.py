@@ -1894,7 +1894,7 @@ class ApplicationAdmin(
             applications,
             models.Application,
             default_user=u,
-            fields=["state", "state_changed_at"],
+            fields=["state", "state_changed_at", "updated_at"],
             default_change_reason=f"Approved on behalf of R.O. by {u}",
         )
         messages.success(
@@ -1922,7 +1922,7 @@ class ApplicationAdmin(
                 applications,
                 models.Application,
                 default_user=u,
-                fields=["state", "state_changed_at"],
+                fields=["state", "state_changed_at", "updated_at"],
                 default_change_reason=resolution or f"Accepted by {u}",
             )
             messages.success(
@@ -2828,8 +2828,10 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
         if "do_action" in request.POST:
             u = request.user
             deleted = []
+            merged = []
             errors = []
             if target_id := request.POST.get("target"):
+                keep = (request.POST.get("keep") != "0")
                 target = models.Organisation.get(target_id)
                 orgs = list(queryset.filter(~Q(id=target_id)))
                 org_ids = [o.id for o in orgs]
@@ -2837,21 +2839,28 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                 try:
                     with transaction.atomic():
 
-                        org_applications = list(
-                            models.Application.all_objects.filter(
+                        qs = models.Application.all_objects.filter(
                                 ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
                                 Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
                             ).order_by("number")
-                        )
+                        if keep:
+                            qs.filter(round__scheme__current_round=F("round"))
 
-                        nominations = list(models.Nomination.all_objects.filter(org__in=orgs))
+                        org_applications = list(qs)
+
+                        qs = models.Nomination.all_objects.filter(org__in=orgs)
+                        if keep:
+                            qs.filter(round__scheme__current_round=F("round"))
+                        nominations = list(qs)
+
                         for n in nominations:
                             n._change_reason = f"Organisation {n.org} merged into {target} by {u}"
                             n.org = target
+
                         bulk_update_with_history(
                             nominations,
                             models.Nomination,
-                            ["org"],
+                            ["org", "updated_at"],
                             default_user=u,
                             manager=models.Nomination.all_objects,
                         )
@@ -2882,7 +2891,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                             bulk_update_with_history(
                                 org_applications,
                                 models.Application,
-                                ["org", "number"],
+                                ["org", "number", "updated_at"],
                                 default_user=u,
                                 manager=models.Application.all_objects,
                             )
@@ -2938,9 +2947,23 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                         for o in orgs:
                             if not target.alternative_names.filter(name=o.name).exists():
                                 models.OrgName.create(org=target, name=o.name)
-                            o._change_reason = f"Organisation {o} merged into {target} by {u}"
-                            o.delete()
-                        deleted = [f"{o.code}: {o.name}" for o in orgs]
+                        if keep:
+                            for o in orgs:
+                                o.is_active = False
+                                o.replaced_org = target
+                                o._change_reason = f"Organisation {o} merged into {target} by {u}"
+                            bulk_update_with_history(
+                                orgs,
+                                self.model,
+                                ["replaced_org", "is_active", "updated_at"],
+                                default_user=u,
+                            )
+                            merged = [f"{o.code}: {o.name}" for o in orgs]
+                        else:
+                            for o in orgs:
+                                o._change_reason = f"Organisation {o} merged into {target} by {u}"
+                                o.delete()
+                            deleted = [f"{o.code}: {o.name}" for o in orgs]
                 except Exception as ex:
                     capture_exception(ex)
                     errors.append(ex)
@@ -2950,6 +2973,11 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                     request,
                     f'{len(deleted)} organisation(s) merged and deleted: {", ".join(deleted)}',
                 )
+            if merged:
+                messages.success(
+                    request,
+                    f'{len(merged)} organisation(s) merged and marked inactive: {", ".join(merged)}',
+                )
             if errors:
                 for e in errors:
                     messages.error(request, e)
@@ -2957,14 +2985,30 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             return
 
         if target := queryset.filter(is_active=True).first():
+
+            context = {
+                **self.admin_site.each_context(request),
+                "title": "Choose target organisation",
+                "subtitle": None,
+                "object_name": str(self.opts.verbose_name),
+                "object": None,
+                "deleted_objects": queryset,
+                "model_count": queryset.count(),
+                # "perms_lacking": perms_needed,
+                # "protected": protected,
+                "opts": self.opts,
+                "app_label": self.opts.app_label,
+                "preserved_filters": self.get_preserved_filters(request),
+                "is_popup": admin.options.IS_POPUP_VAR in request.POST or admin.options.IS_POPUP_VAR in request.GET,
+                # "to_field": to_field,
+                "objects": queryset,
+                "target": target,
+            }
+
             return render(
                 request,
                 "action_merge_orgs.html",
-                {
-                    "title": "Choose target organisation",
-                    "objects": queryset,
-                    "target": target,
-                },
+                context,
             )
         messages.error(
             request,
