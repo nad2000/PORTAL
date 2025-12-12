@@ -2947,7 +2947,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def is_pi(self, user):
         return (
             self.submitted_by_id == user.pk
-            or self.members.filter(user=user, role_id="PI").exists()
+            or self.members.filter(user=user, role__in=["PC", "CP", "PI"]).exists()
         )
 
     @property
@@ -11225,10 +11225,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         )
 
     def is_pi(self, user):
-        return (
-            self.members.filter(user=user, role_id__in=["PC", "PI"]).exists()
-            or self.application.members.filter(user=user, role_id="PI").exists()
-        )
+        return self.members.filter(
+            user=user, role_id__in=["PC", "CP", "PI"]
+        ).exists() or self.application.is_pi(user=user)
 
     @property
     def host_emails(self):
@@ -12822,10 +12821,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         )
 
     def is_pi(self, user):
-        return (
-            self.contract.is_pi(user)
-            or self.efforts.filter(person__user=user, role_id__in=["PC", "PI"]).exists()
-        )
+        return self.efforts.filter(
+            person__user=user, role_id__in=["PC", "PI", "CP"]
+        ).exists() or self.contract.is_pi(user)
 
     @cached_property
     def agency_recipients(self):

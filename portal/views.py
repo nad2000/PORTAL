@@ -3886,6 +3886,9 @@ class ReportExportView(ExportView):
 
     model = models.Report
     # permission_denied_message = _("Only the round panellist and staff can export the application")
+    def get_attachments(self, pk):
+        o = self.object
+        return [o.pdf_file.path] if o.file else []
 
     def test_func(self):
         u = self.request.user
@@ -3893,40 +3896,39 @@ class ReportExportView(ExportView):
             u.is_superuser
             or u.is_staff
             or u.is_site_staff
-            or (c := self.get_object_or_404())
+            or (o := self.get_object_or_404())
             and (
-                c.members.filter(user=u, role="PI").exists()
-                or c.org.research_offices.filter(user=u).exists()
+                o.is_pi(user=u) or o.is_ro(user=u)
             )
         )
 
-    def get(self, request, pk):
-        obj = self.get_object_or_404(pk)
-        format = request.GET.get("format") or "html"
-        part = request.GET.get("part")
-        if not format or format in ["html", "htm"]:
-            return HttpResponse(
-                obj.get_document(request=self.request, format=format or "html", part=part),
-                content_type="text/html; charset=utf-8",
-            )
-        else:
-            fn = obj.get_document(request=self.request, format=format, part=part)
-            content_type, _ = mimetypes.guess_type(fn)
-            if settings.DEBUG:
-                resp = StreamingHttpResponse(
-                    FileWrapper(open(fn, "rb")), content_type=content_type
-                )
-            else:
-                # works with nginx:
-                resp = HttpResponse(content_type="application/force-download")
-                resp["X-Sendfile"] = fn
-                resp["X-Accel-Redirect"] = fn
-            resp["Content-Length"] = os.path.getsize(fn)
-            if part:
-                resp["Content-Disposition"] = f"attachment; filename={obj.number}_{part}.{format}"
-            else:
-                resp["Content-Disposition"] = f"attachment; filename={obj.number}.{format}"
-            return resp
+    # def get(self, request, pk):
+    #     obj = self.get_object_or_404(pk)
+    #     format = request.GET.get("format") or "html"
+    #     part = request.GET.get("part")
+    #     if not format or format in ["html", "htm"]:
+    #         return HttpResponse(
+    #             obj.get_document(request=self.request, format=format or "html", part=part),
+    #             content_type="text/html; charset=utf-8",
+    #         )
+    #     else:
+    #         fn = obj.get_document(request=self.request, format=format, part=part)
+    #         content_type, _ = mimetypes.guess_type(fn)
+    #         if settings.DEBUG:
+    #             resp = StreamingHttpResponse(
+    #                 FileWrapper(open(fn, "rb")), content_type=content_type
+    #             )
+    #         else:
+    #             # works with nginx:
+    #             resp = HttpResponse(content_type="application/force-download")
+    #             resp["X-Sendfile"] = fn
+    #             resp["X-Accel-Redirect"] = fn
+    #         resp["Content-Length"] = os.path.getsize(fn)
+    #         if part:
+    #             resp["Content-Disposition"] = f"attachment; filename={obj.number}_{part}.{format}"
+    #         else:
+    #             resp["Content-Disposition"] = f"attachment; filename={obj.number}.{format}"
+    #         return resp
 
 
 class ProfileDetail(ProfileViewMixin, DetailView):
@@ -10594,9 +10596,11 @@ class ApplicationExportView(ExportView):
         )
         for t in testimonials:
             if t.file:
-                attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))
+                # attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))
+                attachments.append(t.pdf_file.path)
             if t.cv and t.cv.file:
-                attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.cv.pdf_file))
+                # attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.cv.pdf_file))
+                attachments.append(t.cv.pdf_file.path)
 
         return attachments
 
