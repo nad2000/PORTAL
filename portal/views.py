@@ -354,7 +354,12 @@ def switch_back(request):
             resp.set_cookie("previous_user_id", request.user.pk, max_age=36000, secure=True)
             login(request, u, backend="django.contrib.auth.backends.ModelBackend")
             log_rec = models.Impersonation.create(user=request.user, impersonated=u)
-            messages.info(request, _(f"You switched back to {u}. The 'impersonation' recoded at {log_rec.impersonated_at}."))
+            messages.info(
+                request,
+                _(
+                    f"You switched back to {u}. The 'impersonation' recoded at {log_rec.impersonated_at}."
+                ),
+            )
         else:
             del request.COOKIES["previous_user_id"]
             resp.delete_cookie("previous_user_id")
@@ -1123,6 +1128,16 @@ class ExportView(UserPassesTestMixin, DetailView):
     cache_timeout = 0
     template = "pdf_export_template.html"
 
+    def test_func(self):
+        u = self.request.user
+        return (
+            u.is_admin
+            or (o := self.get_object_or_404())
+            and (
+                hasattr(o, "is_pi") and o.is_pi(user=u) or hasattr(o, "is_ro") and o.is_ro(user=u)
+            )
+        )
+
     def get_metadata(self, pk):
         return {"/Title": f"{self.model.get(pk)}"}
 
@@ -1135,10 +1150,11 @@ class ExportView(UserPassesTestMixin, DetailView):
         return [self.get_object_or_404(pk)]
 
     def get_attachments(self, pk):
-        return []
+        o = self.object
+        return [o.pdf_file.path] if getattr(o, "file", None) else []
 
     def get_filename(self, pk):
-        return "export"
+        return getattr(self.object, "number", "export")
 
     def get(self, request, pk):
         try:
@@ -3885,50 +3901,12 @@ class ReportExportView(ExportView):
     """Report PDF export view"""
 
     model = models.Report
-    # permission_denied_message = _("Only the round panellist and staff can export the application")
-    def get_attachments(self, pk):
-        o = self.object
-        return [o.pdf_file.path] if o.file else []
 
-    def test_func(self):
-        u = self.request.user
-        return (
-            u.is_superuser
-            or u.is_staff
-            or u.is_site_staff
-            or (o := self.get_object_or_404())
-            and (
-                o.is_pi(user=u) or o.is_ro(user=u)
-            )
-        )
 
-    # def get(self, request, pk):
-    #     obj = self.get_object_or_404(pk)
-    #     format = request.GET.get("format") or "html"
-    #     part = request.GET.get("part")
-    #     if not format or format in ["html", "htm"]:
-    #         return HttpResponse(
-    #             obj.get_document(request=self.request, format=format or "html", part=part),
-    #             content_type="text/html; charset=utf-8",
-    #         )
-    #     else:
-    #         fn = obj.get_document(request=self.request, format=format, part=part)
-    #         content_type, _ = mimetypes.guess_type(fn)
-    #         if settings.DEBUG:
-    #             resp = StreamingHttpResponse(
-    #                 FileWrapper(open(fn, "rb")), content_type=content_type
-    #             )
-    #         else:
-    #             # works with nginx:
-    #             resp = HttpResponse(content_type="application/force-download")
-    #             resp["X-Sendfile"] = fn
-    #             resp["X-Accel-Redirect"] = fn
-    #         resp["Content-Length"] = os.path.getsize(fn)
-    #         if part:
-    #             resp["Content-Disposition"] = f"attachment; filename={obj.number}_{part}.{format}"
-    #         else:
-    #             resp["Content-Disposition"] = f"attachment; filename={obj.number}.{format}"
-    #         return resp
+class ChangeRequestExportView(ExportView):
+    """ChangeRequest PDF export view"""
+
+    model = models.ChangeRequest
 
 
 class ProfileDetail(ProfileViewMixin, DetailView):
@@ -6949,11 +6927,7 @@ class ContractDetail(FavoriteMixin, DetailView):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
         o = self.object
-        if u.is_admin or (
-            o
-            and (org := o.org or o.application.org)
-            and org.is_ro(user=u)
-        ):
+        if u.is_admin or (o and (org := o.org or o.application.org) and org.is_ro(user=u)):
             context["can_edit"] = True
             if (
                 o.is_current

@@ -198,6 +198,11 @@ urlpatterns = [
                                             name="change-request-update",
                                         ),
                                         path(
+                                            "<int:pk>/~export",
+                                            views.ChangeRequestExportView.as_view(),
+                                            name="change-request-export",
+                                        ),
+                                        path(
                                             "",
                                             views.ChangeRequestList.as_view(),
                                             name="change-request-list",

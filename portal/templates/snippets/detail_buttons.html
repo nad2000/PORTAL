@@ -117,11 +117,14 @@
     </div>
   {% endif %}
 
-  {% if export_button_view_name or export_url %}
+  {% if export_button_view_name or export_url or object.export_url %}
   <a
     class="btn btn-primary"
-    {% if export_tooltip %}data-toggle="tooltip" title="{{ export_tooltip|safe }}" data-html="true"{% endif %}
-    href="{% if export_url %}{{ export_url }}{% else %}{% url export_button_view_name pk=object.pk %}{% endif %}?format=pdf"
+    {% if export_tooltip %}
+    data-toggle="tooltip"
+    title="{{ export_tooltip|safe }}"
+    data-html="true"{% endif %}
+    href="{% if export_url %}{{ export_url }}{% elif export_button_view_name %}{% url export_button_view_name pk=object.pk %}{% else %}{{ object.export_url }}{% endif %}?format=pdf"
     target="_blank">{% trans 'Export' %}</a>
   {% endif %}
 
