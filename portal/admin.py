@@ -2794,9 +2794,69 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
         ),
     ]
 
+    def get_fields(self, request, obj):
+        fields = super().get_fields(request, obj)
+        if obj and obj.replaced_org:
+            return ["new_org_link", *fields]
+        return fields
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj=obj)
+        if obj and obj.replaced_org:
+            return [
+                (
+                    None,
+                    {
+                        "fields": [
+                            "new_org_link",
+                            ("code", "name", "is_active"),
+                            ("identifier_type", "identifier"),
+                            ("legal_name", "alt_name"),
+                        ],
+                    },
+                ),
+                *fieldsets[1:],
+            ]
+        return [
+            (
+                None,
+                {
+                    "fields": [
+                        ("code", "name", "is_active"),
+                        ("identifier_type", "identifier"),
+                        ("legal_name", "alt_name"),
+                    ],
+                },
+            ),
+            *fieldsets[1:],
+        ]
+
+    def get_object(self, request, object_id, from_field=None):
+        obj = super().get_object(request=request, object_id=object_id, from_field=from_field)
+        if obj and (org := obj.replaced_org):
+            url = reverse("admin:portal_organisation_change", kwargs={"object_id": org.pk})
+            self.message_user(
+                request=request,
+                message=mark_safe(
+                    f'Organisattion "{obj}" was replaced with:<br><a href="{url}" target="_blank">{org}</a>'
+                ),
+                level=messages.WARNING,
+                fail_silently=True,
+            )
+        return obj
+
+    def has_change_permission(self, request, obj=None):
+        return obj and not obj.replaced_org and super().has_change_permission(request, obj)
+
     # def get_queryset(self, request):
     #     qs = super().get_queryset(request)
     #     return qs
+    @admin.display(description="New Organisation")
+    def new_org_link(self, obj):
+        if org := obj.replaced_org:
+            url = reverse("admin:portal_organisation_change", kwargs={"object_id": org.pk})
+            return mark_safe(f'<a style="color:red;"  href="{url}" target="_blank">{org}</a>')
+        return
 
     class ResearchOfficeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
@@ -2831,7 +2891,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             merged = []
             errors = []
             if target_id := request.POST.get("target"):
-                keep = (request.POST.get("keep") != "0")
+                keep = request.POST.get("keep") != "0"
                 target = models.Organisation.get(target_id)
                 orgs = list(queryset.filter(~Q(id=target_id)))
                 org_ids = [o.id for o in orgs]
@@ -2840,9 +2900,9 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                     with transaction.atomic():
 
                         qs = models.Application.all_objects.filter(
-                                ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
-                                Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
-                            ).order_by("number")
+                            ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
+                            Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
+                        ).order_by("number")
                         if keep:
                             qs.filter(round__scheme__current_round=F("round"))
 
@@ -2999,7 +3059,8 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                 "opts": self.opts,
                 "app_label": self.opts.app_label,
                 "preserved_filters": self.get_preserved_filters(request),
-                "is_popup": admin.options.IS_POPUP_VAR in request.POST or admin.options.IS_POPUP_VAR in request.GET,
+                "is_popup": admin.options.IS_POPUP_VAR in request.POST
+                or admin.options.IS_POPUP_VAR in request.GET,
                 # "to_field": to_field,
                 "objects": queryset,
                 "target": target,

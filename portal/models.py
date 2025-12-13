@@ -1560,7 +1560,13 @@ class Organisation(Model):
     )
     sector = CharField(max_length=3, blank=True, null=True, db_comment="stage.source.sector")
     replaced_org = ForeignKey(
-        "self", null=True, blank=True, on_delete=SET_NULL, editable=False, related_name="+"
+        "self",
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        editable=False,
+        related_name="+",
+        help_text="The organisation that replaced this one.",
     )
 
     notify_ro_on_application_submission = BooleanField(default=False)
