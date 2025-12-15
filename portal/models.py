@@ -13865,6 +13865,7 @@ ACTIVITY_CATEGORIES = Choices(
     ("C", _("Collaboration")),
     ("P", _("Publicity")),
     ("V", _("Visits")),
+    ("H", _("Hosted Visits")),
 )
 
 
@@ -13969,6 +13970,42 @@ class ReportedVisit(ReportedActivity):
 
     class Meta:
         db_table = "reported_visit"
+
+
+class ReportedHostedVisit(ReportedActivity):
+
+    report = ForeignKey(Report, on_delete=CASCADE, related_name="hosted_visits")
+
+    org = ForeignKey(
+        Organisation, null=True, blank=True, on_delete=SET_NULL, related_name="hosted_visits"
+    )
+    organisation = CharField(_("organisation"), max_length=200, null=False, blank=False)
+    visitor = CharField(
+        _("person name"),
+        blank=True,
+        null=True,
+        max_length=400,
+    )
+    # person = ForeignKey(
+    #     Person,
+    #     on_delete=SET_NULL,
+    #     blank=True,
+    #     null=True,
+    #     related_name="+",
+    # )
+    country = ForeignKey(
+        Country,
+        verbose_name=_("country"),
+        db_column="country",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        default="NZ",
+    )
+
+    class Meta:
+        db_table = "reported_hosted_visit"
 
 
 class ReportedAward(ReportedActivity):

@@ -1,3 +1,4 @@
+{% set activity_category=request.GET.get("activity_category") %}
 {% if modal_dialog %}
   <form
     hx-validate="true"
@@ -19,7 +20,19 @@
       {% elif object and object.pk %}
         {{ object }}
       {% else %}
-        {{ _('Add a new activity') }}
+        {% if activity_category == 'P' %}
+          {{ _('Add a new publicity record') }}
+        {% elif activity_category == 'C' %}
+          {{ _('Add a new collaboration record') }}
+        {% elif activity_category == 'H' %}
+          {{ _('Add a new hosted visit record') }}
+        {% elif activity_category == 'V' %}
+          {{ _('Add a new visit record') }}
+        {% elif activity_category == 'A' %}
+          {{ _('Add a new award record') }}
+        {% else %}
+          {{ _('Add a new activity') }}
+        {% endif %}
       {% endif %}
     </h5>
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -34,7 +47,11 @@
     <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
     <!-- button type="submit" class="btn btn-primary">{{ _('Save') }}</button -->
     <!-- button type="post" class="btn btn-primary">{{ _('Save') }}</button -->
-    <input type="submit" class="btn btn-primary" value="{{ _('Save') }}">
+    <input
+        type="submit"
+        class="btn btn-primary"
+        value="{{ _('Save') }}"
+    >
   </div>
 </form>
 {#{ form.media.js }#}

@@ -290,6 +290,23 @@ urlpatterns = [
                     ),
                 ),
                 path(
+                    "hosted-visits/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedHostedVisitUpdateView.as_view(),
+                                name="reported-hosted-visit-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
                     "publicity/",
                     include(
                         [

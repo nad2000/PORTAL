@@ -87,6 +87,49 @@
   </tr>
 {% endfor %}
 {#% endif %}
+{% if report.hosted_visits.count() > 0 %#}
+  <tr><th colspan="3" class="table-dark">Hosted Visits
+      <button
+        style="float: right;"
+        type="button"
+        class="btn btn-success btn-sm"
+        hx-get="{{ url('reported-activity-create') }}?report={{ report.pk }}&activity_category=H&_modal_dialog=1"
+        hx-target="#activity-dialog"
+      ><i class="fa fa-plus" style="width: 14px;"></i>
+      </button>
+    </th>
+  </tr>
+{% for o in report.hosted_visits.all() %}
+  <tr>
+    <td>{{ o.visitor }}</td>
+    <td>{{ o.organisation }}: {{ o.description }} ({% if o.country %}{{ o.country }}{% endif %})</td>
+    <td style="min-width: 90px;">
+      <div class="buttonHolder float-right">
+      <button
+        class="btn btn-danger btn-sm"
+        type="button"
+        hx-delete="{{ url('objects-delete', model=o._meta.model_name, pk=o.pk) }}"
+        hx-params="none"
+        hx-target="#messages"
+        hx-swap="beforeend scroll:bottom"
+        hx-on:htmx:after-request="delete_closest_table_row(this, event)"
+        hx-confirm="{{ _('Do you wish to deleted the hosted visit record "%s"?') % o }}"
+      >
+        <i class="fa fa-times" style="width: 12px;"></i>
+      </button>
+      <button
+        class="btn btn-primary btn-sm"
+        type="button"
+        hx-get="{{ url('reported-hosted-visit-update', pk=o.pk) }}?report={{ report.pk }}&_modal_dialog=1"
+        hx-target="#activity-dialog"
+        hx-params="none"
+      ><i class='fas fa-edit' style="width: 14px;"></i>
+      </button>
+      </div>
+    </td>
+  </tr>
+{% endfor %}
+{#% endif %}
 {% if report.visits.count() > 0 %#}
   <tr><th colspan="3" class="table-dark">Visits
       <button
@@ -182,6 +225,7 @@
       <select class="custom-select" style="display:inline-block;width:auto;" name="activity_category" id="id_activity_category">
         <option value="A">Award</option>
         <option value="C">Collaboration</option>
+        <option value="H">Hosted Visit</option>
         <option value="P">Publicity</option>
         <option value="V">Visit</option>
       </select>

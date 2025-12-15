@@ -12836,12 +12836,34 @@ class ReportedVisitCreateView(ReportedVisitViewMixin, CreateView):
     pass
 
 
+class ReportedHostedVisitViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedHostedVisit
+    fields = ["organisation", "country", "visitor", "description", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["visitor"].label = _("Visitor")
+        form.fields["visitor"].required = True
+        form.fields["description"].label = _("Purpose")
+        form.fields["description"].required = True
+        form.fields["organisation"].label = _("External Institution")
+        return form
+
+
+class ReportedHostedVisitUpdateView(ReportedHostedVisitViewMixin, UpdateView):
+    pass
+
+
+class ReportedHostedVisitCreateView(ReportedHostedVisitViewMixin, CreateView):
+    pass
 class ReportedActivityView(View):
 
     award_view = staticmethod(ReportedAwardCreateView.as_view())
     publicity_view = staticmethod(ReportedPublicityCreateView.as_view())
     collaboration_view = staticmethod(ReportedCollaborationCreateView.as_view())
     visit_view = staticmethod(ReportedVisitCreateView.as_view())
+    hosted_visit_view = staticmethod(ReportedHostedVisitCreateView.as_view())
     # bar_view = staticmethod(BarView.as_view())
 
     def dispatch(self, request, *args, **kwargs):
@@ -12855,6 +12877,8 @@ class ReportedActivityView(View):
             return self.collaboration_view(request, *args, **kwargs)
         elif category == "V":
             return self.visit_view(request, *args, **kwargs)
+        elif category == "H":
+            return self.hosted_visit_view(request, *args, **kwargs)
         # else:
         #     return self.bar_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
