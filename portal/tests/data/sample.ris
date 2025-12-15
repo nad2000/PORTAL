@@ -15,7 +15,7 @@ EP  - 537
 UR  - http://asr.sagepub.com/content/76/4/513.abstract
 Y2  - 2011/08/05/17:47:05
 L1  - http://asr.sagepub.com.turing.library.northwestern.edu/content/76/4/513.full.pdf
-ER  - 
+ER  -
 
 TY  - BOOK
 TI  - Fluctuating Fortunes: The Political Power of Business in America
@@ -28,8 +28,7 @@ DP  - nucat.library.northwestern.edu Library Catalog
 PB  - Basic Books
 SN  - 046502470X
 ST  - Fluctuating Fortunes
-ER  - 
-
+ER  -
 TY  - CHAP
 TI  - The American labour movement and the resurgence in union organizing
 AU  - Bronfenbrenner, Kate
@@ -46,4 +45,32 @@ PB  - Continuum
 UR  - http://socserv2.socsci.mcmaster.ca/fun/bron1.pdf
 Y2  - 2012/07/27/09:48:44
 L1  - http://socserv2.socsci.mcmaster.ca/fun/bron1.pdf
-ER  - 
+ER  -
+TY  - JOUR
+AU  - Smith, John A.
+AU  - Doe, Jane B.
+TI  - Advances in Bibliographic Data Exchange
+AB  - This article explores the evolution and standardization of tagged formats for citation management. It discusses challenges in [interoperability](/page/Interoperability) among reference tools and proposes enhancements for future versions. The study draws on case analyses from academic databases.
+JF  - Journal of [Information Science](/page/Information_science)
+VO  - 45
+SP  - 123
+EP  - 135
+PY  - 2020
+DO  - 10.1177/0165551520981234
+ER  -
+TY  - JOUR
+DB  - [PubMed](/page/PubMed)
+AU  - Smith, J.
+AU  - Doe, A.
+TI  - Advances in Neural Networks
+PY  - 2020
+JF  - Journal of [Machine Learning](/page/Machine_learning)
+
+ER  -
+TY  - BOOK
+DB  - [Google Books](/page/Google_Books)
+AU  - Johnson, R.
+TI  - Introduction to Bibliography
+PY  - 2018
+PB  - [Academic Press](/page/Academic_Press)
+ER  -
