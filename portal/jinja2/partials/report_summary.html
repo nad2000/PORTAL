@@ -1,6 +1,7 @@
 {% set r=report %}
 {% set c=r.contract %}
 {% set a=c.application %}
+{% set n=a.nomination %}
 {% set contract_number=c.number %}
 {% set application_number=a.number %}
 {% set due_in_days=r.due_in_days %}
@@ -61,7 +62,8 @@
           {{ _('Coordinator') }}
         </th>
         <td>
-          TODO: is coordinator or the contract?
+          {{ coordinator or _('N/A') }}
+          {#{ c.host_contact_email_address or n and n.nominator.full_name_with_email or _('N/A') }#}
         </td>
       </tr>
 

@@ -2932,6 +2932,12 @@ class ReportViewMixin:
         context["contract"] = c = r.contract
         context["application"] = a = c.application
         context["round"] = round = a.round
+        if c.host_contact_email:
+            context["coordinator"] = c.host_contact_email
+        elif nomination := models.Nomination.where(application=a).order_by("-pk").first():
+            context["nomination"] = nomination
+            context["coordinator"] = nomination.nominator.full_name_with_email
+
         context["is_pi"] = (a.submitted_by == u) or (
             self.object
             and self.object.pk
@@ -7363,6 +7369,9 @@ class ContractViewMixin:
         self.personnel = context["personnel"] = self.get_personnel_formset()
         a = self.application
         context["application"] = a
+        # context["nomination"] = models.Nomination.where(application=a).order_by("-pk").first()
+        # context["coordinator"] =
+
         context["application_documents"] = list(
             a.documents.filter(~Q(file=""), file__isnull=False).order_by(
                 "required_document__ordering"
@@ -12857,6 +12866,8 @@ class ReportedHostedVisitUpdateView(ReportedHostedVisitViewMixin, UpdateView):
 
 class ReportedHostedVisitCreateView(ReportedHostedVisitViewMixin, CreateView):
     pass
+
+
 class ReportedActivityView(View):
 
     award_view = staticmethod(ReportedAwardCreateView.as_view())
