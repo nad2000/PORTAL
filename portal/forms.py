@@ -4783,9 +4783,20 @@ class ReportForm(ModelForm):
                     HTML(
                         """{% load tags %}
                 <div class="alert alert-dark" role="alert">
-                    <p style="margin-bottom: 0px;">
-                    {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
-                    </p>
+                <p dir="auto">Please report any publications that have arisen
+                from this project within the period. <strong>We highly
+                recommend import of publication records, rather than manual
+                entry.</strong>  NB: if linked, the contract PI is able to
+                import these from their ORCID profile record.</p>
+                <p dir="auto" style="margin-bottom: 0px;">
+                Once these final things are take care of, can you
+                push the changes and enable notifications for report reminders
+                to go out for production portals for Puanga and Tāwhia te Mana
+                as the first set of reports need to be invited at the end of
+                this month.</p>
+                    <!-- p style="margin-bottom: 0px;">
+                    {#{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }#}
+                    </p -->
                 </div>
                 <div id="publication-list">
                 {% jinja 'partials/report_publication_list.html' %}
