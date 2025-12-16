@@ -2,5 +2,8 @@
 export ENV=${ENV:-local}
 export DJANGO_DEBUG=False
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source $HOME/venv311/bin/activate
+if [ -z "$VIRTUAL_ENV" ] ; then
+  [ -f $HOME/venv311/bin/activate ] && source $HOME/venv311/bin/activate
+  [ -f $PWD/venv/bin/activate ] && source $PWD/venv/bin/activate
+fi
 python $SCRIPT_DIR/manage.py "$@"

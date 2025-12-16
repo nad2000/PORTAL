@@ -10,6 +10,6 @@ class Job(BaseJob):
     def execute(self):
 
         for site_id in [4, 5]:
-            settings.SITE_ID = site_id
+            settings.SITE_ID.set(site_id)
             # models.refresh_page_counts(dry_run=options.get("dry_run"))
             reports = list(models.Contract.start_reporting())

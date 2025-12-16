@@ -400,7 +400,7 @@ class ApplicationTable(Table):
         #     self.columns.hide("selection")
         if state != "funded":
             self.columns.hide("current_contract")
-        if (u := request.user) and not u.is_superuser and not u.is_staff:
+        if (u := request.user) and not u.is_admin:
             self.columns.hide("export")
             self.columns.hide("admin")
             self.columns.hide("current_contract")
