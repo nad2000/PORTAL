@@ -3171,7 +3171,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
     class Meta:
         model = models.Referee
-        fields = ["state", "email", "first_name", "middle_names", "last_name", "org"]
+        fields = ["state", "email", "first_name", "last_name", "org"]
         widgets = dict(
             email=forms.EmailInput(
                 attrs={

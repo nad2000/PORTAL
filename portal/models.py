@@ -81,6 +81,7 @@ from django.db.models import (  # GeneratedField,
     When,
     aggregates,
     prefetch_related_objects,
+    OuterRef,
 )
 from django.db.models.functions import Cast, Coalesce, Concat, Lower
 from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
@@ -4559,7 +4560,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     )
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
-    state = StateField(null=True, blank=True, default="new")
+    state = StateField(verbose_name=mark_safe("&nbsp;"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
@@ -4826,7 +4827,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     org = ForeignKey(
         Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
     )
-    state = StateField(_("referee state"), null=True, blank=True, default="new")
+    state = StateField(mark_safe("&nbsp;"), null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     testified_at = MonitorField(
         monitor="state", when=["testified"], null=True, default=None, blank=True
@@ -9096,10 +9097,14 @@ class SchemeApplication(Model):
                 site_id,
             ],
         )
-        prefetch_related_objects(q, "application")
-        prefetch_related_objects(q, "current_round")
-        prefetch_related_objects(q, "scheme")
-        prefetch_related_objects(q, "previous_application")
+        # prefetch_related_objects(q, "application")
+        # prefetch_related_objects(q, "current_round")
+        # prefetch_related_objects(q, "scheme")
+        # prefetch_related_objects(q, "previous_application")
+        prefetch_related_objects(
+            q, "application", "current_round", "scheme", "previous_application"
+        )
+
         return q
 
     class Meta:

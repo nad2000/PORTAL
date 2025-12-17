@@ -12,7 +12,9 @@
 button:hover .previous-applications-button:hover, button:focus .previous-applications-button:focus {
   background-color: inherit;
 }
-
+.dropdown-item {
+  color: var(--primary)
+}
 .partialcollapse .collapse {
   display: block;
   height: 120px !important;
@@ -249,7 +251,8 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 
   {% if previous_applications %}
   <div class="card text-white bg-warning border-warning mb-3">
-    <h5 class="card-header align-middle" style="text-transform: uppercase;">
+    <h5 class="card-header align-middle"
+      style="text-transform: uppercase;">
       <div class="row">
         <div class="col">
           <strong class="align-middle"> {% trans 'Previous Applications' %} </strong>
@@ -443,8 +446,8 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                 {% else %}
                 {{ record.description|safe }}
                 {% endif %}
-              {% endif %}
-              {% if round %}
+            {% endif %}
+            {% if round %}
               {% if round.closes_at or round.opens_on %}
               <p class="card-text mt-2">
               {% if not round.closes_at %}
@@ -490,14 +493,15 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
               {% endif %}
 
               {#% if request.user.can_apply %}{% else %}{% endif %#}
+              <div class="btn-group">
                 {% if scheme.guidelines %}
-                    <a href="{{ scheme.guidelines }}" target="_blank" class="btn btn-outline-primary" style="text-transform: uppercase;">
+                    <a href="{{ scheme.guidelines }}" target="_blank" class="mr-1 btn btn-outline-primary" style="text-transform: uppercase;">
                       {% blocktrans %}Read <b>More</b>{% endblocktrans %}
                     </a>
                 {% endif %}
 
                 {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
-                  <div class="tooltip-wrapper{% if not round.is_open and not is_admin %} disabled{% endif %}"
+                  <div class="mr-1 tooltip-wrapper{% if not round.is_open and not is_admin %} disabled{% endif %}"
                    {% if not round.is_open and not is_admin %}
                    disabled
                    {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on|date:'o-m-d'}}"{% endif %}
@@ -521,179 +525,179 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                       </span -->
                   </div>
                 {% endif %}
+
                 {% if is_admin %}
-              <button type="button" class="btn btn-outline-primary"
-                                    data-toggle="modal"
-                                    data-target="#roundDetail"
-                                    data-round-id="{{ round.id }}"
-                                    data-round-title="{{ round.title }}"
-                                    hx-get="/round/{{ round.id }}/?modal=1"
-                                    hx-target="#roundDetail"
-                                    hx-trigger="click"
-                                    style="text-transform: uppercase;">
-                {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
-              </button>
+                  <button type="button"
+                          class="mr-1 btn btn-outline-primary"
+                          data-toggle="modal"
+                          data-target="#roundDetail"
+                          data-round-id="{{ round.id }}"
+                          data-round-title="{{ round.title }}"
+                          hx-get="/round/{{ round.id }}/?modal=1"
+                          hx-target="#roundDetail"
+                          hx-trigger="click"
+                          style="text-transform: uppercase;">
+                  {% blocktrans %}Show <b>Details</b>{% endblocktrans %}
+                  </button>
                 {% endif %}
 
-              {% if round %}
-              {% if request.user.can_apply %}
+                {% if round %}
+                  {% if request.user.can_apply %}
 
-              {% if application and not is_panellist %}
-              <div class="tooltip-wrapper{% if application.state == 'submitted' or round.has_closed %} disabled{% endif %}"
-                   {% if application.was_submitted %}
-                   disabled
-                   data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
-                   {% elif round.has_closed %}
-                   disabled
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
-                   {% else %}
-                   data-title="{% trans 'Modify your application and continue application process' %}"
-                   {% endif %}
-                   >
-                   <a href="{% if application and application.id %}{% url 'application-update' pk=application.id %}{% else %}#{% endif %}"
-                      class="btn btn-primary{% if application.was_submitted or round.has_closed %} disabled{% endif %}"
+                    {% if SITE_ID == 2 and record.application_count > 0 and not is_ro and not is_panellist and round.is_open and not round.is_closed %}
+                      {% include 'snippets/apply_button.html' with round=round %}
+                    {% elif application and not is_panellist %}
+                      <div class="mr-1 tooltip-wrapper{% if application.state == 'submitted' or round.has_closed %} disabled{% endif %}"
+                          {% if application.was_submitted %}
+                          disabled
+                          data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
+                          {% elif round.has_closed %}
+                          disabled
+                          data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
+                          {% else %}
+                          data-title="{% trans 'Modify your application and continue application process' %}"
+                          {% endif %}
+                          >
+                          <a href="{% if application and application.id %}{% url 'application-update' pk=application.id %}{% else %}#{% endif %}"
+                              class="btn btn-primary{% if application.was_submitted or round.has_closed %} disabled{% endif %}"
+                              style="text-transform: uppercase;"
+                              > {% trans "Continue" %} <b>{% trans "Application" %}</b>
+                          </a>
+                      </div>
+                    {% else %}
+                      <div class="mr-1 tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %} disabled{% endif %}"
+                        {% if is_ro %}
+                        disabled
+                        data-title="{% trans 'You are a research officer of this round and cannot apply for it' %}"
+                        {% elif is_panellist %}
+                        disabled
+                        data-title="{% trans 'You are a panellist of this round and cannot apply for it' %}"
+                        {% elif not round.is_open %}
+                        disabled
+                        data-title="{% trans 'The round of the scheme has been already closed. You cannot apply for this round.' %}"
+                        {% if round.will_open %}
+                        data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                        {% else %}
+                        {% endif %}
+                        {% elif has_submitted %}
+                        disabled
+                        data-title="{% trans 'You have already submitted one application in this round' %}"
+                        {% elif not round.direct_application_allowed and not round|user_has_nomination:user %}
+                        disabled
+                        data-html="true"
+                        data-title="{% trans 'You need to be nominated in order to apply for this round' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}. {% trans 'Please contact your Research Office' %}{% endif %}."
+                        {% elif not has_profile %}
+                        disabled
+                        data-title="{% trans 'You need to fill in your profile data before apply for the round' %}"
+                        {% else %}
+                        data-title="{% trans 'Start a new application' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}.{% if not round.direct_application_allowed %} {% trans 'You have been nominated for this round' %}.{% endif %}{% endif %}"
+                        {% endif %}>
+                        <a href="{% url 'application-create' round=round.id %}"
+                          class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %}disabled{% endif %}"
+                          style="text-transform: uppercase;"
+                          {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
+                          {% if record.previous_application %}
+                          data-toggle="modal"
+                          data-target="#previous-application"
+                          data-previous-id="{{ record.previous_application_id }}"
+                          data-previous-title="{{ record.previous_application_title }}"
+                          data-previous-number="{{ record.previous_application_number }}"
+                          data-previous-url="{% url 'application' pk=record.previous_application_id %}"
+                          data-round-id="{{ round.id }}"
+                          data-round-title="{{ round.title }}"
+                          data-new-url="{% url 'application-create' round=round.id %}"
+                          data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
+                          {% endif %}
+                        >
+                          {% trans "Apply" %} <b>{% trans "Now" %}</b>
+                        </a>
+                      </div>
+                    {% endif %}
+                    {% if round.can_nominate or SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
+                    <div class="mr-1 tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro or SITE_ID == 2 and not is_ro %} disabled{% endif %}"
+                        {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro or SITE_ID == 2 and not is_ro %}
+                        disabled
+                        {% if SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro or SITE_ID == 2 and not is_ro %}
+                        data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
+                        {% elif is_panellist %}
+                        data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
+                        {% elif round.will_open %}
+                        data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                        {% else %}
+                        data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
+                        {% endif %}
+                        {% else %}
+                          {% if SITE_ID == 7 or SITE_ID == 1 %}
+                            data-title="{% trans 'Nominate other person to apply for the prize' %}"
+                          {% else %}
+                            data-title="{% trans 'Nominate other person to apply ...' %}"
+                          {% endif %}
+                        {% endif %}
+                        >
+                        <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 2 and not is_ro or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
+                                                                                                                                                                                                    {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
+                                                                                                                                                                                                    <!-- b>{% trans "Apply" %}</b -->
+                        </a>
+                    </div>
+                    {% if has_ro and not is_ro and not application or not application|can_edit:user  %}
+                      <div class="mr-1 tooltip-wrapper"
+                          {% if is_panellist or not round.is_open or SITE_ID == 2 and not is_ro or SITE_ID == 4 and is_ro or SITE_ID == 5 and not is_ro %}
+                          disabled
+                          {% if SITE_ID == 2 and not is_ro or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro %}
+                          data-title="{% trans 'Contact your Research Office and request a nomination' %}."
+                          {% elif is_panellist %}
+                          data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
+                          {% elif round.will_open %}
+                          data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                          {% else %}
+                          data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
+                          {% endif %}
+                          {% else %}
+                          data-title="{% trans 'Contact your Research Office and request a nomination' %}"
+                          {% endif %}
+                          >
+                          <a href="#" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 2 and is_ro or SITE_ID == 4 and is_ro or SITE_ID == 5 and is_ro %}disabled{% endif %}" style="text-transform: uppercase;" onclick="contact_ro({{round.id}}); return false;" {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
+                          </a>
+                      </div>
+                    {% endif %}
+                    {% endif %}{# -- can apply #}
+
+                    {% if is_panellist %}
+                      {% if application %}
+                        <a href="{% url 'application-evaluation' pk=application.id %}" class="mr-1 btn btn-primary" style="text-transform: uppercase;">{% trans "Review" %} <b>{% trans "Application" %}</b></a>
+                      {% elif round %}
+                        <a href="{% url 'round-application-list' round_id=round.id %}" class="mr-1 btn btn-primary" style="text-transform: uppercase;">{% trans "Review" %} <b>{% trans "Applications" %}</b></a>
+                      {% endif %}
+                    {% endif %}
+
+                    {% if round and count > 1 %}
+                      <a href="{% url 'applications' %}?round={{ round.id }}" class="mr-1 btn btn-primary" style="text-transform: uppercase;">{% trans "Show" %} <b>{% trans "Applications" %}</b></a>
+                    {% endif %}
+
+                  {% else %}
+                    {% if is_admin %}
+                    <a href="{% url 'admin:portal_round_change' object_id=round.id %}"
+                      class="mr-1 btn btn-primary"
                       style="text-transform: uppercase;"
-                      > {% trans "Continue" %} <b>{% trans "Application" %}</b>
-                   </a>
-              </div>
-              {% else %}
-              <div class="tooltip-wrapper{% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %} disabled{% endif %}"
-                   {% if is_ro %}
-                   disabled
-                   data-title="{% trans 'You are a research officer of this round and cannot apply for it' %}"
-                   {% elif is_panellist %}
-                   disabled
-                   data-title="{% trans 'You are a panellist of this round and cannot apply for it' %}"
-                   {% elif not round.is_open %}
-                   disabled
-                   data-title="{% trans 'The round of the scheme has been already closed. You cannot apply for this round.' %}"
-                   {% if round.will_open %}
-                   data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                   {% else %}
-                   {% endif %}
-                   {% elif has_submitted %}
-                   disabled
-                   data-title="{% trans 'You have already submitted one application in this round' %}"
-                   {% elif not round.direct_application_allowed and not round|user_has_nomination:user %}
-                   disabled
-                   data-html="true"
-                   data-title="{% trans 'You need to be nominated in order to apply for this round' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}. {% trans 'Please contact your Research Office' %}{% endif %}."
-                   {% elif not has_profile %}
-                   disabled
-                   data-title="{% trans 'You need to fill in your profile data before apply for the round' %}"
-                   {% else %}
-                   data-title="{% trans 'Start a new application' %}{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}.{% if not round.direct_application_allowed %} {% trans 'You have been nominated for this round' %}.{% endif %}{% endif %}"
-                   {% endif %}>
-                <a href="{% url 'application-create' round=round.id %}"
-                   class="btn btn-primary {% if is_ro or not round.is_open or is_panellist or has_submitted or not round.direct_application_allowed and not round|user_has_nomination:user or not has_profile %}disabled{% endif %}"
-                   style="text-transform: uppercase;"
-                   {% if not round.is_open or not round.direct_application_allowed and not round|user_has_nomination:user %}disabled{% endif %}
-                   {% if record.previous_application %}
-                   data-toggle="modal"
-                   data-target="#previous-application"
-                   data-previous-id="{{ record.previous_application_id }}"
-                   data-previous-title="{{ record.previous_application_title }}"
-                   data-previous-number="{{ record.previous_application_number }}"
-                   data-previous-url="{% url 'application' pk=record.previous_application_id %}"
-                   data-round-id="{{ round.id }}"
-                   data-round-title="{{ round.title }}"
-                   data-new-url="{% url 'application-create' round=round.id %}"
-                   data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
-                   {% endif %}
-                >
-                   {% trans "Apply" %} <b>{% trans "Now" %}</b>
-                </a>
-              </div>
-              {% endif %}
-              {% if round.can_nominate or SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
-              <div class="tooltip-wrapper{% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro or SITE_ID == 2 and not is_ro %} disabled{% endif %}"
-                   {% if is_panellist or not round.is_open or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro or SITE_ID == 2 and not is_ro %}
-                   disabled
-                   {% if SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro or SITE_ID == 2 and not is_ro %}
-                   data-title="{% trans 'Only Research Office can nominate you for this round' %}. {% trans 'Please contact your Research Office' %}."
-                   {% elif is_panellist %}
-                   data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
-                   {% elif round.will_open %}
-                   data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                   {% else %}
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
-                   {% endif %}
-                   {% else %}
-                     {% if SITE_ID == 7 or SITE_ID == 1 %}
-                       data-title="{% trans 'Nominate other person to apply for the prize' %}"
-                     {% else %}
-                       data-title="{% trans 'Nominate other person to apply ...' %}"
-                     {% endif %}
-                   {% endif %}
-                   >
-                   <a href="{% url 'nomination-create' round=round.id %}" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 2 and not is_ro or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro %}disabled{% endif %}" style="text-transform: uppercase;"
-                                                                                                                                                                                              {% if not round.is_open %}disabled{% endif %}><b>{% trans "Nominate" %}</b>
-                                                                                                                                                                                              <!-- b>{% trans "Apply" %}</b -->
-                   </a>
-              </div>
-              {% if has_ro and not is_ro and not application or not application|can_edit:user  %}
-              <div class="tooltip-wrapper"
-                   {% if is_panellist or not round.is_open or SITE_ID == 2 and not is_ro or SITE_ID == 4 and is_ro or SITE_ID == 5 and not is_ro %}
-                   disabled
-                   {% if SITE_ID == 2 and not is_ro or SITE_ID == 4 and not is_ro or SITE_ID == 5 and not is_ro %}
-                   data-title="{% trans 'Contact your Research Office and request a nomination' %}."
-                   {% elif is_panellist %}
-                   data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
-                   {% elif round.will_open %}
-                   data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
-                   {% else %}
-                   data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
-                   {% endif %}
-                   {% else %}
-                   data-title="{% trans 'Contact your Research Office and request a nomination' %}"
-                   {% endif %}
-                   >
-                   <a href="#" class="btn btn-primary {% if is_panellist or not round.is_open or SITE_ID == 2 and is_ro or SITE_ID == 4 and is_ro or SITE_ID == 5 and is_ro %}disabled{% endif %}" style="text-transform: uppercase;" onclick="contact_ro({{round.id}}); return false;" {% if not round.is_open %}disabled{% endif %}>{% trans 'Contact' %} <b>{% trans "Research Office" %}</b>
-                   </a>
-              </div>
-              {% endif %}
-              {% endif %}
+                      data-tooltip="tooltip"
+                      title="{% trans 'Open and edit the round in the admin interface' %}"
+                    > {% trans "Edit" %} <b>{% trans "Round" %}</b>
+                    </a>
+                    {% endif %}
+                  {% endif %}
 
-              {% if is_panellist %}
-              {% if application %}
-              <a href="{% url 'application-evaluation' pk=application.id %}" class="btn btn-primary" style="text-transform: uppercase;">{% trans "Review" %} <b>{% trans "Application" %}</b></a>
-              {% elif round %}
-              <a href="{% url 'round-application-list' round_id=round.id %}" class="btn btn-primary" style="text-transform: uppercase;">{% trans "Review" %} <b>{% trans "Applications" %}</b></a>
-              {% endif %}
-              {% endif %}
-
-              {% if round and count > 1 %}
-              <a href="{% url 'applications' %}?round={{ round.id }}" class="btn btn-primary" style="text-transform: uppercase;">{% trans "Show" %} <b>{% trans "Applications" %}</b></a>
-              {% endif %}
-
-
-              {% else %}
-              {% if request.user.is_superuser %}
-              <a href="{% url 'admin:portal_round_change' object_id=round.id %}"
-                 class="btn btn-primary"
-                 style="text-transform: uppercase;"
-                 data-tooltip="tooltip"
-                 title="{% trans 'Open and edit the round in the admin interface' %}"
-              > {% trans "Edit" %} <b>{% trans "Round" %}</b>
-              </a>
-              {% endif %}
-              {% endif %}
-
-              {% if is_admin %}
-              <a href="{% url 'panellist-invite' round=round.id %}"
-                 class="btn btn-primary" style="text-transform: uppercase;"
-              > {% trans "Invite" %}
-                <b>{% trans "Panellist" %}</b>
-              </a>
-              {% endif %}
-
-              {% if is_admin %}
-              <a href="{% url 'round-coi-list' round=round.id %}" class="btn btn-outline-primary" style="text-transform: uppercase;"
-
-                                                                                                  > {% trans "Conflicts of" %}
-                                                                                                  <b>{% trans "Interest" %}</b>
-              </a>
-              {% endif %}
+                  {% if is_admin %}
+                    <a href="{% url 'panellist-invite' round=round.id %}"
+                      class="mr-1 btn btn-primary" style="text-transform: uppercase;"
+                    > {% trans "Invite" %}
+                      <b>{% trans "Panellist" %}</b>
+                    </a>
+                    <a href="{% url 'round-coi-list' round=round.id %}"
+                      class="mr-1 btn btn-outline-primary" style="text-transform: uppercase;"
+                    > {% trans "Conflicts of" %} <b>{% trans "Interest" %}</b>
+                    </a>
+                  {% endif %}
+                </div>
 
               {% else %}
               <span>

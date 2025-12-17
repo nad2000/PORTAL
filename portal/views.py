@@ -1738,6 +1738,35 @@ def index(request):
                 registered_on_id=site_id,
             ).order_by("-last_login")
         schemes = list(models.SchemeApplication.get_data(user))
+
+        if site_id == 2:
+            applications = {
+                round_id: list(user_applications)
+                for (round_id, user_applications) in groupby(
+                    models.Application.where(
+                        Q(submitted_by=user) | Q(members__user=user, members__role="PI"),
+                        round__in=[s.current_round_id for s in schemes],
+                    ).order_by("round_id", "number"),
+                    lambda a: a.round_id,
+                )
+            }
+            applications = {
+                a[0]: {
+                    "applications": a[1],
+                    "wip_count": sum(1 for o in a[1] if o.state in ["new", "draft"]),
+                    "count": len(a[1]),
+                } for
+                a in applications.items()
+            }
+            for s in schemes:
+                round_applications = applications.get(s.current_round_id, None)
+                if round_applications:
+                    s.applications = round_applications["applications"]
+                    s.wip_count = round_applications["wip_count"]
+                    s.application_count = round_applications["count"]
+                else:
+                    s.applications = None
+
         previous_applications = [
             dict(
                 id=pa.previous_application_id,
@@ -4844,13 +4873,13 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             return pa
         if (r := self.round) and (
             pa := self.model.where(submitted_by=self.request.user, round__scheme=r.scheme)
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         ):
             return pa
         return (
             models.Application.all_objects.filter(submitted_by=self.request.user)
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         )
 
@@ -6006,7 +6035,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             url = self.continue_url("referees")
                         # return redirect(url)
                     elif "save" in self.request.POST:
-                        url = self.request.path
+                        url = a.update_url or self.request.path
 
                     elif not update_only_referees:
                         if (
@@ -6426,16 +6455,14 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
     def get_document_formset(self, *args, **kwargs):
         round = self.round
         initial_documents = [
-            dict(
-                required_document=rd_id,
-            )
+            dict(required_document=rd_id)
             for rd_id in (
-                round.required_documents.values_list("id", flat=True)
-                .filter(~Q(id__in=self.object.documents.values("required_document_id")))
-                .order_by("ordering")
+                round.required_documents.filter(
+                    ~Q(id__in=self.object.documents.values("required_document_id"))
+                ).order_by("ordering")
                 if (self.object and self.object.pk)
-                else round.required_documents.order_by("ordering").values_list("id")
-            )
+                else round.required_documents.order_by("ordering")
+            ).values_list("id", flat=True)
         ]
         required_documents = {rd.id: rd for rd in round.required_documents.order_by("ordering")}
 
@@ -6629,7 +6656,7 @@ class ApplicationCreate(ApplicationView, CreateView):
                             description="Application in the round was already created; accepted by default",
                         )
                     n.save()
-        if a:
+        if a and r.site_id != 2:
             messages.warning(
                 self.request, _("You have already created an application. Please update it.")
             )
@@ -6675,7 +6702,7 @@ class ApplicationCreate(ApplicationView, CreateView):
                 )
             )
         )
-        if r and (a := self.model.where(round=r, submitted_by=self.request.user).last()):
+        if r and r.site_id != 2 and (a := self.model.where(round=r, submitted_by=self.request.user).last()):
             messages.error(
                 self.request,
                 _(
@@ -7199,10 +7226,7 @@ class ContractViewMixin:
                 )
         elif self.request.method != "POST":
             initial = [
-                dict(
-                    required_document=rd[0],
-                    document_type=rd[1],
-                )
+                dict(required_document=rd[0], document_type=rd[1])
                 for rd in (
                     round.required_contract_documents.values_list("id", "document_type")
                     .filter(
