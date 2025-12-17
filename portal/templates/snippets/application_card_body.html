@@ -1,7 +1,7 @@
 {% load i18n tags %}
 <div class="application-list card-body">
     <ul class="list-group list-group-flush">
-    {% if is_ro or is_admin %}
+    {% if SITE_ID == 2 and is_ro or SITE_ID == 2 and is_admin %}
       {% regroup applications by round as application_list %}
       {% for r in application_list %}
         {% with bg=r.grouper.background fg=r.grouper.foreground %}

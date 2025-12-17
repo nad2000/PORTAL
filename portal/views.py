@@ -1713,7 +1713,10 @@ def index(request):
             )
 
             if is_ro or applications.count() < 7:
-                draft_applications = applications.order_by("round__ordering", "number")
+                if site_id in [2, 4, 5] or is_ro:
+                    draft_applications = applications.order_by("round__ordering", "first_name", "last_name")
+                else:
+                    draft_applications = applications.order_by("round__ordering", "number")
 
             applications = models.Application.user_applications(
                 user, ["submitted", "in_review", "accepted", "approved"], request=request
