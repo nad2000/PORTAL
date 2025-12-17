@@ -3824,7 +3824,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         )
 
     def __str__(self):
-        if self.site_id == 4 and self.submitted_by:
+        if self.site_id in [2, 4] and self.submitted_by:
             return f"{self.number}: {self.submitted_by.full_name}"
         title = self.application_title or self.round.title
         if self.number:
@@ -3886,17 +3886,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if round:
             q = q.filter(round=round)
 
-        if not round and not (
-            (user.is_staff or user.is_superuser or user.is_site_staff) and include_inactive
-        ):
+        if not round and not (user.is_admin and include_inactive):
             # q = q.filter(round=F("round__scheme__current_round"))
             q = q.filter(round__in=Scheme.objects.all().values("current_round"))
 
-        if user.is_staff or user.is_superuser or user.is_site_staff:
+        if user.is_admin:
             return q
 
         site_id = request and request.site_id or settings.SITE_ID
-
         f = (
             Q(submitted_by=user)
             | Q(members__user=user, members__state="authorized")
@@ -3917,12 +3914,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
             | Q(nomination__nominator=user)
             | Q(nomination__user=user)
-            | Q(
-                Q(org__research_offices__user=user),
-                Q(
-                    Q(nomination__org=F("org"))
-                    | Q(nomination__nominator__research_offices__org=F("org"))
-                ),
+            | (
+                Q(org__research_offices__user=user)
+                if site_id == 2
+                else Q(
+                    Q(org__research_offices__user=user),
+                    Q(
+                        Q(nomination__org=F("org"))
+                        | Q(nomination__nominator__research_offices__org=F("org"))
+                    ),
+                )
             )
         )
         if Panellist.where(user=user, round__scheme__current_round=F("round")).exists():

@@ -1704,26 +1704,31 @@ def index(request):
             if reports.count():
                 current_reports = reports
 
-        if site_id not in [2, 4, 5, 7] or not (user.is_superuser or user.is_site_staff):
+        if site_id not in [2, 4, 5, 7] or not (user.is_admin):
+
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__scheme__current_round=F("round"),
                 # round__in=models.Scheme.objects.values("current_round"),
             )
-            if applications.count() < 7:
-                draft_applications = applications
+
+            if is_ro or applications.count() < 7:
+                draft_applications = applications.order_by("round__ordering", "number")
+
             applications = models.Application.user_applications(
                 user, ["submitted", "in_review", "accepted", "approved"], request=request
             ).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-            if applications.count() < 7:
-                current_applications = applications
+            if is_ro or applications.count() < 7:
+                current_applications = applications.order_by("round__ordering", "number")
+
             if site_id in [4, 5]:
                 reports = models.Report.user_objects(user=user, state=["new", "draft"])
                 if reports.count() < 7:
                     new_reports = reports
+
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
@@ -8096,7 +8101,8 @@ class ApplicationList(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # u = self.request.user
+        request = self.request
+        u = request.user
         # if not (
         #     u.is_staff
         #     or u.is_superuser
@@ -8131,8 +8137,10 @@ class ApplicationList(
             "cancelled",
         ]:
             context["state"] = state
+        if round_id := request.GET.get("round") or request.GET.get("round_filter"):
+            context["round"] = models.Round.get(round_id)
 
-        if state == "in_review" and self.request.user.is_admin:
+        if state == "in_review" and u.is_admin:
             params = self.request.GET.copy()
             params["outcome_file"] = "selected"
             url = f"{self.request.path}?{params.urlencode()}"

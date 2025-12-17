@@ -285,6 +285,13 @@ thead th.orderable.desc > a {
 
   {% if view.title %}
     <h1>{{ view.title }}</h1>
+  {% elif round %}
+    <h5 class="mb-3" style="padding: 0.75rem 1.25rem;{% if round.background and round.background != 'colour' or round.foreground %} {% if round.background and round.background != 'colour' %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}{% endif %}; border-radius: 0.25rem;">
+      {#% trans "The Prime Minister's" %#}
+      <b style="text-transform: uppercase;">
+        {{ round.title }}
+      </b>
+    </h5>
   {% endif %}
 
   {% block filters %}

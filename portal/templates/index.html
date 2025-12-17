@@ -15,6 +15,12 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 .dropdown-item {
   color: var(--primary)
 }
+.application-list {
+  padding: 0;
+}
+.application-list .list-group-item {
+  padding: 4;
+}
 .partialcollapse .collapse {
   display: block;
   height: 120px !important;
@@ -283,50 +289,18 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
   </div>
   {% endif %}
 
-  {% if draft_applications %}
-  <div class="card text-white bg-success border-success mb-3">
-    <h5 class="card-header" style="text-transform: uppercase;"><strong>
-        {% trans 'Application Drafts' %} </strong></h5>
-    {% for a in draft_applications %}
-    {% if a and a.id %}
-    <ul class="list-group list-group-flush">
-      {% if a|can_edit:user %}
-      <li class="list-group-item">
-        {% if a.deadline_days > 0 and a.deadline_days < 5 %}
-        <i class="fas fa-exclamation-circle text-danger"
-           data-toggle="tooltip"
-           title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_at|date:"d-m-Y" closes_at=a.round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
-           ></i>
-        {% endif %}
-        <a href="{% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}{% url 'application' pk=a.id %}{% else %}{% url 'application-update' pk=a.id %}{% endif %}"
-           {% if a.deadline_days < 5 %}
-           data-toggle="tooltip"
-           title="{% blocktrans with deadline_days=a.deadline_days closes_on=a.round.closes_at|date:"d-m-Y" closes_at=a.round.closes_at|time:"P" %}The round is closing in {{ deadline_days }} day(s) on {{ closes_on }} by {{ closes_at }}{% endblocktrans %}"
-           {% elif SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
-           data-toggle="tooltip"
-           {% endif %}
-           >{{ a }}</a></li>
-      {% else %}
-      <li class="list-group-item"><a
-          href="{% url 'application' pk=a.id %}"
-          {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
-          data-toggle="tooltip"{% endif %}>
-          {{ a }}
-        </a></li>
-        {% endif %}
-    </ul>
-    {% endif %}
-    {% endfor %}
-    <!-- div class="card-body">
-      <h5 class="card-title">Success card title</h5>
-      <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
-      </div -->
+{% if draft_applications %}
+<div class="card border-success mb-3">
+  <h5 class="card-header text-white bg-success" style="text-transform: uppercase;"><strong>
+    {% trans 'Application Drafts' %} </strong>
+  </h5>
+  {% include 'snippets/application_card_body.html' with applications=draft_applications %}
 </div>
 {% endif %}
 
 {% if current_reports %}
-<div class="card text-white bg-warning border-warning mb-3">
-  <h5 class="card-header" style="text-transform: uppercase;"><strong>
+<div class="card border-warning mb-3">
+  <h5 class="card-header text-white bg-warning" style="text-transform: uppercase;"><strong>
       {% if is_ro %}
         {% trans 'Submitted Report(s)' %}
       {% else %}
@@ -355,41 +329,15 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 {% endif %} {# if current_reports #}
 
 {% if current_applications %}
-<div class="card text-white bg-info border-info mb-3">
-  <h5 class="card-header" style="text-transform: uppercase;"><strong>
+<div class="card border-info mb-3">
+  <h5 class="card-header text-white bg-info" style="text-transform: uppercase;">
+    <strong>
       {% trans 'Current Submitted Applications' %}
     </strong>
   </h5>
-    {% for a in current_applications %}
-    {% if a and a.id %}
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item"><a
-          href="{% url 'application' pk=a.id %}"
-          {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
-          data-toggle="tooltip"{% endif %}>{{ a }}</a>
-
-        {% if is_admin %}
-        <a
-            href="{% url 'application-export' pk=a.pk %}"
-            style="padding-top: 1px; padding-bottom: 0px;"
-            target="_blank"
-            class="btn btn-info float-right align-top"
-            data-toggle="tooltip"
-            title="{% trans 'Export the application into a consolidated PDF file' %}"
-            >{% trans 'Export' %}
-        </a>
-          {% endif %}
-
-      </li>
-    </ul>
-    {% endif %}
-    {% endfor %}
-    <!-- div class="card-body">
-      <h5 class="card-title">Success card title</h5>
-      <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
-      </div -->
-      </div>
-      {% endif %} {# if current_applications #}
+  {% include 'snippets/application_card_body.html' with applications=current_applications %}
+</div>
+{% endif %} {# if current_applications #}
 
 {% if new_reports %}
 <div class="card text-white border-info mb-3">
