@@ -1,0 +1,63 @@
+{% load i18n tags %}
+<div class="mr-1 dropdown">
+  <button
+    class="btn btn-primary dropdown-toggle"
+    style="text-transform: uppercase;"
+    type="button"
+    id="id_apply_{{ round.pk }}"
+    data-toggle="dropdown"
+    aria-haspopup="true"
+    aria-expanded="false"
+    {% comment %}
+    data-tooltip="tooltip"
+    title="{% trans 'Continue applying or start a new application' %}"
+    {% endcomment %}
+  >
+    {% trans 'Apply' %}
+  </button>
+  <div class="dropdown-menu">
+    {% for a in record.applications %}
+      <div class="tooltip-wrapper{% if a.state == 'submitted' or round.has_closed %} disabled{% endif %}"
+            {% if a.was_submitted %}
+            disabled
+            data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
+            {% elif round.has_closed %}
+            disabled
+            data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
+            {% else %}
+            data-title="{% trans 'Modify your application and continue application process' %}"
+            {% endif %}
+      >
+            <a href="{% if a.pk %}{% url 'application-update' pk=a.pk %}{% else %}#{% endif %}"
+              class="dropdown-item{% if a.was_submitted or round.has_closed %} disabled{% endif %}"
+              style="text-transform: uppercase;"
+              ><b>{{ a.number }}</b>
+            </a>
+      </div>
+    {% endfor %}
+    {% if round.is_open and not round.is_closed %}
+      <a href="{% url 'application-create' round=round.id %}"
+          class="dropdown-item{% if is_ro or not round.is_open or is_panellist or not round.direct_application_allowed and not round|user_has_nomination:user %} disabled{% endif %}"
+          style="text-transform: uppercase;"
+          {% if record.previous_application %}
+          data-toggle="modal"
+          data-target="#previous-application"
+          data-previous-id="{{ record.previous_application_id }}"
+          data-previous-title="{{ record.previous_application_title }}"
+          data-previous-number="{{ record.previous_application_number }}"
+          data-previous-url="{% url 'application' pk=record.previous_application_id %}"
+          data-round-id="{{ round.id }}"
+          data-round-title="{{ round.title }}"
+          data-new-url="{% url 'application-create' round=round.id %}"
+          data-copy-url="{% url 'application-create' round=round.id %}?previous={{ record.previous_application_id }}"
+          {% endif %}
+          data-tooltip="tooltip"
+          title="{% trans 'Start a new application in this round' %}"
+      >
+          {% trans "Apply <b>Now</b>" %}
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{# vim:set ft=htmldjango: #}
