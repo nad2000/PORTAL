@@ -6,7 +6,7 @@
       {% for r in application_list %}
         {% with bg=r.grouper.background fg=r.grouper.foreground %}
           <li class="list-group-item">
-            <a href="{% url 'applications' %}?round_filter={{ r.grouper.pk }}"{% if bg and bg != 'colour' %} style="color: {{ bg }};"{% endif %}>
+            <a href="{% if state %}{% url 'applications-with-state' state %}{% else %}{% url 'applications' %}{% endif %}?round_filter={{ r.grouper.pk }}"{% if bg and bg != 'colour' %} style="color: {{ bg }};"{% endif %}>
               <b>{{ r.grouper }}</b>
             </a>
             <ul class="list-group list-group-flush mt-1">
