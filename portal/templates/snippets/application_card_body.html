@@ -1,12 +1,12 @@
 {% load i18n tags %}
 <div class="application-list card-body">
     <ul class="list-group list-group-flush">
-    {% if is_ro or is_admin %}
+    {% if SITE_ID == 2 and is_ro or SITE_ID == 2 and is_admin %}
       {% regroup applications by round as application_list %}
       {% for r in application_list %}
         {% with bg=r.grouper.background fg=r.grouper.foreground %}
           <li class="list-group-item">
-            <a href="{% url 'applications' %}?round_filter={{ r.grouper.pk }}"{% if bg and bg != 'colour' %} style="color: {{ bg }};"{% endif %}>
+            <a href="{% if state %}{% url 'applications-with-state' state %}{% else %}{% url 'applications' %}{% endif %}?round_filter={{ r.grouper.pk }}"{% if bg and bg != 'colour' %} style="color: {{ bg }};"{% endif %}>
               <b>{{ r.grouper }}</b>
             </a>
             <ul class="list-group list-group-flush mt-1">

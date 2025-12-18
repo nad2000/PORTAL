@@ -294,7 +294,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
   <h5 class="card-header text-white bg-success" style="text-transform: uppercase;"><strong>
     {% trans 'Application Drafts' %} </strong>
   </h5>
-  {% include 'snippets/application_card_body.html' with applications=draft_applications %}
+  {% include 'snippets/application_card_body.html' with applications=draft_applications state='draft' %}
 </div>
 {% endif %}
 
@@ -335,7 +335,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       {% trans 'Current Submitted Applications' %}
     </strong>
   </h5>
-  {% include 'snippets/application_card_body.html' with applications=current_applications %}
+  {% include 'snippets/application_card_body.html' with applications=current_applications state='submitted' %}
 </div>
 {% endif %} {# if current_applications #}
 
@@ -724,4 +724,4 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       </script>
       {% endblock javascript %}
 
-      {# vim:set ft=htmldjango: #}
+{# vim:set ft=htmldjango: #}
