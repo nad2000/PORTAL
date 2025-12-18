@@ -1196,7 +1196,12 @@ class ExportView(UserPassesTestMixin, DetailView):
             pdf_content = io.BytesIO()
             merger.write(pdf_content)
             pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
-            pdf_response["Content-Disposition"] = f"inline; filename={self.get_filename(pk)}.pdf"
+            pdf_response["Content-Disposition"] = f'inline; filename="{self.get_filename(pk)}.pdf"'
+            pdf_response["X-Content-Type-Options"] = "nosniff"
+            # NB! Need to diesble caching to force usage of the name
+            pdf_response["Cache-Control"] = (
+                "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+            )
             return pdf_response
         except Exception as ex:
             capture_exception(ex)
@@ -1714,7 +1719,9 @@ def index(request):
 
             if is_ro or applications.count() < 7:
                 if site_id in [2, 4, 5] or is_ro:
-                    draft_applications = applications.order_by("round__ordering", "first_name", "last_name")
+                    draft_applications = applications.order_by(
+                        "round__ordering", "first_name", "last_name"
+                    )
                 else:
                     draft_applications = applications.order_by("round__ordering", "number")
 
@@ -1763,8 +1770,8 @@ def index(request):
                     "applications": a[1],
                     "wip_count": sum(1 for o in a[1] if o.state in ["new", "draft"]),
                     "count": len(a[1]),
-                } for
-                a in applications.items()
+                }
+                for a in applications.items()
             }
             for s in schemes:
                 round_applications = applications.get(s.current_round_id, None)
@@ -6710,7 +6717,11 @@ class ApplicationCreate(ApplicationView, CreateView):
                 )
             )
         )
-        if r and r.site_id != 2 and (a := self.model.where(round=r, submitted_by=self.request.user).last()):
+        if (
+            r
+            and r.site_id != 2
+            and (a := self.model.where(round=r, submitted_by=self.request.user).last())
+        ):
             messages.error(
                 self.request,
                 _(
@@ -7920,7 +7931,11 @@ class ApplicationList(
 
             response = HttpResponse(
                 content_type="text/csv",
-                headers={"Content-Disposition": 'attachment; filename="outcomes.csv"'},
+                headers={
+                    "Content-Disposition": 'attachment; filename="outcomes.csv"',
+                    "Cache-Control": "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+                    "X-Content-Type-Options": "nosniff"
+                },
             )
             writer = csv.writer(response)
             writer.writerow(["NUMBER", "DECISION", "AMOUNT", "START", "END"])
@@ -10625,9 +10640,11 @@ class ApplicationExportView(ExportView):
     def get_filename(self, pk):
         return self.model.get(id=pk).number
 
-    def get(self, request, pk=None, number=None):
+    def get(self, request, pk=None, number=None, filename=None, *args, **kwargs):
         # a = get_object_or_404(models.Application, pk=pk)
         a = self.get_object()
+        if not filename:
+            return redirect(a.export_url)
         pdf_content = io.BytesIO()
         merger = a.to_pdf(
             request=request,
@@ -10638,7 +10655,11 @@ class ApplicationExportView(ExportView):
         # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
         pdf_content.seek(0)
         pdf_response = FileResponse(pdf_content, content_type="application/pdf")
-        pdf_response["Content-Disposition"] = f"inline; filename={a.number}.pdf"
+        pdf_response["Cache-Control"] = (
+            "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+        )
+        pdf_response["Content-Disposition"] = f'inline; filename="{a.number}.pdf"'
+        pdf_response["X-Content-Type-Options"] = "nosniff"
         return pdf_response
 
 
@@ -10698,9 +10719,11 @@ class ContractExportView(ExportView):
                 resp["Content-Length"] = os.path.getsize(output)
 
         if part:
-            resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
+            resp["Content-Disposition"] = f'attachment; filename="{c.number}_{part}.{format}"'
         else:
-            resp["Content-Disposition"] = f"attachment; filename={c.number}.{format}"
+            resp["Content-Disposition"] = f'attachment; filename="{c.number}.{format}"'
+        resp["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+        resp["X-Content-Type-Options"] = "nosniff"
         return resp
 
 
@@ -11741,7 +11764,11 @@ def export_score_sheet(request, round):
 
     filename = f'{r.scheme.code}-{request.person.code or request.user.username or "scoresheet"}.{file_type}'
     response = HttpResponse(book.export(file_type), content_type=content_type)
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.headers["Cache-Control"] = (
+        "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -11981,7 +12008,9 @@ def round_scores_export(request, round):
 
     filename = str(round).replace(" ", "-").lower() + "-scores." + file_type
     response = HttpResponse(book.export(file_type), content_type=content_type)
-    response["Content-Disposition"] = f"attachment; filename={filename}"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -12227,7 +12256,9 @@ def headers(request, application_id, page_count=1, output_type="pdf"):
     html = HTML(string=template.render(locals()))
     pdf_object = html.write_pdf()
     response = HttpResponse(pdf_object, content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="{}.pdf"'.format("headers.pdf")
+    response["Content-Disposition"] = f'attachment; filename="headers.pdf"'
+    response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -13257,7 +13288,9 @@ def survey_response(request, referee_id):
 
     output.seek(0)
     response = FileResponse(output, content_type=mime_type)
-    response["Content-Disposition"] = f"inline; filename={filename}"
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 

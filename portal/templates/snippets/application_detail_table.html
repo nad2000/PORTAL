@@ -185,6 +185,7 @@
           </tr>
         {% endif %}
 
+      {% if round.research_experience_in_years_required %}
         <tr>
           <th class="table-dark" scope="row">{% trans 'Years of experience post PhD' %}</th>
           <td colspan="3">
@@ -200,6 +201,7 @@
             {% endif %}
           </td>
         </tr>
+      {% endif %}
 
       {% if user.is_admin and attachments or referee and attachments %}
           <tr>
@@ -419,19 +421,21 @@
     {% endif %}
     {#% if nominator or user.is_superuser or user.is_site_staff or a|can_edit:user %#}
 
-    {% if nominator or  a|can_edit:user %}
-	  {% with nomination=a.nomination %}
-		{% if nomination %}
-		  <tr>
-			<th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
-			<td colspan="3">
-			  <a href="{% url 'nomination-detail' pk=nomination.pk %}" target="_blank">
-				{{ nomination }}
-			  </a>
-			</td>
-		  </tr>
-		{% endif %}
-	  {% endwith %}
+    {% if not export and not for_pdf_export and a.site_id != 2 %}
+      {% if nominator or  a|can_edit:user %}
+        {% with nomination=a.nomination %}
+          {% if nomination %}
+            <tr>
+            <th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
+            <td colspan="3">
+              <a href="{% url 'nomination-detail' pk=nomination.pk %}" target="_blank">
+                {{ nomination }}
+              </a>
+            </td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
     {% endif %}
 
     {% if SITE_ID != 2 or SITE_ID != 5 or not is_ro or user.is_admin %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}

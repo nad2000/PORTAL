@@ -2921,6 +2921,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     notes = GenericRelation(Note)
     favorites = GenericRelation(Favorite)
 
+    @cached_property
+    def export_url(self):
+        return reverse(
+            "application-export-with-slug-fn",
+            kwargs={"number": self.number, "filename": f"{self.number}.pdf"},
+        )
+
     @property
     def research_officers(self):
         if self.org:
@@ -4269,6 +4276,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             template = get_template("application-export.html")
             context = {
                 "application": self,
+                "round": self.round,
                 "objects": objects,
                 "user": user,
                 "site": site,

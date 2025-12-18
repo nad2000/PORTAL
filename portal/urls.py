@@ -117,9 +117,19 @@ urlpatterns = [
                     name="application-export",
                 ),
                 path(
+                    "<int:pk>/~export/<filename>",
+                    views.ApplicationExportView.as_view(),
+                    name="application-export-fn",
+                ),
+                path(
                     "<number>/~export",
                     views.ApplicationExportView.as_view(),
                     name="application-export-with-slug",
+                ),
+                path(
+                    "<number>/~export/<filename>",
+                    views.ApplicationExportView.as_view(),
+                    name="application-export-with-slug-fn",
                 ),
                 path(
                     "<number>/exported-view",
