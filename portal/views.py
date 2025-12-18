@@ -10583,13 +10583,9 @@ class ApplicationExportView(ExportView):
         if not u.is_authenticated or u.is_anonymous:
             return False
         return (
-            u.is_staff
-            or u.is_superuser
-            or u.is_site_staff
+            u.is_admin
             or (
-                "pk" in self.kwargs
-                # and (a := get_object_or_404(models.Application, pk=self.kwargs["pk"]))
-                and (a := self.get_object())
+                (a := self.get_object())
                 and (
                     a.submitted_by == u
                     or a.members.all().filter(user=u).exists()
