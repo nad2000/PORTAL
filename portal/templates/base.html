@@ -416,6 +416,18 @@ table.table .asteriskField,.popover-header {color: gray;}
                 {% blocktrans with a=oi.referee.application url=oi.referee.application.detail_url %}
                 You have an invitation to submit a referee report for application <a href="{{ url }}">{{ a }}</a>.
                 {% endblocktrans %}
+              {% elif oi.type == 'A' %}
+                {% if oi.round %}
+                  {% blocktrans with round=oi.round %}You have an invitation to submit an application for the round <b>{{ round }}</b> that hasn't been acted on.{% endblocktrans %}
+                {% else %}
+                  {% trans "You have an invitation to submit an application that hasn't been acted on." %}
+                {% endif %}
+              {% elif oi.type == 'T' %}
+                {% if oi.application %}
+                  {% blocktrans with application=oi.application %}You have an invitation to join the team of the application <b>{{ application }}</b> that hasn't been acted on.{% endblocktrans %}
+                {% else %}
+                  {% trans "You have an invitation to join an application team that hasn't been acted on." %}
+                {% endif %}
               {% else %}
                 {% trans "You have an invitation that hasn't been acted on." %}
               {% endif %}
