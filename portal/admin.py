@@ -3646,7 +3646,6 @@ class RoundAdmin(
                             "is_flexible_number_of_referees",
                             "required_submitted_testimonials",
                         ),
-                        "duration",
                     ]
                 },
             ),
@@ -3679,6 +3678,7 @@ class RoundAdmin(
                 {
                     "classes": ("collapse",),
                     "fields": [
+                        ("proposed_start_date_stats_on", "duration"),
                         "awarded_amount",
                         "contract_background",
                         "schedule2",

@@ -974,6 +974,15 @@ class ApplicationForm(ModelForm):
                     ),
                 )
             )
+            if not (start_date := round.proposed_start_date_stats_on):
+                if round.opens_on:
+                    start_date = round.opens_on.replace(day=1) + relativedelta(months=6)
+                else:
+                    start_date = timezone.now().date().replace(day=1) + relativedelta(months=6)
+
+            self.fields["proposed_start_date"].widget.attrs["data-date-start-date"] = (
+                start_date.strftime("%G-%m-%d")
+            )
         else:
             self.fields.pop("proposed_start_date", None)
             self.fields.pop("requested_amount", None)

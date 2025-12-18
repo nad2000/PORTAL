@@ -7125,6 +7125,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     duration = PositiveSmallIntegerField(
         _("Duration"), help_text=_("Default contract duration"), null=True, blank=True
     )
+    proposed_start_date_stats_on = DateField(null=True, blank=True)
     awarded_amount = DecimalField(
         max_digits=9,
         decimal_places=2,
