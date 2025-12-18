@@ -3622,11 +3622,13 @@ class RoundAdmin(
                                 "can_specify_panel",
                                 "direct_application_allowed",
                                 "ethics_statement_required",
+                                "has_ftes",
                                 "has_online_scoring",
                                 "has_referees",
                                 "has_title",
-                                # "is_partial_profile_allowed",
                                 "letter_of_support_required",
+                                "member_letter_of_support_required",
+                                "member_research_experience_in_years_required",
                                 "nomination_form_required",
                                 "nominator_cv_required",
                                 "notify_nominator",
@@ -3637,7 +3639,7 @@ class RoundAdmin(
                                 "research_summary_required",
                                 "team_can_apply",
                                 "testimonials_required",
-                                "has_ftes",
+                                # "is_partial_profile_allowed",
                             ]
                             if f not in exclude
                         ],

@@ -1108,7 +1108,7 @@ class ApplicationForm(ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if round.research_experience_in_years_required and round.can_specify_panel:
+            if (round.research_experience_in_years_required  or round.member_research_experience_in_years_required) and round.can_specify_panel:
                 self.fields["panel"].queryset = (
                     self.fields["panel"]
                     .queryset.filter(fund__site_id=site_id, state="active")
@@ -1120,10 +1120,12 @@ class ApplicationForm(ModelForm):
                         Column("panel"),
                     )
                 ]
-            elif round.research_experience_in_years_required:
+            elif round.research_experience_in_years_required or round.member_research_experience_in_years_required:
                 category_fields = [Field("research_experience_in_years")]
+                self.fields.pop("panel", None)
             elif round.can_specify_panel:
                 category_fields = [Field("panel")]
+                self.fields.pop("research_experience_in_years", None)
 
             if round.has_toas:
                 category_fields.append(

@@ -756,41 +756,39 @@ class PdfFileMixin:
             )
         return output_path
 
-    def update_converted_file(self, commit=False, file=None):
+    def update_converted_file(self, commit=False, file=None, request=None):
         """If the attached file is not PDF convert and update the PDF version."""
 
         if not file:
             file = self.file
-        if not file or (
-            (file_ext := Path(file.path).suffix)
-            and file_ext.lower() == ".pdf"
-            and self.converted_file
-        ):
-            # NB! easy-audit doens't deal well with delete within transition:
-            # if (cf := self.converted_file) and cf.pk and commit:
-            #     self.converted_file.delete()
-            self.converted_file = None
+        file_ext = Path(file.path).suffix
+        file_ext = file_ext and file_ext.lower()
+        if not file or file_ext == ".pdf":
+            if self.converted_file:
+                # NB! easy-audit doens't deal well with delete within transition:
+                # if (cf := self.converted_file) and cf.pk and commit:
+                #     self.converted_file.delete()
+                self.converted_file = None
 
-            if hasattr(self, "page_count"):
-                if file and file.name:
-                    self.update_page_count(file.path)
-                else:
-                    self.page_count = 0
+                if hasattr(self, "page_count"):
+                    if file and file.name:
+                        self.update_page_count(file.path)
+                    else:
+                        self.page_count = 0
 
-            if commit:
-                self._change_reason = "Converted file and page count updated"
-                self.save(
-                    update_fields=(
-                        ["converted_file", "page_count"]
-                        if hasattr(self, "page_count")
-                        else ["converted_file"]
+                if commit:
+                    self._change_reason = "Converted file and page count updated"
+                    self.save(
+                        update_fields=(
+                            ["converted_file", "page_count"]
+                            if hasattr(self, "page_count")
+                            else ["converted_file"]
+                        )
                     )
-                )
 
             return
 
-        file_ext = file_ext.lower()
-        if file.name and file_ext != ".pdf":
+        try:
 
             output_dir = tempfile.gettempdir()
             output_path = self.get_converted_to_pdf(file.path, output_dir=output_dir)
@@ -824,7 +822,32 @@ class PdfFileMixin:
                     )
                 )
 
+            if cf and request:
+                messages.success(
+                    request,
+                    _(
+                        'The document file "%s"  was converted into PDF file successfully. '
+                        'Please review the converted version <a href="%s" target="_blank">%s</a>. '
+                        "If it is not converted correctly, please save your document file "
+                        "in PDF format and reupload it."
+                    )
+                    % (os.path.basename(file.name), cf.file.url, os.path.basename(cf.file.name)),
+                )
+
             return cf
+
+        except Exception as ex:
+            capture_exception(ex)
+            if request:
+                messages.error(
+                    request,
+                    _(
+                        'Failed to convert the file "%s" into PDF. '
+                        "Please save or convert your document into PDF format and to reupload it: %s"
+                    )
+                    % (os.path.basename(file.name), ex),
+                )
+            raise
 
     @classmethod
     def refresh_page_counts(cls, commit=True, queryset=None):
@@ -4608,6 +4631,9 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         verbose_name=_("curriculum vitae"),
         related_name="members",
     )
+    research_experience_in_years = PositiveSmallIntegerField(
+        _("research experience in years "), null=True, blank=True
+    )
 
     def natural_key(self):
         return (self.application.number, self.email)
@@ -7147,7 +7173,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
 
     letter_of_support_required = BooleanField(default=False)
+    member_letter_of_support_required = BooleanField(default=False)
     research_experience_in_years_required = BooleanField(default=False)
+    member_research_experience_in_years_required = BooleanField(default=False)
 
     direct_application_allowed = BooleanField(default=True)
     can_nominate = BooleanField(default=True)
@@ -8529,10 +8557,12 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        dt = self.document_type.name
-        title = self.title or dt
-        if title == dt:
+        dt = self.document_type
+        title = self.title or dt and dt.name
+        if not dt or title and title == dt:
             return title
+        elif not (dt or title):
+            return _("Document")
         return f"{dt}: {title}"
 
     class Meta(OrderableModel.Meta):
@@ -8674,7 +8704,11 @@ class ApplicationDocument(PdfFileMixin, Model):
     application = ForeignKey(Application, on_delete=CASCADE, related_name="documents")
     # TODO: remove at some stage
     document_type = ForeignKey(
-        DocumentType, related_name="application_documents", on_delete=CASCADE
+        DocumentType,
+        related_name="application_documents",
+        on_delete=CASCADE,
+        null=True,
+        blank=True,
     )
     required_document = ForeignKey(
         RequiredDocument, on_delete=DO_NOTHING, related_name="documents"

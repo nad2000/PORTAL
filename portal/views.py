@@ -4212,7 +4212,19 @@ class AuthorizationForm(AuthorizationFormMixin, Form):
 class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
 
     def __init__(self, *args, **kwargs):
+        instance = kwargs.get("instance", None)
         super().__init__(*args, **kwargs)
+        round = instance.application.round
+        if round.member_research_experience_in_years_required:
+            self.fields["research_experience_in_years"].required = True
+        else:
+            self.fields.pop("research_experience_in_years", None)
+
+        if round.member_letter_of_support_required:
+            self.fields["file"].required = True
+        else:
+            self.fields.pop("file", None)
+
         # self.fields["file"].required = True
         # self.fields["country"].required = True
 
@@ -4235,7 +4247,7 @@ class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
     #     return True
     class Meta:
         model = models.Member
-        fields = ["cv_file", "file", "country", "org"]
+        fields = ["cv_file", "file", "country", "org", "research_experience_in_years"]
         widgets = {
             "country": autocomplete.ModelSelect2(
                 "country-autocomplete",
@@ -4554,6 +4566,16 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                 .last()
             ):
                 initial["org"] = emp.org
+            if (
+                pm := models.Member.where(user=u, research_experience_in_years__isnull=False)
+                .order_by("-created_at")
+                .first()
+            ):
+                year = timezone.now().year
+                initial["research_experience_in_years"] = pm.research_experience_in_years + (
+                    year - pm.created_at.year
+                )
+
             return MemberAuthorizationForm(
                 self.request.POST or None,
                 self.request.FILES or None,
@@ -5025,14 +5047,27 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         initial["round"] = self.round.pk
         round = self.round
         nomination = self.nomination
+        if round.letter_of_support_required or round.member_letter_of_support_required:
+            if (
+                has_required_documents := round.required_documents.count() > 0
+            ) and not round.required_documents.filter(role="HS").exists():
+                round.required_documents.create(
+                    role="HS",
+                    format="T",
+                    title_en="Host Support Letter",
+                    title="Host Support Letter",
+                    is_optional=False,
+                    referees_can_access=False,
+                    panellists_can_access=True,
+                    exclude=False,
+                )
 
-        if (
-            round.letter_of_support_required
-            and self.object
-            and self.object.letter_of_support
-            and self.object.letter_of_support.file
-        ):
-            initial["letter_of_support_file"] = self.object.letter_of_support.file
+            elif (
+                self.object
+                and self.object.letter_of_support
+                and self.object.letter_of_support.file
+            ):
+                initial["letter_of_support_file"] = self.object.letter_of_support.file
 
         if (
             round.is_applicant_cv_required
@@ -5059,7 +5094,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 initial["postal_address"] = address.address
                 initial["city"] = address.city
                 initial["postcode"] = address.postcode
-            if round.research_experience_in_years_required:
+            if (
+                round.research_experience_in_years_required
+                or round.member_research_experience_in_years_required
+            ):
                 research_experience_in_years = (
                     latest_application
                     and latest_application.research_experience_in_years
@@ -5260,6 +5298,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         site_id = self.request.site_id
         update_url = None
         update_only_referees = self.update_only_referees()
+        cv = None
+        letter_of_support = None
+        request = self.request
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -5268,37 +5309,60 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 if not instance.email:
                     instance.email = user.email
 
-                if round.letter_of_support_required and (
-                    letter_of_support_file := self.request.FILES.get("letter_of_support_file")
+                if (
+                    round.letter_of_support_required
+                    and (letter_of_support_file := request.FILES.get("letter_of_support_file"))
+                    and (
+                        "letter_of_support_file" in form.changed_data
+                        or not instance.letter_of_support
+                    )
                 ):
                     letter_of_support = models.LetterOfSupport.create(file=letter_of_support_file)
                     instance.letter_of_support = letter_of_support
                     # if letter_of_support_file.name.endswith(".pdf")
 
-                if round.applicant_cv_required and (cv_file := self.request.FILES.get("cv_file")):
-                    cv = models.CurriculumVitae.create(
-                        file=cv_file, owner=user, person=user.person
+                # Handle CV
+                if (
+                    not update_only_referees
+                    and (round.applicant_cv_required or site_id == 2)
+                    and (cv_file := request.FILES.get("cv_file"))
+                    and (
+                        "cv_file" in form.changed_data
+                        or not instance
+                        or not instance.cv
+                        or (
+                            instance.is_team_application
+                            and (
+                                not instance.pk
+                                or instance.members.filter(role="PI", cv__isnull=True).exists()
+                            )
+                        )
                     )
+                ):
+                    cv, created = models.CurriculumVitae.get_or_create(
+                        owner=user,
+                        person=user.person,
+                        title=_(f"For application {a.number}"),
+                        defaults={"file": cv_file},
+                    )
+                    if not created and "cv_file" in form.changed_data:
+                        cv.file.save(cv_file.name, cv_file)
+                        cv.save()
                     instance.cv = cv
-                    # if letter_of_support_file.name.endswith(".pdf")
+
+                    if created or ("cv_file" in form.changed_data):
+                        if cv.file and cv.converted_file:
+                            cv.converted_file.delete()
+                            cv.converted_file = None
+                            if hasattr(cv, "page_count"):
+                                cv.page_count = None
+                        cv.update_converted_file(commit=True, request=request)
 
                 if (
                     "file" in form.changed_data
                     and instance.id
                     and instance.file
                     and instance.converted_file
-                ):
-                    instance.converted_file.delete()
-                    instance.converted_file = None
-                    if hasattr(instance, "page_count"):
-                        instance.page_count = None
-
-                if (
-                    "cv_file" in form.changed_data
-                    and instance.id
-                    and instance.cv
-                    and instance.cv.file
-                    and instance.cv.converted_file
                 ):
                     instance.converted_file.delete()
                     instance.converted_file = None
@@ -5343,45 +5407,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     if has_deleted:
                         return redirect(f"{update_url or url}#applicant")
 
-                elif (
-                    not update_only_referees
-                    and a.site_id == 2
-                    and "cv_file" in form.changed_data
-                    and (cv_file := self.request.FILES.get("cv_file"))
-                ):
-                    cv, created = models.CurriculumVitae.get_or_create(
-                        owner=user,
-                        person=user.person,
-                        title=_(f"For application {a.number}"),
-                        defaults={"file": cv_file},
-                    )
-                    if not created:
-                        cv.file.save(cv_file.name, cv_file)
-                        cv.save()
-                    # instance.cv = cv
-                    pi, created = a.members.model.get_or_create(
-                        application=a,
-                        role_id="PI",
-                        user=user,
-                        defaults=dict(
-                            cv=cv,
-                            email=user.email,
-                            first_name=a.first_name or user.first_name or user.person.first_name,
-                            middle_names=a.middle_names
-                            or user.middle_names
-                            or user.person.middle_names,
-                            last_name=a.last_name or user.last_name or user.person.last_name,
-                            org=a.org,
-                            country=a.org.address and a.org.address.country,
-                            state="authorized",
-                            authorized_at=a.updated_at,
-                            role_description="The submitter of the application",
-                        ),
-                    )
-                    if not created:
-                        pi.cv = cv
-                        pi.save()
-
                     # if letter_of_support_file.name.endswith(".pdf")
 
                 # if identity_verification_form := context.get("identity_verification"):
@@ -5405,32 +5430,16 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             ):
                                 f.instance.page_count = None
                                 try:
-                                    cf = f.instance.update_converted_file(commit=True)
-                                    if cf:
-                                        messages.success(
-                                            self.request,
-                                            _(
-                                                "The document file was converted into PDF file successfully. "
-                                                'Please review the converted version <a href="%s" target="_blank">%s</a>. '
-                                                "If it is not converted correctly, please save your document file "
-                                                "in PDF format and reupload it."
-                                            )
-                                            % (cf.file.url, os.path.basename(cf.file.name)),
-                                        )
-                                except Exception as ex:
-                                    capture_exception(ex)
-                                    messages.error(
-                                        self.request,
-                                        _(
-                                            "Failed to convert your application form into PDF. "
-                                            "Please save or convert your document into PDF format and to reupload it."
-                                        ),
+                                    cf = f.instance.update_converted_file(
+                                        commit=True, request=request
                                     )
+                                except:
                                     url = (
                                         f"{update_url}#documents"
                                         if update_url
                                         else self.continue_url("documents")
                                     )
+
                     else:
                         if update_url:
                             if documents.errors:
@@ -5446,6 +5455,84 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 form.errors.update(form_errors)
                         form.active_tab = "documents"
                         return self.form_invalid(form)
+
+                if a.is_team_application and not update_only_referees:
+
+                    if not letter_of_support and round.member_letter_of_support_required:
+                        letter_of_support = a.documents.filter(
+                            required_document__role="HS"
+                        ).first()
+                    pi, created = a.members.model.get_or_create(
+                        application=a,
+                        email=(
+                            user.email
+                            if not a.submitted_by or a.submitted_by == user
+                            else a.submitted_by.email
+                        ),
+                        role_id="PI",
+                        defaults=dict(
+                            user=user,
+                            cv=cv,
+                            file=letter_of_support and letter_of_support.file,
+                            converted_file=letter_of_support and letter_of_support.converted_file,
+                            first_name=a.first_name or user.first_name or user.person.first_name,
+                            middle_names=a.middle_names
+                            or user.middle_names
+                            or user.person.middle_names,
+                            last_name=a.last_name or user.last_name or user.person.last_name,
+                            org=a.org,
+                            country=a.org.address
+                            and a.org.address.country
+                            or request.session.get("country"),
+                            state="authorized",
+                            research_experience_in_years=a.research_experience_in_years,
+                            authorized_at=a.updated_at,
+                            role_description="The submitter of the application",
+                        ),
+                    )
+
+                    if not created:
+
+                        updated = False
+
+                        if any(
+                            fn in form.changed_data
+                            for fn in [
+                                "first_name",
+                                "middle_names",
+                                "last_name",
+                                "org",
+                                "research_experience_in_years",
+                            ]
+                        ):
+
+                            pi.org = a.org or pi.org
+                            pi.country = (
+                                a.org.address
+                                and a.org.address.country
+                                or request.session.get("country")
+                                or pi.country
+                            )
+                            pi.first_name = a.first_name
+                            pi.last_name = a.last_name
+                            pi.middle_names = a.middle_names
+                            pi.research_experience_in_years = (
+                                a.research_experience_in_years or pi.research_experience_in_years
+                            )
+
+                            updated = True
+
+                        if cv and (not pi.cv or pi.cv.updated_at < cv.updated_at):
+                            pi.cv = cv
+                            updated = True
+
+                        if letter_of_support and pi.updated_at < letter_of_support.updated_at:
+                            pi.file = letter_of_support.file
+                            pi.converted_file = letter_of_support.converted_file
+                            updated = True
+
+                        if updated:
+                            pi.save()
 
                 try:
                     if not referees.instance or not referees.instance.pk:
@@ -5626,7 +5713,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
                 if not update_only_referees and "file" in form.changed_data and instance.file:
                     try:
-                        if cf := instance.update_converted_file():
+                        if cf := instance.update_converted_file(commit=True):
                             messages.success(
                                 self.request,
                                 _(
@@ -5660,8 +5747,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     != "application/pdf"
                 ):
                     try:
-                        if (
-                            letter_of_support_cf := instance.letter_of_support.update_converted_file()
+                        if letter_of_support_cf := instance.letter_of_support.update_converted_file(
+                            commit=True
                         ):
                             messages.success(
                                 self.request,
@@ -7934,7 +8021,7 @@ class ApplicationList(
                 headers={
                     "Content-Disposition": 'attachment; filename="outcomes.csv"',
                     "Cache-Control": "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
-                    "X-Content-Type-Options": "nosniff"
+                    "X-Content-Type-Options": "nosniff",
                 },
             )
             writer = csv.writer(response)
@@ -10582,20 +10669,14 @@ class ApplicationExportView(ExportView):
         # staff, superuser, or a panellist of the round
         if not u.is_authenticated or u.is_anonymous:
             return False
-        return (
-            u.is_admin
-            or (
-                (a := self.get_object())
-                and (
-                    a.submitted_by == u
-                    or a.members.all().filter(user=u).exists()
-                    or (
-                        self.request.site_id not in [4]
-                        and a.referees.all().filter(user=u).exists()
-                    )
-                    or a.round.panellists.all().filter(user=u).exists()
-                    or a.org.research_offices.filter(user=u).exists()
-                )
+        return u.is_admin or (
+            (a := self.get_object())
+            and (
+                a.submitted_by == u
+                or a.members.all().filter(user=u).exists()
+                or (self.request.site_id not in [4] and a.referees.all().filter(user=u).exists())
+                or a.round.panellists.all().filter(user=u).exists()
+                or a.org.research_offices.filter(user=u).exists()
             )
         )
 
