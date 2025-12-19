@@ -100,6 +100,9 @@
                   <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}
                   {{ m | person_with_email }}
+                  {% if not export and not for_pdf_export and m.user == user and m.state == "authorized" %}
+                    <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+                  {% endif %}
                 {% endif %}
               </li>
             {% endfor %}
