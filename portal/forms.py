@@ -3092,8 +3092,11 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                 title=_(f"For application {self.instance.application.number}"),
                 defaults={"file": cv_file},
             )
+            if not created:
+                cv.file.save(cv_file.name, File(cv_file))
             self.instance.cv = cv
-        self.instance.save()
+        if commit:
+            self.instance.save()
         return self.instance
 
     def clean(self):
@@ -3666,7 +3669,7 @@ class NominationForm(ModelForm):
             self.fields.pop("org", None)
 
     def save(self, commit=True):
-        res = super().save(commit=commit)
+        res = super().save(commit=False)
         if self.instance.round.nominator_cv_required:
             if "cv_file" in self.changed_data:
                 cv_file = self.cleaned_data["cv_file"]
@@ -3676,10 +3679,14 @@ class NominationForm(ModelForm):
                     title=_("Nominator CV"),
                     defaults={"file": cv_file},
                 )
+                if not created:
+                    cv.file.save(cv_file.name, File(cv_file))
                 self.instance.cv = cv
 
             elif not self.instance.cv:
                 self.instance.cv = models.CurriculumVitae.last_user_cv(self.instance.nominator)
+        if commit:
+            self.instance.save()
 
         return res
 
@@ -3818,6 +3825,7 @@ class TestimonialForm(ModelForm):
 
     def save(self, commit=True):
 
+        res = super().save(commit=False)
         r = self.instance.round
         if r.referee_cv_required:
             referee = (
@@ -3841,11 +3849,15 @@ class TestimonialForm(ModelForm):
                     title=_("Referee CV"),
                     defaults={"file": cv_file},
                 )
+                if not created:
+                    cv.file.save(cv_file.name, File(cv_file))
                 self.instance.cv = cv
 
             elif not self.instance.cv:
                 self.instance.cv = models.CurriculumVitae.last_user_cv(user)
-        return super().save(commit=commit)
+        if commit:
+            self.instance.save()
+        return res
 
     def is_valid(self):
         if "turn_down" in self.data:

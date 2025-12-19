@@ -9719,6 +9719,7 @@ class MemberView(CreateUpdateView):
 
     model = models.Member
     form_class = forms.MemberForm
+    template_name = None
 
     def get_initial(self, *args, **kwargs):
         # if not is_fs and instance := kwargs.get("instance", None) and instance.user:
