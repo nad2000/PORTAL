@@ -3119,7 +3119,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             i.send(request)
             i.save()
             count += 1
-        return count
+        return invitations
 
     def invite_referees(self, request=None, by=None, referees=None, *args, **kwargs):
         """Send invitations to all referee."""
@@ -14729,6 +14729,7 @@ class Impersonation(HelperMixin, Base):
 
 
 dummy_for_translations = (
+    _("and "),
     _("Browse"),
     _("Currently"),
     _("Change"),

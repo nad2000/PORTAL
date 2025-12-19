@@ -161,6 +161,22 @@ def __(s):
     return s
 
 
+def natural_item_list(items):
+    if not items:
+        return _("N/A")
+    if not isinstance(items, (list, tuple)):
+        items = list(items)
+    count = len(items)
+    if not count:
+        return _("N/A")
+    if count == 1:
+        return items[0]
+    conjunction = gettext_lazy("and ")
+    if count == 2:
+        return f" {conjunction} ".join(items)
+    return f"{', '.join(items[:-1])}, {conjunction} {items[-1]}"
+
+
 def route_exists(url_name, *args, **kwargs):
     try:
         reverse(url_name, args=args, kwargs=kwargs)
@@ -4213,7 +4229,7 @@ class AuthorizationForm(AuthorizationFormMixin, Form):
     pass
 
 
-#class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
+# class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
 class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
     def __init__(self, *args, **kwargs):
@@ -4232,7 +4248,6 @@ class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
         # self.fields["file"].required = True
         # self.fields["country"].required = True
-
 
     # def clean_is_accepted(self):
     #     """Allow only 'True'"""
@@ -4366,6 +4381,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
             return super().post(request, *args, **kwargs)
 
         a = self.object = self.get_object()
+        r = a.round
         u = request.user
         if (
             (action := request.POST.get("action"))
@@ -4392,58 +4408,16 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                 member.user = u
 
             if "submit" in request.POST:
-                if self.object.site_id == 2:
-                    form = self.get_member_form(instance=member)
-                    if form.is_valid():
-                        member = form.save(commit=False)
-                        was_changed = False
-                        cv = models.CurriculumVitae.last_user_cv(u)
-                        if cv and not member.cv:
-                            member.cv = cv
-                            was_changed = True
-                        if not member.first_name:
-                            member.first_name = u.first_name or u.person.first_name
-                            was_changed = True
-                        if not member.last_name:
-                            member.last_name = u.last_name or u.person.last_name
-                            was_changed = True
+                form = self.get_member_form(instance=member)
+                if form.is_valid():
+                    member = form.save(commit=False)
+                    member.authorize(request)
+                    form.save(commit=True)
+                else:
+                    for e in form.errors:
+                        messages.error(request, e)
+                    return redirect(request.path)
 
-                        if "cv_file" in form.changed_data and (
-                            cv_file := request.FILES.get("cv_file")
-                        ):
-                            cv = models.CurriculumVitae.create(
-                                file=cv_file,
-                                owner=u,
-                                person=u.person,
-                                title=_(f"For application {member.application.number}"),
-                            )
-                            member.cv = cv
-                            was_changed = True
-
-                        if form.changed_data or was_changed:
-                            member.save()
-
-                        if (
-                            member.file == ""
-                            or not member.country
-                            or not member.org
-                            or not member.cv
-                        ):
-                            messages.error(
-                                request,
-                                _(
-                                    "Please upload the host support letter and the current CV, and indicate the county of the origin."
-                                ),
-                            )
-                            return redirect(request.path)
-
-                    else:
-                        for e in form.errors:
-                            messages.error(request, e)
-                        return redirect(request.path)
-
-                member.authorize(request)
-                member.save()
                 messages.info(
                     self.request,
                     _("Thank you for accepting the invitation."),
@@ -4630,7 +4604,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
 
             country = m.country_id or self.request.session.get("country")
             initial = country and {"country": country} or {}
-            if cv := models.CurriculumVitae.last_user_cv(u, cut_off_months=a.site==2 and 3):
+            if cv := models.CurriculumVitae.last_user_cv(u, cut_off_months=a.site == 2 and 3):
                 initial["cv_file"] = cv.file
             p = u and u.person
             if not m.title:
@@ -5397,11 +5371,15 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     if members.is_valid():
                         # members.instance = a
                         members.save()
-                        count = a.invite_team_members(self.request)
+                        invitations = a.invite_team_members(self.request)
+                        count = invitations and len(invitations) or 0
+                        email_list = natural_item_list([i.email for i in invitations])
                         if count > 0:
                             messages.success(
                                 self.request,
-                                _("%d invitation(s) to join the team have been sent.") % count,
+                                _(
+                                    f"{count} invitation(s) to join the team have been sent: {email_list}."
+                                ),
                             )
                     else:
                         for f in members.forms:
