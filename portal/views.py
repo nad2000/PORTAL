@@ -5309,6 +5309,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 if not instance.email:
                     instance.email = user.email
 
+                resp = super().form_valid(form)
+
                 if (
                     round.letter_of_support_required
                     and (letter_of_support_file := request.FILES.get("letter_of_support_file"))
@@ -5320,6 +5322,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     letter_of_support = models.LetterOfSupport.create(file=letter_of_support_file)
                     instance.letter_of_support = letter_of_support
                     # if letter_of_support_file.name.endswith(".pdf")
+
 
                 # Handle CV
                 if (
@@ -5369,7 +5372,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     if hasattr(instance, "page_count"):
                         instance.page_count = None
 
-                resp = super().form_valid(form)
                 check_selected_orgs(self.request)
                 has_deleted = False
                 a = form.instance or self.object
@@ -5481,8 +5483,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             or user.person.middle_names,
                             last_name=a.last_name or user.last_name or user.person.last_name,
                             org=a.org,
-                            country=a.org.address
-                            and a.org.address.country
+                            country_id=a.org.address
+                            and a.org.address.country_id
                             or request.session.get("country"),
                             state="authorized",
                             research_experience_in_years=a.research_experience_in_years,
@@ -5507,11 +5509,11 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         ):
 
                             pi.org = a.org or pi.org
-                            pi.country = (
+                            pi.country_id = (
                                 a.org.address
-                                and a.org.address.country
+                                and a.org.address.country_id
                                 or request.session.get("country")
-                                or pi.country
+                                or pi.country_id
                             )
                             pi.first_name = a.first_name
                             pi.last_name = a.last_name

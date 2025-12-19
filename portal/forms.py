@@ -3151,6 +3151,9 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
             self.save_m2m = self._save_m2m
         return self.instance
 
+    # def is_valid(self, *args, **kwargs):
+    #     return super().is_valid(*args, **kwargs)
+
     def full_clean(self):
         if (referee_id := self["id"].data) and not (self["email"].data or "").strip():
             self.cleaned_data = {
