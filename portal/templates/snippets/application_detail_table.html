@@ -95,6 +95,7 @@
               <li>
                 {% if is_admin %}
                   <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
+                  <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
                 {% elif is_ro and not export and not for_pdf_export %}
                   <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}

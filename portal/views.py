@@ -4193,27 +4193,32 @@ class AuthorizationFormMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_group_wrapper_class = "row"
-        self.helper.include_media = False
+        if not hasattr(self, "helper"):
+            self.helper = FormHelper(self)
+            self.helper.include_media = False
         # self.helper.label_class = "offset-md-1 col-md-1"
         # self.helper.field_class = "col-md-8"
+        if self.helper.inputs:
+            self.helper.inputs.pop()
+        if self.helper.inputs:
+            self.helper.inputs.pop()
+
         self.helper.add_input(Submit("submit", _("I agree to be part of this team")))
         self.helper.add_input(
             Submit("turn_down", _("I decline the invitation"), css_class="btn-outline-danger")
         )
-        # Submit("load_from_orcid", "Import from ORCiD", css_class="btn-orcid",)
 
 
 class AuthorizationForm(AuthorizationFormMixin, Form):
     pass
 
 
-class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
+#class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
+class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
     def __init__(self, *args, **kwargs):
-        instance = kwargs.get("instance", None)
         super().__init__(*args, **kwargs)
+        instance = kwargs.get("instance", None) or self.instance
         round = instance.application.round
         if round.member_research_experience_in_years_required:
             self.fields["research_experience_in_years"].required = True
@@ -4228,59 +4233,49 @@ class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
         # self.fields["file"].required = True
         # self.fields["country"].required = True
 
-    cv_file = FileField(
-        required=False,
-        label=gettext_lazy("Curriculum Vitae"),
-        help_text=gettext_lazy("The most current CV"),
-        widget=widgets.ClearableFileInput(
-            attrs={
-                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
-                "data-required": 1,
-            },
-        ),
-    )
 
     # def clean_is_accepted(self):
     #     """Allow only 'True'"""
     #     if not self.cleaned_data["is_accepted"]:
     #         raise forms.ValidationError("Please read and consent to the Privacy Policy")
     #     return True
-    class Meta:
-        model = models.Member
-        fields = ["cv_file", "file", "country", "org", "research_experience_in_years"]
-        widgets = {
-            "country": autocomplete.ModelSelect2(
-                "country-autocomplete",
-                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
-                attrs={"data-required": 1},
-            ),
-            "org": autocomplete.ModelSelect2(
-                "org-autocomplete",
-                forward=["country"],
-                attrs={
-                    "data-placeholder": _("Choose an organisation ..."),
-                    "placeholder": _("Choose an organisation ..."),
-                    "data-required": 1,
-                    "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
-                    "oninput": "this.setCustomValidity('')",
-                },
-            ),
-            "file": widgets.ClearableFileInput(
-                attrs={
-                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
-                    "data-required": 1,
-                },
-            ),
-            "cv_file": widgets.ClearableFileInput(
-                attrs={
-                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
-                    "data-required": 1,
-                },
-            ),
-        }
+    class Meta(forms.MemberForm.Meta):
+        pass
+        # fields = ["cv_file", "file", "country", "org", "research_experience_in_years"]
+        # widgets = {
+        #     "country": autocomplete.ModelSelect2(
+        #         "country-autocomplete",
+        #         # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+        #         attrs={"data-required": 1},
+        #     ),
+        #     "org": autocomplete.ModelSelect2(
+        #         "org-autocomplete",
+        #         forward=["country"],
+        #         attrs={
+        #             "data-placeholder": _("Choose an organisation ..."),
+        #             "placeholder": _("Choose an organisation ..."),
+        #             "data-required": 1,
+        #             "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
+        #             "oninput": "this.setCustomValidity('')",
+        #         },
+        #     ),
+        #     "file": widgets.ClearableFileInput(
+        #         attrs={
+        #             "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+        #             "data-required": 1,
+        #         },
+        #     ),
+        #     "cv_file": widgets.ClearableFileInput(
+        #         attrs={
+        #             "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+        #             "data-required": 1,
+        #         },
+        #     ),
+        # }
 
 
 class ApplicationDetail(FavoriteMixin, DetailView):
+
     model = Application
     template_name = "portal/application_detail.html"
 
@@ -4635,8 +4630,18 @@ class ApplicationDetail(FavoriteMixin, DetailView):
 
             country = m.country_id or self.request.session.get("country")
             initial = country and {"country": country} or {}
-            if cv := models.CurriculumVitae.last_user_cv(u):
+            if cv := models.CurriculumVitae.last_user_cv(u, cut_off_months=a.site==2 and 3):
                 initial["cv_file"] = cv.file
+            p = u and u.person
+            if not m.title:
+                initial["title"] = u.title or p.title
+            if not m.first_name:
+                initial["first_name"] = u.first_name or p and p.first_name
+            if not m.middle_names:
+                initial["middle_names"] = u.middle_names or p and p.middle_names
+            if not m.last_name:
+                initial["last_name"] = u.last_name or p and p.last_name
+
             context["form"] = self.get_member_form(instance=m, initial=initial)
             context["cv_upload_required"] = True
         is_ro = site_id in [2, 4, 5] and (

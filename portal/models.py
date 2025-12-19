@@ -7065,7 +7065,6 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         help_text="Colour used for text headers and fore-grounds",
         default=None,
     )
-
     opens_on = DateField(_("opens on"), null=True, blank=True)
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     priorities = TaggableManager(
@@ -7188,6 +7187,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     member_research_experience_in_years_required = BooleanField(
             # _("personnel research experience in years required"),
             default=False)
+    member_cv_required = BooleanField(default=False)
 
     direct_application_allowed = BooleanField(default=True)
     can_nominate = BooleanField(default=True)

@@ -360,6 +360,7 @@
 {% endblock buttons_above %}
 
 {% block object_details_table %}
+
 {% if form %}
   {% if cv_upload_required %}
     <div class="jumbotron">
@@ -380,7 +381,33 @@
     {% endif %}
     </div>
   {% endif %}
-  {% crispy form %}
+
+  {% if form.helper %}
+      {% if form.helper.form_tag %}
+        <form method="post" enctype="multipart/form-data" id="{{ form.helper.form_id|default:'object_form' }}">{% csrf_token %}
+          {% block modals %}{% endblock %}
+          {% block resolution %}
+            {% include 'snippets/resolution_modal.html' %}
+          {% endblock %}
+          {% crispy form form.helper %}
+        </form>
+      {% else %}
+        {% crispy form form.helper %}
+      {% endif %}
+  {% else %}
+    <form method="post" enctype="multipart/form-data" id="object_form">{% csrf_token %}
+      {#% crispy form %#}
+      {#{ form|crispy }#}
+      {% crispy form %}
+      {% if object.pk %}
+        <input class="btn btn-primary" type="submit" value="{% trans 'Update' %}">
+      {% else %}
+        <input class="btn btn-primary" type="submit" value="{% trans 'Create' %}">
+      {% endif %}
+      <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+    </form>
+  {% endif %}
+
 {% endif %}
 
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
@@ -388,6 +415,7 @@
   {% include 'snippets/application_detail_table.html' %}
 </div>
 {% endwith %}
+
 {% endblock %}
 
 {% block javascript %}

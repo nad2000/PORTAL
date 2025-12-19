@@ -3006,7 +3006,8 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
 
     cv_file = FileField(
         required=False,
-        label=_("Curriculum Vitae"),
+        label=gettext_lazy("Curriculum Vitae"),
+        help_text=gettext_lazy("The most current CV"),
         widget=forms.ClearableFileInput(
             attrs={
                 "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
@@ -3042,10 +3043,15 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         else:
             self.helper = FormHelper(self)
             self.helper.include_media = False
-            self.helper.layout = Layout(
-                Row(
-                    Column("email", css_class="form-group col-11 mb-0"),
-                    Column("state", css_class="form-group col-1 mb-0"),
+            self.helper.form_group_wrapper_class = "row"
+            fields = [
+                (
+                    Row(
+                        Column("email", css_class="form-group col-11 mb-0"),
+                        Column("state", css_class="form-group col-1 mb-0"),
+                    )
+                    if "state" in self.fields
+                    else "email"
                 ),
                 Row(
                     Column("title", css_class="form-group col-2 mb-0"),
@@ -3058,13 +3064,24 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                     Column("org", css_class="form-group col-4 mb-0"),
                     Column("role", css_class="form-group col-4 mb-0"),
                 ),
-                Row(
-                    Column("file", css_class="form-group col-8 mb-0"),
-                    Column("research_experience_in_years", css_class="form-group col-4 mb-0"),
-                ),
-                "cv_file",
-            )
-            self.helper.add_input(Submit("save", _("Save")))
+            ]
+            if "file" in self.fields and "research_experience_in_years" in self.fields:
+                fields.append(
+                    Row(
+                        Column("file", css_class="form-group col-8 mb-0"),
+                        Column("research_experience_in_years", css_class="form-group col-4 mb-0"),
+                    )
+                )
+            elif "file" in self.fields:
+                fields.append("file")
+            elif "research_experience_in_years" in self.fields:
+                fields.append("research_experience_in_years")
+
+            self.fields["cv_file"].required = a.round.member_cv_required
+            self.fields["cv_file"].widget.attrs["data-required"] = 1 if a.round.member_cv_required else 0
+
+            self.helper.layout = Layout(*fields, "cv_file")
+            self.helper.add_input(Submit("save", _("Save"), css_class="btn-primary"))
             self.helper.add_input(
                 Button(
                     "cancel",
@@ -3084,7 +3101,11 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
 
     def save(self, commit=True):
         super().save(commit=False)
-        if "cv_file" in self.changed_data or self.cleaned_data.get("cv_file") and not self.instance.cv:
+        if (
+            "cv_file" in self.changed_data
+            or self.cleaned_data.get("cv_file")
+            and not self.instance.cv
+        ):
             cv_file = self.cleaned_data["cv_file"]
             cv, created = models.CurriculumVitae.get_or_create(
                 owner=self.instance.user,
@@ -3146,8 +3167,8 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         # fields = ["email", "first_name", "middle_names", "last_name", "role"]
         disabled = ["state"]
         labels = {"state": mark_safe("&nbsp;")}
-        widgets = dict(
-            email=forms.EmailInput(
+        widgets = {
+            "email": forms.EmailInput(
                 attrs={
                     "placeholder": _("Email"),
                     "data-required": 1,
@@ -3155,17 +3176,36 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                     "oninput": "this.setCustomValidity('')",
                 }
             ),
-            # has_authorized=NullBooleanSelect(attrs=dict(readonly=True)),
-            state=InvitationStateInput(attrs={"readonly": True}),
-            country=autocomplete.ModelSelect2("country-autocomplete"),
-            org=autocomplete.ModelSelect2("org-autocomplete"),
-            file=forms.ClearableFileInput(
-                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            "state": InvitationStateInput(attrs={"readonly": True}),
+            "country": autocomplete.ModelSelect2(
+                "country-autocomplete",
+                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+                attrs={"data-required": 1},
             ),
-            cv_file=forms.ClearableFileInput(
-                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            "org": autocomplete.ModelSelect2(
+                "org-autocomplete",
+                forward=["country"],
+                attrs={
+                    "data-placeholder": _("Choose an organisation ..."),
+                    "placeholder": _("Choose an organisation ..."),
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
+                    "oninput": "this.setCustomValidity('')",
+                },
             ),
-        )
+            "file": forms.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                    "data-required": 1,
+                },
+            ),
+            "cv_file": forms.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                    "data-required": 1,
+                },
+            ),
+        }
 
 
 class MemberFormSet(
