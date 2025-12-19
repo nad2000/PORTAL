@@ -4547,12 +4547,12 @@ class EthicsStatement(PdfFileMixin, Model):
 
 
 MEMBER_STATES = Choices(
+    ("new", _("new")),
+    ("sent", _("sent")),
+    ("bounced", _("bounced")),
     ("accepted", _("accepted")),
     ("authorized", _("authorized")),
-    ("bounced", _("bounced")),
-    ("new", _("new")),
     ("opted_out", _("opted out")),
-    ("sent", _("sent")),
     (None, None),
 )
 
