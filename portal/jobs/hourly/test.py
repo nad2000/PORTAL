@@ -7,6 +7,8 @@ from loguru import logger
 
 class Job(jobs.HourlyJob):
     help = "test"
+    # COMMENT THIS LINE OUT TO ENABLE:
+    when = "never"
 
     def execute(self):
 

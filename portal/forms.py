@@ -324,6 +324,8 @@ class FTEMixin:
     def save(self, commit=True):
         super().save(commit=commit)
         m = self.instance
+        if not m.pk:
+            return
         Effort = m.efforts.model
         Effort.objects.bulk_create(
             [
@@ -3035,6 +3037,7 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             self.fields.pop("research_experience_in_years", None)
             self.fields.pop("file", None)
             self.fields.pop("cv_file", None)
+            self.fields.pop("title", None)
             if site_id == 2:
                 self.fields.pop("middle_names", None)
             else:
