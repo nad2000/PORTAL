@@ -7173,9 +7173,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     )
 
     letter_of_support_required = BooleanField(default=False)
-    member_letter_of_support_required = BooleanField(default=False)
+    member_letter_of_support_required = BooleanField(
+            # _("personnel letter of support required"),
+            default=False)
     research_experience_in_years_required = BooleanField(default=False)
-    member_research_experience_in_years_required = BooleanField(default=False)
+    member_research_experience_in_years_required = BooleanField(
+            # _("personnel research experience in years required"),
+            default=False)
 
     direct_application_allowed = BooleanField(default=True)
     can_nominate = BooleanField(default=True)
