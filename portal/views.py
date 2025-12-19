@@ -5323,7 +5323,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     instance.letter_of_support = letter_of_support
                     # if letter_of_support_file.name.endswith(".pdf")
 
-
                 # Handle CV
                 if (
                     not update_only_referees
@@ -9714,6 +9713,42 @@ def approve_user(request, user_id=None):
         messages.info(request, f"Self signed user {u.email} is already approved")
 
     return redirect("profile-summary", username=u.username)
+
+
+class MemberView(CreateUpdateView):
+
+    model = models.Member
+    form_class = forms.MemberForm
+
+    def get_initial(self, *args, **kwargs):
+        # if not is_fs and instance := kwargs.get("instance", None) and instance.user:
+        #     initial = kwargs.get("initial", {})
+        #     models.CurriculumVitae.last_user_cv(user=instance.user, cut_off_months=site)
+        initial = super().get_initial(*args, **kwargs)
+        if o := self.object:
+            u = o.user
+            p = u and u.person
+            if not o.title and u:
+                initial["title"] = u.person.title
+            if not o.first_name and u:
+                initial["first_name"] = u.first_name or p and p.first_name
+            if not o.middle_names and u:
+                initial["middle_names"] = u.middle_names or p and p.middle_names
+            if not o.last_name and u:
+                initial["last_name"] = u.last_name or p and p.last_name
+
+            site_id = self.request.site_id
+            cv = o.cv or models.CurriculumVitae.last_user_cv(
+                user=o.user, cut_off_months=site_id == 2 and 3
+            )
+            if cv:
+                if not o.cv:
+                    o.cv = cv
+                    # instance.save(model_fields=["cv"])
+                initial["cv_file"] = cv.file
+                if self.request.method == "GET":
+                    pass
+        return initial
 
 
 class NominationView(CreateUpdateView):

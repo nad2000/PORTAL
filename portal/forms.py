@@ -105,9 +105,13 @@ YearInput = partial(
 
 
 class InvitationStateInput(Widget):
-    # def __init__(self, attrs=None):
-    #     super().__init__(attrs)
-    #     pass
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        if instance := getattr(self, "instance", None):
+            context["instance"] = instance
+            context["pk"] = instance.pk
+        return context
 
     template_name = "invitation_state.html"
 
@@ -141,6 +145,8 @@ class ModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.site_id = kwargs.pop("site_id", 0) or int(settings.SITE_ID)
         super().__init__(*args, **kwargs)
+        if state_field := self.fields.get("state"):
+            state_field.widget.instance = self.instance
 
 
 class ReadOnlyFieldsMixin:
@@ -1108,7 +1114,10 @@ class ApplicationForm(ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if (round.research_experience_in_years_required  or round.member_research_experience_in_years_required) and round.can_specify_panel:
+            if (
+                round.research_experience_in_years_required
+                or round.member_research_experience_in_years_required
+            ) and round.can_specify_panel:
                 self.fields["panel"].queryset = (
                     self.fields["panel"]
                     .queryset.filter(fund__site_id=site_id, state="active")
@@ -1120,7 +1129,10 @@ class ApplicationForm(ModelForm):
                         Column("panel"),
                     )
                 ]
-            elif round.research_experience_in_years_required or round.member_research_experience_in_years_required:
+            elif (
+                round.research_experience_in_years_required
+                or round.member_research_experience_in_years_required
+            ):
                 category_fields = [Field("research_experience_in_years")]
                 self.fields.pop("panel", None)
             elif round.can_specify_panel:
@@ -1719,6 +1731,7 @@ class ContractMemberForm(FTEMixin, ModelForm):
         model = models.ContractMember
         exclude = ["address", "middle_names"]
         disabled = ["state"]
+        labels = {"state": mark_safe("&nbsp;")}
         widgets = dict(user=HiddenInput(), state=InvitationStateInput(attrs={"readonly": True}))
 
 
@@ -2991,8 +3004,24 @@ class ContractForm(ModelForm):
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
+    cv_file = FileField(
+        required=False,
+        label=_("Curriculum Vitae"),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _("Need to attach a CV before submitting the application."),
+                "oninput": "this.setCustomValidity('')",
+            }
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         # duration = kwargs.pop("duration", None)
+        is_fs = kwargs.get("prefix", False)
+
         super().__init__(*args, **kwargs)
         site_id = (
             self.instance
@@ -3001,11 +3030,49 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             and a.site_id
             or settings.SITE_ID
         )
-        if site_id == 2:
-            self.fields.pop("middle_names", None)
+        if is_fs:
+            self.fields.pop("research_experience_in_years", None)
+            self.fields.pop("file", None)
+            self.fields.pop("cv_file", None)
+            if site_id == 2:
+                self.fields.pop("middle_names", None)
+            else:
+                self.fields.pop("org", None)
+                self.fields.pop("country", None)
         else:
-            self.fields.pop("org", None)
-            self.fields.pop("country", None)
+            self.helper = FormHelper(self)
+            self.helper.include_media = False
+            self.helper.layout = Layout(
+                Row(
+                    Column("email", css_class="form-group col-11 mb-0"),
+                    Column("state", css_class="form-group col-1 mb-0"),
+                ),
+                Row(
+                    Column("title", css_class="form-group col-2 mb-0"),
+                    Column("first_name", css_class="form-group col-3 mb-0"),
+                    Column("middle_names", css_class="form-group col-4 mb-0"),
+                    Column("last_name", css_class="form-group col-3 mb-0"),
+                ),
+                Row(
+                    Column("country", css_class="form-group col-4 mb-0"),
+                    Column("org", css_class="form-group col-4 mb-0"),
+                    Column("role", css_class="form-group col-4 mb-0"),
+                ),
+                Row(
+                    Column("file", css_class="form-group col-8 mb-0"),
+                    Column("research_experience_in_years", css_class="form-group col-4 mb-0"),
+                ),
+                "cv_file",
+            )
+            self.helper.add_input(Submit("save", _("Save")))
+            self.helper.add_input(
+                Button(
+                    "cancel",
+                    _("Cancel"),
+                    css_class="btn-danger",
+                    onclick=f"window.location.href='{self.instance.application.detail_url}'",
+                )
+            )
 
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
@@ -3014,6 +3081,20 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         ),
         required=False,
     )
+
+    def save(self, commit=True):
+        super().save(commit=False)
+        if "cv_file" in self.changed_data or self.cleaned_data.get("cv_file") and not self.instance.cv:
+            cv_file = self.cleaned_data["cv_file"]
+            cv, created = models.CurriculumVitae.get_or_create(
+                owner=self.instance.user,
+                person=self.instance.user.person,
+                title=_(f"For application {self.instance.application.number}"),
+                defaults={"file": cv_file},
+            )
+            self.instance.cv = cv
+        self.instance.save()
+        return self.instance
 
     def clean(self):
         cleaned_data = super().clean()
@@ -3049,15 +3130,19 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         fields = [
             "state",
             "email",
+            "title",
             "first_name",
             "middle_names",
             "last_name",
             "role",
             "country",
             "org",
+            "research_experience_in_years",
+            "file",
         ]
         # fields = ["email", "first_name", "middle_names", "last_name", "role"]
         disabled = ["state"]
+        labels = {"state": mark_safe("&nbsp;")}
         widgets = dict(
             email=forms.EmailInput(
                 attrs={
@@ -3071,6 +3156,12 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             state=InvitationStateInput(attrs={"readonly": True}),
             country=autocomplete.ModelSelect2("country-autocomplete"),
             org=autocomplete.ModelSelect2("org-autocomplete"),
+            file=forms.ClearableFileInput(
+                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            ),
+            cv_file=forms.ClearableFileInput(
+                attrs={"accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"}
+            ),
         )
 
 
@@ -3186,6 +3277,7 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     class Meta:
         model = models.Referee
         fields = ["state", "email", "first_name", "last_name", "org"]
+        labels = {"state": mark_safe("&nbsp;")}
         widgets = dict(
             email=forms.EmailInput(
                 attrs={
@@ -3574,22 +3666,22 @@ class NominationForm(ModelForm):
             self.fields.pop("org", None)
 
     def save(self, commit=True):
+        res = super().save(commit=commit)
         if self.instance.round.nominator_cv_required:
             if "cv_file" in self.changed_data:
-                cv = models.CurriculumVitae(
+                cv_file = self.cleaned_data["cv_file"]
+                cv, created = models.CurriculumVitae.get_or_create(
                     owner=self.instance.nominator,
                     person=self.instance.nominator.person,
                     title=_("Nominator CV"),
+                    defaults={"file": cv_file},
                 )
-                cv_file = self.cleaned_data["cv_file"]
-                cv.file.save(cv_file.name, File(cv_file))
-                cv.save()
                 self.instance.cv = cv
 
             elif not self.instance.cv:
                 self.instance.cv = models.CurriculumVitae.last_user_cv(self.instance.nominator)
 
-        return super().save(commit=commit)
+        return res
 
     class Meta:
         model = models.Nomination
@@ -3742,14 +3834,13 @@ class TestimonialForm(ModelForm):
             )
 
             if "cv_file" in self.changed_data:
-                cv = models.CurriculumVitae(
+                cv_file = self.cleaned_data["cv_file"]
+                cv, created = models.CurriculumVitae.get_or_create(
                     owner=user,
                     person=user.person,
                     title=_("Referee CV"),
+                    defaults={"file": cv_file},
                 )
-                cv_file = self.cleaned_data["cv_file"]
-                cv.file.save(cv_file.name, File(cv_file))
-                cv.save()
                 self.instance.cv = cv
 
             elif not self.instance.cv:

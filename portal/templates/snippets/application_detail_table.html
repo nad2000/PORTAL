@@ -86,7 +86,6 @@
     </tr>
 
     {% if a.is_team_application or a.site_id == 5 and a.members.all.count > 1 or a.site_id != 5 and a.members.all.count %}
-
       <tr>
         <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
         <td colspan="3">
@@ -94,8 +93,10 @@
           <ul>
             {% for m in a.members.all %}
               <li>
-                {% if user.is_admin %}
-                  <a href="{% url 'admin:portal_member_change' object_id=m.id %}" target="_blank"> {{ m | person_with_email }} </a>
+                {% if is_admin %}
+                  <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
+                {% elif is_ro and not export and not for_pdf_export %}
+                  <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}
                   {{ m | person_with_email }}
                 {% endif %}

@@ -4571,6 +4571,14 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
 
     application = ForeignKey(Application, on_delete=CASCADE, related_name="members")
     email = EmailField(max_length=120)
+    title = ForeignKey(
+        Title,
+        null=True,
+        blank=True,
+        verbose_name=_("title"),
+        db_column="title",
+        on_delete=SET_NULL,
+    )
     first_name = CharField(max_length=30, null=True, blank=True)
     middle_names = CharField(
         _("middle names"),
@@ -4592,7 +4600,7 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     )
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
-    state = StateField(verbose_name=mark_safe("&nbsp;"), null=True, blank=True, default="new")
+    state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     authorized_at = MonitorField(
         monitor="state", when=["authorized"], null=True, default=None, blank=True
@@ -4862,7 +4870,7 @@ class Referee(RefereeMixin, PersonMixin, Model):
     org = ForeignKey(
         Organisation, verbose_name=_("organisation"), on_delete=SET_NULL, null=True, blank=True
     )
-    state = StateField(mark_safe("&nbsp;"), null=True, blank=True, default="new")
+    state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     testified_at = MonitorField(
         monitor="state", when=["testified"], null=True, default=None, blank=True

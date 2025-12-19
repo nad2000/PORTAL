@@ -9,27 +9,32 @@
     <i class="far fa-envelope text-success text-center"
        aria-hidden="true"
        data-toggle="tooltip"
-       title="{% trans %}The invitation was sent on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i></i>
+       data-html="true"
+       title="{% trans %}The invitation was sent on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
   {% elif state == 'accepted' %}
     <i class="far fa-envelope-open text-success text-center"
        aria-hidden="true"
        data-toggle="tooltip"
-       title="{% trans %}The user accepted your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+       data-html="true"
+       title="{% trans %}The user accepted your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
   {% elif state == 'testified' or state == 'authorized' %}
     <i class="fa fa-check-circle text-success text-center"
        aria-hidden="true"
        data-toggle="tooltip"
-       title="{% trans %}This invite was acted on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+       data-html="true"
+       title="{% trans %}This invite was acted on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
  {% elif state == 'opted-out' or state == 'opted_out' %}
    <i class="fa fa-ban text-danger text-center"
       aria-hidden="true"
       data-toggle="tooltip"
-      title="{% trans %}The user opted out of your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+       data-html="true"
+      title="{% trans %}The user opted out of your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
  {% elif state == 'read' %}
    <i class="fa fa-envelope-open-text text-info text-center"
       aria-hidden="true"
       data-toggle="tooltip"
-      title="{% trans %}The user read your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}"></i>
+       data-html="true"
+      title="{% trans %}The user read your invitation on {{ changed_on }} at {{ changed_time_at }}{% endtrans %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
  {% elif state == 'bounced' %}
    <i class="fa fa-exclamation-triangle text-danger text-center"
       data-placement="right"
@@ -38,7 +43,7 @@
       data-trigger="manual"
       data-html="true"
       title="{% trans %}The invitation delivery failed{% endtrans %}"
-      data-content="{% trans %}The invitation delivery failed or autoreplied at {{ changed_on }}. Please confirm the recipient is receiving email.{% endtrans %}{% if error_message %}<br/><br/><pre>{{ error_message }}</pre>{% endif %}"></i>
+      data-content="{% trans %}The invitation delivery failed or autoreplied at {{ changed_on }}. Please confirm the recipient is receiving email.{% endtrans %}{% if error_message %}<br/><br/><pre>{{ error_message }}</pre>{% endif %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
  {% elif state == 'autoreplied' %}
    <i class="fa fa-reply text-danger text-center"
       data-placement="right"
@@ -47,13 +52,13 @@
       data-trigger="manual"
       data-html="true"
       title="{% trans %}The invitation delivery failed{% endtrans %}"
-      data-content="{% trans %}The invitation delivery failed or autoreplied at {{ changed_on }}. Please contact the recipient directly.{% endtrans %}{% if error_message %}<br/><br/><pre>{{ error_message }}</pre>{% endif %}"></i>
+      data-content="{% trans %}The invitation delivery failed or autoreplied at {{ changed_on }}. Please contact the recipient directly.{% endtrans %}{% if error_message %}<br/><br/><pre>{{ error_message }}</pre>{% endif %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
   {% elif state == 'excluded' %}
    <i class="fa fa-ban text-danger text-center"
       aria-hidden="true"
       data-toggle="tooltip"
       data-html="true"
-      title="{% trans %}The entry was <b>excluded</b> at {{ changed_on }}{% endtrans %}"></i>
+      title="{% trans %}The entry was <b>excluded</b> at {{ changed_on }}{% endtrans %}{% if pk %} (<b>ID</b>: {{ pk }}){% endif %}"></i>
  {% endif %}
  <input type="hidden"
         name="{{ widget.name }}"

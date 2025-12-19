@@ -137,6 +137,11 @@ urlpatterns = [
                     name="application-exported-view",
                 ),
                 path("<number>/summary", views.application_summary, name="application-summary"),
+                path(
+                    "members/<int:pk>/~update",
+                    views.MemberView.as_view(),
+                    name="member-update",
+                ),
             ]
         ),
     ),
