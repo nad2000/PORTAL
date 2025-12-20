@@ -426,9 +426,18 @@ class Model(HelperMixin, TimeStampModel):
     def export_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
         try:
-            return reverse(f"{model_name_slug}-export", args=[str(self.pk)])
+            if number := getattr(self, "number", None):
+                return reverse(
+                    f"{model_name_slug}-export-fn",
+                    kwargs={"pk": self.pk, "filename": f"{number}.pdf"},
+                )
+            else:
+                return reverse(f"{model_name_slug}-export", args=[str(self.pk)])
         except:
-            return None
+            try:
+                return reverse(f"{model_name_slug}-export", args=[str(self.pk)])
+            except:
+                return None
 
     def get_full_detail_url(self, request=None):
         return self.get_full_url(self.detail_url, request=request)

@@ -12802,6 +12802,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     )
     state = StateField(default="draft", verbose_name=_("state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
+    submitted_at = MonitorField(
+        monitor="state", when=["submitted"], null=True, default=None, blank=True
+    )
     file = PrivateFileField(
         max_length=200,
         verbose_name=_("Completed research report"),
@@ -12857,7 +12860,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @cached_property
     def due_date(self):
         se = self.schedule_entry
-        return se.due_date or (se.date_first_remind + relativedelta(weeks=1))
+        return se and se.due_date or (se.date_first_remind + relativedelta(weeks=1))
 
     @cached_property
     def is_overdue(self):

@@ -9,6 +9,37 @@
   <table class="table table-bordered searchable">
     <tbody>
 
+      {% if export %}
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Report Number') }}
+          </th>
+          <td>
+            {{ r.number }}
+          </td>
+        </tr>
+        {% if r.due_date %}
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Due Date') }}
+            </th>
+            <td>
+              {{ r.due_date }}
+            </td>
+          </tr>
+        {% endif %}
+        {% if r.submitted_at %}
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Submitted Date') }}
+            </th>
+            <td>
+              {{ r.submitted_at.data() }}
+            </td>
+          </tr>
+        {% endif %}
+      {% endif %}
+
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Contract Investigator') }}
@@ -22,7 +53,7 @@
       {% if c.pi and c.ci and c.pi != c.ci %}
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Principal Investigator') }}
+          {{ _('Principal Investigator/Fellow') }}
         </th>
         <td>
           {{ c.pi }}
@@ -72,9 +103,13 @@
           {{ _('Project Title') }}
         </th>
         <td>
-          <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">
+          {% if not export %}
+            <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">
+              {{ c.project_title or a.application_title or a.round.name }}
+            </a>
+          {% else %}
             {{ c.project_title or a.application_title or a.round.name }}
-          </a>
+          {% endif %}
         </td>
       </tr>
 
@@ -139,10 +174,14 @@
 
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Current Contract') }}
+          {{ _('Current number') }}
         </th>
         <td>
-          <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
+          {% if export %}
+            <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
+          {% else %}
+            {{ contract_number }}
+          {% endif %}
         </td>
       </tr>
 

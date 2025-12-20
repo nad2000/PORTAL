@@ -1169,52 +1169,65 @@ class ExportView(UserPassesTestMixin, DetailView):
         o = self.object
         return [o.pdf_file.path] if getattr(o, "file", None) else []
 
-    def get_filename(self, pk):
+    def get_filename(self, pk=None):
         return getattr(self.object, "number", "export")
 
-    def get(self, request, pk):
+    def get(self, request, pk, filename=None):
+        o = self.object = self.get_object()
+        if not filename:
+            return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
-            self.object = self.get_object()
-            template = get_template(self.template)
-            attachments = self.get_attachments(pk)
-            # merger = PdfMerger()
-            merger = PdfWriter()
-            merger.add_metadata(self.get_metadata(pk))
 
-            site_id = getattr(self.object, "site_id", None) or settings.SITE_ID
-            logo = logo_1 = logo_2 = None
-            if site_id == 2:
-                if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
-                    logo = f"file://{logo_path}"
+            if hasattr(o, "to_pdf"):
+                pdf_content = io.BytesIO()
+                merger = o.to_pdf(
+                    request=request,
+                    user=request.user,
+                )
+                merger.write(pdf_content)
+                # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
+            else:
+                template = get_template(self.template)
+                attachments = self.get_attachments(pk)
+                # merger = PdfMerger()
+                merger = PdfWriter()
+                merger.add_metadata(self.get_metadata(pk))
 
-            elif site_id in [2, 4, 5]:
-                if logo_path := finders.find("images/MBIE_logo.jpg"):
-                    logo_1 = f"file://{logo_path}"
+                site_id = getattr(self.object, "site_id", None) or settings.SITE_ID
+                logo = logo_1 = logo_2 = None
+                if site_id == 2:
+                    if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
+                        logo = f"file://{logo_path}"
 
-                if logo_path := finders.find("images/RS_logo.png"):
-                    logo_2 = f"file://{logo_path}"
+                elif site_id in [2, 4, 5]:
+                    if logo_path := finders.find("images/MBIE_logo.jpg"):
+                        logo_1 = f"file://{logo_path}"
 
-            elif site_id == 7:
-                if logo_path := finders.find("images/pmspace-logo_small.jpg"):
-                    logo = f"file://{logo_path}"
+                    if logo_path := finders.find("images/RS_logo.png"):
+                        logo_2 = f"file://{logo_path}"
 
-            html = HTML(string=template.render(locals()))
-            pdf_object = html.write_pdf(presentational_hints=True)
-            # converting pdf bytes to stream which is required for pdf merger.
-            pdf_stream = io.BytesIO(pdf_object)
-            merger.append(pdf_stream)
-            for a in attachments:
-                if isinstance(a, (tuple, list)):
-                    merger.append(a[1], outline_item=a[0], import_outline=True)
-                else:
-                    merger.append(a, import_outline=True)
-            pdf_content = io.BytesIO()
-            merger.write(pdf_content)
-            pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
-            pdf_response["Content-Disposition"] = f'inline; filename="{self.get_filename(pk)}.pdf"'
-            pdf_response["X-Content-Type-Options"] = "nosniff"
-            # NB! Need to diesble caching to force usage of the name
+                elif site_id == 7:
+                    if logo_path := finders.find("images/pmspace-logo_small.jpg"):
+                        logo = f"file://{logo_path}"
+
+                html = HTML(string=template.render(locals()))
+                pdf_object = html.write_pdf(presentational_hints=True)
+                # converting pdf bytes to stream which is required for pdf merger.
+                pdf_stream = io.BytesIO(pdf_object)
+                merger.append(pdf_stream)
+                for a in attachments:
+                    if isinstance(a, (tuple, list)):
+                        merger.append(a[1], outline_item=a[0], import_outline=True)
+                    else:
+                        merger.append(a, import_outline=True)
+                pdf_content = io.BytesIO()
+                merger.write(pdf_content)
+
+            pdf_content.seek(0)
+            pdf_response = FileResponse(pdf_content, content_type="application/pdf")
+            pdf_response["Content-Disposition"] = f'inline; filename="{self.get_filename()}.pdf"'
+            # NB! Need to disable caching to force usage of the name
             pdf_response["Cache-Control"] = (
                 "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
             )
@@ -3966,6 +3979,7 @@ class EmailImportView(FileImportView):
 class ReportExportView(ExportView):
     """Report PDF export view"""
 
+    template = "pdf_export_template.html"
     model = models.Report
 
 

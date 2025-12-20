@@ -241,6 +241,11 @@ urlpatterns = [
                 path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
+                    "<int:pk>/~export/<filename>",
+                    views.ReportExportView.as_view(),
+                    name="report-export-fn",
+                ),
+                path(
                     "<int:pk>/~ris-import", views.ReportRisImportView.as_view(), name="ris-import"
                 ),
                 path(
