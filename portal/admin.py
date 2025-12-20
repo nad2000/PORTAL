@@ -2408,7 +2408,7 @@ class RefereeAdmin(
 @admin.register(models.Member)
 class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
-    list_display = ["email", "full_name", "application", "state", "has_authorized", "changed_at"]
+    list_display = ["email", "full_name", "role", "application", "state", "has_authorized", "changed_at"]
     search_fields = [
         "email",
         "first_name",
@@ -2416,7 +2416,12 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
         "application__number",
         "application__application_title",
     ]
-    list_filter = ["application__round", "created_at", "updated_at", "state"]
+    list_filter = [
+        "application__round",
+        "role",
+        "created_at",
+        "updated_at",
+        "state"]
     date_hierarchy = "created_at"
     inlines = [StateLogInline]
     readonly_fields = [
