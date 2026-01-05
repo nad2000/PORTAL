@@ -1177,6 +1177,8 @@ class ExportView(UserPassesTestMixin, DetailView):
             objects = self.get_objects(pk)
             self.object = self.get_object()
             template = get_template(self.template)
+            if hasattr(self, "summary_template"):
+                summary_template = self.summary_template
             attachments = self.get_attachments(pk)
             # merger = PdfMerger()
             merger = PdfWriter()
@@ -3966,6 +3968,7 @@ class EmailImportView(FileImportView):
 class ReportExportView(ExportView):
     """Report PDF export view"""
 
+    summary_template = "partials/report_summary.html"
     model = models.Report
 
 
