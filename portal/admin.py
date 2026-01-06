@@ -30,8 +30,8 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
-from easyaudit import admin as easyaudit_admin
-from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
+# from easyaudit import admin as easyaudit_admin
+# from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
 from import_export import fields
 from import_export.admin import (
@@ -69,11 +69,11 @@ djhacker.formfield(
     ),
 )
 
-djhacker.formfield(
-    CRUDEvent.user,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
-)
+# djhacker.formfield(
+#     CRUDEvent.user,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+# )
 
 djhacker.formfield(
     Token.user,
@@ -82,18 +82,18 @@ djhacker.formfield(
 )
 
 
-djhacker.formfield(
-    LoginEvent.user,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
-)
+# djhacker.formfield(
+#     LoginEvent.user,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+# )
 
 
-djhacker.formfield(
-    RequestEvent.user,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
-)
+# djhacker.formfield(
+#     RequestEvent.user,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+# )
 
 djhacker.formfield(
     models.Panellist.user,
@@ -379,50 +379,50 @@ class UnaccentMixin:
         return sf
 
 
-class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
+# class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
-    list_filter = [
-        "event_type",
-        ("content_type", admin.RelatedOnlyFieldListFilter),
-        # ("user", RelatedOnlyFieldListFilter),
-        ("user", filters.AutocompleteListFilter),
-        "datetime",
-    ]
+#     list_filter = [
+#         "event_type",
+#         ("content_type", admin.RelatedOnlyFieldListFilter),
+#         # ("user", RelatedOnlyFieldListFilter),
+#         ("user", filters.AutocompleteListFilter),
+#         "datetime",
+#     ]
+
+
+# # # Re-register CRUDEventAdmin
+# admin.site.unregister(easyaudit_admin.CRUDEvent)
+# admin.site.register(CRUDEvent, CRUDEventAdmin)
+
+
+# class RequestEventAdmin(AutocompleteFilterMixin, easyaudit_admin.RequestEventAdmin):
+
+#     # list_filter = REQUEST_EVENT_LIST_FILTER
+#     list_filter = [
+#         "method",
+#         ("user", filters.AutocompleteListFilter),
+#         "datetime",
+#     ]
 
 
 # # Re-register CRUDEventAdmin
-admin.site.unregister(easyaudit_admin.CRUDEvent)
-admin.site.register(CRUDEvent, CRUDEventAdmin)
+# admin.site.unregister(easyaudit_admin.RequestEvent)
+# admin.site.register(RequestEvent, RequestEventAdmin)
 
 
-class RequestEventAdmin(AutocompleteFilterMixin, easyaudit_admin.RequestEventAdmin):
+# class LoginEventAdmin(AutocompleteFilterMixin, easyaudit_admin.LoginEventAdmin):
 
-    # list_filter = REQUEST_EVENT_LIST_FILTER
-    list_filter = [
-        "method",
-        ("user", filters.AutocompleteListFilter),
-        "datetime",
-    ]
-
-
-# Re-register CRUDEventAdmin
-admin.site.unregister(easyaudit_admin.RequestEvent)
-admin.site.register(RequestEvent, RequestEventAdmin)
+#     # list_filter = LOGIN_EVENT_LIST_FILTER
+#     list_filter = [
+#         "login_type",
+#         ("user", filters.AutocompleteListFilter),
+#         "datetime",
+#     ]
 
 
-class LoginEventAdmin(AutocompleteFilterMixin, easyaudit_admin.LoginEventAdmin):
-
-    # list_filter = LOGIN_EVENT_LIST_FILTER
-    list_filter = [
-        "login_type",
-        ("user", filters.AutocompleteListFilter),
-        "datetime",
-    ]
-
-
-# Re-register CRUDEventAdmin
-admin.site.unregister(easyaudit_admin.LoginEvent)
-admin.site.register(LoginEvent, LoginEventAdmin)
+# # Re-register CRUDEventAdmin
+# admin.site.unregister(easyaudit_admin.LoginEvent)
+# admin.site.register(LoginEvent, LoginEventAdmin)
 
 
 class CurrentSiteRelatedListFilter(admin.RelatedFieldListFilter):
