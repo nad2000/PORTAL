@@ -192,6 +192,8 @@ Q_CLUSTER = {
     "sync": False if ENV == "prod" else DEBUG,
     "orm": "default",
 }
+# TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
+TASKS = {"default": {"BACKEND": "portal.tasks.Q2Backend"}}
 
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
 # EXPLORER_DEFAULT_CONNECTION = "readonly"
