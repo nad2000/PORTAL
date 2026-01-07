@@ -8043,17 +8043,23 @@ class ApplicationList(
                 start_date = parse_date(start_date)
             if end_date:
                 end_date = parse_date(end_date)
-            contract = models.Contract.create_from_application(
-                application=application,
-                duration=duration,
-                awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            reset_cache(self.request)
-            url = reverse("contract-update", kwargs={"pk": contract.pk})
-            messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
-            return redirect(url)
+            try:
+                contract = models.Contract.create_from_application(
+                    application=application,
+                    duration=duration,
+                    awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(request, getattr(ex, "message", str(ex)))
+                return redirect(request.path)
+            else:
+                reset_cache(self.request)
+                url = reverse("contract-update", kwargs={"pk": contract.pk})
+                messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
+                return redirect(url)
 
         if "outcome_file" in request.FILES:
             file = request.FILES["outcome_file"]

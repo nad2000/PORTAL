@@ -11038,7 +11038,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 )
 
             if efforts:
-                MemberEffort.bulk_create(efforts)
+                ContractMemberEffort.bulk_create(efforts)
 
             if c.duration:
                 ReportingScheduleEntry.bulk_create(

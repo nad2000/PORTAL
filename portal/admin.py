@@ -4159,6 +4159,7 @@ class ContractAdmin(
 
     list_display = (
         "number",
+        "application_link",
         # "category",
         "fund",
         "project_title",
@@ -4313,6 +4314,15 @@ class ContractAdmin(
                 es.file and f'<a href="{es.file.url}">{os.path.basename(es.file.name)}</a>' or "-"
             )
         return "-"
+
+    @admin.display(description="application", ordering="application__number")
+    def application_link(self, obj):
+        a = obj.application
+        return mark_safe(
+            a
+            and f"""<a href="{reverse('admin:portal_application_change', kwargs={"object_id": a.pk})}" target="_blank">{a.number}</a>"""
+            or "-"
+        )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
