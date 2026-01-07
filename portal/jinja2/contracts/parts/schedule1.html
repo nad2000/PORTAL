@@ -54,11 +54,11 @@
   <!-- h2 style="text-align: center;">(Application: {{ a.number }})</h2 -->
   <p>Programme Contract Number: <strong>{{ c.number }}</strong></p>
   <!-- p> Programme Title: <strong>{{ c.project_title }}</strong> </p -->
-  <ol type="1">
-
+  <ol type="1" style="width: 100%; font-size:10.0pt; padding-left: 16px;">
     <li>
       <h2>Key dates</h2>
-      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:468.65pt;margin-left:-12pt;'>
+      <!-- table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:468.65pt;margin-left:-12pt;' -->
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:16cm;margin-left:-12pt;'>
         <tr style="page-break-inside: avoid; page-break-after: avoid;">
           <td width=281 valign=top style='width:45%; padding:0in 5.4pt 0in 5.4pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
@@ -102,7 +102,7 @@
 
     <li>
       <h2>Key Contact Person</h2>
-      <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width="625" style="width:468.65pt;margin-left:-12pt;">
+      <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width="625" style="width:16cm;margin-left:-12pt;">
         <tbody>
 
           <tr style="page-break-inside: avoid; page-break-after: avoid;">
@@ -137,7 +137,7 @@
     <li>
       <h2>Other Key Personnel</h2>
 
-      <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width=625 style="width:468.65pt;margin-left:-12pt;">
+      <table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="7" width=625 style="width:16cm;margin-left:-12pt;">
         <tbody>
 
           <tr style="page-break-inside: avoid; page-break-after: avoid;">
@@ -173,7 +173,7 @@
     <li>
       <h2>Description of Programme</h2>
 
-      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:468.65pt;margin-left:-12pt;'>
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=7 width=625 style='width:16cm;margin-left:-12pt;'>
         <tr style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:35%; padding:0in 5.4pt 0in 5.4pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Programme Title</b></p>
@@ -223,20 +223,16 @@
     <li>
       <h2>Reporting dates</h2>
 
-      <table
+      <table width=625
              border="1"
              cellpadding="5"
              cellspacing="0"
-             with="625"
-             style="width:468.65pt;margin-left:-12pt;">
-        <col width="156"/>
-        <col width="156"/>
-        <col width="318"/>
+             style="width:16cm;margin-left:-12pt;">
         <!-- tr bgcolor="#d0d0d0" -->
         <tr bgcolor="white" valign="middle" style="page-break-inside: avoid; page-break-after: avoid;">
-          <th><b>Year</b></th>
-          <th><b>Report</b></th>
-          <th><b>Due date</b></th>
+          <th style="width:20%;"><b>Year</b></th>
+          <th style="width:30%;"><b>Report</b></th>
+          <th style="width:50%;"><b>Due date</b></th>
         </tr>
         {% for y, entries in c.reporting_schedule_by_years %}
           {% for r in entries %}
@@ -257,17 +253,17 @@
       <h2>Funding</h2>
 
       <table border="1" cellpadding="7" cellspacing="0" with="625"
-                                                        style="width:468.65pt;margin-left:-12pt;">
-        <col width="96"/>
+                                                        style="width:16cm;margin-left:-12pt;">
+        <!-- col width="96"/>
         <col width="176"/>
         <col width="176"/>
-        <col width="176"/>
+        <col width="176"/ -->
         <!-- tr bgcolor="#d0d0d0" valign="middle" -->
         <tr bgcolor="white" valign="middle" style="page-break-inside: avoid; page-break-after: avoid;">
-          <th><b>Year</b></th>
-          <th><b>Amount of Funding</b> (GST excl.)</th>
-          <th><b>Purpose of Funding</b></th>
-          <th><b>Payment details</b></th>
+          <th style="width:10%;"><b>Year</b></th>
+          <th style="width:20%;"><b>Amount of Funding</b> (GST excl.)</th>
+          <th style="width:35%;"><b>Purpose of Funding</b></th>
+          <th style="width:35%;"><b>Payment details</b></th>
         </tr>
         {% for y, entries in c.allocations_by_years %}
           {% for r in entries %}
@@ -299,7 +295,7 @@
              cellspacing="0"
              cellpadding="1"
              width="625"
-             style='width:468.65pt;margin-left:-12pt;'>
+             style='width:16cm;margin-left:-12pt;'>
         <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:40%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%;page-break-after: avoid'><b>Party name</b></p>
@@ -318,7 +314,7 @@
     <li>
       <h2>Additional terms that apply in addition to the terms in Schedule 2 (if any)</h2>
 
-      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:16cm;margin-left:-12pt;'>
         <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:15%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause </b></p>
@@ -352,7 +348,7 @@
     {#% if ammended_clauses %#}
     <li>
       <h2>Variations to terms in Schedule 2 (if any)</h2>
-      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:16cm;margin-left:-12pt;'>
         <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:15%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'><b>Clause
@@ -383,7 +379,7 @@
 
     <li>
       <h2>Appendices attached to Schedule 1</h2>
-      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:468.65pt;margin-left:-12pt;'>
+      <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0 width=625 style='width:16cm;margin-left:-12pt;'>
         <tr style='height:29.6pt' style="page-break-inside: avoid; page-break-after: avoid;">
           <td valign=top style='width:35%; padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
             <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
