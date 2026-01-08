@@ -1652,7 +1652,9 @@ class Organisation(Model):
                     a.save(update_fields=["number"])
 
     @classmethod
-    def search_query(cls, term, queryset=None, nominator=None, user=None, only_active=True):
+    def search_query(
+        cls, term, queryset=None, nominator=None, user=None, only_active=True, country=None
+    ):
         """Organisation search query for autocomplete and select2."""
         # def get_queryset(self):
         q = queryset or cls.objects.all()
@@ -1660,6 +1662,12 @@ class Organisation(Model):
             q = q.filter(is_active=True)
         if nominator:
             q = q.filter(Q(research_offices__user_id=nominator))
+        if country:
+            q = q.filter(
+                Q(address__country_id=country)
+                | Q(address__country__isnull=True)
+                | Q(address__isnull=True)
+            )
         if user:
             q = q.filter(Q(affiliations__person__user=user, affiliations__end_date__isnull=True))
         if term and term.strip():
@@ -1682,17 +1690,22 @@ class Organisation(Model):
                 # .order_by("name", "id")
                 .values_list("id", "name")
             )
-            q = q.union(
-                OrgName.where(
-                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
-                    Q(
-                        org_id__in=OrgName.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
-                        .values("name")
-                        .annotate(Min("org_id"))
-                        .values("org_id__min")
-                    ),
-                ).values_list("org_id", "name")
-            )
+            names = OrgName.where(
+                Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
+                Q(
+                    org_id__in=OrgName.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                    .values("name")
+                    .annotate(Min("org_id"))
+                    .values("org_id__min")
+                ),
+            ).values_list("org_id", "name")
+            if country:
+                names = names.filter(
+                    Q(org__address__country_id=country)
+                    | Q(org__address__country__isnull=True)
+                    | Q(org__address__isnull=True)
+                )
+            q = q.union(names)
             # q = (
             #     q.distinct()
             #     if django.db.connection.vendor == "sqlite"
@@ -7184,12 +7197,14 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     letter_of_support_required = BooleanField(default=False)
     member_letter_of_support_required = BooleanField(
-            # _("personnel letter of support required"),
-            default=False)
+        # _("personnel letter of support required"),
+        default=False
+    )
     research_experience_in_years_required = BooleanField(default=False)
     member_research_experience_in_years_required = BooleanField(
-            # _("personnel research experience in years required"),
-            default=False)
+        # _("personnel research experience in years required"),
+        default=False
+    )
     member_cv_required = BooleanField(default=False)
 
     direct_application_allowed = BooleanField(default=True)
@@ -11037,7 +11052,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         period=e.period,
                         fte=e.fte or (0.8 if m.role_id in ["PC", "PI"] else None),
                     )
-                    for e in MemberEffort.where(Q(member__user=m.user)|Q(member__email=m.email), member__application=a)
+                    for e in MemberEffort.where(
+                        Q(member__user=m.user) | Q(member__email=m.email), member__application=a
+                    )
                 )
 
             if efforts:

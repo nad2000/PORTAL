@@ -8078,7 +8078,9 @@ class ApplicationList(
             else:
                 reset_cache(self.request)
                 url = reverse("contract-update", kwargs={"pk": contract.pk})
-                messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
+                messages.info(
+                    request, f'Contract <a href="{url}">{contract.number}</a> was created.'
+                )
                 return redirect(url)
 
         if "outcome_file" in request.FILES:
@@ -9100,13 +9102,9 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
                 user = contract.pi
         except:
             pass
-        q = models.Organisation.search_query(self.q, nominator=nominator, user=user)
-        if country := self.forwarded.get("country"):
-            q = q.filter(
-                Q(address__country_id=country)
-                | Q(address__country__isnull=True)
-                | Q(address__isnull=True)
-            )
+        q = models.Organisation.search_query(
+            self.q, nominator=nominator, user=user, country=self.forwarded.get("country", None)
+        )
         return q
 
 
