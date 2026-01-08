@@ -3226,6 +3226,7 @@ class ReportViewMixin:
                         )
                 else:
                     org = None
+                    org_name = None
 
                 organization_defined_type = data.get("organization-defined-type")
                 url = data.get("url")
