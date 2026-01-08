@@ -1178,6 +1178,14 @@ class ExportView(UserPassesTestMixin, DetailView):
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
+            self.object = self.get_object()
+            template = get_template(self.template)
+            if hasattr(self, "summary_template"):
+                summary_template = self.summary_template
+            attachments = self.get_attachments(pk)
+            # merger = PdfMerger()
+            merger = PdfWriter()
+            merger.add_metadata(self.get_metadata(pk))
 
             if hasattr(o, "to_pdf"):
                 pdf_content = io.BytesIO()
@@ -3237,6 +3245,7 @@ class ReportViewMixin:
                         )
                 else:
                     org = None
+                    org_name = None
 
                 organization_defined_type = data.get("organization-defined-type")
                 url = data.get("url")
@@ -3979,7 +3988,7 @@ class EmailImportView(FileImportView):
 class ReportExportView(ExportView):
     """Report PDF export view"""
 
-    template = "pdf_export_template.html"
+    summary_template = "partials/report_summary.html"
     model = models.Report
 
 
@@ -8054,17 +8063,23 @@ class ApplicationList(
                 start_date = parse_date(start_date)
             if end_date:
                 end_date = parse_date(end_date)
-            contract = models.Contract.create_from_application(
-                application=application,
-                duration=duration,
-                awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            reset_cache(self.request)
-            url = reverse("contract-update", kwargs={"pk": contract.pk})
-            messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
-            return redirect(url)
+            try:
+                contract = models.Contract.create_from_application(
+                    application=application,
+                    duration=duration,
+                    awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(request, getattr(ex, "message", str(ex)))
+                return redirect(request.path)
+            else:
+                reset_cache(self.request)
+                url = reverse("contract-update", kwargs={"pk": contract.pk})
+                messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
+                return redirect(url)
 
         if "outcome_file" in request.FILES:
             file = request.FILES["outcome_file"]

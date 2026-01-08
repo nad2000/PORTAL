@@ -11037,11 +11037,11 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         period=e.period,
                         fte=e.fte or (0.8 if m.role_id in ["PC", "PI"] else None),
                     )
-                    for e in MemberEffort.where(member__user=m.user, member__application=a)
+                    for e in MemberEffort.where(Q(member__user=m.user)|Q(member__email=m.email), member__application=a)
                 )
 
             if efforts:
-                MemberEffort.bulk_create(efforts)
+                ContractMemberEffort.bulk_create(efforts)
 
             if c.duration:
                 ReportingScheduleEntry.bulk_create(

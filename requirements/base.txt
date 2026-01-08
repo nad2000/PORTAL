@@ -98,3 +98,5 @@ limesurveyrc2api
 odfdo
 # colorlog
 loguru
+boto3
+setuptools

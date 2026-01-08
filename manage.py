@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 import os
 import sys
 from pathlib import Path
