@@ -5346,7 +5346,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     cv, created = models.CurriculumVitae.get_or_create(
                         owner=user,
                         person=user.person,
-                        title=_(f"For application {a.number}"),
+                        title=_(f"For application {instance.number}"),
                         defaults={"file": cv_file},
                     )
                     if not created and "cv_file" in form.changed_data:
