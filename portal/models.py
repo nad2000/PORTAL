@@ -4495,6 +4495,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if self.budget and (filename := self.budget.path):
             return self.get_converted_to_pdf(filename)
 
+    def get_round(self):
+        return self.round
+
     class Meta:
         db_table = "application"
 
@@ -12181,6 +12184,9 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             )
             change_request.save()
 
+    def get_round(self):
+        return self.application.round
+
     class Meta:
         db_table = "contract"
 
@@ -13408,6 +13414,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         ):
             return email
         return c.host_contact_email or ""
+
+    def get_round(self):
+        return self.contract.get_round()
 
     class Meta:
         db_table = "report"

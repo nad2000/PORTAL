@@ -401,6 +401,387 @@ class HelperMixin:
             f"admin:{self._meta.app_label}_{self._meta.model_name}_change", args=[str(self.id)]
         )
 
+    def get_round(self):
+        return getattr(self, "round", None)
+
+    def to_pdf(
+        self,
+        request=None,
+        user=None,
+        add_headers=None,
+        skip_excluded=False,
+        cache=False,
+        *args,
+        **kwargs
+    ):
+        """Create PDF file for export and return PdfMerger"""
+
+        r = self.get_round()
+        site_id = getattr(self, "site_id", None) or settings.SITE_ID
+
+        if not user and request:
+            user = request.user
+
+        attachments = []
+        if not for_panellists and request:
+            for_panellists = request.GET.get("for_panellists", False)
+        include_header_page = not (site_id in [2, 5] and for_panellists)
+        if self.file:
+            attachments.append(
+                (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
+            )
+
+        if (user.is_admin or for_panellists or is_panellist) and self.budget:
+            attachments.append(
+                (
+                    _("Budget"),
+                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
+                    self.budget_pdf,
+                )
+            )
+
+        if (
+            r.applicant_cv_required
+            and not self.documents.filter(document_type__role="CV").exists()
+            and (cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by))
+        ):
+            cvs.append(cv)
+            attachments.append(
+                (
+                    f"{cv.full_name} {_('Curriculum Vitae')}",
+                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
+                    cv.pdf_file.path,
+                    include_header_page and cv.title_page,
+                )
+            )
+
+        def add_testimonials(attachments, user=None):
+            for t in self.get_testimonials(has_testified=True, user=user):
+                referee = t.referee
+                if referee:
+                    if (
+                        referee.survey_token
+                        and referee.survey_token_id
+                        and referee.survey_completed_at
+                        and connection.vendor != "sqlite"
+                    ):
+                        response = referee.get_response(
+                            output_format="pdf",
+                            exclude_scores=for_panellists or is_panellist,
+                            exclude_confidential=exclude_confidential,
+                        )
+                        if response and not isinstance(
+                            response, dict
+                        ):  ## {'status': 'No Data, survey table does not exist.'}
+                            attachments.append(
+                                (
+                                    _("Referee Survey Submitted By %s") % t.referee.full_name,
+                                    response,
+                                    t.title_page,
+                                )
+                            )
+                    if t.file and not exclude_confidential:  ## dont't attache files
+                        attachments.append(
+                            (
+                                (
+                                    _("Referee Report Submitted By %s")
+                                    if site_id == 5
+                                    else _("Testimonial Form Submitted By %s")
+                                )
+                                % t.referee.full_name,
+                                settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
+                                t.title_page,
+                            )
+                        )
+                    if (
+                        r.referee_cv_required
+                        and (referee_cv := t.cv or CurriculumVitae.last_user_cv(t.referee.user))
+                        and referee_cv not in cvs
+                    ):
+                        cvs.append(referee_cv)
+                        attachments.append(
+                            (
+                                f"{referee_cv.full_name} {_('Curriculum Vitae')}",
+                                settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
+                                referee_cv.title_page,
+                            )
+                        )
+
+        if user.is_superuser or user.is_staff or (site_id != 4 and is_panellist) or for_panellists:
+            for n in Nomination.where(application=self, nominator__isnull=False):
+                if n.file:
+                    attachments.append(
+                        (
+                            _("Nomination Submitted By %s") % n.nominator.full_name,
+                            settings.PRIVATE_STORAGE_ROOT + "/" + str(n.pdf_file),
+                            include_header_page and n.title_page,
+                        )
+                    )
+
+                    if (
+                        r.nominator_cv_required
+                        and (nominator_cv := n.cv or CurriculumVitae.last_user_cv(n.nominator))
+                        and nominator_cv not in cvs
+                    ):
+                        cvs.append(nominator_cv)
+                        attachments.append(
+                            (
+                                f"{nominator_cv.full_name} {_('Curriculum Vitae')}",
+                                settings.PRIVATE_STORAGE_ROOT + "/" + str(nominator_cv.pdf_file),
+                                include_header_page and nominator_cv.title_page,
+                            )
+                        )
+
+        if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
+
+            if (
+                user.is_admin
+                or self.is_applicant(user)
+                or user.is_site_staff
+                or is_panellist
+                or for_panellists
+            ):
+                add_testimonials(attachments)
+            else:
+                add_testimonials(attachments, user=user)
+
+        if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
+            attachments.append(
+                (
+                    _("Letter of Support"),
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(self.letter_of_support.pdf_file),
+                    include_header_page and self.letter_of_support.title_page,
+                )
+            )
+
+        for d in self.documents.order_by("required_document__ordering"):
+            if (
+                skip_excluded
+                and d.required_document.exclude
+                or is_referee
+                and not d.required_document.referees_can_access
+                or (is_panellist or for_panellists)
+                and not d.required_document.panellists_can_access
+            ):
+                continue
+            attachments.append(
+                (
+                    f"{d.required_document}",
+                    settings.PRIVATE_STORAGE_ROOT + "/" + str(d.pdf_file),
+                    include_header_page and d.title_page,
+                )
+            )
+
+        if site_id in [2, 4, 5] and not (
+            (nomination := Nomination.where(application=self).last())
+            and nomination.nominator == user
+        ):
+            # resync referee with LimeSurvey:
+            if r.survey_id:
+                # referees that might need to be re-synced:
+                referees = self.referees.filter(
+                    Q(survey_completed_at__isnull=True) | Q(testimonial__isnull=True)
+                )
+                if referees.exists():
+                    try:
+                        r.sync_referee_surveys(request=request, referees=referees)
+                    except Exception as ex:
+                        logger.exception("Error syncing referee surveys: %s", ex)
+                        capture_exception(ex)
+            if (
+                user.is_admin
+                or self.is_applicant(user)
+                or user.is_site_staff
+                or is_panellist
+                or for_panellists
+            ):
+                if r.survey_id or not exclude_confidential:
+                    add_testimonials(attachments)
+            else:
+                if r.survey_id or not exclude_confidential:
+                    add_testimonials(attachments, user=user)
+
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+        merger = PdfWriter()
+        merger.add_metadata(
+            {
+                "/Title": (
+                    f"{self}"
+                    if site_id in [2, 4, 5]
+                    else f"{self.number}: {self.application_title or r.title}"
+                )
+            }
+        )
+        merger.add_metadata({"/Author": self.lead_with_email})
+        merger.add_metadata({"/Subject": r.title})
+        merger.add_metadata({"/Number": self.number})
+        # merger.add_metadata({"/Keywords": r.title})
+
+        objects = []
+        site = self.site or Site.objects.get_current()
+        domain = site.domain
+
+        logo_url = logo_1_url = logo_2_url = None
+        if site_id == 2:
+            if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
+                logo_url = f"file://{logo_path}"
+
+        elif site_id in [2, 4, 5]:
+            if logo_path := finders.find("images/MBIE_logo.jpg"):
+                logo_1_url = f"file://{logo_path}"
+
+            if logo_path := finders.find("images/RS_logo.png"):
+                logo_2_url = f"file://{logo_path}"
+
+        elif site_id == 7:
+            if logo_path := finders.find("images/pmspace-logo_small.jpg"):
+                logo_url = f"file://{logo_path}"
+
+        if (
+            r.research_summary_required
+            and (self.summary_en or self.summary_mi)
+            and (
+                (self.summary_en and ("<img" in self.summary_en or "<iframe" in self.summary_en))
+                or (
+                    self.summary_mi and ("<img" in self.summary_mi or "<iframe" in self.summary_mi)
+                )
+            )
+        ):
+            number = vignere.encode(self.number)
+            url = reverse("application-exported-view", kwargs={"number": number})
+            if site_id in [2, 5] and for_panellists:
+                url = f"{url}?for_panellists=1"
+            if request:
+                summary_url = request.build_absolute_uri(url)
+            else:
+                summary_url = urljoin(f"https://{domain}", url)
+            html = HTML(summary_url)
+        else:
+
+            template = get_template("application-export.html")
+            context = {
+                "application": self,
+                "round": self.round,
+                "objects": objects,
+                "user": user,
+                "site": site,
+                "domain": domain,
+                "site_id": site_id,
+                "SITE_ID": site_id,
+                "logo": logo_url,
+                "logo_1": logo_1_url,
+                "logo_2": logo_2_url,
+                "for_panellists": for_panellists,
+                "for_pdf_export": True,
+            }
+            if for_panellists and (user.is_superuser or user.is_site_staff):
+                if site_id in [2, 5]:
+                    referees = (
+                        self.referees.order_by("survey_completed_at")
+                        if r.survey_id
+                        else self.referees.order_by("testified_at")
+                    )
+                    if r.required_referees:
+                        referees = referees[: r.required_referees]
+                    context["referees"] = referees
+                else:
+                    context["referees"] = self.referees.all()
+
+            html = HTML(string=template.render(context))
+
+        pdf_object = html.write_pdf(presentational_hints=True)
+        # converting pdf bytes to stream which is required for pdf merger.
+        pdf_stream = io.BytesIO(pdf_object)
+        merger.append(
+            pdf_stream,
+            outline_item=(self.application_title or r.title),
+            import_outline=True,
+        )
+        for title, a, *rest in attachments:
+            # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
+            if self.site_id != 4 and rest and (title_page := rest[0]):
+                template = get_template("application-export-attachment-title-page.html")
+                html = HTML(
+                    string=template.render(
+                        {
+                            "application": self,
+                            "title_page": title_page,
+                            "title": title,
+                            # "objects": objects,
+                            "user": user,
+                            "site": site,
+                            "site_id": site_id,
+                            "SITE_ID": site_id,
+                            "domain": domain,
+                            "logo": logo_url,
+                            "logo_1": logo_1_url,
+                            "logo_2": logo_2_url,
+                        }
+                    )
+                )
+                pdf_object = html.write_pdf(presentational_hints=True)
+                # converting pdf bytes to stream which is required for pdf merger.
+                pdf_stream = io.BytesIO(pdf_object)
+                merger.append(
+                    pdf_stream,
+                    # outline_item=(self.application_title or r.title),
+                    import_outline=True,
+                )
+
+            # merger.append(a, outline_item=title, import_outline=True)
+            try:
+                try:
+                    reader = PdfReader(a, strict=False)
+                except PdfReadError as ex:
+                    if "'%PDF-' expected" in ex.args[0]:
+                        pdf = pikepdf.Pdf.open(a)
+                        mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                        pdf.save(mended, normalize_content=True)
+                        reader = PdfReader(mended, strict=False)
+                    else:
+                        raise
+                if reader.is_encrypted:
+                    pdf = pikepdf.Pdf.open(a)
+                    decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                    pdf.save(decrypted, normalize_content=True)
+                    reader = PdfReader(decrypted, strict=False)
+                    # merger.append(decrypted, outline_item=title, import_outline=import_outline)
+                    # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
+
+                # test if book marks can be imported
+                try:
+                    reader.outline
+                    import_outline = site_id != 5
+                except PdfReadError as ex:
+                    if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
+                        "Multiple definitions in dictionary at "
+                    ):
+                        import_outline = False
+                    else:
+                        raise
+
+                merger.append(reader, outline_item=title, import_outline=import_outline)
+            except PdfReadError:
+                capture_message(f"Failed to merge file {a}")
+                raise
+
+        if add_headers or site_id == 4:
+            template = get_template("headers.html")
+            html = HTML(
+                string=template.render({"page_count": len(merger.pages), "application": self})
+            )
+            header_file = PdfReader(
+                io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+            )
+            for dp, hp in zip(merger.pages, header_file.pages):
+                dp.merge_page(hp)
+
+        if cache and for_panellists:
+            pass
+
+        return merger
+
 
 class Model(HelperMixin, TimeStampModel):
     # TODO: figure out how to make generic table naming:
