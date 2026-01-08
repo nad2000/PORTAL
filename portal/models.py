@@ -12825,9 +12825,6 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     )
     state = StateField(default="draft", verbose_name=_("state"))
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
-    submitted_at = MonitorField(
-        monitor="state", when=["submitted"], null=True, default=None, blank=True
-    )
     file = PrivateFileField(
         max_length=200,
         verbose_name=_("Completed research report"),
@@ -12867,6 +12864,11 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     reported_at = MonitorField(
         monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True
     )
+
+    @property
+    def submitted_at(self):
+        return self.reported_at
+
     assessor = ForeignKey(User, on_delete=SET_NULL, blank=True, null=True)
     assessed_at = MonitorField(
         monitor="state", when=["assessed"], null=True, default=None, blank=True
