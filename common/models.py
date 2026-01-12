@@ -404,56 +404,56 @@ class HelperMixin:
     def get_round(self):
         return getattr(self, "round", None)
 
-    def to_pdf(
-        self,
-        request=None,
-        user=None,
-        add_headers=None,
-        skip_excluded=False,
-        cache=False,
-        *args,
-        **kwargs
-    ):
-        """Create PDF file for export and return PdfMerger"""
+    # def to_pdf(
+    #     self,
+    #     request=None,
+    #     user=None,
+    #     add_headers=None,
+    #     skip_excluded=False,
+    #     cache=False,
+    #     *args,
+    #     **kwargs
+    # ):
+    #     """Create PDF file for export and return PdfMerger"""
 
-        r = self.get_round()
-        site_id = getattr(self, "site_id", None) or settings.SITE_ID
+    #     r = self.get_round()
+    #     site_id = getattr(self, "site_id", None) or settings.SITE_ID
 
-        if not user and request:
-            user = request.user
+    #     if not user and request:
+    #         user = request.user
 
-        attachments = []
-        if not for_panellists and request:
-            for_panellists = request.GET.get("for_panellists", False)
-        include_header_page = not (site_id in [2, 5] and for_panellists)
-        if self.file:
-            attachments.append(
-                (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
-            )
+    #     attachments = []
+    #     if not for_panellists and request:
+    #         for_panellists = request.GET.get("for_panellists", False)
+    #     include_header_page = not (site_id in [2, 5] and for_panellists)
+    #     if self.file:
+    #         attachments.append(
+    #             (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
+    #         )
 
-        if (user.is_admin or for_panellists or is_panellist) and self.budget:
-            attachments.append(
-                (
-                    _("Budget"),
-                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
-                    self.budget_pdf,
-                )
-            )
+    #     if (user.is_admin or for_panellists or is_panellist) and self.budget:
+    #         attachments.append(
+    #             (
+    #                 _("Budget"),
+    #                 # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
+    #                 self.budget_pdf,
+    #             )
+    #         )
 
-        if (
-            r.applicant_cv_required
-            and not self.documents.filter(document_type__role="CV").exists()
-            and (cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by))
-        ):
-            cvs.append(cv)
-            attachments.append(
-                (
-                    f"{cv.full_name} {_('Curriculum Vitae')}",
-                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
-                    cv.pdf_file.path,
-                    include_header_page and cv.title_page,
-                )
-            )
+    #     if (
+    #         r.applicant_cv_required
+    #         and not self.documents.filter(document_type__role="CV").exists()
+    #         and (cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by))
+    #     ):
+    #         cvs.append(cv)
+    #         attachments.append(
+    #             (
+    #                 f"{cv.full_name} {_('Curriculum Vitae')}",
+    #                 # settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
+    #                 cv.pdf_file.path,
+    #                 include_header_page and cv.title_page,
+    #             )
+    #         )
 
         def add_testimonials(attachments, user=None):
             for t in self.get_testimonials(has_testified=True, user=user):

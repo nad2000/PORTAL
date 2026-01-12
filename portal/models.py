@@ -12876,9 +12876,6 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     notes = GenericRelation(Note)
     favorites = GenericRelation(Favorite)
 
-    def put(self, *args, **kwargs):
-        pass
-
     def is_ro(self, user):
         return self.contract and self.contract.org.research_offices.filter(user=user).exists()
 
