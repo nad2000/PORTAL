@@ -1187,7 +1187,6 @@ class ExportView(UserPassesTestMixin, DetailView):
             merger = PdfWriter()
             merger.add_metadata(self.get_metadata(pk))
 
-            breakpoint()
             if hasattr(o, "to_pdf"):
                 pdf_content = io.BytesIO()
                 merger = o.to_pdf(
