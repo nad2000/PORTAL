@@ -452,8 +452,9 @@ def shoud_be_onboarded(function):
 @login_required
 def logout(request):
     account_logout = reverse("account_logout")
-    del request.COOKIES["previous_user_id"]
-    resp.delete_cookie("previous_user_id")
+    if "previous_user_id" in request.COOKIES:
+        del request.COOKIES["previous_user_id"]
+        resp.delete_cookie("previous_user_id")
 
     if request.user.has_rapidconnect_account:
         return_url = request.build_absolute_uri(account_logout)
