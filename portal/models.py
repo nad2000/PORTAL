@@ -13309,7 +13309,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             html_message = f"{html_message}.</p>"
 
         send_mail(
-            "Report {self} amendment and resubmission required",
+            f"Report {self} amendment and resubmission required",
             html_message=html_message,
             from_email="reports",
             recipients=[self.pi],
