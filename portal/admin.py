@@ -1554,16 +1554,16 @@ class ApplicationAdmin(
 
     complete.boolean = True
 
-    @admin.display(description="State", empty_value="N/A")
-    def STATE(self, obj):
-        if obj.state:
-            if obj.state_changed_at:
-                sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
-                return mark_safe(
-                    f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
-                )
-            return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
-        return ""
+    # @admin.display(description="State", empty_value="N/A")
+    # def STATE(self, obj):
+    #     if obj.state:
+    #         if obj.state_changed_at:
+    #             sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+    #             return mark_safe(
+    #                 f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
+    #             )
+    #         return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
+    #     return ""
 
     @admin.display(description="Previous Numbers")
     def previous_numbers(self, obj, *args, **kwargs):
@@ -4702,7 +4702,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
             {
                 "fields": [
                     (
-                        "state",
+                        "STATE",
                         # "type",
                         "contract",
                         # "period",
@@ -4776,7 +4776,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
             },
         ),
     ]
-    # readonly_fields = ["ethics_statement_link"]
+    readonly_fields = ["STATE", "contract"]
 
     # @admin.display(description="ethics statement")
     # def ethics_statement_link(self, obj):

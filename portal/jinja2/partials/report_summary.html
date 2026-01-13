@@ -11,8 +11,8 @@
 
       {% if export %}
         <tr>
-          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-            {{ _('Report Number') }}
+          <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Report Number') }}{% if export %}:{% endif %}
           </th>
           <td>
             {{ r.number }}
@@ -20,8 +20,8 @@
         </tr>
         {% if r.due_date %}
           <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {{ _('Due Date') }}
+            <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Due Date') }}:
             </th>
             <td>
               {{ r.due_date }}
@@ -30,30 +30,43 @@
         {% endif %}
         {% if r.submitted_at %}
           <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {{ _('Submitted Date') }}
+            <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Submitted Date') }}{% if export %}:{% endif %}
             </th>
             <td>
-              {{ r.submitted_at.data() }}
+              {{ r.submitted_at.data() }}:
             </td>
           </tr>
         {% endif %}
+      {% else %}
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Contract') }}
+          </th>
+          <td>
+            <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
+          </td>
+        </tr>
       {% endif %}
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Contract Investigator') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Contract PI') }}{% if export %}:{% endif %}
         </th>
         <td>
-          {{ c.ci }}
+          {% if export %}
+            {{ c.ci }}
+          {% else %}
+            {{ c.ci.full_name_with_email }} / {{ c.ci.username }}
+          {% endif %}
           <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
         </td>
       </tr>
 
       {% if c.pi and c.ci and c.pi != c.ci %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Principal Investigator/Fellow') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Principal Investigator/Fellow') }}{% if export %}:{% endif %}
         </th>
         <td>
           {{ c.pi }}
@@ -64,8 +77,8 @@
 
       {% if r.assessor or request.user.is_admin  %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Assessor') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Assessor') }}{% if export %}:{% endif %}
         </th>
         <td>
           {% if not r.assessor %}
@@ -88,19 +101,19 @@
       </tr>
       {% endif %}
 
-      <tr>
+      <!-- tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Coordinator') }}
+          {{ _('Coordinator') }}{% if export %}:{% endif %}
         </th>
         <td>
           {{ coordinator or _('N/A') }}
           {#{ c.host_contact_email_address or n and n.nominator.full_name_with_email or _('N/A') }#}
         </td>
-      </tr>
+      </tr -->
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Project Title') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Project Title') }}{% if export %}:{% endif %}
         </th>
         <td>
           {% if not export %}
@@ -114,8 +127,8 @@
       </tr>
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Report Number, Type') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report Number, Type') }}{% if export %}:{% endif %}
         </th>
         <td>
           <a href="{{ url('report', pk=r.pk) }}" target="_blank">#{{ r.period }}, {{ r.get_type_display() }}</a>
@@ -123,8 +136,8 @@
       </tr>
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Report Due') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report Due') }}{% if export %}:{% endif %}
         </th>
         <td>
           {% if due_in_days < 1 %}
@@ -143,7 +156,7 @@
 
       {#
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Project URL') }}
         </th>
         <td>
@@ -153,34 +166,25 @@
       #}
 
       {% if c.host_number %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Organisation Contract ID') }}
-        </th>
-        <td>
-          {{ c.host_number }}
-        </td>
-      </tr>
+        <tr>
+          <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Organisation Contract ID') }}{% if export %}:{% endif %}
+          </th>
+          <td>
+            {{ c.host_number }}
+          </td>
+        </tr>
       {% endif %}
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Application') }}
-        </th>
-        <td>
-          <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
-        </td>
-      </tr>
-
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Current number') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Application') }}{% if export %}:{% endif %}
         </th>
         <td>
           {% if export %}
-            <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
+            {{ application_number }}
           {% else %}
-            {{ contract_number }}
+            <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
           {% endif %}
         </td>
       </tr>
