@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.db.models import query
 import mimetypes
 from multisite.models import Alias
+from sentry_sdk import capture_exception
 
 from .. import models
 
@@ -386,7 +387,13 @@ def send_mail(
     if html_message:
         msg.attach_alternative(html_message, "text/html")
 
-    resp = msg.send()
+    try:
+        resp = msg.send()
+    except Exception as ex:
+        capture_exception(ex)
+        if not fail_silently:
+            raise ex
+        resp = ex
 
     all_recipients = list(
         recipients.union(bcc or [])
