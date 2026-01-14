@@ -646,20 +646,16 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(
-                f"""
+            return HttpResponse(f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """
-            )
-        return HttpResponse(
-            f"""
+            """)
+        return HttpResponse(f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """
-        )
+        """)
 
 
 class NotesMixin:
@@ -4864,11 +4860,9 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse(
-        """
+    return HttpResponse("""
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """
-    )
+    """)
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -7551,6 +7545,11 @@ class ContractViewMixin:
 
     def form_valid(self, form):
         i = form.instance
+        if "start_date" in form.changed_data and i.pk:
+            current_start_date = (
+                self.model.where(pk=i.pk).values_list("start_date", flat=True).first()
+            )
+
         site = i and i.site or self.request.site
         contract_state = i.state
         if i and i.pk:
@@ -7562,6 +7561,7 @@ class ContractViewMixin:
                     return redirect(self.request.META.get("HTTP_REFERER") + "#parts")
 
         a = self.application
+        r = a.round
         request = self.request
         u = request.user
         if not i.submitted_by:
@@ -7605,11 +7605,52 @@ class ContractViewMixin:
                 if fs.is_valid():
                     fs.save()
 
+                fs = self.get_reporting_schedule_formset()
                 if not is_ro:
-                    fs = self.get_reporting_schedule_formset()
                     fs.instance = self.object
                     if fs.is_valid():
                         fs.save()
+
+                if "start_date" in form.changed_data and i.pk:
+                    if current_start_date and i.start_date and i.start_date != current_start_date:
+                        delta = relativedelta(i.start_date, current_start_date)
+                        reporting_schedule_changed = False
+                        reporting_schedule_changed
+                        for rse in i.reporting_schedule.all().order_by("period", "due_date"):
+                            if rse.due_date:
+                                due_date = (rse.due_date + delta).replace(day=1)
+                            else:
+                                due_date = (
+                                    i.start_date + relativedelta(years=rse.period)
+                                ).replace(day=1) + (
+                                    relativedelta(days=-1, months=r.final_report_deferral or 3)
+                                    if rse.period == i.duration and rse.type == "F"
+                                    else relativedelta(days=-1)
+                                )
+                            if rse.due_date != due_date:
+                                rse.due_date = due_date
+                                reporting_schedule_changed = True
+
+                            if rse.date_first_remind:
+                                date_first_remind = (rse.date_first_remind + delta).replace(day=1)
+                            else:
+                                date_first_remind = rse.due_date + relativedelta(months=-1)
+
+                            if rse.date_first_remind != date_first_remind:
+                                rse.date_first_remind = date_first_remind
+                                reporting_schedule_changed = True
+
+                            if reporting_schedule_changed:
+                                rse.save(update_fields=["due_date", "date_first_remind"])
+
+                        if reporting_schedule_changed:
+                            messages.info(
+                                self.request,
+                                _(
+                                    "The reporting schedule have been updated according to the new contract start date. "
+                                    "Please review the reporting schedule."
+                                ),
+                            )
 
                 fs = self.get_personnel_formset()
                 fs.instance = self.object
@@ -9465,12 +9506,10 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _(
-                                """
+                            notes = _("""
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """
-                            )
+                            """)
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)

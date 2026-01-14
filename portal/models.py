@@ -2114,8 +2114,7 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_"""
-            + get_language(),
+            ORDER BY description_""" + get_language(),
             [person.pk],
         )
 
@@ -7447,7 +7446,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         Currency, on_delete=SET_NULL, null=True, blank=True, db_column="currency", default="NZD"
     )
     final_report_deferral = SmallIntegerField(
-        null=True, blank=True, help_text="Final report deferral in months"
+        null=True,
+        blank=True,
+        help_text="Final report deferral in months (default: 3 months)",
+        default=3,
     )
 
     @cached_property
@@ -10600,7 +10602,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
         qs = queryset.model.reporting_schedule.field.model.where(
             Q(contract__in=queryset) if queryset else Q(state__in=["current", "CUR"]),
-            Q(due_date__lte=(now - relativedelta(month=1))) | Q(date_first_remind__lte=now),
+            Q(due_date__lte=(now - relativedelta(months=1))) | Q(date_first_remind__lte=now),
             report__isnull=True,
         )
         for rse in qs:
@@ -11061,30 +11063,27 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 ContractMemberEffort.bulk_create(efforts)
 
             if c.duration:
-                ReportingScheduleEntry.bulk_create(
-                    [
-                        ReportingScheduleEntry(
-                            contract=c,
-                            period=p,
-                            type="A" if p != c.duration else "F",
-                            due_date=(c.start_date + relativedelta(years=p)).replace(day=1)
-                            + (
-                                relativedelta(days=-1, month=r.final_report_deferral)
-                                if p == c.duration and r.final_report_deferral
-                                else relativedelta(days=-1)
-                            ),
-                            date_first_remind=(c.start_date + relativedelta(years=p)).replace(
-                                day=1
-                            )
-                            + (
-                                relativedelta(days=-1, months=r.final_report_deferral - 1)
-                                if p == c.duration and r.final_report_deferral
-                                else relativedelta(days=-1, months=-1)
-                            ),
-                        )
-                        for p in range(1, c.duration + 1)
-                    ]
-                )
+                schedule = [
+                    ReportingScheduleEntry(
+                        contract=c,
+                        period=p,
+                        type="A" if p != c.duration else "F",
+                        due_date=(c.start_date + relativedelta(years=p)).replace(day=1)
+                        + (
+                            relativedelta(days=-1, months=r.final_report_deferral or 3)
+                            if p == c.duration
+                            else relativedelta(days=-1)
+                        ),
+                        date_first_remind=(c.start_date + relativedelta(years=p)).replace(day=1)
+                        + (
+                            relativedelta(days=-1, months=(r.final_report_deferral or 3) - 1)
+                            if p == c.duration
+                            else relativedelta(days=-1, months=-1)
+                        ),
+                    )
+                    for p in range(1, c.duration + 1)
+                ]
+                ReportingScheduleEntry.bulk_create(schedule)
 
                 allocation = (awarded_amount / c.duration) if awarded_amount else 0.0
                 allocations = [round_number(allocation, 0)] * c.duration
