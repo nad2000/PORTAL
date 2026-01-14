@@ -77,6 +77,9 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         default=HelperMixin.get_current_site_id,
     )
 
+    def __str__(self):
+        return f"{super().__str__()} ({self.username})"
+
     def save(self, *args, **kwargs):
         if self.email:
             self.email = self.email.lower()

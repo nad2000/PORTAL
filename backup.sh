@@ -18,7 +18,8 @@ sudo find ./archive -mtime +1 -exec rm -f {} \;
 psql -U postgres -c "VACUUM FULL ANALYZE;"
 psql -U postgres -c "SELECT pg_backup_start('$TS_LABEL', false);"
 sudo bash -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
-sudo -u postgres XZ_OPT="-9 --memory=135000000" tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
+# sudo -u postgres XZ_OPT="-9 --memory=135000000" tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
+sudo -u postgres tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
 psql -U postgres -c "SELECT pg_backup_stop();"
 [ $(date +%d) != '01' ] && NEWER="-N $(date +%Y-%m-01)"
 # if [ "$(hostname)" != 'mail.prodata.nz' ] ; then

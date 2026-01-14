@@ -10440,6 +10440,7 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Fil
         if self.request.user.is_ro:
             all_rounds = models.Round.where(
                 Q(opens_on__isnull=True) | Q(opens_on__lte=timezone.now()),
+                Q(closes_at__isnull=True) | Q(closes_at__gte=timezone.now()),
                 scheme__current_round=F("pk"),
             )
             if all_rounds.exists():
