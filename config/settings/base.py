@@ -176,7 +176,7 @@ INSTALLED_APPS = [
     "django_bootstrap_breadcrumbs",
     "taggit",
     "admin_ordering",
-    "easyaudit",
+    ## "easyaudit",
     # "dalf",
     # "autocompletefilter",
     "django_q",
@@ -192,6 +192,8 @@ Q_CLUSTER = {
     "sync": False if ENV == "prod" else DEBUG,
     "orm": "default",
 }
+# TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
+TASKS = {"default": {"BACKEND": "portal.tasks.Q2Backend"}}
 
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
 # EXPLORER_DEFAULT_CONNECTION = "readonly"
@@ -278,7 +280,7 @@ MIDDLEWARE = [
     # "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
+    ## "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
 ]
 
 
