@@ -10460,6 +10460,15 @@ class NominationDetail(DetailView):
     model = models.Nomination
     template_name = "nomination_detail.html"
 
+    def post(self, request, *args, **kwargs):
+        resp = super().post(request, *args, **kwargs)
+        if (
+            request.POST.get("action") in ["accept", "accept_nomination"]
+            and self.object.state == "accepted"
+        ):
+            return redirect("nomination-application-create", nomination=self.object.pk)
+        return resp
+
     @property
     def can_start_applying(self):
         u = self.request.user
