@@ -1710,8 +1710,11 @@ def index(request):
             Q(user=user)
             | Q(email__lower=user.email.lower())
             | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__lower"))),
-            ~Q(invitations__state__in=["accepted", "expired", "revoked", "new", "draft"]),
-            state__in=["sent", "submitted"],
+            Q(
+                ~Q(invitations__state__in=["accepted", "expired", "revoked", "new", "draft"]),
+                Q(state__in=["sent", "submitted"]),
+            )
+            | Q(state="accepted", application__isnull=True),
             round__scheme__current_round=F("round"),
         )
         if is_ro or not is_admin:
