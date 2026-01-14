@@ -10437,9 +10437,14 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Fil
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        if self.request.user.research_offices.exists():
-            context["all_rounds"] = models.Round.where(scheme__current_round=F("pk"))
-            self.has_actions = True
+        if self.request.user.is_ro:
+            all_rounds = models.Round.where(
+                Q(opens_on__isnull=True) | Q(opens_on__lte=timezone.now()),
+                scheme__current_round=F("pk"),
+            )
+            if all_rounds.exists():
+                context["all_rounds"] = all_rounds
+                self.has_actions = True
         return context
 
     def get_queryset(self, *args, **kwargs):

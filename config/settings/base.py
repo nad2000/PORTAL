@@ -176,7 +176,7 @@ INSTALLED_APPS = [
     "django_bootstrap_breadcrumbs",
     "taggit",
     "admin_ordering",
-    ## "easyaudit",
+    "easyaudit",
     # "dalf",
     # "autocompletefilter",
     "django_q",
@@ -280,7 +280,7 @@ MIDDLEWARE = [
     # "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    ## "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
+    "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
 ]
 
 

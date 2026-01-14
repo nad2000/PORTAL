@@ -1,52 +1,40 @@
-from typing import TypeVar
+# from background_task.tasks import logger
+import logging
+from traceback import format_exception
 
-from background_task import background
-from background_task.tasks import logger
 from django.contrib.auth import get_user_model
+from django.tasks.backends.base import BaseTaskBackend
+from django.tasks.base import Task, TaskContext, TaskError, TaskResult, TaskResultStatus
+from django.tasks.signals import task_enqueued, task_finished, task_started
 from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.utils.json import normalize_json
 from django_q.models import OrmQ
 from django_q.tasks import async_task
-from django_tasks.base import Task, TaskContext, TaskError, TaskResult, TaskResultStatus
-from django_tasks.signals import task_enqueued, task_finished, task_started
-from django_tasks.utils import (
-    get_exception_traceback,
-    get_module_path,
-    get_random_id,
-    normalize_json,
-)
-from typing_extensions import ParamSpec
-
-from .base import BaseTaskBackend
 
 User = get_user_model()
-
-
-T = TypeVar("T")
-P = ParamSpec("P")
+logger = logging.getLogger(__name__)
 
 
 # TODO: This backend currently runs tasks synchronously. We should update it to use
 class Q2Backend(BaseTaskBackend):
-
     supports_async_task = True
     supports_priority = True
 
-    def __init__(self, alias: str, params: dict):
+    def __init__(self, alias, params):
         super().__init__(alias, params)
+        self.worker_id = get_random_string(32)
 
-        self.worker_id = get_random_id()
-
-    def _execute_task(self, task_result: TaskResult) -> None:
+    def _execute_task(self, task_result):
         """
-        Execute the Task for the given TaskResult, mutating it with the outcome
+        Execute the Task for the given TaskResult, mutating it with the
+        outcome.
         """
         object.__setattr__(task_result, "enqueued_at", timezone.now())
         task_enqueued.send(type(self), task_result=task_result)
 
         task = task_result.task
-
         task_start_time = timezone.now()
-
         object.__setattr__(task_result, "status", TaskResultStatus.RUNNING)
         object.__setattr__(task_result, "started_at", task_start_time)
         object.__setattr__(task_result, "last_attempted_at", task_start_time)
@@ -73,34 +61,28 @@ class Q2Backend(BaseTaskBackend):
             raise
         except BaseException as e:
             object.__setattr__(task_result, "finished_at", timezone.now())
-
+            exception_type = type(e)
             task_result.errors.append(
                 TaskError(
-                    exception_class_path=get_module_path(type(e)),
-                    traceback=get_exception_traceback(e),
+                    exception_class_path=(
+                        f"{exception_type.__module__}.{exception_type.__qualname__}"
+                    ),
+                    traceback="".join(format_exception(e)),
                 )
             )
-
             object.__setattr__(task_result, "status", TaskResultStatus.FAILED)
-
             task_finished.send(type(self), task_result=task_result)
         else:
             object.__setattr__(task_result, "finished_at", timezone.now())
-            object.__setattr__(task_result, "status", TaskResultStatus.SUCCEEDED)
-
+            object.__setattr__(task_result, "status", TaskResultStatus.SUCCESSFUL)
             task_finished.send(type(self), task_result=task_result)
 
-    def enqueue(
-        self,
-        task: Task[P, T],
-        args: P.args,  # type: ignore[valid-type]
-        kwargs: P.kwargs,  # type: ignore[valid-type]
-    ) -> TaskResult[T]:
+    def enqueue(self, task, args, kwargs):
         self.validate_task(task)
 
-        task_result = TaskResult[T](
+        task_result = TaskResult(
             task=task,
-            id=get_random_id(),
+            id=get_random_string(32),
             status=TaskResultStatus.READY,
             enqueued_at=None,
             started_at=None,
@@ -116,14 +98,6 @@ class Q2Backend(BaseTaskBackend):
         self._execute_task(task_result)
 
         return task_result
-
-
-@background()
-def notify_user(user_id, message):
-    # lookup user by id and send them a message
-    user = User.objects.get(pk=user_id)
-    user.email_user("Here is a notification", message or "You have been notified")
-    logger.info(f"*** Message '{message}' was sent to address {user.email}")
 
 
 # vim:set ft=python.django:
