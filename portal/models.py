@@ -9410,6 +9410,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             "bounced",
         ],
         target="accepted",
+        custom=dict(internal=True),
         permission=lambda instance, user: user.emailaddress_set.filter(
             email__iexact=instance.email
         ).exists(),
