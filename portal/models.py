@@ -9448,7 +9448,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         if select_related:
             prefetch_related_objects(q, "round")
 
-        if not (user.is_superuser or user.is_staff or user.is_site_staff):
+        if not user.is_admin:
             # if not state or (state == "submitted" or "submitted" in state):
             q = q.filter(
                 Q(nominator=user)
@@ -9456,7 +9456,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 | Q(nominator__research_offices__org__research_offices__user=user)
                 | Q(
                     Q(Q(user=user) | Q(email=user.email)),
-                    state="submitted",
+                    Q(state="submitted") | Q(state="accepted", application__isnull=True),
                 )
             ).distinct()
         if not include_inactive:
