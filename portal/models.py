@@ -4203,6 +4203,21 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+        if (
+            r.member_letter_of_support_required
+            and self.membes.fiter(Q(file__isnull=False) | ~Q(file="")).exists()
+        ):
+            attachments.extend(
+                [
+                    (
+                        f"Letter of Support ({m.full_name})",
+                        settings.PRIVATE_STORAGE_ROOT + "/" + str(m.pdf_file),
+                        include_header_page and m.title_page,
+                    )
+                    for m in self.members.fiter(Q(file__isnull=False) | ~Q(file=""))
+                ]
+            )
+
         for d in self.documents.order_by("required_document__ordering"):
             if (
                 skip_excluded
