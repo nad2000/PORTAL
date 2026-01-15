@@ -1714,7 +1714,7 @@ def index(request):
                 ~Q(invitations__state__in=["accepted", "expired", "revoked", "new", "draft"]),
                 Q(state__in=["sent", "submitted"]),
             )
-            | Q(state="accepted", application__isnull=True),
+            | Q(state__in=["sent", "accepted"], application__isnull=True),
             round__scheme__current_round=F("round"),
         )
         if is_ro or not is_admin:
@@ -5243,7 +5243,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
                 if cv:
                     message = f"""{message}
-                    {_('''Make suer that the select C.V.
+                    {_('''Make sure that the select C.V.
                 <a href="%s" target="_blank">%s</a>
                 from your profile is up-to-date.''')}""" % (
                         cv.file.url,
@@ -5827,6 +5827,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             messages.error(
                                 self.request,
                                 _(
+                                    "To complete the application, you must provide a CV, please add a current CV "
+                                    "to your profile. Otherwise the application cannot be considered."
+                                ) if site_id == 2 else _(
                                     "To complete the application, you must provide a CV, please add a current CV "
                                     "to your profile. Otherwise the Prize application cannot be considered."
                                 ),
