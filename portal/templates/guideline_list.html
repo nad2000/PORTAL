@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load i18n tags crispy_forms_tags %}
+{% block title %}{% trans 'Guideline List' %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  {% if guidelines %}
+    <h1 class="mb-4">{% trans 'Guideline List' %}</h1>
+
+    <ul class="list-group">
+      {% for y, rounds in guidelines.items %}
+        <li class="list-group-item">
+          <h2 class="mb-1">
+            <a href="{% url 'guideline-year-list' y %}">{{ y }}</a>
+          </h2>
+          <ul class="list-group" style="margin-top: 10px;">
+            {% for r in rounds %}
+              <li class="list-group-item">
+                <h3 style="color: var(--primary);">{{ r }}</h3>
+                <ul>
+                  <li> ️<a href="{{ r.guidelines_url }}">{% trans 'Generic Guidelines' %}</a> </li>
+                  <li> ️<a href="{{ r.applicant_guidelines_url }}">{% trans 'Applicnat Guidelines' %}</a> </li>
+                  <li> ️<a href="{{ r.referee_guidelines_url }}">{% trans 'Referee Guidelines' %}</a> </li>
+                  <li> ️<a href="{{ r.panellist_guidelines_url }}">{% trans 'Panellist Guidelines' %}</a> </li>
+                </ul>
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+
+  {% else %}
+
+    <h1 class="mb-4">{% trans 'Guideline List' %} ({{ year }})</h1>
+    <ul class="list-group" style="margin-top: 10px;">
+      {% for r in rounds %}
+        <li class="list-group-item">
+          <h2 class="mb-1">{{ r }}</h2>
+          <ul>
+            <li> ️<a href="{{ r.guidelines_url }}">{% trans 'Generic Guidelines' %}</a> </li>
+            <li> ️<a href="{{ r.applicant_guidelines_url }}">{% trans 'Applicnat Guidelines' %}</a> </li>
+            <li> ️<a href="{{ r.referee_guidelines_url }}">{% trans 'Referee Guidelines' %}</a> </li>
+            <li> ️<a href="{{ r.panellist_guidelines_url }}">{% trans 'Panellist Guidelines' %}</a> </li>
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+
+  {% endif %}
+
+</div>
+{% endblock content %}
+
+
+{# vim:set ft=htmldjango: #}
+

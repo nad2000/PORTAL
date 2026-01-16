@@ -246,6 +246,8 @@ def send_mail(
     thread_index=None,
     site=None,
 ):
+    if site and isinstance(site, int):
+        site = Site.objects.get(pk=site)
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
 

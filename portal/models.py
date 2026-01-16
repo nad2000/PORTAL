@@ -7544,6 +7544,22 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             return f"{gl}/information-for-panellists/"
 
     @property
+    def guidelines_url(self):
+        return reverse("guidelines", kwargs={"code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+
+    @property
+    def applicant_guidelines_url(self):
+        return reverse("role-guidelines", kwargs={"role": "applicant", "code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+
+    @property
+    def referee_guidelines_url(self):
+        return reverse("role-guidelines", kwargs={"role": "referee", "code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+
+    @property
+    def panellist_guidelines_url(self):
+        return reverse("role-guidelines", kwargs={"role": "panellist", "code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+
+    @property
     def is_active(self):
         return self.scheme.current_round == self
 

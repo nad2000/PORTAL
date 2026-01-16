@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import traceback
+import requests
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
@@ -44,7 +45,7 @@ from django.contrib.contenttypes.forms import (
 )
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
-from django.contrib.flatpages.views import flatpage
+from django.contrib.flatpages.views import flatpage, render_flatpage
 from django.contrib.gis.geoip2 import GeoIP2
 from django.contrib.sites.models import Site
 from django.contrib.staticfiles import finders
@@ -283,6 +284,77 @@ def about(request):
     if FlatPage.objects.filter(url=url, sites=site_id).exists():
         return flatpage(request, url=url)
     return render(request, "pages/about.html", locals())
+
+
+def check_url_exists(url):
+    try:
+        # Use HEAD to avoid downloading the body
+        response = requests.head(url, allow_redirects=True, timeout=3)
+        # 200-299 status codes indicate success
+        return response.status_code == 200
+    except requests.RequestException:
+        # Returns False if connection fails or times out
+        return False
+
+
+@cache_page(60)
+def guidelines(request, code, year, role=None):
+    if not year.isnumeric() or int(year) < 2000 or int(year) > timezone.now().year + 1 or not models.Scheme.where(code=code).exists():
+        messages.error(request, _("The requested guidelines are not available."))
+        return redirect("about")
+
+    lang = request.LANGUAGE_CODE
+    url = f"/guidelines/{year}/{code}"
+    site_id = request.site_id
+    if role:
+        if fp := (FlatPage.objects.filter(url=f"/{lang or 'en'}{url}/{role}", sites=site_id).first() or FlatPage.objects.filter(url=f"{url}/{role}", sites=site_id).first() ):
+            return render_flatpage(request, fp)
+
+    r = models.Round.where(scheme__code=code, opens_on__year=year).first()
+    if r:
+        if role:
+            if role == "applicant":
+                url = r.get_applicant_guidelines()
+            elif role == "referee":
+                url = r.get_referee_guidelines()
+            elif role == "panellist":
+                url = r.get_panellist_guidelines()
+            if url and check_url_exists(url):
+                return redirect(url)
+
+    if fp := (FlatPage.objects.filter(url=f"/{lang or 'en'}{url}", sites=site_id).first() or FlatPage.objects.filter(url=f"{url}", sites=site_id).first()):
+        return render_flatpage(request, fp)
+
+    if r and (url := r.get_guidelines()):
+        if check_url_exists(url):
+            return redirect(url)
+
+    if u := request.user.is_authenticated and request.user or None:
+        message = f"Guidelines requested by {u} are missing: {request.path} missing...",
+    else:
+        message = f"Guidelines requested by anonymous user are missing: {request.path} missing..."
+    recipients = [
+            u.email for u in User.where(is_active=True, staff_of_sites__id=site_id)
+            ] or [u.email for u in User.where(is_superuser=True, is_active=True)]
+    models.async_task(
+        send_mail,
+        site=site_id,
+        subject=f"Guidelines request for {request.path} missing...",
+        message=message,
+        recipients=recipients
+    )
+
+    messages.error(request, _("The requested guidelines are not available at the moment."))
+    return redirect("about")
+
+@user_passes_test(lambda u: u.is_admin)
+def guideline_list(request, year=None):
+    if year:
+        rounds = models.Round.where(opens_on__year=year).order_by("scheme__code")
+    else:
+        rounds = models.Round.where(scheme__current_round=F("pk")).order_by("opens_on", "scheme__code")
+        guidelines = {y: list(rounds) for (y,rounds) in groupby(rounds, lambda r: r.opens_on.year)}
+    return render(request, "guideline_list.html", locals())
 
 
 @user_passes_test(lambda u: u.is_admin)
