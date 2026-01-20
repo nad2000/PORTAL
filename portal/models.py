@@ -9942,11 +9942,8 @@ def clean_private_fils(dry_run=False):
             #     ):
             #         break
             for m, fields in model_fields:
-                if (
-                    getattr(m, "all_objects", m.objects)
-                    .filter(Q(**{f.name: filename for f in fields}, _connector=Q.OR))
-                    .exists()
-                ):
+                qs = getattr(m, "all_objects", m.objects).filter(Q(**{f.name: filename for f in fields}, _connector=Q.OR))
+                if qs.exists():
                     break
             else:
                 full_filename = os.path.join(root_dir, filename)
