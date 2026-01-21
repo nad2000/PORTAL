@@ -597,11 +597,15 @@ class PdfFileMixin:
         if self.file:
             if self.file.name.lower().endswith(".pdf"):
                 if hasattr(self, "page_count") and not self.page_count:
-                    with open(self.file.path, "rb") as f:
-                        pdf_reader = PdfReader(f, strict=False)
-                        self.page_count = len(pdf_reader.pages)
-                        self._change_reason = f"Updated page count to {self.page_count}"
-                        self.save(update_fields=["page_count"])
+                    # with self.file.open() as f:
+                    #     pdf_reader = PdfReader(f, strict=False)
+                    #     self.page_count = len(pdf_reader.pages)
+                    #     self._change_reason = f"Updated page count to {self.page_count}"
+                    #     self.save(update_fields=["page_count"])
+                    pdf_reader = PdfReader(self.file, strict=False)
+                    self.page_count = len(pdf_reader.pages)
+                    self._change_reason = f"Updated page count to {self.page_count}"
+                    self.save(update_fields=["page_count"])
                 return self.file
             if not self.converted_file:
                 self.update_converted_file(commit=True)

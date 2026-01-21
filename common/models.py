@@ -133,7 +133,11 @@ class ArchivalStorage(PrivateFileSystemStorage):
                 full_path = os.path.join(self.location, name)
                 self.s3.download_file(self.bucket, name, full_path)
                 return super().open(full_path, mode)
-            except self.s3.exceptions.NoSuchKey:
+            except self.s3.exceptions.NoSuchKey as ex:
+                capture_exception(ex)
+                raise e
+            except ClientError as ex:
+                capture_exception(ex)
                 raise e
             raise  # Re-raise if not found anywhere
 
@@ -204,6 +208,26 @@ def save_to_archive(name=None, names=None, keep=True):
             if keep is False and kepp is not None:
                 if archive_storage.exists_locally(n):
                     os.remove(full_path)
+
+
+def sync_with_archive(name=None, names=None):
+    """Sync files to archive storage if not already present locally."""
+
+    if name:
+        names = [name]
+    for n in names:
+        if n.startswith(archive_storage.base_location):
+            full_path = n
+            n = n.removeprefix(archive_storage.base_location)
+        else:
+            full_path = archive_storage.path(n)
+
+        try:
+            if not archive_storage.exists_locally(n):
+                archive_storage.s3.download_file(archive_storage.bucket, n, full_path)
+        except Exception as e:
+            capture_exception(e)
+            raise e
 
 
 class TimeStampModel(Base):
