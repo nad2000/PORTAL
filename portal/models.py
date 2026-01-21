@@ -4077,8 +4077,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         include_header_page = not (site_id in [2, 5] and for_panellists)
         if self.file:
             attachments.append(
-                (_("Application Form"), settings.PRIVATE_STORAGE_ROOT + "/" + str(self.pdf_file))
-            )
+                (_("Application Form"),
+                 self.pdf_file
+                 )
+                )
 
         if (user.is_admin or for_panellists or is_panellist) and self.budget:
             attachments.append(
@@ -4098,8 +4100,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             attachments.append(
                 (
                     f"{cv.full_name} {_('Curriculum Vitae')}",
-                    # settings.PRIVATE_STORAGE_ROOT + "/" + str(cv.pdf_file),
-                    cv.pdf_file.path,
+                    cv.pdf_file,
                     include_header_page and cv.title_page,
                 )
             )
@@ -4138,7 +4139,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                                     else _("Testimonial Form Submitted By %s")
                                 )
                                 % t.referee.full_name,
-                                settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file),
+                                t.pdf_file,
                                 t.title_page,
                             )
                         )
@@ -4151,7 +4152,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         attachments.append(
                             (
                                 f"{referee_cv.full_name} {_('Curriculum Vitae')}",
-                                settings.PRIVATE_STORAGE_ROOT + "/" + str(referee_cv.pdf_file),
+                                referee_cv.pdf_file,
                                 referee_cv.title_page,
                             )
                         )
@@ -4162,7 +4163,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     attachments.append(
                         (
                             _("Nomination Submitted By %s") % n.nominator.full_name,
-                            settings.PRIVATE_STORAGE_ROOT + "/" + str(n.pdf_file),
+                            n.pdf_file,
                             include_header_page and n.title_page,
                         )
                     )
@@ -4176,7 +4177,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         attachments.append(
                             (
                                 f"{nominator_cv.full_name} {_('Curriculum Vitae')}",
-                                settings.PRIVATE_STORAGE_ROOT + "/" + str(nominator_cv.pdf_file),
+                                nominator_cv.pdf_file,
                                 include_header_page and nominator_cv.title_page,
                             )
                         )
@@ -4198,7 +4199,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             attachments.append(
                 (
                     _("Letter of Support"),
-                    settings.PRIVATE_STORAGE_ROOT + "/" + str(self.letter_of_support.pdf_file),
+                    self.letter_of_support.pdf_file,
                     include_header_page and self.letter_of_support.title_page,
                 )
             )
@@ -4211,7 +4212,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 [
                     (
                         f"Letter of Support ({m.full_name})",
-                        settings.PRIVATE_STORAGE_ROOT + "/" + str(m.pdf_file),
+                        m.pdf_file,
                         include_header_page and m.title_page,
                     )
                     for m in self.members.filter(Q(file__isnull=False) | ~Q(file=""))
@@ -4231,7 +4232,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             attachments.append(
                 (
                     f"{d.required_document}",
-                    settings.PRIVATE_STORAGE_ROOT + "/" + str(d.pdf_file),
+                    d.pdf_file,
                     include_header_page and d.title_page,
                 )
             )
