@@ -599,12 +599,14 @@ You have a request to review a {{ site_name }} application to act on.
 
         {% block page %}
           <div class="row">
-            {% if user.is_authenticated %}
-              <div class="col-md-3 d-none d-md-block" style="max-width: 18rem;">
+            {% if user.is_authenticated and sidebar != "off" %}
+              <!-- div class="col-md-3 d-none d-md-block" style="max-width: 18rem;" -->
+              <div class="col-auto d-none d-md-block" style="max-width: 18rem;">
                 {% block sidebar %}{% include 'sidebar.html' %}{% endblock sidebar %}
               </div>
             {% endif %}
-            <div class="col-md-9 mt-2 mb-3">
+            <!-- div class="col-md-{% if sidebar == "off" %}12{% else %}9{% endif %} mt-2 mb-3" -->
+            <div class="col mt-2 mb-3">
               {% block content %}{% endblock content %}
             </div>
           </div>

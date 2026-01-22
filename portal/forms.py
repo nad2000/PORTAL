@@ -3096,7 +3096,10 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
 
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(for_application=True).order_by(
+        queryset=models.RoleType.where(
+            for_application=True,
+            # sites__site_id=settings.SITE_ID
+        ).order_by(
             models.Coalesce("name", "code")
         ),
         required=False,

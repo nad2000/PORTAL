@@ -2587,6 +2587,7 @@ class AssessedPerformanceInline(InlineFormSetFactory):
 class ReportViewMixin:
 
     inlines = [PersonnelInline]
+    extra_context = {"category": "reports", "sidebar": "off"}
 
     def put(self, request, *args, **kwargs):
         if (action := request.GET.get("action")) == "assign-self":
@@ -4338,6 +4339,9 @@ class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
         if round.member_letter_of_support_required:
             self.fields["file"].required = True
+            if round and round.site_id == 2:
+                self.fields["file"].label = _("Organisation Support Letter")
+                self.fields["file"].help_text = _("Support letter from your organisation")
         else:
             self.fields.pop("file", None)
 
@@ -6286,6 +6290,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["sidebar"] = "off"
         update_only_referees = self.update_only_referees()
         context["update_only_referees"] = update_only_referees
         context["model_name"] = self.model._meta.model_name
@@ -7199,7 +7204,7 @@ class ContractDetail(FavoriteMixin, DetailView):
 
 class ContractViewMixin:
 
-    extra_context = {"category": "contracts"}
+    extra_context = {"category": "contracts", "sidebar": "off"}
 
     def get_queryset(self):
         u = self.request.user

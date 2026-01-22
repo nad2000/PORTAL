@@ -1149,6 +1149,7 @@ class RoleType(TimeStampMixin, HelperMixin, OrderableModel):
         default=True,
         help_text="The role will be included in the contract key personnel list",
     )
+    # sites = ManyToManyField(Site, blank=True, related_name="role_types", db_table="role_type_site")
 
     def __str__(self):
         return f"{self.code}: {self.name}"
@@ -4080,11 +4081,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             for_panellists = request.GET.get("for_panellists", False)
         include_header_page = not (site_id in [2, 5] and for_panellists)
         if self.file:
-            attachments.append(
-                (_("Application Form"),
-                 self.pdf_file
-                 )
-                )
+            attachments.append((_("Application Form"), self.pdf_file))
 
         if (user.is_admin or for_panellists or is_panellist) and self.budget:
             attachments.append(
@@ -7550,19 +7547,43 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     @property
     def guidelines_url(self):
-        return reverse("guidelines", kwargs={"code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+        return reverse(
+            "guidelines",
+            kwargs={"code": self.scheme.code, "year": self.opens_on.year or timezone.now().year},
+        )
 
     @property
     def applicant_guidelines_url(self):
-        return reverse("role-guidelines", kwargs={"role": "applicant", "code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+        return reverse(
+            "role-guidelines",
+            kwargs={
+                "role": "applicant",
+                "code": self.scheme.code,
+                "year": self.opens_on.year or timezone.now().year,
+            },
+        )
 
     @property
     def referee_guidelines_url(self):
-        return reverse("role-guidelines", kwargs={"role": "referee", "code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+        return reverse(
+            "role-guidelines",
+            kwargs={
+                "role": "referee",
+                "code": self.scheme.code,
+                "year": self.opens_on.year or timezone.now().year,
+            },
+        )
 
     @property
     def panellist_guidelines_url(self):
-        return reverse("role-guidelines", kwargs={"role": "panellist", "code": self.scheme.code, "year": self.opens_on.year or timezone.now().year })
+        return reverse(
+            "role-guidelines",
+            kwargs={
+                "role": "panellist",
+                "code": self.scheme.code,
+                "year": self.opens_on.year or timezone.now().year,
+            },
+        )
 
     @property
     def is_active(self):
@@ -9947,7 +9968,9 @@ def clean_private_fils(dry_run=False):
             #     ):
             #         break
             for m, fields in model_fields:
-                qs = getattr(m, "all_objects", m.objects).filter(Q(**{f.name: filename for f in fields}, _connector=Q.OR))
+                qs = getattr(m, "all_objects", m.objects).filter(
+                    Q(**{f.name: filename for f in fields}, _connector=Q.OR)
+                )
                 if qs.exists():
                     break
             else:
