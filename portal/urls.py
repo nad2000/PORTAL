@@ -872,6 +872,8 @@ urlpatterns = [
     path("impersonate/<username>", views.impersonate),
     path("switch-back", views.switch_back, name="switch-back"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
+    # path("stream/time/", views.time_value_stream, name="time-stream"),
+    # path("time-stream", TemplateView.as_view(template_name="time_stream.html"), name="time-stream-page"),
 ]
 if getattr(settings, "PRIVATE_STORAGE_CLASS ", None) == "common.models.ArchivalStorage":
     urlpatterns.append(

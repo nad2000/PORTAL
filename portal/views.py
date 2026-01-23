@@ -5,6 +5,7 @@ import json
 import mimetypes
 import os
 import re
+# import time, random
 import shutil
 import traceback
 import requests
@@ -13741,6 +13742,18 @@ def toggle_favorite(request, content_type_id, object_id):
 # """,
 #         content_type="text/javascript",
 #     )
+
+# def time_value_stream(request):
+#     def event_stream():
+#         # NB! must add '\n\n' at the end of each message
+#         # NB! if message is multi-line, each line must start with 'data: '
+#         yield f"id: {time.time()}\nevent: time\ndata: <li>{timezone.now().isoformat()}</li>\n\n"
+#         time.sleep(random.randint(1, 5))
+#         # asyncio.sleep(random.randint(1, 5))
+
+#     response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+#     response.headers["Cache-Control"] = "no-cache"
+#     return response
 
 
 # vim:set ft=python.django:
