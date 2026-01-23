@@ -5,6 +5,7 @@ import json
 import mimetypes
 import os
 import re
+
 # import time, random
 import shutil
 import traceback
@@ -300,7 +301,12 @@ def check_url_exists(url):
 
 @cache_page(60)
 def guidelines(request, code, year, role=None):
-    if not year.isnumeric() or int(year) < 2000 or int(year) > timezone.now().year + 1 or not models.Scheme.where(code=code).exists():
+    if (
+        not year.isnumeric()
+        or int(year) < 2000
+        or int(year) > timezone.now().year + 1
+        or not models.Scheme.where(code=code).exists()
+    ):
         messages.error(request, _("The requested guidelines are not available."))
         return redirect("about")
 
@@ -308,7 +314,10 @@ def guidelines(request, code, year, role=None):
     url = f"/guidelines/{year}/{code}"
     site_id = request.site_id
     if role:
-        if fp := (FlatPage.objects.filter(url=f"/{lang or 'en'}{url}/{role}", sites=site_id).first() or FlatPage.objects.filter(url=f"{url}/{role}", sites=site_id).first() ):
+        if fp := (
+            FlatPage.objects.filter(url=f"/{lang or 'en'}{url}/{role}", sites=site_id).first()
+            or FlatPage.objects.filter(url=f"{url}/{role}", sites=site_id).first()
+        ):
             return render_flatpage(request, fp)
 
     r = models.Round.where(scheme__code=code, opens_on__year=year).first()
@@ -323,7 +332,10 @@ def guidelines(request, code, year, role=None):
             if url and check_url_exists(url):
                 return redirect(url)
 
-    if fp := (FlatPage.objects.filter(url=f"/{lang or 'en'}{url}", sites=site_id).first() or FlatPage.objects.filter(url=f"{url}", sites=site_id).first()):
+    if fp := (
+        FlatPage.objects.filter(url=f"/{lang or 'en'}{url}", sites=site_id).first()
+        or FlatPage.objects.filter(url=f"{url}", sites=site_id).first()
+    ):
         return render_flatpage(request, fp)
 
     if r and (url := r.get_guidelines()):
@@ -331,30 +343,35 @@ def guidelines(request, code, year, role=None):
             return redirect(url)
 
     if u := request.user.is_authenticated and request.user or None:
-        message = f"Guidelines requested by {u} are missing: {request.path} missing...",
+        message = (f"Guidelines requested by {u} are missing: {request.path} missing...",)
     else:
         message = f"Guidelines requested by anonymous user are missing: {request.path} missing..."
-    recipients = [
-            u.email for u in User.where(is_active=True, staff_of_sites__id=site_id)
-            ] or [u.email for u in User.where(is_superuser=True, is_active=True)]
+    recipients = [u.email for u in User.where(is_active=True, staff_of_sites__id=site_id)] or [
+        u.email for u in User.where(is_superuser=True, is_active=True)
+    ]
     models.async_task(
         send_mail,
         site=site_id,
         subject=f"Guidelines request for {request.path} missing...",
         message=message,
-        recipients=recipients
+        recipients=recipients,
     )
 
     messages.error(request, _("The requested guidelines are not available at the moment."))
     return redirect("about")
+
 
 @user_passes_test(lambda u: u.is_admin)
 def guideline_list(request, year=None):
     if year:
         rounds = models.Round.where(opens_on__year=year).order_by("scheme__code")
     else:
-        rounds = models.Round.where(scheme__current_round=F("pk")).order_by("opens_on", "scheme__code")
-        guidelines = {y: list(rounds) for (y,rounds) in groupby(rounds, lambda r: r.opens_on.year)}
+        rounds = models.Round.where(scheme__current_round=F("pk")).order_by(
+            "opens_on", "scheme__code"
+        )
+        guidelines = {
+            y: list(rounds) for (y, rounds) in groupby(rounds, lambda r: r.opens_on.year)
+        }
     return render(request, "guideline_list.html", locals())
 
 
@@ -719,16 +736,20 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(f"""
+            return HttpResponse(
+                f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """)
-        return HttpResponse(f"""
+            """
+            )
+        return HttpResponse(
+            f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """)
+        """
+        )
 
 
 class NotesMixin:
@@ -4940,9 +4961,11 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse("""
+    return HttpResponse(
+        """
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """)
+    """
+    )
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -5903,12 +5926,16 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             )
                             messages.error(
                                 self.request,
-                                _(
-                                    "To complete the application, you must provide a CV, please add a current CV "
-                                    "to your profile. Otherwise the application cannot be considered."
-                                ) if site_id == 2 else _(
-                                    "To complete the application, you must provide a CV, please add a current CV "
-                                    "to your profile. Otherwise the Prize application cannot be considered."
+                                (
+                                    _(
+                                        "To complete the application, you must provide a CV, please add a current CV "
+                                        "to your profile. Otherwise the application cannot be considered."
+                                    )
+                                    if site_id == 2
+                                    else _(
+                                        "To complete the application, you must provide a CV, please add a current CV "
+                                        "to your profile. Otherwise the Prize application cannot be considered."
+                                    )
                                 ),
                             )
                             url = reverse("profile-cvs") + "?next=" + next_url
@@ -9590,10 +9617,12 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _("""
+                            notes = _(
+                                """
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """)
+                            """
+                            )
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
@@ -11432,10 +11461,19 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
 
         user = self.request.user
         if not (user.is_staff or user.is_superuser or user.is_site_staff):
-            queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
-                coi=FilteredRelation(
+            # queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
+            #     coi=FilteredRelation(
+            #         "conflict_of_interests",
+            #         condition=Q(conflict_of_interests__panellist__user=user),
+            #     )
+            # )
+            queryset = queryset.filter(
+                round__panellists__user=user, state="submitted"
+            ).prefetch_related(
+                Prefetch(
                     "conflict_of_interests",
-                    condition=Q(conflict_of_interests__panellist__user=user),
+                    queryset=models.ConflictOfInterest.where(panellist__user=user),
+                    to_attr="coi",
                 )
             )
         else:
@@ -11903,7 +11941,6 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
             return None
 
     def get_initial_queryset(self):
-        from django.db.models import Exists, OuterRef
 
         if (panellist := self.panellist) and self.request.method == "GET":
             return (

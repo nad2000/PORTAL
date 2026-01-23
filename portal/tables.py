@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from . import models
 
+
 class Table(tables.Table):
 
     @property
@@ -47,6 +48,7 @@ class PublicationTable(Table):
             },
         },
     )
+
     class Meta(Table.Meta):
         model = models.Publication
         fields = ("title", "doi")
@@ -70,7 +72,9 @@ class StateColumn(tables.Column):
 
     def render(self, record, table, value, bound_column, **kwargs):
         state = getattr(record, "state", None) or value
-        name = table and table.verbose_model_name or record and record._meta.model._meta.verbose_name
+        name = (
+            table and table.verbose_model_name or record and record._meta.model._meta.verbose_name
+        )
         name = gettext_lazy(name and name.lower() or "record")
         if not state:
             return mark_safe(
@@ -83,9 +87,7 @@ class StateColumn(tables.Column):
                     title = _("Work in progress")
                 else:
                     css_classes = "far fa-plus-square text-success text-center"
-                    title = _(
-                        f"The {name} has not been processed yet or it is in draft version"
-                    )
+                    title = _(f"The {name} has not been processed yet or it is in draft version")
             else:
                 if not isinstance(record, (models.Invitation)):
                     css_classes = "far fa-times-circle text-danger text-center"
@@ -94,9 +96,7 @@ class StateColumn(tables.Column):
                 title = _(f"The {name} was just created")
         elif state == "in_review":
             css_classes = "fas fa-question text-success text-center"
-            title = _(
-                f"The {name} was submitted and sent out to the referees for the reviewing"
-            )
+            title = _(f"The {name} was submitted and sent out to the referees for the reviewing")
         elif state == "withdrawn":
             css_classes = "fa fa-ban text-warning text-center"
             title = _(f"The {name} was withdrawn")
@@ -257,7 +257,8 @@ def application_link(table, record, value):
     # if u.is_superuser:
     #     return reverse("admin:portal_application_change", kwargs={"object_id": record.id})
     if (
-        u.is_superuser and record.state in ["draft", "new", "submitted"]
+        u.is_superuser
+        and record.state in ["draft", "new", "submitted"]
         or record.site_id not in [2, 4, 5]
         and not record.was_submitted
         and record.is_applicant(u)
@@ -426,21 +427,19 @@ class ApplicationTable(Table):
             return format_html(
                 """<span
                     data-toggle="tooltip"
-                    title="%s"
+                    title="{}"
                 >
-                    <i class="fas fa-exclamation-circle %s"
+                    <i class="fas fa-exclamation-circle {}"
                     ></i> %s
-                </span>"""
+                </span>""",
+                _("The round is closing in %s day(s) on %s by %s")
                 % (
-                    _("The round is closing in %s day(s) on %s by %s")
-                    % (
-                        deadline_days,
-                        formats.date_format(closes_at, "d-m-Y"),
-                        formats.date_format(closes_at, "P"),
-                    ),
-                    "text-danger" if record.deadline_days < 4 else "text-warning",
-                    value,
-                )
+                    deadline_days,
+                    formats.date_format(closes_at, "d-m-Y"),
+                    formats.date_format(closes_at, "P"),
+                ),
+                "text-danger" if record.deadline_days < 4 else "text-warning",
+                value,
             )
         return value
 
@@ -675,28 +674,25 @@ class RoundApplicationTable(Table):
 
         if not coi or coi.has_conflict is None:
             return format_html(
-                "<span data-toggle='tooltip' title='%s'>%s</span>"
-                % (_("Conflict of Interest statement to complete."), value)
+                "<span data-toggle='tooltip' title='{}'>{}</span>",
+                _("Conflict of Interest statement to complete."),
+                value,
             )
         if not coi.has_conflict:
             if record.evaluations.filter(state="submitted", panellist__user=user).exists():
                 return format_html(
-                    "<span data-toggle='tooltip' title='%s'>%s</span>"
-                    % (
-                        _("You have already submitted an evaluation of this application."),
-                        value,
-                    )
+                    "<span data-toggle='tooltip' title='{}'>{}</span>",
+                    _("You have already submitted an evaluation of this application."),
+                    value,
                 )
 
             return format_html(
-                "<span data-toggle='tooltip' title='%s'>%s</span>"
-                % (
-                    _(
-                        "You have submitted the statement of the conflict of interest. "
-                        "Please evaluate the application and submit scores."
-                    ),
-                    value,
-                )
+                "<span data-toggle='tooltip' title='{}'>{}</span>",
+                _(
+                    "You have submitted the statement of the conflict of interest. "
+                    "Please evaluate the application and submit scores."
+                ),
+                value,
             )
         # if coi.has_conflict:
         #     return format_html(
@@ -712,32 +708,28 @@ class RoundApplicationTable(Table):
 
         if record.state != "submitted":
             return format_html(
-                "<span data-toggle='tooltip' title='%s'>%s</span>"
-                % (
-                    _("The application has not been submitted yet"),
-                    value,
-                )
+                "<span data-toggle='tooltip' title='{}'>{}</span>",
+                _("The application has not been submitted yet"),
+                value,
             )
         if (r := record.round) and (deadline_days := r.deadline_days) and deadline_days < 6:
             closes_at = timezone.localtime(r.closes_at)
             return format_html(
                 """<span
                     data-toggle="tooltip"
-                    title="%s"
+                    title="{}"
                 >
-                    <i class="fas fa-exclamation-circle %s"
-                    ></i> %s
-                </span>"""
-                % (
-                    _("The round is closing in %(days)s day(s) on %(date)s by %(time)s")
-                    % {
-                        "days": deadline_days,
-                        "date": formats.date_format(closes_at, "d-m-Y"),
-                        "time": formats.date_format(closes_at, "P"),
-                    },
-                    "text-danger" if deadline_days < 4 else "text-warning",
-                    value,
-                )
+                    <i class="fas fa-exclamation-circle {}"
+                    ></i> {}
+                </span>""",
+                _("The round is closing in %(days)s day(s) on %(date)s by %(time)s")
+                % {
+                    "days": deadline_days,
+                    "date": formats.date_format(closes_at, "d-m-Y"),
+                    "time": formats.date_format(closes_at, "P"),
+                },
+                "text-danger" if deadline_days < 4 else "text-warning",
+                value,
             )
         return value
 
@@ -967,7 +959,7 @@ class ChangeRequestTable(Table):
 
     class Meta:
         model = models.ChangeRequest
-        fields = ("state",  "updated_at", "number", "contract", "pi")
+        fields = ("state", "updated_at", "number", "contract", "pi")
 
 
 # class ReportTable(tables.Table):

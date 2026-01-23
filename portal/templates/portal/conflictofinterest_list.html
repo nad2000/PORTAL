@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags static i18n crispy_forms_field tags django_bootstrap_breadcrumbs %}
-
 {% block css %}
   {{ block.super }}
   <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
@@ -17,11 +16,13 @@ option {direction: rtl;}
 {% block title %}{{ application }}{% endblock %}
 {% block sidebar %}{% include 'sidebar.html' with category="reviews" %}{% endblock sidebar %}
 
+{% comment %}
+{% endcomment %}
 {% block breadcrumbs %}
   {{ block.super }}
   {% if round %}
-    {% breadcrumb_for round-coi round=round.pk %}
-    {% trans 'Conflicts of Interest' %}
+    {% breadcrumb_for "round-coi" round=round.pk %}
+      {% trans 'Conflicts of Interest' %}
     {% endbreadcrumb_for %}
     {% breadcrumb round "round-coi" round=round.pk %}
   {% endif %}
