@@ -42,14 +42,17 @@
     </a>
       {% else %}
       <div class="tooltip-wrapper{% if not can_update %} disabled{% endif %}"
-           {% if can_only_update_referees and SITE_ID != 1 and SITE_ID != 7 %}
-           data-title="{% trans 'You can only update the referee list' %}"
+           {% if update_tooltip %}
+           disabled
+           title="{{ update_tooltip }}"
+           {% elif can_only_update_referees and SITE_ID != 1 and SITE_ID != 7 %}
+           title="{% trans 'You can only update the referee list' %}"
            {% elif not is_owner %}
            disabled
-           data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
+           title="{% trans 'Only the main applicant or a team member can edit the application' %}"
            {% elif not can_update or SITE_ID != 1 and SITE_ID != 7 and a.state == "submitted" %}
            disabled
-           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
+           title="{% trans 'The application has been already submitted and cannot be modified' %}"
            {% comment %}
            {% elif not a.round.is_open %}
            disabled
@@ -57,13 +60,13 @@
               class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
            {% endcomment %}
            {% elif is_owner and not is_ro and a.state == "submitted" or is_owner and not is_ro and a.state == "in_review" %}
-           data-title="{% trans 'Modify the referee list' %}"
+           title="{% trans 'Modify the referee list' %}"
            {% elif not is_ro %}
-           data-title="{% trans 'Modify your application and continue application process' %}"
+           title="{% trans 'Modify your application and continue application process' %}"
            {% else %}
-           data-title="{% trans 'Modify the application and continue application process' %}"
+           title="{% trans 'Modify the application and continue application process' %}"
            {% endif %}
-           >
+          >
            <a href="{% url update_view_name pk=a.pk %}"
               class="btn btn-primary{% if not is_owner or not can_update %} disabled{% endif %}"
               >{% if can_only_update_referees and SITE_ID != 1 and SITE_ID != 7 %}{% trans 'Update Referee List' %}{% else %}{% trans update_button_name %}{% endif %}

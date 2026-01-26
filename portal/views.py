@@ -736,20 +736,16 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(
-                f"""
+            return HttpResponse(f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """
-            )
-        return HttpResponse(
-            f"""
+            """)
+        return HttpResponse(f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """
-        )
+        """)
 
 
 class NotesMixin:
@@ -4681,11 +4677,17 @@ class ApplicationDetail(FavoriteMixin, DetailView):
         r = a.round
         site_id = a.site_id
         u = self.request.user
+        member = a.members.filter(
+            Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email", flat=True))
+        ).first()
         referee = a.referees.filter(
             Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
         ).last()
         if a and site_id in [2, 5]:
-            if referee or u.is_admin:
+            if member:
+                context["member"] = member
+
+            if referee or u.is_admin or member:
                 # context["documents"] = list(
                 qs = a.documents.filter(~Q(file=""), file__isnull=False).order_by(
                     "required_document__ordering"
@@ -4745,8 +4747,8 @@ class ApplicationDetail(FavoriteMixin, DetailView):
             or a.org.where(research_offices__user=u).exists()
         )
         is_owner = (
-            a.submitted_by == u or a.members.filter(user=u, state="authorized").exists() or is_ro
-        )
+            a.submitted_by == u or a.members.filter(user=u, state="authorized").exists()
+        ) or is_or
         is_referee = (
             not is_ro
             and not is_owner
@@ -4800,19 +4802,25 @@ class ApplicationDetail(FavoriteMixin, DetailView):
             "accepted",
             "funded",
         ]
-        context["can_update"] = (
-            can_only_update_referees
-            or (
-                site_id not in [2, 5]
-                and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+        if a.site_id == 2 and member and member.role_id != "PI":
+            context["can_update"] = False
+            context["update_tooltip"] = _(
+                "Only the Principal Investigator can update the application."
             )
-            or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
-            or (
-                site_id in [2, 5]
-                and is_owner
-                and a.state in ["new", "submitted", "draft", "in_review"]
+        else:
+            context["can_update"] = (
+                can_only_update_referees
+                or (
+                    site_id not in [2, 5]
+                    and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+                )
+                or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
+                or (
+                    site_id in [2, 5]
+                    and is_owner
+                    and a.state in ["new", "submitted", "draft", "in_review"]
+                )
             )
-        )
 
         testimonial_submission_closes_at = r.testimonial_submission_closes_at
         if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
@@ -4961,11 +4969,9 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse(
-        """
+    return HttpResponse("""
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """
-    )
+    """)
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -9617,12 +9623,10 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _(
-                                """
+                            notes = _("""
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """
-                            )
+                            """)
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)

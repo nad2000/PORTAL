@@ -1613,16 +1613,13 @@ class ApplicationForm(ModelForm):
                         ),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Cancel")
-                    ),
+                        </a>""" % _("Cancel")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -2271,11 +2268,9 @@ class ContractForm(ModelForm):
                     and self.instance.id
                     and not (user.is_superuser or user.is_site_staff)
                     else [
-                        HTML(
-                            """<div class="alert alert-dark" role="alert">
+                        HTML("""<div class="alert alert-dark" role="alert">
                         Enter the total funding allocation and/or duration and Save. The amount is not allocated over the years.
-                        </div>"""
-                        ),
+                        </div>"""),
                         Div(
                             Field("start_date"),
                             Field("end_date"),
@@ -2413,15 +2408,13 @@ class ContractForm(ModelForm):
             ),
             Tab(
                 mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-                HTML(
-                    """{% load i18n %}<div class="alert alert-dark" role="alert">
+                HTML("""{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
                     You can distribute it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
-                    </div>"""
-                ),
+                    </div>"""),
                 Fieldset(
                     _("Budget Allocation"),
                     (
@@ -2440,8 +2433,7 @@ class ContractForm(ModelForm):
                     # Field("proposal_budget"),
                     Fieldset(
                         None,
-                        HTML(
-                            f"""<div class="input-group mb-2">
+                        HTML(f"""<div class="input-group mb-2">
                         <div class="input-group-prepend">
                             <span class="input-group-text">{_("Proposal Budget")}</span>
                         </div>
@@ -2452,8 +2444,7 @@ class ContractForm(ModelForm):
                             </a>
                             </span>
                         </div>
-                    </div>"""
-                        ),
+                    </div>"""),
                         # Submit(
                         #     "copy_proposal_budget",
                         #     _("Copy"),
@@ -2780,8 +2771,7 @@ class ContractForm(ModelForm):
                                     css_class="btn-primary",
                                 ),
                                 (
-                                    HTML(
-                                        f"""
+                                    HTML(f"""
                             <a
                                 class="btn btn-primary"
                                 href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
@@ -2789,11 +2779,9 @@ class ContractForm(ModelForm):
                                 data-toggle="tooltip"
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the variation letter",
-                            > {_("Export Variation Letter")} </a>"""
-                                    )
+                            > {_("Export Variation Letter")} </a>""")
                                     if instance.is_variation
-                                    else HTML(
-                                        f"""
+                                    else HTML(f"""
                             <a
                                 class="btn btn-primary"
                                 href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
@@ -2801,8 +2789,7 @@ class ContractForm(ModelForm):
                                 data-toggle="tooltip"
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the contract document",
-                            > {_("Export Contract")} </a>"""
-                                    )
+                            > {_("Export Contract")} </a>""")
                                 ),
                                 # Submit(
                                 #     "export_contract",
@@ -2856,16 +2843,13 @@ class ContractForm(ModelForm):
                         title=_("Save draft contract"),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Close")
-                    ),
+                        </a>""" % _("Close")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -3081,7 +3065,9 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                 fields.append("research_experience_in_years")
 
             self.fields["cv_file"].required = a.round.member_cv_required
-            self.fields["cv_file"].widget.attrs["data-required"] = 1 if a.round.member_cv_required else 0
+            self.fields["cv_file"].widget.attrs["data-required"] = (
+                1 if a.round.member_cv_required else 0
+            )
 
             self.helper.layout = Layout(*fields, "cv_file")
             self.helper.add_input(Submit("save", _("Save"), css_class="btn-primary"))
@@ -3099,9 +3085,7 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         queryset=models.RoleType.where(
             for_application=True,
             # sites__site_id=settings.SITE_ID
-        ).order_by(
-            models.Coalesce("name", "code")
-        ),
+        ).order_by(models.Coalesce("name", "code")),
         required=False,
     )
 
@@ -3185,8 +3169,7 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             "state": InvitationStateInput(attrs={"readonly": True}),
             "country": autocomplete.ModelSelect2(
                 "country-autocomplete",
-                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
-                attrs={"data-required": 1},
+                attrs={"data-placeholder": _("Choose your country"), "data-required": 1},
             ),
             "org": autocomplete.ModelSelect2(
                 "org-autocomplete",
@@ -3578,9 +3561,7 @@ class NominationForm(ModelForm):
             Row(
                 # Column("org", css_class="col-9"),
                 Column(
-                    (
-                        HTML(
-                            f"""
+                    (HTML(f"""
                 <div id="div_id_org" class="form-group">
                     <label for="id_org" data-toggle="tooltip" data-html="true" title="{_('Organisation of the nominee')}">
                         {_('Organisation of the nominee')}
@@ -3590,17 +3571,12 @@ class NominationForm(ModelForm):
                         <input type="text" name="org_name" value="{ro_org}" class="textinput textInput form-control" id="id_name_org" readonly>
                         <small id="hint_id_position" class="form-text text-muted">{ _('Organisation of the nominee') }</small>
                     </div>
-                </div>"""
-                        )
-                        if is_single_org_ro
-                        else "org"
-                    ),
+                </div>""") if is_single_org_ro else "org"),
                     css_class="col-9",
                 ),
                 Column("position", css_class="col-3"),
             ),
-            HTML(
-                """
+            HTML("""
             <div id="div_id_nominator" class="form-group">
             <label for="id_nominator" class=" requiredField">%s</label>
                 <div class="">
@@ -3609,9 +3585,7 @@ class NominationForm(ModelForm):
                         disabled="" class="input form-control">
                 </div>
             </div>
-            """
-                % _("Nominator")
-            ),
+            """ % _("Nominator")),
             Field(
                 "contact_phone",
                 pattern=r"\+?[0123456789 ]+",
@@ -3969,17 +3943,14 @@ class IdentityVerificationForm(ModelForm):
                     _("Request resubmission"),
                     css_class="btn-outline-danger",
                 ),
-                HTML(
-                    """
+                HTML("""
                     <a href="{{ view.get_success_url }}"
                     type="button"
                     role="button"
                     class="btn btn-secondary"
                     id="cancel">
                         %s
-                    </a>"""
-                    % _("Cancel")
-                ),
+                    </a>""" % _("Cancel")),
                 css_class="mb-4 float-right",
             ),
             Field(
@@ -4035,8 +4006,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
                     message += "".join(
                         f"""<li>Review: <a href='{reverse("admin:portal_evaluation_change",
                             kwargs={"object_id": e.pk})}' target="_blank">
-                            {str(e)}</a></li>"""
-                        for e in evaluations
+                            {str(e)}</a></li>""" for e in evaluations
                     )
                 message += "</ul>"
             message += "<ul>"
@@ -4732,8 +4702,7 @@ class ReportForm(ModelForm):
                 """
                 category_fields.append(
                     Fieldset(
-                        mark_safe(
-                            f"""<span
+                        mark_safe(f"""<span
                             data-toggle="tooltip"
                             data-html="true"
                             title="{seo_info}"
@@ -4745,8 +4714,7 @@ class ReportForm(ModelForm):
                             data-html="true"
                             title="{_("Socio-Economic Objectives")}"
                             data-content="{seo_info}"
-                            class="fas fa-sm fa-question-circle"></i>"""
-                        ),
+                            class="fas fa-sm fa-question-circle"></i>"""),
                         TableInlineFormset(
                             "seos", template="portal/category_table_inline_formset.html"
                         ),
@@ -4769,8 +4737,7 @@ class ReportForm(ModelForm):
                     digits. """
                 category_fields.append(
                     Fieldset(
-                        mark_safe(
-                            f"""<span
+                        mark_safe(f"""<span
                             data-toggle="tooltip"
                             data-html="true"
                             title="{for_info}"
@@ -4782,8 +4749,7 @@ class ReportForm(ModelForm):
                             data-html="true"
                             title="{_("Fields of Research")}"
                             data-content="{for_info}"
-                            class="fas fa-sm fa-question-circle"></i>"""
-                        ),
+                            class="fas fa-sm fa-question-circle"></i>"""),
                         TableInlineFormset(
                             "fors", template="portal/category_table_inline_formset.html"
                         ),
@@ -4860,8 +4826,7 @@ class ReportForm(ModelForm):
             ),
             Tab(
                 mark_safe(f'<i class="fas fa-users"></i> {_("Personnel")}'),
-                HTML(
-                    """{% load tags %}
+                HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report all personnel who have participated in this project \
@@ -4870,8 +4835,7 @@ class ReportForm(ModelForm):
                             that is supported by this contract as well as the total amount of FTE \
                             devoted to the project.') }}
                     </p>
-                </div>"""
-                ),
+                </div>"""),
                 TableInlineFormset("personnel"),
                 css_id="personnel",
             ),
@@ -4902,8 +4866,7 @@ class ReportForm(ModelForm):
                     mark_safe(
                         f'<i class="material-icons" style="vertical-align: middle; font-size: 0.99em;">work</i> {_("Activities")}'
                     ),
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any <strong>outcomes or activities</strong> that have arisen from \
@@ -4913,8 +4876,7 @@ class ReportForm(ModelForm):
                 </div>
                 <div id="activity-list">
                 {% jinja 'partials/reported_activity_list.html' %}
-                </div>"""
-                    ),
+                </div>"""),
                     Div(
                         Div(
                             ButtonHolder(
@@ -4943,8 +4905,7 @@ class ReportForm(ModelForm):
                 ),
                 Tab(
                     mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                 <p dir="auto">Please report any publications that have arisen
                 from this project within the period. <strong>We highly
@@ -4963,8 +4924,7 @@ class ReportForm(ModelForm):
                 </div>
                 <div id="publication-list">
                 {% jinja 'partials/report_publication_list.html' %}
-                </div>"""
-                    ),
+                </div>"""),
                     Div(
                         Div(
                             ButtonHolder(
@@ -4984,8 +4944,7 @@ class ReportForm(ModelForm):
                                 #     _("Import from ORCID"),
                                 #     css_class="btn-secondary btn-sm",
                                 # ),
-                                HTML(
-                                    f"""{{% load static %}}
+                                HTML(f"""{{% load static %}}
                                     <button
                                         class="btn btn-secondary btn-sm"
                                         id="button-id-publication_import_from_orcid"
@@ -4996,8 +4955,7 @@ class ReportForm(ModelForm):
                                     {_("Import from ORCID")}
                                         <img  id="button-spinner" class="htmx-indicator" src="{{% static 'images/bars.svg' %}}"/>
                                     </button>
-                                    """
-                                ),
+                                    """),
                                 Button(
                                     "nothing_to_add",
                                     _("Nothing to add"),
@@ -5013,8 +4971,7 @@ class ReportForm(ModelForm):
                 ),
                 Tab(
                     mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Funding")}'),
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any funding that have or your colleagues have applied for that is related to \
@@ -5025,13 +4982,11 @@ class ReportForm(ModelForm):
                 </div>
                 <div id="reported-funding-list">
                 {% jinja 'partials/report_funding_list.html' %}
-                </div>"""
-                    ),
+                </div>"""),
                     Div(
                         Div(
                             ButtonHolder(
-                                HTML(
-                                    f"""{{% load static %}}
+                                HTML(f"""{{% load static %}}
                                     <button
                                         class="btn btn-secondary btn-sm"
                                         id="button-id-funding_import_from_orcid"
@@ -5042,8 +4997,7 @@ class ReportForm(ModelForm):
                                     {_("Import from ORCID")}
                                         <img  id="button-spinner" class="htmx-indicator" src="{{% static 'images/bars.svg' %}}"/>
                                     </button>
-                                    """
-                                ),
+                                    """),
                                 # Button(
                                 #     "funding_import_from_orcid",
                                 #     mark_safe(f"""{_("Import from ORCID")}
@@ -5072,8 +5026,7 @@ class ReportForm(ModelForm):
         )
         if is_assessor and instance.file != "":
             fields = [
-                HTML(
-                    """{% load tags %}
+                HTML("""{% load tags %}
                     <div class="table-responsive">
                     <table class="table table-bordered searchable">
                     <tbody>
@@ -5089,16 +5042,14 @@ class ReportForm(ModelForm):
                     </tr>
                     </tbody>
                     </table>
-                    </div>"""
-                ),
+                    </div>"""),
                 # "assessment",
             ]
             self.fields.pop("file", None)
             # self.fields["assessment"].required = True
         elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessment):
             fields = [
-                HTML(
-                    """{% load tags %}
+                HTML("""{% load tags %}
                     <div class="table-responsive">
                     <table class="table table-bordered searchable">
                     <tbody>
@@ -5122,8 +5073,7 @@ class ReportForm(ModelForm):
                     </tr>
                     </tbody>
                     </table>
-                    </div>"""
-                ),
+                    </div>"""),
             ]
             self.fields.pop("file", None)
             self.fields.pop("assessment", None)
@@ -5293,8 +5243,7 @@ class ReportForm(ModelForm):
         if is_assessor:
             if instance.file != "":
                 fields = [
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                         <div class="table-responsive">
                         <table class="table table-bordered searchable">
                         <tbody>
@@ -5310,8 +5259,7 @@ class ReportForm(ModelForm):
                         </tr>
                         </tbody>
                         </table>
-                        </div>"""
-                    ),
+                        </div>"""),
                     "assessment",
                 ]
                 self.fields.pop("file", None)
@@ -5496,16 +5444,13 @@ class ReportForm(ModelForm):
                         title=_("Save draft report"),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Cancel")
-                    ),
+                        </a>""" % _("Cancel")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
