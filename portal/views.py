@@ -4748,7 +4748,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
         )
         is_owner = (
             a.submitted_by == u or a.members.filter(user=u, state="authorized").exists()
-        ) or is_or
+        ) or is_ro
         is_referee = (
             not is_ro
             and not is_owner
@@ -4820,6 +4820,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                     and is_owner
                     and a.state in ["new", "submitted", "draft", "in_review"]
                 )
+                or u.is_admin
             )
 
         testimonial_submission_closes_at = r.testimonial_submission_closes_at
@@ -4902,8 +4903,6 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                                         "The application reviewing will be open after the application submission is closed."
                                     ),
                                 )
-
-        # context["tag_form"] = self.tag_form()
 
         return context
 

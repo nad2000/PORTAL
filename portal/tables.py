@@ -418,7 +418,7 @@ class ApplicationTable(Table):
         if (
             record.state in ["draft", "new"]
             and (deadline_days := record.deadline_days)
-            and record.deadline_days < 6
+            and deadline_days < 6
         ):
             r = record.round
             closes_at = r.closes_at and (
@@ -430,7 +430,7 @@ class ApplicationTable(Table):
                     title="{}"
                 >
                     <i class="fas fa-exclamation-circle {}"
-                    ></i> %s
+                    ></i> {}
                 </span>""",
                 _("The round is closing in %s day(s) on %s by %s")
                 % (

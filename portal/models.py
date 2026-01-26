@@ -4216,12 +4216,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         m.pdf_file,
                         include_header_page and m.title_page,
                     )
-                    for m in self.members.filter(Q(file__isnull=False) | ~Q(file=""))
+                    for m in self.members.filter(~Q(file=""), file__isnull=False)
                 ]
             )
 
         for d in self.documents.order_by("required_document__ordering"):
-            if (
+            if not d.file or (
                 skip_excluded
                 and d.required_document.exclude
                 or is_referee
@@ -4429,8 +4429,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
                 merger.append(reader, outline_item=title, import_outline=import_outline)
             except PdfReadError:
-                capture_message(f"Failed to merge file {a}")
+                capture_message(f"Failed to merge file {a or title}")
                 raise
+            except Exception as ex:
+                raise Exception(f"Failed include attachment {a and a.path or title}") from ex
 
         if add_headers or site_id == 4:
             template = get_template("headers.html")
