@@ -3017,6 +3017,15 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             and a.site_id
             or settings.SITE_ID
         )
+
+        if self.instance.application.round.member_letter_of_support_required:
+            if site_id == 2:
+                self.fields["file"].label = _("Organisation Support Letter")
+                self.fields["file"].help_text = _("Support letter from your organisation")
+            self.fields["file"].required = True
+        else:
+            self.fields.pop("file", None)
+
         if is_fs:
             self.fields.pop("research_experience_in_years", None)
             self.fields.pop("file", None)

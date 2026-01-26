@@ -4357,9 +4357,6 @@ class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
         if round.member_letter_of_support_required:
             self.fields["file"].required = True
-            if round and round.site_id == 2:
-                self.fields["file"].label = _("Organisation Support Letter")
-                self.fields["file"].help_text = _("Support letter from your organisation")
         else:
             self.fields.pop("file", None)
 
