@@ -6,7 +6,8 @@ import mimetypes
 import os
 import re
 
-# import time, random
+import time, random
+from easyaudit.models import CRUDEvent
 import shutil
 import traceback
 import requests
@@ -13779,6 +13780,30 @@ def toggle_favorite(request, content_type_id, object_id):
 # """,
 #         content_type="text/javascript",
 #     )
+
+
+def crud_event_stream(request):
+
+    last_datetime = timezone.now()-timezone.timedelta(minutes=5)
+    last_id = CRUDEvent.objects.all().order_by("-pk").values_list("pk", flat=True).first() or 0
+
+    def event_stream():
+        nonlocal last_datetime
+        nonlocal last_id
+        # NB! must add '\n\n' at the end of each message
+        # NB! if message is multi-line, each line must start with 'data: '
+        events = CRUDEvent.objects.filter(pk__gt=last_id).order_by("pk")
+        for e in events:
+            yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
+        if last_event := events.last():
+            last_id = last_event.pk
+        time.sleep(1)
+        # asyncio.sleep(random.randint(1, 5))
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
 
 # def time_value_stream(request):
 #     def event_stream():
