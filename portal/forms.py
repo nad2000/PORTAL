@@ -3018,14 +3018,6 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             or settings.SITE_ID
         )
 
-        if self.instance.application.round.member_letter_of_support_required:
-            if site_id == 2:
-                self.fields["file"].label = _("Organisation Support Letter")
-                self.fields["file"].help_text = _("Support letter from your organisation")
-            self.fields["file"].required = True
-        else:
-            self.fields.pop("file", None)
-
         if is_fs:
             self.fields.pop("research_experience_in_years", None)
             self.fields.pop("file", None)
@@ -3037,6 +3029,13 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                 self.fields.pop("org", None)
                 self.fields.pop("country", None)
         else:
+            if (application := getattr(self.instance, "application", None)) and application.round.member_letter_of_support_required:
+                if site_id == 2:
+                    self.fields["file"].label = _("Organisation Support Letter")
+                    self.fields["file"].help_text = _("Support letter from your organisation")
+                self.fields["file"].required = True
+            else:
+                self.fields.pop("file", None)
             self.helper = FormHelper(self)
             self.helper.include_media = False
             self.helper.form_group_wrapper_class = "row"
