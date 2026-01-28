@@ -13637,7 +13637,7 @@ class ReportedEffort(ReportedEffortMixin, Model):
 
     def save(self, *args, **kwargs):
         if me := self.member_effort:
-            if not self.person:
+            if not self.person and me.member.user:
                 self.person = me.member.user.person
             if not self.full_name:
                 self.full_name = me.member.full_name
