@@ -2682,6 +2682,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         max_length=200, null=True, blank=True, verbose_name=_("application name")
     )
     proposed_start_date = DateField(blank=True, null=True, verbose_name=_("Proposed start date"))
+    proposed_duration =  PositiveSmallIntegerField(
+        _("Contract Duration"), help_text=_("Proposed contract duration"), null=True, blank=True,
+        choices = Choices((None, "N/A"), *range(1, 6))
+    )
     requested_amount = DecimalField(
         max_digits=9,
         decimal_places=2,

@@ -180,7 +180,7 @@
         </tr>
 
         {% if not member or member.state == "authorized" %}
-          {% if a.proposed_start_date or a.requested_amount %}
+          {% if a.proposed_start_date or a.requested_amount or a.proposed_duration %}
             <tr>
               <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">
                 {% trans 'Proposed start date' %}
@@ -194,6 +194,13 @@
               <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Requested amount' %}</th>
               <td>{% if a.requested_amount %}{{ a.requested_amount|floatformat:"-3g" }} NZD{% else %}{% trans 'N/A' %}{% endif %}</td>
             </tr>
+          {% endif %}
+          {% if a.proposed_duration %}
+            <tr>
+              <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">
+                {% trans 'Proposed contract duration' %}
+              </th>
+              <td colspan="3">{{ a.proposed_duration }}</td>
           {% endif %}
         {% endif %}
 
