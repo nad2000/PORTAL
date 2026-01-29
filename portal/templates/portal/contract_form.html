@@ -100,7 +100,8 @@
       var awarded_amount = {% if object.awarded_amount %}{{ object.awarded_amount }}{% else %}0{% endif %};
     {% endif %}
     var sd = {% if object.start_date %}new Date('{{ object.start_date }}'){% else %}new Date(){% endif %};
-    var ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
+    // var ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
+    var ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(sd.getFullYear()+duration, sd.getMonth()+1, 0){% endif %};
     function toggleEthicsInputs(requires_approval) {
       $("#id_has_animal_use_0,#id_has_animal_use_1,#id_has_animal_use_2").prop("disabled", !requires_approval);
       $("#id_is_signatory_to_oa_0,#id_is_signatory_to_oa_1,#id_is_signatory_to_oa_2").prop("disabled", !requires_approval);
@@ -217,24 +218,29 @@
               /* 24*60*60*1000 = 86400000 */
               let start_date = new Date(val);
               let delta = start_date - sd ;
+              let start_year = start_date.getFullYear();
+              let start_month = start_date.getMonth();
               let end_date = new Date(ed.getTime() + delta);
               $("#id_end_date").val(end_date.toISOString().slice(0,10))
               {% if reporting_schedule %}
+
                   {% for f in reporting_schedule.forms %}
-                    {% if f.date_first_remind.value %}
-                      var rd = new Date("{{ f.date_first_remind.value }}");
-                      var reminder_date = new Date(rd.getTime() + delta);
-                      $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
-                    {% endif %}
+                    <!-- PERIOD: {{ f.period.value }} -->
                     {% if f.due_date.value %}
                       let dd_{{ forloop.counter }}  = new Date("{{ f.due_date.value }}");
-                      let due_date_{{ forloop.counter }} = new Date(dd_{{ forloop.counter }}.getTime() + delta);
+                      let due_date_{{ forloop.counter }} =
+                        {% if f.period.value %}
+                          new Date(start_year+{{ f.period.value }}, start_month{% if f.type.value == "F" %}+{{ round.final_report_deferral|default:"3" }}{% endif %}, 0)
+                        {% else %}
+                          new Date(dd_{{ forloop.counter }}.getTime() + delta)
+                        {% endif %};
                       $("#{{ f.due_date.auto_id }}").val(due_date_{{ forloop.counter }}.toISOString().slice(0,10));
-                      {% if not f.date_first_remind.value %}
-                        var reminder_date = new Date(due_date_{{ forloop.counter }}.getTime() - 2629800000); // 30.4375*24*60*60*1000
-                        $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
-                      {% endif %}
+
+                      var reminder_date = new Date(due_date_{{ forloop.counter }}.getFullYear(), due_date_{{ forloop.counter }}.getMonth(), 0);
+                      $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
+
                     {% endif %}
+
                   {% endfor %}
               {% endif %}
             }
