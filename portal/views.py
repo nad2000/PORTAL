@@ -1180,7 +1180,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 if state != old_state:
                     self.object.save()
                 if self.model is models.Nomination and action == "withdraw":
-                    messages.info(request, _(f"The nomination {n} has been withdrawn."))
+                    messages.info(request, _(f"The nomination {self.object} has been withdrawn."))
                 else:
                     messages.success(
                         request,
