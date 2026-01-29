@@ -7728,46 +7728,46 @@ class ContractViewMixin:
                     if fs.is_valid():
                         fs.save()
 
-                if "start_date" in form.changed_data and i.pk:
-                    if current_start_date and i.start_date and i.start_date != current_start_date:
-                        delta = relativedelta(i.start_date, current_start_date)
-                        reporting_schedule_changed = False
-                        reporting_schedule_changed
-                        for rse in i.reporting_schedule.all().order_by("period", "due_date"):
-                            if rse.due_date:
-                                due_date = (rse.due_date + delta).replace(day=1)
-                            else:
-                                due_date = (
-                                    i.start_date + relativedelta(years=rse.period)
-                                ).replace(day=1) + (
-                                    relativedelta(days=-1, months=r.final_report_deferral or 3)
-                                    if rse.period == i.duration and rse.type == "F"
-                                    else relativedelta(days=-1)
-                                )
-                            if rse.due_date != due_date:
-                                rse.due_date = due_date
-                                reporting_schedule_changed = True
+                # if "start_date" in form.changed_data and i.pk:
+                #     if current_start_date and i.start_date and i.start_date != current_start_date:
+                #         delta = relativedelta(i.start_date, current_start_date)
+                #         reporting_schedule_changed = False
+                #         reporting_schedule_changed
+                #         for rse in i.reporting_schedule.all().order_by("period", "due_date"):
+                #             if rse.due_date:
+                #                 due_date = (rse.due_date + delta).replace(day=1)
+                #             else:
+                #                 due_date = (
+                #                     i.start_date + relativedelta(years=rse.period)
+                #                 ).replace(day=1) + (
+                #                     relativedelta(days=-1, months=r.final_report_deferral or 3)
+                #                     if rse.period == i.duration and rse.type == "F"
+                #                     else relativedelta(days=-1)
+                #                 )
+                #             if rse.due_date != due_date:
+                #                 rse.due_date = due_date
+                #                 reporting_schedule_changed = True
 
-                            if rse.date_first_remind:
-                                date_first_remind = (rse.date_first_remind + delta).replace(day=1)
-                            else:
-                                date_first_remind = rse.due_date + relativedelta(months=-1)
+                #             if rse.date_first_remind:
+                #                 date_first_remind = (rse.date_first_remind + delta).replace(day=1)
+                #             else:
+                #                 date_first_remind = rse.due_date + relativedelta(months=-1)
 
-                            if rse.date_first_remind != date_first_remind:
-                                rse.date_first_remind = date_first_remind
-                                reporting_schedule_changed = True
+                #             if rse.date_first_remind != date_first_remind:
+                #                 rse.date_first_remind = date_first_remind
+                #                 reporting_schedule_changed = True
 
-                            if reporting_schedule_changed:
-                                rse.save(update_fields=["due_date", "date_first_remind"])
+                #             if reporting_schedule_changed:
+                #                 rse.save(update_fields=["due_date", "date_first_remind"])
 
-                        if reporting_schedule_changed:
-                            messages.info(
-                                self.request,
-                                _(
-                                    "The reporting schedule have been updated according to the new contract start date. "
-                                    "Please review the reporting schedule."
-                                ),
-                            )
+                #         if reporting_schedule_changed:
+                #             messages.info(
+                #                 self.request,
+                #                 _(
+                #                     "The reporting schedule have been updated according to the new contract start date. "
+                #                     "Please review the reporting schedule."
+                #                 ),
+                #             )
 
                 fs = self.get_personnel_formset()
                 fs.instance = self.object
