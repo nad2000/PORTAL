@@ -2708,7 +2708,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         null=True,
         blank=True,
         # choices = Choices((None, "N/A"), *range(1, 32)
-        validators=[MaxValueValidator(31), MinValueValidator(1)],
+        validators=[# MaxValueValidator(31),
+                    MinValueValidator(1)],
     )
 
     @property
