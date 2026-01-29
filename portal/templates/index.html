@@ -230,10 +230,8 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
 {% endif %}
 
 
-<div class="container">
+<div class="container-fluid">
   {% if not request.user.is_approved %}
-
-  <div class="container">
     <div class="jumbotron">
       <h1>{% trans "Account Approval Pending" %}</h1>
       {% if domain == "portal.pmscienceprizes.org.nz" %}
@@ -250,55 +248,59 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
       {% endblocktrans %}</p>
       {% endif %}
     </div>
-  </div>
 
   {% else %}
   <!-- h1>{% trans "Apply for The Prime Minister’s Science Prizes" %}</h1 -->
 
   {% if previous_applications %}
-  <div class="card text-white bg-warning border-warning mb-3">
-    <h5 class="card-header align-middle"
-      style="text-transform: uppercase;">
-      <div class="row">
-        <div class="col">
-          <strong class="align-middle"> {% trans 'Previous Applications' %} </strong>
-          <button
-              id="previous-applications-button"
-              style="padding-top: 1px; padding-bottom: 0px;"
-              data-toggle="collapse"
-              data-target="#previous-applications"
-              class="btn btn-outline-warning previous-applications-button float-right align-top"
-              type="button"
-              >{% trans 'Show' %}</button>
-        </div>
+    <div class="row"><div class="col">
+      <div class="card text-white bg-warning border-warning mb-3">
+        <h5 class="card-header align-middle"
+          style="text-transform: uppercase;">
+          <div class="row">
+            <div class="col">
+              <strong class="align-middle"> {% trans 'Previous Applications' %} </strong>
+              <button
+                  id="previous-applications-button"
+                  style="padding-top: 1px; padding-bottom: 0px;"
+                  data-toggle="collapse"
+                  data-target="#previous-applications"
+                  class="btn btn-outline-warning previous-applications-button float-right align-top"
+                  type="button"
+                  >{% trans 'Show' %}</button>
+            </div>
+          </div>
+        </h5>
+        <ul class="list-group list-group-flush collapse" id="previous-applications">
+          {% for a in previous_applications %}
+          <li class="list-group-item border-warning">
+            <a href="{% url 'application' pk=a.id %}"
+               class="text-warning"
+               >
+               <strong>{{ a.number }}</strong>: {{ a.title }}
+               {% if a.created_on %}
+               <span class="text-muted">({{ a.created_on|date:"d-m-Y" }})</span>
+               {% endif %}
+            </a></li>
+            {% endfor %}
+        </ul>
       </div>
-    </h5>
-    <ul class="list-group list-group-flush collapse" id="previous-applications">
-      {% for a in previous_applications %}
-      <li class="list-group-item border-warning">
-        <a href="{% url 'application' pk=a.id %}"
-           class="text-warning"
-           >
-           <strong>{{ a.number }}</strong>: {{ a.title }}
-           {% if a.created_on %}
-           <span class="text-muted">({{ a.created_on|date:"d-m-Y" }})</span>
-           {% endif %}
-        </a></li>
-        {% endfor %}
-    </ul>
-  </div>
+    </div></div>
   {% endif %}
 
 {% if draft_applications %}
-<div class="card border-success mb-3">
-  <h5 class="card-header text-white bg-success" style="text-transform: uppercase;"><strong>
-    {% trans 'Application Drafts' %} </strong>
-  </h5>
-  {% include 'snippets/application_card_body.html' with applications=draft_applications state='draft' %}
-</div>
+  <div class="row"><div class="col">
+    <div class="card border-success mb-3">
+      <h5 class="card-header text-white bg-success" style="text-transform: uppercase;"><strong>
+        {% trans 'Application Drafts' %} </strong>
+      </h5>
+      {% include 'snippets/application_card_body.html' with applications=draft_applications state='draft' %}
+    </div>
+  </div></div>
 {% endif %}
 
 {% if current_reports %}
+<div class="row"><div class="col">
 <div class="card border-warning mb-3">
   <h5 class="card-header text-white bg-warning" style="text-transform: uppercase;"><strong>
       {% if is_ro %}
@@ -326,9 +328,11 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
     </ul>
     {% endfor %}
   </div>
+</div></div>
 {% endif %} {# if current_reports #}
 
 {% if current_applications %}
+<div class="row"><div class="col">
 <div class="card border-info mb-3">
   <h5 class="card-header text-white bg-info" style="text-transform: uppercase;">
     <strong>
@@ -337,6 +341,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
   </h5>
   {% include 'snippets/application_card_body.html' with applications=current_applications state='submitted' %}
 </div>
+</div></div>
 {% endif %} {# if current_applications #}
 
 {% if new_reports %}

@@ -4,6 +4,7 @@ import hashlib
 import inspect
 import io
 import logging
+import math
 import os
 import re
 import secrets
@@ -69,6 +70,7 @@ from django.db.models import (  # GeneratedField,
     ManyToManyField,
     Min,
     OneToOneField,
+    OuterRef,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     Prefetch,
@@ -81,7 +83,6 @@ from django.db.models import (  # GeneratedField,
     When,
     aggregates,
     prefetch_related_objects,
-    OuterRef,
 )
 from django.db.models.functions import Cast, Coalesce, Concat, Lower
 from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
@@ -2119,7 +2120,8 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_""" + get_language(),
+            ORDER BY description_"""
+            + get_language(),
             [person.pk],
         )
 
@@ -2682,6 +2684,46 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         max_length=200, null=True, blank=True, verbose_name=_("application name")
     )
     proposed_start_date = DateField(blank=True, null=True, verbose_name=_("Proposed start date"))
+    # proposed_duration =  PositiveSmallIntegerField(
+    #     _("Contract Duration"), help_text=_("Proposed contract duration"), null=True, blank=True,
+    #     choices = Choices((None, "N/A"), *range(1, 6))
+    # )
+    duration_in_years = PositiveSmallIntegerField(
+        _("Duration in years"),
+        help_text=_("Proposed contract duration in years"),
+        null=True,
+        blank=True,
+        choices=Choices((None, "N/A"), *range(1, 6)),
+    )
+    duration_in_months = PositiveSmallIntegerField(
+        _("Duration in months"),
+        help_text=_("Proposed contract duration in months"),
+        null=True,
+        blank=True,
+        choices=Choices((None, "N/A"), *range(1, 13)),
+    )
+    duration_in_days = PositiveSmallIntegerField(
+        _("Duration in days"),
+        help_text=_("Proposed contract duration in days"),
+        null=True,
+        blank=True,
+        # choices = Choices((None, "N/A"), *range(1, 32)
+        validators=[# MaxValueValidator(31),
+                    MinValueValidator(1)],
+    )
+
+    @property
+    def proposed_duration(self):
+        if self.duration_in_years or self.duration_in_months or self.duration_in_days:
+            return self.duration_in_years + math.ceil(
+                self.duration_in_months / 12
+                if self.duration_in_months
+                else 0 + self.duration_in_days / 365.25 if self.duration_in_days else 0
+            )
+    @proposed_duration.setter
+    def proposed_duration(self, value):
+        pass
+
     requested_amount = DecimalField(
         max_digits=9,
         decimal_places=2,
@@ -10784,7 +10826,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         r = a.round
         number = cls.new_number(application=a)
         if not duration:
-            duration = r.duration or 3
+            duration = a.proposed_duration or r.duration or 3
         address = a.address or a.org.address
         if not address or "DUMMY" in address.address and a.postal_address:
             city_country = Address.where(Q(city=a.city) | Q(postcode=a.postcode)).last()
@@ -13637,7 +13679,7 @@ class ReportedEffort(ReportedEffortMixin, Model):
 
     def save(self, *args, **kwargs):
         if me := self.member_effort:
-            if not self.person:
+            if not self.person and me.member.user:
                 self.person = me.member.user.person
             if not self.full_name:
                 self.full_name = me.member.full_name

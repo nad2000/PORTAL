@@ -2932,7 +2932,7 @@ class ReportViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
-        duration = self.object and self.object.duration or a and a.round.duration or 3
+        duration = self.object and self.object.duration or a and (a.proposed_duration or a.round.duration) or 3
         if self.object and self.object.pk:
             extra = 1
             initial = []
@@ -4984,6 +4984,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             )
         return response
 
+    @property
+    def is_update(self):
+        return not (self.object and self.object.pk)
+
     # def form_invalid(self, form):
     #     return super().form_invalid(form)
 
@@ -5174,9 +5178,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
         if (
             round.is_applicant_cv_required
+            and self.is_update
             and round.curriculum_vitae_templates.count() > 0
-            and self.object
-            and self.object.id
             and self.object.cv
             and self.object.cv.file
         ):
