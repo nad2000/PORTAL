@@ -2720,6 +2720,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 if self.duration_in_months
                 else 0 + self.duration_in_days / 365.25 if self.duration_in_days else 0
             )
+    @proposed_duration.setter
+    def proposed_duration(self, value):
+        pass
 
     requested_amount = DecimalField(
         max_digits=9,
