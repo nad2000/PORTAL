@@ -652,6 +652,21 @@ def apnumber(value):
 class ApplicationForm(ModelForm):
 
     nomination = None
+    # duration_in_years = IntegerField(
+    #         required=False,
+    #         max_value=5,
+    #         choices=Choices(
+    #             (None, "N/A"),
+    #             *range(1, 5))
+    # duration_in_months = IntegerField(
+    #         required=False,
+    #         max_value=12,
+    #         choices=Choices(
+    #             (None, "N/A"),
+    #             *range(1, 12))
+    # duration_in_days = IntegerField(
+    #         required=False,
+    #         max_value=365)
 
     @property
     def round(self):
@@ -971,9 +986,15 @@ class ApplicationForm(ModelForm):
         if site_id in [2, 5]:
             cols = [Column("proposed_start_date", css_class="col-2")]
             if site_id == 2:
-                cols.append(Column("proposed_duration", css_class="col-2"))
+                # cols.append(Column("proposed_duration", css_class="col-2"))
+                cols.append(Column("duration_in_years", css_class="col-2"))
+                cols.append(Column("duration_in_months", css_class="col-2"))
+                cols.append(Column("duration_in_days", css_class="col-2"))
             else:
-                self.fields.pop("proposed_duration", None)
+                # self.fields.pop("proposed_duration", None)
+                self.fields.pop("duration_in_days", None)
+                self.fields.pop("duration_in_months", None)
+                self.fields.pop("duration_in_years", None)
             cols.append(
                 Column(
                     Field(
