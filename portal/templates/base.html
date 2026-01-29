@@ -570,7 +570,7 @@ You have a request to review a {{ site_name }} application to act on.
         {% endif %}
 
           <div class="row">
-            <div class="col-sm" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
+            <div class="col-md" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
               {% if messages %}
                 {% for message in messages %}
                   <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -601,12 +601,12 @@ You have a request to review a {{ site_name }} application to act on.
           <div class="row">
             {% if user.is_authenticated and sidebar != "off" %}
               <!-- div class="col-md-3 d-none d-md-block" style="max-width: 18rem;" -->
-              <div class="col-auto d-none d-md-block" style="max-width: 18rem;">
+              <div class="col-md-auto d-none d-md-block" style="max-width: 18rem;">
                 {% block sidebar %}{% include 'sidebar.html' %}{% endblock sidebar %}
               </div>
             {% endif %}
             <!-- div class="col-md-{% if sidebar == "off" %}12{% else %}9{% endif %} mt-2 mb-3" -->
-            <div class="col mt-2 mb-3">
+            <div class="col-md mt-2 mb-3">
               {% block content %}{% endblock content %}
             </div>
           </div>
