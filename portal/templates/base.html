@@ -165,9 +165,11 @@ table.table .asteriskField,.popover-header {color: gray;}
       {% block header %}
         <div class="mb-0" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 30%);">
 
-          {% include 'header.html' %}
+          {% if not user.is_authenticated %}{% include 'header.html' %}{% endif %}
 
           <nav class="navbar navbar-expand-md navbar-dark bg-primary">
+            <div class="container-fluid">
+
             <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
             </button>
@@ -369,9 +371,14 @@ table.table .asteriskField,.popover-header {color: gray;}
 
                 </ul>
               </div>
+          </div>
           </nav>
 
         </div>
+
+      {% endblock header %}
+
+      <div class="container-fluid">
 
         {% block breadcrumbs %}
           {% breadcrumb_raw_safe '<i class="fa fa-fw fa-home"></i>' "/" %}
@@ -384,12 +391,9 @@ table.table .asteriskField,.popover-header {color: gray;}
           {% endif %}
         {% endblock %}
 
-      {% endblock header %}
-
-      <div class="container-fluid">
-
         {% if requery.user.needs_identity_verification %}
-          {% if domain == 'international.royalsociety.org.nz' %}
+          <div class="row"><div class="col-sm">
+          {% if SITE_ID == 2 %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               <span class="badge badge-info">{% trans 'New' %}</span>
               {% trans "This scheme requires a copy of the passport for the the lead applicant." %}
@@ -408,9 +412,11 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endif %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_invitations %}
+          <div class="row"><div class="col-sm">
           {% for oi in outstanding_invitations %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if oi.created_at >= three_days_ago %}
@@ -447,9 +453,11 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_nominations and outstanding_nominations.count %}
+          <div class="row"><div class="col-sm">
           {% for n in outstanding_nominations %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if n.created_at >= three_days_ago %}
@@ -464,9 +472,11 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_identity_verifications  %}
+          <div class="row"><div class="col-sm">
           {% for oiv in outstanding_identity_verifications %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if oiv.created_at >= three_days_ago %}
@@ -479,9 +489,11 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_authorization_requests %}
+          <div class="row"><div class="col-sm">
           {% for o in outstanding_authorization_requests %}
             {% if o.application and o.application.id %}
               <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -500,9 +512,11 @@ You have a request to join a {{ site_name }} team that you still have to act on.
               </div>
             {% endif %}
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_testimonial_requests %}
+          <div class="row"><div class="col-sm">
           {% for o in outstanding_testimonial_requests %}
             {% if o.testimonial_id %}
               <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -527,9 +541,11 @@ You have a request to review a {{ site_name }} application to act on.
               </div>
             {% endif %}
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_review_requests %}
+          <div class="row"><div class="col-sm">
           {% for o in outstanding_review_requests %}
             {% if o.round_id %}
               <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -548,9 +564,11 @@ You have a request to review a {{ site_name }} application to act on.
               </div>
             {% endif %}
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if user_verifications %}
+          <div class="row"><div class="col-sm">
           {% for u in user_verifications %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if u.last_login >= three_days_ago or u.date_joined >= three_days_ago %}
@@ -567,10 +585,14 @@ You have a request to review a {{ site_name }} application to act on.
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
           <div class="row">
-            <div class="col-md" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
+            <div
+               class="col-sm"
+               id="messages"
+               hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
               {% if messages %}
                 {% for message in messages %}
                   <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -580,7 +602,9 @@ You have a request to review a {{ site_name }} application to act on.
           </div>
 
         {% if form.errors %}
-          {% include "form_errors.html" %}
+          <div class="row"><div class="col-sm">
+            {% include "form_errors.html" %}
+          </div></div>
         {% endif %}
 
         {% comment %}
@@ -592,7 +616,9 @@ You have a request to review a {{ site_name }} application to act on.
         {% if inlines %}
           {% for formset in inlines %}
             {% if formset.errors %}
+              <div class="row"><div class="col-sm">
               {% include "formset_errors.html" %}
+              </div></div>
             {% endif %}
           {% endfor %}
         {% endif %}
@@ -606,7 +632,7 @@ You have a request to review a {{ site_name }} application to act on.
               </div>
             {% endif %}
             <!-- div class="col-md-{% if sidebar == "off" %}12{% else %}9{% endif %} mt-2 mb-3" -->
-            <div class="col-md mt-2 mb-3">
+            <div class="col-sm mt-2 mb-3">
               {% block content %}{% endblock content %}
             </div>
           </div>
