@@ -4983,7 +4983,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             )
         return response
 
-    @propoerty
+    @property
     def is_update(self):
         return not (self.object and self.object.pk)
 
