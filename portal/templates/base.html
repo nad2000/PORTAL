@@ -570,7 +570,7 @@ You have a request to review a {{ site_name }} application to act on.
         {% endif %}
 
           <div class="row">
-            <div class="col-12" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
+            <div class="col-sm" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
               {% if messages %}
                 {% for message in messages %}
                   <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
