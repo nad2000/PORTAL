@@ -213,6 +213,7 @@
       $("#id_start_date").change(
         function(e) {
             let val = this.value;
+            duration = (+$("#id_duration").val()||{% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %});
             if (val) {
               /* 365.25*24*60*60*1000 = 31557600000.0 */
               /* 24*60*60*1000 = 86400000 */
@@ -220,7 +221,9 @@
               let delta = start_date - sd ;
               let start_year = start_date.getFullYear();
               let start_month = start_date.getMonth();
-              let end_date = new Date(ed.getTime() + delta);
+              // let end_date = new Date(ed.getTime() + delta);
+              // let end_date = new Date(start_year + duration, start_month + 1, 0);
+              let end_date = new Date(Date.UTC(start_year + duration, start_month, 0));
               $("#id_end_date").val(end_date.toISOString().slice(0,10))
               {% if reporting_schedule %}
 
@@ -230,18 +233,18 @@
                       let dd_{{ forloop.counter }}  = new Date("{{ f.due_date.value }}");
                       let due_date_{{ forloop.counter }} =
                         {% if f.period.value %}
-                          new Date(start_year+{{ f.period.value }}, start_month{% if f.type.value == "F" %}+{{ round.final_report_deferral|default:"3" }}{% endif %}, 0)
+                          new Date(Date.UTC(start_year+{{ f.period.value }}, start_month{% if f.type.value == "F" %}+{{ round.final_report_deferral|default:"3" }}{% endif %}, 0))
                         {% else %}
                           new Date(dd_{{ forloop.counter }}.getTime() + delta)
                         {% endif %};
                       $("#{{ f.due_date.auto_id }}").val(due_date_{{ forloop.counter }}.toISOString().slice(0,10));
 
-                      var reminder_date = new Date(due_date_{{ forloop.counter }}.getFullYear(), due_date_{{ forloop.counter }}.getMonth(), 0);
+                      var reminder_date = new Date(Date.UTC(due_date_{{ forloop.counter }}.getFullYear(), due_date_{{ forloop.counter }}.getMonth(), 0));
                       $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
 
                     {% endif %}
-
                   {% endfor %}
+
               {% endif %}
             }
         }
