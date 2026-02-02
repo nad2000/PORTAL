@@ -345,6 +345,7 @@ class ApplicationFilterSet(FilterSet):
             q = (
                 Q(application_title__icontains=value)
                 | Q(number__icontains=value)
+                | Q(contracts__number__icontains=value)
                 | self.unaccent(first_name__icontains=value)
                 | self.unaccent(last_name__icontains=value)
                 | Q(email__icontains=value)

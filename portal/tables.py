@@ -307,14 +307,19 @@ class ApplicationTable(Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(linkify=application_link)
     round = tables.Column(linkify=application_round_link)
-    email = tables.Column(
-        linkify=lambda table, record, value: (
-            reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
-            if (table.request.user.is_staff or table.request.user.is_superuser)
-            and record.submitted_by_id
-            else None
-        )
+    pi = tables.Column(
+        gettext_lazy("Application PI"),
+        tables.A("pi__full_name_with_email"),
+        order_by=("first_name", "last_name"),
     )
+    # email = tables.Column(
+    #     linkify=lambda table, record, value: (
+    #         reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
+    #         if (table.request.user.is_staff or table.request.user.is_superuser)
+    #         and record.submitted_by_id
+    #         else None
+    #     )
+    # )
     export = tables.LinkColumn(
         "application-export",
         args=[tables.A("pk")],
@@ -450,9 +455,10 @@ class ApplicationTable(Table):
             "state",
             "number",
             "round",
-            "email",
-            "first_name",
-            "last_name",
+            "pi",
+            # "email",
+            # "first_name",
+            # "last_name",
             "panel",
             "export",
             "admin",
@@ -511,6 +517,7 @@ class ReportTable(Table):
         tables.A("pi__full_name_with_email"),
         order_by="contract__members__email",
     )
+    due_date = tables.Column(order_by="schedule_entry__due_date")
 
     # def before_render(self, request):
     #     if (u := request.user) and not u.is_superuser and not u.is_staff:
