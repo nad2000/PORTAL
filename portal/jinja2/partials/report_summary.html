@@ -83,7 +83,7 @@
         <td>
           {% if not r.assessor %}
             <em>{{ _('Not assigned') }}</em>
-            {% if r.state in ["submitted", "reported", "acknowledged", "assigned"] %}
+            {% if r.state in ["approved", "submitted", "reported", "acknowledged", "assigned"] %}
               <button
                   type="button"
                   class="btn btn-sm btn-outline-primary ms-2"
@@ -140,14 +140,16 @@
           {{ _('Report Due') }}{% if export %}:{% endif %}
         </th>
         <td>
-          {% if due_in_days < 1 %}
-            <strong>
-                <span class="text-danger"> {{ r.due_date }} ({% if due_in_days == 0 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
-            </strong>
-          {% elif due_in_days < 4 %}
-            <strong>
-            <span class="text-warning"> {{ r.due_date }} ({{ _('due in') }} {{ due_in_days }} {{ _('day(s)') }}) </span>
-            </strong>
+          {% if r.is_overdue and due_in_days < 4 %}
+            {% if due_in_days < 1 %}
+              <strong>
+                  <span class="text-danger"> {{ r.due_date }} ({% if due_in_days == 0 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
+              </strong>
+            {% else %}
+              <strong>
+              <span class="text-warning"> {{ r.due_date }} ({{ _('due in') }} {{ due_in_days }} {{ _('day(s)') }}) </span>
+              </strong>
+            {% endif %}
           {% else %}
             {{ r.due_date }}
           {% endif %}

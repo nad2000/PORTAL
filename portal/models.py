@@ -12986,11 +12986,11 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @cached_property
     def is_overdue(self):
-        return self.due_date <= timezone.now().date()
+        return self.state in ["new", "draft"] and self.due_date <= timezone.now().date()
 
     @cached_property
     def is_due_soon(self):
-        return (self.due_date - timezone.now().date()).days <= 5
+        return self.state in ["new", "draft"] and (self.due_date - timezone.now().date()).days <= 5
 
     @cached_property
     def ci(self):
@@ -13243,6 +13243,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @property
     def due_in_days(self):
+        if self.state not in ["new", "draft"]:
+            return
         current_date = timezone.now().date()
         if self.due_date:
             return (self.due_date - current_date).days
@@ -13457,7 +13459,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["acknowledged", "submitted", "reported", "assigned"],
+        source=["acknowledged", "submitted", "reported", "assigned", "approved"],
         target="assigned",
         custom=dict(verbose="Assign an assessor", button_name="Assign Yourself"),
         conditions=[lambda self: not self.assessor or self.state != "assigned"],
