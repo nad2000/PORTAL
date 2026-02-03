@@ -646,6 +646,23 @@ You have a request to review a {{ site_name }} application to act on.
         {% include 'footer.html' %}
       {% endblock footer %}
 
+      {% comment %}
+      {% if user.is_authenticated and user.is_admin %}
+        <!-- Position container: fixed at bottom right, padding for space -->
+        <div
+          class="position-fixed bottom-0 right-0 p-3"
+          style="z-index: 11; right: 0; bottom: 0;"
+          id="toast-container"
+          hx-ext="sse"
+          hx-swap="beforeend"
+          sse-connect="{% url 'crud-event-stream' %}"
+          sse-swap="crud"
+        >
+        </div>
+      {% endif %}
+      {% endcomment %}
+
+
       <!-- section class="">
         <footer class="footer">
         <div class="container">
@@ -725,6 +742,11 @@ You have a request to review a {{ site_name }} application to act on.
       <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha512-T/tUfKSV1bihCnd+MxKD0Hm1uBBroVYBOYSk1knyvQ9VyZJpc/ALb4P0r6ubwVPSGB2GvjeoMAJJImBG12TiaQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script -->
       <!-- script src="https://unpkg.com/htmx.org@2.0.2"></script -->
       <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+      {% comment %}
+      {% if user.is_authenticated and user.is_admin %}
+      <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4" integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N" crossorigin="anonymous"></script>
+      {% endif %}
+      {% endcomment %}
       <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
       <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -793,6 +815,21 @@ You have a request to review a {{ site_name }} application to act on.
                       if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
                     })
                   });
+                  {% comment %}
+                  {% if user.is_authenticated and user.is_admin %}
+                    document.addEventListener('htmx:afterSwap', (event) => {
+                      // if (event.detail.target.id === 'toast-container') {
+                      if (event.detail.elt.id === 'toast-container') {
+                        // const toast = event.detail.target.lastElementChild;
+                        const toast = event.detail.elt.lastElementChild;
+                        if (toast) {
+                          // bootstrap.Toast(toastElement).show();
+                          $(toast).toast('show');
+                        }
+                      }
+                    });
+                  {% endif %}
+                  {% endcomment %}
                   setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 70000);
         {% if site_id == 2 and user.is_authenticated and not is_admin and not request.session.country and not user.person.address.country %}
           if (navigator.geolocation) {

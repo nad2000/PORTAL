@@ -1,16 +1,16 @@
+import asyncio
+from asgiref.sync import sync_to_async
 import base64
 import csv
 import io
 import json
 import mimetypes
 import os
+import random
 import re
-
-import time, random
-from easyaudit.models import CRUDEvent
 import shutil
+import time
 import traceback
-import requests
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
@@ -22,6 +22,7 @@ import django.utils.translation
 import django_tables2
 import jinja2
 import py7zr
+import requests
 import rispy
 import tablib
 from allauth.account.models import EmailAddress
@@ -124,6 +125,7 @@ from django_select2 import forms as s2forms
 from django_summernote.widgets import SummernoteInplaceWidget
 from django_tables2 import SingleTableMixin, SingleTableView
 from django_tables2.export import ExportMixin
+from easyaudit.models import CRUDEvent
 from extra_views import (
     CreateWithInlinesView,
     InlineFormSetFactory,
@@ -2932,7 +2934,13 @@ class ReportViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
-        duration = self.object and self.object.duration or a and (a.proposed_duration or a.round.duration) or 3
+        duration = (
+            self.object
+            and self.object.duration
+            or a
+            and (a.proposed_duration or a.round.duration)
+            or 3
+        )
         if self.object and self.object.pk:
             extra = 1
             initial = []
@@ -13785,23 +13793,63 @@ def toggle_favorite(request, content_type_id, object_id):
 #     )
 
 
-def crud_event_stream(request):
+@login_required
+async def crud_event_stream(request):
 
-    last_datetime = timezone.now()-timezone.timedelta(minutes=5)
-    last_id = CRUDEvent.objects.all().order_by("-pk").values_list("pk", flat=True).first() or 0
+    last_datetime = timezone.now() - timezone.timedelta(minutes=1)
+    last_id = await CRUDEvent.objects.all().order_by("-pk").values_list("pk", flat=True).afirst() or 0
 
-    def event_stream():
+    async def event_stream():
         nonlocal last_datetime
         nonlocal last_id
+        e = None
         # NB! must add '\n\n' at the end of each message
         # NB! if message is multi-line, each line must start with 'data: '
-        events = CRUDEvent.objects.filter(pk__gt=last_id).order_by("pk")
-        for e in events:
-            yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
-        if last_event := events.last():
-            last_id = last_event.pk
-        time.sleep(1)
-        # asyncio.sleep(random.randint(1, 5))
+        while True:
+            events = CRUDEvent.objects.filter(pk__gt=last_id, event_type__in=[1, 2, 3]).order_by("pk")
+            # events = CRUDEvent.objects.filter(event_type__in=[1, 2, 3]).order_by("-pk")[:3]
+            async for e in events:
+                # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
+                if (
+                    e.event_type in [1, 2]
+                    and (ct := e.content_type)
+                    and (obj := await sync_to_async(e.content_type.get_object_for_this_type)(pk=e.object_id))
+                ):
+                    try:
+                        url = getattr(obj, "detail_url", None) or reverse(
+                            f"admin:{ct.app_label}_{ct.model}_change", args=[obj.pk]
+                        )
+                    except:
+                        url = None
+                else:
+                    url = None
+                op = f"{ e.get_event_type_display().lower() }d"
+                message = "".join(f"data: {l}\n" for l in f"""
+    <div class="toast hide"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        data-delay="5000"
+        id="crud-event-{e.pk}"
+    >
+    <div class="toast-header">
+        <!-- img src="..." class="rounded mr-2" alt="..." -->
+        <strong class="mr-auto">{ ct.model_class()._meta.verbose_name } was { op }</strong>
+        <small class="text-muted">at {e.datetime.isoformat() }</small>
+        <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="toast-body">
+        { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
+    </div>
+    </div>
+    """.splitlines(keepends=False) if l.strip())
+                # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
+                yield f"id: {e.pk}\nevent: crud\n{message}\n"
+            if e and e.pk:
+                last_id = e.pk
+            await asyncio.sleep(5)
 
     response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
     response.headers["Cache-Control"] = "no-cache"
@@ -13820,5 +13868,12 @@ def crud_event_stream(request):
 #     response.headers["Cache-Control"] = "no-cache"
 #     return response
 
+
+# async def async_view_example(request):
+#     # Simulate an asynchronous I/O operation (e.g., an API call)
+#     # This does not block other requests while it 'sleeps'
+#     await asyncio.sleep(5)
+
+#     return JsonResponse({'message': 'Hello, async world!', 'delay': '2 seconds'})
 
 # vim:set ft=python.django:

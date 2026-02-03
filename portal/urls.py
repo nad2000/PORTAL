@@ -857,9 +857,9 @@ urlpatterns = [
     ),
     path("pyinfo/", views.pyinfo),
     path("pyinfo/<message>", views.pyinfo),
-    path("headers/<application_id>/<page_count>/<output_type>", views.headers),
-    path("headers/<application_id>/<page_count>", views.headers),
-    path("headers/<application_id>/", views.headers),
+    # path("headers/<application_id>/<page_count>/<output_type>", views.headers),
+    # path("headers/<application_id>/<page_count>", views.headers),
+    # path("headers/<application_id>/", views.headers),
     path("413/", views.handler413),
     path("favicon.ico", views.favicon),
     path("webhooks/survey/", views.survey_webhook),
@@ -876,7 +876,9 @@ urlpatterns = [
     # path("time-stream", TemplateView.as_view(template_name="time_stream.html"), name="time-stream-page"),
     path("stream/crud/", views.crud_event_stream, name="crud-event-stream"),
     path("crud-events", TemplateView.as_view(template_name="crud_events.html"), name="crud-events"),
+    # path('async-example/', views.async_view_example, name='async_example'),
 ]
+
 if getattr(settings, "PRIVATE_STORAGE_CLASS ", None) == "common.models.ArchivalStorage":
     urlpatterns.append(
         re_path(
