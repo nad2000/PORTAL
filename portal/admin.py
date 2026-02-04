@@ -2,6 +2,7 @@ import os
 from functools import cache
 import inspect
 from django.contrib.contenttypes.admin import GenericTabularInline
+from allauth.account.adapter import get_adapter
 
 import dal
 import django
@@ -99,6 +100,12 @@ djhacker.formfield(
 
 djhacker.formfield(
     models.Panellist.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+)
+
+djhacker.formfield(
+    SocialAccount.user,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
 )
@@ -494,7 +501,14 @@ admin.site.register(SocialToken, SocialTokenAdmin)
 
 
 class SocialAccountAdmin(SocialAccountAdmin):
+
+    search_fields = ["uid"]
+    raw_id_fields = ()
     date_hierarchy = "date_joined"
+
+    def get_search_fields(self, request):
+        search_fields = super().get_search_fields(request)
+        return search_fields + self.search_fields
 
 
 admin.site.unregister(SocialAccount)
