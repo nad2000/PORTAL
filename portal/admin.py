@@ -1,5 +1,6 @@
 import os
 from functools import cache
+import inspect
 from django.contrib.contenttypes.admin import GenericTabularInline
 
 import dal
@@ -30,6 +31,7 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
+
 # from easyaudit import admin as easyaudit_admin
 # from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
@@ -1975,13 +1977,10 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(
-                f"""<a
+            links = ", ".join(f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>"""
-                for c in contracts
-            )
+            {c.number}</a>""" for c in contracts)
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -2408,7 +2407,15 @@ class RefereeAdmin(
 @admin.register(models.Member)
 class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
-    list_display = ["email", "full_name", "role", "application", "state", "has_authorized", "changed_at"]
+    list_display = [
+        "email",
+        "full_name",
+        "role",
+        "application",
+        "state",
+        "has_authorized",
+        "changed_at",
+    ]
     search_fields = [
         "email",
         "first_name",
@@ -2416,12 +2423,7 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
         "application__number",
         "application__application_title",
     ]
-    list_filter = [
-        "application__round",
-        "role",
-        "created_at",
-        "updated_at",
-        "state"]
+    list_filter = ["application__round", "role", "created_at", "updated_at", "state"]
     date_hierarchy = "created_at"
     inlines = [StateLogInline]
     readonly_fields = [
@@ -3513,6 +3515,7 @@ class RoundAdmin(
         "invite_referees",
         "sync_referee_surveys",
         "copy_round",
+        "copy_performance_indicators",
         "make_current",
         "export_for_panellists",
     ]
@@ -3828,6 +3831,72 @@ class RoundAdmin(
             )
         else:
             messages.warning(request, "No round was updated...")
+
+    @admin.action(description='Copy performance indicators/flags form another "source" round')
+    def copy_performance_indicators(self, request, queryset):
+        if "do_action" in request.POST:
+            errors = []
+            count = 0
+            if selected_id := request.POST.get("chosen_object"):
+                selected_object = self.model.get(selected_id)
+
+                try:
+                    with transaction.atomic():
+
+                        field_names = ["name", "value_choices", "is_optional"]
+                        for r in queryset.filter(~Q(id=selected_id)):
+
+                            flags = [
+                                f
+                                for f in selected_object.performance_flags.all().values(
+                                    *field_names
+                                )
+                                if f not in r.performance_flags.all().values(*field_names)
+                            ]
+                            if len(flags):
+                                count += len(flags)
+                                flags = [models.PerformanceFlag(round=r, **f) for f in flags]
+                                for pf in flags:
+                                    pf._change_reason = (
+                                        "Performance flag copied from the round "
+                                        f"{selected_object} by {request.user}"
+                                    )
+                                selected_object.performance_flags.model.objects.bulk_create(flags)
+
+                except Exception as ex:
+                    capture_exception(ex)
+                    errors.append(ex)
+
+            if count > 1:
+                messages.success(
+                    request,
+                    f"{count} performance indicators/flags copied to the selected rounds",
+                )
+
+            if errors:
+                for e in errors:
+                    messages.error(request, e)
+
+            return
+
+        # Get the code object from the frame and then the name
+        return render(
+            request,
+            "action_select_item.html",
+            {
+                "title": "Choose source round to copy performance indicators/flags from",
+                "item_label": "Choose source round to copy performance indicators/flags from",
+                "objects": queryset,
+                "objects_with_labels": [
+                    (r, f"{r} ({r.flag_count})")
+                    for r in queryset.annotate(flag_count=models.Count("performance_flags"))
+                ],
+                "action_name": inspect.currentframe().f_code.co_name,
+                "first_item": queryset.filter(performance_flags__isnull=False).first()
+                or queryset.first(),
+                # "schemes": models.Scheme.objects.order_by("code", "title").all(),
+            },
+        )
 
     @admin.action(description="Copy and link to another scheme")
     def copy_round(self, request, queryset):
