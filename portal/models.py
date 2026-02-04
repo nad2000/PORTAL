@@ -2120,8 +2120,7 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_"""
-            + get_language(),
+            ORDER BY description_""" + get_language(),
             [person.pk],
         )
 
@@ -2708,18 +2707,18 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         null=True,
         blank=True,
         # choices = Choices((None, "N/A"), *range(1, 32)
-        validators=[# MaxValueValidator(31),
-                    MinValueValidator(1)],
+        validators=[MinValueValidator(1)],  # MaxValueValidator(31),
     )
 
     @property
     def proposed_duration(self):
         if self.duration_in_years or self.duration_in_months or self.duration_in_days:
-            return self.duration_in_years + math.ceil(
+            return (self.duration_in_years or 0) + math.ceil(
                 self.duration_in_months / 12
                 if self.duration_in_months
-                else 0 + self.duration_in_days / 365.25 if self.duration_in_days else 0
+                else 0 + (self.duration_in_days / 365.25 if self.duration_in_days else 0)
             )
+
     @proposed_duration.setter
     def proposed_duration(self, value):
         pass
