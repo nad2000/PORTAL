@@ -2018,7 +2018,7 @@ class Person(PersonMixin, Model):
             if self.code:
                 return f"{self.code}: {value}"
             return value
-        return self.code or self.email or self.orcid
+        return self.code or self.email or self.orcid or f"Person #{self.pk}"
 
     def save(self, *args, **kwargs):
         created = not self.pk
