@@ -1,0 +1,12 @@
+{% load static %}
+{
+  "name":"{{ request.site.name }}",
+  "short_name":"RSTA Portal Data Management",
+  "icons":[
+    {"src":"{% static 'images/portals.royalsociety.org.nz/favicons/android-chrome-192x192.png' %}","sizes":"192x192","type":"image/png"},
+    {"src":"{% static 'images/portals.royalsociety.org.nz/favicons/android-chrome-512x512.png' %}","sizes":"512x512","type":"image/png"}
+  ],
+  "theme_color":"#ffffff",
+  "background_color":"#ffffff",
+  "display":"standalone"
+}
