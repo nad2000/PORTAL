@@ -5588,9 +5588,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             if not a.submitted_by or a.submitted_by == user
                             else a.submitted_by.email
                         ),
-                        role_id="PI",
                         defaults=dict(
                             user=user,
+                            role_id="PI",
                             cv=cv,
                             file=letter_of_support and letter_of_support.file,
                             converted_file=letter_of_support and letter_of_support.converted_file,
