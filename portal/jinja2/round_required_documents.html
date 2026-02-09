@@ -74,6 +74,25 @@
                 </tr>
                 {% endif %}
 
+                {% if round.member_letter_of_support_required or round.member_cv_required %}
+                  <tr>
+                    <td colspan="3">
+                      {% if round.member_letter_of_support_required and round.member_cv_required %}
+                          Please note that CVs and host support letters are required and uploaded by the Principal Investigator
+                          and all Team Members upon acceptance of the nomination/invitation. Only the support letter of the PI’s
+                          organisation is uploaded separately as part of the application documents.
+                      {% elif round.member_letter_of_support_required %}
+                          Please note that host support letters are required and uploaded by the Principal Investigator
+                          and all Team Members upon acceptance of the nomination/invitation. Only the support letter of the PI’s
+                          organisation is uploaded separately as part of the application documents.
+                      {% else %}
+                          Please note that CVs are required and uploaded by the Principal Investigator
+                          and all Team Members upon acceptance of the nomination/invitation.
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endif %}
+
             </tbody>
         </table>
 

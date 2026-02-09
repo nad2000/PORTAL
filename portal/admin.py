@@ -3650,6 +3650,7 @@ class RoundAdmin(
                                 "has_title",
                                 "letter_of_support_required",
                                 "member_letter_of_support_required",
+                                "member_cv_required",
                                 "member_research_experience_in_years_required",
                                 "nomination_form_required",
                                 "nominator_cv_required",
