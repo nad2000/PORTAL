@@ -3043,7 +3043,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @cached_property
     def pi(self):
-        return (pi := self.members.filter(role="PI").last()) and pi.user or self.submitted_by
+        return (pi := self.members.filter(role="PC" if self.site_id == 2 else "PI").last()) and pi.user or self.submitted_by
+
+    @cached_property
+    def pi_member(self):
+        return self.members.filter(role="PC" if self.site_id == 2 else "PI").first()
 
     def is_pi(self, user):
         return (
