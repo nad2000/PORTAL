@@ -126,6 +126,7 @@ from common.models import (
     Title,
     archive_storage,
     domain_to_macrons,
+    save_to_archive,
 )
 
 from .utils import send_mail, vignere
@@ -10014,6 +10015,8 @@ def clean_private_fils(dry_run=False):
                 qs = getattr(m, "all_objects", m.objects).filter(
                     Q(**{f.name: filename for f in fields}, _connector=Q.OR)
                 )
+                # if hasattr(m, "state"):
+                #     qs = qs.filter(~Q(state="archived"))
                 if qs.exists():
                     break
             else:
@@ -10083,6 +10086,98 @@ def clean_private_fils(dry_run=False):
             #         os.remove(full_filename)
             #     print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
             #     total += size
+
+    if total:
+        total = round(total / 1048576, 2)
+        print(f"*** Recovered {total}MiB")
+
+
+def clean_archived_object_private_files(dry_run=False):
+
+    model_fields = [
+        e
+        for e in (
+            (m, [f for f in m._meta.fields if isinstance(f, PrivateFileField)])
+            for m in apps.get_models()
+        )
+        if e[1]
+    ]
+    for m, fields in model_fields:
+        if hasattr(m, "all_objects"):
+            m.objects = m.all_objects
+
+    total = 0
+    for model, file_fields in model_fields:
+
+        if model not in [
+            Application,
+            ApplicationDocument,
+            ContractComment,
+            ContractCommentAttachment,
+            ContractDocument,
+            EthicsStatement,
+            IdentityVerification,
+            LetterOfSupport,
+            Nomination,
+            Report,
+            ReportComment,
+            ReportCommentAttachment,
+            Testimonial,
+        ] and not (
+            hasattr(model, "state") and "archived" in [c[0] for c in getattr(model, "STATES", [])]
+        ):
+            continue
+
+        if hasattr(model, "state"):
+            archived_qs = model.objects.filter(state="archived")
+        elif hasattr(model, "application") or model == LetterOfSupport:
+            archived_qs = model.objects.filter(application__state="archived")
+        elif hasattr(model, "contract"):
+            archived_qs = model.objects.filter(contract__state="archived")
+        elif hasattr(model, "report"):
+            archived_qs = model.objects.filter(report__state="archived")
+        elif model == ContractCommentAttachment:
+            archived_qs = model.objects.filter(comment__contract__state="archived")
+        elif model == ReportCommentAttachment:
+            archived_qs = model.objects.filter(comment__report__state="archived")
+        elif model == Testimonial:
+            archived_qs = model.objects.filter(referee__application__state="archived")
+        else:
+            print(f"*** Skipping model {model._meta.verbose_name_plural} as it doesn't have a state field")
+            continue
+
+        for obj in archived_qs:
+
+            for field in file_fields:
+                file = getattr(obj, field.name)
+                if not file:
+                    continue
+                if Path(file.path).is_file():
+                    print(f"*** File doesn't exist: '{file.path}'")
+                    continue
+
+                filename = file.name
+
+                # Check if any non-archived object is using the same file
+                for m, fields in model_fields:
+                    if m != model:
+                        continue
+                    qs = getattr(m, "all_objects", m.objects).filter(
+                        Q(**{f.name: filename for f in fields}, _connector=Q.OR)
+                    )
+                    if hasattr(m, "state"):
+                        qs = qs.filter(~Q(state="archived"))
+                    if qs.exists():
+                        break
+                else:
+                    size = os.path.getsize(file.path)
+                    try:
+                        async_task(save_to_archive, name=file.path, keep=dry_run)
+                    except Exception as e:
+                        capture_exception(e)
+                        raise e
+                    print(f"*** Deleted archived object file: '{filename}' ({size} bytes)")
+                    total += size
 
     if total:
         total = round(total / 1048576, 2)

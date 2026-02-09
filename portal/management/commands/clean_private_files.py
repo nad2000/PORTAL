@@ -16,3 +16,4 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         models.clean_private_fils(dry_run=options.get("dry_run"))
+        models.clean_archived_object_private_files(dry_run=options.get("dry_run"))

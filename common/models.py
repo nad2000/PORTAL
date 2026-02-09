@@ -205,7 +205,7 @@ def save_to_archive(name=None, names=None, keep=True):
             capture_exception(e)
             raise e
         else:
-            if keep is False and kepp is not None:
+            if keep is False and keep is not None:
                 if archive_storage.exists_locally(n):
                     os.remove(full_path)
 
@@ -460,7 +460,7 @@ class HelperMixin:
     #             (
     #                 _("Budget"),
     #                 # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
-    #                 self.budget_pdf,
+    #                 self.bugget_pdf,
     #             )
     #         )
 
