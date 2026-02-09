@@ -2956,8 +2956,8 @@ class ReportViewMixin:
             pc, _ = models.RoleType.objects.get_or_create(
                 code="PC",
                 defaults={
-                    "name": "Principal Investigator (Contract)",
-                    "description": "Principal Investigator (Contract)",
+                    "name": "Principal Investigator (Contact)",
+                    "description": "Principal Investigator (Contact)",
                 },
             )
 
@@ -4808,7 +4808,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
             "accepted",
             "funded",
         ]
-        if a.site_id == 2 and member and member.role_id != "PI":
+        if a.site_id == 2 and member and member.role_id not in ["PI", "PC"]:
             context["can_update"] = False
             context["update_tooltip"] = _(
                 "Only the Principal Investigator can update the application."
@@ -5450,7 +5450,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             instance.is_team_application
                             and (
                                 not instance.pk
-                                or instance.members.filter(role="PI", cv__isnull=True).exists()
+                                or instance.members.filter(role=("PC" if site_id == 2 else "PI"), cv__isnull=True).exists()
                             )
                         )
                     )
@@ -5590,7 +5590,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         ),
                         defaults=dict(
                             user=user,
-                            role_id="PI",
+                            role_id="PC" if site_id == 2 else "PI",
                             cv=cv,
                             file=letter_of_support and letter_of_support.file,
                             converted_file=letter_of_support and letter_of_support.converted_file,
@@ -6179,7 +6179,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     if site_id == 2 and a.state in ["new", "draft", "tac_accepted"]:
 
                         is_valid = True
-                        if a.members.filter(~Q(role_id="PI"), country__isnull=True).exists():
+                        if a.members.filter(~Q(role_id__in=["PI", "PC"]), country__isnull=True).exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -6188,7 +6188,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 ),
                             )
                             is_valid = False
-                        if a.members.filter(~Q(role_id="PI"), org__isnull=True).exists():
+                        if a.members.filter(~Q(role_id__in=["PI", "PC"]), org__isnull=True).exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -6197,7 +6197,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 ),
                             )
                             is_valid = False
-                        if a.members.filter(~Q(role_id="PI"), file="").exists():
+                        if a.members.filter(~Q(role_id__in=["PI", "PC"]), file="").exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -7368,6 +7368,7 @@ class ContractViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
+        site_id = a.site_id or settings.SITE_ID
         duration = self.object and self.object.duration or a and a.round.duration or 3
         if self.object and self.object.id:
             extra = 1
@@ -7375,10 +7376,10 @@ class ContractViewMixin:
         else:
             a = self.application
             pi, _ = models.RoleType.objects.get_or_create(
-                code="PI",
+                code="PC" if site_id == 2 else "PI",
                 defaults={
-                    "name": "Principal Investigator",
-                    "description": "Principal Investigator",
+                    "name": "Principal Investigator (Contact)" if site_id == 2 else "Principal Investigator",
+                    "description": "Principal Investigator (Contact)" if site_id == 2 else "Principal Investigator",
                 },
             )
 
@@ -10982,7 +10983,7 @@ class ContractExportView(ExportView):
             or u.is_site_staff
             or (c := self.get_object_or_404())
             and (
-                c.members.filter(user=u, role="PI").exists()
+                c.members.filter(user=u, role_id__in=["PI", "PC"]).exists()
                 or c.org.research_offices.filter(user=u).exists()
             )
         )

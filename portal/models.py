@@ -2656,6 +2656,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     tags = TaggableManager(blank=True)
 
     is_preliminary = BooleanField(_("is preliminary"), null=True, blank=True, default=False)
+
+    @property
+    def is_eoi(self):
+        return self.is_preliminary
+
     preliminary = ForeignKey(
         "self",
         on_delete=CASCADE,
@@ -3107,7 +3112,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self.application_title = "" if self.site_id in [2, 4, 5] else self.round.title
         if not self.number:
             self.number = default_application_number(self)
-            if self.is_preliminary:
+            if self.is_eoi:
                 self.number = f"{self.number}-E"
         super().save(*args, **kwargs)
         if pi := self.pi:
@@ -3119,9 +3124,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             self.members.model.get_or_create(
                 application=self,
                 user=pi,
-                role_id="PI",
                 defaults=dict(
                     email=self.email or pi.email,
+                    role_id="PC" if self.site_id == 2 else "PI",
                     first_name=self.first_name or pi.first_name or pi.person.first_name,
                     middle_names=self.middle_names or pi.middle_names or pi.person.middle_names,
                     last_name=self.last_name or pi.last_name or pi.person.last_name,
@@ -11223,7 +11228,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         is_funded=m.is_funded,
                     )
                 )
-            if not a.members.filter(role="PI").exists():
+            if not a.members.filter(role="PC" if a.site_id == 2 else  "PI").exists():
                 u = a.submitted_by
                 members.append(
                     ContractMember(
