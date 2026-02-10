@@ -137,6 +137,21 @@ table.table .asteriskField,.popover-header {color: gray;}
   font-family: "Arial", sans-serif;
   font-size: 12px;
 }
+{% if SITE_ID == 0 %}
+  .jumbotron {
+    background-color: #f8f9fa;
+    border-radius: 0.3rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  #site-header {
+    position: relative;
+    min-height: 140px;
+    background-color: #000;
+    background-size: cover;
+    background-position: 50% 15%;
+    background-repeat: no-repeat;
+  }
+{% endif %}
 </style>
         {% endblock %}
       {#% endcompress %#}

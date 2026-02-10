@@ -1,0 +1,37 @@
+{% load static %}
+<header class="header row">
+  <a href="{% url 'home' %}"
+     {# style="margin-left: 12px;"> #}
+      style="max-height: 110px; display: block; margin-top: 0px; margin-bottom: 0px; vertical-align: top; width: 100%;"
+  >
+    <img
+        src="{% static 'images/RS_logo.png' %}"
+        class="float-right"
+        style="max-height: 110px; margin-top: 0px; margin-bottom: 0px;"
+    >
+  </a>
+</header>
+
+{% comment %}
+<header id="site-header">
+    <!-- img class="print-logo" src="/resources/themes/royalsoc_dist/img/navigation/main-print-logo-high-dpi-sml.png" -->
+    <a href="/start" class="logo-holder">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150.26 100.37">
+                <use xlink:href="{% static 'images/RS_logo.svg' %}"></use>
+            </svg>
+    </a>
+
+    <!-- div class="buttons">
+        <button class="hamburger">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                <use xlink:href="/resources/themes/royalsoc_dist/symbols/svg-symbols.svg#hamburger-icon"></use>
+            </svg>
+        </button>
+        <button class="search">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <use xlink:href="/resources/themes/royalsoc_dist/symbols/svg-symbols.svg#search-icon"></use>
+            </svg>
+        </button>
+    </div -->
+</header>
+{% endcomment %}
