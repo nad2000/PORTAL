@@ -20,6 +20,7 @@ from django.urls import reverse
 from django.utils.crypto import get_random_string
 from django.utils.http import urlencode
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from allauth.socialaccount.adapter import get_adapter
 
 from .provider import ATTRIBUTE_KEY, BASE_URL, RapidConnectProvider
@@ -64,6 +65,7 @@ def login(request):
 
 
 @csrf_exempt
+@require_http_methods(["POST"])
 def callback(request):
 
     ret = None
@@ -75,7 +77,7 @@ def callback(request):
         app = get_adapter().get_app(request, RapidConnectProvider.id)
         audience = request.scheme + "://" + request.get_host()
         token = jwt.decode(
-            request.POST["assertion"],
+            request.POST.get("assertion"),
             app.secret,
             audience=audience,
             verify=False,
