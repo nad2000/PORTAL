@@ -547,7 +547,6 @@ def logout(request):
     account_logout = reverse("account_logout")
     if "previous_user_id" in request.COOKIES:
         del request.COOKIES["previous_user_id"]
-        resp.delete_cookie("previous_user_id")
 
     if request.user.has_rapidconnect_account:
         return_url = request.build_absolute_uri(account_logout)
@@ -561,9 +560,11 @@ def logout(request):
             resp = redirect(f"{settings.RAPIDCONNECT_LOGOUT}?return={return_url}")
         # Add delete session before rediction - force 'logout' - an ugly workaround:
         resp.delete_cookie("sessionid")
-        return resp
+    else:
+        resp = redirect(account_logout)
 
-    return redirect(account_logout)
+    resp.delete_cookie("previous_user_id")
+    return resp
 
 
 def should_be_approved(function):
