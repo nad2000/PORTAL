@@ -74,47 +74,58 @@
       <td colspan="3">{{ a.round }}</td>
     </tr>
 
-    <tr>
-      <th scope="row" class="table-dark">
-        {% if a.is_team_application or a.site_id == 5 and a.members.all.count > 1 or a.site_id != 5 and a.members.all.count %}
-          {% if a.site_id == 5 or a.site_id == 2 %}
-            {% trans 'Principal Investigator (PI)' %}
-          {% else %}
-            {% trans 'Team Lead' %}
-          {% endif %}
-        {% else %}
-          {% trans 'Applicant' %}
-        {% endif %}
-      </th>
-      <td colspan="3">{{ a.pi.full_name_with_email }}{% if user.is_admin %} (username: {{ a.pi.username }}){% endif %}</td>
-    </tr>
 
-    {% if not member or member.state == "authorized" %}
-      {% if a.is_team_application or a.site_id == 5 and a.members.all.count > 1 or a.site_id != 5 and a.members.all.count %}
-        <tr>
-          <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
-          <td colspan="3">
-            {%if a.team_name %}{{ a.team_name|default:'' }}:{% endif %}
-            <ul>
-              {% for m in a.members.all %}
-                <li>
-                  {% if is_admin %}
-                    <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
+    {% if is_admin or member and member.state != "authorized" or not a.is_team_application or a.members.all.count <= 1 %}
+      <tr>
+        <th scope="row" class="table-dark">
+          {% if a.is_team_application or a.site_id == 5 and a.members.all.count > 1 or a.site_id != 5 and a.members.all.count %}
+            {% if a.site_id == 5 or a.site_id == 2 %}
+              {% if a.pi_member and a.pi_member.role %}{{ a.pi_member.role.name }}{% else %}{% trans 'Principal Investigator (PI)' %}{% endif %}
+            {% else %}
+              {% trans 'Team Lead' %}
+            {% endif %}
+          {% else %}
+            {% trans 'Applicant' %}
+          {% endif %}
+        </th>
+        <td colspan="3">
+          {% if a.pi_member %}
+
+            {% with m=a.pi_member %}
+              {% partialdef member inline %}
+                {% if is_admin %}
+                  <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
+                  <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+                {% elif is_ro and not export and not for_pdf_export %}
+                  <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
+                {% else %}
+                  {{ m | person_with_email }}
+                  {% if not export and not for_pdf_export and m.user == user and m.state == "authorized" %}
                     <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
-                  {% elif is_ro and not export and not for_pdf_export %}
-                    <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
-                  {% else %}
-                    {{ m | person_with_email }}
-                    {% if not export and not for_pdf_export and m.user == user and m.state == "authorized" %}
-                      <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
-                    {% endif %}
                   {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
-      {% endif %}
+                {% endif %}
+              {% endpartialdef %}
+            {% endwith %}
+
+          {% else %}
+            {{ a.pi.full_name_with_email }}{% if user.is_admin %} (username: {{ a.pi.username }}){% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endif %}
+
+    {% if a.members.all.count > 1 %}
+      <tr>
+        <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
+        <td colspan="3">
+          {%if a.team_name %}{{ a.team_name|default:'' }}:{% endif %}
+          <ul>
+            {% for m in a.members.all %}
+              <li>{% partial member %}</li>
+            {% endfor %}
+          </ul>
+        </td>
+      </tr>
     {% endif %}
 
     {% if a.org.name == a.organisation %}
