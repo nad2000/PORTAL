@@ -150,7 +150,7 @@ INSTALLED_APPS = [
     "simple_history",
     # "background_task",
     "crispy_forms",
-    "crispy_bootstrap4",
+    # "crispy_bootstrap4",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
