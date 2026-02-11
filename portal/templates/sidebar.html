@@ -432,6 +432,7 @@
   </div>
   {% endif %}
 
+  {% if site_id %}
   {% if u.is_superuser or is_staff or review_count > 0 or score_sheet_count > 0 or u.is_site_staff %}
     <div class="card mb-2">
       <div class="card-header{% if category == "reviews" %} bg-primary{% endif %}">
@@ -515,6 +516,7 @@
         </div>
       {% endif %}
     </div>
+  {% endif %}
   {% endif %}
 
 {% endif %}

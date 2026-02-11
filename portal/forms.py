@@ -352,7 +352,8 @@ class FTEMixin:
         ).delete()
 
 
-class TableInlineFormset(LayoutObject):
+# class TableInlineFormset(LayoutObject):
+class TableInlineFormset(Layout):
     template = "portal/table_inline_formset.html"
 
     def __init__(self, formset_name_in_context, template=None, *args, **kwargs):
@@ -362,7 +363,9 @@ class TableInlineFormset(LayoutObject):
         if template:
             self.template = template
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        # return self.get_rendered_fields(form, context, template_pack, **kwargs)
         formset = context[self.formset_name_in_context]
         return render_to_string(
             self.template,
@@ -370,7 +373,8 @@ class TableInlineFormset(LayoutObject):
         )
 
 
-class SubForm(LayoutObject):
+# class SubForm(LayoutObject):
+class SubForm(Layout):
     template = "portal/subform.html"
 
     def __init__(self, form_name_in_context, template=None, *args, **kwargs):
@@ -380,7 +384,9 @@ class SubForm(LayoutObject):
         if template:
             self.template = template
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        # return self.get_rendered_fields(form, context, template_pack, **kwargs)
         if form := context.get(self.form_name_in_context):
             return render_to_string(self.template, {"form": form})
         return ""
@@ -437,7 +443,8 @@ def make_help_text(document_type=None, templates=[], required_document=None):
 class DocumentInlineFormset(TableInlineFormset):
     template = "portal/document_formset.html"
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         formset = context[self.formset_name_in_context]
         round = context["round"]
         required_documents = context["required_documents"] or {
@@ -506,7 +513,8 @@ class InlineSubform(LayoutObject):
         if template:
             self.template = template
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         form = context[self.subform_name_in_context]
         return render_to_string(self.template, {"form": form})
 

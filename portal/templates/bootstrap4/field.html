@@ -91,11 +91,25 @@
                 {% include 'bootstrap4/layout/field_file.html' %}
 
             {% else %}
-                <div class="{{ field_class }}">
+                <div{% if field_class %} class="{{ field_class }}"{% endif %}>
                     {% if field|is_select and use_custom_control %}
-                         {% crispy_field field 'class' 'custom-select' %}
+                        {% if field.errors %}
+                            {% crispy_field field 'class' 'custom-select is-invalid' %}
+                        {% else %}
+                            {% crispy_field field 'class' 'custom-select' %}
+                        {% endif %}
+                    {% elif field|is_file %}
+                        {% if field.errors %}
+                            {% crispy_field field 'class' 'form-control-file is-invalid' %}
+                        {% else %}
+                            {% crispy_field field 'class' 'form-control-file' %}
+                        {% endif %}
                     {% else %}
-                        {% crispy_field field %}
+                        {% if field.errors %}
+                            {% crispy_field field 'class' 'form-control is-invalid' %}
+                        {% else %}
+                            {% crispy_field field 'class' 'form-control' %}
+                        {% endif %}
                     {% endif %}
                     {% if not tag and tag != 'td' %}
                       {% include 'bootstrap4/layout/help_text_and_errors.html' %}

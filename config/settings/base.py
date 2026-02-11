@@ -150,7 +150,7 @@ INSTALLED_APPS = [
     "simple_history",
     # "background_task",
     "crispy_forms",
-    # "crispy_bootstrap4",
+    "crispy_bootstrap4",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -370,7 +370,7 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 # FORMS_URLFIELD_ASSUME_HTTPS = True
 
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
-# CRISPY_ALLOWED_TEMPLATE_PACKS = ["bootstrap4",]
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # FIXTURES

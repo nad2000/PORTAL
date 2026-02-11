@@ -193,10 +193,14 @@ def __(s):
 
 
 def site_contact_email(site_id=None):
-    if site_id == 4 or settings.SITE_ID == 4:
+    if site_id is None:
+        site_id = settings.SITE_ID
+    if site_id == 4:
         return "puanga@royalsociety.org.nz"
-    elif site_id in [2, 5] or settings.SITE_ID in [2, 5]:
+    elif site_id in [2, 5]:
         return "tawhia@royalsociety.org.nz"
+    elif site_id == 0:
+        return "portals@royalsociety.org.nz"
     return "pmscienceprizes@royalsociety.org.nz"
 
 
@@ -925,14 +929,18 @@ class ApplicationSiteManager(Manager):
     """Select only applications linked to the current site."""
 
     def get_queryset(self):
-        return super().get_queryset().filter(application__site=Site.objects.get_current())
+        if (site_id := settings.SITE_ID) and site_id != 0:
+            return super().get_queryset().filter(application__site_id=site_id)
+        return super().get_queryset()
 
 
 class RoundSiteManager(Manager):
     """Select only rounds linked to the current site."""
 
     def get_queryset(self):
-        return super().get_queryset().filter(round__site=Site.objects.get_current())
+        if (site_id := settings.SITE_ID) and site_id != 0:
+            return super().get_queryset().filter(round__site_id=site_id)
+        return super().get_queryset()
 
 
 class Note(Model):
@@ -3043,11 +3051,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @cached_property
     def pi(self):
-        return (pi := self.members.filter(role="PC" if self.site_id == 2 else "PI").last()) and pi.user or self.submitted_by
+        return (pi := self.pi_member) and pi.user or self.submitted_by
 
     @cached_property
     def pi_member(self):
-        return self.members.filter(role="PC" if self.site_id == 2 else "PI").first()
+        if self.site_id == 2:
+            return self.members.filter(role_id="PC").first() or self.members.filter(role_id="PI").first()
+        return self.members.filter(role_id="PI").first() or self.members.filter(role_id="PC").first()
 
     def is_pi(self, user):
         return (
@@ -11232,7 +11242,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                         is_funded=m.is_funded,
                     )
                 )
-            if not a.members.filter(role="PC" if a.site_id == 2 else  "PI").exists():
+            if not a.members.filter(role_id__in=["PC", "PI"]).exists():
                 u = a.submitted_by
                 members.append(
                     ContractMember(

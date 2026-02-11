@@ -4469,6 +4469,10 @@ class ApplicationDetail(FavoriteMixin, DetailView):
 
     # @method_decorator(condition(last_modified_func=last_modified))
     def get(self, request, *args, **kwargs):
+
+        # if request.site_id == 0:
+        #     obj = self.get_object()
+
         resp = super().get(request, *args, **kwargs)
 
         if (a := self.object) and (r := a.round) and r.survey_id:
