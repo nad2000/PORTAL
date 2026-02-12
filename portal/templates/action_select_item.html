@@ -1,6 +1,18 @@
 {% extends "admin/base_site.html" %}
 
 {% block content %}
+  <h1>Are you sure?</h1>
+
+  <p>Are you sure you want to {{ action_name }} the selected {{ }}?</p>
+    <p class="warning" style="background-color: var(--message-warning-bg);">
+    You can either deleted merged records or keep them and mark them 'inactive'.
+    The records that were entered erroneously can be deleted. If the organisations were
+    restructured or reorganised, keep them.
+    </p>
+    <p>If you choose to delete merged organisation records.
+    All organisation records except the <i>target</i>
+    organisation will be deleted.</p>
+
 
   <form action="" method="post">
 
