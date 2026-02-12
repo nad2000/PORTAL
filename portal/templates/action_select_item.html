@@ -1,30 +1,39 @@
 {% extends "admin/base_site.html" %}
 
 {% block content %}
-  <h1>Are you sure?</h1>
+  {% if action_name and 'merge' in action_name %}
+    <h1>Are you sure?</h1>
 
-  <p>Are you sure you want to {{ action_name }} the selected {{ }}?</p>
-    <p class="warning" style="background-color: var(--message-warning-bg);">
-    You can either deleted merged records or keep them and mark them 'inactive'.
-    The records that were entered erroneously can be deleted. If the organisations were
-    restructured or reorganised, keep them.
-    </p>
-    <p>If you choose to delete merged organisation records.
-    All organisation records except the <i>target</i>
-    organisation will be deleted.</p>
+    <p>Are you sure you want to {{ action_name }} the selected {{ objects_name }}?</p>
+      <p class="warning" style="background-color: var(--message-warning-bg);">
+      You can either deleted merged records or keep them and mark them 'inactive'.
+      The records that were entered erroneously can be deleted.
+      {% if object_name == 'organisation' %}If the organisations were restructured or reorganised, keep them.{% endif %}
+      </p>
+      <p>If you choose to delete merged {{ object_name }} records.
+      All {{ object_name }} records except the <i>target</i>
+      {{ object_name }} will be deleted.</p>
+    {% endif %}
 
+<span class="delete-confirmation">
 
-  <form action="" method="post">
-
-    {% csrf_token %}
-    <input type="hidden" name="action" value="{{ action_name|default:'copy_round' }}">
+  <form method="post">{% csrf_token %}
+    {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+    {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+    <input type="hidden" name="action" value="{{ action_name|default:'merge_orgs' }}">
+    <input type="hidden" name="post" value="yes">
     <input type="hidden" name="select_across" value="0">
     <input type="hidden" name="index" value="0">
     {% for o in objects %}
-      <input type="hidden" name="_selected_action" value="{{ o.pk }}">
+      <input type="hidden" name="_selected_action" value="{{ o.id }}">
     {% endfor %}
 
     <input type="hidden" name="do_action" value="yes">
+
+    {% comment %}
+    <label for="target">Target Organisation</label>
+    <select id="target" name="target">
+    {% endcomment %}
 
     <label for="id_chosen_object">{{ item_label|default:'Choose the target or source item' }}</label>
     <select id="id_chosen_object" name="chosen_object">
@@ -38,23 +47,34 @@
       {% else %}
         {% for o in objects %}
           <option value="{{ o.pk }}"{% if first_item and o.pk == first_item or forloop.first %} selected{% endif %}>
-              {{ objects_with_labels.o.pk }}:
-              {% if o.code %} {{ o.code }}: {% endif %}{{ o }}
+              {% if o.code and o.code not in o|safe %}{{ o.code }}: {% endif %}{{ o }}
           </option>
         {% endfor %}
       {% endif %}
 
-      {% comment %}
-      {% for s in schemes %}
-      <option value="{{ s.pk }}"{% if first_round %}{% if first_round.scheme == s %} selected{% endif %}{% else %}{% if forloop.first %} selected{% endif %}{% endif %}>{{ s.code }}: {{ s }}</option>
-      {% endfor %}
-      {% endcomment %}
-
     </select>
+    <!-- fieldset>
+      <legend>Keep or delete the merged records:</legend -->
+
+    {% if action_name and 'merge' in action_name %}
+      <input type="radio" name="keep" id="keep_records" value="1" checked title="Keep the merged records">
+      <label for="keep_records" title="Keep the merged records">Keep</label>
+
+      <input type="radio" name="keep" id="delete_records" value="0" title="Delete the merged inot the trarget records">
+      <label for="delete_records" title="Delete the merged into the trarget records">Delete</label>
+    {% endif %}
+
+    <!--/fieldset -->
 
     <div>
-      <input type="submit" class="default" style="float: none" value="{{ action_lable|default:'Copy' }}">
+      <input type="submit"
+             class="default"
+             style="float: none"
+             value="{% if action_label %}{{ action_label }}{% elif action_name %}{{ action_name|title }}{% else %}Copy{% endif %}">
+      <a href="#" class="button cancel-link">No, take me back</a>
     </div>
 
   </form>
+</span>
+
 {% endblock %}

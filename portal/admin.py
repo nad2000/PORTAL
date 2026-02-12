@@ -1303,7 +1303,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
     autocomplete_fields = ["user", "title", "address"]
 
     def username(self, obj):
-        return obj.code or (obj.user and obj.user.username) or obj.full_name_with_email
+        return (obj.user and obj.user.username) or obj.code or obj.full_name_with_email
 
     inlines = [
         PersonCareerStageInline,
@@ -1328,7 +1328,8 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
             deleted = []
             merged = []
             errors = []
-            if target_id := request.POST.get("target"):
+            if target_id := (request.POST.get("target") or request.POST.get("chosen_object")):
+
                 keep = request.POST.get("keep") != "0"
                 target = self.models.get(target_id)
                 orgs = list(queryset.filter(~Q(id=target_id)))
@@ -1482,8 +1483,10 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
 
             return
 
-
         # Get the code object from the frame and then the name
+        action_name = inspect.currentframe().f_code.co_name
+        action = self.get_action(action_name)
+        action_label = action and action[2] or action_name.replace("_", " ").capitalize()
         return render(
             request,
             "action_select_item.html",
@@ -1498,7 +1501,8 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 "object": None,
                 "deleted_objects": queryset,
                 "model_count": queryset.count(),
-                "action_name": inspect.currentframe().f_code.co_name,
+                "action_name": action_name,
+                "action_label": action_label,
                 "first_item": queryset.filter(is_active=True).first()
                 or queryset.first(),
                 "opts": self.opts,
@@ -1511,6 +1515,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 # "protected": protected,
             },
         )
+    actions = ["merge"]
 
     def view_on_site(self, obj):
         return reverse("profile-instance", kwargs={"pk": obj.pk})

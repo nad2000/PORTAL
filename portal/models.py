@@ -89,6 +89,7 @@ from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpRe
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
@@ -1816,6 +1817,11 @@ def validate_bod(value):
         )
 
 
+default_person_code = partial(
+    get_random_string, 8, allowed_chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
+
+
 class Person(PersonMixin, Model):
     user = OneToOneField(
         User,
@@ -1825,7 +1831,9 @@ class Person(PersonMixin, Model):
         verbose_name=_("user"),
         related_name="person",
     )
-    code = CharField(max_length=8, unique=True, blank=True, null=True)
+    code = CharField(max_length=8, unique=True, blank=True, null=True,
+                     # default=default_person_code
+            )
     email = CharField(max_length=60, blank=True, null=True)
     orcid = CharField(max_length=20, blank=True, null=True)
     title = ForeignKey(
@@ -3056,8 +3064,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @cached_property
     def pi_member(self):
         if self.site_id == 2:
-            return self.members.filter(role_id="PC").first() or self.members.filter(role_id="PI").first()
-        return self.members.filter(role_id="PI").first() or self.members.filter(role_id="PC").first()
+            return (
+                self.members.filter(role_id="PC").first()
+                or self.members.filter(role_id="PI").first()
+            )
+        return (
+            self.members.filter(role_id="PI").first() or self.members.filter(role_id="PC").first()
+        )
 
     def is_pi(self, user):
         return (
@@ -10162,7 +10175,9 @@ def clean_archived_object_private_files(dry_run=False):
         elif model == Testimonial:
             archived_qs = model.objects.filter(referee__application__state="archived")
         else:
-            print(f"*** Skipping model {model._meta.verbose_name_plural} as it doesn't have a state field")
+            print(
+                f"*** Skipping model {model._meta.verbose_name_plural} as it doesn't have a state field"
+            )
             continue
 
         for obj in archived_qs:
