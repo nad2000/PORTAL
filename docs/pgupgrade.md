@@ -37,3 +37,12 @@ Please follow the steps below:
   ```
 1. If you have customized the configuration, copy your configuration files from the backup directory **pgdata_** (*pg_hba.conf* and *pg_ident.conf*)
 1. And finally restart the solution.
+
+Add AI CI collation
+===================
+
+```sql
+CREATE COLLATION ignore_accent_case (provider = icu, deterministic = false, locale = 'und-u-ks-level1');
+SELECT 'ALTER TABLE '||table_name||' ALTER COLUMN '||column_name||' TYPE '||data_type||' ('||character_maximum_length::text||') COLLATE ignore_accent_case;' FROM information_schema.columns WHERE table_schema='public' AND column_name LIKE 'email';
+```
+
