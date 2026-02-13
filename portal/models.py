@@ -13516,7 +13516,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["submitted", "reported", "approved", "assigned"],
         target="draft",
         custom=dict(
-            verbose="Request the PI to resubmit the report", button_name="Request Resubmission"
+            verbose="Request the PI to resubmit the report", button_name="Request <b>Resubmission</b>"
         ),
         permission=lambda instance, user: user.is_admin
         or instance.state in ["submitted", "reported"]
@@ -13603,7 +13603,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         field=state,
         source=["assigned"],
         target="assessed",
-        custom=dict(verbose="Assess", button_name="Assess", internal=False),
+        custom=dict(verbose="Mark as 'assessed'", button_name="Mark As <b>Assessed</b>", internal=False),
         permission=lambda instance, user: instance.assessor == user,
     )
     def assess(self, *args, **kwargs):

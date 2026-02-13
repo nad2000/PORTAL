@@ -957,7 +957,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             if hasattr(transition, "custom") and (
                 name := transition.custom.get("button_name") or transition.custom.get("verbose")
             ):
-                return name
+                return mark_safe(name)
             else:
                 # Make the function name the button title, but prettier
                 return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
@@ -966,10 +966,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             if hasattr(transition, "custom") and (
                 name := transition.custom.get("verbose") or transition.custom.get("button_name")
             ):
-                return f"{name} {obj}"
+                return mark_safe(f"{name} {obj}")
             else:
                 # Make the function name the button title, but prettier
-                return "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
+                return mark_safe("{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title())
 
         if not getattr(self, "object", None):
             self.object = self.get_object()
