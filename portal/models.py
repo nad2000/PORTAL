@@ -1822,6 +1822,19 @@ default_person_code = partial(
 )
 
 
+class PersonAddress(Model):
+
+    type = CharField(
+        max_length=10, blank=True, null=True,
+        choices=Choices("postal", "delivery", "primary", "home")
+ )
+    person = ForeignKey("Person", on_delete=CASCADE)
+    address = ForeignKey(Address, on_delete=CASCADE)
+
+    class Meta:
+        db_table = "person_address"
+
+
 class Person(PersonMixin, Model):
     user = OneToOneField(
         User,
@@ -1923,6 +1936,7 @@ class Person(PersonMixin, Model):
         max_length=2, blank=True, null=True, choices=Choices("CE", "CO", "CP", "CU", "CW")
     )
     address = ForeignKey(Address, blank=True, null=True, on_delete=RESTRICT, related_name="people")
+    addresses = ManyToManyField(Address, through=PersonAddress)
     # source = models.ForeignKey(
     #     Source, on_delete=models.SET_NULL, blank=True, null=True, related_name="people"
     # )
