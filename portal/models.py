@@ -47,7 +47,8 @@ from django.core.validators import (
     RegexValidator,
 )
 from django.db import connection, transaction
-from django.db.models import (  # GeneratedField,
+from django.db.models import (
+    GeneratedField,
     CASCADE,
     DO_NOTHING,
     PROTECT,
@@ -64,6 +65,7 @@ from django.db.models import (  # GeneratedField,
     FileField,
     FloatField,
     ForeignKey,
+    Func,
     Index,
     IntegerField,
     Manager,
@@ -84,7 +86,7 @@ from django.db.models import (  # GeneratedField,
     aggregates,
     prefetch_related_objects,
 )
-from django.db.models.functions import Cast, Coalesce, Concat, Lower
+from django.db.models.functions import Cast, Coalesce, Concat, Lower, Extract
 from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.template.loader import get_template
 from django.urls import reverse
@@ -7188,6 +7190,24 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         default=None,
     )
     opens_on = DateField(_("opens on"), null=True, blank=True)
+    # ALTER TABLE "round" ADD COLUMN IF NOT EXISTS "year" smallint GENERATED ALWAYS AS (extract(year FROM opens_on));
+    # ALTER TABLE "round_history" ADD COLUMN IF NOT EXISTS "year" smallint GENERATED ALWAYS AS (extract(year FROM opens_on));
+    if connection.vendor == "postgresql":
+        year_expression=Extract(F("opens_on"), lookup_name="year")
+    else:
+        year_expression=Func(
+            F('opens_on'),
+            function='STRFTIME',
+            template="%(function)s('%%Y', %(expressions)s)",
+            output_field=SmallIntegerField()
+        )
+    year = GeneratedField(
+        db_column="year",
+        output_field=SmallIntegerField(),
+        db_persist=True,
+        editable=False,
+        expression=year_expression,
+    )
     closes_at = DateTimeField(_("closes at"), null=True, blank=True)
     priorities = TaggableManager(
         blank=True,
