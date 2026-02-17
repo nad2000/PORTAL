@@ -2418,7 +2418,7 @@ def disable_profile_protection_patterns(request):
 def profile_protection_patterns(request):
     site_id = settings.SITE_ID
     if not (person := models.Person.where(user=request.user).last()):
-        url = reverse("prifile-create")
+        url = reverse("profile-create")
         if (next_url := request.GET.get("next")) and next_url.startswith("/"):
             url = f"{url}?next={next_url}"
         return redirect(url)
