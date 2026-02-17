@@ -20,7 +20,7 @@ from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Count
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render, reverse, redirect
 from django.urls import NoReverseMatch
@@ -1503,8 +1503,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 "model_count": queryset.count(),
                 "action_name": action_name,
                 "action_label": action_label,
-                "first_item": queryset.filter(is_active=True).first()
-                or queryset.first(),
+                "first_item": queryset.filter(is_active=True).first() or queryset.first(),
                 "opts": self.opts,
                 "app_label": self.opts.app_label,
                 "preserved_filters": self.get_preserved_filters(request),
@@ -1515,6 +1514,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 # "protected": protected,
             },
         )
+
     actions = ["merge"]
 
     def view_on_site(self, obj):
@@ -3704,7 +3704,9 @@ class RoundAdmin(
         # "scheme",
         "opens_on",
         "closes_at",
+        "application_count",
         "contract_count",
+        "report_count",
         "is_active",
         "ordering",
     ]
@@ -3731,15 +3733,32 @@ class RoundAdmin(
         "export_for_panellists",
     ]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.annotate(
+            # contract_count=Count("contracts", filter=Q(contracts__isnull=False)),
+            application_count=models.Count("applications", distinct=True),
+            contract_count=models.Count("applications__contracts", distinct=True),
+            report_count=models.Count(
+                "applications__contracts__reporting_schedule__report", distinct=True
+            ),
+        )
+        return qs
+
     def get_list_display(self, request):
-        ld = super().get_list_display(request)
+        ld = super().get_list_display(request)[:]
+        site_id = request.site_id or settings.SITE_ID
+        if site_id == 0:
+            ld.insert(ld.index("coloured_title"), "site")
+            del ld[ld.index("ordering")]
         if (
             "survey" not in ld
             and (qs := self.get_queryset(request))
             and qs.filter(Q(survey_id__isnull=False), ~Q(survey_id=0)).exists()
         ):
-            ld.insert(ld.index("contract_count"), "survey")
+            ld.insert(ld.index("application_count"), "survey")
             # del ld[ld.index("scheme")]
+
         return ld
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
@@ -4161,9 +4180,29 @@ class RoundAdmin(
             },
         )
 
-    @cache
+    @admin.display(description=_("applications"), ordering="application_count")
+    def application_count(self, obj):
+        if obj.application_count:
+            return mark_safe(
+                f'<a href="{reverse("admin:portal_application_changelist")}'
+                f'?round__id__exact={obj.pk}" target="_blank">{obj.application_count or 0}</a>'
+            )
+
+    @admin.display(description=_("contracts"), ordering="contract_count")
     def contract_count(self, obj):
-        return models.Contract.where(application__round=obj).count() or 0
+        if obj.contract_count:
+            return mark_safe(
+                f'<a href="{reverse("admin:portal_contract_changelist")}'
+                f'?application__round__id__exact={obj.pk}" target="_blank">{obj.contract_count}</a>'
+            )
+
+    @admin.display(description=_("reports"), ordering="report_count")
+    def report_count(self, obj):
+        if obj.report_count:
+            return mark_safe(
+                f'<a href="{reverse("admin:portal_report_changelist")}'
+                f'?schedule_entry__contract__application__round__id__exact={obj.pk}" target="_blank">{obj.report_count or 0}</a>'
+            )
 
     @cache
     def is_active(self, obj):
@@ -4950,7 +4989,8 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     list_filter = [
         "state",
         "type",
-        ("contract__application__round", admin.RelatedOnlyFieldListFilter),
+        # "schedule_entry__contract__application__round",
+        ("schedule_entry__contract__application__round", admin.RelatedOnlyFieldListFilter),
     ]
     # list_filter = (
     #     ("state", admin.RelatedOnlyFieldListFilter),
