@@ -2003,7 +2003,7 @@ class ApplicationAdmin(
                             else "round"
                         ),
                         ("title", "first_name", "middle_names", "last_name", "position"),
-                        ("daytime_phone", "mobile_phone"),
+                        ("daytime_phone", "mobile_phone", "address"),
                         ("email", "main_applicant"),
                         "presentation_url",
                         (
