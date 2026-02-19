@@ -5208,11 +5208,33 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 .first()
             )
             latest_application = self.latest_application
-            if address := user.person.address:
+            if address := user.person.address or latest_application and latest_application.address:
                 initial["address"] = address
+                city = address.city
+                if not city and address.address:
+                    qs = models.Address.objects.annotate(val=Value(address.address)).filter(
+                        city__isnull=False,
+                        val__icontains=models.F("city")
+                    )
+                    if address.country:
+                        qs = qs.filter(country=address.country)
+                    if city_rec := qs.latest("pk"):
+                        city = city_rec.city
+                postcode = address.postcode
+                if city and address.address and not postcode:
+                    qs = models.Address.objects.annotate(val=Value(address.address)).filter(
+                        city__iexact=city,
+                        postcode__isnull=False,
+                        val__icontains=models.F("postcode"),
+                    )
+                    if address.country:
+                        qs = qs.filter(country=address.country)
+                    if city_rec := qs.latest("pk"):
+                        postcode = city_rec.postcode
+
                 initial["postal_address"] = address.address
-                initial["city"] = address.city
-                initial["postcode"] = address.postcode
+                initial["city"] = city
+                initial["postcode"] = postcode
             if (
                 round.research_experience_in_years_required
                 or round.member_research_experience_in_years_required
