@@ -1977,7 +1977,7 @@ class Person(PersonMixin, Model):
     # publish = models.BooleanField()
     # rcc_comment = models.TextField(blank=True, null=True, verbose_name="RCC comments")
 
-    is_maori_decendent = BooleanField(
+    is_maori_descendent = BooleanField(
         null=True, blank=True, db_comment="stage.person.maori_descent"
     )
     # year_hipd = models.IntegerField(blank=True, null=True)
