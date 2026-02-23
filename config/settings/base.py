@@ -180,7 +180,18 @@ INSTALLED_APPS = [
     # "dalf",
     # "autocompletefilter",
     "django_q",
+    "constance",
 ]
+
+CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+CONSTANCE_DATABASE_CACHE_BACKEND = "default"
+CONSTANCE_CONFIG = {
+    "DEFAULT_CV_TEMPLATE_URL": (
+        "https://www.royalsociety.org.nz/assets/NZ-RST-CV-Template.doc",
+        "NZ RST CV Template URL.",
+        str,
+    ),
+}
 
 Q_CLUSTER = {
     "name": "DjangORM",
@@ -455,9 +466,9 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # ACCOUNT_AUTHENTICATION_METHOD = "username"
-ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
@@ -518,6 +529,7 @@ SUMMERNOTE_CONFIG = {
     "summernote": {
         # "width": "100%",
         # "airMode": True,
+        "disable_attachment": False,
         "fontNames": ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Merriweather"],
         "fontName": "Arial",
         "fontSize": 10,

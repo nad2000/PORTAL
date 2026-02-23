@@ -17,6 +17,7 @@ from functools import wraps
 from itertools import groupby
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
+from constance import config
 
 import django.utils.translation
 import django_tables2
@@ -8658,6 +8659,9 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             next_step=next_step,
             wizard="wizard" in self.request.session,
         )
+        if "cv" in url_name:
+            context["config"] = config
+            context["DEFAULT_CV_TEMPLATE_URL"] = config.DEFAULT_CV_TEMPLATE_URL
         return context
 
     def get_success_url(self):
