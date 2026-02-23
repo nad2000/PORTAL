@@ -9538,7 +9538,7 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         q = super().get_queryset()
         if scheme := self.forwarded.get("scheme"):
             # select only people affiliated with the org
-            q = q.filter(round_scheme=scheme)
+            q = q.filter(round__scheme=scheme)
         if round := self.forwarded.get("round"):
             # select only people affiliated with the org
             return q.filter(round=round)
