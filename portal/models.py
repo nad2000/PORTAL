@@ -8841,6 +8841,13 @@ class RoundDocumentTemplate(Model):
         ],
     )
 
+    def save(self, *args, **kwargs):
+        if not self.document_type and self.required_document :
+            self.document_type = self.required_document.document_type
+        if not self.role:
+            self.role = self.required_document and self.required_document.role or self.document_type and self.document_type.role
+        super().save(*args, **kwargs)
+
     class Meta:
         db_table = "round_document_template"
 
