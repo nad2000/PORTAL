@@ -1078,8 +1078,11 @@ class ApplicationForm(ModelForm):
                     os.path.basename(cv_templates[-1].name),
                 )
             else:
-                help_text = _(
-                    """For NZ-based researchers, a current CV in the <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is requested."""
+                help_text = (
+                    lambda: _(
+                        """For NZ-based researchers, a current CV in the <a href="%s">NZ RST CV Template</a> is requested."""
+                    )
+                    % round.default_cv_template_url
                 )
 
             self.fields["cv_file"].help_text = help_text
@@ -3115,6 +3118,12 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                 fields.append("research_experience_in_years")
 
             self.fields["cv_file"].required = a.round.member_cv_required
+            self.fields["cv_file"].help_text = (
+                _(
+                    """For NZ-based researchers, a current CV in the <a href="%s">NZ RST CV Template</a> is requested."""
+                )
+                % a.round.default_cv_template_url
+            )
             self.fields["cv_file"].widget.attrs["data-required"] = (
                 1 if a.round.member_cv_required else 0
             )

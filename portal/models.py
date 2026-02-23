@@ -20,6 +20,7 @@ from itertools import groupby
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
+from constance import config
 
 import pikepdf
 import py7zr
@@ -7696,6 +7697,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         )
 
     @property
+    def default_cv_template_url(self):
+        if t := self.templates.filter(role="CV", required_document__isnull=True).order_by("-pk").first():
+            return t.file.url
+        return config.DEFAULT_CV_TEMPLATE_URL
+
+    @property
     def is_active(self):
         return self.scheme.current_round == self
 
@@ -8788,6 +8795,7 @@ class RoundDocumentTemplate(Model):
     document_type = ForeignKey(
         DocumentType, on_delete=SET_NULL, null=True, blank=True, related_name="templates"
     )
+    role = CharField(max_length=10, choices=DOCUMENT_ROLES, null=True, blank=True)
     required_document = ForeignKey(
         RequiredDocument,
         on_delete=SET_NULL,

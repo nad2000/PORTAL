@@ -33,7 +33,7 @@
       {% if SITE_ID == 4 %}
         {% blocktrans %}
           For NZ-based researchers, a current CV in the
-          <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is requested.
+          <a href="{{ config.DEFAULT_CV_TEMPLATE_URL }}">NZ RST CV Template</a> is requested.
         {% endblocktrans %}
       {% else %}
         {% blocktrans %}
@@ -48,7 +48,7 @@
         {% endblocktrans %}
         {% blocktrans %}
           For NZ-based researchers, a current CV in the
-          <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+          <a href="{{ config.DEFAULT_CV_TEMPLATE_URL }}">NZ RST CV Template</a> is preferred.
         {% endblocktrans %}
       {% endif %}
       {% trans 'All others, please provide a CV in whatever is your preferred format.' %}
