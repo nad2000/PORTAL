@@ -187,7 +187,7 @@ CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 # CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 CONSTANCE_CONFIG = {
     "DEFAULT_CV_TEMPLATE_URL": (
-        "https://www.royalsociety.org.nz/assets/NZ-RST-CV-Template.doc",
+        "https://www.royalsociety.org.nz/assets/NZ-RST-CV-Template.docx",
         "NZ RST CV Template URL.",
         str,
     ),
