@@ -42,8 +42,8 @@ if which s3cmd && [ -f $HOME/.s3cfg ] ; then
     fi
     (
         cd "${STORAGE_DIR}"
-        find -type f -mmin -2160 | grep -Ev './converted|./PDF' | s3cmd -H --no-check-md5 --no-delete-removed --skip-existing --continue-put --files-from=- sync . s3://${STORAGE_BUCKET}
+        find -type f -mmin -2160 | grep -Ev './converted|./PDF|./HASHES' | s3cmd -H --no-check-md5 --no-delete-removed --skip-existing --continue-put --files-from=- sync . s3://${STORAGE_BUCKET}
         # Delete +800 days of unmodified files making sure they are synced beforehand
-        find \( -path ./converted -prune -o -path ./PDF -prune \) -o -type f -mtime +800 -exec sh -c 's3cmd info -q "s3://rsta-portal-archive/${0#./}" 2>/dev/null' {} \; -print | xargs rm -f
+        find \( -path ./converted -prune -o -path ./PDF -prune -o -path ./HASHES -prune \) -o -type f -mtime +800 -exec sh -c 's3cmd info -q "s3://rsta-portal-archive/${0#./}" 2>/dev/null' {} \; -print | xargs rm -f
     )
 fi
