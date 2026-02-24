@@ -4262,7 +4262,8 @@ class RoundAdmin(
     ):
         extra = 0
         model = models.RequiredDocument
-        autocomplete_fields = ["document_type"]
+        exclude = ["document_type"]
+        # autocomplete_fields = ["document_type"]
         view_on_site = False
         ordering_field_hide_input = True
 
@@ -4271,9 +4272,7 @@ class RoundAdmin(
         model = models.RoundDocumentTemplate
         # autocomplete_fields = ["document_type"]
         view_on_site = False
-        exclude = [
-            "document_type",
-        ]
+        exclude = ["document_type"]
 
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0

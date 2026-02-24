@@ -399,7 +399,7 @@ def make_help_text(document_type=None, templates=[], required_document=None):
         templates = [
             r.file
             for r in required_document.round.templates.filter(
-                document_type=required_document.document_type
+                Q(document_type=required_document.document_type) if required_document.document_type else Q(role=required_document.role)
             )
         ]
 

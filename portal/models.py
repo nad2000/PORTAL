@@ -8747,7 +8747,8 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
         max_length=1,
     )
     # TODO: should be removed at some stage or renamend to 'name'
-    title = CharField(_("Title"), max_length=200, null=True, blank=True)
+    # title = CharField(_("Title"), max_length=200, null=True, blank=True)
+    title = CharField(_("Title"), max_length=200)
     is_optional = BooleanField(default=False)
     referees_can_access = BooleanField(default=True)
     panellists_can_access = BooleanField(default=True)
@@ -8760,6 +8761,13 @@ class RequiredDocument(TimeStampMixin, HelperMixin, OrderableModel):
             self.role = self.document_type.role
         if not self.format:
             self.format = self.document_type.format
+        if self.document_type:
+            if not self.title:
+                self.title = self.document_type.name
+            if not self.title_en:
+                self.title_en = self.document_type.name_en or self.document_type.name
+            if not self.title_mi:
+                self.title_mi = self.document_type.name_mi or self.document_type.name
         super().save(*args, **kwargs)
 
     def __str__(self):

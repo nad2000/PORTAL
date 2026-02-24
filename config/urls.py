@@ -48,6 +48,7 @@ urlpatterns += [
     path("auth-token/", obtain_auth_token),
     path("select2/", include("django_select2.urls")),
     path("explorer/", include("explorer.urls")),
+    # path('files/', include('filer.urls')),
 ]
 
 if getattr(settings, "PRIVATE_STORAGE_CLASS ", None) != "common.models.ArchivalStorage":
