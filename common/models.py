@@ -4,6 +4,10 @@ import os
 import pathlib
 
 import boto3
+import hashlib
+from pathlib import Path
+from django.core.files import File
+
 from botocore.exceptions import ClientError
 from django.conf import settings
 from django.contrib import admin
@@ -60,6 +64,15 @@ def domain_to_macrons(url):
         p2 = f"xn--{p2}".encode().decode("idna")
         return f"{p1}{p2}"
     return url
+
+
+def calculate_file_hash(f, algorithm='sha256'):
+    """Calculate the hash of a file-like object."""
+    hasher = hashlib.sha256() if algorithm == 'sha256' else hashlib.md5()
+    # Read the file in chunks to be memory efficient
+    for chunk in f.chunks():
+        hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 # class PrivateFile(PivateFile):
@@ -162,7 +175,36 @@ class ArchivalStorage(PrivateFileSystemStorage):
             return True
         return self.exists_in_archive(name)
 
+    def retrieve_from_archive(self, name):
+        try:
+            # response = self.s3.get_object(Bucket='archive', Key=name)
+            # return response['Body']
+            full_path = os.path.join(self.location, name)
+            self.s3.download_file(self.bucket, name, full_path)
+            return super().open(full_path, mode)
+        except self.s3.exceptions.NoSuchKey as ex:
+            capture_exception(ex)
+            raise ex
+        except ClientError as ex:
+            capture_exception(ex)
+            raise ex
+        raise  # Re-raise if not found anywhere
+
     def save(self, name, content, max_length=None):
+
+        if content and not hasattr(content, "chunks"):
+            content = File(content, name)
+
+        if name is None:
+            name = content.name
+
+        file_hash = calculate_file_hash(content)
+        for file_path in (Path(self.location) / "HASHES").rglob(f"{file_hash}.md5"):
+            if file_path.is_file():
+                with open(file_path, "r") as hash_file:
+                    existing_file_name = hash_file.read()
+                    return existing_file_name
+
         name = super().save(name=name, content=content, max_length=max_length)
 
         # full_path = self.path(name)
@@ -177,6 +219,14 @@ class ArchivalStorage(PrivateFileSystemStorage):
                 )
             except Exception as e:
                 capture_exception(e)
+
+        hash_file_name = os.path.join(self.location, "HASHES", f"{file_hash}.md5")
+        directory = os.path.dirname(hash_file_name)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        with open(hash_file_name, "w") as hash_file:
+            hash_file.write(name)
 
         return name
 
