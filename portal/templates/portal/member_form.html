@@ -13,7 +13,7 @@
     {% breadcrumb "Submitted" "applications-submitted" %}
   {% endif %}
   {% if object.application %}
-    {% breadcrumb object.application "application" object.pk %}
+    {% breadcrumb object.application "application" object.application.pk %}
   {% endif %}
   {% if object and object.pk %}
     {% breadcrumb object "member-update" object.pk %}
