@@ -1,5 +1,10 @@
 <table class="table table-striped">
 {#% for p in report.publications.all() %#}
+{% if error_message %}
+  <tr>
+    <td colsapn="2" class="table-danger">{{ error_message|safe }}</td>
+  </tr>
+{% endif %}
 {% for rp in report.publications.through.objects.filter(report=report) %}
   {% set p=rp.publication %}
   <tr>

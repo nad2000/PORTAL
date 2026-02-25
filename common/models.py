@@ -458,8 +458,8 @@ class HelperMixin:
         return getattr(cls, "all_objects", cls.objects).bulk_update(*args, **kwargs)
 
     @classmethod
-    def get_or_create(cls, defaults=None, **kwargs):
-        if o := cls.objects.filter(**kwargs).order_by("-pk").first():
+    def get_or_create(cls, *args, defaults=None, **kwargs):
+        if o := cls.objects.filter(*args, **kwargs).order_by("-pk").first():
             return o, False
         return cls.objects.get_or_create(defaults, **kwargs)
 

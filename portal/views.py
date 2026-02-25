@@ -3204,10 +3204,19 @@ class ReportViewMixin:
         user = self.request.user
         if self.request.GET.get("action") == "publication_import_from_orcid":
             report = self.get_object()
+
             api = OrcidHelper(user)
             data, success = api.get_orcid_data(path="/works")
+            if not data:
+                return render(
+                    self.request, "partials/report_publication_list.html", {
+                        "report": report,
+                        "error_message": "Your ORCID profile doesn't any public work records.",
+                    }
+                )
+
             put_codes = set()
-            for f in data.get("group"):
+            for f in (data and data.get("group") or []):
                 for s in f["work-summary"]:
                     title = s["title"]["title"]["value"]
                     publication_date = FuzzyDate.create(s.get("publication-date")).start_date()
@@ -3293,6 +3302,7 @@ class ReportViewMixin:
             return render(
                 self.request, "partials/report_publication_list.html", {"report": report}
             )
+
         if self.request.GET.get("action") == "funding_import_from_orcid":
             report = self.get_object()
             api = OrcidHelper(user)

@@ -10114,7 +10114,7 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False,
             qs = getattr(m, "all_objects", m.objects).filter(state="archived")
             if qs.count():
                 archived_object_private_files.update(
-                    {fn for f in fields for o in qs if (fn := getattr(o, f.name).name)}
+                    {fn for field in fields for o in qs if (f := getattr(o, field.name)) and (fn := f.name) and Path(f.path).is_file()}
                 )
 
     file_walk = os.walk(root_dir)
@@ -10262,14 +10262,15 @@ def clean_archived_object_private_files(dry_run=False):
                     if qs.exists():
                         break
                 else:
-                    size = os.path.getsize(file.path)
-                    try:
-                        async_task(save_to_archive, name=file.path, keep=dry_run)
-                    except Exception as e:
-                        capture_exception(e)
-                        raise e
-                    print(f"*** Deleted archived object file: '{filename}' ({size} bytes)")
-                    total += size
+                    if os.path.exists(file.path):
+                        size = os.path.getsize(file.path) if os.paht.exists(file.path) else 0
+                        try:
+                            async_task(save_to_archive, name=file.path, keep=dry_run)
+                        except Exception as e:
+                            capture_exception(e)
+                            raise e
+                        print(f"*** Deleted archived object file: '{filename}' ({size} bytes)")
+                        total += size
 
     if total:
         total = round(total / 1048576, 2)
