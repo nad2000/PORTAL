@@ -3254,9 +3254,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @fsm_log
     @transition(
         field=state,
-        source=["in_review", "submitted", "cancelled", "accepted"],
+        # source=["in_review", "submitted", "cancelled", "accepted"],
+        source=["*"],
         target="archived",
-        custom=dict(verbose="Archive", button_name="Archive"),
+        custom=dict(verbose="Archive", button_name="Archive", internal=True),
+        permission=lambda instance, user: user.is_admin,
     )
     def archive(self, *args, **kwargs):
         pass
