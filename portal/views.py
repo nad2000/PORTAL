@@ -3211,7 +3211,7 @@ class ReportViewMixin:
                 return render(
                     self.request, "partials/report_publication_list.html", {
                         "report": report,
-                        "error_message": "Your ORCID profile doesn't any public work records.",
+                        "error_message": "Your ORCID profile doesn't any public publication/work records.",
                     }
                 )
 

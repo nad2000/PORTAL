@@ -2,7 +2,7 @@
 {#% for p in report.publications.all() %#}
 {% if error_message %}
   <tr>
-    <td colsapn="2" class="table-danger">{{ error_message|safe }}</td>
+    <td colspan="2" class="table-danger">{{ error_message|safe }}</td>
   </tr>
 {% endif %}
 {% for rp in report.publications.through.objects.filter(report=report) %}
