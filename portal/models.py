@@ -16,7 +16,7 @@ from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
-from itertools import groupby
+from itertools import groupby, chain
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
@@ -10052,7 +10052,7 @@ def refresh_page_counts(dry_run=False):
             print(f"*** Refreshed {count} page counts for {m._meta.verbose_name_plural}")
 
 
-def clean_private_fils(dry_run=False):
+def clean_private_fils(dry_run=False, clean_archived_object_private_files=False):
 
     def field_first_level_dir(field):
         return (
@@ -10062,6 +10062,7 @@ def clean_private_fils(dry_run=False):
         ).split("/")[0]
 
     root_dir = settings.PRIVATE_STORAGE_ROOT
+    has_archiving = (getattr(settings, "PRIVATE_STORAGE_CLASS ", None) == "common.models.ArchivalStorage")
     total = 0
 
     file_fields = sorted(
@@ -10087,9 +10088,21 @@ def clean_private_fils(dry_run=False):
         if hasattr(m, "all_objects"):
             m.objects = m.all_objects
 
-    for root, dirs, files in os.walk(root_dir):
+    files_to_delete = []
+
+    archived_object_private_files = set()
+    if clean_archived_object_private_files:
+        for m, fields in model_fields:
+            if not hasattr(m, "state"):
+                continue
+            qs = getattr(m, "all_objects", m.objects).filter(state="archived")
+            if qs.count():
+                archived_object_private_files.update({fn for f in fields for o in qs if (fn := getattr(o, f).name)})
+
+    file_walk = os.walk(root_dir)
+    for root, dirs, files in chain(file_walk, (None, None, f) for f in archived_object_private_files) if clean_archived_object_private_files and archived_object_private_files else file_walk:
         rel_dir = os.path.relpath(root, root_dir)
-        if "PDF" in rel_dir:
+        if any(rel_dir.startswith(p) for p in ["PDF", "HASHES"]):
             continue
         for rel_name in files:
             filename = os.path.join(rel_dir, rel_name)
@@ -10104,81 +10117,51 @@ def clean_private_fils(dry_run=False):
                 qs = getattr(m, "all_objects", m.objects).filter(
                     Q(**{f.name: filename for f in fields}, _connector=Q.OR)
                 )
-                # if hasattr(m, "state"):
-                #     qs = qs.filter(~Q(state="archived"))
+                if clean_archived_object_private_files and hasattr(m, "state"):
+                    qs = qs.filter(~Q(state="archived"))
                 if qs.exists():
                     break
             else:
                 full_filename = os.path.join(root_dir, filename)
                 size = os.path.getsize(full_filename)
                 if not dry_run:
-                    os.remove(full_filename)
-                print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
+                    if clean_archived_object_private_files and has_archiving:
+                        files_to_delete.append(filename)
+                    else:
+                        os.remove(full_filename)
+                if clean_archived_object_private_files and has_archiving:
+                    print(f"*** Deleting orphaned and/or archived file: '{filename}' ({size} bytes)")
+                else:
+                    print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
                 total += size
 
-            # if (
-            #     (rel_dir.startswith("cv/") and not CurriculumVitae.where(file=filename).exists())
-            #     or (
-            #         rel_dir.startswith("converted/")
-            #         and not ConvertedFile.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("ids/")
-            #         and not IdentityVerification.where(file=filename).exists()
-            #         and not Application.where(photo_identity=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("score-sheets/")
-            #         and not ScoreSheet.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("nominations/")
-            #         and not Nomination.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("applications/")
-            #         and not Application.where(file=filename).exists()
-            #         and not ApplicationDocument.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("letters_of_support/")
-            #         and not LetterOfSupport.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("testimonials/")
-            #         and not Testimonial.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("score-sheets/")
-            #         and not ScoreSheet.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("statements/")
-            #         and not EthicsStatement.where(file=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("budget/")
-            #         and not Application.where(budget=filename).exists()
-            #     )
-            #     or (
-            #         rel_dir.startswith("contracts/")
-            #         and not (
-            #             ContractComment.where(attachment=filename).exists()
-            #             or ContractCommentAttachment.where(attachment=filename).exists()
-            #             or ContractDocument.where(file=filename).exists()
-            #         )
-            #     )
-            # ):
-            #     full_filename = os.path.join(root_dir, filename)
-            #     size = os.path.getsize(full_filename)
-            #     if dry_run:
-            #         os.remove(full_filename)
-            #     print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
-            #     total += size
+    if clean_archived_object_private_files and has_archiving and files_to_delete:
+
+        for file_chunk in chunks(files_to_delete, chunk_size or 20):
+            try:
+                async_task(
+                    save_to_archive,
+                    # sync=True,
+                    names=file_chunk,
+                    keep=dry_run
+                )
+            except Exception as e:
+                capture_exception(e)
+                raise e
 
     if total:
         total = round(total / 1048576, 2)
         print(f"*** Recovered {total}MiB")
+
+
+def chunks(iterable, n):
+    "Yield successive n-sized chunks from iterable (lazy evaluation)."
+    it = iter(iterable)
+    while True:
+        chunk = list(itertools.islice(it, n))
+        if not chunk:
+            return
+        yield chunk
 
 
 def clean_archived_object_private_files(dry_run=False):
@@ -10269,6 +10252,8 @@ def clean_archived_object_private_files(dry_run=False):
                         raise e
                     print(f"*** Deleted archived object file: '{filename}' ({size} bytes)")
                     total += size
+
+
 
     if total:
         total = round(total / 1048576, 2)
