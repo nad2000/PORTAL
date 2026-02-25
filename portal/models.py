@@ -2267,8 +2267,23 @@ class ConvertedFile(HelperMixin, Base):
     def file_size(self):
         return os.path.getsize(self.file.path)
 
+    @property
+    def name(self):
+        return self.file and self.file.name
+
+    @property
+    def path(self):
+        return self.file and self.file.path
+
+    @property
+    def url(self):
+        return self.file and self.file.url
+
     def __str__(self):
         return self.file.name
+
+    class Meta:
+        db_table = "converted_file"
 
 
 APPLICATION_STATES = Choices(
@@ -12262,7 +12277,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             lambda self: not (self.source or ChangeRequest.where(derivative=self).exists())
         ],
         permission=lambda instance, user: user.is_admin,
-        custom=dict(verbose="Make Current", button_name="Make Current"),
+        custom=dict(verbose="Mark Current", button_name="Mark Current"),
     )
     def make_current(self, *args, **kwargs):
         pass

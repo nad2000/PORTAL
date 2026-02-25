@@ -203,8 +203,8 @@
         </th>
         {% if not export %}<th scope="col">{{ _('Document') }}</th>{% endif %}
       </tr>
-
     </thead>
+
     <tbody>
       {% for rd in c.get_required_documents().all() %}
         {% for d in rd.documents.all() %}
@@ -226,8 +226,8 @@
               <td>
                 {% if d.file %}
                   <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a>
-                  {% if d.convert_file %}
-                    (<a href="{{ d.convert_file.url }}">{{ d.convert_file.name|basename }}</a>)
+                  {% if d.converted_file and d.converted_file.file %}
+                    (<a href="{{ d.converted_file.url }}">{{ d.converted_file.name|basename }}</a>)
                   {% endif %}
                 {% else %}
                   {{ _('Not uploaded yet') }}
