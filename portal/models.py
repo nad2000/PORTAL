@@ -16,7 +16,7 @@ from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
-from itertools import groupby, chain
+from itertools import groupby, chain, islice
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
@@ -1828,9 +1828,11 @@ default_person_code = partial(
 class PersonAddress(Model):
 
     type = CharField(
-        max_length=10, blank=True, null=True,
-        choices=Choices("postal", "delivery", "primary", "home")
- )
+        max_length=10,
+        blank=True,
+        null=True,
+        choices=Choices("postal", "delivery", "primary", "home"),
+    )
     person = ForeignKey("Person", on_delete=CASCADE)
     address = ForeignKey(Address, on_delete=CASCADE)
 
@@ -1847,9 +1849,13 @@ class Person(PersonMixin, Model):
         verbose_name=_("user"),
         related_name="person",
     )
-    code = CharField(max_length=8, unique=True, blank=True, null=True,
-                     # default=default_person_code
-            )
+    code = CharField(
+        max_length=8,
+        unique=True,
+        blank=True,
+        null=True,
+        # default=default_person_code
+    )
     email = CharField(max_length=60, blank=True, null=True)
     orcid = CharField(max_length=20, blank=True, null=True)
     title = ForeignKey(
@@ -7194,13 +7200,13 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     # ALTER TABLE "round" ADD COLUMN IF NOT EXISTS "year" smallint GENERATED ALWAYS AS (extract(year FROM opens_on));
     # ALTER TABLE "round_history" ADD COLUMN IF NOT EXISTS "year" smallint GENERATED ALWAYS AS (extract(year FROM opens_on));
     if connection.vendor == "postgresql":
-        year_expression=Extract(F("opens_on"), lookup_name="year")
+        year_expression = Extract(F("opens_on"), lookup_name="year")
     else:
-        year_expression=Func(
-            F('opens_on'),
-            function='STRFTIME',
+        year_expression = Func(
+            F("opens_on"),
+            function="STRFTIME",
             template="%(function)s('%%Y', %(expressions)s)",
-            output_field=SmallIntegerField()
+            output_field=SmallIntegerField(),
         )
     year = GeneratedField(
         db_column="year",
@@ -7698,7 +7704,11 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
     @property
     def default_cv_template_url(self):
-        if t := self.templates.filter(role="CV", required_document__isnull=True).order_by("-pk").first():
+        if (
+            t := self.templates.filter(role="CV", required_document__isnull=True)
+            .order_by("-pk")
+            .first()
+        ):
             return t.file.url
         return config.DEFAULT_CV_TEMPLATE_URL
 
@@ -8850,10 +8860,15 @@ class RoundDocumentTemplate(Model):
     )
 
     def save(self, *args, **kwargs):
-        if not self.document_type and self.required_document :
+        if not self.document_type and self.required_document:
             self.document_type = self.required_document.document_type
         if not self.role:
-            self.role = self.required_document and self.required_document.role or self.document_type and self.document_type.role
+            self.role = (
+                self.required_document
+                and self.required_document.role
+                or self.document_type
+                and self.document_type.role
+            )
         super().save(*args, **kwargs)
 
     class Meta:
@@ -10052,8 +10067,7 @@ def refresh_page_counts(dry_run=False):
             print(f"*** Refreshed {count} page counts for {m._meta.verbose_name_plural}")
 
 
-def clean_private_fils(dry_run=False, clean_archived_object_private_files=False):
-
+def clean_private_fils(dry_run=False, clean_archived_object_private_files=False, chunk_size=20):
     def field_first_level_dir(field):
         return (
             field.upload_to
@@ -10062,7 +10076,9 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False)
         ).split("/")[0]
 
     root_dir = settings.PRIVATE_STORAGE_ROOT
-    has_archiving = (getattr(settings, "PRIVATE_STORAGE_CLASS ", None) == "common.models.ArchivalStorage")
+    has_archiving = (
+        getattr(settings, "PRIVATE_STORAGE_CLASS", None) == "common.models.ArchivalStorage"
+    )
     total = 0
 
     file_fields = sorted(
@@ -10097,22 +10113,24 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False)
                 continue
             qs = getattr(m, "all_objects", m.objects).filter(state="archived")
             if qs.count():
-                archived_object_private_files.update({fn for f in fields for o in qs if (fn := getattr(o, f).name)})
+                archived_object_private_files.update(
+                    {fn for f in fields for o in qs if (fn := getattr(o, f.name).name)}
+                )
 
     file_walk = os.walk(root_dir)
-    for root, dirs, files in chain(file_walk, (None, None, f) for f in archived_object_private_files) if clean_archived_object_private_files and archived_object_private_files else file_walk:
-        rel_dir = os.path.relpath(root, root_dir)
-        if any(rel_dir.startswith(p) for p in ["PDF", "HASHES"]):
+    for root, dirs, files in (
+        chain(
+            file_walk,
+            ((None, None, archived_object_private_files),),
+        )
+        if clean_archived_object_private_files and archived_object_private_files
+        else file_walk
+    ):
+        rel_dir = root and os.path.relpath(root, root_dir)
+        if rel_dir and any(rel_dir.startswith(p) for p in ["PDF", "HASHES"]):
             continue
         for rel_name in files:
-            filename = os.path.join(rel_dir, rel_name)
-            # for f in file_fields.get(f"{rel_dir.split('/')[0]}/", []):
-            #     if (
-            #         getattr(f.model, "all_objects", f.model.objects)
-            #         .filter(**{f.name: filename})
-            #         .exists()
-            #     ):
-            #         break
+            filename = os.path.join(rel_dir, rel_name) if rel_dir else rel_name
             for m, fields in model_fields:
                 qs = getattr(m, "all_objects", m.objects).filter(
                     Q(**{f.name: filename for f in fields}, _connector=Q.OR)
@@ -10123,15 +10141,15 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False)
                     break
             else:
                 full_filename = os.path.join(root_dir, filename)
-                size = os.path.getsize(full_filename)
-                if not dry_run:
-                    if clean_archived_object_private_files and has_archiving:
-                        files_to_delete.append(filename)
-                    else:
-                        os.remove(full_filename)
+                size = os.path.getsize(full_filename) if os.path.exists(full_filename) else 0
                 if clean_archived_object_private_files and has_archiving:
-                    print(f"*** Deleting orphaned and/or archived file: '{filename}' ({size} bytes)")
+                    files_to_delete.append(filename)
+                    print(
+                        f"*** Deleting orphaned and/or archived file: '{filename}' ({size} bytes)"
+                    )
                 else:
+                    if not dry_run:
+                        os.remove(full_filename)
                     print(f"*** Deleted orphaned file: '{filename}' ({size} bytes)")
                 total += size
 
@@ -10143,7 +10161,7 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False)
                     save_to_archive,
                     # sync=True,
                     names=file_chunk,
-                    keep=dry_run
+                    keep=dry_run,
                 )
             except Exception as e:
                 capture_exception(e)
@@ -10158,7 +10176,7 @@ def chunks(iterable, n):
     "Yield successive n-sized chunks from iterable (lazy evaluation)."
     it = iter(iterable)
     while True:
-        chunk = list(itertools.islice(it, n))
+        chunk = list(islice(it, n))
         if not chunk:
             return
         yield chunk
@@ -10252,8 +10270,6 @@ def clean_archived_object_private_files(dry_run=False):
                         raise e
                     print(f"*** Deleted archived object file: '{filename}' ({size} bytes)")
                     total += size
-
-
 
     if total:
         total = round(total / 1048576, 2)
@@ -13558,7 +13574,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["submitted", "reported", "approved", "assigned"],
         target="draft",
         custom=dict(
-            verbose="Request the PI to resubmit the report", button_name="Request <b>Resubmission</b>"
+            verbose="Request the PI to resubmit the report",
+            button_name="Request <b>Resubmission</b>",
         ),
         permission=lambda instance, user: user.is_admin
         or instance.state in ["submitted", "reported"]
@@ -13645,7 +13662,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         field=state,
         source=["assigned"],
         target="assessed",
-        custom=dict(verbose="Mark as 'assessed'", button_name="Mark As <b>Assessed</b>", internal=False),
+        custom=dict(
+            verbose="Mark as 'assessed'", button_name="Mark As <b>Assessed</b>", internal=False
+        ),
         permission=lambda instance, user: instance.assessor == user,
     )
     def assess(self, *args, **kwargs):
