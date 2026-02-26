@@ -18,7 +18,7 @@
             <td rowspan="{{ entries.__len__() or 1 }}">{{ y }}</td>
           {% endif %}
           <td>{{ r.get_type_display() }}</td>
-          <td>{{ r.due_date.isoformat() }}</td>
+          <td>{{ r.due_date and r.due_date.isoformat() or '-' }}</td>
           <td>{{ r.date_first_remind and r.date_first_remind.isoformat() or '-' }}</td>
         </tr>
       {% endfor %}

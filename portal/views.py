@@ -365,7 +365,7 @@ def guidelines(request, code, year, role=None):
     return redirect("about")
 
 
-@user_passes_test(lambda u: u.is_admin)
+@user_passes_test(lambda u: u.is_authenticated and u.is_admin)
 def guideline_list(request, year=None):
     if year:
         rounds = models.Round.where(opens_on__year=year).order_by("scheme__code")
@@ -379,7 +379,7 @@ def guideline_list(request, year=None):
     return render(request, "guideline_list.html", locals())
 
 
-@user_passes_test(lambda u: u.is_admin)
+@user_passes_test(lambda u: u.is_authenticated and u.is_admin)
 def pyinfo(request, message=None):
     """Show Python and runtime environment and settings or test exception handling."""
     if message:
@@ -3244,7 +3244,7 @@ class ReportViewMixin:
                     external_ids = data.get("external-ids")
                     doi = None
                     if external_ids:
-                        for ei in external_ids.get("external-id"):
+                        for ei in external_ids.get("external-id", []):
                             if ei.get("external-id-type") == "doi":
                                 doi = ei.get("external-id-value")
                                 break
@@ -3312,7 +3312,7 @@ class ReportViewMixin:
             api = OrcidHelper(user)
             data, success = api.get_orcid_fundings()
             put_codes = set()
-            for f in data.get("group"):
+            for f in data.get("group", []):
                 for s in f["funding-summary"]:
                     title = s["title"]["title"]["value"]
                     start_date = FuzzyDate.create(s.get("start-date")).start_date()
@@ -8909,7 +8909,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
 class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
     model = models.Affiliation
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
-    exclude = ["email"]
+    exclude = ["email", "role_title"]
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
