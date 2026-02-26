@@ -1608,6 +1608,15 @@ def refresh_page_counts(modeladmin, request, queryset):
     messages.success(request, f"{count} document page counts refreshed.")
 
 
+# @admin.action(description="Convert or reconvert files to PDF")
+# def convert_files(modeladmin, request, queryset):
+#     count = 0
+#         for obj in queryset:
+#     for obj in queryset:
+#         count += modeladmin.model.refresh_page_counts(queryset=obj.documents.all())
+#     messages.success(request, f"{count} document page counts refreshed.")
+
+
 @admin.action(description="Revert Object States")
 def revert_object_states(modeladmin, request, queryset):
     count = 0
@@ -4986,7 +4995,7 @@ class PublicationAdmin(StaffPermsMixin, HistoryAdmin):
 
 
 @admin.register(models.Report)
-class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, HistoryAdmin):
     save_on_top = True
     show_close_button = True
     date_hierarchy = "created_at"
