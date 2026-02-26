@@ -1,4 +1,5 @@
 import os
+import re
 from functools import cache
 import inspect
 from django.contrib.contenttypes.admin import GenericTabularInline
@@ -4468,6 +4469,20 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     inlines = [ScoreInline, StateLogInline]
 
 
+class ContractDocumentForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+        if self.request and (r := self.instance.round):
+
+            self.fields["author"].initial = self.request.user
+
+    class Meta:
+        model = models.ContractDocument
+        fields = "__all__"
+
+
 @admin.register(models.Contract)
 class ContractAdmin(
     UnaccentMixin, StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin
@@ -4533,7 +4548,7 @@ class ContractAdmin(
                     ("number", "refcode", "year"),
                     "project_title",
                     # ("source", "source_code"),
-                    ("org", "application"),
+                    ("org", "application", "round_link"),
                     # ("proposal", "proposal_number"),
                     # ("principal", "principal_code"),
                     # ("coordinator", "coordinator_code"),
@@ -4627,7 +4642,7 @@ class ContractAdmin(
             },
         ),
     ]
-    readonly_fields = ["ethics_statement_link"]
+    readonly_fields = ["ethics_statement_link", "round_link"]
 
     @admin.display(description="ethics statement")
     def ethics_statement_link(self, obj):
@@ -4642,8 +4657,19 @@ class ContractAdmin(
         a = obj.application
         return mark_safe(
             a
-            and f"""<a href="{reverse('admin:portal_application_change', kwargs={"object_id": a.pk})}" target="_blank">{a.number}</a>"""
+            and f"""<a href="{reverse('admin:portal_application_change', kwargs={"object_id": a.pk})}?_popup=1" target="_blank">
+            {a.number}
+            </a>"""
             or "-"
+        )
+
+    @admin.display(description="round")
+    def round_link(self, obj):
+        return mark_safe(
+            '<a href="{}?_popup=1" target="_blank">{}</a>'.format(
+                reverse("admin:portal_round_change", args=(obj.application.round_id,)),
+                obj.application.round,
+            )
         )
 
     def get_queryset(self, request):
@@ -4674,11 +4700,19 @@ class ContractAdmin(
 
     class ContractDocumentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractDocument
-        # exclude = ["contract_number"]
-        exclude = ["converted_file"]
+        # form = ContractDocumentForm
+        exclude = ["converted_file", "document_type"]
         extra = 0
         view_on_site = False
         classes = ["collapse"]
+
+        def formfield_for_foreignkey(self, db_field, request, **kwargs):
+            # if db_field.name == "document_type":
+            #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+            if db_field.name == "required_document":
+                if (m := re.search(r"contract/(\d+)/change", request.path)) and (contract_id := m.group(1)):
+                    kwargs["queryset"] = models.RequiredContractDocument.where(round__applications__contracts=contract_id)
+            return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class ReportingScheduleEntryInline(StaffPermsMixin, admin.TabularInline):
         model = models.ReportingScheduleEntry

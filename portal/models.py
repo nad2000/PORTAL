@@ -16,11 +16,10 @@ from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import cache, cached_property, lru_cache, partial, wraps
-from itertools import groupby, chain, islice
+from itertools import chain, groupby, islice
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
-from constance import config
 
 import pikepdf
 import py7zr
@@ -28,6 +27,7 @@ import simple_history
 from admin_ordering.models import OrderableModel
 from allauth.account.models import EmailAddress
 from colorfield.fields import ColorField
+from constance import config
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from django.apps import apps
@@ -49,7 +49,6 @@ from django.core.validators import (
 )
 from django.db import connection, transaction
 from django.db.models import (
-    GeneratedField,
     CASCADE,
     DO_NOTHING,
     PROTECT,
@@ -67,6 +66,7 @@ from django.db.models import (
     FloatField,
     ForeignKey,
     Func,
+    GeneratedField,
     Index,
     IntegerField,
     Manager,
@@ -87,7 +87,7 @@ from django.db.models import (
     aggregates,
     prefetch_related_objects,
 )
-from django.db.models.functions import Cast, Coalesce, Concat, Lower, Extract
+from django.db.models.functions import Cast, Coalesce, Concat, Extract, Lower
 from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.template.loader import get_template
 from django.urls import reverse
@@ -115,6 +115,8 @@ from pypdf.errors import PdfReadError
 from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
+
+# from smart_selects.db_fields import ChainedForeignKey
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
@@ -654,6 +656,11 @@ class PdfFileMixin:
         """The content is PDF."""
         return self.file.name and self.file.name.lower().endswith(".pdf")
 
+    @property
+    def has_pdf_content(self):
+        """The content is PDF."""
+        return self.is_pdf_content
+
     def update_page_count(self, file=None):
 
         if not file:
@@ -775,6 +782,13 @@ class PdfFileMixin:
 
         if not file:
             file = self.file
+
+        has_archiving = (
+            getattr(settings, "PRIVATE_STORAGE_CLASS", None) == "common.models.ArchivalStorage"
+        )
+        if has_archiving and not Path(file.path).exists():
+            file.storage.retrieve_from_archive(file.name)
+
         file_ext = Path(file.path).suffix
         file_ext = file_ext and file_ext.lower()
         if not file or file_ext == ".pdf":
@@ -10131,7 +10145,14 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False,
             qs = getattr(m, "all_objects", m.objects).filter(state="archived")
             if qs.count():
                 archived_object_private_files.update(
-                    {fn for field in fields for o in qs if (f := getattr(o, field.name)) and (fn := f.name) and Path(f.path).is_file()}
+                    {
+                        fn
+                        for field in fields
+                        for o in qs
+                        if (f := getattr(o, field.name))
+                        and (fn := f.name)
+                        and Path(f.path).is_file()
+                    }
                 )
 
     file_walk = os.walk(root_dir)
@@ -12571,6 +12592,27 @@ class RequiredContractDocument(TimeStampMixin, HelperMixin, OrderableModel):
             self.role = self.document_type.role
         if not self.format:
             self.format = self.document_type.format
+        if not self.title:
+            self.title = (
+                self.application_required_document
+                and self.application_required_document.title
+                or self.document_type
+                and self.document_type.name
+            )
+        if not self.title_en:
+            self.title_en = (
+                self.application_required_document
+                and self.application_required_document.title_en
+                or self.document_type
+                and self.document_type.name_en
+            )
+        if not self.title_mi:
+            self.title_mi = (
+                self.application_required_document
+                and self.application_required_document.title_mi
+                or self.document_type
+                and self.document_type.name_mi
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -12599,6 +12641,13 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
     required_document = ForeignKey(
         RequiredContractDocument, on_delete=DO_NOTHING, related_name="documents"
     )
+    # required_document = ChainedForeignKey(
+    #     RequiredContractDocument,
+    #     on_delete=DO_NOTHING,
+    #     related_name="documents",
+    #     chained_field="contract__application__round",
+    #     chained_model_field="round",
+    # )
     page_count = PositiveSmallIntegerField(null=True, blank=True)
     file = PrivateFileField(
         max_length=200,

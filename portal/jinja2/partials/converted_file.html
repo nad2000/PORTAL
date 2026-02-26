@@ -1,0 +1,19 @@
+({%- if obj.converted_file -%}
+  <a href="{{ obj.converted_file.file.url }}" target="_blank">{{ obj.converted_file.file.name|basename }}</a>
+{%- else -%}<span class="text-muted sall">{{ _('No converted file available') }}</span>{% endif -%}<button
+    type="button"
+    data-toggle="tooltip"
+    title="{{ _('Re-convert the file (if the conversion was unsuccessful or if you have updated the original file)') if obj.converted_file else _('Convert the file') }}"
+    class="btn btn-sm btn-outline-secondary ms-2"
+    hx-put="{{ url('convert-file') }}?obj_id={{ obj.pk }}&model={{ obj.model_name }}{% if obj.converted_file %}&id={{ obj.converted_file.pk }}{% endif %}"
+    hx-target="#id_converted_file_indicator">{{ _('Re-convert') if obj.converted_file else _('Convert') }}</button>)
+{% if errror %}
+  <div class="text-danger mt-1 small">
+    {{ _('Conversion failed') }}: {{ error }}
+  </div>
+{% elif success %}
+  <div class="text-success mt-1 small">
+    {{ _('Conversion successful') }}
+  </div>
+{% endif %}
+

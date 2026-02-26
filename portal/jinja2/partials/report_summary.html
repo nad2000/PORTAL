@@ -178,6 +178,25 @@
         </tr>
       {% endif %}
 
+      {% if not export and r.file %}
+      <tr>
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report') }}
+        </th>
+        <td>
+          <a href="{{ r.file.url }}" target="_blank">{{ r.file.name|basename }}</a>
+          {% if not r.is_pdf_content %}
+            <span class="text-muted" id="id_converted_file_indicator">
+              {% with obj = r %}
+                {% include 'partials/converted_file.html' %}
+              {% endwith %}
+            </span>
+          {% endif %}
+
+        </td>
+      </tr>
+      {% endif %}
+
       <tr>
         <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Application') }}{% if export %}:{% endif %}

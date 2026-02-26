@@ -229,6 +229,9 @@
                   {% if d.converted_file and d.converted_file.file %}
                     (<a href="{{ d.converted_file.url }}">{{ d.converted_file.name|basename }}</a>)
                   {% endif %}
+                  {% if d.page_count %}
+                    ({{ d.page_count }} {% if d.page_count > 1 %}{{ _('pages') }}{% else %}{{ _('page') }}{% endif %})
+                  {% endif %}
                 {% else %}
                   {{ _('Not uploaded yet') }}
                 {% endif %}

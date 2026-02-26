@@ -600,6 +600,7 @@ class ArchivalPrivateStorageView(PrivateStorageView):
         """
         Handle incoming GET requests
         """
+        breakpoint()
         private_file = self.get_private_file()
 
         if not self.can_access_file(private_file):
@@ -970,7 +971,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 return mark_safe(f"{name} {obj}")
             else:
                 # Make the function name the button title, but prettier
-                return mark_safe("{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title())
+                return mark_safe(
+                    "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
+                )
 
         if not getattr(self, "object", None):
             self.object = self.get_object()
@@ -2643,8 +2646,8 @@ class ReportViewMixin:
     def is_assessor(self):
         return self.object and self.request.user == self.object.assessor
 
-    # def forms_valid(self, *args, **kwargs):
-    #     return super().forms_valid(*args, **kwargs)
+    # def form_valid(self, form):
+    #     return super().form_valid(*args, **kwargs)
 
     # def forms_invalid(self, *args, **kwargs):
     #     return super().forms_invalid(*args, **kwargs)
@@ -3209,14 +3212,16 @@ class ReportViewMixin:
             data, success = api.get_orcid_data(path="/works")
             if not data:
                 return render(
-                    self.request, "partials/report_publication_list.html", {
+                    self.request,
+                    "partials/report_publication_list.html",
+                    {
                         "report": report,
                         "error_message": "Your ORCID profile doesn't any public publication/work records.",
-                    }
+                    },
                 )
 
             put_codes = set()
-            for f in (data and data.get("group") or []):
+            for f in data and data.get("group") or []:
                 for s in f["work-summary"]:
                     title = s["title"]["title"]["value"]
                     publication_date = FuzzyDate.create(s.get("publication-date")).start_date()
@@ -5224,8 +5229,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 city = address.city
                 if not city and address.address:
                     qs = models.Address.objects.annotate(val=Value(address.address)).filter(
-                        city__isnull=False,
-                        val__icontains=models.F("city")
+                        city__isnull=False, val__icontains=models.F("city")
                     )
                     if address.country:
                         qs = qs.filter(country=address.country)
@@ -5488,7 +5492,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             instance.is_team_application
                             and (
                                 not instance.pk
-                                or instance.members.filter(role=("PC" if site_id == 2 else "PI"), cv__isnull=True).exists()
+                                or instance.members.filter(
+                                    role=("PC" if site_id == 2 else "PI"), cv__isnull=True
+                                ).exists()
                             )
                         )
                     )
@@ -6217,7 +6223,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     if site_id == 2 and a.state in ["new", "draft", "tac_accepted"]:
 
                         is_valid = True
-                        if a.members.filter(~Q(role_id__in=["PI", "PC"]), country__isnull=True).exists():
+                        if a.members.filter(
+                            ~Q(role_id__in=["PI", "PC"]), country__isnull=True
+                        ).exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -6226,7 +6234,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 ),
                             )
                             is_valid = False
-                        if a.members.filter(~Q(role_id__in=["PI", "PC"]), org__isnull=True).exists():
+                        if a.members.filter(
+                            ~Q(role_id__in=["PI", "PC"]), org__isnull=True
+                        ).exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -7282,6 +7292,23 @@ class ContractDetail(FavoriteMixin, DetailView):
         return qs
 
 
+def update_page_count(document_pk=None, contract_document_pk=None, site_id=None):
+    if site_id:
+        settings.SITE_ID.set(site_id)
+    if document_pk:
+        d = models.ApplicationDocument.get(document_pk)
+    else:
+        d = models.ContractDocument.get(contract_document_pk)
+    if d and d.file:
+        page_count = getattr(d, "page_count", None)
+        converted_file = getattr(d, "converted_file", None)
+        d.update_page_count()
+        if page_count != getattr(d, "page_count", None) or converted_file != getattr(
+            d, "converted_file", None
+        ):
+            d.save(update_fields=["page_count", "converted_file"])
+
+
 class ContractViewMixin:
 
     extra_context = {"category": "contracts", "sidebar": "off"}
@@ -7416,8 +7443,16 @@ class ContractViewMixin:
             pi, _ = models.RoleType.objects.get_or_create(
                 code="PC" if site_id == 2 else "PI",
                 defaults={
-                    "name": "Principal Investigator (Contact)" if site_id == 2 else "Principal Investigator",
-                    "description": "Principal Investigator (Contact)" if site_id == 2 else "Principal Investigator",
+                    "name": (
+                        "Principal Investigator (Contact)"
+                        if site_id == 2
+                        else "Principal Investigator"
+                    ),
+                    "description": (
+                        "Principal Investigator (Contact)"
+                        if site_id == 2
+                        else "Principal Investigator"
+                    ),
                 },
             )
 
@@ -7864,6 +7899,11 @@ class ContractViewMixin:
                     budget.save_draft(request=request, user=u)
                     budget.converted_file = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
+                    models.async_task(
+                        update_page_count,
+                        contract_document_pk=budget.pk,
+                        site_id=self.request.site_id,
+                    )
 
                 if i.is_variation and u.is_admin and i.originated_by:
                     reply_form = self.get_change_request_reply_form()
@@ -9277,7 +9317,7 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         )
         models.async_task(
             models.notify_site_staff_about_new_org,
-            sync=True,
+            # sync=True,
             site_id=self.request.site_id,
             org_id=o.pk,
             by_id=self.request.user.pk,
@@ -13662,6 +13702,42 @@ def survey_response(request, referee_id):
 
 @login_required
 @require_http_methods(["PUT", "POST"])
+def convert_file(request):
+
+    pk = request.GET.get("id") or request.POST.get("id") or request.GET.get("pk") or request.POST.get("pk")
+    obj_id = request.GET.get("obj_id") or request.POST.get("obj_id")
+    model_name = request.GET.get("model") or request.POST.get("model")
+    obj = (
+        model_name
+        and obj_id
+        and (m := apps.get_model("portal", model_name))
+        and getattr(m, "all_objects", m.objects).filter(pk=obj_id).first()
+    )
+    if pk and not obj and (cf := models.ConvertedFile.all_objects.filter(file_id=pk).first()):
+        cf.file.delete()
+        if not obj:
+            for model in apps.get_models():
+                if not hasattr(model, "converted_file"):
+                    continue
+                if (
+                    obj := getattr(model, "all_objects", model.objects)
+                    .filter(converted_file=pk)
+                    .first()
+                ):
+                    break
+
+    if obj:
+        try:
+            if obj.converted_file and obj.converted_file.file:
+                obj.converted_file.file.delete()
+            obj.update_converted_file(commit=True)
+        except Exception as ex:
+            return render(request, "partials/converted_file.html", {"obj": obj, "error": str(ex)})
+    return render(request, "partials/converted_file.html", {"obj": obj, "success": True})
+
+
+@login_required
+@require_http_methods(["PUT", "POST"])
 def toggle_favorite(request, content_type_id, object_id):
     content_type = get_object_or_404(ContentType, id=content_type_id)
     # Basic security check to prevent favoring unauthorized models
@@ -13839,7 +13915,9 @@ def toggle_favorite(request, content_type_id, object_id):
 async def crud_event_stream(request):
 
     last_datetime = timezone.now() - timezone.timedelta(minutes=1)
-    last_id = await CRUDEvent.objects.all().order_by("-pk").values_list("pk", flat=True).afirst() or 0
+    last_id = (
+        await CRUDEvent.objects.all().order_by("-pk").values_list("pk", flat=True).afirst() or 0
+    )
 
     async def event_stream():
         nonlocal last_datetime
@@ -13848,14 +13926,20 @@ async def crud_event_stream(request):
         # NB! must add '\n\n' at the end of each message
         # NB! if message is multi-line, each line must start with 'data: '
         while True:
-            events = CRUDEvent.objects.filter(pk__gt=last_id, event_type__in=[1, 2, 3]).order_by("pk")
+            events = CRUDEvent.objects.filter(pk__gt=last_id, event_type__in=[1, 2, 3]).order_by(
+                "pk"
+            )
             # events = CRUDEvent.objects.filter(event_type__in=[1, 2, 3]).order_by("-pk")[:3]
             async for e in events:
                 # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
                 if (
                     e.event_type in [1, 2]
                     and (ct := e.content_type)
-                    and (obj := await sync_to_async(e.content_type.get_object_for_this_type)(pk=e.object_id))
+                    and (
+                        obj := await sync_to_async(e.content_type.get_object_for_this_type)(
+                            pk=e.object_id
+                        )
+                    )
                 ):
                     try:
                         url = getattr(obj, "detail_url", None) or reverse(

@@ -823,6 +823,7 @@ urlpatterns = [
     ),
     # path("", views.subscribe, name="comingsoon"),
     path("root/", views.index, name="root"),
+    path("convert/", views.convert_file, name="convert-file"),
     path("subscribe/", views.subscribe, name="subscription"),
     path("confirm/<token>", views.confirm_subscription, name="subscription-confirmation"),
     path("unsubscribe/<token>", views.unsubscribe, name="unsubscribe"),
@@ -879,7 +880,7 @@ urlpatterns = [
     # path('async-example/', views.async_view_example, name='async_example'),
 ]
 
-if getattr(settings, "PRIVATE_STORAGE_CLASS ", None) == "common.models.ArchivalStorage":
+if getattr(settings, "PRIVATE_STORAGE_CLASS", None) == "common.models.ArchivalStorage":
     urlpatterns.append(
         re_path(
             r"private-media/(?P<path>.*)$",

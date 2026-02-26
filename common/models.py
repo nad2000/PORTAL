@@ -181,14 +181,12 @@ class ArchivalStorage(PrivateFileSystemStorage):
             # return response['Body']
             full_path = os.path.join(self.location, name)
             self.s3.download_file(self.bucket, name, full_path)
-            return super().open(full_path, mode)
         except self.s3.exceptions.NoSuchKey as ex:
             capture_exception(ex)
             raise ex
         except ClientError as ex:
             capture_exception(ex)
             raise ex
-        raise  # Re-raise if not found anywhere
 
     def save(self, name, content, max_length=None):
 

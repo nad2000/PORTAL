@@ -399,7 +399,9 @@ def make_help_text(document_type=None, templates=[], required_document=None):
         templates = [
             r.file
             for r in required_document.round.templates.filter(
-                Q(document_type=required_document.document_type) if required_document.document_type else Q(role=required_document.role)
+                Q(document_type=required_document.document_type)
+                if required_document.document_type
+                else Q(role=required_document.role)
             )
         ]
 
@@ -5518,51 +5520,15 @@ class ReportForm(ModelForm):
         )
         self.helper.include_media = False
 
-    # def save(self, *args, **kwargs):
-    #     created = not self.instance.pk
-    #     res = super().save(*args, **kwargs)
-    #     r = self.instance.application.round
-    #     for fn, dr in self.part_fields:
-    #         if created or fn in self.changed_data:
-    #             file = self.cleaned_data.get(fn, None)
-    #             part = self.instance.documents.filter(document_type__role=dr).last()
-    #             if part:
-    #                 if not file:
-    #                     part.delete()
-    #                 else:
-    #                     part.file.save(
-    #                         name=file.name,
-    #                         content=file,
-    #                     )
-    #             elif file:
-    #                 required_document = r.required_contract_documents.filter(
-    #                     document_type__role=dr
-    #                 ).last()
-    #                 if not required_document:
-    #                     dt = models.DocumentType.where(role=dr).last()
-    #                     required_document = models.RequiredContractDocument.create(
-    #                         round=r, document_type=dt
-    #                     )
+    def save(self, *args, **kwargs):
+        i = self.instance
+        if i.pk and "file" in self.changed_data and (cf := i.converted_file):
+            i.converted_file = None
+            if cf.file.name:
+                cf.file.delete()
+            cf.delete()
 
-    #                 models.ContractDocument.create(
-    #                     contract=self.instance, required_document=required_document, file=file
-    #                 )
-
-    #     if created or any(
-    #         (fn in self.changed_data)
-    #         for fn in ["not_applicable", "not_applicable_comment", "ethics_statement"]
-    #     ):
-    #         es_part = self.instance.documents.filter(document_type__role="E").last()
-    #         try:
-    #             es = self.instance.ethics_statement
-    #         except models.ContractEthicsStatement.DoesNotExist:
-    #             es = models.ContractEthicsStatement(contract=self.instance)
-    #         es.not_relevant = self.cleaned_data.get("not_applicable", False)
-    #         es.comment = self.cleaned_data.get("not_applicable_comment", None)
-    #         es.file = es_part and es_part.file
-    #         es.save()
-
-    #     return res
+        return super().save(*args, **kwargs)
 
     class Meta:
         model = models.Report
