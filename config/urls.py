@@ -26,7 +26,7 @@ urlpatterns = [
     # path("grappelli/", include("grappelli.urls")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
-    path('chaining/', include('smart_selects.urls')),
+    # path('chaining/', include('smart_selects.urls')),
     # User management
     path("users/", include("users.urls", namespace="users")),
     path("accounts/login/", view=LoginView.as_view(), name="account_login"),

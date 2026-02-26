@@ -116,7 +116,6 @@ from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
 
-# from smart_selects.db_fields import ChainedForeignKey
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML

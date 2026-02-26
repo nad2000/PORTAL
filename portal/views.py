@@ -600,7 +600,6 @@ class ArchivalPrivateStorageView(PrivateStorageView):
         """
         Handle incoming GET requests
         """
-        breakpoint()
         private_file = self.get_private_file()
 
         if not self.can_access_file(private_file):
