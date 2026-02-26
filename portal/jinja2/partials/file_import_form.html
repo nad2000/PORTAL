@@ -1,6 +1,6 @@
 {% if modal_dialog %}
   <form
-      hx-post="{{ request.path }}{% if model %}?model={{ model }}{% endif %}"
+    hx-post="{{ request.path }}{% if model %}?model={{ model }}{% endif %}"
     hx-target="{{ hx_target or '#messages' }}"
     hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
     class="modal-content"
