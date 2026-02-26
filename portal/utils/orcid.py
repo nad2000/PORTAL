@@ -162,7 +162,12 @@ class OrcidHelper:
             put_code=orcid_data.get("put-code"), person=self.person, org=org
         )
         affiliation_obj.type = self.AFFILIATION_SECTION_MAP[section]
-        affiliation_obj.role = orcid_data.get("role-title")
+        role_title = orcid_data.get("role-title")
+        if role_title and len(role_title) > 512:
+            affiliation_obj.role_title = role_title
+            affiliation_obj.role = f"{role_title[:252]}...{role_title[-252:]}"
+        else:
+            affiliation_obj.role = role_title
         if orcid_data.get("start-date"):
             affiliation_obj.start_date = str(PartialDate.create(orcid_data.get("start-date")))
         if orcid_data.get("end-date"):

@@ -1792,6 +1792,12 @@ class Affiliation(Model):
         blank=True,
         help_text="position or role, e.g., student, postdoc, etc.",
     )
+    role_title = TextField(
+        _("role title"),
+        null=True,
+        blank=True,
+        help_text="role-title imported from ORCID",
+    )
     qualification = CharField(
         _("qualification"), max_length=512, null=True, blank=True
     )  # , help_text="position or degree")
