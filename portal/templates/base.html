@@ -110,9 +110,25 @@ table.table .asteriskField,.popover-header {color: gray;}
 .popover {max-width: 400px;}
 .custom-file-label::after {content: "{% trans 'Browse' %}";}
 :root {--border-color: lightgray;}
+
+/*
 .htmx-indicator {opacity:0; transition: opacity 500ms ease-in;}
 .htmx-request .htmx-indicator {opacity:1; display:inline;}
 .htmx-request.htmx-indicator {opacity:1; display:inline;}
+*/
+
+.htmx-indicator {
+      opacity: 0;
+      visibility: hidden;
+      display: none;
+}
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 200ms ease-in;
+    display: inline;
+}
+
 .spinner-indicator{
   display:none;
   z-index: 2;
