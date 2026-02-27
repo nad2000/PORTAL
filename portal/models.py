@@ -110,7 +110,8 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
-from pypdf import PdfMerger, PdfReader, PdfWriter
+# from pypdf import PdfMerger, PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
 from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
@@ -12106,7 +12107,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 merger.append(part)
             else:
                 reader = PdfReader(part, strict=False)
-                merger.append(reader)
+                merger.append(reader, import_outline=False, outline_item=None)
 
         # template = get_template("contracts/headers_footers.html")
         # html = HTML(
