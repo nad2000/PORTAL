@@ -2380,7 +2380,8 @@ class LetterOfSupport(PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="letters_of_support",
     )
 
     def __str__(self):
@@ -2896,7 +2897,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="applications",
+
     )
     photo_identity = PrivateFileField(
         null=True,
@@ -4794,7 +4797,8 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         max_length=200,
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="members",
     )
     is_funded = BooleanField(default=True, verbose_name=_("funded"))
     cv = ForeignKey(
@@ -6769,7 +6773,8 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         max_length=200,
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="testimonials",
     )
     cv = ForeignKey(
         "CurriculumVitae",
@@ -6954,7 +6959,8 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="cvs",
     )
 
     def natural_key(self):
@@ -9033,7 +9039,8 @@ class ApplicationDocument(PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="application_documents",
     )
 
     def natural_key(self):
@@ -9510,7 +9517,10 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         verbose_name=_("Nominator form"),
         help_text=_("Upload filled-in nominator form"),
     )
-    converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL,
+        related_name="nominations",
+    )
 
     user = ForeignKey(
         User,
@@ -12698,7 +12708,8 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="contract_documents",
     )
 
     @fsm_log
@@ -13215,7 +13226,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file")
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        related_name="reports",
     )
     assessment = TextField(blank=True, null=True)
 
@@ -14609,7 +14621,10 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             )
         ],
     )
-    converted_file = ForeignKey(ConvertedFile, null=True, blank=True, on_delete=SET_NULL)
+    converted_file = ForeignKey(
+        ConvertedFile, null=True, blank=True, on_delete=SET_NULL,
+        related_name="change_requests",
+    )
     reply = TextField(
         null=True, blank=True, default='<p style="font-family: Arial; font-size: 10px;"></p>'
     )

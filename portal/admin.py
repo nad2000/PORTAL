@@ -2406,14 +2406,17 @@ class AwardAdmin(admin.ModelAdmin):
 class ConvertedFileAdmin(admin.ModelAdmin):
     save_on_top = True
     search_fields = [
-        "applicationdocument__application__number",
-        "application__application__number",
+        "applications__number",
+        "application_documents__application__number",
+        "members__application__number",
+        "nominations__application__number",
+        "testimonials__referee__application__number",
+        "contract_documents__contract__number",
+        "change_requests__number",
+        "change_requests__contract__number",
+        "change_requests__derivative__number",
+        "reports__contract__number",
         "file",
-    ]
-
-    search_fields = [
-        "applicationdocument__application__number",
-        "application__application__number",
     ]
 
     def file_size_kb(self, obj):
@@ -2429,7 +2432,7 @@ class ConvertedFileAdmin(admin.ModelAdmin):
     ]
 
     view_on_site = False
-    list_display = ["file", "file_size_kb"]
+    list_display = ["file", "page_count", "file_size_kb"]
 
 
 @admin.register(models.CurriculumVitae)
