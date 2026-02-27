@@ -619,7 +619,7 @@ class PdfFileMixin:
                     self._change_reason = f"Updated page count to {self.page_count}"
                     self.save(update_fields=["page_count"])
                 return self.file
-            if not self.converted_file:
+            if not self.converted_file or Path(self.converted_file.file.path).is_file():
                 self.update_converted_file(commit=True)
             return self.converted_file.file
 
@@ -661,7 +661,7 @@ class PdfFileMixin:
         """The content is PDF."""
         return self.is_pdf_content
 
-    def update_page_count(self, file=None):
+    def update_page_count(self, file=None, commit=True):
 
         if not file:
             if self.file:
@@ -670,34 +670,28 @@ class PdfFileMixin:
                 elif self.converted_file:
                     file = self.converted_file.file.path
                 else:
-                    cf = self.update_converted_file()
-                    return cf.page_count
+                    cf = self.update_converted_file(commit=commit)
+                    file = self.converted_file.file.path
             else:
                 return
 
-        if hasattr(self, "page_count"):
-            try:
-                pdf_reader = PdfReader(file, strict=False)
-                page_count = len(pdf_reader.pages)
-            except PdfReadError as ex:
-                capture_exception(ex)
-                pdf = pikepdf.Pdf.open(file)
-                mended = os.path.join(tempfile.mkdtemp(), os.path.basename(file))
-                pdf.save(mended, normalize_content=True)
-                pdf_reader = PdfReader(mended, strict=False)
-                page_count = len(pdf_reader.pages)
+        try:
+            pdf_reader = PdfReader(file, strict=False)
+        except PdfReadError as ex:
+            capture_exception(ex)
+            pdf = pikepdf.Pdf.open(file)
+            mended = os.path.join(tempfile.mkdtemp(), os.path.basename(file))
+            pdf.save(mended, normalize_content=True)
+            pdf_reader = PdfReader(mended, strict=False)
+        page_count = len(pdf_reader.pages)
 
-            # if isinstance(file, str):
-            #     with open(file, "rb") as f:
-            #         pdf_reader = PdfReader(f, strict=False)
-            #         page_count = len(pdf_reader.pages)
-            # else:
-            #     pdf_reader = PdfReader(file, strict=False)
-            #     page_count = len(pdf_reader.pages)
+        if hasattr(self, "page_count") and (not self.page_count or pdf_reader and page_count != self.page_count):
+            self.page_count = page_count
 
-            if not self.page_count or pdf_reader and page_count != self.page_count:
-                self.page_count = page_count
-            return page_count
+        if commit:
+            self.save(update_fields=["converted_file", "page_count"] if hasattr(self, "page_count") else ["converted_file"])
+
+        return page_count
 
     def get_converted_to_pdf(self, filename, output_dir=None):
 
@@ -12065,8 +12059,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
                 f"APPENDIX {appendix_no} – {d.required_document.title or d.required_document.get_role_display()}"
             )
             if not d.page_count:
-                d.update_page_count()
-            page_no += d.page_count
+                page_count = d.update_page_count(commit=True)
+            page_no += d.page_count or page_count
 
         toc = self.get_part_pdf(
             request=request,

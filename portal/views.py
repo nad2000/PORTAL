@@ -18,6 +18,7 @@ from itertools import groupby
 from urllib.parse import quote, urljoin
 from wsgiref.util import FileWrapper
 from constance import config
+from pathlib import Path
 
 import django.utils.translation
 import django_tables2
@@ -1237,6 +1238,7 @@ class ExportView(UserPassesTestMixin, DetailView):
     model = None
     cache_timeout = 0
     template = "pdf_export_template.html"
+    extra_context = {"export": True}
 
     def test_func(self):
         u = self.request.user
@@ -13727,8 +13729,9 @@ def convert_file(request):
 
     if obj:
         try:
-            if obj.converted_file and obj.converted_file.file:
+            if obj.converted_file and obj.converted_file.file and Path(obj.converted_file.file.path).is_file():
                 obj.converted_file.file.delete()
+            obj.converted_file = None
             obj.update_converted_file(commit=True)
         except Exception as ex:
             return render(request, "partials/converted_file.html", {"obj": obj, "error": str(ex)})
