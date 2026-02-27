@@ -34,7 +34,7 @@
               {{ _('Submitted Date') }}{% if export %}:{% endif %}
             </th>
             <td>
-              {{ r.submitted_at.data() }}:
+              {{ r.submitted_at.date() }}:
             </td>
           </tr>
         {% endif %}

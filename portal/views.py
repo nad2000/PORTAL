@@ -1315,6 +1315,7 @@ class ExportView(UserPassesTestMixin, DetailView):
                     if logo_path := finders.find("images/pmspace-logo_small.jpg"):
                         logo = f"file://{logo_path}"
 
+                export = True
                 html = HTML(string=template.render(locals()))
                 pdf_object = html.write_pdf(presentational_hints=True)
                 # converting pdf bytes to stream which is required for pdf merger.
