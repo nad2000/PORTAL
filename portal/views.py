@@ -742,16 +742,20 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(f"""
+            return HttpResponse(
+                f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """)
-        return HttpResponse(f"""
+            """
+            )
+        return HttpResponse(
+            f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """)
+        """
+        )
 
 
 class NotesMixin:
@@ -4997,9 +5001,11 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse("""
+    return HttpResponse(
+        """
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """)
+    """
+    )
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -7553,6 +7559,19 @@ class ContractViewMixin:
             application_document = fields.Field(widget=HiddenInput(), required=False)
 
             def save(self, commit=True):
+                # if "file" in self.changed_data:
+                #     cf = self.instance.converted_file
+                #     self.instance.converted_file = None
+                #     self.instance.page_count = None
+                #     if (
+                #         self.instance.pk
+                #         and cf
+                #         and cf.file
+                #         and cf.file.name
+                #         and Path(cf.file.path).is_file()
+                #     ):
+                #         cf.file.delete()
+
                 if (
                     self.cleaned_data.get("application_document")
                     and not self.cleaned_data.get("file")
@@ -7573,7 +7592,7 @@ class ContractViewMixin:
 
         class Meta:
             model = models.ContractDocument
-            exclude = ["converted_file"]
+            exclude = ["converted_file", "page_count"]
 
         fsc = forms.inlineformset_factory(
             self.model,
@@ -7582,13 +7601,13 @@ class ContractViewMixin:
             extra=len(initial),
             can_delete=False,
             exclude=[
-                "converted_file",
+                "converted_file", "page_count",
             ],
             widgets={
                 "application_document": HiddenInput(),
                 "required_document": HiddenInput(),
                 "state": HiddenInput(),
-                "page_count": HiddenInput(),
+                # "page_count": HiddenInput(),
                 "document_type": HiddenInput(),
                 # "required_document": widgets.Select(attrs={"disabled": True}),
                 # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
@@ -7875,6 +7894,7 @@ class ContractViewMixin:
                                 f.instance.update_page_count(doc_file)
                                 # f.instance.sarve(update_fields=["page_count"])
                             else:
+                                f.instance.page_count = None
                                 cf = f.instance.update_converted_file()
                                 # f.instance.save(update_fields=["page_count", "converted_file"])
                                 if cf:
@@ -7900,6 +7920,7 @@ class ContractViewMixin:
                 ):
                     budget.save_draft(request=request, user=u)
                     budget.converted_file = None
+                    budget.page_count = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
                     models.async_task(
                         update_page_count,
@@ -9715,10 +9736,12 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _("""
+                            notes = _(
+                                """
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """)
+                            """
+                            )
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
@@ -13706,7 +13729,12 @@ def survey_response(request, referee_id):
 @require_http_methods(["PUT", "POST"])
 def convert_file(request):
 
-    pk = request.GET.get("id") or request.POST.get("id") or request.GET.get("pk") or request.POST.get("pk")
+    pk = (
+        request.GET.get("id")
+        or request.POST.get("id")
+        or request.GET.get("pk")
+        or request.POST.get("pk")
+    )
     obj_id = request.GET.get("obj_id") or request.POST.get("obj_id")
     model_name = request.GET.get("model") or request.POST.get("model")
     obj = (
@@ -13730,7 +13758,11 @@ def convert_file(request):
 
     if obj:
         try:
-            if obj.converted_file and obj.converted_file.file and Path(obj.converted_file.file.path).is_file():
+            if (
+                obj.converted_file
+                and obj.converted_file.file
+                and Path(obj.converted_file.file.path).is_file()
+            ):
                 obj.converted_file.file.delete()
             obj.converted_file = None
             obj.update_converted_file(commit=True)
@@ -13953,7 +13985,9 @@ async def crud_event_stream(request):
                 else:
                     url = None
                 op = f"{ e.get_event_type_display().lower() }d"
-                message = "".join(f"data: {l}\n" for l in f"""
+                message = "".join(
+                    f"data: {l}\n"
+                    for l in f"""
     <div class="toast hide"
         role="alert"
         aria-live="assertive"
@@ -13973,7 +14007,11 @@ async def crud_event_stream(request):
         { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
     </div>
     </div>
-    """.splitlines(keepends=False) if l.strip())
+    """.splitlines(
+                        keepends=False
+                    )
+                    if l.strip()
+                )
                 # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
                 yield f"id: {e.pk}\nevent: crud\n{message}\n"
             if e and e.pk:
