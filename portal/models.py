@@ -2967,6 +2967,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     keywords = ManyToManyField(
         Keyword,
         verbose_name=_("Keywords"),
+        help_text = _("Enter each keyword separately, one at a time."),
         through=ApplicationKeyword,
         blank=True,
         related_name="applications",
