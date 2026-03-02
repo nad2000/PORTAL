@@ -9200,7 +9200,8 @@ class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return self.model.objects.all().filter(name__istartswith=self.q)
 
     def create_object(self, text):
-        for t in [t.strip() for t in text.split(",")][::-1]:
+        delimiter = "," if text.count(",") > text.count(";") else ";"
+        for t in [t.strip() for t in text.split(delimiter)][::-1]:
             if t:
                 kw, _ = self.model.get_or_create(**{self.create_field: t})
         if t and kw:
