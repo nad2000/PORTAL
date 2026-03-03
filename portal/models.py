@@ -11647,6 +11647,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             or self.application.pi
         )
 
+    @cached_property
+    def pi_member(self):
+        return (
+            self.members.filter(role_id="PC").first()
+            or self.members.filter(role_id="CP").first()
+            or self.members.filter(role_id="PI").first()
+        ) or self.application.pi_member
+
     def is_pi(self, user):
         return self.members.filter(
             user=user, role_id__in=["PC", "CP", "PI"]

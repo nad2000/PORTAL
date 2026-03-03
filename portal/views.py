@@ -7250,7 +7250,7 @@ class ContractDetail(FavoriteMixin, DetailView):
         u = self.request.user
         o = self.object
         if u.is_admin or (o and (org := o.org or o.application.org) and org.is_ro(user=u)):
-            context["can_edit"] = True
+            context["can_edit"] = u.is_admin or not o.is_current and o.state != "archived"
             if (
                 o.is_current
                 and not o.change_requests.filter(
@@ -7320,6 +7320,19 @@ def update_page_count(document_pk=None, contract_document_pk=None, site_id=None)
 class ContractViewMixin:
 
     extra_context = {"category": "contracts", "sidebar": "off"}
+
+    def get(self, request, *args, **kwargs):
+        u = request.user
+        if not (obj := getattr(self, "object", None)):
+            obj = self.get_object()
+            self.object = obj
+        if not (u.is_admin or self.is_ro):
+            messages.error(request, _("You have no permission to edit the contract."))
+            return redirect(obj.detail_url)
+        elif not u.is_admin and (obj.is_current or obj.state == "archived"):
+            messages.error(request, _("The current or arcived contracts cannot be edited."))
+            return redirect(obj.detail_url)
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         u = self.request.user
@@ -7601,7 +7614,8 @@ class ContractViewMixin:
             extra=len(initial),
             can_delete=False,
             exclude=[
-                "converted_file", "page_count",
+                "converted_file",
+                "page_count",
             ],
             widgets={
                 "application_document": HiddenInput(),
