@@ -7858,19 +7858,50 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         return self
 
     def clone(self, scheme=None, copy=False, *args, **kwargs):
+
         if copy:
-            nr = Round.get(self.pk)
+            nr = self._meta.model.get(self.pk)
             nr.pk = None
             if scheme:
                 nr.scheme = scheme
+            setattr(nr, "created_at", timezone.now())
+            setattr(nr, "updated_at", None)
+            opens_on = self.opens_on
+            if opens_on:
+                opens_on = opens_on + relativedelta(years=1)
+                nr.opens_on = opens_on
+            closes_at = self.closes_at
+            if closes_at:
+                closes_at = closes_at + relativedelta(years=1)
+                nr.closes_at = closes_at
+            if nr.title and opens_on:
+                nr.title = nr.title.replace(f"{self.year}", f"{opens_on.year}")
+            if nr.title_en and opens_on:
+                nr.title_en = nr.title_en.replace(f"{self.year}", f"{opens_on.year}")
+            if nr.title_mi and opens_on:
+                nr.title_mi = nr.title_mi.replace(f"{self.year}", f"{opens_on.year}")
         else:
             nr = Round(scheme=scheme or self.scheme)
-            nr.init_from_last_round(last_round=self)
+            nr.init_from_last_round(last_round=self, *args, **kwargs)
 
-        if not nr.title or copy:
-            nr.title = self.scheme.title
-        if nr.title == self.scheme.title and nr.opens_on:
+        s = self.scheme
+        if not nr.title:
+            nr.title = s.title
+        if nr.title == s.title and nr.opens_on:
             nr.title = f"{nr.title} {nr.opens_on.year}"
+
+        if not nr.title_en:
+            nr.title_en = s.title_en or s.title
+        if nr.title_en == (s.title_en or s.title)  and nr.opens_on:
+            nr.title_en = f"{nr.title_en} {nr.opens_on.year}"
+
+        if not nr.title_mi:
+            nr.title_mi = s.title_mi or s.title
+        if nr.title_mi == (s.title_mi or s.title)  and nr.opens_on:
+            nr.title_mi = f"{nr.title_mi} {nr.opens_on.year}"
+
+        if nr.testimonial_submission_closes_at and nr.opens_on:
+            nr.testimonial_submission_closes_at += (opens_on - self.opens_on)
 
         with transaction.atomic():
             nr.save()
@@ -7879,6 +7910,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
             # NB! Keep the order
             for m in [
+                # self.priorities,
+                self.criteria,
                 self.application_form_templates,
                 self.contract_clauses,
                 self.curriculum_vitae_templates,

@@ -4,6 +4,7 @@ from functools import cache
 import inspect
 from django.contrib.contenttypes.admin import GenericTabularInline
 from allauth.account.adapter import get_adapter
+from dateutil.relativedelta import relativedelta
 
 import dal
 import django
@@ -3584,16 +3585,27 @@ class SchemeAdmin(
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
-        for s in queryset.filter():
-            r = models.Round(scheme=s)
-            r.init_from_last_round()
-            if not r.title:
-                r.title = s.title
-            if r.title == s.title and r.opens_on:
-                r.title = f"{r.title} {r.opens_on.year}"
-            r.save()
-            s.current_round = r
-            s.save(update_fields=["current_round"])
+        new_rounds = []
+        with transaction.atomic():
+            for r in models.Round.where(scheme__in=queryset, scheme__current__round_id=F("pk")):
+                nr = r.clone(copy=True)
+                r.scheme.current_round = nr
+                r.scheme.save(update_fields=["current_round"])
+                new_rounds.append(nr)
+        if new_rounds:
+            new_rounds = [f"{r}" for r in new_rounds]
+            messages.info(request, f"New round(s) created: {', '.join(new_rounds)}")
+
+        # for s in queryset.filter():
+        #     r = models.Round(scheme=s)
+        #     r.init_from_last_round()
+        #     if not r.title:
+        #         r.title = s.title
+        #     if r.title == s.title and r.opens_on:
+        #         r.title = f"{r.title} {r.opens_on.year}"
+        #     r.save()
+        #     s.current_round = r
+        #     s.save(update_fields=["current_round"])
 
     def view_on_site(self, obj):
         if obj.current_round_id:
@@ -4053,10 +4065,20 @@ class RoundAdmin(
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
-        for r in queryset.filter():
-            nr = r.clone()
-            r.scheme.current_round = nr
-            r.scheme.save(update_fields=["current_round"])
+        # for r in queryset.filter():
+        #     nr = r.clone(copy=True)
+        #     r.scheme.current_round = nr
+        #     r.scheme.save(update_fields=["current_round"])
+        new_rounds = []
+        with transaction.atomic():
+            for r in queryset:
+                nr = r.clone(copy=True)
+                r.scheme.current_round = nr
+                r.scheme.save(update_fields=["current_round"])
+                new_rounds.append(nr)
+        if new_rounds:
+            new_rounds = [f"{r}" for r in new_rounds]
+            messages.info(request, f"New round(s) created: {', '.join(new_rounds)}")
 
     @admin.action(description="Sync with the LimeSurvey surveys")
     def sync_referee_surveys(self, request, queryset):
