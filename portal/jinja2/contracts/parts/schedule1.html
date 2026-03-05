@@ -125,7 +125,13 @@
             <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{% if kp %}{{ kp.role.name }}{% else %}&nbsp;{% endif %}</p>
             </td>
             <td width="154" valign="top" style="padding:0in 5.4pt 0in 5.4pt">
-            <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">{% if kp %}{% if kp.address %}{{ kp.address }}{% else %}&nbsp;{% endif %}{% else %}&nbsp;{% endif %}</p>
+              <p class="MsoNormal" style="margin-bottom:6.0pt;line-height:115%">
+              {% if kp and kp.address %}
+                {{ kp.address.__html__()|safe }}
+              {% elif kp.user and kp.user.person and kp.user.person.address %}
+                {{ kp.user.person.address.__html__()|safe }}
+              {% else %}&nbsp;{% endif %}
+              </p>
             </td>
           </tr>
 
