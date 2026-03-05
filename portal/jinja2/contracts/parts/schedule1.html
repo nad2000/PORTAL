@@ -403,8 +403,8 @@
             </td>
             <td valign=top style=' padding:0in 5.4pt 0in 5.4pt;height:29.6pt'>
               <p class=MsoNormal style='margin-bottom:6.0pt;line-height:115%'>
-                {{ a.required_document.title or a.required_document.get_role_display() }}
-                {% if a.page_count %} ({{ a.page_count }} page{% if a.page_count > 1 %}s{% endif %}){% endif %}
+              {{ a.required_document.title or a.required_document.get_role_display() }}
+              {% if (not format or format != "pdf") and a.page_count %} ({{ a.page_count }} page{% if a.page_count > 1 %}s{% endif %}){% endif %}
               </p>
             </td>
           </tr>

@@ -110,6 +110,7 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
+
 # from pypdf import PdfMerger, PdfReader, PdfWriter
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
@@ -685,11 +686,19 @@ class PdfFileMixin:
             pdf_reader = PdfReader(mended, strict=False)
         page_count = len(pdf_reader.pages)
 
-        if hasattr(self, "page_count") and (not self.page_count or pdf_reader and page_count != self.page_count):
+        if hasattr(self, "page_count") and (
+            not self.page_count or pdf_reader and page_count != self.page_count
+        ):
             self.page_count = page_count
 
         if commit:
-            self.save(update_fields=["converted_file", "page_count"] if hasattr(self, "page_count") else ["converted_file"])
+            self.save(
+                update_fields=(
+                    ["converted_file", "page_count"]
+                    if hasattr(self, "page_count")
+                    else ["converted_file"]
+                )
+            )
 
         return page_count
 
@@ -2174,7 +2183,8 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_""" + get_language(),
+            ORDER BY description_"""
+            + get_language(),
             [person.pk],
         )
 
@@ -2375,7 +2385,11 @@ class LetterOfSupport(PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="letters_of_support",
     )
 
@@ -2892,9 +2906,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="applications",
-
     )
     photo_identity = PrivateFileField(
         null=True,
@@ -2967,7 +2984,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     keywords = ManyToManyField(
         Keyword,
         verbose_name=_("Keywords"),
-        help_text = _("Enter each keyword separately, one at a time."),
+        help_text=_("Enter each keyword separately, one at a time."),
         through=ApplicationKeyword,
         blank=True,
         related_name="applications",
@@ -4384,7 +4401,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     try:
                         r.sync_referee_surveys(request=request, referees=referees)
                     except Exception as ex:
-                        logger.exception("Error syncing referee surveys: %s", ex)
+                        if not request:
+                            logger = logging.getLogger("root")
+                            logger.exception("Error syncing referee surveys: %s", ex)
+                        else:
+                            messages.error(request, f"Error syncing referee surveys: {ex}")
                         capture_exception(ex)
             if (
                 user.is_admin
@@ -4793,7 +4814,11 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         max_length=200,
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="members",
     )
     is_funded = BooleanField(default=True, verbose_name=_("funded"))
@@ -6769,7 +6794,11 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         max_length=200,
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="testimonials",
     )
     cv = ForeignKey(
@@ -6955,7 +6984,11 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="cvs",
     )
 
@@ -7892,16 +7925,16 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         if not nr.title_en:
             nr.title_en = s.title_en or s.title
-        if nr.title_en == (s.title_en or s.title)  and nr.opens_on:
+        if nr.title_en == (s.title_en or s.title) and nr.opens_on:
             nr.title_en = f"{nr.title_en} {nr.opens_on.year}"
 
         if not nr.title_mi:
             nr.title_mi = s.title_mi or s.title
-        if nr.title_mi == (s.title_mi or s.title)  and nr.opens_on:
+        if nr.title_mi == (s.title_mi or s.title) and nr.opens_on:
             nr.title_mi = f"{nr.title_mi} {nr.opens_on.year}"
 
         if nr.testimonial_submission_closes_at and nr.opens_on:
-            nr.testimonial_submission_closes_at += (opens_on - self.opens_on)
+            nr.testimonial_submission_closes_at += opens_on - self.opens_on
 
         with transaction.atomic():
             nr.save()
@@ -9068,7 +9101,11 @@ class ApplicationDocument(PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="application_documents",
     )
 
@@ -9547,7 +9584,10 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Upload filled-in nominator form"),
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL,
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
         related_name="nominations",
     )
 
@@ -12745,7 +12785,11 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="contract_documents",
     )
 
@@ -13263,7 +13307,11 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="reports",
     )
     assessment = TextField(blank=True, null=True)
@@ -14659,7 +14707,10 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL,
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
         related_name="change_requests",
     )
     reply = TextField(
