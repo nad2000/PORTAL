@@ -12944,7 +12944,13 @@ class ContractMember(PersonMixin, Model):
                 )
 
     def __str__(self):
-        return self.full_name_with_email
+        if self.email or self.user or self.first_name or self.last_name:
+            return self.full_name_with_email
+        elif self.role:
+            return f"{self.role}"
+        elif self.contract:
+            return f"??? of {self.contract}"
+        return "???"
 
     class Meta:
         unique_together = (("contract", "email", "role"),)

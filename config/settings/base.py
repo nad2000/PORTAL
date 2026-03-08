@@ -468,9 +468,10 @@ ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
+# ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
