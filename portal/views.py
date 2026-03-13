@@ -5397,7 +5397,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             not self.object and settings.SITE_ID == 2
         ):
 
-            if cv := models.CurriculumVitae.last_user_cv(user=o.pi or user, cut_off_months=3):
+            if cv := models.CurriculumVitae.last_user_cv(
+                user=o and o.pi or user, cut_off_months=3
+            ):
                 initial["cv_file"] = cv.file
 
             if self.request.method == "GET" and (not o or o.pk and not o.cv):
