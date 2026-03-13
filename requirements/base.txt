@@ -5,6 +5,7 @@ distro<1.6.0  # for pyinfo
 ## argon2-cffi>=19.2.0,<20.2.0  # https://github.com/hynek/argon2_cffi
 whitenoise>=5.0.1,<6.0.0  # https://github.com/evansd/whitenoise
 # redis>=3.4.1 # https://github.com/andymccurdy/redis-py
+jwt<2.0.0
 
 # Django
 # ------------------------------------------------------------------------------
@@ -17,7 +18,8 @@ django-model-utils>=4.0.0,<6.0.0  # https://github.com/jazzband/django-model-uti
 django-allauth>=0.41.0,<0.66.0  # https://github.com/pennersr/django-allauth
 # git+https://github.com/nad2000/django-allauth.git@rapidconnect#egg=django_allauth
 ## PyJWT>=2.4.0,<2.5.0
-django-crispy-forms>=1.9.0,<1.14.0  # https://github.com/django-crispy-forms/django-crispy-forms
+django-crispy-forms>=1.9.0,<2.7.0  # https://github.com/django-crispy-forms/django-crispy-forms
+crispy-bootstrap4<2027.0
 django-compressor>=4.0,<5.0  # https://github.com/django-compressor/django-compressor
 # django-redis>=4.11.0  # https://github.com/niwinz/django-redis
 # Django REST Framework

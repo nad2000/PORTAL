@@ -200,9 +200,11 @@ class ArchivalStorage(PrivateFileSystemStorage):
         for file_path in (Path(self.location) / "HASHES").rglob(f"{file_hash}.md5"):
             if file_path.is_file():
                 with open(file_path, "r") as hash_file:
-                    existing_file_name = hash_file.read()
-                    if existing_file_name and (Path(self.location) / existing_file_name).is_file():
-                        return existing_file_name
+                    existing_file_name = hash_file.readline().strip()
+                if existing_file_name and (Path(self.location) / existing_file_name).is_file():
+                    with open(file_path, "a") as hash_file:
+                        hash_file.write(f"\n{name}")
+                    return existing_file_name
 
         name = super().save(name=name, content=content, max_length=max_length)
 

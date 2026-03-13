@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils import translation
 from jinja2 import Environment, pass_context, BaseLoader, TemplateNotFound, ChoiceLoader
-from dbtemplates.models import Template
+# from dbtemplates.models import Template
 from django.utils.safestring import mark_safe
 
 
@@ -48,12 +48,13 @@ def summernote(note):
 
 def environment(loader=None, **options):
     if loader:
-        options["loader"] = ChoiceLoader(
-            [
-                DbLoader(),
-                loader,
-            ]
-        )
+        options["loader"] = loader
+        # options["loader"] = ChoiceLoader(
+        #     [
+        #         DbLoader(),
+        #         loader,
+        #     ]
+        # )
 
     env = Environment(**options)
     env.globals.update(

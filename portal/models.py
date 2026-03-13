@@ -2308,7 +2308,8 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_""" + get_language(),
+            ORDER BY description_"""
+            + get_language(),
             [person.pk],
         )
 
@@ -3108,6 +3109,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     keywords = ManyToManyField(
         Keyword,
         verbose_name=_("Keywords"),
+        help_text=_("Enter each keyword separately, one at a time."),
         through=ApplicationKeyword,
         blank=True,
         related_name="applications",
@@ -4524,7 +4526,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     try:
                         r.sync_referee_surveys(request=request, referees=referees)
                     except Exception as ex:
-                        logger.exception("Error syncing referee surveys: %s", ex)
+                        if not request:
+                            logger = logging.getLogger("root")
+                            logger.exception("Error syncing referee surveys: %s", ex)
+                        else:
+                            messages.error(request, f"Error syncing referee surveys: {ex}")
                         capture_exception(ex)
             if (
                 user.is_admin
@@ -8015,19 +8021,50 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         return self
 
     def clone(self, scheme=None, copy=False, *args, **kwargs):
+
         if copy:
-            nr = Round.get(self.pk)
+            nr = self._meta.model.get(self.pk)
             nr.pk = None
             if scheme:
                 nr.scheme = scheme
+            setattr(nr, "created_at", timezone.now())
+            setattr(nr, "updated_at", None)
+            opens_on = self.opens_on
+            if opens_on:
+                opens_on = opens_on + relativedelta(years=1)
+                nr.opens_on = opens_on
+            closes_at = self.closes_at
+            if closes_at:
+                closes_at = closes_at + relativedelta(years=1)
+                nr.closes_at = closes_at
+            if nr.title and opens_on:
+                nr.title = nr.title.replace(f"{self.year}", f"{opens_on.year}")
+            if nr.title_en and opens_on:
+                nr.title_en = nr.title_en.replace(f"{self.year}", f"{opens_on.year}")
+            if nr.title_mi and opens_on:
+                nr.title_mi = nr.title_mi.replace(f"{self.year}", f"{opens_on.year}")
         else:
             nr = Round(scheme=scheme or self.scheme)
-            nr.init_from_last_round(last_round=self)
+            nr.init_from_last_round(last_round=self, *args, **kwargs)
 
-        if not nr.title or copy:
-            nr.title = self.scheme.title
-        if nr.title == self.scheme.title and nr.opens_on:
+        s = self.scheme
+        if not nr.title:
+            nr.title = s.title
+        if nr.title == s.title and nr.opens_on:
             nr.title = f"{nr.title} {nr.opens_on.year}"
+
+        if not nr.title_en:
+            nr.title_en = s.title_en or s.title
+        if nr.title_en == (s.title_en or s.title) and nr.opens_on:
+            nr.title_en = f"{nr.title_en} {nr.opens_on.year}"
+
+        if not nr.title_mi:
+            nr.title_mi = s.title_mi or s.title
+        if nr.title_mi == (s.title_mi or s.title) and nr.opens_on:
+            nr.title_mi = f"{nr.title_mi} {nr.opens_on.year}"
+
+        if nr.testimonial_submission_closes_at and nr.opens_on:
+            nr.testimonial_submission_closes_at += opens_on - self.opens_on
 
         with transaction.atomic():
             nr.save()
@@ -8036,6 +8073,8 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
             # NB! Keep the order
             for m in [
+                # self.priorities,
+                self.criteria,
                 self.application_form_templates,
                 self.contract_clauses,
                 self.curriculum_vitae_templates,
@@ -11811,6 +11850,14 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             or self.application.pi
         )
 
+    @cached_property
+    def pi_member(self):
+        return (
+            self.members.filter(role_id="PC").first()
+            or self.members.filter(role_id="CP").first()
+            or self.members.filter(role_id="PI").first()
+        ) or self.application.pi_member
+
     def is_pi(self, user):
         return self.members.filter(
             user=user, role_id__in=["PC", "CP", "PI"]
@@ -13027,7 +13074,13 @@ class ContractMember(PersonMixin, Model):
                 )
 
     def __str__(self):
-        return self.full_name_with_email
+        if self.email or self.user or self.first_name or self.last_name:
+            return self.full_name_with_email
+        elif self.role:
+            return f"{self.role}"
+        elif self.contract:
+            return f"??? of {self.contract}"
+        return "???"
 
     class Meta:
         unique_together = (("contract", "email", "role"),)

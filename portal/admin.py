@@ -4,6 +4,7 @@ from functools import cache
 import inspect
 from django.contrib.contenttypes.admin import GenericTabularInline
 from allauth.account.adapter import get_adapter
+from dateutil.relativedelta import relativedelta
 
 import dal
 import django
@@ -2052,10 +2053,13 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(f"""<a
+            links = ", ".join(
+                f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>""" for c in contracts)
+            {c.number}</a>"""
+                for c in contracts
+            )
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -2556,6 +2560,54 @@ class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdm
                 )
 
     actions = ["invite_members"]
+
+
+@admin.register(models.ContractMember)
+class ContractMemberAdmin(UnaccentMixin, StaffPermsMixin, HistoryAdmin):
+    save_on_top = True
+    list_display = [
+        "email",
+        "full_name",
+        "role",
+        "contract",
+        "updated_at",
+    ]
+    search_fields = [
+        "email",
+        "first_name",
+        "last_name",
+        "contract__number",
+        "contract__project_title",
+        "application__number",
+        "application__application_title",
+    ]
+    list_filter = [
+        "role",
+        "created_at",
+        "updated_at",
+        ("contract__org", admin.RelatedOnlyFieldListFilter),
+        ("contract__application__round", admin.RelatedOnlyFieldListFilter),
+    ]
+    date_hierarchy = "created_at"
+    # readonly_fields = ["contract", "address"]
+    readonly_fields = ["contract"]
+    autocomplete_fields = ["user", "contract", "address"]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if (site_id := request.site_id) != 0:
+            return qs.filter(contract__site_id=site_id)
+        return qs
+
+    def view_on_site(self, obj):
+        return reverse("contract-detail", kwargs={"number": obj.contract.number})
+
+    class EffortInline(admin.TabularInline):
+        model = models.ContractMemberEffort
+        extra = 0
+        view_on_site = False
+
+    inlines = [EffortInline]
 
 
 @admin.register(models.Panellist)
@@ -3387,16 +3439,27 @@ class SchemeAdmin(
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
-        for s in queryset.filter():
-            r = models.Round(scheme=s)
-            r.init_from_last_round()
-            if not r.title:
-                r.title = s.title
-            if r.title == s.title and r.opens_on:
-                r.title = f"{r.title} {r.opens_on.year}"
-            r.save()
-            s.current_round = r
-            s.save(update_fields=["current_round"])
+        new_rounds = []
+        with transaction.atomic():
+            for r in models.Round.where(scheme__in=queryset, scheme__current__round_id=F("pk")):
+                nr = r.clone(copy=True)
+                r.scheme.current_round = nr
+                r.scheme.save(update_fields=["current_round"])
+                new_rounds.append(nr)
+        if new_rounds:
+            new_rounds = [f"{r}" for r in new_rounds]
+            messages.info(request, f"New round(s) created: {', '.join(new_rounds)}")
+
+        # for s in queryset.filter():
+        #     r = models.Round(scheme=s)
+        #     r.init_from_last_round()
+        #     if not r.title:
+        #         r.title = s.title
+        #     if r.title == s.title and r.opens_on:
+        #         r.title = f"{r.title} {r.opens_on.year}"
+        #     r.save()
+        #     s.current_round = r
+        #     s.save(update_fields=["current_round"])
 
     def view_on_site(self, obj):
         if obj.current_round_id:
@@ -3856,10 +3919,20 @@ class RoundAdmin(
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
-        for r in queryset.filter():
-            nr = r.clone()
-            r.scheme.current_round = nr
-            r.scheme.save(update_fields=["current_round"])
+        # for r in queryset.filter():
+        #     nr = r.clone(copy=True)
+        #     r.scheme.current_round = nr
+        #     r.scheme.save(update_fields=["current_round"])
+        new_rounds = []
+        with transaction.atomic():
+            for r in queryset:
+                nr = r.clone(copy=True)
+                r.scheme.current_round = nr
+                r.scheme.save(update_fields=["current_round"])
+                new_rounds.append(nr)
+        if new_rounds:
+            new_rounds = [f"{r}" for r in new_rounds]
+            messages.info(request, f"New round(s) created: {', '.join(new_rounds)}")
 
     @admin.action(description="Sync with the LimeSurvey surveys")
     def sync_referee_surveys(self, request, queryset):
@@ -4576,8 +4649,12 @@ class ContractAdmin(
             # if db_field.name == "document_type":
             #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
             if db_field.name == "required_document":
-                if (m := re.search(r"contract/(\d+)/change", request.path)) and (contract_id := m.group(1)):
-                    kwargs["queryset"] = models.RequiredContractDocument.where(round__applications__contracts=contract_id)
+                if (m := re.search(r"contract/(\d+)/change", request.path)) and (
+                    contract_id := m.group(1)
+                ):
+                    kwargs["queryset"] = models.RequiredContractDocument.where(
+                        round__applications__contracts=contract_id
+                    )
             return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class ReportingScheduleEntryInline(StaffPermsMixin, admin.TabularInline):
@@ -4690,10 +4767,20 @@ class ContractAdmin(
 
     class MemberInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
-        view_on_site = False
         model = models.ContractMember
-        # readonly_fields = ["state", "state_changed_at"]
         autocomplete_fields = ["user", "address"]
+        fields = ["view_on_site_link", "email", "first_name", "last_name", "role", "is_funded"]
+
+        readonly_fields = ("view_on_site_link",)
+
+        # view_on_site = False
+        def view_on_site_link(self, obj):
+            if obj.pk:
+                url = reverse("admin:portal_contractmember_change", kwargs={"object_id": obj.pk})
+                return format_html('<a href="{}?is_popup=1" target="_blank">Edit</a>', url)
+            return "-"
+
+        view_on_site_link.short_description = "Edit"
 
     inlines = [
         MemberInline,

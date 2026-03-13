@@ -321,12 +321,12 @@
       </td>
     </tr>
 
-    {% if a.daytime_phone_number or a.mobile_phone_number %}
+    {% if a.daytime_phone or a.mobile_phone %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Daytime Phone Number' %}</th>
-        <td>{{ a.daytime_phone_number }}</td>
+        <td>{{ a.daytime_phone|default:'-' }}</td>
         <th class="table-dark" scope="row">{% trans 'Mobile Phone Number' %}</th>
-        <td>{{ a.mobile_phone_number }}</td>
+        <td>{{ a.mobile_phone|default:'-' }}</td>
       </tr>
     {% endif %}
 

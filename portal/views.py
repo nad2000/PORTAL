@@ -742,16 +742,20 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(f"""
+            return HttpResponse(
+                f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """)
-        return HttpResponse(f"""
+            """
+            )
+        return HttpResponse(
+            f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """)
+        """
+        )
 
 
 class NotesMixin:
@@ -4997,9 +5001,11 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse("""
+    return HttpResponse(
+        """
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """)
+    """
+    )
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -5387,16 +5393,18 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     initial["members"] = latest_application.members
                 initial["presentation_url"] = latest_application.presentation_url
 
-        if ((o := self.object) and o.site_id == 2 and (not o.pk or o.is_pi(user))) or (
+        if ((o := self.object) and o.site_id == 2 and (not o.pk)) or (
             not self.object and settings.SITE_ID == 2
         ):
-            if cv := models.CurriculumVitae.last_user_cv(user=user, cut_off_months=3):
+
+            if cv := models.CurriculumVitae.last_user_cv(user=o.pi or user, cut_off_months=3):
                 initial["cv_file"] = cv.file
 
             if self.request.method == "GET" and (not o or o.pk and not o.cv):
                 message = _(
                     "Please ensure that you have attached "
-                    "to the application the most recent C.V."
+                    "to the application the most recent C.V. "
+                    "(of the Principal Investigator)"
                 )
 
                 if cv:
@@ -5408,6 +5416,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         os.path.basename(cv.file.name),
                     )
                 messages.warning(self.request, message)
+        elif o and o.site_id == 2 and o.cv:
+            initial["cv_file"] = o.cv.file
 
         return initial
 
@@ -7244,7 +7254,7 @@ class ContractDetail(FavoriteMixin, DetailView):
         u = self.request.user
         o = self.object
         if u.is_admin or (o and (org := o.org or o.application.org) and org.is_ro(user=u)):
-            context["can_edit"] = True
+            context["can_edit"] = u.is_admin or not o.is_current and o.state != "archived"
             if (
                 o.is_current
                 and not o.change_requests.filter(
@@ -7314,6 +7324,19 @@ def update_page_count(document_pk=None, contract_document_pk=None, site_id=None)
 class ContractViewMixin:
 
     extra_context = {"category": "contracts", "sidebar": "off"}
+
+    def get(self, request, *args, **kwargs):
+        u = request.user
+        if not (obj := getattr(self, "object", None)):
+            obj = self.get_object()
+            self.object = obj
+        if not (u.is_admin or self.is_ro):
+            messages.error(request, _("You have no permission to edit the contract."))
+            return redirect(obj.detail_url)
+        elif not u.is_admin and (obj.is_current or obj.state == "archived"):
+            messages.error(request, _("The current or arcived contracts cannot be edited."))
+            return redirect(obj.detail_url)
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         u = self.request.user
@@ -7553,6 +7576,19 @@ class ContractViewMixin:
             application_document = fields.Field(widget=HiddenInput(), required=False)
 
             def save(self, commit=True):
+                # if "file" in self.changed_data:
+                #     cf = self.instance.converted_file
+                #     self.instance.converted_file = None
+                #     self.instance.page_count = None
+                #     if (
+                #         self.instance.pk
+                #         and cf
+                #         and cf.file
+                #         and cf.file.name
+                #         and Path(cf.file.path).is_file()
+                #     ):
+                #         cf.file.delete()
+
                 if (
                     self.cleaned_data.get("application_document")
                     and not self.cleaned_data.get("file")
@@ -7573,7 +7609,7 @@ class ContractViewMixin:
 
         class Meta:
             model = models.ContractDocument
-            exclude = ["converted_file"]
+            exclude = ["converted_file", "page_count"]
 
         fsc = forms.inlineformset_factory(
             self.model,
@@ -7583,12 +7619,13 @@ class ContractViewMixin:
             can_delete=False,
             exclude=[
                 "converted_file",
+                "page_count",
             ],
             widgets={
                 "application_document": HiddenInput(),
                 "required_document": HiddenInput(),
                 "state": HiddenInput(),
-                "page_count": HiddenInput(),
+                # "page_count": HiddenInput(),
                 "document_type": HiddenInput(),
                 # "required_document": widgets.Select(attrs={"disabled": True}),
                 # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
@@ -7875,6 +7912,7 @@ class ContractViewMixin:
                                 f.instance.update_page_count(doc_file)
                                 # f.instance.sarve(update_fields=["page_count"])
                             else:
+                                f.instance.page_count = None
                                 cf = f.instance.update_converted_file()
                                 # f.instance.save(update_fields=["page_count", "converted_file"])
                                 if cf:
@@ -7900,6 +7938,7 @@ class ContractViewMixin:
                 ):
                     budget.save_draft(request=request, user=u)
                     budget.converted_file = None
+                    budget.page_count = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
                     models.async_task(
                         update_page_count,
@@ -9179,7 +9218,8 @@ class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return self.model.objects.all().filter(name__istartswith=self.q)
 
     def create_object(self, text):
-        for t in [t.strip() for t in text.split(",")][::-1]:
+        delimiter = "," if text.count(",") > text.count(";") else ";"
+        for t in [t.strip() for t in text.split(delimiter)][::-1]:
             if t:
                 kw, _ = self.model.get_or_create(**{self.create_field: t})
         if t and kw:
@@ -9715,10 +9755,12 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _("""
+                            notes = _(
+                                """
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """)
+                            """
+                            )
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
@@ -13706,7 +13748,12 @@ def survey_response(request, referee_id):
 @require_http_methods(["PUT", "POST"])
 def convert_file(request):
 
-    pk = request.GET.get("id") or request.POST.get("id") or request.GET.get("pk") or request.POST.get("pk")
+    pk = (
+        request.GET.get("id")
+        or request.POST.get("id")
+        or request.GET.get("pk")
+        or request.POST.get("pk")
+    )
     obj_id = request.GET.get("obj_id") or request.POST.get("obj_id")
     model_name = request.GET.get("model") or request.POST.get("model")
     obj = (
@@ -13730,7 +13777,11 @@ def convert_file(request):
 
     if obj:
         try:
-            if obj.converted_file and obj.converted_file.file and Path(obj.converted_file.file.path).is_file():
+            if (
+                obj.converted_file
+                and obj.converted_file.file
+                and Path(obj.converted_file.file.path).is_file()
+            ):
                 obj.converted_file.file.delete()
             obj.converted_file = None
             obj.update_converted_file(commit=True)
@@ -13953,7 +14004,9 @@ async def crud_event_stream(request):
                 else:
                     url = None
                 op = f"{ e.get_event_type_display().lower() }d"
-                message = "".join(f"data: {l}\n" for l in f"""
+                message = "".join(
+                    f"data: {l}\n"
+                    for l in f"""
     <div class="toast hide"
         role="alert"
         aria-live="assertive"
@@ -13973,7 +14026,11 @@ async def crud_event_stream(request):
         { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
     </div>
     </div>
-    """.splitlines(keepends=False) if l.strip())
+    """.splitlines(
+                        keepends=False
+                    )
+                    if l.strip()
+                )
                 # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
                 yield f"id: {e.pk}\nevent: crud\n{message}\n"
             if e and e.pk:

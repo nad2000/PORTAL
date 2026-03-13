@@ -1064,7 +1064,7 @@ class ApplicationForm(ModelForm):
         if (
             round.is_applicant_cv_required
             or site_id == 2
-            and (not instance.pk or instance.is_pi(user))
+            # and (not instance.pk or instance.is_pi(user))
         ):
 
             cv_templates = [r.file for r in round.curriculum_vitae_templates.all()]
