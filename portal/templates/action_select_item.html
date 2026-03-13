@@ -57,10 +57,10 @@
       <legend>Keep or delete the merged records:</legend -->
 
     {% if action_name and 'merge' in action_name %}
-      <input type="radio" name="keep" id="keep_records" value="1" checked title="Keep the merged records">
+      <input type="radio" name="keep" id="keep_records" value="1" title="Keep the merged records">
       <label for="keep_records" title="Keep the merged records">Keep</label>
 
-      <input type="radio" name="keep" id="delete_records" value="0" title="Delete the merged inot the trarget records">
+      <input type="radio" name="keep" id="delete_records" value="0" checked title="Delete the merged inot the trarget records">
       <label for="delete_records" title="Delete the merged into the trarget records">Delete</label>
     {% endif %}
 

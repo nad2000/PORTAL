@@ -1325,163 +1325,16 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
     def merge(self, request, queryset):
 
         if "do_action" in request.POST:
-            u = request.user
-            deleted = []
-            merged = []
-            errors = []
             if target_id := (request.POST.get("target") or request.POST.get("chosen_object")):
-
-                keep = request.POST.get("keep") != "0"
-                target = self.models.get(target_id)
-                orgs = list(queryset.filter(~Q(id=target_id)))
-                ids = [o.id for o in orgs]
-
-            #     try:
-            #         with transaction.atomic():
-            #
-            #             qs = models.Application.all_objects.filter(
-            #                 ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
-            #                 Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
-            #             ).order_by("number")
-            #             if keep:
-            #                 qs.filter(round__scheme__current_round=F("round"))
-            #
-            #             org_applications = list(qs)
-            #
-            #             qs = models.Nomination.all_objects.filter(org__in=orgs)
-            #             if keep:
-            #                 qs.filter(round__scheme__current_round=F("round"))
-            #             nominations = list(qs)
-            #
-            #             for n in nominations:
-            #                 n._change_reason = f"Organisation {n.org} merged into {target} by {u}"
-            #                 n.org = target
-            #
-            #             bulk_update_with_history(
-            #                 nominations,
-            #                 models.Nomination,
-            #                 ["org", "updated_at"],
-            #                 default_user=u,
-            #                 manager=models.Nomination.all_objects,
-            #             )
-            #
-            #             if org_applications:
-            #                 previous_application_numbers = [
-            #                     models.ApplicationNumber(application=a, number=a.number)
-            #                     for a in org_applications
-            #                 ]
-            #                 for r in previous_application_numbers:
-            #                     r._change_reason = (
-            #                         f"Organisation {r.application.org} merged into {target} by {u}"
-            #                     )
-            #                 new_numbers = []
-            #                 for a in org_applications:
-            #
-            #                     if a.org in orgs:
-            #                         a.org = target
-            #
-            #                     a.number = models.default_application_number(
-            #                         a, exclude_numbers=new_numbers
-            #                     )
-            #                     new_numbers.append(a.number)
-            #                     a._change_reason = (
-            #                         f"Organisation {a.org} merged into {target} by {u}"
-            #                     )
-            #                     # a.save(update_fields=["org", "number"])
-            #                 bulk_update_with_history(
-            #                     org_applications,
-            #                     models.Application,
-            #                     ["org", "number", "updated_at"],
-            #                     default_user=u,
-            #                     manager=models.Application.all_objects,
-            #                 )
-            #                 bulk_create_with_history(
-            #                     previous_application_numbers,
-            #                     models.ApplicationNumber,
-            #                     default_user=u,
-            #                     ignore_conflicts=True,
-            #                     # manager=models.Application.all_objects,
-            #                 )
-            #
-            #             for model, field, objects in (
-            #                 (
-            #                     model,
-            #                     field,
-            #                     [
-            #                         setattr(
-            #                             o,
-            #                             "_change_reason",
-            #                             f"Organisation {getattr(o, field)} merged into {target} by {u}",
-            #                         )
-            #                         or setattr(o, field, target)
-            #                         or o
-            #                         for o in (
-            #                             model.all_objects.filter(**{f"{field}__in": org_ids})
-            #                             if hasattr(model, "all_objects")
-            #                             else model.where(**{f"{field}__in": org_ids})
-            #                         )
-            #                     ],
-            #                 )
-            #                 for (model, field) in (
-            #                     (rel.related_model, rel.remote_field.name)
-            #                     for rel in get_candidate_relations_to_delete(
-            #                         models.Organisation._meta
-            #                     )
-            #                     if not issubclass(rel.related_model, HistoricalChanges)
-            #                 )
-            #             ):
-            #                 if model is models.Nomination:
-            #                     continue
-            #                 if hasattr(model, "history"):
-            #                     bulk_update_with_history(
-            #                         objects,
-            #                         model,
-            #                         [field],
-            #                         default_user=u,
-            #                         manager=getattr(model, "all_objects", model._default_manager),
-            #                     )
-            #                 else:
-            #                     manager = getattr(model, "all_objects", model._default_manager)
-            #                     manager.bulk_update(objects, [field])
-            #
-            #             for o in orgs:
-            #                 if not target.alternative_names.filter(name=o.name).exists():
-            #                     models.OrgName.create(org=target, name=o.name)
-            #             if keep:
-            #                 for o in orgs:
-            #                     o.is_active = False
-            #                     o.replaced_org = target
-            #                     o._change_reason = f"Organisation {o} merged into {target} by {u}"
-            #                 bulk_update_with_history(
-            #                     orgs,
-            #                     self.model,
-            #                     ["replaced_org", "is_active", "updated_at"],
-            #                     default_user=u,
-            #                 )
-            #                 merged = [f"{o.code}: {o.name}" for o in orgs]
-            #             else:
-            #                 for o in orgs:
-            #                     o._change_reason = f"Organisation {o} merged into {target} by {u}"
-            #                     o.delete()
-            #                 deleted = [f"{o.code}: {o.name}" for o in orgs]
-            #     except Exception as ex:
-            #         capture_exception(ex)
-            #         errors.append(ex)
-            #
-            # if deleted:
-            #     messages.success(
-            #         request,
-            #         f'{len(deleted)} organisation(s) merged and deleted: {", ".join(deleted)}',
-            #     )
-            # if merged:
-            #     messages.success(
-            #         request,
-            #         f'{len(merged)} organisation(s) merged and marked inactive: {", ".join(merged)}',
-            #     )
-            # if errors:
-            #     for e in errors:
-            #         messages.error(request, e)
-
+                if target_id.isdigit():
+                    target = self.model.objects.filter(id=target_id).first()
+                else:
+                    target = self.model.objects.filter(code=target_id).first()
+                if not target:
+                    messages.error(request, "Target person/profile not found.")
+                    return
+                keep = request.POST.get("keep") in ["on", "yes", "true", "1"]
+                target.merge(queryset=queryset, request=request, keep=keep, by=request.user)
             return
 
         # Get the code object from the frame and then the name
@@ -1506,6 +1359,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 "action_label": action_label,
                 "first_item": queryset.filter(is_active=True).first() or queryset.first(),
                 "opts": self.opts,
+                "keep": False,
                 "app_label": self.opts.app_label,
                 "preserved_filters": self.get_preserved_filters(request),
                 "is_popup": admin.options.IS_POPUP_VAR in request.POST

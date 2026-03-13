@@ -87,6 +87,7 @@ from django.db.models import (
     aggregates,
     prefetch_related_objects,
 )
+from django.db.models.deletion import get_candidate_relations_to_delete
 from django.db.models.functions import Cast, Coalesce, Concat, Extract, Lower
 from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.template.loader import get_template
@@ -110,13 +111,13 @@ from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
 from private_storage.fields import PrivateFileField
+
 # from pypdf import PdfMerger, PdfReader, PdfWriter
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
 from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
-
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, Tag, TagBase
 from weasyprint import HTML
@@ -685,11 +686,19 @@ class PdfFileMixin:
             pdf_reader = PdfReader(mended, strict=False)
         page_count = len(pdf_reader.pages)
 
-        if hasattr(self, "page_count") and (not self.page_count or pdf_reader and page_count != self.page_count):
+        if hasattr(self, "page_count") and (
+            not self.page_count or pdf_reader and page_count != self.page_count
+        ):
             self.page_count = page_count
 
         if commit:
-            self.save(update_fields=["converted_file", "page_count"] if hasattr(self, "page_count") else ["converted_file"])
+            self.save(
+                update_fields=(
+                    ["converted_file", "page_count"]
+                    if hasattr(self, "page_count")
+                    else ["converted_file"]
+                )
+            )
 
         return page_count
 
@@ -2085,6 +2094,131 @@ class Person(PersonMixin, Model):
                 ]
             )
 
+    def merge(self, queryset, request=None, by=None, keep=False):
+
+        if not by and request:
+            by = request.user
+
+        deleted = []
+        merged = []
+        errors = []
+        ids = list(queryset.filter(~Q(pk=self.pk)).values_list("pk", flat=True))
+
+        try:
+            with transaction.atomic():
+                for p in queryset.filter(~Q(pk=self.pk)):
+                    for cv in p.cvs.all():
+                        cv.person = self
+                        if cv.owner and self.user:
+                            cv.owne = self.user
+                        cv._change_reason = (
+                            f"Person {p} merged into {self} by {by or 'unknown user'}"
+                        )
+                        cv.save()
+
+                for model, field, objects in (
+                    (
+                        model,
+                        field,
+                        [
+                            setattr(
+                                o,
+                                "_change_reason",
+                                f"Profile {getattr(o, field)} merged into {self} by {by or 'unknown user'}",
+                            )
+                            or setattr(o, field, self)
+                            or o
+                            for o in (
+                                model.all_objects
+                                if hasattr(model, "all_objects")
+                                else model.objects
+                            ).filter(**{f"{field}__in": ids})
+                        ],
+                    )
+                    for (model, field) in (
+                        (rel.related_model, rel.remote_field.name)
+                        for rel in get_candidate_relations_to_delete(self._meta)
+                        if not issubclass(
+                            rel.related_model,
+                            (
+                                simple_history.models.HistoricalChanges,
+                                ProtectionPatternPerson,
+                            ),
+                        )
+                    )
+                ):
+                    if hasattr(model, "history"):
+                        bulk_update_with_history(
+                            objects,
+                            model,
+                            [field],
+                            default_user=by,
+                            manager=getattr(model, "all_objects", model._default_manager).filter(
+                                **{f"{field}__in": ids}
+                            ),
+                        )
+                    else:
+                        if model is PersonProtectionPattern:
+                            objects = [
+                                o
+                                for o in objects
+                                if not self.person_protection_patterns.filter(
+                                    protection_pattern=o.protection_pattern
+                                ).exists()
+                            ]
+                        elif model.__name__ == "Person_ethnicities":
+                            objects = [
+                                o
+                                for o in objects
+                                if not self.ethnicities.filter(code=o.ethnicity.code).exists()
+                            ]
+                        elif model.__name__ == "Person_languages_spoken":
+                            objects = [
+                                o
+                                for o in objects
+                                if not self.languages_spoken.filter(code=o.language.code).exists()
+                            ]
+                        elif model.__name__ == "Person_iwi_groups":
+                            objects = [
+                                o
+                                for o in objects
+                                if not self.iwi_groups.filter(code=o.iwigroup.code).exists()
+                            ]
+                        if objects:
+                            getattr(model, "all_objects", model._default_manager).bulk_update(
+                                objects, [field]
+                            )
+
+                if not keep:
+                    deleted = [f"{o}" for o in self._meta.model.where(pk__in=ids)]
+                    for o in self._meta.model.where(pk__in=ids):
+                        o._change_reason = (
+                            f"Profile {o} merged into {self} by {by or 'unknown user'}"
+                        )
+                        o.delete()
+                else:
+                    merged = [f"{o}" for o in self._meta.model.where(pk__in=ids)]
+
+        except Exception as ex:
+            capture_exception(ex)
+            errors.append(ex)
+
+        if request:
+            if deleted:
+                messages.success(
+                    request,
+                    f'{len(deleted)} profile(s) merged into {self} and deleted: {", ".join(deleted)}',
+                )
+            if merged:
+                messages.success(
+                    request,
+                    f'{len(deleted)} profile(s) merged into {self}: {", ".join(deleted)}',
+                )
+            if errors:
+                for e in errors:
+                    messages.error(request, e)
+        return
+
     def get_absolute_url(self):
         return reverse("profile-instance", kwargs={"pk": self.pk})
 
@@ -2375,7 +2509,11 @@ class LetterOfSupport(PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="letters_of_support",
     )
 
@@ -2892,9 +3030,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="applications",
-
     )
     photo_identity = PrivateFileField(
         null=True,
@@ -4792,7 +4933,11 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         max_length=200,
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="members",
     )
     is_funded = BooleanField(default=True, verbose_name=_("funded"))
@@ -5176,9 +5321,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
         count = 0
         if not by and request:
             by = request.user
-        # referees = list(models.Referee.where(application=application, invitation__isnull=True))
-        # referees = list(models.Referee.where(invitation__isnull=True))
-        # referees = list(models.Referee.where(~Q(invitation__email=F("email"))))
+        # referees = list(Referee.where(application=application, invitation__isnull=True))
+        # referees = list(Referee.where(invitation__isnull=True))
+        # referees = list(Referee.where(~Q(invitation__email=F("email"))))
         if not referees:
             referees = list(
                 cls.where(
@@ -6768,7 +6913,11 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
         max_length=200,
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="testimonials",
     )
     cv = ForeignKey(
@@ -6917,7 +7066,12 @@ FILE_TYPE = Choices("CV")
 
 class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
     person = ForeignKey(
-        Person, on_delete=SET_NULL, verbose_name=_("person"), blank=True, null=True
+        Person,
+        on_delete=SET_NULL,
+        verbose_name=_("person"),
+        blank=True,
+        null=True,
+        related_name="cvs",
     )
     owner = ForeignKey(User, on_delete=SET_NULL, verbose_name=_("owner"), blank=True, null=True)
     title = CharField(
@@ -6954,7 +7108,11 @@ class CurriculumVitae(PdfFileMixin, PersonMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="cvs",
     )
 
@@ -9034,7 +9192,11 @@ class ApplicationDocument(PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="application_documents",
     )
 
@@ -9513,7 +9675,10 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         help_text=_("Upload filled-in nominator form"),
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL,
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
         related_name="nominations",
     )
 
@@ -12703,7 +12868,11 @@ class ContractDocument(ContractDocumentMixin, PdfFileMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="contract_documents",
     )
 
@@ -13221,7 +13390,11 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL, verbose_name=_("converted file"),
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("converted file"),
         related_name="reports",
     )
     assessment = TextField(blank=True, null=True)
@@ -14617,7 +14790,10 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
         ],
     )
     converted_file = ForeignKey(
-        ConvertedFile, null=True, blank=True, on_delete=SET_NULL,
+        ConvertedFile,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
         related_name="change_requests",
     )
     reply = TextField(
