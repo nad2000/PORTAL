@@ -5393,16 +5393,18 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     initial["members"] = latest_application.members
                 initial["presentation_url"] = latest_application.presentation_url
 
-        if ((o := self.object) and o.site_id == 2 and (not o.pk or o.is_pi(user))) or (
+        if ((o := self.object) and o.site_id == 2 and (not o.pk)) or (
             not self.object and settings.SITE_ID == 2
         ):
-            if cv := models.CurriculumVitae.last_user_cv(user=user, cut_off_months=3):
+
+            if cv := models.CurriculumVitae.last_user_cv(user=o.pi or user, cut_off_months=3):
                 initial["cv_file"] = cv.file
 
             if self.request.method == "GET" and (not o or o.pk and not o.cv):
                 message = _(
                     "Please ensure that you have attached "
-                    "to the application the most recent C.V."
+                    "to the application the most recent C.V. "
+                    "(of the Principal Investigator)"
                 )
 
                 if cv:
@@ -5414,6 +5416,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         os.path.basename(cv.file.name),
                     )
                 messages.warning(self.request, message)
+        elif o and o.site_id == 2 and o.cv:
+            initial["cv_file"] = o.cv.file
 
         return initial
 
