@@ -2107,6 +2107,7 @@ class Person(PersonMixin, Model):
         try:
             with transaction.atomic():
                 for p in queryset.filter(~Q(pk=self.pk)):
+
                     for cv in p.cvs.all():
                         cv.person = self
                         if cv.owner and self.user:
@@ -2122,8 +2123,12 @@ class Person(PersonMixin, Model):
                             or getattr(self, f, None) is not None
                         ):
                             continue
+
                         v = getattr(p, f)
                         setattr(self, f, v)
+                        if f == "code" and p.code and p.code == self.code:
+                            p.code = f"M{p.pk}"
+                            p.save(update_fields=["code"])
 
                 self.save()
 
