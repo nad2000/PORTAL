@@ -1863,6 +1863,25 @@ class PersonAddress(Model):
         db_table = "person_address"
 
 
+class PersonEmail(Model):
+
+    # type = CharField(
+    #     max_length=10,
+    #     blank=True,
+    #     null=True,
+    #     choices=Choices("postal", "delivery", "primary", "home"),
+    # )
+    person = ForeignKey("Person", on_delete=CASCADE, related_name="emails")
+    email = EmailField(
+        db_index=True,
+        max_length=120,
+        verbose_name=_("email address"),
+    )
+
+    class Meta:
+        db_table = "person_email"
+
+
 class Person(PersonMixin, Model):
     user = OneToOneField(
         User,
@@ -2125,7 +2144,18 @@ class Person(PersonMixin, Model):
                             continue
 
                         v = getattr(p, f)
+                        if not v:
+                            continue
+
                         setattr(self, f, v)
+                        if f == "email" and v != self.email:
+                            if self.user_id:
+                                EmailAddress.objects.create(
+                                    user_id=self.user_id, email=v, verified=False, primary=False
+                                )
+                            else:
+                                PersonEmail.create(email=v, person=self)
+
                         if f == "code" and p.code and p.code == self.code:
                             p.code = f"M{p.pk}"
                             p.save(update_fields=["code"])
@@ -2324,8 +2354,7 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_"""
-            + get_language(),
+            ORDER BY description_""" + get_language(),
             [person.pk],
         )
 
