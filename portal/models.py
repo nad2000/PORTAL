@@ -2116,6 +2116,17 @@ class Person(PersonMixin, Model):
                         )
                         cv.save()
 
+                    for f in [f.name for f in self._meta.fields]:
+                        if (
+                            f in ["created_at", "updated_at", "id", "pk"]
+                            or getattr(self, f, None) is not None
+                        ):
+                            continue
+                        v = getattr(p, f)
+                        setattr(self, f, v)
+
+                self.save()
+
                 for model, field, objects in (
                     (
                         model,
@@ -7964,8 +7975,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         scheme = self.scheme or last_round.scheme
         if last_round:
 
-            for f in [f.name for f in self._meta.fields]:
-                if (
+            for f in [f.name for f in self._meta.fields]: if (
                     f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]
                     or getattr(self, f, None) is not None
                 ):
