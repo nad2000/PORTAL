@@ -1172,7 +1172,12 @@ class Title(Model):
 
     def save(self, *args, **kwargs):
         if not self.code or not self.cone.strip():
-            self.code = self.name[:10].upper()
+            code = (self.name[:10] or get_random_string(5)).strip().upper()
+            for i in range(1, 10):
+                if not self._meta.model.objects.filter(code=code).exists():
+                    break
+                code = f"{code[:9]}{i}"
+            self.code = code
         return super().save(*args, **kwargs)
 
     def __str__(self):
