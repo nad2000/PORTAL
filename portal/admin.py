@@ -1288,6 +1288,12 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
         def has_change_permission(self, request, obj=None):
             return False
 
+    class EmailInline(admin.TabularInline):
+        extra = 0
+        model = models.PersonEmail
+        view_on_site = False
+        classes = ["collapse"]
+
     filter_horizontal = ["ethnicities", "languages_spoken", "iwi_groups"]
     search_fields = [
         "user__username",
@@ -1313,6 +1319,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
         AffiliationInline,
         CurriculumVitaeInline,
         ProtectionPatternInline,
+        EmailInline,
     ]
 
     # def get_queryset(self, request):
