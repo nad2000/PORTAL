@@ -193,7 +193,7 @@ class OrcidHelper:
         # Role-title is empty for ORCID vanilla record.
         qualification, _ = models.Qualification.objects.get_or_create(
             description=(
-                orcid_data.get("role-title") if orcid_data.get("role-title") else "Don't Know"
+                orcid_data.get("role-title") if orcid_data.get("role-title") else "N/A"
             )
         )
         academic_obj, _ = models.AcademicRecord.get_or_create(

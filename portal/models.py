@@ -1498,8 +1498,8 @@ class OrgIdentifierType(Model):
 
 class Qualification(Model):
     code = CharField(max_length=2, null=True, blank=True)
-    description = CharField(max_length=100)
-    definition = TextField(max_length=100, null=True, blank=True)
+    description = CharField(max_length=200)
+    definition = TextField(max_length=1000, null=True, blank=True)
     is_nzqf = BooleanField(
         _("the New Zealand Qualifications Framework Qualification level"),
         default=True,
