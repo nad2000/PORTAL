@@ -9961,7 +9961,7 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
             )
 
         # context["profile_user"] = user
-        context["person"] = person
+        context["person"] = context["profile"] = person
         context["image_url"] = user.image_url()
 
         if person:
