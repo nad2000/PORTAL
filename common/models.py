@@ -1171,7 +1171,7 @@ class Title(Model):
     name = CharField(max_length=200, blank=False)
 
     def save(self, *args, **kwargs):
-        if not self.code or not self.cone.strip():
+        if not self.code or not self.code.strip():
             code = (self.name[:10] or get_random_string(5)).strip().upper()
             for i in range(1, 10):
                 if not self._meta.model.objects.filter(code=code).exists():
