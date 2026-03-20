@@ -7,11 +7,11 @@
 {% macro inline_member(member) -%}
   {% if is_admin and not export %}
     <a href="{{ url('admin:portal_contractmember_change', object_id=member.pk) }}" target="_blank">
-      {{ member.full_name_with_email }}
+      {{ member.full_name_with_email or member }}
     </a>
     <a type="button" class="badge badge-primary" href="{{ url('admin:portal_contractmember_change', object_id=member.pk) }}" target="_blank"> {{ _('Edit') }}</a>
   {% else %}
-    {{ member.full_name_with_email }}
+    {{ member.full_name_with_email or member }}
   {% endif %}
 {%- endmacro %}
 
