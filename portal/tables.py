@@ -901,7 +901,7 @@ class ContractTable(Table):
     # contract_pi = tables.Column(linkify=application_link)
     pi = tables.Column(
         gettext_lazy("Contract PI"),
-        tables.A("pi__full_name_with_email"),
+        tables.A("pi_member__full_name_with_email"),
         order_by="members__email",
     )
     notes = StateColumn()
