@@ -4436,8 +4436,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+        members_with_cv = r.member_cv_required and [m for m in self.members.filter(Q(cv__file__isnull=False), ~Q(cv__file=""), cv__isnull=False)]
         if (
             r.applicant_cv_required
+            and not members_with_cv
             and not self.documents.filter(document_type__role="CV").exists()
             and (cv := self.cv or CurriculumVitae.last_user_cv(self.submitted_by))
         ):
@@ -4502,7 +4504,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             )
                         )
 
-        if user.is_superuser or user.is_staff or (site_id != 4 and is_panellist) or for_panellists:
+        if user.is_admin or (site_id != 4 and is_panellist) or for_panellists:
             for n in Nomination.where(application=self, nominator__isnull=False):
                 if n.file:
                     attachments.append(
@@ -4549,9 +4551,22 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
+        if members_with_cv:
+            attachments.append(("Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
+            attachments.extend(
+                [
+                    (
+                        f"Curriculum Vitae ({m.full_name})",
+                        m.cv.pdf_file,
+                        # include_header_page and m.title_page,
+                    )
+                    for m in members_with_cv
+                ]
+            )
+
         if (
             r.member_letter_of_support_required
-            and self.members.filter(Q(file__isnull=False) | ~Q(file="")).exists()
+            and self.members.filter(Q(file__isnull=False), ~Q(file="")).exists()
         ):
             attachments.extend(
                 [
@@ -4574,8 +4589,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 and not d.required_document.panellists_can_access
             ):
                 continue
-            attachments.append(
-                (
+            attachments.append( (
                     f"{d.required_document}",
                     d.pdf_file,
                     include_header_page and d.title_page,
@@ -4742,6 +4756,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     # outline_item=(self.application_title or r.title),
                     import_outline=True,
                 )
+
+            if not a:
+                continue
 
             # merger.append(a, outline_item=title, import_outline=True)
             try:

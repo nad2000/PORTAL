@@ -40,7 +40,7 @@ body {
           </center>
         {% elif title %}
           <center>
-            <h1>{{ title }}</h>
+            <h1>{{ title }}</h1>
           </center>
         {% endif %}
 
@@ -55,6 +55,12 @@ body {
                 <small><font size="-3">
                   {{ value }}
                 </font></small>
+              </td>
+            {% elif not attribute %}
+              <td>
+                <center>
+                  <h2>{{ value }}</h2>
+                </center>
               </td>
             {% elif user.is_superuser or site_id != 2 %}
               <th>
