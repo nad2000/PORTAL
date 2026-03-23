@@ -88,7 +88,7 @@ from django.db.models import (
     prefetch_related_objects,
 )
 from django.db.models.deletion import get_candidate_relations_to_delete
-from django.db.models.functions import Cast, Coalesce, Concat, Extract, Lower
+from django.db.models.functions import Cast, Coalesce, Concat, ExtractYear, Lower
 from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.template.loader import get_template
 from django.urls import reverse
@@ -1897,6 +1897,31 @@ class Person(PersonMixin, Model):
         blank=True,
         null=True,
         # default=default_person_code
+    )
+    # ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "hash_id" varchar(32) GENERATED ALWAYS AS (md5(id::character varying::text));
+    # ALTER TABLE "person_history" ADD COLUMN IF NOT EXISTS "hash_id" varchar(32) GENERATED ALWAYS AS (md5(id::character varying::text));
+    if connection.vendor == "postgresql":
+        # hash_id_expression = Extract(F("opens_on"), lookup_name="year")
+        hash_id_expression = Func(
+            F("id"),
+            function="md5",
+            template="%(function)s(%(expressions)s::character varying::text)",
+            output_field=CharField(max_length=32, unique=True, editable=False),
+        )
+    else:
+        hash_id_expression = Func(
+            F("id"),
+            function="hex",
+            template="%(function)s(%(expressions)s)",
+            output_field=CharField(max_length=32, unique=True, editable=False),
+        )
+    hash_id = GeneratedField(
+        db_column="hash_id",
+        output_field=CharField(max_length=32, unique=True, editable=False),
+        # db_persist=True,
+        db_persist=False,
+        editable=False,
+        expression=hash_id_expression,
     )
     email = CharField(max_length=60, blank=True, null=True)
     orcid = CharField(max_length=20, blank=True, null=True)
@@ -7446,7 +7471,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     # ALTER TABLE "round" ADD COLUMN IF NOT EXISTS "year" smallint GENERATED ALWAYS AS (extract(year FROM opens_on));
     # ALTER TABLE "round_history" ADD COLUMN IF NOT EXISTS "year" smallint GENERATED ALWAYS AS (extract(year FROM opens_on));
     if connection.vendor == "postgresql":
-        year_expression = Extract(F("opens_on"), lookup_name="year")
+        year_expression = ExtractYear(F("opens_on"), lookup_name="year")
     else:
         year_expression = Func(
             F("opens_on"),

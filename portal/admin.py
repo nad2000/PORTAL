@@ -1859,6 +1859,7 @@ class ApplicationAdmin(
 
     def get_fieldsets(self, request, obj):
         # fieldsets = super().get_fieldsets(request, obj).copy()
+        site_id = obj and obj.site_id or settings.SITE_ID
         nomination = models.Nomination.where(application=obj).order_by("-pk").first()
         fieldsets = (
             (
@@ -1915,9 +1916,16 @@ class ApplicationAdmin(
                 "Summary and Files",
                 {
                     "classes": ("collapse",),
-                    "fields": [
-                        "file",
-                    ],
+                    "fields": (
+                        [
+                            "file",
+                            "budget",
+                        ]
+                        if site_id in [1, 7]
+                        else [
+                            "file",
+                        ]
+                    ),
                 },
             ),
             (
@@ -2060,13 +2068,10 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(
-                f"""<a
+            links = ", ".join(f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>"""
-                for c in contracts
-            )
+            {c.number}</a>""" for c in contracts)
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
