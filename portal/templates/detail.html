@@ -139,7 +139,11 @@
                 {{ value|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>
-              {% elif field.name == "converted_file"%}
+              {% elif field.name == "invitations" %}
+                {% for i in object.invitations.all %}
+                  {% if not forloop.first %}, {% endif %}{{ i }}{% if is_admin or is_ro %} ({% if i.url %}<a href="{{ i.url }}" target="_blank">{{ i.url }}</a>{% else %}<a href="{% url 'onboard-with-token' token=i.token %}" target="_blank">{% url 'onboard-with-token' token=i.token %}</a>{% endif %}){% endif %}
+                {% endfor %}
+              {% elif field.name == "converted_file" %}
                 <a href="{{ object.converted_file|field_file_url }}" target="_blank">
                   {{ object.converted_file|field_file_name|basename }}
                 </a>
@@ -255,7 +259,7 @@
         {% for field in extra_object|fields %}
           {% if exclude is None or field.name not in exclude %}
             {% if field.name != 'id' and extra_object|field_value:field.name %}
-              {% if field.name != "summary_en" or extra_object.is_bilingual_summary %}{% if field.name != "summary_mi" or extra_object.is_bilingual_summary %}{% if field.name != "photo_identity" or request.user.is_staff or request.user.is_superuser %}
+              {% if field.name != "summary_en" or extra_object.is_bilingual_summary %}{% if field.name != "summary_mi" or extra_object.is_bilingual_summary %}{% if field.name != "photo_identity" or is_adimin %}
                 <tr>
                   <th  class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
                     {{ field.verbose_name|title }}

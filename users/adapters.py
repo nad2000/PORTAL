@@ -250,8 +250,11 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         return user
 
     def save_user(self, request, user, form, commit=True):
+        breakpoint()
         if form and "email" not in form.cleaned_data:
             email = self.invitation and self.invitation.email
+            if not email and "invitation_token" in request.session and (i := Invitation.where(token=request.session["invitation_token"]).last()):
+                email = i.email
             if email:
                 form.cleaned_data["email"] = email
         return super().save_user(request, user, form, commit)
