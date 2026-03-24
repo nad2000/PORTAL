@@ -1,37 +1,33 @@
 import asyncio
-from asgiref.sync import sync_to_async
-import base64
 import csv
 import io
 import json
 import mimetypes
 import os
-import random
 import re
 import shutil
-import time
 import traceback
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
 from itertools import groupby
-from urllib.parse import quote, urljoin
-from wsgiref.util import FileWrapper
-from constance import config
 from pathlib import Path
+from urllib.parse import quote
+from wsgiref.util import FileWrapper
 
 import django.utils.translation
 import django_tables2
 import jinja2
-import py7zr
 import requests
 import rispy
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
+from asgiref.sync import sync_to_async
+from constance import config
 from crispy_forms import bootstrap, layout
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column, Field, Fieldset, Layout, Row
+from crispy_forms.layout import Column, Field, Layout, Row
 from dal import autocomplete, forward
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -45,15 +41,13 @@ from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
 )
-from django.contrib.contenttypes.forms import (
-    BaseGenericInlineFormSet,
-    generic_inlineformset_factory,
-)
+from django.contrib.contenttypes.forms import generic_inlineformset_factory
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
 from django.contrib.flatpages.views import flatpage, render_flatpage
 from django.contrib.gis.geoip2 import GeoIP2
 from django.contrib.sites.models import Site
+from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
@@ -67,6 +61,7 @@ from django.db.models import (
     F,
     FilteredRelation,
     Func,
+    Max,
     Min,
     OuterRef,
     Prefetch,
@@ -122,7 +117,6 @@ from django.views.generic import DetailView, FormView, TemplateView
 from django.views.generic.base import ContextMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django_filters.views import FilterView
-from django_q.models import OrmQ
 from django_select2 import forms as s2forms
 from django_summernote.widgets import SummernoteInplaceWidget
 from django_tables2 import SingleTableMixin, SingleTableView
@@ -136,6 +130,7 @@ from extra_views import (
 )
 from geopy.geocoders import Nominatim
 from limesurveyrc2api.exceptions import LimeSurveyError
+from multisite.models import Alias
 from private_storage.views import PrivateStorageDetailView, PrivateStorageView
 
 # from private_storage.models import PrivateFile
@@ -148,7 +143,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
-from taggit.models import Tag, TaggedItem
+from taggit.models import TaggedItem
 from weasyprint import HTML
 
 from common.models import archive_storage
@@ -167,6 +162,222 @@ from .utils.orcid import OrcidHelper
 def __(s):
     """Temporarily disable 'gettex'"""
     return s
+
+
+def portal_context(request):
+    view_name = (rm := request.resolver_match) and rm.view_name
+    request.site = site = get_current_site(request)
+    site_id = settings.SITE_ID
+    domain = site.domain
+    context = {
+        "settings": settings,
+        "view_name": view_name,
+        "domain": domain,
+        "site_name": site.name,
+        "SITE_ID": site_id,
+        "disable_breadcrumbs": not view_name
+        or view_name in ["index", "home"],  # , "account_login", "account_signup"],
+    }
+
+    if (u := request.user) and u.is_authenticated:
+        filters = request.GET.get("application_filter", "")
+        # cache_key = f"{u.username}:{site_id}:{filters}"
+        cache_key = f"{u.username}:{site_id}"
+        cache_control = request.META.get("HTTP_CACHE_CONTROL")
+        if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
+            cached_context = cache.get(cache_key)
+        if has_refreshed or not cached_context or view_name == "start":
+            is_ro = u.research_offices.exists() and not (u.is_superuser or u.is_site_staff)
+            is_staff = u.is_staff or u.staff_of_sites.filter(id=site_id).exists()
+            score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
+            counts = {
+                s: c for s, c in models.Application.user_application_counts(u, request=request)
+            }
+            # application_draft_count = models.Application.user_application_count(
+            #     u, ["draft", "new"]
+            # )
+            application_draft_count = counts.get("draft", 0) + counts.get("new", 0)
+            # application_submitted_count = models.Application.user_application_count(
+            #     u,
+            #     ["submitted", "cancelled"]
+            #     if site_id == 4 and (is_staff or u.is_superuser)
+            #     else ["submitted", "approved", "cancelled"],
+            # )
+            application_submitted_count = counts.get("submitted", 0) + counts.get("canceled", 0)
+            application_in_review_count = counts.get("in_review", 0)
+            if (
+                site_id not in [2, 4, 5] or (not is_staff and not u.is_superuser)
+            ) and "approved" in counts:
+                application_submitted_count += counts["approved"]
+            application_accepted_count = counts.get("accepted", 0)
+            # application_accepted_count = models.Application.user_application_count(u, ["accepted"])
+            # application_funded_count = models.Application.user_application_count(u, ["funded"])
+            application_funded_count = counts.get("funded", 0)
+            # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
+            application_count = (
+                application_draft_count
+                + application_submitted_count
+                + application_accepted_count
+                + application_funded_count
+                + application_in_review_count
+            )
+            counts = {
+                s: c
+                for s, c in models.Nomination.user_nomination_counts(
+                    u, request=request, exclude_states=["bounced", "sent", "withdrawn"]
+                )
+            }
+            counts = {
+                "total": sum(counts.values()),
+                **{
+                    s: counts.get(s, 0)
+                    for (s, _) in models.Nomination.STATES
+                    if s not in ["bounced", "sent", "withdrawn"]
+                },
+            }
+            nomination_counts = counts
+            cached_context = {
+                "is_staff": is_staff,
+                "is_site_staff": is_staff,
+                "is_admin": is_staff or u.is_superuser,
+                "three_days_ago": timezone.now() - timedelta(days=3),
+                "application_draft_count": application_draft_count,
+                "application_submitted_count": application_submitted_count,
+                "application_accepted_count": application_accepted_count,
+                "application_funded_count": application_funded_count,
+                "nomination_counts": nomination_counts,
+                "nomination_count": nomination_counts.get("total", 0),
+                "nomination_draft_count": nomination_counts.get("new", 0)
+                + nomination_counts.get("draft", 0),
+                "nomination_submitted_count": nomination_counts.get("submitted", 0),
+                "nomination_accepted_count": nomination_counts.get("accepted", 0),
+                "testimonial_count": models.Testimonial.user_testimonial_count(u),
+                "testimonial_draft_count": models.Testimonial.user_testimonial_count(u, "draft"),
+                "testimonial_submitted_count": models.Testimonial.user_testimonial_count(
+                    u, "submitted"
+                ),
+                "review_count": models.Evaluation.user_evaluation_count(u) + score_sheet_count,
+                "review_draft_count": models.Evaluation.user_evaluation_count(u, "draft"),
+                "review_submitted_count": models.Evaluation.user_evaluation_count(u, "submitted"),
+                "score_sheet_count": score_sheet_count,
+                "is_ro": is_ro,
+            }
+            if site_id in [2, 5]:
+                cached_context["application_in_review_count"] = application_in_review_count
+            if site_id in [2, 4, 5] and (is_staff or u.is_superuser):
+                application_approved_count = models.Application.user_application_count(
+                    u, "approved", request=request
+                )
+                cached_context["application_approved_count"] = application_approved_count
+                application_count += application_approved_count
+            cached_context["application_count"] = application_count
+
+            # if u.is_superuser or is_staff:
+            #     cached_context["contract_count"] = models.Contract.objects.count()
+            # else:
+            #     cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
+
+            counts = {s: c for s, c in models.Report.user_object_counts(u, request=request)}
+            # counts = {
+            #     "total": sum(counts.values()),
+            #     **{s: counts.get(s, 0) for (s, _) in models.Report.STATES},
+            # }
+            counts["total"] = sum(counts.values())
+            cached_context["report_counts"] = counts
+
+            counts = [
+                (s, c, models.Contract.STATES[s])
+                for s, c in models.Contract.user_object_counts(u, request=request)
+            ]
+            total = sum(i[1] for i in counts)
+            counts.append(("total", total, gettext_lazy("Total")))
+            cached_context["contract_counts"] = counts
+            cached_context["contract_count"] = total
+
+            if is_ro or u.is_superuser or is_staff:
+                counts = [
+                    (s, c, models.ChangeRequest.STATES[s])
+                    for s, c in models.ChangeRequest.user_object_counts(u, request=request)
+                ]
+                total = sum(i[1] for i in counts)
+                counts.append(("total", total, gettext_lazy("Total")))
+                cached_context["change_request_counts"] = counts
+                cached_context["change_request_count"] = total
+
+            # if outstanding_testimonial_requests:
+            #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
+            if not (u.is_superuser or is_staff):
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT
+                            EXISTS(SELECT 1 FROM referee WHERE user_id=%s) AS has_testimonials,
+                            EXISTS(SELECT 1 FROM panellist WHERE user_id=%s) AS has_reviews,
+                            EXISTS(SELECT 1 FROM nomination WHERE nominator_id=%s) AS has_nominations;
+                            """,
+                        [u.id, u.id, u.id],
+                    )
+                    row = cursor.fetchone()
+                cached_context["has_testimonials"] = row[0]
+                cached_context["has_reviews"] = row[1]
+                cached_context["has_nominations"] = row[2]
+            is_canonical = domain == request.get_host()
+            schema = "https" if request.is_secure() else "http"
+            port = request.get_port()
+            port = "" if port in [80, 433] else f":{port}"
+            if request.user.is_superuser:
+                cached_context["all_sites"] = [
+                    dict(
+                        site_id=a.site_id,
+                        domain=(
+                            a.site.domain.encode().decode("idna")
+                            if a.site.domain.startswith("xn--")
+                            else a.site.domain
+                        ),
+                        name=a.site.name,
+                        url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}",
+                        is_current=a.site_id == site_id,
+                    )
+                    for a in Alias.objects.filter(
+                        (
+                            Q(is_canonical=True)
+                            if is_canonical
+                            else (~Q(is_canonical=True) | Q(is_canonical__isnull=True))
+                        ),
+                        Q(
+                            id__in=Subquery(
+                                Alias.objects.filter(
+                                    (
+                                        Q(is_canonical=True)
+                                        if is_canonical
+                                        else (~Q(is_canonical=True) | Q(is_canonical__isnull=True))
+                                    ),
+                                )
+                                .values("site_id")
+                                .annotate(max_id=Max("id"))
+                                .values("max_id")
+                            )
+                        ),
+                    )
+                ]
+                cached_context["filter_disabled"] = not (
+                    u.is_superuser
+                    or is_ro
+                    or u.is_site_staff
+                    or models.ConflictOfInterest.where(
+                        panellist__user=u,
+                        has_conflict=False,
+                        panellist__round__schema__current_round=F("panellist__round"),
+                    ).exists()
+                )
+                if site_id in [2, 4, 5] and (u.is_superuser or u.is_site_staff):
+                    cached_context["LIMESURVEY_ADMIN_URL"] = (
+                        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+                    )
+            cached_context["has_profile"] = models.Person.where(user=u).exists()
+            cache.set(cache_key, cached_context)
+        context.update(cached_context)
+    return context
 
 
 def natural_item_list(items):
@@ -742,20 +953,16 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(
-                f"""
+            return HttpResponse(f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """
-            )
-        return HttpResponse(
-            f"""
+            """)
+        return HttpResponse(f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """
-        )
+        """)
 
 
 class NotesMixin:
@@ -1996,7 +2203,24 @@ def index(request):
                         return JsonResponse({"message": message, "status": "info"}, status=200)
                     messages.info(request, message)
         if len(schemes) == 0:
-            return redirect("about")
+            if not (is_ro or is_admin):
+                messages.warning(
+                    request,
+                    _(
+                        "Currently we do not have any open rounds. Please check back later or contact us for more information."
+                    ),
+                )
+            context = portal_context(request)
+            if context.get("application_count", 0):
+                return redirect("applications")
+            elif context.get("report_count", 0):
+                return redirect("reports")
+            elif context.get("contract_count", 0):
+                return redirect("contracts")
+            elif context.get("nomination_count", 0):
+                return redirect("nominations")
+            if not (is_ro or is_admin):
+                return redirect("about")
     else:
         messages.info(
             request,
@@ -5001,11 +5225,9 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse(
-        """
+    return HttpResponse("""
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """
-    )
+    """)
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -9759,12 +9981,10 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _(
-                                """
+                            notes = _("""
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """
-                            )
+                            """)
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
@@ -14008,9 +14228,7 @@ async def crud_event_stream(request):
                 else:
                     url = None
                 op = f"{ e.get_event_type_display().lower() }d"
-                message = "".join(
-                    f"data: {l}\n"
-                    for l in f"""
+                message = "".join(f"data: {l}\n" for l in f"""
     <div class="toast hide"
         role="alert"
         aria-live="assertive"
@@ -14030,11 +14248,7 @@ async def crud_event_stream(request):
         { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
     </div>
     </div>
-    """.splitlines(
-                        keepends=False
-                    )
-                    if l.strip()
-                )
+    """.splitlines(keepends=False) if l.strip())
                 # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
                 yield f"id: {e.pk}\nevent: crud\n{message}\n"
             if e and e.pk:

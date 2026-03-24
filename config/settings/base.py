@@ -360,7 +360,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # "dynamic_breadcrumbs.context_processors.breadcrumbs",
                 # "django.template.context_processors.request",
-                "portal.context_processors.portal_context",
+                "portal.views.portal_context",
             ],
             "debug": DEBUG,
         },
