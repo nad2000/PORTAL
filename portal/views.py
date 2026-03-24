@@ -9376,6 +9376,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_result_label(self, result):
         if isinstance(result, models.Organisation):
+            if self.q and self.q.isupper():
+                return f"{result.code}: {result.name}"
             return result.name
         return result[1]
 

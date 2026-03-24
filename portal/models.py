@@ -1707,46 +1707,49 @@ class Organisation(Model):
         if user:
             q = q.filter(Q(affiliations__person__user=user, affiliations__end_date__isnull=True))
         if term and term.strip():
-            s = term.lower()
-            s0 = s.split(" ")
-            if s0[0] == "the":
-                s0 = " ".join(s0[1:0]).strip() or f"the {s}"
+            if term.isupper():
+                q = q.filter(code__istartswith=term.strip())
             else:
-                s0 = f"the {s}"
-            q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
-            q = (
-                q.filter(
-                    Q(
-                        id__in=cls.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
-                        .values("name")
-                        .annotate(Min("id"))
-                        .values("id__min")
+                s = term.lower()
+                s0 = s.split(" ")
+                if s0[0] == "the":
+                    s0 = " ".join(s0[1:0]).strip() or f"the {s}"
+                else:
+                    s0 = f"the {s}"
+                q = q.filter(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                q = (
+                    q.filter(
+                        Q(
+                            id__in=cls.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                            .values("name")
+                            .annotate(Min("id"))
+                            .values("id__min")
+                        )
                     )
+                    # .order_by("name", "id")
+                    .values_list("id", "name")
                 )
-                # .order_by("name", "id")
-                .values_list("id", "name")
-            )
-            names = OrgName.where(
-                Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
-                Q(
-                    org_id__in=OrgName.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
-                    .values("name")
-                    .annotate(Min("org_id"))
-                    .values("org_id__min")
-                ),
-            ).values_list("org_id", "name")
-            if country:
-                names = names.filter(
-                    Q(org__address__country_id=country)
-                    | Q(org__address__country__isnull=True)
-                    | Q(org__address__isnull=True)
-                )
-            q = q.union(names)
-            # q = (
-            #     q.distinct()
-            #     if django.db.connection.vendor == "sqlite"
-            #     else q.distinct("id", "name")
-            # )
+                names = OrgName.where(
+                    Q(Q(name__istartswith=s) | Q(name__istartswith=s0)),
+                    Q(
+                        org_id__in=OrgName.where(Q(name__istartswith=s) | Q(name__istartswith=s0))
+                        .values("name")
+                        .annotate(Min("org_id"))
+                        .values("org_id__min")
+                    ),
+                ).values_list("org_id", "name")
+                if country:
+                    names = names.filter(
+                        Q(org__address__country_id=country)
+                        | Q(org__address__country__isnull=True)
+                        | Q(org__address__isnull=True)
+                    )
+                q = q.union(names)
+                # q = (
+                #     q.distinct()
+                #     if django.db.connection.vendor == "sqlite"
+                #     else q.distinct("id", "name")
+                # )
         else:
             q = q.filter(
                 id__in=cls.objects.all().values("name").annotate(Min("id")).values("id__min")

@@ -74,6 +74,20 @@ djhacker.formfield(
     ),
 )
 
+
+class OrgChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return f" {obj.code}: {obj.name}"
+
+
+djhacker.formfield(
+    models.Affiliation.org,
+    OrgChoiceField,
+    widget=autocomplete.ModelSelect2(url="org-autocomplete"),
+)
+
+
 # djhacker.formfield(
 #     CRUDEvent.user,
 #     forms.ModelChoiceField,
@@ -1265,7 +1279,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
         extra = 1
         model = models.Affiliation
         view_on_site = False
-        autocomplete_fields = ["org"]
+        # autocomplete_fields = ["org"]
 
     class CurriculumVitaeInline(admin.StackedInline):
         extra = 1
