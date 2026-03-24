@@ -213,10 +213,26 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             return False
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 
+    def get_invitation_email(self, request):
+        if not request:
+            request = self.request
+        email = self.invitation and self.invitation.email
+        if (
+            not email
+            and "invitation_token" in request.session
+            and (i := Invitation.where(token=request.session["invitation_token"]).last())
+        ):
+            return i.email
+
     def populate_user(self, request, sociallogin, data):
+        user = sociallogin.user
+        if user and not user.email and not data.get("email"):
+            email = self.get_invitation_email(request)
+            if email:
+                data["email"] = email
         user = super().populate_user(request, sociallogin, data)
 
-        email = data.get("email") or self.invitation and self.invitation.email
+        email = data.get("email") or self.invitation and self.invitation.email or user.email
 
         if email and not self.invitation:
             self.invitation = Invitation.where(
@@ -249,12 +265,8 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
 
         return user
 
-    def save_user(self, request, user, form, commit=True):
-        breakpoint()
-        if form and "email" not in form.cleaned_data:
-            email = self.invitation and self.invitation.email
-            if not email and "invitation_token" in request.session and (i := Invitation.where(token=request.session["invitation_token"]).last()):
-                email = i.email
-            if email:
-                form.cleaned_data["email"] = email
-        return super().save_user(request, user, form, commit)
+    def save_user(self, request, sociallogin, form=None):
+        u = sociallogin.user
+        if u and not u.email and (email := self.get_invitation_email(request)):
+            u.email = email
+        return super().save_user(request, sociallogin, form)
