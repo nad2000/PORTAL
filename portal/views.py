@@ -2214,9 +2214,9 @@ def index(request):
             if context.get("application_count", 0):
                 return redirect("applications")
             elif context.get("report_count", 0):
-                return redirect("reports")
+                return redirect("report-list")
             elif context.get("contract_count", 0):
-                return redirect("contracts")
+                return redirect("contract-list")
             elif context.get("nomination_count", 0):
                 return redirect("nominations")
             if not (is_ro or is_admin):
