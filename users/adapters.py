@@ -248,3 +248,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 user.title = self.invitation.nomination.title
 
         return user
+
+    def save_user(self, request, user, form, commit=True):
+        if form and "email" not in form.cleaned_data:
+            email = self.invitation and self.invitation.email
+            if email:
+                form.cleaned_data["email"] = email
+        return super().save_user(request, user, form, commit)
