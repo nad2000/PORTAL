@@ -620,7 +620,7 @@ def tags(request, tag_name=None):
     #     .order_by("name")
     # )
     tags = (
-        Tag.objects.values("name", "slug")
+        models.Tag.objects.values("name", "slug")
         .annotate(count=Count("taggit_taggeditem_items"))
         .order_by("name")
     )
