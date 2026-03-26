@@ -489,6 +489,21 @@
       </tr>
     {% endif %}{% endif %}
 
+    {% if a.priority_list %}
+      <tr>
+        <th class="table-dark" scope="row">
+          {% if a.priority_list|length > 1 %}
+            {% trans 'Research Priorities' %}
+          {% else %}
+            {% trans 'Research Priority' %}
+          {% endif %}
+        </th>
+        <td colspan="3">
+          {% for p in a.priority_list %}{% if not forloop.first %}, {% endif %}{{ p }}{% endfor %}
+        </td>
+      </tr>
+    {% endif %}
+
     {% if a.round.has_seos and a.application_seos.count > 0 %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Socio-Economic Objective(s)' %}</th>

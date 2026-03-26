@@ -3296,6 +3296,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     favorites = GenericRelation(Favorite)
 
     @cached_property
+    def priority_list(self):
+        return self.priorities.order_by("name").values_list("name", flat=True)
+
+    @cached_property
     def export_url(self):
         return reverse(
             "application-export-with-slug-fn",
