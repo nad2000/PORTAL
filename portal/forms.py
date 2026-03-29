@@ -1107,6 +1107,11 @@ class ApplicationForm(ModelForm):
                 ]
             )
             self.fields.pop(f"summary_{language}", None)
+            if round.site_id == 2:
+                self.fields["summary"].label = _("Summary (200 word maximum)")
+                self.fields["summary"].help_text = _(
+                    "Provide a summary of your proposed research (200 word maximum)."
+                )
         else:
             self.fields.pop("summary", None)
             self.fields.pop("summary_en", None)
