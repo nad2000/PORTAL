@@ -82,6 +82,7 @@ from django.db.models import (
     Subquery,
     Sum,
     TextField,
+    UniqueConstraint,
     URLField,
     When,
     aggregates,
@@ -2949,7 +2950,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         blank=True,
         help_text=_("Expression of Interest or preliminary application"),
     )
-    number = CharField(_("number"), max_length=24, null=True, blank=True, unique=True)
+    number = CharField(_("number"), max_length=24, null=True, blank=True)
     submitted_by = ForeignKey(
         User,
         null=True,
@@ -4443,7 +4444,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        members_with_cv = r.member_cv_required and [m for m in self.members.filter(Q(cv__file__isnull=False), ~Q(cv__file=""), cv__isnull=False)]
+        members_with_cv = r.member_cv_required and [
+            m
+            for m in self.members.filter(
+                Q(cv__file__isnull=False), ~Q(cv__file=""), cv__isnull=False
+            )
+        ]
         if (
             r.applicant_cv_required
             and not members_with_cv
@@ -4596,7 +4602,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 and not d.required_document.panellists_can_access
             ):
                 continue
-            attachments.append( (
+            attachments.append(
+                (
                     f"{d.required_document}",
                     d.pdf_file,
                     include_header_page and d.title_page,
@@ -4903,6 +4910,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     class Meta:
         db_table = "application"
+        constraints = [
+            UniqueConstraint(
+                fields=["number", "is_preliminary"],
+                name="unique_proposal",
+            )
+        ]
 
 
 # class ApplicationExportLog(Model):
@@ -9952,6 +9965,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         source=[
             "submitted",
             "bounced",
+            "sent",
         ],
         target="accepted",
         custom=dict(internal=True),

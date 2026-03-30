@@ -7245,6 +7245,10 @@ class ApplicationCreate(ApplicationView, CreateView):
                 if a and not a.number:
                     a.number = models.default_application_number(a, nomination=n)
 
+                if a and a.address and not models.Address.where(pk=a.address_id).exists():
+                    a.address = None
+                    form.cleaned_data.pop("address", None)
+
                 resp = super().form_valid(form)
                 a.save()
                 if n and not (n.application and n.user):
