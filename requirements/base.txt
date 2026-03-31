@@ -82,6 +82,7 @@ django-bootstrap4<26.0
 django-filter<26.0
 django-sql-explorer[xls,charts]>=3.0.0,<6.0.0
 django-q2<2.0.0
+django-q2[sentry]
 blessed<2.0.0
 pycryptodome<4.0
 py7zr>=0.22.0,<0.23.0
