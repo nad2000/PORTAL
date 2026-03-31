@@ -40,6 +40,14 @@
        data-title="{% trans 'You can re-enter the current round with the application as a new application.' %}"
        >{% trans 'Re-enter' %}
     </a>
+      {% elif a.site_id == 2 and not can_update and a.state == "draft" and member %}
+        <a
+             type="button"
+             class="btn btn-primary"
+             href="{% url 'member-update' pk=member.pk %}"
+             data-toggle="tooltip"
+             title="{% trans 'You are listed as a contrigutor on this application. Click here to edit your contributor details and upload your CV if required.' %}"
+          >{% trans 'Edit' %}</a>
       {% else %}
       <div class="tooltip-wrapper{% if not can_update %} disabled{% endif %}"
            {% if update_tooltip %}

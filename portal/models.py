@@ -5019,6 +5019,9 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
     )
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL, related_name="members")
+    person = ForeignKey(
+        Person, blank=True, null=True, on_delete=SET_NULL, related_name="+", editable=False
+    )
     state = StateField(null=True, blank=True, default="new")
     state_changed_at = MonitorField(monitor="state", null=True, default=None, blank=True)
     authorized_at = MonitorField(
@@ -5052,6 +5055,14 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         on_delete=SET_NULL,
         verbose_name=_("converted file"),
         related_name="members",
+    )
+    is_postdoc = BooleanField(
+        null=True,
+        blank=True,
+        default=True,
+        editable=False,
+        help_text="imported from legacy data, not editable",
+        db_comment="imported from legacy datam, not editable",
     )
     is_funded = BooleanField(default=True, verbose_name=_("funded"))
     cv = ForeignKey(
