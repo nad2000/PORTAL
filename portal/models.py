@@ -6545,8 +6545,14 @@ class Invitation(InvitationMixin, PersonMixin, Model):
         if not by:
             by = request.user if request else self.inviter
         url = reverse("onboard-with-token", kwargs=dict(token=self.token))
+        site_id = kwargs.get("site_id", None)
         site = (
-            self.site or request and getattr(request, "site", None) or Site.objects.get_current()
+            self.site
+            or request
+            and getattr(request, "site", None)
+            or site_id
+            and Site.objects.get(pk=site_id)
+            or Site.objects.get_current()
         )
         site_id, site_name = site.pk, site.name
         if request:

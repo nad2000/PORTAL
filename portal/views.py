@@ -4524,12 +4524,23 @@ class InvitationCreate(CreateView):
             i.organisation = i.org.name
         if not i.inviter:
             i.inviter = u
+        if not i.site:
+            i.site = self.request.site
 
         form.save()
-        i.send(self.request, by=u)
-        i.save()
-
-        messages.success(self.request, _("An invitation was sent to ") + i.email)
+        if u.is_admin:
+            res = models.async_task(
+                i.send,
+                site_id=self.request.site_id,
+                by=u,
+            )
+            messages.success(
+                self.request, f"An invitation was sent to {i.email} asynchronously (task id: {res})"
+            )
+        else:
+            i.send(self.request, by=u)
+            i.save()
+            messages.success(self.request, _("An invitation was sent to ") + i.email)
         return redirect(self.get_success_url())
 
     def get_form_class(self):
@@ -9584,7 +9595,9 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         try:
             if text and len(text) > 200:
                 text = f"{text[:197]}..."
-            o, _ = self.model.get_or_create(defaults={"is_active": False}, **{self.create_field: text})
+            o, _ = self.model.get_or_create(
+                defaults={"is_active": False}, **{self.create_field: text}
+            )
         except ValidationError as e:
             raise ValidationError(f"Creation failed: {e.message}")
         except Exception as e:
