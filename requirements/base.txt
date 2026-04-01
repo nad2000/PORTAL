@@ -102,6 +102,7 @@ django-taggit
 limesurveyrc2api
 odfdo
 # colorlog
+coloredlogs
 loguru
 boto3
 setuptools

@@ -446,14 +446,37 @@ LOGGING = {
     "formatters": {
         "verbose": {
             "format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"
-        }
+        },
+        "coloured": {
+            '()': 'coloredlogs.ColoredFormatter', # This line right here
+            'format': '%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s',
+        },
     },
     "handlers": {
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
-        }
+        },
+        "console_coloured": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "coloured",
+        },
+    },
+    "loggers": {
+        "django_q": {
+            # "handlers": ["console", 'q_file'],
+            "handlers": ["console_coloured"],
+            "level": "DEBUG",
+            "propagate": False, # Important: Stop propagation to root
+        },
+        "qcluster": {
+            # "handlers": ["console", 'q_file'],
+            "handlers": ["console_coloured"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
     },
     # "root": {"level": "INFO", "handlers": ["console"]},
     "root": {"level": "WARNING", "handlers": ["console"]},
