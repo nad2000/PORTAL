@@ -479,7 +479,7 @@ LOGGING = {
         },
     },
     # "root": {"level": "INFO", "handlers": ["console"]},
-    "root": {"level": "WARNING", "handlers": ["console"]},
+    # "root": {"level": "WARNING", "handlers": ["console"]},
 }
 
 
