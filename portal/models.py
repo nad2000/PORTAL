@@ -1518,9 +1518,16 @@ class Qualification(Model):
 
 
 def default_organisation_code(name):
-    name = "".join(c for c in name.lower() if c.isalnum() or c == " ")
-    prefix = "".join(w[0] for w in name.split() if w).upper()
-    code = prefix[:8]
+    if name and name != name.strip():
+        name = name.strip()
+
+    if name and " " not in name:
+        code = name.upper()[:8]
+    else:
+        name = "".join(c for c in name.lower() if c.isalnum() or c == " ")
+        prefix = "".join(w[0] for w in name.split() if w).upper()
+        code = prefix[:8]
+
     suffix = 1
     while Organisation.where(code=code).exists():
         if len(prefix) > 7:
@@ -1772,8 +1779,8 @@ class OrgName(Model):
 
     history = HistoricalRecords(table_name="org_name_history")
 
-    def __str__(self):
-        return f"{self.org}: {self.name}"
+    # def __str__(self):
+    #     return f"{self.org}: {self.name}"
 
     class Meta:
         db_table = "org_name"
@@ -1923,7 +1930,8 @@ class Person(PersonMixin, Model):
         db_column="hash_id",
         output_field=CharField(max_length=32, unique=True, editable=False),
         # db_persist=True,
-        db_persist=False,
+        # db_persist=False,
+        db_persist=True,
         editable=False,
         expression=hash_id_expression,
     )
