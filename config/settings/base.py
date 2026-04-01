@@ -448,8 +448,8 @@ LOGGING = {
             "format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"
         },
         "coloured": {
-            '()': 'coloredlogs.ColoredFormatter', # This line right here
-            'format': '%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s',
+            "()": "coloredlogs.ColoredFormatter",
+            "format": "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s",
         },
     },
     "handlers": {
@@ -465,11 +465,11 @@ LOGGING = {
         },
     },
     "loggers": {
-        "django_q": {
+        "django-q": {
             # "handlers": ["console", 'q_file'],
             "handlers": ["console_coloured"],
             "level": "DEBUG",
-            "propagate": False, # Important: Stop propagation to root
+            "propagate": False,  # Important: Stop propagation to root
         },
         "qcluster": {
             # "handlers": ["console", 'q_file'],
