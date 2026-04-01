@@ -9581,7 +9581,16 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def create_object(self, text):
-        o, _ = self.model.get_or_create(defaults={"is_active": False}, **{self.create_field: text})
+        try:
+            if text and len(text) > 200:
+                text = f"{text[:197]}..."
+            o, _ = self.model.get_or_create(defaults={"is_active": False}, **{self.create_field: text})
+        except ValidationError as e:
+            raise ValidationError(f"Creation failed: {e.message}")
+        except Exception as e:
+            # Handle general errors
+            raise ValidationError(f"An unexpected error occurred: {e}.")
+
         org_url = self.request.build_absolute_uri(
             reverse("admin:portal_organisation_change", args=[o.pk])
         )
