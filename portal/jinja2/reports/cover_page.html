@@ -1,0 +1,41 @@
+{% extends "reports/base.html" %}
+
+{% block content %}
+<div class=WordSection1>
+  <table align="left" border="0">
+    <tr>
+      <td rowspan="4" width="50%" style="width:50%;"> &nbsp; </td>
+      <td align="left" valign="top" height="2cm" width="50%" style="width:50%;">
+        <span style='font-size:12.0pt;width:30%;float:left;' width="30%"><b>DATED</b></span>
+        <span style='font-size:12.0pt;width:70%;float:right;' align="right" width="70%"> {{ c and (c.updated_at or c.created_at or c.start_date).strftime("%-d %B %Y") or year }}</span>
+      </td>
+    </tr>
+
+    <tr>
+      <td valign="middle" height="7cm" align="left">
+        <p align="left" style='text-align:left;line-height: 240%'><b><span
+           style='font-size:16.0pt'>AGREEMENT FOR FUNDING FOR
+                {% if c.site_id in [2, 5] %}{{ c.application.round.scheme.title|upper }}
+                {% elif fund %}{{ fund.description|upper }}
+                {% else %}{% if c.site_id == 4 %}NG&#256; PUANGA P&#362;TAIAO FELLOWSHIP{% endif %}{% endif %}
+          </span></b></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td valign="middle" height="10cm" align="left">
+        <p align="left" style='text-align:left;line-height: 500%' ><b><span
+           style='font-size:12.0pt'>{{ (c.agency.legal_name or c.agency.name).upper() }}<br>
+           And<br>{{ (c.host.legal_name or c.host.name).upper() }}</span></b></p>
+      </td>
+    </tr>
+
+    <tr style="position: absolute; bottom: 1cm;">
+      <td valign="bottom" height="4cm" align="left">
+        <p align="left" style='text-align:left;'><b>Agreement number: {{ c.number }}</b></p>
+      </td>
+    </tr>
+
+  </table>
+</div>
+{% endblock %}
