@@ -844,6 +844,17 @@ class ApplicationForm(ModelForm):
         ):
             self.instance.applicant_declaration_accepted_by = u
 
+        r = self.instance and self.instance.round or self.round
+        round_priorities = r.priorities.all().values_list("name", flat=True) if r else []
+        if round_priorities:
+            ingnored_priorities = [
+                p for p in self.cleaned_data.get("priorities", []) if p not in round_priorities
+            ]
+            if ingnored_priorities:
+                self.cleaned_data["priorities"] = [
+                    p for p in self.cleaned_data["priorities"][:] if p in round_priorities
+                ]
+
         return super().save(commit=commit)
         # # TODO: the save accross the all portal forms
         # if self.errors:
@@ -1277,10 +1288,15 @@ class ApplicationForm(ModelForm):
                 )
                 self.fields["priorities"].widget = autocomplete.TaggitSelect2(
                     url="research-priority-autocomplete",
+                    attrs={"data-placeholder": _("Start typing to select research priorities...")},
                     forward=[
                         forward.Const(round.pk, "round"),
                         forward.Const("application", "model"),
                     ],
+                )
+                self.fields["priorities"].help_text = _(
+                    "Select research priorities that best align with your proposed research "
+                    "from the provided list of 'priorities'. You cannot add new priorities."
                 )
 
             tabs.append(

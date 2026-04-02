@@ -1461,8 +1461,15 @@ class ExportView(UserPassesTestMixin, DetailView):
             )
         )
 
-    def get_metadata(self, pk):
-        return {"/Title": f"{self.model.get(pk)}"}
+    def get_metadata(self, pk=None):
+        if not getattr(self, "object", None):
+            self.object = self.get_object_or_404(pk)
+        return {
+            "/Title": f"{self.object}",
+            "/Author": f"{self.request.user}",
+            "/Number": getattr(self.object, "number", None) or f"{self.object.pk}",
+            "/URL": self.object.get_full_detail_url(request=self.request),
+        }
 
     def get_object_or_404(self, pk=None):
         if not pk:
@@ -1481,10 +1488,14 @@ class ExportView(UserPassesTestMixin, DetailView):
 
     def get(self, request, pk, filename=None):
         o = self.object = self.get_object()
-        if not filename:
+        user = request.user
+        current_ts = timezone.now()
+        if not filename and (not (format := request.GET.get("format")) and format.lower() == "pdf"):
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
+            if format:
+                format = format.lower()
             self.object = self.get_object()
             template = get_template(self.template)
             if hasattr(self, "summary_template"):
@@ -1492,7 +1503,7 @@ class ExportView(UserPassesTestMixin, DetailView):
             attachments = self.get_attachments(pk)
             # merger = PdfMerger()
             merger = PdfWriter()
-            merger.add_metadata(self.get_metadata(pk))
+            merger.add_metadata(self.get_metadata())
 
             if hasattr(o, "to_pdf"):
                 pdf_content = io.BytesIO()
@@ -1504,6 +1515,10 @@ class ExportView(UserPassesTestMixin, DetailView):
                 # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
             else:
                 template = get_template(self.template)
+                try:
+                    cover_page_template = get_template(f"{self.model._meta.verbose_name_plural.replace(' ', '_').lower()}/cover_page.html")
+                except:
+                    cover_page_template = None
                 attachments = self.get_attachments(pk)
                 # merger = PdfMerger()
                 merger = PdfWriter()
@@ -1527,6 +1542,10 @@ class ExportView(UserPassesTestMixin, DetailView):
                         logo = f"file://{logo_path}"
 
                 export = True
+                if cover_page_template and format == "html":
+                    cover_page_html = cover_page_template.render(locals())
+                    return HttpResponse(cover_page_html, content_type="text/html")
+
                 html = HTML(string=template.render(locals()))
                 pdf_object = html.write_pdf(presentational_hints=True)
                 # converting pdf bytes to stream which is required for pdf merger.
@@ -4535,7 +4554,8 @@ class InvitationCreate(CreateView):
                 by=u,
             )
             messages.success(
-                self.request, f"An invitation was sent to {i.email} asynchronously (task id: {res})"
+                self.request,
+                f"An invitation was sent to {i.email} asynchronously (task id: {res})",
             )
         else:
             i.send(self.request, by=u)
@@ -9392,6 +9412,8 @@ class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
+    create_field = None
+
     def get_queryset(self):
         qs = self.model.objects.all()
 
@@ -9422,7 +9444,7 @@ class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
                 .order_by("name")
             )
 
-        if self.q:
+        if self.q and not round:
             qs = qs.filter(name__istartswith=self.q)
 
         return qs
