@@ -243,6 +243,7 @@ urlpatterns = [
                 path("<int:pk>", views.ReportDetail.as_view(), name="report"),
                 path("<number>", views.ReportDetail.as_view(), name="report-detail"),
                 path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
+                path("<int:pk>/assessment/~export", views.AssessmentExportView.as_view(), name="assessment-export"),
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
                     "<int:pk>/~export/<filename>",

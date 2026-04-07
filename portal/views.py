@@ -1464,11 +1464,14 @@ class ExportView(UserPassesTestMixin, DetailView):
     def get_metadata(self, pk=None):
         if not getattr(self, "object", None):
             self.object = self.get_object_or_404(pk)
+        o = self.object
         return {
-            "/Title": f"{self.object}",
+            "/Title": f"{o}",
             "/Author": f"{self.request.user}",
-            "/Number": getattr(self.object, "number", None) or f"{self.object.pk}",
-            "/URL": self.object.get_full_detail_url(request=self.request),
+            "/Number": getattr(o, "number", None) or f"{o.pk}",
+            "/URL": o.get_full_detail_url(request=self.request),
+            "/CreationDate": (o.created_at or timezone.now()).strftime("%Y%m%d%H%M%S"),
+            "/ModDate": (o.updated_at or timezone.now()).strftime("%Y%m%d%H%M%S"),
         }
 
     def get_object_or_404(self, pk=None):
@@ -1490,17 +1493,15 @@ class ExportView(UserPassesTestMixin, DetailView):
         o = self.object = self.get_object()
         user = request.user
         current_ts = timezone.now()
-        if not filename and (not (format := request.GET.get("format")) and format.lower() == "pdf"):
+        if not filename and (
+            not (format := request.GET.get("format")) and format.lower() == "pdf"
+        ):
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
             if format:
                 format = format.lower()
             self.object = self.get_object()
-            template = get_template(self.template)
-            if hasattr(self, "summary_template"):
-                summary_template = self.summary_template
-            attachments = self.get_attachments(pk)
             # merger = PdfMerger()
             merger = PdfWriter()
             merger.add_metadata(self.get_metadata())
@@ -1516,7 +1517,15 @@ class ExportView(UserPassesTestMixin, DetailView):
             else:
                 template = get_template(self.template)
                 try:
-                    cover_page_template = get_template(f"{self.model._meta.verbose_name_plural.replace(' ', '_').lower()}/cover_page.html")
+                    summary_template = get_template(getattr(self, "summary_template", None) or
+                        f"partials/{self.model._meta.verbose_name.replace(' ', '_').lower()}_summary.html"
+                    )
+                except:
+                    summary_template = None
+                try:
+                    cover_page_template = get_template(
+                        f"{self.model._meta.verbose_name_plural.replace(' ', '_').lower()}/cover_page.html"
+                    )
                 except:
                     cover_page_template = None
                 attachments = self.get_attachments(pk)
@@ -1542,6 +1551,11 @@ class ExportView(UserPassesTestMixin, DetailView):
                         logo = f"file://{logo_path}"
 
                 export = True
+
+                if summary_template and format == "html":
+                    summary_page_html = summary_template.render(locals())
+                    return HttpResponse(summary_page_html, content_type="text/html")
+
                 if cover_page_template and format == "html":
                     cover_page_html = cover_page_template.render(locals())
                     return HttpResponse(cover_page_html, content_type="text/html")
@@ -4353,6 +4367,13 @@ class EmailImportView(FileImportView):
 
 class ReportExportView(ExportView):
     """Report PDF export view"""
+
+    summary_template = "partials/report_summary.html"
+    model = models.Report
+
+
+class AssessmentExportView(ExportView):
+    """Assessment PDF export view"""
 
     summary_template = "partials/report_summary.html"
     model = models.Report
