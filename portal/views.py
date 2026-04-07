@@ -1273,6 +1273,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{model_name_slug}-export"
         u = self.request.user
+        context["is_admin"] = u.is_admin
         if u.is_admin:
             context["can_edit"] = True
             if hasattr(self.model, "tags"):
@@ -1517,8 +1518,9 @@ class ExportView(UserPassesTestMixin, DetailView):
             else:
                 template = get_template(self.template)
                 try:
-                    summary_template = get_template(getattr(self, "summary_template", None) or
-                        f"partials/{self.model._meta.verbose_name.replace(' ', '_').lower()}_summary.html"
+                    summary_template = get_template(
+                        getattr(self, "summary_template", None)
+                        or f"partials/{self.model._meta.verbose_name.replace(' ', '_').lower()}_summary.html"
                     )
                 except:
                     summary_template = None
@@ -2010,6 +2012,33 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         for k in lime_cookies:
             resp.delete_cookie(k, path="/", domain=host)
     return resp
+
+
+@login_required
+def fetch_doi(request):
+    doi = (request.GET.get("doi", "") or request.POST.get("doi", "")).strip()
+    # doi = "10.1038/nature12345"
+    # Crossref API endpoint
+    url = f"https://api.crossref.org/works/{doi}"
+
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        return render(request, "partials/doi.html", locals())
+    return HttpResponse(f"""<p>DOI: {doi}</p><p>Error fetching data from Crossref API. Status code: {response.status_code}</p>""", status=400)
+
+
+@login_required
+@csrf_protect
+def import_doi(request):
+    if request.method == "POST":
+        doi = request.POST.get("doi", "").strip()
+        url = f"https://api.crossref.org/works/{doi}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+
+    return render(request, "doi_import.html", locals())
 
 
 @login_required
@@ -2819,7 +2848,13 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
         o = self.object
         context["is_ro"] = o.is_ro(u)
         context["can_edit"] = o.can_edit(u)
-        context["is_admin"] = u.is_admin
+        context["extra_buttons"] = [
+            {
+                "name": _("Export Assessment"),
+                "url": reverse("assessment-export", kwargs={"pk": o.pk}),
+                "class": "btn btn-secondary",
+            },
+        ]
         return context
 
     # def get(self, request, *args, **kwargs):

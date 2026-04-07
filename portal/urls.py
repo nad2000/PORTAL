@@ -55,6 +55,10 @@ urlpatterns = [
         views.EmailImportView.as_view(),
         name="email-import",
     ),
+    path("doi/", include([
+        path("~fetch", views.fetch_doi, name="doi-fetch"),
+        path("~import", views.import_doi, name="doi-import"),
+    ])),
     path(
         "applications/",
         include(

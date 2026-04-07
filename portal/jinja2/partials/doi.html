@@ -1,0 +1,25 @@
+{%- set m = data.message -%}
+# for field in ['type', 'title', 'author', 'short-title', 'subtitle', 'original-title', 'container-title', 'publisher', 'issue', 'short-container-title', 'page', 'URL', 'ISSN', 'subject']:
+    {% set v = m.get(field) %}
+    {% if v %}
+      {% set field_name = field|replace("-", " ")|title %}
+      <p><strong>{{ field_name }}</strong>:
+      {% if field in ["title", "container-title", "short-container-title", "ISSN"] %}
+        {% for a in v %}
+          {{ a }}{% if not loop.last %}; {% endif %}
+        {% endfor %}
+      {% elif field == "author" %}
+        {% for a in v %}
+          {{ a.family }}, {{ a.given }}{% if not loop.last %}; {% endif %}
+        {% endfor %}
+      {% elif field == "type" %}
+        {{ v|replace("-", " ")|title }}
+      {% elif field == "URL" %}
+        <a href="{{ v }}" target="_blank">{{ v }}</a>
+      {% else %}
+        {{ v }}
+      {% endif %}
+      </p>
+    {% endif %}
+# endfor
+{# vim:set ft=jinja: #}

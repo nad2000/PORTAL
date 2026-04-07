@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}DOI{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="my-4">
+      <h1>DOI Import</h1>
+      <p>Import a DOI from Crossref.</p>
+
+      <form method="post" id="doi-import-form">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="id_doi" class="form-label">DOI</label>
+          <input type="text" class="form-control" id="id_doi" name="doi" placeholder="10.1234/abcde">
+          <div id="doi-summary"></div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            hx-post="{% url 'doi-fetch' %}"
+            hx-include="#doi-import-form"
+            hx-target="#doi-summary"
+            hx-swap="innerHTML"
+          >Fetch</button>
+
+        </div>
+        <button type="submit" class="btn btn-primary">Import</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{# vim:set ft=htmldjango: #}

@@ -128,6 +128,19 @@
     target="_blank">{% trans 'Export' %}</a>
   {% endif %}
 
+  {% if extra_buttons %}
+    {% for button in extra_buttons %}
+      <a
+        class="{% if button.class %}{{ button.class }}{% else %}btn btn-primary{% endif %}"
+        {% if button.tooltip %}
+        data-toggle="tooltip"
+        title="{{ button.tooltip|safe }}"
+        data-html="true"{% endif %}
+        href="{{ button.url }}"
+        target="_blank">{{ button.name }}</a>
+    {% endfor %}
+  {% endif %}
+
   {% if user.is_site_staff or user.is_superuser %}
   <a class="btn btn-secondary" href="{{ object.admin_url }}" target="_blank" data-toggle="tooltip" title="Open {{ object|verbose_name }} {{ object }} in Admin...">
       {% trans 'Open in Admin' %}
