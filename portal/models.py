@@ -14442,7 +14442,7 @@ simple_history.register(
 )
 
 
-class PublicationType(Model):
+class PublicationType(TimeStampMixin, HelperMixin, OrderableModel):
     code = CharField(max_length=10, primary_key=True)
     code_2 = CharField(unique=True, max_length=2, null=True, blank=True)
     description = CharField(max_length=100, blank=True, null=True)
@@ -14456,7 +14456,7 @@ class PublicationType(Model):
     def __str__(self):
         return f"{self.code}: {self.description}"
 
-    class Meta:
+    class Meta(OrderableModel.Meta):
         db_table = "publication_type"
 
 

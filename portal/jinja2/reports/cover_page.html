@@ -6,8 +6,9 @@
 
 {% block content %}
 <div class=WordSection1>
-  <table align="left" border="0">
+  <table align="center" border="0">
 
+    {#
     <tr>
       <td rowspan="4" width="50%" style="width:50%;"> &nbsp; </td>
       <td align="left" valign="top" height="2cm" width="50%" style="width:50%;">
@@ -15,11 +16,12 @@
         <span style='font-size:12.0pt;width:70%;float:right;' align="right" width="70%"> {{ (current_ts or r.updated_at).strftime("%-d %B %Y") or year }}</span>
       </td>
     </tr>
+    #}
 
     <tr>
-      <td valign="middle" height="7cm" align="left">
-        <p align="left" style='text-align:left;line-height: 240%'><b><span
-           style='font-size:16.0pt'>
+      <td valign="middle" height="7cm" align="center">
+        <p align="center" style='text-align:center;line-height: 240%'><b>
+            <span style='font-size:16.0pt'>
               {% if c.fund and c.fund.description %}{{ c.fund.description }}
               {% elif c.site_id in [2, 5] %}{{ c.application.round.scheme.title|upper }}
               {% elif fund %}{{ fund.description|upper }}
@@ -30,6 +32,7 @@
       </td>
     </tr>
 
+    {#
     <tr>
       <td valign="middle" height="10cm" align="left">
         <p align="left" style='text-align:left;line-height: 500%' ><b><span
@@ -37,13 +40,49 @@
            And<br>{{ (c.host.legal_name or c.host.name).upper() }}</span></b></p>
       </td>
     </tr>
+    #}
 
-    <tr style="position: absolute; bottom: 1cm;">
-      <td valign="bottom" height="4cm" align="left">
-        <p align="left" style='text-align:left;'><b>Agreement number: {{ c.number }}</b></p>
+    <tr>
+      <td align="center">
+        <p align="center" style='text-align:center;'><b>Contract: {{ c.number }}</b></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center">
+        <p align="center" style='text-align:center;'><b>Report Due: {{ r.due_date.strftime("%d/%m/%Y") }}</b></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center">
+        <p align="center" style='text-align:center;'><b>Contract PI: {{ r.pi.full_name }}</b></p>
       </td>
     </tr>
 
   </table>
+
+  <table align="center" border="0">
+
+    <tr>
+      <td align="right" width="10%" style="width:10%;">Project</td>
+      <td align="left" width="90%" style="width:90%;"><b>{{ c.project_title or a.application_title }}</b></td>
+    </tr>
+
+    {% if c.org and c.org.coordinator %}
+      <tr>
+        <td align="right" width="10%" style="width:10%;">Coordinator</td>
+        <td align="left" width="90%" style="width:90%;"><b>{{ c.org.coordinator }}</b></td>
+      </tr>
+    {% endif %}
+
+
+    <tr>
+      <td align="right" width="10%" style="width:10%;">Institution</td>
+      <td align="left" width="90%" style="width:90%;"><b>{{ c.org }}</b></td>
+    </tr>
+
+  </table>
+
 </div>
 {% endblock %}

@@ -1485,7 +1485,10 @@ class ExportView(UserPassesTestMixin, DetailView):
 
     def get_attachments(self, pk):
         o = self.object
-        return [o.pdf_file.path] if getattr(o, "file", None) else []
+        # return [o.pdf_file.path] if getattr(o, "file", None) else []
+        if hasattr(o, "documents"):
+            return [a.pdf_file for a in o.documents.all() if getattr(a, "file", None)]
+        return [o.pdf_file] if getattr(o, "file", None) else []
 
     def get_filename(self, pk=None):
         return getattr(self.object, "number", "export")
@@ -1494,9 +1497,8 @@ class ExportView(UserPassesTestMixin, DetailView):
         o = self.object = self.get_object()
         user = request.user
         current_ts = timezone.now()
-        if not filename and (
-            not (format := request.GET.get("format")) and format.lower() == "pdf"
-        ):
+        format = request.GET.get("format", "pdf").lower()
+        if not filename and not format:
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
@@ -1530,12 +1532,15 @@ class ExportView(UserPassesTestMixin, DetailView):
                     )
                 except:
                     cover_page_template = None
+
                 attachments = self.get_attachments(pk)
                 # merger = PdfMerger()
                 merger = PdfWriter()
                 merger.add_metadata(self.get_metadata(pk))
 
                 site_id = getattr(self.object, "site_id", None) or settings.SITE_ID
+                site = Site.objects.filter(pk=site_id).first()
+                domain = site.domain
                 logo = logo_1 = logo_2 = None
                 if site_id == 2:
                     if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
@@ -1554,24 +1559,43 @@ class ExportView(UserPassesTestMixin, DetailView):
 
                 export = True
 
-                if summary_template and format == "html":
-                    summary_page_html = summary_template.render(locals())
-                    return HttpResponse(summary_page_html, content_type="text/html")
+                def append_attachments(merger, attachments):
+                    for a in attachments:
+                        if isinstance(a, (tuple, list)):
+                            merger.append(a[1], outline_item=a[0], import_outline=True)
+                        else:
+                            merger.append(a, import_outline=True)
 
-                if cover_page_template and format == "html":
+                if cover_page_template:
                     cover_page_html = cover_page_template.render(locals())
-                    return HttpResponse(cover_page_html, content_type="text/html")
-
-                html = HTML(string=template.render(locals()))
-                pdf_object = html.write_pdf(presentational_hints=True)
-                # converting pdf bytes to stream which is required for pdf merger.
-                pdf_stream = io.BytesIO(pdf_object)
-                merger.append(pdf_stream)
-                for a in attachments:
-                    if isinstance(a, (tuple, list)):
-                        merger.append(a[1], outline_item=a[0], import_outline=True)
+                    if format == "html":
+                        return HttpResponse(cover_page_html, content_type="text/html")
                     else:
-                        merger.append(a, import_outline=True)
+                        html = HTML(string=cover_page_html)
+                        pdf_object = html.write_pdf(presentational_hints=True)
+                        pdf_stream = io.BytesIO(pdf_object)
+                        merger.append(pdf_stream)
+
+                if summary_template:
+
+                    if format == "html":
+                        summary_page_html = summary_template.render(locals())
+                        return HttpResponse(summary_page_html, content_type="text/html")
+                    append_attachments(merger, attachments)
+                    summary_page_html = summary_template.render(locals())
+                    html = HTML(string=summary_page_html)
+                    pdf_object = html.write_pdf(presentational_hints=True)
+                    pdf_stream = io.BytesIO(pdf_object)
+                    merger.append(pdf_stream)
+
+                else:
+                    html = HTML(string=template.render(locals()))
+                    pdf_object = html.write_pdf(presentational_hints=True)
+                    # converting pdf bytes to stream which is required for pdf merger.
+                    pdf_stream = io.BytesIO(pdf_object)
+                    merger.append(pdf_stream)
+                    append_attachments(merger, attachments)
+
                 pdf_content = io.BytesIO()
                 merger.write(pdf_content)
 

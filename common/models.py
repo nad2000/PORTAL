@@ -144,6 +144,9 @@ class ArchivalStorage(PrivateFileSystemStorage):
                 # response = self.s3.get_object(Bucket='archive', Key=name)
                 # return response['Body']
                 full_path = os.path.join(self.location, name)
+                directory = os.path.dirname(full_path)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
                 self.s3.download_file(self.bucket, name, full_path)
                 return super().open(full_path, mode)
             except self.s3.exceptions.NoSuchKey as ex:

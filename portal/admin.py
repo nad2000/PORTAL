@@ -3570,6 +3570,23 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     # date_hierarchy = "created_at"
 
 
+@admin.register(models.PublicationType)
+class PublicationTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, admin.ModelAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = [
+        "code",
+        "code_2",
+        "description",
+        "ordering",
+    ]
+    list_display_links = ["code", "code_2"]
+    search_fields = ["code", "code_2", "description"]
+    ordering_field_hide_input = True
+    exclude = ["ordering"]
+    list_editable = ["ordering"]
+
+
 @admin.register(models.RoleType)
 class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, TranslationAdmin):
     view_on_site = False
