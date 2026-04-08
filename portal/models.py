@@ -3407,6 +3407,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             or self.members.all()
             .filter(Q(email__lower__in=user.emailaddress_set.values_list("email__lower")))
             .exists()
+            or (self.contracts.filter(org__research_offices__user=user).exists())
         )
 
     def get_score_entries(self, user=None, panellist=None):
