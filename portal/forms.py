@@ -2024,8 +2024,8 @@ class ContractForm(ModelForm):
             instance.requires_approval = True
         application = instance.application or initial.get("application")
         is_ro = (
-            application
-            and application.org.research_offices.filter(user=user).exists()
+            instance and instance.org and instance.org.research_offices.filter(user=user).exists()
+            or application and application.org.research_offices.filter(user=user).exists()
             and not (user.is_superuser or user.is_site_staff)
         )
         is_staff = user and (user.is_superuser or user.is_staff or user.is_site_staff)

@@ -71,7 +71,13 @@
 
     <tr>
       <th scope="row" class="table-dark" >{% trans 'Round' %}</th>
-      <td colspan="3">{{ a.round }}</td>
+      <td colspan="3">
+        {% if user.is_admin and not export %}
+          <a href="{% url 'admin:portal_round_change' object_id=a.round_id %}" target="_blank"> {{ a.round }} </a>
+        {% else %}
+          {{ a.round }}
+        {% endif %}
+      </td>
     </tr>
 
 
