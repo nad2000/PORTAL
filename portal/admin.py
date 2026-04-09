@@ -4711,7 +4711,7 @@ class ContractAdmin(
                     kwargs["queryset"] = models.RequiredContractDocument.where(
                         Q(documents__contract_id=contract_id)
                         | Q(round__applications__contracts=contract_id)
-                    )
+                    ).distinct()
             return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class ReportingScheduleEntryInline(StaffPermsMixin, admin.TabularInline):
