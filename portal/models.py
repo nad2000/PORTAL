@@ -139,6 +139,11 @@ from common.models import (
 
 from .utils import send_mail, vignere
 
+if connection.vendor == "postgresql":
+    from django.contrib.postgres.fields import JSONField
+else:
+    from jsonfield import JSONField
+
 # from notes.models import Note
 
 
@@ -14504,6 +14509,19 @@ class PublicationStatus(Model):
         verbose_name_plural = _("publication statuses")
         db_table = "publication_status"
         # unique_together = (("type", "code"),)
+
+
+class CrossrefObject(Model):
+    doi = CharField(max_length=400, primary_key=True)
+    content = JSONField()
+
+    @property
+    def age_in_seconds(self):
+        return (timezone.now() - (self.updated_at or self.created_at)).total_seconds()
+
+    class Meta:
+        db_table = "crossref_object"
+        db_table_comment = "Cached Crossref metadata for publications, indexed by DOI"
 
 
 class Publication(Model):
