@@ -672,6 +672,19 @@ class ContractDocumentAdmin(StaffPermsMixin, HistoryAdmin):
     # exclude = ["converted_file"]
     exclude = ["document_type"]
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        # if db_field.name == "document_type":
+        #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+        if db_field.name == "required_document":
+            if (m := re.search(r"contractdocument/(\d+)/change", request.path)) and (
+                document_id := m.group(1)
+            ):
+                kwargs["queryset"] = models.RequiredContractDocument.where(
+                    Q(documents__pk=document_id)
+                    | Q(round__applications__contracts__documents__pk=document_id)
+                ).distinct()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 @admin.register(models.Currency)
 class CurrencyAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
@@ -4696,7 +4709,8 @@ class ContractAdmin(
                     contract_id := m.group(1)
                 ):
                     kwargs["queryset"] = models.RequiredContractDocument.where(
-                        round__applications__contracts=contract_id
+                        Q(documents__contract_id=contract_id)
+                        | Q(round__applications__contracts=contract_id)
                     )
             return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
