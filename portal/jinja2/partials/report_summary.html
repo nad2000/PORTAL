@@ -210,21 +210,37 @@
         </td>
       </tr>
 
-      {% set publications = r.publications.all() %}
-      {% if publications %}
-        <tr>
-          <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-            {{ _('Publications') }}{% if export %}:{% endif %}
-          </th>
-          <td>
-            <ul class="mb-0">
-              {% for pub in publications %}
-                <li>{{ pub.citation }}</li>
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
+      {% if export %}
       {% endif %}
+        {% set publications = r.publications %}
+        {% if publications.count() %}
+          <tr><td colspan="4">
+          {% for pub_type, items in publications.order_by("type")|groupby("type") %}
+            <h3>
+              {{ _('Publications') }} - {{ pub_type|title }}
+            </h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Chapter Title</th>
+                  <th>Book Title</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for pub in items %}
+                  <tr>
+                    <td>{{ pub.status }}</td>
+                    <td>{{ pub.title }}</td>
+                    <td>{{ pub.title2 }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+
+            </table>
+          {% endfor %}
+          </td></tr>
+        {% endif %}
 
     </tbody>
   </table>

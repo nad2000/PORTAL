@@ -69,6 +69,7 @@ from django.db.models import (
     GeneratedField,
     Index,
     IntegerField,
+    JSONField,
     Manager,
     ManyToManyField,
     Min,
@@ -138,8 +139,6 @@ from common.models import (
 )
 
 from .utils import send_mail, vignere
-
-from django.db.models import JSONField
 
 # from notes.models import Note
 
@@ -14508,17 +14507,17 @@ class PublicationStatus(Model):
         # unique_together = (("type", "code"),)
 
 
-class CrossrefObject(Model):
-    doi = CharField(max_length=400, primary_key=True)
-    content = JSONField()
+# class CrossrefObject(Model):
+#     doi = CharField(max_length=400, primary_key=True)
+#     content = JSONField()
 
-    @property
-    def age_in_seconds(self):
-        return (timezone.now() - (self.updated_at or self.created_at)).total_seconds()
+#     @property
+#     def age_in_seconds(self):
+#         return (timezone.now() - (self.updated_at or self.created_at)).total_seconds()
 
-    class Meta:
-        db_table = "crossref_object"
-        db_table_comment = "Cached Crossref metadata for publications, indexed by DOI"
+#     class Meta:
+#         db_table = "crossref_object"
+#         db_table_comment = "Cached Crossref metadata for publications, indexed by DOI"
 
 
 class Publication(Model):

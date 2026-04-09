@@ -2038,18 +2038,19 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
     return resp
 
 
-
-
 @login_required
 def fetch_doi(request):
     doi = (request.GET.get("doi", "") or request.POST.get("doi", "")).strip()
-    # doi = "10.1038/nature12345"
-    # Crossref API endpoint
-    url = f"https://api.crossref.org/works/{doi}"
+    if not (data := cache.get(f"doi:{doi}")):
+        # doi = "10.1038/nature12345"
+        # Crossref API endpoint
+        url = f"https://api.crossref.org/works/{doi}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            cache.set(f"doi:{doi}", data, timeout=60 * 15)  # Cache for 15 minutes
 
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
+    if data:
         return render(request, "partials/doi.html", locals())
     return HttpResponse(f"""<p>DOI: {doi}</p><p>Error fetching data from Crossref API. Status code: {response.status_code}</p>""", status=400)
 
@@ -2059,10 +2060,11 @@ def fetch_doi(request):
 def import_doi(request):
     if request.method == "POST":
         doi = request.POST.get("doi", "").strip()
-        url = f"https://api.crossref.org/works/{doi}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
+        if not (data := cache.get(f"doi:{doi}")):
+            url = f"https://api.crossref.org/works/{doi}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
 
     return render(request, "doi_import.html", locals())
 
