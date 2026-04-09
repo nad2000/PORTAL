@@ -139,10 +139,7 @@ from common.models import (
 
 from .utils import send_mail, vignere
 
-if connection.vendor == "postgresql":
-    from django.contrib.postgres.fields import JSONField
-else:
-    from jsonfield import JSONField
+from django.db.models import JSONField
 
 # from notes.models import Note
 
