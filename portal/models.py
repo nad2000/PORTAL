@@ -4610,7 +4610,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 or (is_panellist or for_panellists)
                 and not d.required_document.panellists_can_access
                 # exclude duplicate attachments with same name (e.g. from members and documents)
-                or any(a[1].name == d.pdf_file.name for a in attachments)
+                or any(a[1].name == d.pdf_file.name for a in attachments if a[1])
             ):
                 continue
 
