@@ -1948,7 +1948,7 @@ class Person(PersonMixin, Model):
     )
     initials = CharField(max_length=15, blank=True, null=True)
     first_name = CharField(max_length=30, blank=True, null=True)
-    last_name = CharField(max_length=50, blank=True, null=True)
+    last_name = CharField(max_length=100, blank=True, null=True)
     middle_names = CharField(
         _("middle names"),
         blank=True,
