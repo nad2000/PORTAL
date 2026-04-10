@@ -20,7 +20,7 @@ sudo find ./archive -mtime +1 -exec rm -f {} \;
 psql -U postgres -c "SELECT pg_backup_start('$TS_LABEL', false);"
 sudo bash -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
 # sudo -u postgres XZ_OPT="-9 --memory=135000000" tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
-sudo -u postgres tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
+# sudo -u postgres tar -C "$DATA_DIR" -cJf ./backup/${TS_LABEL}_DB.tar.xz ./
 psql -U postgres -c "SELECT pg_backup_stop();"
 # [ $(date +%d) != '01' ] && NEWER="-N $(date +%Y-%m-01)"
 # if [ "$(hostname)" != 'mail.prodata.nz' ] ; then
@@ -32,7 +32,7 @@ sudo mv ./backup/${TS_LABEL}_*.tar.xz ./archive/ && sudo find ./archive -mtime +
 
 # SEE: https://www.vultr.com/docs/how-to-use-s3cmd-with-vultr-object-storage
 if which s3cmd && [ -f $HOME/.s3cfg ] ; then
-    s3cmd put ./archive/${TS_LABEL}_DB.tar.xz s3://$BUCKET/$(date +%y%m)/DB/${TS_LABEL}_DB.tar.xz
+    # s3cmd put ./archive/${TS_LABEL}_DB.tar.xz s3://$BUCKET/$(date +%y%m)/DB/${TS_LABEL}_DB.tar.xz
     # s3cmd put ./archive/${TS_LABEL}_MEDIA.tar.xz s3://$BUCKET/$(date +%y%m)/MEDIA/${TS_LABEL}_MEDIA.tar.xz
     if compgen -G "./archive/*.sql.xz" &>/dev/null ; then
         cd ./archive/

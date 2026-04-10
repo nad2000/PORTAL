@@ -2163,6 +2163,9 @@ class Person(PersonMixin, Model):
 
         try:
             with transaction.atomic():
+                if self.code and self.code.endswith("_"):
+                    self.code = self.code[:-1]
+
                 for p in queryset.filter(~Q(pk=self.pk)):
 
                     for cv in p.cvs.all():
@@ -2195,7 +2198,7 @@ class Person(PersonMixin, Model):
                                 PersonEmail.create(email=v, person=self)
 
                         if f == "code" and p.code and p.code == self.code:
-                            p.code = f"M{p.pk}"
+                            p.code = f"m{p.pk}"
                             p.save(update_fields=["code"])
 
                 self.save()
