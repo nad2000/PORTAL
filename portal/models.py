@@ -14571,6 +14571,10 @@ class Publication(Model):
     orcid = CharField(max_length=20, blank=True, null=True, editable=False)
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
 
+    @property
+    def ordered_authors(self):
+        return self.authors.order_by("type", "pk")
+
     def __str__(self):
         return f"{self.title}"
 
@@ -14584,6 +14588,9 @@ class PublicationAuthor(Model):
     type = CharField(
         max_length=100, blank=True, null=True, choices=Choices("PRIMARY", "SECONDARY")
     )
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         db_table = "publication_author"

@@ -219,12 +219,20 @@
             <h3>
               {{ _('Publications') }} - {{ pub_type|title }}
             </h3>
-            <table>
+            <table stype="width: 100%;">
               <thead>
                 <tr>
                   <th>Status</th>
-                  <th>Chapter Title</th>
-                  <th>Book Title</th>
+                  {% if pub_type.code_2 == 'BC' %}
+                    <th>Chapter Title</th>
+                    <th colspan="2">Book Title</th>
+                  {% elif pub_type.code_2 == 'PR' %}
+                    <th>Title</th>
+                    <th>Article Type</th>
+                  {% else %}
+                    <th>Title</th>
+                    <th>Title #2</th>
+                  {% endif %}
                 </tr>
               </thead>
               <tbody>
@@ -232,8 +240,43 @@
                   <tr>
                     <td>{{ pub.status }}</td>
                     <td>{{ pub.title }}</td>
-                    <td>{{ pub.title2 }}</td>
+                    <td{% if pub_type.code_2 == 'BC' %} colspan="2"{% endif %}>{{ pub.title2 }}</td>
                   </tr>
+                  {% if pub_type.code_2 == 'BC' %}
+                    <tr>
+                      <td></td>
+                      <td colspan="2">
+                        {% if pub.publisher %}
+                          <strong>Publisher:</strong> {{ pub.publisher }}<br>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>ID:</strong> {{ '???' }}<br>
+                      </td>
+                      <td>
+                        {% if pub.page_ref %}
+                          <strong>Pages:</strong> {{ pub.page_ref }}<br>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if pub.year_ref %}
+                          <strong>Year:</strong> {{ pub.year_ref }}<br>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <strong>ISDN:</strong> {{ '???' }}
+                      </td>
+                    </tr>
+                      <td></td>
+                      <td colspan="3">
+                        <strong>Author(s):</strong> {{ pub.ordered_authors|join(", ") }}<br>
+                      </td>
+                    <tr>
+                    </tr>
+                  {% endif %}
+
                 {% endfor %}
               </tbody>
 
