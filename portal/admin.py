@@ -1266,6 +1266,11 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
     save_on_top = True
     autocomplete_fields = ["address", "user", "title"]
 
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (qq := q.strip()) and qq.isupper():
+            return ["^code"]
+        return super().get_search_fields(request)
+
     def get_search_results(self, request, queryset, search_term):
         queryset, may_have_duplicates = super().get_search_results(
             request,
