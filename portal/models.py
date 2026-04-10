@@ -2193,11 +2193,11 @@ class Person(PersonMixin, Model):
                             setattr(self, f, v)
 
                         if f == "email" and v != self.email:
-                            if self.user_id:
+                            if self.user_id and not EmailAddress.objects.filter(email=v).exists():
                                 EmailAddress.objects.create(
                                     user_id=self.user_id, email=v, verified=False, primary=False
                                 )
-                            else:
+                            elif PersonEmail.where(email=v).exists():
                                 PersonEmail.create(email=v, person=self)
 
                         if f == "code" and p.code and p.code == self.code:
