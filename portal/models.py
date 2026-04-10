@@ -2163,6 +2163,7 @@ class Person(PersonMixin, Model):
 
         try:
             with transaction.atomic():
+
                 if self.code and self.code.endswith("_"):
                     self.code = self.code[:-1]
 
@@ -2180,7 +2181,7 @@ class Person(PersonMixin, Model):
                     for f in [f.name for f in self._meta.fields]:
                         if (
                             f in ["created_at", "updated_at", "id", "pk"]
-                            or getattr(self, f, None) is not None
+                            or getattr(self, f, None) is not None and f != "code"
                         ):
                             continue
 
