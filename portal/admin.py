@@ -1398,8 +1398,8 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 "action_name": action_name,
                 "action_label": action_label,
                 "first_item": queryset.filter(is_active=True, user__isnull=False).order_by("pk").first()
-                or queryset.filter(is_active=True).order_by("pk").first()
                 or queryset.filter(user__isnull=False).order_by("pk").first()
+                or queryset.filter(is_active=True).order_by("pk").first()
                 or queryset.order_by("pk").first(),
                 "opts": self.opts,
                 "keep": False,

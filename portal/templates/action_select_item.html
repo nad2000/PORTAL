@@ -40,7 +40,7 @@
 
       {% if objects_with_labels %}
         {% for o in objects_with_labels %}
-          <option value="{{ o.0.pk }}"{% if first_item and o.0.pk == first_item or forloop.first %} selected{% endif %}>
+        <option value="{{ o.0.pk }}"{% if first_item %}{% if o.0.pk == first_item.pk %} selected{% endif %}{% elif forloop.first %} selected{% endif %}>
               {{ o.1 }}
           </option>
         {% endfor %}
