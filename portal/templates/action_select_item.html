@@ -46,7 +46,7 @@
         {% endfor %}
       {% else %}
         {% for o in objects %}
-          <option value="{{ o.pk }}"{% if first_item and o.pk == first_item or forloop.first %} selected{% endif %}>
+        <option value="{{ o.pk }}"{% if first_item %}{% if o.pk == first_item.pk %} selected {% endif %}{% elif forloop.first %} selected{% endif %}>
               {% if o.code and o.code not in o|safe %}{{ o.code }}: {% endif %}{{ o }}
           </option>
         {% endfor %}
