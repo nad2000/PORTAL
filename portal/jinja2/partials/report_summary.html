@@ -245,9 +245,10 @@
                   {% if pub_type.code_2 == 'BC' %}
                     <tr>
                       <td></td>
-                      <td colspan="2">
+                      <td colspan="3">
+                        <strong>Publisher:</strong>
                         {% if pub.publisher %}
-                          <strong>Publisher:</strong> {{ pub.publisher }}<br>
+                          {{ pub.publisher }}
                         {% endif %}
                       </td>
                     </tr>
@@ -256,8 +257,9 @@
                         <strong>ID:</strong> {{ '???' }}<br>
                       </td>
                       <td>
+                        <strong>Pages:</strong>
                         {% if pub.page_ref %}
-                          <strong>Pages:</strong> {{ pub.page_ref }}<br>
+                          {{ pub.page_ref }}
                         {% endif %}
                       </td>
                       <td>
