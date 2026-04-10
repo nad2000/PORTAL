@@ -2181,15 +2181,17 @@ class Person(PersonMixin, Model):
                     for f in [f.name for f in self._meta.fields]:
                         if (
                             f in ["created_at", "updated_at", "id", "pk"]
-                            or getattr(self, f, None) is not None and f != "code"
+                            # or getattr(self, f, None) is not None and f != "code"
                         ):
                             continue
 
-                        v = getattr(p, f)
-                        if not v:
+                        v = getattr(p, f, None)
+                        if v is None:
                             continue
 
-                        setattr(self, f, v)
+                        if getattr(self, f, None) is None:
+                            setattr(self, f, v)
+
                         if f == "email" and v != self.email:
                             if self.user_id:
                                 EmailAddress.objects.create(
