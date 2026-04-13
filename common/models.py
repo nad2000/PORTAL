@@ -204,9 +204,11 @@ class ArchivalStorage(PrivateFileSystemStorage):
             if file_path.is_file():
                 with open(file_path, "r") as hash_file:
                     existing_file_name = hash_file.readline().strip()
+                    has_in_the_list = name in hash_file.read()
                 if existing_file_name and (Path(self.location) / existing_file_name).is_file():
-                    with open(file_path, "a") as hash_file:
-                        hash_file.write(f"\n{name}")
+                    if not has_in_the_list:
+                        with open(file_path, "a") as hash_file:
+                            hash_file.write(f"\n{name}")
                     return existing_file_name
 
         name = super().save(name=name, content=content, max_length=max_length)
