@@ -622,7 +622,7 @@ class PdfFileMixin:
                     self._change_reason = f"Updated page count to {self.page_count}"
                     self.save(update_fields=["page_count"])
                 return self.file
-            if not self.converted_file or Path(self.converted_file.file.path).is_file():
+            if not self.converted_file or not Path(self.converted_file.file.path).is_file():
                 self.update_converted_file(commit=True)
             return self.converted_file.file
 
@@ -823,25 +823,27 @@ class PdfFileMixin:
 
         try:
 
-            output_dir = tempfile.gettempdir()
-            output_path = self.get_converted_to_pdf(file.path, output_dir=output_dir)
-            output_filename = os.path.basename(output_path)
-            output_filename = os.path.join(
-                os.path.dirname(file.name), os.path.basename(output_path)
-            )
+            with tempfile.TemporaryDirectory() as output_dir:
 
-            with open(output_path, "rb") as of:
+                # output_dir = tempfile.gettempdir()
+                output_path = self.get_converted_to_pdf(file.path, output_dir=output_dir)
+                output_filename = os.path.basename(output_path)
+                output_filename = os.path.join(
+                    os.path.dirname(file.name), os.path.basename(output_path)
+                )
 
-                cf = ConvertedFile()
-                cf.file.save(output_filename, File(of, name=output_filename))
-                of.seek(0)
-                pdf_reader = PdfReader(of, strict=False)
-                page_count = len(pdf_reader.pages)
-                if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
-                    self.page_count = page_count
-                cf.page_count = page_count
-                of.seek(0)
-                cf.save()
+                with open(output_path, "rb") as of:
+
+                    cf = ConvertedFile()
+                    cf.file.save(output_filename, File(of, name=output_filename))
+                    of.seek(0)
+                    pdf_reader = PdfReader(of, strict=False)
+                    page_count = len(pdf_reader.pages)
+                    if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
+                        self.page_count = page_count
+                    cf.page_count = page_count
+                    of.seek(0)
+                    cf.save()
 
             self.converted_file = cf
 
