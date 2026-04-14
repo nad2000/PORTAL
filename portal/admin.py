@@ -1283,6 +1283,22 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 return queryset.distinct(), False
         return queryset, may_have_duplicates
 
+    def save_formset(self, request, form, formset, change):
+        # Save the formset instances with commit=False
+        if formset.model != models.Note:
+            return super().save_formset(request, form, formset, change)
+
+        instances = formset.save(commit=False)
+        # Loop through each instance and set the user
+
+        for instance in instances:
+            if not instance.author:
+                instance.author = request.user  # Or 'created_by'
+            instance.save()
+
+        # Save any many-to-many relationships
+        formset.save_m2m()
+
     class PersonCareerStageInline(admin.StackedInline):
         extra = 1
         model = models.PersonCareerStage
@@ -1352,6 +1368,7 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
         CurriculumVitaeInline,
         ProtectionPatternInline,
         EmailInline,
+        NoteInline,
     ]
 
     # def get_queryset(self, request):
@@ -1397,7 +1414,9 @@ class PersonAdmin(StaffPermsMixin, HistoryAdmin):
                 "model_count": queryset.count(),
                 "action_name": action_name,
                 "action_label": action_label,
-                "first_item": queryset.filter(is_active=True, user__isnull=False).order_by("pk").first()
+                "first_item": queryset.filter(is_active=True, user__isnull=False)
+                .order_by("pk")
+                .first()
                 or queryset.filter(user__isnull=False).order_by("pk").first()
                 or queryset.filter(is_active=True).order_by("pk").first()
                 or queryset.order_by("pk").first(),
@@ -1790,6 +1809,22 @@ class ApplicationAdmin(
         NoteInline,
         StateLogInline,
     ]
+
+    def save_formset(self, request, form, formset, change):
+        # Save the formset instances with commit=False
+        if formset.model != models.Note:
+            return super().save_formset(request, form, formset, change)
+
+        instances = formset.save(commit=False)
+        # Loop through each instance and set the user
+
+        for instance in instances:
+            if not instance.author:
+                instance.author = request.user  # Or 'created_by'
+            instance.save()
+
+        # Save any many-to-many relationships
+        formset.save_m2m()
 
     @admin.display(description="Main Applicant")
     def main_applicant(self, obj):
