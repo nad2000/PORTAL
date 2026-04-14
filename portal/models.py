@@ -2099,6 +2099,8 @@ class Person(PersonMixin, Model):
     history = HistoricalRecords(table_name="person_history")
     has_protection_patterns = BooleanField(default=True)
     account_approval_message_sent_at = DateTimeField(null=True, blank=True, editable=False)
+    has_deceased = BooleanField(default=False)
+    notes = GenericRelation(Note)
 
     def natural_key(self):
         return self.user.username
