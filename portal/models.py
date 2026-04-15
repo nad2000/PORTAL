@@ -14577,7 +14577,7 @@ class Publication(Model):
 
     @property
     def ordered_authors(self):
-        return self.authors.order_by("type", "pk")
+        return self.authors.order_by("type", "name")
 
     def __str__(self):
         return f"{self.title}"
