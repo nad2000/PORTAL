@@ -213,7 +213,7 @@
       {% if export %}
       {% endif %}
         {% set publications = r.publications %}
-        {% if publications.count() %}
+        {% if publications.count() and  user.is_superuser %}
           <tr><td colspan="4">
           {% for pub_type, items in publications.order_by("type")|groupby("type") %}
             <h3>
@@ -222,11 +222,11 @@
             <table stype="width: 100%;">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  {% if pub_type.code_2 == 'BC' %}
+                  <th>Status {{ pub_type }}</th>
+                  {% if pub_type.code_2 in ['BC', 'BK'] %}
                     <th>Chapter Title</th>
                     <th colspan="2">Book Title</th>
-                  {% elif pub_type.code_2 == 'PR' %}
+                  {% elif pub_type.code_2 in ['JO', 'PR'] %}
                     <th>Title</th>
                     <th>Article Type</th>
                   {% else %}

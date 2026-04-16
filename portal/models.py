@@ -12442,7 +12442,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             for p in ["cover", "toc", "preamble", "schedule1"]:
                 yield parts[p]
             for d in self.documents.order_by("required_document__ordering"):
-                yield d.pdf_file.path
+                if pdf_file := d.pdf_file:
+                    yield pdf_file.file
             yield schedule2
             yield appendix_a
             # yield appendix_b
@@ -14461,6 +14462,7 @@ class PublicationType(TimeStampMixin, HelperMixin, OrderableModel):
     code = CharField(max_length=10, primary_key=True)
     code_2 = CharField(unique=True, max_length=2, null=True, blank=True)
     description = CharField(max_length=100, blank=True, null=True)
+    definition = TextField(blank=True, null=True)
     orcid_type = CharField(
         max_length=100, unique=True, null=True, blank=True, help_text="ORCiD Work Type"
     )
