@@ -1896,6 +1896,7 @@ class ApplicationAdmin(
                 "classes": ("collapse",),
                 "fields": [
                     "file",
+                    "cv",
                 ],
             },
         ),
@@ -1990,10 +1991,12 @@ class ApplicationAdmin(
                         [
                             "file",
                             "budget",
+                            "cv",
                         ]
                         if site_id in [1, 7]
                         else [
                             "file",
+                            "cv",
                         ]
                     ),
                 },

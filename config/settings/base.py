@@ -395,7 +395,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 SESSION_COOKIE_NAME = "portal_sessionid"
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
-CSRF_COOKIE_HTTPONLY = True
+### CSRF_COOKIE_HTTPONLY = True
 # CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True

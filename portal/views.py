@@ -5551,6 +5551,13 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 initial["letter_of_support_file"] = self.object.letter_of_support.file
 
         if (
+            round.member_cv_required
+            and self.is_update
+            and (pi_member := (self.object and self.object.pi_member or None))
+            and (cv := (pi_member.cv or pi_member.cv and pi_member.cv.file))
+        ):
+            initial["cv_file"] = cv.file
+        elif (
             round.is_applicant_cv_required
             and self.is_update
             and round.curriculum_vitae_templates.count() > 0
@@ -5558,6 +5565,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             and self.object.cv.file
         ):
             initial["cv_file"] = self.object.cv.file
+
 
         if not (self.object and self.object.id):
             initial["user"] = user
@@ -5833,7 +5841,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 # Handle CV
                 if (
                     not update_only_referees
-                    and (round.applicant_cv_required or site_id == 2)
+                    and (round.applicant_cv_required or site_id == 2 or round.member_cv_required)
                     and (cv_file := request.FILES.get("cv_file"))
                     and (
                         "cv_file" in form.changed_data
@@ -5850,9 +5858,11 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         )
                     )
                 ):
+                    pi_member = instance.pi_member
+                    cv_user = pi_member.user if pi_member else request.user
                     cv, created = models.CurriculumVitae.get_or_create(
-                        owner=user,
-                        person=user.person,
+                        owner=cv_user,
+                        person=cv_user.person,
                         title=_(f"For application {instance.number}"),
                         defaults={"file": cv_file},
                     )
@@ -5868,6 +5878,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             if hasattr(cv, "page_count"):
                                 cv.page_count = None
                         cv.update_converted_file(commit=True, request=request)
+
+                    if pi_member:
+                        pi_member.cv = cv
+                        pi_member.save()
 
                 if (
                     "file" in form.changed_data
