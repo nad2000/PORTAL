@@ -4804,14 +4804,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 except PdfReadError as ex:
                     if "'%PDF-' expected" in ex.args[0]:
                         pdf = pikepdf.Pdf.open(a)
-                        mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                        mended = os.path.join(tempfile.mkdtemp(), os.path.basename(a.file.name))
                         pdf.save(mended, normalize_content=True)
                         reader = PdfReader(mended, strict=False)
                     else:
                         raise
                 if reader.is_encrypted:
                     pdf = pikepdf.Pdf.open(a)
-                    decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a))
+                    decrypted = os.path.join(tempfile.mkdtemp(), os.path.basename(a.file.name))
                     pdf.save(decrypted, normalize_content=True)
                     reader = PdfReader(decrypted, strict=False)
                     # merger.append(decrypted, outline_item=title, import_outline=import_outline)
