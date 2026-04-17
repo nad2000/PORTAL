@@ -7683,7 +7683,7 @@ def update_page_count(document_pk=None, contract_document_pk=None, site_id=None)
 
 class ContractViewMixin:
 
-    extra_context = {"category": "contracts", "sidebar": "off"}
+    extra_context = {"category": "contracts", "sidebar": "off", "config": config}
 
     def get(self, request, *args, **kwargs):
         u = request.user

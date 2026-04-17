@@ -191,6 +191,11 @@ CONSTANCE_CONFIG = {
         "NZ RST CV Template URL.",
         str,
     ),
+    "CHILD_PROTECTION_POLICY_URL": (
+        "https://www.royalsociety.org.nz/who-we-are/our-rules-and-codes/policy-on-child-protection/child-protection-policy",
+        "Child Protection Policy URL.",
+        str,
+    ),
 }
 
 Q_CLUSTER = {

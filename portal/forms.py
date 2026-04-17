@@ -2230,7 +2230,7 @@ class ContractForm(ModelForm):
                         _(
                             "If your organisation does not have one, The Royal Society Te Apārangi child protection policy will "
                             "be appended to your contract. This document can be viewed at "
-                            """<a href="{% static 'Child-Protection-Policy.pdf' %}" target='_blank'>Child Protection Policy</a>"""
+                            """<a href="{% if config.CHILD_PROTECTION_POLICY_URL %}{{ config.CHILD_PROTECTION_POLICY_URL }}{% else %}{% static 'Child-Protection-Policy.pdf' %}{% endif %}" target='_blank'>Child Protection Policy</a>"""
                         ),
                     )
                 )
