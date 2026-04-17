@@ -4733,6 +4733,8 @@ class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
         # self.fields["file"].required = True
         # self.fields["country"].required = True
+        self.fields["role"].disabled = True
+        self.fields["role"].widget.attrs["readonly"] = "readonly"
 
     # def clean_is_accepted(self):
     #     """Allow only 'True'"""
@@ -5930,6 +5932,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             if not f.is_valid():
                                 form.errors.update(f.errors)
                                 url = self.continue_url("application")
+                                form.add_error(None, _("Please correct the errors in member information: {f.errors}."))
                                 raise ValidationError(_("Invalid member form"))
 
                     if has_deleted:
@@ -10391,6 +10394,13 @@ class MemberView(CreateUpdateView):
     model = models.Member
     form_class = forms.MemberForm
     template_name = None
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        if not self.request.user.is_admin:
+            form.fields["role"].disabled = True
+            form.fields["role"].widget.attrs["readonly"] = "readonly"
+        return form
 
     def get_initial(self, *args, **kwargs):
         # if not is_fs and instance := kwargs.get("instance", None) and instance.user:

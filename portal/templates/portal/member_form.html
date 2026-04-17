@@ -36,4 +36,17 @@
   {% endif %}
 {% endblock %}
 
+{% block javascript %}
+  {{ block.super }}
+  {% if not user.is_admin %}
+    <script>
+      $(document).ready(function() {
+        // $("#id_role option[value='PI']").prop('disabled', true);
+        $('#id_role option[value="PC"]').prop('disabled', true);
+      });
+    </script>
+  {% endif %}
+{% endblock %}
+{# vim:set ft=htmldjango: #}
+
 {# vim:set ft=htmldjango: #}
