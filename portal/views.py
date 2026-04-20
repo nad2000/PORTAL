@@ -2668,6 +2668,7 @@ class ProfileViewMixin:
                     "postcode": a.postcode or "",
                     "country": a.country,
                 }
+                or self.get_initial()
                 or {"country": "NZ"},
             )
             kwargs["address_form"].helper.form_tag = False
