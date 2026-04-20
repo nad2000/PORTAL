@@ -10410,6 +10410,8 @@ class MemberView(CreateUpdateView):
         if o := self.object:
             u = o.user
             p = u and u.person
+            if not (u and p):
+                return initial
             if not o.title and u:
                 initial["title"] = u.person.title
             if not o.first_name and u:
