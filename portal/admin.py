@@ -376,6 +376,7 @@ class NoteInline(GenericTabularInline):
     model = models.Note
     form = InlineNoteForm
     extra = 1
+    view_on_site = False
     readonly_fields = (
         "created_at",
         "updated_at",
@@ -1594,6 +1595,69 @@ def archive_objects(modeladmin, request, queryset):
     messages.success(request, f"{count} object(s) were archived.")
 
 
+@admin.register(models.Member)
+class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+    save_on_top = True
+    list_display = [
+        "email",
+        "full_name",
+        "role",
+        "application",
+        "state",
+        "has_authorized",
+        "changed_at",
+    ]
+    search_fields = [
+        "email",
+        "first_name",
+        "last_name",
+        "application__number",
+        "application__application_title",
+    ]
+    list_filter = ["application__round", "role", "created_at", "updated_at", "state"]
+    date_hierarchy = "created_at"
+    inlines = [StateLogInline]
+    readonly_fields = [
+        "application",
+        "state",
+        "state_changed_at",
+        "authorized_at",
+        "has_authorized",
+        "cv",
+    ]
+    autocomplete_fields = ["user", "application", "converted_file", "country", "org"]
+
+    def has_authorized(self, obj):
+        if obj.state == "authorized":
+            return True
+        elif obj.state == "opted_out":
+            return False
+
+    has_authorized.boolean = True
+
+    def changed_at(self, obj):
+        return obj.state_changed_at or obj.updated_at or obj.created_at
+
+    def view_on_site(self, obj):
+        return reverse("application", kwargs={"pk": obj.application_id})
+
+    class EffortInline(admin.TabularInline):
+        model = models.MemberEffort
+        extra = 0
+        view_on_site = False
+
+    def get_inlines(self, request, obj):
+        inlines = super().get_inlines(request, obj)
+        if (
+            obj
+            and obj.application
+            and obj.application.round.has_ftes
+            and self.EffortInline not in inlines
+        ):
+            inlines.append(self.EffortInline)
+        return inlines
+
+
 @admin.register(models.Application)
 class ApplicationAdmin(
     UnaccentMixin,
@@ -1719,12 +1783,15 @@ class ApplicationAdmin(
     is_active_round.boolean = True
 
     class MemberInline(StaffPermsMixin, admin.TabularInline):
+
         extra = 0
         model = models.Member
-        readonly_fields = ["state", "state_changed_at"]
+        readonly_fields = ["STATE", "state", "state_changed_at"]
         # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
-        fields = ["state", "email", "first_name", "last_name", "role"]
+        fields = ["STATE", "email", "first_name", "last_name", "role"]
+        show_change_link = True
+        view_on_site = False
 
         # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role",
         # "user", "state", "state_changed_at", "authorized_at"]
@@ -1733,14 +1800,15 @@ class ApplicationAdmin(
         #     if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
         # is_complete.boolean = True
 
-        def view_on_site(self, obj):
-            return reverse("application", kwargs={"pk": obj.application_id})
+        # def view_on_site(self, obj):
+        #     return reverse("application", kwargs={"pk": obj.application_id})
 
     class RefereeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
+        view_on_site = False
         model = models.Referee
         readonly_fields = [
-            "state",
+            "STATE",
             "state_changed_at",
             "has_testified",
             "testified_at",
@@ -2570,68 +2638,6 @@ class RefereeAdmin(
                 count += 1
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
 
-
-@admin.register(models.Member)
-class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
-    save_on_top = True
-    list_display = [
-        "email",
-        "full_name",
-        "role",
-        "application",
-        "state",
-        "has_authorized",
-        "changed_at",
-    ]
-    search_fields = [
-        "email",
-        "first_name",
-        "last_name",
-        "application__number",
-        "application__application_title",
-    ]
-    list_filter = ["application__round", "role", "created_at", "updated_at", "state"]
-    date_hierarchy = "created_at"
-    inlines = [StateLogInline]
-    readonly_fields = [
-        "application",
-        "state",
-        "state_changed_at",
-        "authorized_at",
-        "has_authorized",
-        "cv",
-    ]
-    autocomplete_fields = ["user", "application", "converted_file", "country", "org"]
-
-    def has_authorized(self, obj):
-        if obj.state == "authorized":
-            return True
-        elif obj.state == "opted_out":
-            return False
-
-    has_authorized.boolean = True
-
-    def changed_at(self, obj):
-        return obj.state_changed_at or obj.updated_at or obj.created_at
-
-    def view_on_site(self, obj):
-        return reverse("application", kwargs={"pk": obj.application_id})
-
-    class EffortInline(admin.TabularInline):
-        model = models.MemberEffort
-        extra = 0
-        view_on_site = False
-
-    def get_inlines(self, request, obj):
-        inlines = super().get_inlines(request, obj)
-        if (
-            obj
-            and obj.application
-            and obj.application.round.has_ftes
-            and self.EffortInline not in inlines
-        ):
-            inlines.append(self.EffortInline)
-        return inlines
 
     @admin.action(description="Invite members")
     def invite_members(self, request, queryset, *args, **kwargs):

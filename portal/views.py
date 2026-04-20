@@ -2633,7 +2633,7 @@ class ProfileViewMixin:
                 # | Q(state__in=["draft", "submitted", "sent", "bounced"])
                 | Q(email=u.email) | Q(email__in=u.email_addresses),
             )
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         ):
             initial.update(
@@ -4553,9 +4553,9 @@ class ProfileCreate(ProfileViewMixin, CreateView):
             models.Nomination.where(
                 Q(user=self.request.user)
                 | Q(email__lower__in=u.emailaddress_set.values_list("email__lower")),
-                state__in=["submitted", "sent", "bounced"],
+                # state__in=["submitted", "sent", "bounced"],
             )
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         )
         if n:
@@ -4564,6 +4564,12 @@ class ProfileCreate(ProfileViewMixin, CreateView):
             initial["last_name"] = n.last_name or u.last_name
             initial["title"] = n.title or u.title
             initial["user"] = u
+            if n.org and n.org.address:
+                initial["country"] = n.org.address.country
+                initial["postcode"] = n.org.address.postcode
+                initial["city"] = n.org.address.city
+                initial["address"] = n.org.address.address
+
         return initial
 
 
@@ -5569,7 +5575,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
             initial["cv_file"] = self.object.cv.file
 
 
-        if not (self.object and self.object.id):
+        if not (self.object and self.object.pk):
             initial["user"] = user
             initial["email"] = user.email
             initial["language"] = django.utils.translation.get_language()
@@ -7377,12 +7383,12 @@ class ApplicationCreate(ApplicationView, CreateView):
                 if a and not a.number:
                     a.number = models.default_application_number(a, nomination=n)
 
-                if a and a.address and not models.Address.where(pk=a.address_id).exists():
+                if a and a.address_id and not models.Address.where(pk=a.address_id).exists():
                     a.address = None
                     form.cleaned_data.pop("address", None)
 
                 resp = super().form_valid(form)
-                a.save()
+                # a.save()
                 if n and not (n.application and n.user):
                     n.application = self.object
                     if n.state != "accepted":
