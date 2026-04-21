@@ -176,6 +176,7 @@ class NominationTable(Table):
                 if record.user == table.request.user
                 or record.nominator == table.request.user
                 or record.email == table.request.user.email
+                or table.request.user.is_admin
                 else None
             )
         )

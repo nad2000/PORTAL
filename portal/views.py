@@ -5606,12 +5606,13 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     )
                     if address.country:
                         qs = qs.filter(country=address.country)
-                    if city_rec := qs.latest("pk"):
+                    if qs.count() > 0 and (city_rec := qs.latest("pk")):
                         postcode = city_rec.postcode
 
                 initial["postal_address"] = address.address
                 initial["city"] = city
-                initial["postcode"] = postcode
+                if postcode:
+                    initial["postcode"] = postcode
             if (
                 round.research_experience_in_years_required
                 or round.member_research_experience_in_years_required
@@ -5850,7 +5851,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 # Handle CV
                 if (
                     not update_only_referees
-                    and (round.applicant_cv_required or site_id == 2 or round.member_cv_required)
+                    and (round.is_applicant_cv_required or round.member_cv_required)
                     and (cv_file := request.FILES.get("cv_file"))
                     and (
                         "cv_file" in form.changed_data
@@ -9175,6 +9176,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                         (
                             o.number
                             if isinstance(o, models.Application)
+                            else o.application.number if isinstance(o, models.Member)
                             else o.referee.application.number
                         )
                         for o in ex.protected_objects
