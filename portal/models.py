@@ -4576,43 +4576,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             else:
                 add_testimonials(attachments, user=user)
 
-        if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
-            attachments.append(
-                (
-                    _("Letter of Support"),
-                    self.letter_of_support.pdf_file,
-                    include_header_page and self.letter_of_support.title_page,
-                )
-            )
-
-        if members_with_cv:
-            attachments.append(("Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
-            attachments.extend(
-                [
-                    (
-                        f"Curriculum Vitae ({m.full_name})",
-                        m.cv.pdf_file,
-                        # include_header_page and m.title_page,
-                    )
-                    for m in members_with_cv
-                ]
-            )
-
-        if (
-            r.member_letter_of_support_required
-            and self.members.filter(Q(file__isnull=False), ~Q(file="")).exists()
-        ):
-            attachments.extend(
-                [
-                    (
-                        f"Letter of Support ({m.full_name})",
-                        m.pdf_file,
-                        include_header_page and m.title_page,
-                    )
-                    for m in self.members.filter(~Q(file=""), file__isnull=False)
-                ]
-            )
-
         for d in self.documents.order_by("required_document__ordering"):
             if not d.file or (
                 skip_excluded
@@ -4632,6 +4595,43 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     d.pdf_file,
                     include_header_page and d.title_page,
                 )
+            )
+
+        if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
+            attachments.append(
+                (
+                    _("Letter of Support"),
+                    self.letter_of_support.pdf_file,
+                    include_header_page and self.letter_of_support.title_page,
+                )
+            )
+
+        if (
+            r.member_letter_of_support_required
+            and self.members.filter(Q(file__isnull=False), ~Q(file="")).exists()
+        ):
+            attachments.extend(
+                [
+                    (
+                        f"Letter of Support ({m.full_name})",
+                        m.pdf_file,
+                        include_header_page and m.title_page,
+                    )
+                    for m in self.members.filter(~Q(file=""), file__isnull=False)
+                ]
+            )
+
+        if members_with_cv:
+            attachments.append(("Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
+            attachments.extend(
+                [
+                    (
+                        f"Curriculum Vitae ({m.full_name})",
+                        m.cv.pdf_file,
+                        # include_header_page and m.title_page,
+                    )
+                    for m in members_with_cv
+                ]
             )
 
         if site_id in [2, 4, 5] and not (
