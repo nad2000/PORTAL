@@ -1844,6 +1844,7 @@ class ApplicationAdmin(
 
         extra = 0
         view_on_site = False
+        show_change_link = True
         # classes = ["collapse"]
 
     class ForInline(admin.TabularInline):
@@ -2458,6 +2459,9 @@ class CurriculumVitaeAdmin(UnaccentMixin, admin.ModelAdmin):
         "owner__username",
         "owner__email",
         "file",
+        "title",
+        "applications__number",
+        "members__application__number",
     ]
     date_hierarchy = "created_at"
     view_on_site = False

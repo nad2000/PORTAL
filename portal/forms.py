@@ -1073,8 +1073,7 @@ class ApplicationForm(ModelForm):
                 # self.fields["letter_of_support_file"].help_text = help_text
 
         if (
-            round.is_applicant_cv_required
-            or site_id == 2
+            round.is_applicant_cv_required or round.member_cv_required
             # and (not instance.pk or instance.is_pi(user))
         ):
 

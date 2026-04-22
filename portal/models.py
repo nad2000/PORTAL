@@ -2984,6 +2984,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         null=True,
         blank=True,
         on_delete=PROTECT,
+        related_name="applications",
         verbose_name=_("curriculum vitae"),
     )
     application_title = CharField(
