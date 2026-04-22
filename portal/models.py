@@ -4761,8 +4761,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         pdf_stream = io.BytesIO(pdf_object)
         merger.append(
             pdf_stream,
-            outline_item=(self.application_title or r.title),
-            import_outline=True,
+            outline_item=f"{self.number}: {(self.application_title or r.title)}",
+            import_outline=(site_id not in [2, 5])
         )
         for title, a, *rest in attachments:
             # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
@@ -4792,7 +4792,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 merger.append(
                     pdf_stream,
                     # outline_item=(self.application_title or r.title),
-                    import_outline=True,
+                    import_outline=(site_id not in [2, 5]),
                 )
 
             if not a:
@@ -4820,8 +4820,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
                 # test if book marks can be imported
                 try:
-                    reader.outline
-                    import_outline = site_id != 5
+                    import_outline = (site_id not in [2, 5]) and reader.outline
                 except PdfReadError as ex:
                     if ex.args[0].startswith("Unexpected destination ") or ex.args[0].startswith(
                         "Multiple definitions in dictionary at "

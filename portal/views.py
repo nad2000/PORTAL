@@ -11453,11 +11453,9 @@ class ApplicationExportView(ExportView):
         )
         for t in testimonials:
             if t.file:
-                # attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))
-                attachments.append(t.pdf_file.path)
+                attachments.append(t.pdf_file)
             if t.cv and t.cv.file:
-                # attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.cv.pdf_file))
-                attachments.append(t.cv.pdf_file.path)
+                attachments.append(t.cv.pdf_file)
 
         return attachments
 
