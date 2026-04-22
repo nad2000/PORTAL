@@ -182,6 +182,7 @@ INSTALLED_APPS = [
     # "autocompletefilter",
     "django_q",
     "constance",
+    "django_tomselect",
 ]
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
@@ -298,8 +299,8 @@ MIDDLEWARE = [
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
+    "django_tomselect.middleware.TomSelectMiddleware",
 ]
-
 
 # STATIC
 # ------------------------------------------------------------------------------
@@ -366,6 +367,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # "dynamic_breadcrumbs.context_processors.breadcrumbs",
                 # "django.template.context_processors.request",
+                "django_tomselect.context_processors.tomselect",
                 "portal.views.portal_context",
             ],
             "debug": DEBUG,
@@ -497,10 +499,11 @@ ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-# ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
