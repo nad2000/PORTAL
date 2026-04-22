@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.sites",
     "multisite",
+    # "file_resubmit",
     # "redirects",
     "django.contrib.redirects",
     "django.contrib.messages",

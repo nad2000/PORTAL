@@ -91,6 +91,7 @@ from django.forms import (
 )
 from django.forms import models as model_forms
 from django.forms import widgets
+# from file_resubmit.widgets import ResubmitFileWidget
 from django.http import (
     FileResponse,
     Http404,
@@ -7132,6 +7133,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 "page_count": HiddenInput(),
                 # "required_document": widgets.Select(attrs={"disabled": True}),
                 # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                # "file": ResubmitFileWidget(
                 "file": widgets.ClearableFileInput(
                     attrs={
                         "placeholder": _("Please upload a file ..."),
