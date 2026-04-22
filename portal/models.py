@@ -839,7 +839,10 @@ class PdfFileMixin:
                     of.seek(0)
                     pdf_reader = PdfReader(of, strict=False)
                     page_count = len(pdf_reader.pages)
-                    if hasattr(self, "page_count") and getattr(self, "page_count", 0) != page_count:
+                    if (
+                        hasattr(self, "page_count")
+                        and getattr(self, "page_count", 0) != page_count
+                    ):
                         self.page_count = page_count
                     cf.page_count = page_count
                     of.seek(0)
@@ -2184,7 +2187,8 @@ class Person(PersonMixin, Model):
 
                     for f in [f.name for f in self._meta.fields]:
                         if (
-                            f in ["created_at", "updated_at", "id", "pk"]
+                            f
+                            in ["created_at", "updated_at", "id", "pk"]
                             # or getattr(self, f, None) is not None and f != "code"
                         ):
                             continue
@@ -4454,7 +4458,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             for_panellists = request.GET.get("for_panellists", False)
         include_header_page = not (site_id in [2, 5] and for_panellists)
         if self.file:
-            attachments.append((sefl.file.name, _("Application Form"), self.pdf_file, ))
+            attachments.append(
+                (
+                    self.file.name,
+                    _("Application Form"),
+                    self.pdf_file,
+                )
+            )
 
         if (user.is_admin or for_panellists or is_panellist) and self.budget:
             attachments.append(
@@ -4519,9 +4529,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                             (
                                 (
                                     t.file.name,
-                                    _("Referee Report Submitted By %s")
-                                    if site_id == 5
-                                    else _("Testimonial Form Submitted By %s")
+                                    (
+                                        _("Referee Report Submitted By %s")
+                                        if site_id == 5
+                                        else _("Testimonial Form Submitted By %s")
+                                    ),
                                 )
                                 % t.referee.full_name,
                                 t.pdf_file,
@@ -4583,6 +4595,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             else:
                 add_testimonials(attachments, user=user)
 
+        pi_member = self.pi_member
         for d in self.documents.order_by("required_document__ordering"):
             if not d.file or (
                 skip_excluded
@@ -4593,6 +4606,16 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 and not d.required_document.panellists_can_access
                 # exclude duplicate attachments with same name (e.g. from members and documents)
                 or any(a[0] == d.file.name for a in attachments if a[0])
+                # exclude CVs if they are already attached from members:
+                or (d.role == "CV" and r.member_cv_required and pi_member and pi_member.cv)
+                # exclude letters of support if they are already attached from members:
+                or (
+                    d.role == "HS"
+                    and r.member_letter_of_support_required
+                    and pi_member
+                    and pi_member.file
+                    and pi_member.file.name
+                )
             ):
                 continue
 
@@ -4605,7 +4628,15 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 )
             )
 
-        if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
+        if (
+            r.letter_of_support_required
+            and self.letter_of_support
+            and self.letter_of_support.file
+            and not (
+                r.member_letter_of_support_required
+                and self.members.filter(Q(file__isnull=False), ~Q(file="")).exists()
+            )
+        ):
             attachments.append(
                 (
                     self.letter_of_support.file.name,
@@ -4632,7 +4663,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if members_with_cv:
-            attachments.append(("TEAM CV", "Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
+            attachments.append(
+                ("TEAM CV", "Curricula Vitae", None, {None: "Curricula Vitae of the team"})
+            )
             attachments.extend(
                 [
                     (
@@ -4773,12 +4806,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         merger.append(
             pdf_stream,
             outline_item=f"{self.number}: {(self.application_title or r.title)}",
-            import_outline=(site_id not in [2, 5])
+            import_outline=(site_id not in [2, 5]),
         )
-        # Exclude duplicat names:
-        attachments = reversed(dict((file_name, rest) for (file_name, *rest) in attachments[::-1]).values())
-        for title, a, *rest in attachments:
-            # exclude duplicate attachments with same name.
+        # # Exclude duplicat names:
+        # attachments = reversed(
+        #     dict((file_name, rest) for (file_name, *rest) in attachments[::-1]).values()
+        # )
+        for file_name, title, a, *rest in attachments:
 
             # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
@@ -9403,6 +9437,10 @@ class ApplicationDocument(PdfFileMixin, Model):
 
     def natural_key(self):
         return (self.application.number, self.file.name)
+
+    @property
+    def role(self):
+        return (self.required_document or self.document_type).role
 
     def save(self, *args, **kwargs):
         if not self.file.name:
