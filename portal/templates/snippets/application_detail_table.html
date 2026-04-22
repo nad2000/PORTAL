@@ -659,22 +659,24 @@
     {% endif %}
 
     {#% if (request.user.is_staff or request.user.is_superuser or request.user.is_site_staff) and c.org.research_offices.exists() %#}
-    {% if u.is_admin and not export %}
-      {% with research_officers=a.research_officers %}
-        {% if research_officers %}
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {% trans 'Research Office' %}
-            </th>
-            <td colspan="3">
-              {% for ro in research_officers %}
-                {{ ro.full_name_with_email }}
-                {% if not loop.last %}, {% endif %}
-              {% endfor %}
-            </td>
-          </tr>
-        {% endif %}
-      {% endwith %}
+    {% if u.is_admin %}
+      {% if not for_pdf_export and not export %}
+        {% with research_officers=a.research_officers %}
+          {% if research_officers %}
+            <tr>
+              <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                {% trans 'Research Office' %}
+              </th>
+              <td colspan="3">
+                {% for ro in research_officers %}
+                  {{ ro.full_name_with_email }}
+                  {% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
     {% endif %}
 
   </tbody>
