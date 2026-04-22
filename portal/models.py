@@ -4454,11 +4454,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             for_panellists = request.GET.get("for_panellists", False)
         include_header_page = not (site_id in [2, 5] and for_panellists)
         if self.file:
-            attachments.append((_("Application Form"), self.pdf_file))
+            attachments.append((sefl.file.name, _("Application Form"), self.pdf_file, ))
 
         if (user.is_admin or for_panellists or is_panellist) and self.budget:
             attachments.append(
                 (
+                    self.budget.name,
                     _("Budget"),
                     # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
                     self.budget_pdf,
@@ -4480,6 +4481,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             cvs.append(cv)
             attachments.append(
                 (
+                    cv.file.name,
                     f"{cv.full_name} {_('Curriculum Vitae')}",
                     cv.pdf_file,
                     include_header_page and cv.title_page,
@@ -4506,6 +4508,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         ):  ## {'status': 'No Data, survey table does not exist.'}
                             attachments.append(
                                 (
+                                    f"RESPONSE_{referee.full_name}_{referee.survey_token_id}.pdf",
                                     _("Referee Survey Submitted By %s") % t.referee.full_name,
                                     response,
                                     t.title_page,
@@ -4515,6 +4518,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         attachments.append(
                             (
                                 (
+                                    t.file.name,
                                     _("Referee Report Submitted By %s")
                                     if site_id == 5
                                     else _("Testimonial Form Submitted By %s")
@@ -4532,6 +4536,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         cvs.append(referee_cv)
                         attachments.append(
                             (
+                                referee_cv.file.name,
                                 f"{referee_cv.full_name} {_('Curriculum Vitae')}",
                                 referee_cv.pdf_file,
                                 referee_cv.title_page,
@@ -4543,6 +4548,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 if n.file:
                     attachments.append(
                         (
+                            n.file.name,
                             _("Nomination Submitted By %s") % n.nominator.full_name,
                             n.pdf_file,
                             include_header_page and n.title_page,
@@ -4557,6 +4563,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         cvs.append(nominator_cv)
                         attachments.append(
                             (
+                                nominator_cv.file.name,
                                 f"{nominator_cv.full_name} {_('Curriculum Vitae')}",
                                 nominator_cv.pdf_file,
                                 include_header_page and nominator_cv.title_page,
@@ -4585,12 +4592,13 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 or (is_panellist or for_panellists)
                 and not d.required_document.panellists_can_access
                 # exclude duplicate attachments with same name (e.g. from members and documents)
-                or any(a[1].name == d.pdf_file.name for a in attachments if a[1])
+                or any(a[0] == d.file.name for a in attachments if a[0])
             ):
                 continue
 
             attachments.append(
                 (
+                    d.file.name,
                     f"{d.required_document}",
                     d.pdf_file,
                     include_header_page and d.title_page,
@@ -4600,6 +4608,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if r.letter_of_support_required and self.letter_of_support and self.letter_of_support.file:
             attachments.append(
                 (
+                    self.letter_of_support.file.name,
                     _("Letter of Support"),
                     self.letter_of_support.pdf_file,
                     include_header_page and self.letter_of_support.title_page,
@@ -4613,6 +4622,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             attachments.extend(
                 [
                     (
+                        m.file.name,
                         f"Letter of Support ({m.full_name})",
                         m.pdf_file,
                         include_header_page and m.title_page,
@@ -4622,10 +4632,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if members_with_cv:
-            attachments.append(("Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
+            attachments.append(("TEAM CV", "Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
             attachments.extend(
                 [
                     (
+                        m.cv.file.name,
                         f"Curriculum Vitae ({m.full_name})",
                         m.cv.pdf_file,
                         # include_header_page and m.title_page,
@@ -4764,7 +4775,11 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             outline_item=f"{self.number}: {(self.application_title or r.title)}",
             import_outline=(site_id not in [2, 5])
         )
+        # Exclude duplicat names:
+        attachments = reversed(dict((file_name, rest) for (file_name, *rest) in attachments[::-1]).values())
         for title, a, *rest in attachments:
+            # exclude duplicate attachments with same name.
+
             # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
                 template = get_template("application-export-attachment-title-page.html")
