@@ -5,15 +5,19 @@
     <tr>
     <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 160px; max-width: 180px;"{% endif %}>{% trans 'Application' %}</th>
     <td scope="row"{% if not a.panel %}colspan="3"{% endif %}>
-        {% if user.is_admin and not export %}
+        {% if export or for_pdf_export %}
+            <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
+        {% elif user.is_admin and not export %}
           <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
           </a>
         {% else %}
           <strong><a href="{% url 'application-detail' number=a.number %}" target="_blank">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
         {% endif %}
-        {% if not export and not show_basic_details and not for_panellists %}
-            &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
+        {% if not export and not for_pdf_export %}
+          {% if not show_basic_details and not for_panellists %}
+              &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
+          {% endif %}
         {% endif %}
     </td>
     {% if a.panel %}
