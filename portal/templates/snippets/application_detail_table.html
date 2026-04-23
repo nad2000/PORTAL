@@ -158,7 +158,7 @@
         <tr>
           <td colspan="4">
             <table{% if export or for_pdf_export %} style="border-collapse: collapse; border: 1px solid black;"{% else %} class="table table-striped table-bordered"{% endif %}>
-              {% for m in a.members.all %}
+              {% for m in a.ordered_members %}
                 {% partial member-row %}
               {% endfor %}
             </table>

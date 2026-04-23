@@ -3023,6 +3023,14 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     )
 
     @property
+    def ordered_members(self):
+        return self.members.annotate(ordering=Case(
+                    When(role_id='PC', then=0),
+                    When(role_id='PI', then=1),
+                    default=99)
+                ).order_by("ordering", "first_name", "last_name")
+
+    @property
     def proposed_duration(self):
         if self.duration_in_years or self.duration_in_months or self.duration_in_days:
             return (self.duration_in_years or 0) + math.ceil(
@@ -4478,7 +4486,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         members_with_cv = r.member_cv_required and [
             m
-            for m in self.members.filter(
+            for m in self.ordered_members.filter(
                 Q(cv__file__isnull=False), ~Q(cv__file=""), cv__isnull=False
             )
         ]
@@ -4658,7 +4666,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         m.pdf_file,
                         include_header_page and m.title_page,
                     )
-                    for m in self.members.filter(~Q(file=""), file__isnull=False)
+                    for m in self.ordered_members.filter(~Q(file=""), file__isnull=False)
                 ]
             )
 
