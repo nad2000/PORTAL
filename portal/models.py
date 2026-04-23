@@ -618,7 +618,7 @@ class PdfFileMixin:
                     #     self._change_reason = f"Updated page count to {self.page_count}"
                     #     self.save(update_fields=["page_count"])
                     pdf_reader = PdfReader(self.file, strict=False)
-                    self.page_count = len(pdf_reader.pages)
+                    self.page_count = pdf_reader.get_num_pages()
                     self._change_reason = f"Updated page count to {self.page_count}"
                     self.save(update_fields=["page_count"])
                 return self.file
@@ -686,7 +686,7 @@ class PdfFileMixin:
             mended = os.path.join(tempfile.mkdtemp(), os.path.basename(file))
             pdf.save(mended, normalize_content=True)
             pdf_reader = PdfReader(mended, strict=False)
-        page_count = len(pdf_reader.pages)
+        page_count = pdf_reader.get_num_pages()
 
         if hasattr(self, "page_count") and (
             not self.page_count or pdf_reader and page_count != self.page_count
@@ -838,7 +838,7 @@ class PdfFileMixin:
                     cf.file.save(output_filename, File(of, name=output_filename))
                     of.seek(0)
                     pdf_reader = PdfReader(of, strict=False)
-                    page_count = len(pdf_reader.pages)
+                    page_count = pdf_reader.get_num_pages()
                     if (
                         hasattr(self, "page_count")
                         and getattr(self, "page_count", 0) != page_count
@@ -3024,11 +3024,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
     @property
     def ordered_members(self):
-        return self.members.annotate(ordering=Case(
-                    When(role_id='PC', then=0),
-                    When(role_id='PI', then=1),
-                    default=99)
-                ).order_by("ordering", "first_name", "last_name")
+        return self.members.annotate(
+            ordering=Case(When(role_id="PC", then=0), When(role_id="PI", then=1), default=99)
+        ).order_by("ordering", "first_name", "last_name")
 
     @property
     def proposed_duration(self):
@@ -4468,7 +4466,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if self.file:
             attachments.append(
                 (
-                    self.file.name,
                     _("Application Form"),
                     self.pdf_file,
                 )
@@ -4477,7 +4474,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if (user.is_admin or for_panellists or is_panellist) and self.budget:
             attachments.append(
                 (
-                    self.budget.name,
                     _("Budget"),
                     # settings.PRIVATE_STORAGE_ROOT + "/" + str(self.budget),
                     self.budget_pdf,
@@ -4499,7 +4495,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             cvs.append(cv)
             attachments.append(
                 (
-                    cv.file.name,
                     f"{cv.full_name} {_('Curriculum Vitae')}",
                     cv.pdf_file,
                     include_header_page and cv.title_page,
@@ -4526,7 +4521,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         ):  ## {'status': 'No Data, survey table does not exist.'}
                             attachments.append(
                                 (
-                                    f"RESPONSE_{referee.full_name}_{referee.survey_token_id}.pdf",
                                     _("Referee Survey Submitted By %s") % t.referee.full_name,
                                     response,
                                     t.title_page,
@@ -4536,12 +4530,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         attachments.append(
                             (
                                 (
-                                    t.file.name,
-                                    (
-                                        _("Referee Report Submitted By %s")
-                                        if site_id == 5
-                                        else _("Testimonial Form Submitted By %s")
-                                    ),
+                                    _("Referee Report Submitted By %s")
+                                    if site_id == 5
+                                    else _("Testimonial Form Submitted By %s")
                                 )
                                 % t.referee.full_name,
                                 t.pdf_file,
@@ -4556,7 +4547,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         cvs.append(referee_cv)
                         attachments.append(
                             (
-                                referee_cv.file.name,
                                 f"{referee_cv.full_name} {_('Curriculum Vitae')}",
                                 referee_cv.pdf_file,
                                 referee_cv.title_page,
@@ -4568,7 +4558,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 if n.file:
                     attachments.append(
                         (
-                            n.file.name,
                             _("Nomination Submitted By %s") % n.nominator.full_name,
                             n.pdf_file,
                             include_header_page and n.title_page,
@@ -4583,7 +4572,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         cvs.append(nominator_cv)
                         attachments.append(
                             (
-                                nominator_cv.file.name,
                                 f"{nominator_cv.full_name} {_('Curriculum Vitae')}",
                                 nominator_cv.pdf_file,
                                 include_header_page and nominator_cv.title_page,
@@ -4613,7 +4601,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 or (is_panellist or for_panellists)
                 and not d.required_document.panellists_can_access
                 # exclude duplicate attachments with same name (e.g. from members and documents)
-                or any(a[0] == d.file.name for a in attachments if a[0])
+                ## or any(a[0] == d.file.name for a in attachments if a[0])
                 # exclude CVs if they are already attached from members:
                 or (d.role == "CV" and r.member_cv_required and pi_member and pi_member.cv)
                 # exclude letters of support if they are already attached from members:
@@ -4629,7 +4617,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
             attachments.append(
                 (
-                    d.file.name,
                     f"{d.required_document}",
                     d.pdf_file,
                     include_header_page and d.title_page,
@@ -4647,7 +4634,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         ):
             attachments.append(
                 (
-                    self.letter_of_support.file.name,
                     _("Letter of Support"),
                     self.letter_of_support.pdf_file,
                     include_header_page and self.letter_of_support.title_page,
@@ -4658,26 +4644,23 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             r.member_letter_of_support_required
             and self.members.filter(Q(file__isnull=False), ~Q(file="")).exists()
         ):
+            attachments.append(("Host Support Letters", None, {None: "Host Support Letters of the team"}))
             attachments.extend(
                 [
                     (
-                        m.file.name,
                         f"Letter of Support ({m.full_name})",
                         m.pdf_file,
-                        include_header_page and m.title_page,
+                        # include_header_page and m.title_page,
                     )
                     for m in self.ordered_members.filter(~Q(file=""), file__isnull=False)
                 ]
             )
 
         if members_with_cv:
-            attachments.append(
-                ("TEAM CV", "Curricula Vitae", None, {None: "Curricula Vitae of the team"})
-            )
+            attachments.append(("Curricula Vitae", None, {None: "Curricula Vitae of the team"}))
             attachments.extend(
                 [
                     (
-                        m.cv.file.name,
                         f"Curriculum Vitae ({m.full_name})",
                         m.cv.pdf_file,
                         # include_header_page and m.title_page,
@@ -4820,7 +4803,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # attachments = reversed(
         #     dict((file_name, rest) for (file_name, *rest) in attachments[::-1]).values()
         # )
-        for file_name, title, a, *rest in attachments:
+        current_chapter = None
+        for title, a, *rest in attachments:
 
             # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
@@ -4848,10 +4832,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 pdf_stream = io.BytesIO(pdf_object)
                 merger.append(
                     pdf_stream,
+                    # outline_item=title if not a else None,
                     # outline_item=(self.application_title or r.title),
                     import_outline=(site_id not in [2, 5]),
                 )
-
+                if not a:
+                    current_chapter = merger.add_outline_item(title, merger.get_num_pages()-1, is_open=True, bold=True)
             if not a:
                 continue
 
@@ -4886,7 +4872,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     else:
                         raise
 
-                merger.append(reader, outline_item=title, import_outline=import_outline)
+                if current_chapter:
+                    page_no = merger.get_num_pages()
+                    merger.append(reader, import_outline=False)
+                    merger.add_outline_item(title, page_no, parent=current_chapter, is_open=True, italic=True)
+                else:
+                    merger.append(reader, outline_item=title, import_outline=import_outline)
             except PdfReadError:
                 capture_message(f"Failed to merge file {a or title}")
                 raise
@@ -4896,7 +4887,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if add_headers or site_id == 4:
             template = get_template("headers.html")
             html = HTML(
-                string=template.render({"page_count": len(merger.pages), "application": self})
+                string=template.render({"page_count": merger.get_num_pages(), "application": self})
             )
             header_file = PdfReader(
                 io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
@@ -12462,7 +12453,7 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         if not isinstance(schedule1, PdfReader):
             schedule1 = PdfReader(schedule1)
             parts["schedule1"] = schedule1
-        schedule1_page_count = len(schedule1.pages)
+        schedule1_page_count = schedule1.get_num_pages()
         schedule2 = self.get_part_pdf(request=request, part="schedule2")
         if not isinstance(schedule2, PdfReader):
             schedule2 = PdfReader(schedule2, strict=False)
@@ -12537,8 +12528,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         # header_file = PdfReader(
         #     io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
         # )
-        pages_to_skip = len(toc.pages) + 1
-        page_count = len(merger.pages) - pages_to_skip
+        pages_to_skip = toc.get_num_pages() + 1
+        page_count = merger.get_num_pages() - pages_to_skip
 
         template = get_template("contracts/page.html")
         for pn, dp in enumerate(merger.pages):
