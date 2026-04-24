@@ -1645,6 +1645,7 @@ class Organisation(Model):
 
     notify_ro_on_application_submission = BooleanField(default=False)
     history = HistoricalRecords(table_name="organisation_history")
+    site = ForeignKey(Site, on_delete=PROTECT, default=Model.get_current_site_id, editable=False)
 
     @cached_property
     def signatory_position(self):
@@ -4644,7 +4645,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             r.member_letter_of_support_required
             and self.members.filter(Q(file__isnull=False), ~Q(file="")).exists()
         ):
-            attachments.append(("Host Support Letters", None, {None: "Host Support Letters of the team"}))
+            attachments.append(
+                ("Host Support Letters", None, {None: "Host Support Letters of the team"})
+            )
             attachments.extend(
                 [
                     (
@@ -4837,7 +4840,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                     import_outline=(site_id not in [2, 5]),
                 )
                 if not a:
-                    current_chapter = merger.add_outline_item(title, merger.get_num_pages()-1, is_open=True, bold=True)
+                    current_chapter = merger.add_outline_item(
+                        title, merger.get_num_pages() - 1, is_open=True, bold=True
+                    )
             if not a:
                 continue
 
@@ -4875,7 +4880,9 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 if current_chapter:
                     page_no = merger.get_num_pages()
                     merger.append(reader, import_outline=False)
-                    merger.add_outline_item(title, page_no, parent=current_chapter, is_open=True, italic=True)
+                    merger.add_outline_item(
+                        title, page_no, parent=current_chapter, is_open=True, italic=True
+                    )
                 else:
                     merger.append(reader, outline_item=title, import_outline=import_outline)
             except PdfReadError:
@@ -7496,6 +7503,36 @@ def notify_site_staff_about_new_org(
         recipients=site.staff_users.all(),
         site=site,
     )
+
+
+def notify_site_staff_about_new_organisations():
+
+    orgs = Organisation.objects.filter(created_at__gt=timezone.now() - timedelta(days=7)).order_by(
+        "site", "-created_at"
+    )
+    for site_id, g in groupby(orgs, lambda o: o.site_id):
+        site = Site.objects.get(pk=site_id)
+        g = list(g)
+        if g:
+            org_list = "".join(f"""<li>
+                <a
+                    href="https://{site.domain}{reverse("admin:portal_organisation_change", args=[o.pk])}"
+                    target="_blank"
+                >{o}</a>
+                (created at {o.created_at.strftime('%Y-%m-%d %H:%M')},
+                by {o.history.filter(history_type="+").first().history_user})</li>""" for o in g)
+        subject = f"New Organization(s) created"
+        html_message = f"""<p>Kia ora!</p><p>A new organization(s) has been created in the last week:
+        <ul>{org_list}</ul></p>
+        <p>Please review the records and
+            if it's necessary merge them with the existing institution records.</p>
+            <p>Ngā mihi</p>"""
+        send_mail(
+            subject=subject,
+            html_message=html_message,
+            recipients=site.staff_users.all(),
+            site=site,
+        )
 
 
 def bulk_application_export(

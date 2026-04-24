@@ -9738,17 +9738,17 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             # Handle general errors
             raise ValidationError(f"An unexpected error occurred: {e}.")
 
-        org_url = self.request.build_absolute_uri(
-            reverse("admin:portal_organisation_change", args=[o.pk])
-        )
-        models.async_task(
-            models.notify_site_staff_about_new_org,
-            # sync=True,
-            site_id=self.request.site_id,
-            org_id=o.pk,
-            by_id=self.request.user.pk,
-            org_url=org_url,
-        )
+        # org_url = self.request.build_absolute_uri(
+        #     reverse("admin:portal_organisation_change", args=[o.pk])
+        # )
+        # models.async_task(
+        #     models.notify_site_staff_about_new_org,
+        #     # sync=True,
+        #     site_id=self.request.site_id,
+        #     org_id=o.pk,
+        #     by_id=self.request.user.pk,
+        #     org_url=org_url,
+        # )
         return o
 
     def has_add_permission(self, request):
