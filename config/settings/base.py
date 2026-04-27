@@ -529,6 +529,7 @@ REST_FRAMEWORK = {
 # ------------------------------------------------------------------------------
 
 ALLAUTH_SITES_ENABLED = True
+ALLAUTH_TRUSTED_PROXY_COUNT = 1  # Set to 1 or more depending on your setup
 # SOCIALACCOUNT_SITES_ENABLED = True
 SOCIALACCOUNT_STORE_TOKENS = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
