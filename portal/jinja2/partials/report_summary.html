@@ -312,6 +312,44 @@
           </td></tr>
         {% endif %}
 
+        <!-- Reported publicity -->
+        {% set publicities = r.publicities %}
+        {% if publicities.count() and  user.is_superuser %}
+          <tr><td colspan="4">
+          <h3>
+            {{ _('Publicity') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead> <tr><td colspan="4">
+              <tr>
+                <th>Activity</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in publicities.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ p.type or '-' }}</td>
+                  <td>{{ p.description or '-' }}</td>
+                  <td>
+                    {% if p.start_date and p.end_date %}
+                      {{ p.start_date }} - {{ p.end_date }}
+                    {% elif p.start_date %}
+                      {{ p.start_date }}
+                    {% elif p.end_date %}
+                      {{ p.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
     </tbody>
   </table>
 
