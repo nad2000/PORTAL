@@ -216,6 +216,7 @@
         {% if publications.count() and  user.is_superuser %}
           <tr><td colspan="4">
           {% for pub_type, items in publications.order_by("type")|groupby("type") %}
+            {% set pt_code_2 = pub_type.code_2 if pub_type else '??' %}
             <h3>
               {{ _('Publications') }} - {{ pub_type|title }}
             </h3>
@@ -223,12 +224,12 @@
               <thead>
                 <tr>
                   <th>Status {{ pub_type }}</th>
-                  {% if pub_type.code_2 in ['BC', 'BK'] %}
+                  {% if pt_code_2 in ['BC', 'BK'] %}
                     <th>Chapter Title</th>
                     <th colspan="2">Book Title</th>
-                  {% elif pub_type.code_2 in ['JO', 'PR'] %}
+                  {% elif pt_code_2 in ['JO', 'PR', 'CP'] %}
                     <th>Title</th>
-                    <th>Article Type</th>
+                  <th>{% if pt_code_2 == 'CP' %}Type{% else %}Article Type{% endif %}</th>
                   {% else %}
                     <th>Title</th>
                     <th>Title #2</th>
@@ -239,14 +240,14 @@
                 {% for pub in items %}
                   <tr>
                     <td>{{ pub.status or '-' }}</td>
-                    <td{% if pub_type.code_2 == 'JO' %} colspan="2"{% endif %}>{{ pub.title }}</td>
-                    {% if pub_type.code_2 in ['BC', 'BK'] %}
+                    <td{% if pt_code_2 in ['JO', 'CP'] %} colspan="2"{% endif %}>{{ pub.title }}</td>
+                    {% if pt_code_2 in ['BC', 'BK'] %}
                       <td colspan="2">{{ pub.title2 }}</td>
-                    {% elif pub_type.code_2 == 'JO' %}
+                    {% elif pt_code_2 == 'JO' %}
                       <td>{{ '???' }}</td>
                     {% endif %}
                   </tr>
-                  {% if pub_type.code_2 in ['BC', 'BK'] %}
+                  {% if pt_code_2 in ['BC', 'BK'] %}
                     <tr>
                       <td></td>
                       <td colspan="2">
@@ -273,7 +274,7 @@
                         <strong>ISDN:</strong> {{ '???' }}
                       </td>
                     </tr>
-                  {% elif pub_type.code_2 == 'JO' %}
+                  {% elif pt_code_2 == 'JO' %}
                     <tr>
                       <td></td>
                       <td colspan="3"> <strong>Publisher:</strong> {{ pub.journal or '-' }} </td>
@@ -283,6 +284,17 @@
                       <td> <strong>Year:</strong> {{ pub.year_ref or '-' }}<br> </td>
                       <td> <strong>Volume:</strong> {{ pub.volume or '-' }} </td>
                       <td> <strong>Pages:</strong> {{ pub.page_ref or '-' }}</td>
+                    </tr>
+                  {% elif pt_code_2 == 'CP' %}
+                    <tr>
+                      <td> <strong>ID:</strong>  {% if pub.rsnz_ref %}0-{{ pub.rsnz_ref  }}{% endif %} </td>
+                      <!-- td></td -->
+                      <td colspan="3"> <strong>Conference:</strong> {{ pub.conference or '-' }} </td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td colspan="2"> <strong>Place:</strong> {{ pub.host or '-' }}{% if pub.location %}({{ pub.location }}){% endif %}</td>
+                      <td> <strong>Year:</strong> {{ pub.year_ref or '-' }}<br> </td>
                     </tr>
                   {% endif %}
                   <tr>
