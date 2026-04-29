@@ -9008,13 +9008,13 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     template_name = "profile_section.html"
     exclude = ()
     section_views = [
-        "profile-employments",
-        "profile-career-stages",
+        # "profile-employments",
+        # "profile-career-stages",
         "profile-external-ids",
-        "profile-cvs",
-        "profile-academic-records",
-        "profile-recognitions",
-        "profile-professional-records",
+        # "profile-cvs",
+        # "profile-academic-records",
+        # "profile-recognitions",
+        # "profile-professional-records",
         # "profile-protection-patterns",
     ]
 

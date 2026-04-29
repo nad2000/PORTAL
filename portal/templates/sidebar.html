@@ -530,6 +530,7 @@
   {% if category == "profile" %}
     <div class="card-body">
       <ul class="nav nav-pills flex-column">
+        {% comment %}
         <li class="nav-item">
           <a class="nav-link"
              href="{% url 'profile-employments' %}"
@@ -541,9 +542,11 @@
         <li class="nav-item">
           <a class="nav-link" href="{% url 'profile-career-stages' %}" id="profile-career-stages">{% trans 'Career Stages' %}</a>
         </li>
+        {% endcomment %}
         <li class="nav-item">
           <a class="nav-link" href="{% url 'profile-external-ids' %}" id="profile-external-ids">{% trans 'External IDs' %}</a>
         </li>
+        {% comment %}
         <li class="nav-item">
           <a class="nav-link" href="{% url 'profile-cvs' %}" id="profile-cvs">{% trans 'Curriculum Vitae' %}</a>
         </li>
@@ -562,6 +565,7 @@
             {% trans "Professional Bodies" %}
           </a>
         </li>
+        {% endcomment %}
         <li class="nav-item">
           <a class="nav-link" href="{% url 'profile-protection-patterns' %}" id="profile-protection-patterns">
             {% trans "Protection Pattern" %}
