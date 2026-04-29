@@ -52,7 +52,7 @@ function reindex_formset(prefix="form") {
 
 
 function is_email_list_unique(prefix="referees", message_template=email => `The email address entered twice: ${email}`) {
-  var emails=$(`tr:visible #${prefix}_form_set input[type='email'][name$='-email'][name^='${prefix}-']").not("[name*='__prefix__']`).map(
+  var emails=$(`tr:visible #${prefix}_form_set input[type='email'][name$='-email'][name^='${prefix}-']`).not("[name*='__prefix__']").map(
     function () {if (this.value.trim() != '') return this.value;}).get().sort();
   if (emails.length) for (i in emails) if (emails.slice(parseInt(i)+1).includes(emails[i])) {
     if (prefix=="referees") $('.nav a[href="#referees"]').tab('show'); else if (prefix=="members") $('.nav a[href="#applicant"]').tab('show');

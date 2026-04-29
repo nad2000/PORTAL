@@ -348,6 +348,7 @@
               });
               $("#id_summary,#id_summary_en,#id_summary_mi").summernote("disable");
             {% endif %}
+            {% if not user.is_admin %} $('#members option[value="PC"]').prop('disabled', true);{% endif %}
           });
         </script>
       {% endblock %}

@@ -5,15 +5,19 @@
     <tr>
     <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 160px; max-width: 180px;"{% endif %}>{% trans 'Application' %}</th>
     <td scope="row"{% if not a.panel %}colspan="3"{% endif %}>
-        {% if user.is_admin and not export %}
+        {% if export or for_pdf_export %}
+            <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
+        {% elif user.is_admin and not export %}
           <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
           </a>
         {% else %}
           <strong><a href="{% url 'application-detail' number=a.number %}" target="_blank">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
         {% endif %}
-        {% if not show_basic_details and not for_panellists %}
-            &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
+        {% if not export and not for_pdf_export %}
+          {% if not show_basic_details and not for_panellists %}
+              &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
+          {% endif %}
         {% endif %}
     </td>
     {% if a.panel %}
@@ -121,17 +125,58 @@
     {% endif %}
 
     {% if a.members.all.count > 1 %}
-      <tr>
-        <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
-        <td colspan="3">
-          {%if a.team_name %}{{ a.team_name|default:'' }}:{% endif %}
-          <ul>
-            {% for m in a.members.all %}
-              <li>{% partial member %}</li>
-            {% endfor %}
-          </ul>
-        </td>
-      </tr>
+      {% if a.site_id == 2 %}
+
+        {% partialdef member-row %}
+          <tr style="border: 1px solid black;">
+            <td style="border: 1px solid black;">
+              {% if export or for_pdf_export %}
+                {{ m.full_name_with_title }}
+              {% elif is_admin %}
+                <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m.full_name_with_email }} </a>
+                <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+              {% elif is_ro and not export and not for_pdf_export %}
+                <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m.full_name_with_email }} </a>
+              {% else %}
+                {{ m.full_name_with_email }}
+                {% if not export and not for_pdf_export and m.user == user and m.state == "authorized" %}
+                  <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td style="border: 1px solid black;">{{ m.org|default:'-' }}</td>
+            <td style="border: 1px solid black;">{{ m.country.name|default:'-' }}</td>
+            <td style="border: 1px solid black;">{{ m.role.name|default:'-' }}</td>
+          </tr>
+        {% endpartialdef %}
+
+        <tr>
+          <th class="table-dark" colspan="4" >
+            {% trans 'Team' %}{%if a.team_name %}: {{ a.team_name|default:'' }}{% endif %}
+          </th>
+        </tr>
+        <tr>
+          <td colspan="4">
+            <table{% if export or for_pdf_export %} style="border-collapse: collapse; border: 1px solid black;"{% else %} class="table table-striped table-bordered"{% endif %}>
+              {% for m in a.ordered_members %}
+                {% partial member-row %}
+              {% endfor %}
+            </table>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
+          <td colspan="3">
+            {%if a.team_name %}{{ a.team_name|default:'' }}:{% endif %}
+            <ul>
+              {% for m in a.members.all %}
+                <li>{% partial member %}</li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+      {% endif %}
     {% endif %}
 
     {% if a.org.name == a.organisation %}
@@ -611,6 +656,27 @@
           </ul>
         </td>
       </tr>
+    {% endif %}
+
+    {#% if (request.user.is_staff or request.user.is_superuser or request.user.is_site_staff) and c.org.research_offices.exists() %#}
+    {% if u.is_admin %}
+      {% if not for_pdf_export and not export %}
+        {% with research_officers=a.research_officers %}
+          {% if research_officers %}
+            <tr>
+              <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                {% trans 'Research Office' %}
+              </th>
+              <td colspan="3">
+                {% for ro in research_officers %}
+                  {{ ro.full_name_with_email }}
+                  {% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
     {% endif %}
 
   </tbody>

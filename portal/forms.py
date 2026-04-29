@@ -1073,8 +1073,7 @@ class ApplicationForm(ModelForm):
                 # self.fields["letter_of_support_file"].help_text = help_text
 
         if (
-            round.is_applicant_cv_required
-            or site_id == 2
+            round.is_applicant_cv_required or round.member_cv_required
             # and (not instance.pk or instance.is_pi(user))
         ):
 
@@ -2230,7 +2229,7 @@ class ContractForm(ModelForm):
                         _(
                             "If your organisation does not have one, The Royal Society Te Apārangi child protection policy will "
                             "be appended to your contract. This document can be viewed at "
-                            """<a href="{% static 'Child-Protection-Policy.pdf' %}" target='_blank'>Child Protection Policy</a>"""
+                            """<a href="{% if config.CHILD_PROTECTION_POLICY_URL %}{{ config.CHILD_PROTECTION_POLICY_URL }}{% else %}{% static 'Child-Protection-Policy.pdf' %}{% endif %}" target='_blank'>Child Protection Policy</a>"""
                         ),
                     )
                 )
@@ -3056,6 +3055,15 @@ class ContractForm(ModelForm):
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
+    readonly_fields = ["state"]
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(
+            for_application=True,
+            # sites__site_id=settings.SITE_ID
+        ).order_by(models.Coalesce("name", "code")),
+        required=False,
+    )
+
     cv_file = FileField(
         required=False,
         label=gettext_lazy("Curriculum Vitae"),
@@ -3070,6 +3078,10 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             }
         ),
     )
+
+    def clean_role(self):
+        # Returns the original value from the instance, if form doesn't have the data
+        return self.cleaned_data.get("role") or self.instance.role
 
     def __init__(self, *args, **kwargs):
         # duration = kwargs.pop("duration", None)
@@ -3161,15 +3173,6 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                     onclick=f"window.location.href='{self.instance.application.detail_url}'",
                 )
             )
-
-    readonly_fields = ["state"]
-    role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(
-            for_application=True,
-            # sites__site_id=settings.SITE_ID
-        ).order_by(models.Coalesce("name", "code")),
-        required=False,
-    )
 
     def save(self, commit=True):
         super().save(commit=False)
@@ -3297,7 +3300,7 @@ class MemberFormSet(
         emails = [v.strip().lower() for v in emails if v and v.strip()]
         for i, v in enumerate(emails[:-1]):
             if v in emails[i + 1 :]:
-                raise forms.ValidationError(_("You have entered email address {v} twice."))
+                self.add_error(None, _("You have entered email address {v} twice."))
 
 
 class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):

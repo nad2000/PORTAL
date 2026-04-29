@@ -91,6 +91,7 @@ from django.forms import (
 )
 from django.forms import models as model_forms
 from django.forms import widgets
+# from file_resubmit.widgets import ResubmitFileWidget
 from django.http import (
     FileResponse,
     Http404,
@@ -2633,7 +2634,7 @@ class ProfileViewMixin:
                 # | Q(state__in=["draft", "submitted", "sent", "bounced"])
                 | Q(email=u.email) | Q(email__in=u.email_addresses),
             )
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         ):
             initial.update(
@@ -2668,6 +2669,7 @@ class ProfileViewMixin:
                     "postcode": a.postcode or "",
                     "country": a.country,
                 }
+                or self.get_initial()
                 or {"country": "NZ"},
             )
             kwargs["address_form"].helper.form_tag = False
@@ -4553,9 +4555,9 @@ class ProfileCreate(ProfileViewMixin, CreateView):
             models.Nomination.where(
                 Q(user=self.request.user)
                 | Q(email__lower__in=u.emailaddress_set.values_list("email__lower")),
-                state__in=["submitted", "sent", "bounced"],
+                # state__in=["submitted", "sent", "bounced"],
             )
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         )
         if n:
@@ -4564,6 +4566,12 @@ class ProfileCreate(ProfileViewMixin, CreateView):
             initial["last_name"] = n.last_name or u.last_name
             initial["title"] = n.title or u.title
             initial["user"] = u
+            if n.org and n.org.address:
+                initial["country"] = n.org.address.country
+                initial["postcode"] = n.org.address.postcode
+                initial["city"] = n.org.address.city
+                initial["address"] = n.org.address.address
+
         return initial
 
 
@@ -4733,6 +4741,8 @@ class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
         # self.fields["file"].required = True
         # self.fields["country"].required = True
+        self.fields["role"].disabled = True
+        self.fields["role"].widget.attrs["readonly"] = "readonly"
 
     # def clean_is_accepted(self):
     #     """Allow only 'True'"""
@@ -5551,6 +5561,13 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 initial["letter_of_support_file"] = self.object.letter_of_support.file
 
         if (
+            round.member_cv_required
+            and self.is_update
+            and (pi_member := (self.object and self.object.pi_member or None))
+            and (cv := (pi_member.cv or pi_member.cv and pi_member.cv.file))
+        ):
+            initial["cv_file"] = cv.file
+        elif (
             round.is_applicant_cv_required
             and self.is_update
             and round.curriculum_vitae_templates.count() > 0
@@ -5559,7 +5576,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         ):
             initial["cv_file"] = self.object.cv.file
 
-        if not (self.object and self.object.id):
+
+        if not (self.object and self.object.pk):
             initial["user"] = user
             initial["email"] = user.email
             initial["language"] = django.utils.translation.get_language()
@@ -5589,12 +5607,13 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     )
                     if address.country:
                         qs = qs.filter(country=address.country)
-                    if city_rec := qs.latest("pk"):
+                    if qs.count() > 0 and (city_rec := qs.latest("pk")):
                         postcode = city_rec.postcode
 
                 initial["postal_address"] = address.address
                 initial["city"] = city
-                initial["postcode"] = postcode
+                if postcode:
+                    initial["postcode"] = postcode
             if (
                 round.research_experience_in_years_required
                 or round.member_research_experience_in_years_required
@@ -5833,7 +5852,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 # Handle CV
                 if (
                     not update_only_referees
-                    and (round.applicant_cv_required or site_id == 2)
+                    and (round.is_applicant_cv_required or round.member_cv_required)
                     and (cv_file := request.FILES.get("cv_file"))
                     and (
                         "cv_file" in form.changed_data
@@ -5850,9 +5869,11 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         )
                     )
                 ):
+                    pi_member = instance.pi_member
+                    cv_user = pi_member.user if pi_member else request.user
                     cv, created = models.CurriculumVitae.get_or_create(
-                        owner=user,
-                        person=user.person,
+                        owner=cv_user,
+                        person=cv_user.person,
                         title=_(f"For application {instance.number}"),
                         defaults={"file": cv_file},
                     )
@@ -5868,6 +5889,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             if hasattr(cv, "page_count"):
                                 cv.page_count = None
                         cv.update_converted_file(commit=True, request=request)
+
+                    if pi_member:
+                        pi_member.cv = cv
+                        pi_member.save()
 
                 if (
                     "file" in form.changed_data
@@ -5916,6 +5941,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             if not f.is_valid():
                                 form.errors.update(f.errors)
                                 url = self.continue_url("application")
+                                form.add_error(None, _("Please correct the errors in member information: {f.errors}."))
                                 raise ValidationError(_("Invalid member form"))
 
                     if has_deleted:
@@ -7108,6 +7134,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 "page_count": HiddenInput(),
                 # "required_document": widgets.Select(attrs={"disabled": True}),
                 # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                # "file": ResubmitFileWidget(
                 "file": widgets.ClearableFileInput(
                     attrs={
                         "placeholder": _("Please upload a file ..."),
@@ -7360,12 +7387,12 @@ class ApplicationCreate(ApplicationView, CreateView):
                 if a and not a.number:
                     a.number = models.default_application_number(a, nomination=n)
 
-                if a and a.address and not models.Address.where(pk=a.address_id).exists():
+                if a and a.address_id and not models.Address.where(pk=a.address_id).exists():
                     a.address = None
                     form.cleaned_data.pop("address", None)
 
                 resp = super().form_valid(form)
-                a.save()
+                # a.save()
                 if n and not (n.application and n.user):
                     n.application = self.object
                     if n.state != "accepted":
@@ -7666,7 +7693,7 @@ def update_page_count(document_pk=None, contract_document_pk=None, site_id=None)
 
 class ContractViewMixin:
 
-    extra_context = {"category": "contracts", "sidebar": "off"}
+    extra_context = {"category": "contracts", "sidebar": "off", "config": config}
 
     def get(self, request, *args, **kwargs):
         u = request.user
@@ -9151,6 +9178,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                         (
                             o.number
                             if isinstance(o, models.Application)
+                            else o.application.number if isinstance(o, models.Member)
                             else o.referee.application.number
                         )
                         for o in ex.protected_objects
@@ -9710,17 +9738,17 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
             # Handle general errors
             raise ValidationError(f"An unexpected error occurred: {e}.")
 
-        org_url = self.request.build_absolute_uri(
-            reverse("admin:portal_organisation_change", args=[o.pk])
-        )
-        models.async_task(
-            models.notify_site_staff_about_new_org,
-            # sync=True,
-            site_id=self.request.site_id,
-            org_id=o.pk,
-            by_id=self.request.user.pk,
-            org_url=org_url,
-        )
+        # org_url = self.request.build_absolute_uri(
+        #     reverse("admin:portal_organisation_change", args=[o.pk])
+        # )
+        # models.async_task(
+        #     models.notify_site_staff_about_new_org,
+        #     # sync=True,
+        #     site_id=self.request.site_id,
+        #     org_id=o.pk,
+        #     by_id=self.request.user.pk,
+        #     org_url=org_url,
+        # )
         return o
 
     def has_add_permission(self, request):
@@ -10378,6 +10406,13 @@ class MemberView(CreateUpdateView):
     form_class = forms.MemberForm
     template_name = None
 
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        if not self.request.user.is_admin:
+            form.fields["role"].disabled = True
+            form.fields["role"].widget.attrs["readonly"] = "readonly"
+        return form
+
     def get_initial(self, *args, **kwargs):
         # if not is_fs and instance := kwargs.get("instance", None) and instance.user:
         #     initial = kwargs.get("initial", {})
@@ -10386,6 +10421,8 @@ class MemberView(CreateUpdateView):
         if o := self.object:
             u = o.user
             p = u and u.person
+            if not (u and p):
+                return initial
             if not o.title and u:
                 initial["title"] = u.person.title
             if not o.first_name and u:
@@ -11416,11 +11453,9 @@ class ApplicationExportView(ExportView):
         )
         for t in testimonials:
             if t.file:
-                # attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))
-                attachments.append(t.pdf_file.path)
+                attachments.append(t.pdf_file)
             if t.cv and t.cv.file:
-                # attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.cv.pdf_file))
-                attachments.append(t.cv.pdf_file.path)
+                attachments.append(t.cv.pdf_file)
 
         return attachments
 
