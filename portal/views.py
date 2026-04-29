@@ -13662,7 +13662,7 @@ class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
 class ReportedPublicityViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedPublicity
-    fields = ["type", "description", "report"]
+    fields = ["type", "description", "start_date",  "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -13683,6 +13683,8 @@ class ReportedPublicityViewMixin(ReportedActivityViewMixin):
                 "Other",
             )
         )
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         return form
 
 

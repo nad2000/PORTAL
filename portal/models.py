@@ -14468,7 +14468,7 @@ class ReportedFunding(ReportedFundingMixin, Model):
     report = ForeignKey(
         Report,
         on_delete=CASCADE,
-        related_name="fundings",
+        related_name="funding",
     )
     # state = StateField(default="new", verbose_name=_("status"))
     status = FixedCharField(
