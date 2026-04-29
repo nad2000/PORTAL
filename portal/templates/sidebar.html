@@ -530,7 +530,6 @@
   {% if category == "profile" %}
     <div class="card-body">
       <ul class="nav nav-pills flex-column">
-        {% comment %}
         <li class="nav-item">
           <a class="nav-link"
              href="{% url 'profile-employments' %}"
@@ -539,6 +538,7 @@
              data-toggle="tooltip"
              >{% trans 'Organisation Affiliations' %}</a>
         </li>
+        {% comment %}
         <li class="nav-item">
           <a class="nav-link" href="{% url 'profile-career-stages' %}" id="profile-career-stages">{% trans 'Career Stages' %}</a>
         </li>

@@ -9008,7 +9008,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     template_name = "profile_section.html"
     exclude = ()
     section_views = [
-        # "profile-employments",
+        "profile-employments",
         # "profile-career-stages",
         "profile-external-ids",
         # "profile-cvs",
@@ -9343,7 +9343,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                     "role": TextInput(
                         attrs={"placeholder": _("student, postdoc, etc.")},
                     ),
-                    "type": HiddenInput(),
+                    # "type": HiddenInput(),
                     "person": HiddenInput(),
                     "qualification": HiddenInput(),
                     "start_date": forms.DateInput(),

@@ -217,13 +217,13 @@
           <tr><td colspan="4">
           {% for pub_type, items in publications.order_by("type")|groupby("type") %}
             {% set pt_code_2 = pub_type.code_2 if pub_type else '??' %}
-            <h3>
+            <h3 style="color: initial;">
               {{ _('Publications') }} - {{ pub_type|title }}
             </h3>
             <table stype="width: 100%;">
               <thead>
                 <tr>
-                  <th>Status {{ pub_type }}</th>
+                  <th>Status</th>
                   {% if pt_code_2 in ['BC', 'BK'] %}
                     <th>Chapter Title</th>
                     <th colspan="2">Book Title</th>
