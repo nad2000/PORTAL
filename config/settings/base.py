@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.sites",
     "multisite",
+    # "file_resubmit",
     # "redirects",
     "django.contrib.redirects",
     "django.contrib.messages",
@@ -181,6 +182,7 @@ INSTALLED_APPS = [
     # "autocompletefilter",
     "django_q",
     "constance",
+    "django_tomselect",
 ]
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
@@ -189,6 +191,11 @@ CONSTANCE_CONFIG = {
     "DEFAULT_CV_TEMPLATE_URL": (
         "https://www.royalsociety.org.nz/assets/NZ-RST-CV-Template.docx",
         "NZ RST CV Template URL.",
+        str,
+    ),
+    "CHILD_PROTECTION_POLICY_URL": (
+        "https://www.royalsociety.org.nz/who-we-are/our-rules-and-codes/policy-on-child-protection/child-protection-policy",
+        "Child Protection Policy URL.",
         str,
     ),
 }
@@ -292,8 +299,8 @@ MIDDLEWARE = [
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
+    "django_tomselect.middleware.TomSelectMiddleware",
 ]
-
 
 # STATIC
 # ------------------------------------------------------------------------------
@@ -360,6 +367,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # "dynamic_breadcrumbs.context_processors.breadcrumbs",
                 # "django.template.context_processors.request",
+                "django_tomselect.context_processors.tomselect",
                 "portal.views.portal_context",
             ],
             "debug": DEBUG,
@@ -395,7 +403,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 SESSION_COOKIE_NAME = "portal_sessionid"
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
-CSRF_COOKIE_HTTPONLY = True
+### CSRF_COOKIE_HTTPONLY = True
 # CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
@@ -489,12 +497,14 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # ACCOUNT_AUTHENTICATION_METHOD = "username"
+# ACCOUNT_AUTHENTICATION_METHOD = "username_email"  ## was replaced by ACCOUNT_LOGIN_METHODS in v2.0
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-# ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_ADAPTER = "users.adapters.AccountAdapter"
@@ -520,6 +530,7 @@ REST_FRAMEWORK = {
 # ------------------------------------------------------------------------------
 
 ALLAUTH_SITES_ENABLED = True
+ALLAUTH_TRUSTED_PROXY_COUNT = 1  # Set to 1 or more depending on your setup
 # SOCIALACCOUNT_SITES_ENABLED = True
 SOCIALACCOUNT_STORE_TOKENS = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
@@ -656,3 +667,4 @@ DBTEMPLATES_ADD_DEFAULT_SITE = True
 # DBTEMPLATES_AUTO_POPULATE_CONTENT = True
 DBTEMPLATES_USE_CODEMIRROR = True
 # DBTEMPLATES_USE_TINYMCE = True
+EXPLORER_S3_OBJECT_PARAMETERS = {}

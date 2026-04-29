@@ -1,4 +1,4 @@
-({%- if obj.converted_file -%}
+({%- if obj.converted_file and obj.converted_file.file -%}
 <a href="{{ obj.converted_file.file.url }}" target="_blank">{{ obj.converted_file.file.name|basename }}</a>{% if obj.converted_file.page_count %}, {{ obj.converted_file.page_count }} page{% if obj.converted_file.page_count > 1 %}s{% endif %}{% endif %}
 {%- else -%}<span class="text-muted sall">{{ _('No converted file available') }}</span>{% endif -%}<button
     type="button"
