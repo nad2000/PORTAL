@@ -407,6 +407,9 @@ class UnaccentMixin:
 
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
+
+    autocomplete_fields = ["user"]
+
     list_filter = [
         "event_type",
         ("content_type", admin.RelatedOnlyFieldListFilter),
