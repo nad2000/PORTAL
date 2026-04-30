@@ -7394,7 +7394,8 @@ class Scheme(Model):
         Category, on_delete=SET_NULL, blank=True, null=True, db_column="category"
     )
     current_round = OneToOneField(
-        "Round", blank=True, null=True, on_delete=SET_NULL, related_name="+"
+        "Round", blank=True, null=True, on_delete=SET_NULL, related_name="+",
+        # limit_choices_to=Q(scheme_id=OuterRef("pk"))
     )
 
     def natural_key(self):
