@@ -7395,7 +7395,7 @@ class Scheme(Model):
     )
     current_round = OneToOneField(
         "Round", blank=True, null=True, on_delete=SET_NULL, related_name="+",
-        # limit_choices_to=Q(scheme_id=OuterRef("pk"))
+        # limit_choices_to=lambda: Q(scheme_id=OuterRef("pk"))
     )
 
     def natural_key(self):

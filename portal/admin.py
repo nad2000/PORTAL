@@ -407,7 +407,6 @@ class UnaccentMixin:
 
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
-
     autocomplete_fields = ["user"]
 
     list_filter = [
@@ -2213,10 +2212,13 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(f"""<a
+            links = ", ".join(
+                f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>""" for c in contracts)
+            {c.number}</a>"""
+                for c in contracts
+            )
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -2644,7 +2646,6 @@ class RefereeAdmin(
                 r.invite_to_survey(request=request)
                 count += 1
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
-
 
     @admin.action(description="Invite members")
     def invite_members(self, request, queryset, *args, **kwargs):
@@ -3533,7 +3534,20 @@ class SchemeAdmin(
     resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
-    autocomplete_fields = ["fund", "current_round"]
+    autocomplete_fields = [
+        "fund",
+    ]
+    # autocomplete_fields = ["fund", "current_round"]
+
+    def get_form(self, request, obj=None, **kwargs):
+        # Store the current object instance on the request
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["current_round"].queryset = (
+            models.Round.where(scheme=obj).order_by("-pk")[:5]
+            if obj
+            else models.Round.objects.none()
+        )
+        return form
 
     # def formfield_for_foreignkey(self, db_field, request, **kwargs):
     #     # if db_field.name == "document_type":
