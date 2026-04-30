@@ -3535,6 +3535,19 @@ class SchemeAdmin(
     actions = ["create_new_round"]
     autocomplete_fields = ["fund", "current_round"]
 
+    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    #     # if db_field.name == "document_type":
+    #     #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+    #     if db_field.name == "current_round":
+    #         if (m := re.search(r"contractdocument/(\d+)/change", request.path)) and (
+    #             document_id := m.group(1)
+    #         ):
+    #             kwargs["queryset"] = models.RequiredContractDocument.where(
+    #                 Q(documents__pk=document_id)
+    #                 | Q(round__applications__contracts__documents__pk=document_id)
+    #             ).distinct()
+    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
         new_rounds = []
