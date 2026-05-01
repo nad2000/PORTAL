@@ -407,7 +407,6 @@ class UnaccentMixin:
 
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
 
-
     autocomplete_fields = ["user"]
 
     list_filter = [
@@ -2645,7 +2644,6 @@ class RefereeAdmin(
                 count += 1
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
 
-
     @admin.action(description="Invite members")
     def invite_members(self, request, queryset, *args, **kwargs):
         applications = models.Application.where(members__in=queryset)
@@ -2993,7 +2991,8 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             None,
             {
                 "fields": [
-                    ("code", "name", "is_active"),
+                    ("code", "name"),
+                    ("is_active", "is_verified", "is_approved_host"),
                     ("identifier_type", "identifier"),
                     ("legal_name", "alt_name"),
                 ],
@@ -3239,9 +3238,39 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                                 manager = getattr(model, "all_objects", model._default_manager)
                                 manager.bulk_update(objects, [field])
 
+                        target_updated = False
                         for o in orgs:
                             if not target.alternative_names.filter(name=o.name).exists():
                                 models.OrgName.create(org=target, name=o.name)
+                            for field in target._meta.fields:
+                                field_name = field.name
+                                if field_name in [
+                                    "id",
+                                    "code",
+                                    "name",
+                                    "created_at",
+                                    "updated_at",
+                                ]:
+                                    continue
+                                if (v := getattr(o, field_name)) and not getattr(
+                                    target, field_name
+                                ):
+                                    setattr(o, field_name, v)
+                                    target_updated = True
+
+                        if target_updated:
+                            target._change_reason = (
+                                "Organisation updated with non-conflicting information "
+                                f"from merged organisations by {u}"
+                            )
+                            target.save()
+                            messages.info(
+                                request,
+                                f"Organisation {target} updated with non-conflicting "
+                                "information from merged organisations. "
+                                "Please review the changes and save the organisation to update the record.",
+                            )
+
                         if keep:
                             for o in orgs:
                                 o.is_active = False

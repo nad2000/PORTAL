@@ -352,6 +352,46 @@
           </td></tr>
         {% endif %}
 
+        <!-- Collaboration -->
+        {% set Collaborations = r.Collaborations %}
+        {% if Collaborations.count() and  user.is_superuser %}
+          <tr><td colspan="4">
+          <h3>
+            {{ _('Collaboration(s)' }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead> <tr><td colspan="4">
+              <tr>
+    fields = ["full_name", "organisation", "country", "description", "start_date", "report"]
+                <th>Organisation</th>
+                <th>Country</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in publicities.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ p.type or '-' }}</td>
+                  <td>{{ p.description or '-' }}</td>
+                  <td>
+                    {% if p.start_date and p.end_date %}
+                      {{ p.start_date }} - {{ p.end_date }}
+                    {% elif p.start_date %}
+                      {{ p.start_date }}
+                    {% elif p.end_date %}
+                      {{ p.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+
     </tbody>
   </table>
 

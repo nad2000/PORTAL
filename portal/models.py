@@ -1549,6 +1549,8 @@ class Organisation(Model):
     identifier = CharField(max_length=24, null=True, blank=True)
     code = CharField(max_length=10, blank=True, default="", unique=True)
     is_active = BooleanField(default=True)
+    is_verified = BooleanField(default=False, help_text=_("The organisation details have been verified"))
+    is_approved_host = BooleanField(default=False, help_text=_("The organisation is an approved host institution"))
 
     legal_name = CharField(max_length=255, blank=True, null=True)
     alt_name = CharField(max_length=100, blank=True, null=True)

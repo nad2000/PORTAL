@@ -13697,13 +13697,14 @@ class ReportedPublicityCreateView(ReportedPublicityViewMixin, CreateView):
 class ReportedCollaborationViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedCollaboration
-    fields = ["full_name", "organisation", "country", "description", "report"]
+    fields = ["full_name", "organisation", "country", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
         form.fields["description"].label = _("Nature of Collaboration")
         form.fields["full_name"].label = _("Collaborator")
         form.fields["organisation"].label = _("Institution")
+        form.fields["start_date"].label = _("Date")
         return form
 
 
