@@ -2409,7 +2409,8 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_""" + get_language(),
+            ORDER BY description_"""
+            + get_language(),
             [person.pk],
         )
 
@@ -7396,7 +7397,12 @@ class Scheme(Model):
         Category, on_delete=SET_NULL, blank=True, null=True, db_column="category"
     )
     current_round = OneToOneField(
-        "Round", blank=True, null=True, on_delete=SET_NULL, related_name="+"
+        "Round",
+        blank=True,
+        null=True,
+        on_delete=SET_NULL,
+        related_name="+",
+        # limit_choices_to=lambda: Q(scheme_id=OuterRef("pk"))
     )
 
     def natural_key(self):
@@ -7516,13 +7522,16 @@ def notify_site_staff_about_new_organisations():
         site = Site.objects.get(pk=site_id)
         g = list(g)
         if g:
-            org_list = "".join(f"""<li>
+            org_list = "".join(
+                f"""<li>
                 <a
                     href="https://{site.domain}{reverse("admin:portal_organisation_change", args=[o.pk])}"
                     target="_blank"
                 >{o}</a>
                 (created at {o.created_at.strftime('%Y-%m-%d %H:%M')},
-                by {o.history.filter(history_type="+").first().history_user})</li>""" for o in g)
+                by {o.history.filter(history_type="+").first().history_user})</li>"""
+                for o in g
+            )
         subject = f"New Organization(s) created"
         html_message = f"""<p>Kia ora!</p><p>A new organization(s) has been created in the last week:
         <ul>{org_list}</ul></p>
@@ -8965,8 +8974,12 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         # for a in r.applications.all().order_by("number"):
         applications = (
             r.applications.filter(state__in=["accepted", "in_review"])
-            if site_id in [2, 4, 5]
-            else r.applications.filter(state__in=["submitted", "approved"])
+            if site_id in [4, 5]
+            else (
+                r.applications.filter(state="approved")
+                if site_id == 2
+                else r.applications.filter(state__in=["submitted", "approved"])
+            )
         ).order_by("number")
 
         tz = (r.created_at or r.updated_at).tzinfo  # timezone.get_current_timezone()
@@ -14470,7 +14483,7 @@ class ReportedFunding(ReportedFundingMixin, Model):
     report = ForeignKey(
         Report,
         on_delete=CASCADE,
-        related_name="fundings",
+        related_name="funding",
     )
     # state = StateField(default="new", verbose_name=_("status"))
     status = FixedCharField(

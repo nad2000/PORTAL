@@ -2212,10 +2212,13 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(f"""<a
+            links = ", ".join(
+                f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>""" for c in contracts)
+            {c.number}</a>"""
+                for c in contracts
+            )
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -3562,7 +3565,33 @@ class SchemeAdmin(
     resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
-    autocomplete_fields = ["fund", "current_round"]
+    autocomplete_fields = [
+        "fund",
+    ]
+    # autocomplete_fields = ["fund", "current_round"]
+
+    def get_form(self, request, obj=None, **kwargs):
+        # Store the current object instance on the request
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["current_round"].queryset = (
+            models.Round.where(scheme=obj).order_by("-pk")[:5]
+            if obj
+            else models.Round.objects.none()
+        )
+        return form
+
+    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    #     # if db_field.name == "document_type":
+    #     #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+    #     if db_field.name == "current_round":
+    #         if (m := re.search(r"contractdocument/(\d+)/change", request.path)) and (
+    #             document_id := m.group(1)
+    #         ):
+    #             kwargs["queryset"] = models.RequiredContractDocument.where(
+    #                 Q(documents__pk=document_id)
+    #                 | Q(round__applications__contracts__documents__pk=document_id)
+    #             ).distinct()
+    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):

@@ -317,12 +317,13 @@
         <!-- Reported publicity -->
         {% set publicities = r.publicities %}
         {% if publicities.count() and  user.is_superuser %}
-          <tr><td colspan="4">
-          <h3>
+          <tr>
+          <td colspan="4">
+          <h3 style="color: initial;">
             {{ _('Publicity') }}
           </h3>
           <table stype="width: 100%;">
-            <thead> <tr><td colspan="4">
+            <thead>
               <tr>
                 <th>Activity</th>
                 <th>Details</th>
@@ -345,6 +346,40 @@
                       -
                     {% endif %}
                   </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Additional Funding -->
+        {% set funding = r.funding %}
+        {% if funding.count() and  user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial;">
+            {{ _('Additional Funding') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Details</th>
+                <th>Type</th>
+                <th>Region</th>
+                <th>Amount</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in funding.order_by("title") %}
+                <tr>
+                  <td>{{ f.title or f.description }}</td>
+                  <td>{{ f.get_type_display() or '-' }}</td>
+                  <td>???</td>
+                  <td style="text-align: right;">
+                    {{ f.amount }} {{ f.currency and f.currency.code or '' }}
+                  </td>
+                  <td>???</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -390,7 +425,6 @@
           </table>
           </td></tr>
         {% endif %}
-
 
     </tbody>
   </table>
