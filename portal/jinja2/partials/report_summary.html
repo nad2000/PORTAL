@@ -212,12 +212,122 @@
 
       {% if export %}
       {% endif %}
+        <!-- Personnel -->
+        {% set efforts = r.efforts %}
+        {% if efforts.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Personnel') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>FTE Funded</th>
+                <th>FTE Actual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in efforts.order_by("full_name") %}
+                <tr>
+                  <td>{{ e.full_name or e.person or e.member and e.member.member or '-' }}</td>
+                  <td>{{ e.role or '-' }}</td>
+                  <td>{{ e.fte or '-' }}</td>
+                  <td>{{ e.total_fte or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Keywords -->
+        {% set keywords = r.keywords %}
+        {% if keywords.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Keywords') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Keyword</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for k in keywords.order_by("name") %}
+                <tr>
+                  <td>{{ k.name }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Fields of Research -->
+        {% set report_fors = r.report_fors %}
+        {% if report_fors.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Fields of Research') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rf in report_fors.order_by("code_id") %}
+                <tr>
+                  <td>{{ rf.code.code or '-' }}</td>
+                  <td>{{ rf.code.description or '-' }}</td>
+                  <td>{{ rf.share or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Socio-Economic Objectives -->
+        {% set report_seos = r.report_seos %}
+        {% if report_seos.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Socio-Economic Objectives') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rs in report_seos.order_by("code_id") %}
+                <tr>
+                  <td>{{ rs.code.code or '-' }}</td>
+                  <td>{{ rs.code.description or '-' }}</td>
+                  <td>{{ rs.share or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
         {% set publications = r.publications %}
         {% if publications.count() and  user.is_superuser %}
           <tr><td colspan="4">
           {% for pub_type, items in publications.order_by("type")|groupby("type") %}
             {% set pt_code_2 = pub_type.code_2 if pub_type else '??' %}
-            <h3 style="color: initial;">
+            <h3 style="color: initial; text-align: left;">
               {{ _('Publications') }} - {{ pub_type|title }}
             </h3>
             <table stype="width: 100%;">
@@ -314,18 +424,18 @@
           </td></tr>
         {% endif %}
 
-        <!-- Reported publicity -->
+        <!-- Reported Publicity -->
         {% set publicities = r.publicities %}
-        {% if publicities.count() and  user.is_superuser %}
-          <tr>
-          <td colspan="4">
-          <h3 style="color: initial;">
+        {% if publicities.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
             {{ _('Publicity') }}
           </h3>
           <table stype="width: 100%;">
             <thead>
               <tr>
-                <th>Activity</th>
+                <th>Type</th>
+                <th>Organisation</th>
                 <th>Details</th>
                 <th>Date</th>
               </tr>
@@ -334,6 +444,7 @@
               {% for p in publicities.order_by("start_date", "end_date") %}
                 <tr>
                   <td>{{ p.type or '-' }}</td>
+                  <td>{{ p.organisation or '-' }}</td>
                   <td>{{ p.description or '-' }}</td>
                   <td>
                     {% if p.start_date and p.end_date %}
@@ -353,33 +464,49 @@
           </td></tr>
         {% endif %}
 
-        <!-- Additional Funding -->
+        <!-- Reported Funding -->
         {% set funding = r.funding %}
-        {% if funding.count() and  user.is_superuser %}
+        {% if funding.count() and user.is_superuser %}
           <tr><td colspan="4">
-          <h3 style="color: initial;">
+          <h3 style="color: initial; text-align: left;">
             {{ _('Additional Funding') }}
           </h3>
           <table stype="width: 100%;">
             <thead>
               <tr>
-                <th>Details</th>
-                <th>Type</th>
-                <th>Region</th>
+                <th>Project</th>
+                <th>Funding Type</th>
+                <th>Agency</th>
                 <th>Amount</th>
-                <th>Result</th>
+                <th>Status</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
-              {% for f in funding.order_by("title") %}
+              {% for f in funding.order_by("start_date", "end_date", "title") %}
                 <tr>
-                  <td>{{ f.title or f.description }}</td>
+                  <td>{{ f.title or f.description or '-' }}</td>
                   <td>{{ f.get_type_display() or '-' }}</td>
-                  <td>???</td>
+                  <td>{{ f.agency_name or f.agency or '-' }}</td>
                   <td style="text-align: right;">
-                    {{ f.amount }} {{ f.currency and f.currency.code or '' }}
+                    {% if f.amount %}
+                      {{ f.amount }} {{ f.currency and f.currency.code or '' }}
+                    {% else %}
+                      -
+                    {% endif %}
                   </td>
-                  <td>???</td>
+                  <td>{{ f.get_status_display() or '-' }}</td>
+                  <td>
+                    {% if f.start_date and f.end_date %}
+                      {{ f.start_date }} - {{ f.end_date }}
+                    {% elif f.start_date %}
+                      {{ f.start_date }}
+                    {% elif f.end_date %}
+                      {{ f.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -387,34 +514,163 @@
           </td></tr>
         {% endif %}
 
-        <!-- Collaboration -->
-        {% set Collaborations = r.Collaborations %}
-        {% if Collaborations.count() and  user.is_superuser %}
+        <!-- Reported Collaborations -->
+        {% set collaborations = r.collaborations %}
+        {% if collaborations.count() and user.is_superuser %}
           <tr><td colspan="4">
-          <h3>
-            {{ _('Collaboration(s)' }}
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Collaborations') }}
           </h3>
           <table stype="width: 100%;">
-            <thead> <tr><td colspan="4">
+            <thead>
               <tr>
-    fields = ["full_name", "organisation", "country", "description", "start_date", "report"]
+                <th>Collaborator</th>
                 <th>Organisation</th>
                 <th>Country</th>
+                <th>Details</th>
                 <th>Date</th>
               </tr>
             </thead>
             <tbody>
-              {% for p in publicities.order_by("start_date", "end_date") %}
+              {% for c in collaborations.order_by("start_date", "end_date") %}
                 <tr>
-                  <td>{{ p.type or '-' }}</td>
-                  <td>{{ p.description or '-' }}</td>
+                  <td>{{ c.full_name or '-' }}</td>
+                  <td>{{ c.organisation or '-' }}</td>
+                  <td>{{ c.country or '-' }}</td>
+                  <td>{{ c.description or '-' }}</td>
                   <td>
-                    {% if p.start_date and p.end_date %}
-                      {{ p.start_date }} - {{ p.end_date }}
-                    {% elif p.start_date %}
-                      {{ p.start_date }}
-                    {% elif p.end_date %}
-                      {{ p.end_date }}
+                    {% if c.start_date and c.end_date %}
+                      {{ c.start_date }} - {{ c.end_date }}
+                    {% elif c.start_date %}
+                      {{ c.start_date }}
+                    {% elif c.end_date %}
+                      {{ c.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Visits -->
+        {% set visits = r.visits %}
+        {% if visits.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Visits') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Host</th>
+                <th>Organisation</th>
+                <th>Country</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in visits.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ v.member or '-' }}</td>
+                  <td>{{ v.full_name or '-' }}</td>
+                  <td>{{ v.organisation or '-' }}</td>
+                  <td>{{ v.country or '-' }}</td>
+                  <td>{{ v.description or '-' }}</td>
+                  <td>
+                    {% if v.start_date and v.end_date %}
+                      {{ v.start_date }} - {{ v.end_date }}
+                    {% elif v.start_date %}
+                      {{ v.start_date }}
+                    {% elif v.end_date %}
+                      {{ v.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Hosted Visits -->
+        {% set hosted_visits = r.hosted_visits %}
+        {% if hosted_visits.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Hosted Visits') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Visitor</th>
+                <th>Organisation</th>
+                <th>Country</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for hv in hosted_visits.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ hv.visitor or '-' }}</td>
+                  <td>{{ hv.organisation or '-' }}</td>
+                  <td>{{ hv.country or '-' }}</td>
+                  <td>{{ hv.description or '-' }}</td>
+                  <td>
+                    {% if hv.start_date and hv.end_date %}
+                      {{ hv.start_date }} - {{ hv.end_date }}
+                    {% elif hv.start_date %}
+                      {{ hv.start_date }}
+                    {% elif hv.end_date %}
+                      {{ hv.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Awards -->
+        {% set awards = r.awards %}
+        {% if awards.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Awards') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for aw in awards.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ aw.member or '-' }}</td>
+                  <td>{{ aw.type or '-' }}</td>
+                  <td>{{ aw.description or '-' }}</td>
+                  <td>
+                    {% if aw.start_date and aw.end_date %}
+                      {{ aw.start_date }} - {{ aw.end_date }}
+                    {% elif aw.start_date %}
+                      {{ aw.start_date }}
+                    {% elif aw.end_date %}
+                      {{ aw.end_date }}
                     {% else %}
                       -
                     {% endif %}

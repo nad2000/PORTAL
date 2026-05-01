@@ -70,7 +70,7 @@
         hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
         hx-on:htmx:after-request="delete_closest_table_row(this, event)"
-        hx-confirm="{{ _('Do you wish to deleted the publicity record "%s"?') % o }}"
+        hx-confirm="{% trans o=o %}Do you wish to deleted the publicity record "{{ o }}"?{% endtrans %}"
       >
         <i class="fa fa-times" style="width: 12px;"></i>
       </button>
@@ -113,7 +113,7 @@
         hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
         hx-on:htmx:after-request="delete_closest_table_row(this, event)"
-        hx-confirm="{{ _('Do you wish to deleted the hosted visit record "%s"?') % o }}"
+        hx-confirm="{% trans o=o %}Do you wish to deleted the publicity record "{{ o }}"?{% endtrans %}"
       >
         <i class="fa fa-times" style="width: 12px;"></i>
       </button>
@@ -156,7 +156,7 @@
         hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
         hx-on:htmx:after-request="delete_closest_table_row(this, event)"
-        hx-confirm="{{ _('Do you wish to deleted the visit record "%s"?') % o }}"
+        hx-confirm="{% trans o=o %}Do you wish to deleted the publicity record "{{ o }}"?{% endtrans %}"
       >
         <i class="fa fa-times" style="width: 12px;"></i>
       </button>
@@ -200,7 +200,7 @@
         hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
         hx-on:htmx:after-request="delete_closest_table_row(this, event)"
-        hx-confirm="{{ _('Do you wish to deleted the award record "%s"?') % a }}"
+        hx-confirm="{% trans o=o %}Do you wish to deleted the publicity record "{{ a }}"?{% endtrans %}"
       >
         <i class="fa fa-times" style="width: 12px;"></i>
       </button>

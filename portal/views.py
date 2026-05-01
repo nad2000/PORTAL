@@ -1862,7 +1862,7 @@ def round_required_documents(request, round):
     templates = {
         k: list(g)
         for k, g in groupby(
-            round.templates.all().order_by("document_type"), lambda r: r.document_type
+            round.templates.all().order_by("required_document"), lambda r: r.required_document
         )
     }
 
@@ -13624,7 +13624,7 @@ class ReportedActivityViewMixin:
 class ReportedAwardViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedAward
-    fields = ["member", "description", "report"]
+    fields = ["member", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -13633,6 +13633,8 @@ class ReportedAwardViewMixin(ReportedActivityViewMixin):
         form.fields["member"].required = True
         form.fields["description"].label = _("Award")
         form.fields["description"].required = True
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         # form.helper = FormHelper()
 
         # if self.request.GET.get("_modal_dialog"):
@@ -13721,7 +13723,7 @@ class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView
 class ReportedVisitViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedVisit
-    fields = ["member", "full_name", "organisation", "country", "description", "report"]
+    fields = ["member", "full_name", "organisation", "country", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -13733,6 +13735,8 @@ class ReportedVisitViewMixin(ReportedActivityViewMixin):
         form.fields["full_name"].label = _("Host")
         form.fields["organisation"].label = _("Institution")
         form.fields["organisation"].required = True
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         return form
 
 
@@ -13747,7 +13751,7 @@ class ReportedVisitCreateView(ReportedVisitViewMixin, CreateView):
 class ReportedHostedVisitViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedHostedVisit
-    fields = ["organisation", "country", "visitor", "description", "report"]
+    fields = ["organisation", "country", "visitor", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -13756,6 +13760,8 @@ class ReportedHostedVisitViewMixin(ReportedActivityViewMixin):
         form.fields["description"].label = _("Purpose")
         form.fields["description"].required = True
         form.fields["organisation"].label = _("External Institution")
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         return form
 
 

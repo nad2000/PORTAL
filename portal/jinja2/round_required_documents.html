@@ -49,7 +49,7 @@
                     </td>
                     <td>
                         <ul>
-                            {% for t in templates.get(d.document_type, []) %}
+                            {% for t in templates.get(d, []) %}
                             <li><a href="{{ t.file.url }}" target="_blank">{{ t.file.path|basename }}</a></li>
                             {% endfor %}
                         </ul>
