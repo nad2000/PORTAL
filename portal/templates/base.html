@@ -203,10 +203,10 @@ table.table .asteriskField,.popover-header {color: gray;}
 
           {% if not user.is_authenticated %}{% include 'header.html' %}{% endif %}
 
-          <nav class="navbar navbar-expand-md navbar-dark bg-primary">
+          <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container-fluid">
 
-            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -217,7 +217,7 @@ table.table .asteriskField,.popover-header {color: gray;}
               alt="The Prime Minister's Science Prizes">
               </a -->
 
-              <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <div class="collapse navbar-collapse" id="navbar-content">
 
                 <ul class="navbar-nav mr-auto">
                   {% if user.is_authenticated %}
@@ -227,7 +227,14 @@ table.table .asteriskField,.popover-header {color: gray;}
                         <i class="fa fa-fw fa-home"></i> {% trans 'Home' %}<span class="sr-only">(current)</span>
                       </a>
                     </li>
-                    {% if is_ro %}
+
+                  <li class="nav-item d-block d-lg-none" id="application_nav_item">
+                    <a class="nav-link" href="{% url 'applications' %}">
+                      <i class="fa fa-fw fa-building"></i> {% trans 'Applications' %} <span class="badge badge-primary{% if category == "applications" %} bg-secondary{% endif %}">{{ application_count }}</span>
+                    </a>
+                  </li>
+
+                    {% if is_ro or is_admin %}
                       <li class="nav-item" id="contracts">
                         <a class="nav-link" href="{% url 'contract-list' %}">
                           <i class="fa fa-fw fa-file-contract"></i> {% trans 'Contracting' %}<!-- span class="sr-only">(current)</span -->
@@ -276,31 +283,31 @@ table.table .asteriskField,.popover-header {color: gray;}
                           <i class="fas fa-radiation"></i> {% trans "Admin" %}</a>
                       </li>
                       {#% if user.is_superuser or user.is_site_staff %#}
-                        <li class="nav-item" id="explorer_index">
+                        <li class="nav-item d-none d-md-block" id="explorer_index">
                           <a id="admin-link" class="nav-link" href="{% url 'explorer_index' %}">
                             <i class="fas fa-database"></i> {% trans "DB Explorer" %}</a>
                         </li>
                       {#% endif %#}
                       {% if LIMESURVEY_ADMIN_URL %}
-                        <li class="nav-item" id="limesurvey-admin_id">
+                        <li class="nav-item d-none d-md-block" id="limesurvey-admin_id">
                           <a id="limesurvey-admin-link" class="nav-link" href="{{ LIMESURVEY_ADMIN_URL }}">
                             <img src="{% static 'images/limesurvey.png' %}" width="19" height="19" class="d-inline-block align-top" alt="LimeSurvey"> {% trans "LimeSurvey" %}
                           </a>
                         </li>
                       {% endif %}
-                      <li class="nav-item" id="invitation-create">
+                      <li class="nav-item d-none d-md-block" id="invitation-create">
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'invitation-create' %}">
                           <i class="fas fa-paper-plane"></i> {% trans "Invite to join" %}
                         </a>
                       </li>
-                      <li class="nav-item" id="tags">
+                      <li class="nav-item d-none d-md-block" id="tags">
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'tags' %}">
                           <i class="fas fa-tags"></i> {% trans "Tags" %}
                         </a>
                       </li>
-                      <li class="nav-item" id="stared">
+                      <li class="nav-item d-none d-md-block" id="stared">
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'stared' %}">
                           <i class="fas fa-star" aria-hidden="true"></i> {% trans "Favorites" %}
@@ -309,6 +316,7 @@ table.table .asteriskField,.popover-header {color: gray;}
                     {% endif %}
                     {% endcache %}
                   {% endif %}
+
                 </ul>
 
                 <ul class="navbar-nav ml-auto">
@@ -663,7 +671,7 @@ You have a request to review a {{ site_name }} application to act on.
           <div class="row">
             {% if user.is_authenticated and sidebar != "off" %}
               <!-- div class="col-md-3 d-none d-md-block" style="max-width: 18rem;" -->
-              <div class="col-sm-auto d-none d-md-block" style="max-width: 18rem;">
+              <div class="col-sm-auto d-none d-lg-block" style="max-width: 18rem;">
                 {% block sidebar %}{% include 'sidebar.html' %}{% endblock sidebar %}
               </div>
             {% endif %}
