@@ -1499,7 +1499,7 @@ class ExportView(UserPassesTestMixin, DetailView):
         user = request.user
         current_ts = timezone.now()
         format = request.GET.get("format", "pdf").lower()
-        if not filename and not format:
+        if not filename and not (format and format == "pdf"):
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
@@ -1579,15 +1579,44 @@ class ExportView(UserPassesTestMixin, DetailView):
 
                 if summary_template:
 
+                    summary_page_html = summary_template.render(locals())
                     if format == "html":
-                        summary_page_html = summary_template.render(locals())
                         return HttpResponse(summary_page_html, content_type="text/html")
                     append_attachments(merger, attachments)
-                    summary_page_html = summary_template.render(locals())
                     html = HTML(string=summary_page_html)
                     pdf_object = html.write_pdf(presentational_hints=True)
                     pdf_stream = io.BytesIO(pdf_object)
-                    merger.append(pdf_stream)
+                    if self.model is models.Report:
+                        summary = PdfReader(pdf_stream)
+                        template = get_template("reports/page.html")
+                        for pn, dp in enumerate(summary.pages):
+                            box = dp.mediabox
+                            if box.height and box.width:
+                                width = int(round(box.width * 0.35277777777777775, 0))  # 2.54/72
+                                height = int(round(box.height * 0.35277777777777775, 0))  # 2.54/72
+                            else:  # A4 (portrait)
+                                width = 210
+                                height = 297
+                            page_no = pn + 1
+                            html = HTML(
+                                string=template.render(
+                                    {
+                                        # "page_count": page_count,
+                                        "page_no": page_no,
+                                        "report": o,
+                                        "object": o,
+                                        "contract": o.contract,
+                                        # "header": headers.get(page_no),
+                                        "width": width,
+                                        "height": height,
+                                    }
+                                )
+                            )
+                            reader = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
+                            dp.merge_page(reader.pages[0])
+                            merger.add_page(dp)
+                    else:
+                        merger.append(pdf_stream)
 
                 else:
                     html = HTML(string=template.render(locals()))

@@ -482,6 +482,11 @@ def report_contract_link(table, record, value):
     return f'{reverse("contract-create")}?report_id={record.pk}'
 
 
+def report_export_link(table, record, value):
+    breakpoint()
+    return record.export_url
+
+
 class ReportTable(Table):
     state = StateColumn(verbose_name=_("Status"))
     # number = tables.Column(linkify=report_link)
@@ -498,10 +503,15 @@ class ReportTable(Table):
         ),
         text=lambda record: record.contract.number,
     )
-    export = tables.LinkColumn(
-        "report-export",
-        args=[tables.A("pk")],
-        text=gettext_lazy("Export"),
+    export = tables.TemplateColumn(
+        verbose_name=gettext_lazy("Export"),
+        template_code="""{% load i18n %}<a
+            href="{{ record.export_url }}"
+            class="btn btn-primary btn-sm"
+            target="_blank"
+            data-toggle="tooltip"
+            title="{% trans 'Export the report into a consolidated PDF file' %}"
+        >{% trans 'Export' %}</a>""",
         orderable=False,
         attrs={
             "a": {
@@ -513,6 +523,39 @@ class ReportTable(Table):
             "td": {"class": "text-center"},
         },
     )
+    # export_button = tables.Column(
+    #     verbose_name=gettext_lazy("Export"),
+    #     # accessor=tables.A("export_url"),
+    #     # linkify=lambda record: record.export_url,
+    #     empty_values=(),
+    #     # verbose_name=gettext_lazy("Export"),
+    #     # orderable=False,
+    #     # attrs={
+    #     #     "a": {
+    #     #         "class": "btn btn-primary btn-sm",
+    #     #         "target": "_blank",
+    #     #         "data-toggle": "tooltip",
+    #     #         "title": gettext_lazy("Export the report into a consolidated PDF file"),
+    #     #     },
+    #     #     "td": {"class": "text-center"},
+    #     # },
+    # )
+    # export = tables.LinkColumn(
+    #     lambda record: record.export_url or None,
+    #     # "report-export",
+    #     # args=[tables.A("pk")],
+    #     text=gettext_lazy("Export"),
+    #     orderable=False,
+    #     attrs={
+    #         "a": {
+    #             "class": "btn btn-primary btn-sm",
+    #             "target": "_blank",
+    #             "data-toggle": "tooltip",
+    #             "title": gettext_lazy("Export the report into a consolidated PDF file"),
+    #         },
+    #         "td": {"class": "text-center"},
+    #     },
+    # )
     pi = tables.Column(
         gettext_lazy("Contract PI"),
         tables.A("pi__full_name_with_email"),
@@ -569,6 +612,7 @@ class ReportTable(Table):
             # "period",
             "type",
             "due_date",
+            "export",
         )
 
 
