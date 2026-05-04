@@ -11369,7 +11369,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
 
     def __str__(self):
         # return f"{self.number}: {self.project_title or self.application.application_title or self.application.round.title}"
-        return f"{self.number}: {self.pi or self.project_title or self.application.application_title or self.application.round.title}"
+        pi_member = self.pi_member
+        return f"{self.number}: {pi_member and pi_member.full_name or self.project_title or self.application.application_title or self.application.round.title}"
 
     @property
     def research_officers(self):
