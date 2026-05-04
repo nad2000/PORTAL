@@ -39,17 +39,17 @@
                 </tr>
                 {% endif %#}
 
-                {% for d in required_documents %}
+                {% for rd in required_documents %}
                 <tr>
                     <td>
-                        {{ d }}
+                        {{ rd }}
                     </td>
                     <td style="text-align: center;">
-                        {% if d.is_optional %}<i class="fa fa-check text-success text-center"></i>{% endif %}
+                        {% if rd.is_optional %}<i class="fa fa-check text-success text-center"></i>{% endif %}
                     </td>
                     <td>
                         <ul>
-                            {% for t in templates.get(d, []) %}
+                            {% for t in templates.get(rd, []) %}
                             <li><a href="{{ t.file.url }}" target="_blank">{{ t.file.path|basename }}</a></li>
                             {% endfor %}
                         </ul>

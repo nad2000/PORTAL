@@ -1886,15 +1886,14 @@ def round_detail(request, round):
 
 def round_required_documents(request, round):
 
-    round = get_object_or_404(models.Round, id=round)
+    round = get_object_or_404(models.Round, pk=round)
     required_documents = round.required_documents.order_by("ordering")
     templates = {
         k: list(g)
         for k, g in groupby(
-            round.templates.all().order_by("required_document"), lambda r: r.required_document
+            round.templates.all().order_by("required_document__ordering", "required_document"), lambda r: r.required_document
         )
     }
-
     return render(request, "round_required_documents.html", locals())
 
 

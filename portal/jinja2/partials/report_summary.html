@@ -245,25 +245,14 @@
         <!-- Keywords -->
         {% set keywords = r.keywords %}
         {% if keywords.count() and user.is_superuser %}
-          <tr><td colspan="4">
-          <h3 style="color: initial; text-align: left;">
-            {{ _('Keywords') }}
-          </h3>
-          <table stype="width: 100%;">
-            <thead>
-              <tr>
-                <th>Keyword</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for k in keywords.order_by("name") %}
-                <tr>
-                  <td>{{ k.name }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          </td></tr>
+          <tr>
+            <td colspan="4">
+            <h3 style="color: initial; text-align: left;">{{ _('Keywords') }}</h3>
+            {% for k in keywords.order_by("name") %}
+              {% if not loop.first %}, {% endif %}{{ k.name }}
+            {% endfor %}
+            </td>
+          </tr>
         {% endif %}
 
         <!-- Fields of Research -->
@@ -324,7 +313,8 @@
 
         {% set publications = r.publications %}
         {% if publications.count() and user.is_superuser %}
-          <tr><td colspan="4">
+          <tr>
+            <td colspan="4">
               {% for pub_type, items in publications.order_by("type")|sorted_groupby("type") %}
             {% set pt_code_2 = pub_type.code_2 if pub_type else '??' %}
             <h3 style="color: initial; text-align: left;">

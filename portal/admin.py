@@ -4387,6 +4387,18 @@ class RoundAdmin(
         view_on_site = False
         exclude = ["document_type"]
 
+        def get_form(self, request, obj=None, **kwargs):
+            # Store the current object instance on the request
+            form = super().get_form(request, obj, **kwargs)
+            breakpoint()
+            # form.base_fields["current_round"].queryset = (
+            #     models.Round.where(scheme=obj).order_by("-pk")[:5]
+            #     if obj
+            #     else models.Round.objects.none()
+            # )
+            return form
+
+
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
         model = models.Panellist
