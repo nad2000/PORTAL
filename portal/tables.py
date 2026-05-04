@@ -558,7 +558,7 @@ class ReportTable(Table):
     # )
     pi = tables.Column(
         gettext_lazy("Contract PI"),
-        tables.A("pi__full_name_with_email"),
+        tables.A("pi__full_name"),
         order_by="contract__members__email",
     )
     due_date = tables.Column(order_by="schedule_entry__due_date")
@@ -600,6 +600,23 @@ class ReportTable(Table):
     #             )
     #         )
     #     return value
+
+    def render_pi(sell, record, value, *args, **kwargs):
+        pi = record.pi
+        orcid = pi.get_orcid()
+        return mark_safe(f"""<span
+    data-toggle="popover"
+    data-html="true"
+    data-placement="left"
+    data-trigger="focus"
+    tabindex="0"
+    title="{gettext_lazy('Contract PI')}"
+    data-content="<b>{gettext_lazy('Email')}:&nbsp</b>{ pi.email }<br/>
+        <b>{gettext_lazy('Username')}:&nbsp</b>{ pi.username }
+        <br/><b>ORCID:&nbsp</b>{ orcid or 'N/A'}
+        </p>"
+    >{value}</span>
+    """)
 
     class Meta(Table.Meta):
         model = models.Report
@@ -946,10 +963,27 @@ class ContractTable(Table):
     # contract_pi = tables.Column(linkify=application_link)
     pi = tables.Column(
         gettext_lazy("Contract PI"),
-        tables.A("pi_member__full_name_with_email"),
-        order_by="members__email",
+        tables.A("pi_member__full_name"),
+        order_by="members__user__name",
     )
     notes = StateColumn()
+
+    def render_pi(sell, record, value, *args, **kwargs):
+        pi = record.pi
+        orcid = pi.get_orcid()
+        return mark_safe(f"""<span
+    data-toggle="popover"
+    data-html="true"
+    data-placement="left"
+    data-trigger="focus"
+    tabindex="0"
+    title="{gettext_lazy('Contract PI')}"
+    data-content="<b>{gettext_lazy('Email')}:&nbsp</b>{ pi.email }<br/>
+        <b>{gettext_lazy('Username')}:&nbsp</b>{ pi.username }
+        <br/><b>ORCID:&nbsp</b>{ orcid or 'N/A'}
+        </p>"
+    >{value}</span>
+    """)
 
     class Meta(Table.Meta):
         model = models.Contract

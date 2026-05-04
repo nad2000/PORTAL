@@ -940,6 +940,14 @@ class Model(HelperMixin, TimeStampModel):
 
 
 class PersonMixin:
+
+    def get_orcid(self):
+        """find user ORCID value."""
+        if orcid := getattr(self, "orcid", None):
+            return orcid
+        if user := self.get_user():
+            return user.get_orcid()
+
     def get_user(self):
         if hasattr(self, "user"):
             return self.user
