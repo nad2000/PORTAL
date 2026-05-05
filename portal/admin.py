@@ -165,17 +165,17 @@ djhacker.formfield(
     ),
 )
 
-djhacker.formfield(
-    models.RoundDocumentTemplate.required_document,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(
-        url="required-document-autocomplete",
-        forward=[
-            dal.forward.Field("scheme", "scheme"),
-            dal.forward.Field("round", "round"),
-        ],
-    ),
-)
+# djhacker.formfield(
+#     models.RoundDocumentTemplate.required_document,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(
+#         url="required-document-autocomplete",
+#         forward=[
+#             dal.forward.Field("scheme", "scheme"),
+#             dal.forward.Field("round", "round"),
+#         ],
+#     ),
+# )
 
 djhacker.formfield(
     models.Report.schedule_entry,
@@ -4385,19 +4385,18 @@ class RoundAdmin(
         model = models.RoundDocumentTemplate
         # autocomplete_fields = ["document_type"]
         view_on_site = False
-        exclude = ["document_type"]
+        exclude = ["document_type", "role"]
+        _parent_obj = None
 
-        def get_form(self, request, obj=None, **kwargs):
-            # Store the current object instance on the request
-            form = super().get_form(request, obj, **kwargs)
-            breakpoint()
-            # form.base_fields["current_round"].queryset = (
-            #     models.Round.where(scheme=obj).order_by("-pk")[:5]
-            #     if obj
-            #     else models.Round.objects.none()
-            # )
-            return form
+        def get_formset(self, request, obj=None, **kwargs):
+            self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
+            formset = super().get_formset(request, obj, **kwargs)
+            return formset
 
+        def formfield_for_foreignkey(self, db_field, request, **kwargs):
+            if db_field.name == "required_document":
+                kwargs["queryset"] = self._parent_obj.required_documents.order_by("ordering")
+            return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0

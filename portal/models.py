@@ -8314,6 +8314,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             # nr.tags.add(*self.tags.all())
             nr.priorities.add(*self.priorities.all())
 
+            required_document_map = {}
             # NB! Keep the order
             for m in [
                 # self.priorities,
@@ -8322,28 +8323,37 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 self.contract_clauses,
                 self.curriculum_vitae_templates,
                 self.required_documents,
-                self.required_contract_documents,
                 self.templates,
+                self.required_contract_documents,
                 self.performance_flags,
                 self.report_templates,
             ]:
                 objs = [o for o in m.all()]
+
+                if isinstance(m, RequiredDocument):
+                    for o in objs:
+                        o._previous_pk = o.pk
+
                 for o in objs:
                     o.pk = None
                     o.round = nr
 
+                if isinstance(m, (RequiredContractDocument, RoundDocumentTemplate)):
+                    for o in objs:
+                        rd = required_document_map.get(getattr(o, "required_document_id"))
+                        if rd:
+                            o.required_document = rd
+
                 if isinstance(m, RequiredContractDocument):
                     for o in objs:
-                        rd = nr.required_documents.filter(
-                            document_type=o.application_required_document.document_type,
-                            role=o.application_required_document.role,
-                            format=o.application_required_document.format,
-                            title=o.application_required_document.title,
-                        ).last()
+                        rd = required_document_map.get(getattr(o, "application_required_document_id"))
                         if rd:
                             o.application_required_document = rd
 
                 m.field.model.objects.bulk_create(objs)
+
+                if isinstance(m, RequiredDocument):
+                    required_document_map = dict((o._previous_pk, o) for o in objs)
 
             return nr
 
@@ -9303,6 +9313,7 @@ class RoundDocumentTemplate(Model):
         related_name="templates",
         help_text="NB! Save the round with the required documents "
         "before assigning the themplates to the required documents!",
+        # limit_choices_to=lambda: Q(round_id=OuterRef("round_id"))
     )
     file = FileField(
         max_length=200,
