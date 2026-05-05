@@ -189,18 +189,18 @@ djhacker.formfield(
     ),
 )
 
-djhacker.formfield(
-    models.RequiredContractDocument.application_required_document,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(
-        url="required-document-autocomplete",
-        forward=[
-            dal.forward.Field("round", "round"),
-            # dal.forward.Field("contract", "contract"),
-            # dal.forward.Const("1", "exclude_taken"),
-        ],
-    ),
-)
+# djhacker.formfield(
+#     models.RequiredContractDocument.application_required_document,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(
+#         url="required-document-autocomplete",
+#         forward=[
+#             dal.forward.Field("round", "round"),
+#             # dal.forward.Field("contract", "contract"),
+#             # dal.forward.Const("1", "exclude_taken"),
+#         ],
+#     ),
+# )
 
 djhacker.formfield(
     models.ChangeRequest.types,
@@ -4387,15 +4387,16 @@ class RoundAdmin(
         view_on_site = False
         exclude = ["document_type", "role"]
         _parent_obj = None
+        _requird_document_queryset = None
 
         def get_formset(self, request, obj=None, **kwargs):
             self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
-            formset = super().get_formset(request, obj, **kwargs)
-            return formset
+            slef._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
+            return super().get_formset(request, obj, **kwargs)
 
         def formfield_for_foreignkey(self, db_field, request, **kwargs):
             if db_field.name == "required_document":
-                kwargs["queryset"] = self._parent_obj.required_documents.order_by("ordering")
+                kwargs["queryset"] = self._requird_document_queryset
             return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
@@ -4425,6 +4426,18 @@ class RoundAdmin(
         view_on_site = False
         ordering_field_hide_input = True
         classes = ["collapse"]
+        _parent_obj = None
+        _requird_document_queryset = None
+
+        def get_formset(self, request, obj=None, **kwargs):
+            self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
+            slef._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
+            return super().get_formset(request, obj, **kwargs)
+
+        def formfield_for_foreignkey(self, db_field, request, **kwargs):
+            if db_field.name == "application_required_document":
+                kwargs["queryset"] = self._requird_document_queryset
+            return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class RoundContractClauseInline(
         SummernoteModelAdminMixin, StaffPermsMixin, OrderableAdmin, admin.TabularInline
