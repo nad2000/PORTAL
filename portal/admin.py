@@ -4391,7 +4391,7 @@ class RoundAdmin(
 
         def get_formset(self, request, obj=None, **kwargs):
             self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
-            slef._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
+            self._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
             return super().get_formset(request, obj, **kwargs)
 
         def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -4431,7 +4431,7 @@ class RoundAdmin(
 
         def get_formset(self, request, obj=None, **kwargs):
             self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
-            slef._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
+            self._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
             return super().get_formset(request, obj, **kwargs)
 
         def formfield_for_foreignkey(self, db_field, request, **kwargs):
