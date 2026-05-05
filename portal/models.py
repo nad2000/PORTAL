@@ -4305,6 +4305,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     ):
         q = queryset or cls.objects.all()
         # q = cls.where(round__site=Site.objects.get_current())
+        site_id = request and request.site_id or Site.objects.get_current().pk
 
         if select_related:
             prefetch_related_objects(q, "round")
@@ -4322,7 +4323,12 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
 
         if not round and not (user.is_admin and include_inactive):
             # q = q.filter(round=F("round__scheme__current_round"))
-            q = q.filter(round__in=Scheme.objects.all().values("current_round"))
+            if site_id == 2 and user.is_ro:
+                q = q.filter(
+                    Q(round__scheme__current_round=F("round")) | Q(created_at__year=timezone.now().year)
+                )
+            else:
+                q = q.filter(round__in=Scheme.objects.all().values("current_round"))
 
         if user.is_admin:
             return q
