@@ -26,9 +26,23 @@ class Table(tables.Table):
         template_name = "django_tables2/bootstrap4.html"
 
 
+class TableWithTotalCount(Table):
+
+    _total_count = None
+
+    def __init__(self, data, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
+        self._total_count = data.count() if hasattr(data, "count") else len(data) if data else 0
+
+
 class SafeTemplateColumn(tables.TemplateColumn):
     def render(self, record, table, value, bound_column, **kwargs):
         return mark_safe(super().render(record, table, value, bound_column, **kwargs))
+
+
+class TotalCountColumn(tables.Column):
+    def render_footer(self, bound_column, table, **kwargs):
+        return table._total_count if hasattr(table, "_total_count") else ""
 
 
 class ReportedFundingTable(Table):
@@ -303,11 +317,18 @@ def default_start_date(record=None):
     return timezone.now().date().replace(day=1) + relativedelta(months=1)
 
 
-class ApplicationTable(Table):
+class ApplicationTable(TableWithTotalCount):
     # selection = tables.CheckBoxColumn(accessor="pk")
-    state = StateColumn(verbose_name=_("Submitted"))
-    number = tables.Column(linkify=application_link)
-    round = tables.Column(linkify=application_round_link)
+    state = StateColumn(
+        verbose_name=_("Submitted"),
+        footer=_("Total:"),
+    )
+    number = tables.Column(
+        linkify=application_link,
+        footer=lambda table: mark_safe(f"<b>{table._total_count}</b>"),
+        attrs={"tf": {"class": "text-right"}},
+    )
+    round = tables.Column(linkify=application_round_link, footer=None)
     pi = tables.Column(
         gettext_lazy("Application PI"),
         tables.A("pi__full_name_with_email"),
