@@ -4468,6 +4468,7 @@ class ReportExportView(ExportView):
 class AssessmentExportView(ExportView):
     """Assessment PDF export view"""
 
+    get_attachments = lambda *args, **kwargs: []
     summary_template = "partials/report_summary.html"
     model = models.Report
 

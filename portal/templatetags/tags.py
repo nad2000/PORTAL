@@ -25,6 +25,15 @@ from .. import models as m
 register = template.Library()
 
 
+@register.filter(name="mightbe")
+def mightbe(value, arg):
+    return (
+        value
+        and (name := getattr(value, "name", None))
+        and name.lower().endswith(arg if "." in arg else f".{arg}")
+    )
+
+
 @register.filter(is_safe=True)
 def report_state(state):
     return _(m.Report.STATES[state])
@@ -167,18 +176,14 @@ def field_value(value, name, *args, **kwargs):
             method = getattr(value, f"get_{name}_display", None)
             dv = method and method()
             if state_changed_at := getattr(value, "state_changed_at", None):
-                return mark_safe(
-                    f"""<span data-toggle="tooltip"
+                return mark_safe(f"""<span data-toggle="tooltip"
                     title="{_('(the state was updated at %s)') % state_changed_at.strftime('%d-%m-%Y %H:%m')}
-                    ">&lt;<b>{dv or v.upper()}</b>&gt;</span>"""
-                )
+                    ">&lt;<b>{dv or v.upper()}</b>&gt;</span>""")
             changed_at = value.updated_at or value.created_at
             if changed_at:
-                return mark_safe(
-                    f"""<span data-toggle="tooltip"
+                return mark_safe(f"""<span data-toggle="tooltip"
                     title="{_('(the record was updated at %s)') % changed_at.strftime('%d-%m-%Y %H:%m')}
-                    ">&lt;<b>{dv or v.upper()}</b>&gt;</span>"""
-                )
+                    ">&lt;<b>{dv or v.upper()}</b>&gt;</span>""")
             return mark_safe(f"&lt;<b>{dv or v.upper()}</b>&gt;")
     if isinstance(v, bool):
         return _("yes") if v else _("no")
@@ -296,7 +301,11 @@ def person_with_email(value):
 
 @register.filter()
 def basename(value):
-    if value and isinstance(value, models.fields.files.FieldFile):
+    if hasattr(value, "file"):
+        value = value.file
+    if not value:
+        return _("N/A")
+    if isinstance(value, (models.fields.files.FieldFile, models.fields.files.File)):
         return os.path.basename(value.name)
     return os.path.basename(value) if value else ""
 

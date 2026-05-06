@@ -1073,7 +1073,8 @@ class ApplicationForm(ModelForm):
                 # self.fields["letter_of_support_file"].help_text = help_text
 
         if (
-            round.is_applicant_cv_required or round.member_cv_required
+            round.is_applicant_cv_required
+            or round.member_cv_required
             # and (not instance.pk or instance.is_pi(user))
         ):
 
@@ -2023,8 +2024,11 @@ class ContractForm(ModelForm):
             instance.requires_approval = True
         application = instance.application or initial.get("application")
         is_ro = (
-            instance and instance.org and instance.org.research_offices.filter(user=user).exists()
-            or application and application.org.research_offices.filter(user=user).exists()
+            instance
+            and instance.org
+            and instance.org.research_offices.filter(user=user).exists()
+            or application
+            and application.org.research_offices.filter(user=user).exists()
             and not (user.is_superuser or user.is_site_staff)
         )
         is_staff = user and (user.is_superuser or user.is_staff or user.is_site_staff)
@@ -4484,6 +4488,10 @@ class ReportForm(ModelForm):
         # label=gettext_lazy("Alert date"),
         label="",
     )
+    assessment_summary = forms.CharField(
+        label=_("Assessment"),
+        # widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -4504,6 +4512,7 @@ class ReportForm(ModelForm):
         super().__init__(*args, **kwargs)
         # language = get_language()
         instance = self.instance or instance
+        # assessment = instance and instance.current_assessment
         contract = instance.contract or initial.get("contract")
         application = contract.application or initial.get("application")
         round = application and application.round or initial.get("round")
@@ -5120,18 +5129,20 @@ class ReportForm(ModelForm):
                     Completed Report:
                     </th>
                     <td>
-                        <a href="{{ object.file.url }}" target="_blank">
-                        {{ object.file|basename }}
-                        </a>
+                            <a href="{{ object.file.url }}" target="_blank">{{ object.file|basename }}</a>
+                            {% if object.file|mightbe:'pdf' %} <i class="fas fa-file-pdf"></i>
+                            {% elif object.file|mightbe:'doc' or object.file|mightbe:'docx' %} <i class="fas fa-file-word"></i>{% endif %}
+                            {% if object.converted_file %} (<a href="{{ object.converted_file.url }}" target="_blank">{{ object.converted_file|basename }}</a>
+                            <i class="fas fa-file-pdf"></i>){% endif %}
                     </td>
                     </tr>
                     </tbody>
                     </table>
                     </div>"""),
-                # "assessment",
+                Field("assessment_summary"),
             ]
             self.fields.pop("file", None)
-            # self.fields["assessment"].required = True
+            self.fields["assessment_summary"].required = True
         elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessment):
             fields = [
                 HTML("""{% load tags %}
@@ -5143,9 +5154,11 @@ class ReportForm(ModelForm):
                     Completed Report:
                     </th>
                     <td>
-                        <a href="{{ object.file.url }}" target="_blank">
-                        {{ object.file|basename }}
-                        </a>
+                            <a href="{{ object.file.url }}" target="_blank">{{ object.file|basename }}</a>
+                            {% if object.file|mightbe:'pdf' %} <i class="fas fa-file-pdf"></i>
+                            {% elif object.file|mightbe:'doc' or object.file|mightbe:'docx' %} <i class="fas fa-file-word"></i>{% endif %}
+                            {% if object.converted_file %} (<a href="{{ object.converted_file.url }}" target="_blank">{{ object.converted_file|basename }}</a>
+                            <i class="fas fa-file-pdf"></i>){% endif %}
                     </td>
                     </tr>
                         <tr>
@@ -5153,7 +5166,7 @@ class ReportForm(ModelForm):
                             Assessment:
                         </th>
                         <td>
-                            {{ object.assessment|default:'N/A'|safe }}
+                            {{ object.current_assessment.summary|default:'N/A'|safe }}
                         </td>
                     </tr>
                     </tbody>
@@ -5161,9 +5174,9 @@ class ReportForm(ModelForm):
                     </div>"""),
             ]
             self.fields.pop("file", None)
-            self.fields.pop("assessment", None)
+            self.fields.pop("assessment_summary", None)
         else:
-            self.fields.pop("assessment", None)
+            self.fields.pop("assessment_summary", None)
             templates = round.report_templates.filter(type=instance.type)
 
             if templates.exists():
@@ -5337,18 +5350,20 @@ class ReportForm(ModelForm):
                         Completed Report:
                         </th>
                         <td>
-                            <a href="{{ object.file.url }}" target="_blank">
-                            {{ object.file|basename }}
-                            </a>
+                            <a href="{{ object.file.url }}" target="_blank">{{ object.file|basename }}</a>
+                            {% if object.file|mightbe:'pdf' %} <i class="fas fa-file-pdf"></i>
+                            {% elif object.file|mightbe:'doc' or object.file|mightbe:'docx' %} <i class="fas fa-file-word"></i>{% endif %}
+                            {% if object.converted_file %} (<a href="{{ object.converted_file.url }}" target="_blank">{{ object.converted_file|basename }}</a>
+                            <i class="fas fa-file-pdf"></i>){% endif %}
                         </td>
                         </tr>
                         </tbody>
                         </table>
                         </div>"""),
-                    "assessment",
+                    Field("assessment_summary"),
                 ]
                 self.fields.pop("file", None)
-                self.fields["assessment"].required = True
+                self.fields["assessment_summary"].required = True
                 tabs.append(
                     Tab(
                         mark_safe(f'<i class="fas fa-flag"></i> {_("Assessment")}'),
@@ -5552,7 +5567,19 @@ class ReportForm(ModelForm):
                 cf.file.delete()
             cf.delete()
 
-        return super().save(*args, **kwargs)
+        resp = super().save(*args, **kwargs)
+        if "assessment_summary" in self.changed_data:
+            summary = self.cleaned_data["assessment_summary"]
+            assessment, created = i.assessments.model.get_or_create(
+                report=i,
+                assessor=i.assessor,
+                defaults={"summary": summary},
+            )
+            if not created:
+                assessment.summary = summary
+                assessment.save()
+
+        return resp
 
     class Meta:
         model = models.Report
@@ -5600,12 +5627,12 @@ class ReportForm(ModelForm):
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
             abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
             notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            assessment=SummernoteInplaceWidget(
+            assessment_summary=SummernoteInplaceWidget(
                 attrs={
                     "data-required": 1,
                     "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
                     "oninput": "this.setCustomValidity('')",
-                    "summernote": {"width": "100%", "height": "200px"},
+                    # "summernote": {"width": "100%", "height": "200px"},
                 }
             ),
         )

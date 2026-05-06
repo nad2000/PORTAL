@@ -548,9 +548,10 @@ class PdfFileAdminMixin:
                         format_html(
                             (
                                 "The attachment was converted into PDF file. "
-                                "Please review the converted file version <a href='%s'>%s</a>."
-                            )
-                            % (cf.file.url, os.path.basename(cf.file.name))
+                                "Please review the converted file version <a href='{}'>{}</a>."
+                            ),
+                            cf.file.url,
+                            os.path.basename(cf.file.name),
                         ),
                     )
 
@@ -2212,13 +2213,10 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(
-                f"""<a
+            links = ", ".join(f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>"""
-                for c in contracts
-            )
+            {c.number}</a>""" for c in contracts)
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -4390,8 +4388,12 @@ class RoundAdmin(
         _requird_document_queryset = None
 
         def get_formset(self, request, obj=None, **kwargs):
-            self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
-            self._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
+            self._parent_obj = obj or self.model.objects.get(
+                pk=request.resolver_match.kwargs["object_id"]
+            )
+            self._requird_document_queryset = self._parent_obj.required_documents.order_by(
+                "ordering"
+            )
             return super().get_formset(request, obj, **kwargs)
 
         def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -4430,8 +4432,12 @@ class RoundAdmin(
         _requird_document_queryset = None
 
         def get_formset(self, request, obj=None, **kwargs):
-            self._parent_obj = obj or self.model.objects.get(pk=request.resolver_match.kwargs["object_id"])
-            self._requird_document_queryset = self._parent_obj.required_documents.order_by("ordering")
+            self._parent_obj = obj or self.model.objects.get(
+                pk=request.resolver_match.kwargs["object_id"]
+            )
+            self._requird_document_queryset = self._parent_obj.required_documents.order_by(
+                "ordering"
+            )
             return super().get_formset(request, obj, **kwargs)
 
         def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -5191,6 +5197,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, Histor
     autocomplete_fields = [
         "assessor",
         "contract",
+        "converted_file",
         # "schedule_entry",
         # "principal",
         # "coordinator",
@@ -5217,6 +5224,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, Histor
                         "schedule_entry",
                     ),
                     "assessor",
+                    ("file", "converted_file"),
                     # ("number", "refcode", "year"),
                     # "project_title",
                     # "host_contact_email",

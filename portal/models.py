@@ -1549,8 +1549,12 @@ class Organisation(Model):
     identifier = CharField(max_length=24, null=True, blank=True)
     code = CharField(max_length=10, blank=True, default="", unique=True)
     is_active = BooleanField(default=True)
-    is_verified = BooleanField(default=False, help_text=_("The organisation details have been verified"))
-    is_approved_host = BooleanField(default=False, help_text=_("The organisation is an approved host institution"))
+    is_verified = BooleanField(
+        default=False, help_text=_("The organisation details have been verified")
+    )
+    is_approved_host = BooleanField(
+        default=False, help_text=_("The organisation is an approved host institution")
+    )
 
     legal_name = CharField(max_length=255, blank=True, null=True)
     alt_name = CharField(max_length=100, blank=True, null=True)
@@ -2409,8 +2413,7 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_"""
-            + get_language(),
+            ORDER BY description_""" + get_language(),
             [person.pk],
         )
 
@@ -4325,7 +4328,8 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             # q = q.filter(round=F("round__scheme__current_round"))
             if site_id == 2 and user.is_ro:
                 q = q.filter(
-                    Q(round__scheme__current_round=F("round")) | Q(created_at__year=timezone.now().year)
+                    Q(round__scheme__current_round=F("round"))
+                    | Q(created_at__year=timezone.now().year)
                 )
             else:
                 q = q.filter(round__in=Scheme.objects.all().values("current_round"))
@@ -7528,16 +7532,13 @@ def notify_site_staff_about_new_organisations():
         site = Site.objects.get(pk=site_id)
         g = list(g)
         if g:
-            org_list = "".join(
-                f"""<li>
+            org_list = "".join(f"""<li>
                 <a
                     href="https://{site.domain}{reverse("admin:portal_organisation_change", args=[o.pk])}"
                     target="_blank"
                 >{o}</a>
                 (created at {o.created_at.strftime('%Y-%m-%d %H:%M')},
-                by {o.history.filter(history_type="+").first().history_user})</li>"""
-                for o in g
-            )
+                by {o.history.filter(history_type="+").first().history_user})</li>""" for o in g)
         subject = f"New Organization(s) created"
         html_message = f"""<p>Kia ora!</p><p>A new organization(s) has been created in the last week:
         <ul>{org_list}</ul></p>
@@ -8352,7 +8353,9 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
                 if isinstance(m, RequiredContractDocument):
                     for o in objs:
-                        rd = required_document_map.get(getattr(o, "application_required_document_id"))
+                        rd = required_document_map.get(
+                            getattr(o, "application_required_document_id")
+                        )
                         if rd:
                             o.application_required_document = rd
 
@@ -13721,11 +13724,18 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         verbose_name=_("converted file"),
         related_name="reports",
     )
-    assessment = TextField(blank=True, null=True)
+    # assessment = TextField(blank=True, null=True)
 
     reported_at = MonitorField(
         monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True
     )
+
+    @property
+    def current_assessment(self):
+        return (
+            self.assessor
+            and self.assessments.filter(assessor=self.assessor).order_by("-pk").first()
+        )
 
     @property
     def submitted_at(self):
@@ -14151,7 +14161,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         target="draft",
         custom=dict(
             verbose="Request the PI to resubmit the report",
-            button_name="Request <b>Resubmission</b>",
+            button_name=mark_safe("Request <b>Resubmission</b>"),
         ),
         permission=lambda instance, user: user.is_admin
         or instance.state in ["submitted", "reported"]
@@ -14239,7 +14249,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["assigned"],
         target="assessed",
         custom=dict(
-            verbose="Mark as 'assessed'", button_name="Mark As <b>Assessed</b>", internal=False
+            verbose="Mark as 'assessed'", button_name=mark_safe("Mark As <b>Assessed</b>"), internal=False
         ),
         permission=lambda instance, user: instance.assessor == user,
     )
@@ -14312,6 +14322,19 @@ simple_history.register(
     table_name="report_history",
     bases=[ReportMixin, Model],
 )
+
+
+class Assessment(Model):
+
+    report = ForeignKey(
+        Report,
+        on_delete=CASCADE,
+        related_name="assessments",
+    )
+    assessor = ForeignKey(User, on_delete=CASCADE, blank=True, null=True)
+
+    class Meta:
+        db_table = "assessment"
 
 
 class AssessedPerformance(Model):
