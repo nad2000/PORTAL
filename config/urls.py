@@ -85,4 +85,9 @@ if settings.DEBUG:
 
         urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
 
+    if "schema_viewer" in settings.INSTALLED_APPS:
+        urlpatterns += [
+            path('schema-viewer/', include('schema_viewer.urls')),
+        ]
+
 handler500 = "portal.views.handler500"

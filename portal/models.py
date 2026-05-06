@@ -14332,6 +14332,7 @@ class Assessment(Model):
         related_name="assessments",
     )
     assessor = ForeignKey(User, on_delete=CASCADE, blank=True, null=True)
+    summary = TextField(blank=True, null=True, verbose_name=_("Assessment Summary"))
 
     class Meta:
         db_table = "assessment"

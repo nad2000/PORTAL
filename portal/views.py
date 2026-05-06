@@ -2913,13 +2913,14 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
         o = self.object
         context["is_ro"] = o.is_ro(u)
         context["can_edit"] = o.can_edit(u)
-        context["extra_buttons"] = [
-            {
-                "name": _("Export Assessment"),
-                "url": reverse("assessment-export", kwargs={"pk": o.pk}),
-                "class": "btn btn-secondary",
-            },
-        ]
+        if (a := o.current_assessment):
+            context["extra_buttons"] = [
+                {
+                    "name": _("Export Assessment"),
+                    "url": reverse("assessment-export", kwargs={"pk": a.pk}),
+                    "class": "btn btn-secondary",
+                },
+            ]
         return context
 
     # def get(self, request, *args, **kwargs):
@@ -4170,6 +4171,13 @@ class ReportUpdate(
     #     context = super().get_context_data(*args, **kwargs)
     #     return context
 
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        o = self.get_object()
+        if o and o.assessor and (a := o.assessments.filter(assessor=o.assessor).order_by("-pk").first()):
+            initial["assessment_summary"] = a.summary
+        return initial
+
 
 class FileImportForm(Form):
 
@@ -4472,12 +4480,23 @@ class ReportExportView(ExportView):
     model = models.Report
 
 
+class ReportAssessmentExportView(ExportView):
+    """Assessment PDF export view"""
+
+    def get(self, request, pk, filename=None):
+        o = self.get_object()
+        if o.assessor and (a := o.assessments.filter(assessor=o.assessor).order_by("-pk").first()):
+            return redirect(reverse("assessment-export", kwargs=dict(pk=a.pk)))
+
+    model = models.Report
+
+
 class AssessmentExportView(ExportView):
     """Assessment PDF export view"""
 
     get_attachments = lambda *args, **kwargs: []
-    summary_template = "partials/report_summary.html"
-    model = models.Report
+    # summary_template = "partials/report_summary.html"
+    model = models.Assessment
 
 
 class ChangeRequestExportView(ExportView):

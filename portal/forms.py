@@ -4490,7 +4490,14 @@ class ReportForm(ModelForm):
     )
     assessment_summary = forms.CharField(
         label=_("Assessment"),
-        # widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
+        widget=SummernoteInplaceWidget(
+            attrs={
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
+                "oninput": "this.setCustomValidity('')",
+                "summernote": {"width": "100%", "height": "600px"},
+            }
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -5627,14 +5634,6 @@ class ReportForm(ModelForm):
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
             abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
             notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            assessment_summary=SummernoteInplaceWidget(
-                attrs={
-                    "data-required": 1,
-                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
-                    "oninput": "this.setCustomValidity('')",
-                    # "summernote": {"width": "100%", "height": "200px"},
-                }
-            ),
         )
 
 

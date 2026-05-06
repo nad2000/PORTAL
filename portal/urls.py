@@ -55,10 +55,15 @@ urlpatterns = [
         views.EmailImportView.as_view(),
         name="email-import",
     ),
-    path("doi/", include([
-        path("~fetch", views.fetch_doi, name="doi-fetch"),
-        path("~import", views.import_doi, name="doi-import"),
-    ])),
+    path(
+        "doi/",
+        include(
+            [
+                path("~fetch", views.fetch_doi, name="doi-fetch"),
+                path("~import", views.import_doi, name="doi-import"),
+            ]
+        ),
+    ),
     path(
         "applications/",
         include(
@@ -240,6 +245,11 @@ urlpatterns = [
         ),
     ),
     path(
+        "assessments/<int:pk>/~export",
+        views.AssessmentExportView.as_view(),
+        name="assessment-export",
+    ),
+    path(
         "reports/",
         include(
             [
@@ -247,7 +257,11 @@ urlpatterns = [
                 path("<int:pk>", views.ReportDetail.as_view(), name="report"),
                 path("<number>", views.ReportDetail.as_view(), name="report-detail"),
                 path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
-                path("<int:pk>/assessment/~export", views.AssessmentExportView.as_view(), name="assessment-export"),
+                path(
+                    "<int:pk>/assessment/~export",
+                    views.ReportAssessmentExportView.as_view(),
+                    name="report-assessment-export",
+                ),
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
                 path(
                     "<int:pk>/~export/<filename>",
