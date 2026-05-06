@@ -11,7 +11,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("portal", "0069_crossrefobject_remove_contractkeyword_contract_and_more"),
+        ("portal", "0069_remove_reportkeyword_keyword_and_more"),
         ("sites", "0004_auto_20210331_1418"),
         ("taggit", "0006_rename_taggeditem_content_type_object_id_taggit_tagg_content_8fc721_idx"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -39,9 +39,6 @@ class Migration(migrations.Migration):
                 "db_table": "assessment",
             },
             bases=(common.models.HelperMixin, models.Model),
-        ),
-        migrations.DeleteModel(
-            name="CrossrefObject",
         ),
         migrations.AlterModelOptions(
             name="publicationtype",
