@@ -635,6 +635,17 @@ class KeepSelectedMixin:
         return resp
 
 
+
+# @admin.register(models.ReportingScheduleEntry)
+# class ReportingScheduleEntryAdmin(StaffPermsMixin, admin.ModelAdmin):
+#     view_on_site = False
+#     save_on_top = True
+#     list_display = ["contract", "type", "period"]
+#     list_filter = ["created_at", "updated_at"]
+#     search_fields = ["contract__number"]
+#     date_hierarchy = "created_at"
+
+
 @admin.register(models.Subscription)
 class SubscriptionAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, HistoryAdmin):
     view_on_site = False
@@ -714,15 +725,29 @@ class ReportingScheduleEntryAdmin(admin.ModelAdmin):
 
     search_fields = ["contract__number"]
 
-    def get_model_perms(self, request):
-        """
-        Return empty perms dict thus hiding the model from admin index.
-        """
-        return {}
+    # def get_model_perms(self, request):
+    #     """
+    #     Return empty perms dict thus hiding the model from admin index.
+    #     """
+    #     return {}
+
+    class ReportInline(admin.TabularInline):
+        model = models.Report
+        extra = 0
+        autocomplete_fields = ["contract"]
+        fields = ["number", "contract", "reported_at"]
+        readonly_fields = ["number", "reported_at", "contract"]
+
+        def view_on_site(self, obj):
+            return reverse("admin:portal_report_change", kwargs={"object_id": obj.pk})
+
+        # view_on_site = lambda self, obj:reverse("admin:portal_report_change", kwargs={"object_id": obj.pk})
 
     def get_search_results(self, request, queryset, search_term):
         r = super().get_search_results(request, queryset, search_term)
         return r
+
+    inlines = [ReportInline]
 
 
 @admin.register(models.Address)
