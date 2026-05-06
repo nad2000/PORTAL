@@ -184,6 +184,7 @@ djhacker.formfield(
         url="reporting-schedule-entry-autocomplete",
         forward=[
             dal.forward.Field("contract", "contract"),
+            dal.forward.Field("schedule_entry", "schedule_entry"),
             dal.forward.Const("1", "exclude_taken"),
         ],
     ),
@@ -634,7 +635,6 @@ class KeepSelectedMixin:
                 max_age=60,
             )
         return resp
-
 
 
 # @admin.register(models.ReportingScheduleEntry)
@@ -1833,7 +1833,7 @@ class ApplicationAdmin(
 
     class RefereeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
-        view_on_site = False
+        # view_on_site = False
         model = models.Referee
         readonly_fields = [
             "STATE",
@@ -4628,7 +4628,7 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     class ScoreInline(StaffPermsMixin, admin.StackedInline):
         extra = 0
         model = models.Score
-        view_on_site = False
+        # view_on_site = False
 
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.criterion.round_id})
@@ -4889,7 +4889,10 @@ class ContractAdmin(
     class ReportingScheduleEntryInline(StaffPermsMixin, admin.TabularInline):
         model = models.ReportingScheduleEntry
         extra = 0
-        view_on_site = False
+        # view_on_site = False
+
+        def view_on_site(self, obj):
+            return reverse("admin:portal_reportingscheduleentry_change", kwargs={"object_id": obj.pk})
         classes = ["collapse"]
 
     class ContractClauseInline(
@@ -5495,6 +5498,15 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, Histor
                 obj.period = obj.schedule_entry.period
         super().save_model(request, obj, form, change)
 
+        if schage and "contract" in form.changed_data:
+            if obj.schedule_entry and obj.schedule_entry.contract_id != obj.contract_id:
+                obj.schedule_entry = (
+                    obj.contact.reporting_schedule_entries.filter(type=obj.type, period=obj.period)
+                    .order_by("-pk")
+                    .first()
+                )
+                obj.save(update_fields=["schedule_entry"])
+
     def get_form(self, request, obj=None, change=False, **kwargs):
         form = super().get_form(request, obj=obj, change=change, **kwargs)
         form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
@@ -5504,7 +5516,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, Histor
                 dal.forward.Const("report", "model"),
             ],
         )
-        form.base_fields["keywords"].widget = widget = autocomplete.ModelSelect2Multiple(
+        form.base_fields["keywords"].widget = autocomplete.ModelSelect2Multiple(
             url="keyword-autocomplete",
         )
         return form

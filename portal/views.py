@@ -91,6 +91,7 @@ from django.forms import (
 )
 from django.forms import models as model_forms
 from django.forms import widgets
+
 # from file_resubmit.widgets import ResubmitFileWidget
 from django.http import (
     FileResponse,
@@ -1612,7 +1613,9 @@ class ExportView(UserPassesTestMixin, DetailView):
                                     }
                                 )
                             )
-                            reader = PdfReader(io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False)
+                            reader = PdfReader(
+                                io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+                            )
                             dp.merge_page(reader.pages[0])
                             merger.add_page(dp)
                     else:
@@ -1891,7 +1894,8 @@ def round_required_documents(request, round):
     templates = {
         k: list(g)
         for k, g in groupby(
-            round.templates.all().order_by("required_document__ordering", "required_document"), lambda r: r.required_document
+            round.templates.all().order_by("required_document__ordering", "required_document"),
+            lambda r: r.required_document,
         )
     }
     return render(request, "round_required_documents.html", locals())
@@ -2081,7 +2085,10 @@ def fetch_doi(request):
 
     if data:
         return render(request, "partials/doi.html", locals())
-    return HttpResponse(f"""<p>DOI: {doi}</p><p>Error fetching data from Crossref API. Status code: {response.status_code}</p>""", status=400)
+    return HttpResponse(
+        f"""<p>DOI: {doi}</p><p>Error fetching data from Crossref API. Status code: {response.status_code}</p>""",
+        status=400,
+    )
 
 
 @login_required
@@ -5605,7 +5612,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         ):
             initial["cv_file"] = self.object.cv.file
 
-
         if not (self.object and self.object.pk):
             initial["user"] = user
             initial["email"] = user.email
@@ -5970,7 +5976,12 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                             if not f.is_valid():
                                 form.errors.update(f.errors)
                                 url = self.continue_url("application")
-                                form.add_error(None, _("Please correct the errors in member information: {f.errors}."))
+                                form.add_error(
+                                    None,
+                                    _(
+                                        "Please correct the errors in member information: {f.errors}."
+                                    ),
+                                )
                                 raise ValidationError(_("Invalid member form"))
 
                     if has_deleted:
@@ -9207,8 +9218,11 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                         (
                             o.number
                             if isinstance(o, models.Application)
-                            else o.application.number if isinstance(o, models.Member)
-                            else o.referee.application.number
+                            else (
+                                o.application.number
+                                if isinstance(o, models.Member)
+                                else o.referee.application.number
+                            )
                         )
                         for o in ex.protected_objects
                     ),
@@ -10005,6 +10019,17 @@ class ReportingScheduleEntryAutocomplete(LoginRequiredMixin, autocomplete.Select
         if contract := self.forwarded.get("contract"):
             # select only people affiliated with the org
             q = q.filter(contract=contract)
+        elif (
+            (referer := self.request.META.get("HTTP_REFERER"))
+            and (m := re.search(r"report/(\d+)/change", referer))
+            and (r := models.Report.where(pk=m.group(1)).first())
+            and r.contract
+        ):
+            q = q.filter(contract=r.contract)
+        elif (schedule_entry := self.forwarded.get("schedule_entry")) and (
+            se := models.ReportingScheduleEntry.where(pk=schedule_entry).first()
+        ):
+            q = q.filter(contract=se.contract)
         if "exclude_taken" in self.forwarded:
             q = q.filter(report__isnull=True)
         return q
@@ -13693,7 +13718,7 @@ class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
 class ReportedPublicityViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedPublicity
-    fields = ["type", "description", "start_date",  "report"]
+    fields = ["type", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -13752,7 +13777,15 @@ class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView
 class ReportedVisitViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedVisit
-    fields = ["member", "full_name", "organisation", "country", "description", "start_date", "report"]
+    fields = [
+        "member",
+        "full_name",
+        "organisation",
+        "country",
+        "description",
+        "start_date",
+        "report",
+    ]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
