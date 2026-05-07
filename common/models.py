@@ -874,23 +874,33 @@ class Model(HelperMixin, TimeStampModel):
     @property
     def detail_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
-        if hasattr(self, "number") and (number := self.number):
-            return reverse(f"{model_name_slug}-detail", args=[str(number)])
-        elif hasattr(self, "code") and (code := self.code):
-            return reverse(f"{model_name_slug}-detail", args=[str(code)])
+        if number := (getattr(self, "number", None) or getattr(self, "code", None)):
+            try:
+                return reverse(f"{model_name_slug}-detail", args=[str(number)])
+            except:
+                return reverse("object-detail", kwargs={"model": self._meta.model_name, "number": str(number)})
         try:
             return reverse(model_name_slug, args=[str(self.pk)])
         except:
-            return reverse(f"{model_name_slug}s", args=[str(self.pk)])
+            try:
+                return reverse(f"{model_name_slug}s", args=[str(self.pk)])
+            except:
+                return reverse("object", kwargs={"model": self._meta.model_name, "pk": str(self.pk)})
+
+    @cached_property
+    def export_filename(self):
+        if number := (getattr(self, "number", None) or getattr(self, "code", None)):
+            return f"{number}.pdf"
+        return f"{self._meta.model_name}_{self.pk}.pdf"
 
     @cached_property
     def export_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
         try:
-            if number := getattr(self, "number", None):
+            if filename := self.get_export_filename():
                 return reverse(
                     f"{model_name_slug}-export-fn",
-                    kwargs={"pk": self.pk, "filename": f"{number}.pdf"},
+                    kwargs={"pk": self.pk, "filename": filename},
                 )
             else:
                 return reverse(f"{model_name_slug}-export", args=[str(self.pk)])

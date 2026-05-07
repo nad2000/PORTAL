@@ -46,9 +46,28 @@ urlpatterns = [
     path("subscriptions/", views.SubscriptionList.as_view(), name="subscriptions"),
     path("users/<int:pk>/profile", views.user_profile, name="user-profile"),
     path(
-        "objects/<path:model>/<int:pk>/~delete",
-        views.delete_object,
-        name="objects-delete",
+        "objects/",
+        include(
+            [
+                # path("", views.ObjectList.as_view(), name="objects"),
+                path(
+                    "<path:model>/<int:pk>/~delete",
+                    views.delete_object,
+                    name="objects-delete",
+                ),
+                path(
+                    "<path:model>/<int:pk>",
+                    views.delete_object,
+                    name="object",
+                ),
+                path(
+                    "<path:model>/<number>",
+                    views.DetailView.as_view(),
+                    name="object-detail",
+                ),
+            ]
+        ),
+        name="objects-root",
     ),
     path(
         "comments/<int:pk>/~email-import",
@@ -248,6 +267,11 @@ urlpatterns = [
         "assessments/<int:pk>/~export",
         views.AssessmentExportView.as_view(),
         name="assessment-export",
+    ),
+    path(
+        "assessments/<int:pk>/~export/<filename>",
+        views.AssessmentExportView.as_view(),
+        name="assessment-export-fn",
     ),
     path(
         "reports/",

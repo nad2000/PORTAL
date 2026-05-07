@@ -14334,6 +14334,10 @@ class Assessment(Model):
     assessor = ForeignKey(User, on_delete=CASCADE, blank=True, null=True)
     summary = TextField(blank=True, null=True, verbose_name=_("Assessment Summary"))
 
+    @cached_property
+    def export_filename(self):
+        return f"{self.report.number}_{self.assessor.username}.pdf"
+
     class Meta:
         db_table = "assessment"
 

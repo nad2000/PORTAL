@@ -1101,6 +1101,7 @@ class SingleObjectMixin(ContextMixin):
     slug_field = "number"
     slug_url_kwarg = "number"
     pk_url_kwarg = "pk"
+    model = None
 
     _obj = None
 
@@ -1116,8 +1117,19 @@ class SingleObjectMixin(ContextMixin):
         if self._obj:
             return self._obj
 
-        if queryset is None:
-            queryset = self.get_queryset()
+        if (model := self.model):
+            if queryset is None:
+                queryset = self.get_queryset()
+        elif model_name := self.kwargs.get("model"):
+            app_name = self.kwargs.get("app", "portal")
+            try:
+                model = apps.get_model(app_label=app_name, model_name=model_name)
+            except LookupError:
+                raise Http404("Model not found")
+            else:
+                queryset = self.get_queryset(queryset=getattr(model, "all_objects", model.objects.all)())
+        else:
+            raise Http404("Model not specified")
 
         obj_id = self.kwargs.get(self.pk_url_kwarg) or self.kwargs.get(self.slug_url_kwarg)
         if obj_id is not None:
@@ -1126,7 +1138,7 @@ class SingleObjectMixin(ContextMixin):
         try:
             # Get the single item from the filtered queryset
             obj = queryset.first()
-            if not obj:
+            if not obj and modal == models.Application:
                 slug_field = self.get_slug_field()
                 an = get_object_or_404(models.ApplicationNumber, **{slug_field: obj_id})
                 obj = an.application
@@ -1145,6 +1157,8 @@ class SingleObjectMixin(ContextMixin):
 
 
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
+
+    context_object_name = "object"
     template_name = "detail.html"
     cache_timeout = int(getattr(settings, "CACHE_TIMEOUT", 60))
 
@@ -1506,7 +1520,6 @@ class ExportView(UserPassesTestMixin, DetailView):
             objects = self.get_objects(pk)
             if format:
                 format = format.lower()
-            self.object = self.get_object()
             # merger = PdfMerger()
             merger = PdfWriter()
             merger.add_metadata(self.get_metadata())
@@ -1535,7 +1548,7 @@ class ExportView(UserPassesTestMixin, DetailView):
                 except:
                     cover_page_template = None
 
-                attachments = self.get_attachments(pk)
+                attachments = self.get_attachments and self.get_attachments(pk)
                 # merger = PdfMerger()
                 merger = PdfWriter()
                 merger.add_metadata(self.get_metadata(pk))
@@ -1583,7 +1596,8 @@ class ExportView(UserPassesTestMixin, DetailView):
                     summary_page_html = summary_template.render(locals())
                     if format == "html":
                         return HttpResponse(summary_page_html, content_type="text/html")
-                    append_attachments(merger, attachments)
+                    if attachments:
+                        append_attachments(merger, attachments)
                     html = HTML(string=summary_page_html)
                     pdf_object = html.write_pdf(presentational_hints=True)
                     pdf_stream = io.BytesIO(pdf_object)
@@ -1627,7 +1641,8 @@ class ExportView(UserPassesTestMixin, DetailView):
                     # converting pdf bytes to stream which is required for pdf merger.
                     pdf_stream = io.BytesIO(pdf_object)
                     merger.append(pdf_stream)
-                    append_attachments(merger, attachments)
+                    if attachments:
+                        append_attachments(merger, attachments)
 
                 pdf_content = io.BytesIO()
                 merger.write(pdf_content)
@@ -2913,11 +2928,11 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
         o = self.object
         context["is_ro"] = o.is_ro(u)
         context["can_edit"] = o.can_edit(u)
-        if (a := o.current_assessment):
+        if a := o.current_assessment:
             context["extra_buttons"] = [
                 {
                     "name": _("Export Assessment"),
-                    "url": reverse("assessment-export", kwargs={"pk": a.pk}),
+                    "url": reverse("assessment-export-fn", kwargs={"pk": a.pk, "filename": a.export_filename}),
                     "class": "btn btn-secondary",
                 },
             ]
@@ -4174,7 +4189,15 @@ class ReportUpdate(
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         o = self.get_object()
-        if o and o.assessor and (a := o.assessments.filter(assessor=o.assessor).order_by("-pk").first()):
+        if (
+            o
+            and o.assessor
+            and (
+                a := o.assessments.annotate(is_assessor=Q(assessor=F("report__assessor")))
+                .order_by("-is_assessor", "-pk")
+                .first()
+            )
+        ):
             initial["assessment_summary"] = a.summary
         return initial
 
@@ -4494,7 +4517,8 @@ class ReportAssessmentExportView(ExportView):
 class AssessmentExportView(ExportView):
     """Assessment PDF export view"""
 
-    get_attachments = lambda *args, **kwargs: []
+    ## template = "assessment_pdf_export.html"
+    get_attachments = None
     # summary_template = "partials/report_summary.html"
     model = models.Assessment
 
