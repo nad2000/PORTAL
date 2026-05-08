@@ -44,7 +44,22 @@
 
     <tr>
       <td align="center">
+        {#
         <p align="center" style='text-align:center;'><b>Contract: {{ c.number }}</b></p>
+        #}
+        <p align="center" style='text-align:center;'><b>Report: {{ r.number }}</b></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center">
+        <p align="center" style='text-align:center;'><b>Period: {{ r.period }}</b></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center">
+        <p align="center" style='text-align:center;'><b>Type: {{ r.get_type_display() }}</b></p>
       </td>
     </tr>
 
@@ -56,13 +71,19 @@
 
     <tr>
       <td align="center">
+        <p align="center" style='text-align:center;'><b>Submitted on: {{ r.reported_at and r.reported_at.strftime("%d/%m/%Y") or 'N/A' }}</b></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center">
         <p align="center" style='text-align:center;'><b>Contract PI: {{ r.pi.full_name }}</b></p>
       </td>
     </tr>
 
   </table>
 
-  <table align="center" border="0">
+  <table align="center" border="0" style="margin-top: 5cm;">
 
     <tr>
       <td align="right" width="10%" style="width:10%;">Project</td>

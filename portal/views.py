@@ -1504,7 +1504,10 @@ class ExportView(UserPassesTestMixin, DetailView):
         # return [o.pdf_file.path] if getattr(o, "file", None) else []
         if hasattr(o, "documents"):
             return [a.pdf_file for a in o.documents.all() if getattr(a, "file", None)]
-        return [o.pdf_file] if getattr(o, "file", None) else []
+        if getattr(o, "file", None):
+            if name:=o._meta.get_field("file").verbose_name:
+                return [(name, o.pdf_file)]
+            return [o.pdf_file]
 
     def get_filename(self, pk=None):
         return getattr(self.object, "number", "export")
@@ -1514,7 +1517,7 @@ class ExportView(UserPassesTestMixin, DetailView):
         user = request.user
         current_ts = timezone.now()
         format = request.GET.get("format", "pdf").lower()
-        if not filename and not (format and format == "pdf"):
+        if not filename and (not format or format == "pdf"):
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
@@ -1585,11 +1588,10 @@ class ExportView(UserPassesTestMixin, DetailView):
                     cover_page_html = cover_page_template.render(locals())
                     if format == "html":
                         return HttpResponse(cover_page_html, content_type="text/html")
-                    else:
-                        html = HTML(string=cover_page_html)
-                        pdf_object = html.write_pdf(presentational_hints=True)
-                        pdf_stream = io.BytesIO(pdf_object)
-                        merger.append(pdf_stream)
+                    html = HTML(string=cover_page_html)
+                    pdf_object = html.write_pdf(presentational_hints=True)
+                    pdf_stream = io.BytesIO(pdf_object)
+                    merger.append(pdf_stream)
 
                 if summary_template:
 
@@ -1604,6 +1606,7 @@ class ExportView(UserPassesTestMixin, DetailView):
                     if self.model is models.Report:
                         summary = PdfReader(pdf_stream)
                         template = get_template("reports/page.html")
+                        summary_page_no = merger.get_num_pages()
                         for pn, dp in enumerate(summary.pages):
                             box = dp.mediabox
                             if box.height and box.width:
@@ -1632,6 +1635,7 @@ class ExportView(UserPassesTestMixin, DetailView):
                             )
                             dp.merge_page(reader.pages[0])
                             merger.add_page(dp)
+                        merger.add_outline_item("Appendix", summary_page_no, is_open=True, bold=True)
                     else:
                         merger.append(pdf_stream)
 
@@ -1654,7 +1658,9 @@ class ExportView(UserPassesTestMixin, DetailView):
             pdf_response["Cache-Control"] = (
                 "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
             )
+            pdf_response["X-Content-Type-Options"] = "nosniff"
             return pdf_response
+
         except Exception as ex:
             capture_exception(ex)
             messages.warning(
