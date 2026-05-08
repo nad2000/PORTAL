@@ -4458,7 +4458,7 @@ class RoundAdmin(
 
         def get_formset(self, request, obj=None, **kwargs):
             self._parent_obj = obj or self.model.objects.get(
-                pk=request.resolver_match.kwargs["object_id"]
+                pk=request.resolver_match.kwargs.get("object_id")
             )
             self._requird_document_queryset = self._parent_obj.required_documents.order_by(
                 "ordering"

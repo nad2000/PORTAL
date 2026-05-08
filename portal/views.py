@@ -1171,13 +1171,13 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         return f"{u.is_admin or u.pk}"
 
     # TODO:  make more managable
-    # def dispatch(self, request, *args, **kwargs):
-    #     if request.method == "GET" and request.user.is_authenticated:
-    #         return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
-    #             super().dispatch
-    #         )(request, *args, **kwargs)
-    #     resp = super().dispatch(request, *args, **kwargs)
-    #     return resp
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == "GET" and request.user.is_authenticated:
+            return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
+                super().dispatch
+            )(request, *args, **kwargs)
+        resp = super().dispatch(request, *args, **kwargs)
+        return resp
 
     def get_transitions(self):
         model_name = self.object._meta.model_name
