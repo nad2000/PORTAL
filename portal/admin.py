@@ -2238,10 +2238,13 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(f"""<a
+            links = ", ".join(
+                f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>""" for c in contracts)
+            {c.number}</a>"""
+                for c in contracts
+            )
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -4413,12 +4416,18 @@ class RoundAdmin(
         _requird_document_queryset = None
 
         def get_formset(self, request, obj=None, **kwargs):
-            self._parent_obj = obj or self.model.objects.get(
-                pk=request.resolver_match.kwargs["object_id"]
+            self._parent_obj = (
+                obj
+                or (pk := request.resolver_match.kwargs.get("object_id"))
+                and self.model.objects.get(pk)
             )
-            self._requird_document_queryset = self._parent_obj.required_documents.order_by(
-                "ordering"
-            )
+
+            if self._parent_obj:
+                self._requird_document_queryset = self._parent_obj.required_documents.order_by(
+                    "ordering"
+                )
+            else:
+                self._requird_document_queryset = self._parent_obj.required_documents.none()
             return super().get_formset(request, obj, **kwargs)
 
         def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -4892,7 +4901,10 @@ class ContractAdmin(
         # view_on_site = False
 
         def view_on_site(self, obj):
-            return reverse("admin:portal_reportingscheduleentry_change", kwargs={"object_id": obj.pk})
+            return reverse(
+                "admin:portal_reportingscheduleentry_change", kwargs={"object_id": obj.pk}
+            )
+
         classes = ["collapse"]
 
     class ContractClauseInline(
