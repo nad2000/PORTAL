@@ -8,26 +8,24 @@ from django.db import transaction
 from django.db.models import Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_update_with_history
-from django.utils.safestring import mark_safe
 
+from common.admin import StaffViewPermsMixin
 from portal.models import (
     Affiliation,
     CurriculumVitae,
     Person,
-    ResearchOffice,
     PersonProtectionPattern,
     ProtectionPatternPerson,
+    ResearchOffice,
 )
 
-
 from .forms import UserChangeForm, UserCreationForm
-from common.admin import StaffViewPermsMixin
-
 
 User = get_user_model()
 
@@ -138,7 +136,9 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
     date_hierarchy = "date_joined"
 
     def email_address_list(self, obj):
-        return ", ".join(obj.emailaddress_set.order_by("-primary", "pk").values_list("email", flat=True))
+        return ", ".join(
+            obj.emailaddress_set.order_by("-primary", "pk").values_list("email", flat=True)
+        )
 
     email_address_list.description = "All user email address(-es)."
 
@@ -268,7 +268,12 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
                 try:
                     with transaction.atomic():
                         if profile:
-                            profile.merge(queryset=profiles, target=profile, request=request, by=u, keep=False)
+                            profile.merge(
+                                queryset=profiles,
+                                request=request,
+                                by=u,
+                                keep=False,
+                            )
 
                         for model, field, objects in (
                             (
