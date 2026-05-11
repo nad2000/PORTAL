@@ -7,6 +7,15 @@
 {% set due_in_days=r.due_in_days %}
 {% if export %}
 {% set coordinator = c.host_contact_email_address or n and n.nominator.full_name_with_email or _('N/A') %}
+{% macro render_member_or_person(obj) %}
+  {% if obj.member %}
+    {{ obj.member.full_name }}{% if obj.member.role %} ({{ obj.member.role.name }}){% endif %}
+  {% elif obj.person %}
+    {{ obj.person }}
+  {% else %}
+      -
+    {% endif %}
+{% endmacro %}
 <html>
   <head>
     <meta charset="utf-8">
@@ -285,7 +294,7 @@
               {% for e in efforts.order_by("full_name") %}
                 <tr>
                   <td>{{ e.full_name or e.person or e.member and e.member.member or '-' }}</td>
-                  <td>{{ e.role or '-' }}</td>
+                  <td>{{ e.role and e.role.name or '-' }}</td>
                   <td>{{ e.fte or '-' }}</td>
                   <td>{{ e.total_fte or '-' }}</td>
                 </tr>
@@ -620,7 +629,7 @@
             <tbody>
               {% for v in visits.order_by("start_date", "end_date") %}
                 <tr>
-                  <td>{{ v.member or '-' }}</td>
+                  <td>{{ render_member_or_person(v) }}</td>
                   <td>{{ v.full_name or '-' }}</td>
                   <td>{{ v.organisation or '-' }}</td>
                   <td>{{ v.country or '-' }}</td>
@@ -704,7 +713,7 @@
             <tbody>
               {% for aw in awards.order_by("start_date", "end_date") %}
                 <tr>
-                  <td>{{ aw.member or '-' }}</td>
+                  <td>{{ render_member_or_person(aw) }}</td>
                   <td>{{ aw.type or '-' }}</td>
                   <td>{{ aw.description or '-' }}</td>
                   <td>
