@@ -595,7 +595,7 @@
                 <tr>
                   <td>{{ c.full_name or '-' }}</td>
                   <td>{{ c.organisation or '-' }}</td>
-                  <td>{{ c.country or '-' }}</td>
+                  <td>{{ c.country and c.country.name or '-' }}</td>
                   <td>{{ c.description or '-' }}</td>
                   <td>
                     {% if c.start_date and c.end_date %}
@@ -639,7 +639,7 @@
                   <td>{{ render_member_or_person(v) }}</td>
                   <td>{{ v.full_name or '-' }}</td>
                   <td>{{ v.organisation or '-' }}</td>
-                  <td>{{ v.country or '-' }}</td>
+                  <td>{{ v.country and v.country.name or '-' }}</td>
                   <td>{{ v.description or '-' }}</td>
                   <td>
                     {% if v.start_date and v.end_date %}
@@ -681,7 +681,7 @@
                 <tr>
                   <td>{{ hv.visitor or '-' }}</td>
                   <td>{{ hv.organisation or '-' }}</td>
-                  <td>{{ hv.country or '-' }}</td>
+                  <td>{{ hv.country and hv.country.name or '-' }}</td>
                   <td>{{ hv.description or '-' }}</td>
                   <td>
                     {% if hv.start_date and hv.end_date %}
