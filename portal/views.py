@@ -1517,6 +1517,7 @@ class ExportView(UserPassesTestMixin, DetailView):
         user = request.user
         current_ts = timezone.now()
         format = request.GET.get("format", "pdf").lower()
+        part = request.GET.get("part")
         if not filename and (not format or format == "pdf"):
             return redirect(o.export_url)
         try:
@@ -1586,7 +1587,7 @@ class ExportView(UserPassesTestMixin, DetailView):
 
                 if cover_page_template:
                     cover_page_html = cover_page_template.render(locals())
-                    if format == "html":
+                    if format == "html" and (not part or part == "cover"):
                         return HttpResponse(cover_page_html, content_type="text/html")
                     html = HTML(string=cover_page_html)
                     pdf_object = html.write_pdf(presentational_hints=True)
@@ -1596,7 +1597,7 @@ class ExportView(UserPassesTestMixin, DetailView):
                 if summary_template:
 
                     summary_page_html = summary_template.render(locals())
-                    if format == "html":
+                    if format == "html" and part == "summary":
                         return HttpResponse(summary_page_html, content_type="text/html")
                     if attachments:
                         append_attachments(merger, attachments)
@@ -2934,6 +2935,7 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
         o = self.object
         context["is_ro"] = o.is_ro(u)
         context["can_edit"] = o.can_edit(u)
+        context["export_url"] = o.export_url
         if a := o.current_assessment:
             context["extra_buttons"] = [
                 {

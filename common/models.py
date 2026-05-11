@@ -897,7 +897,7 @@ class Model(HelperMixin, TimeStampModel):
     def export_url(self):
         model_name_slug = self._meta.db_table.replace("_", "-")
         try:
-            if filename := self.get_export_filename():
+            if filename := self.export_filename:
                 return reverse(
                     f"{model_name_slug}-export-fn",
                     kwargs={"pk": self.pk, "filename": filename},

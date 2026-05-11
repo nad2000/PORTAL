@@ -5,8 +5,56 @@
 {% set contract_number=c.number %}
 {% set application_number=a.number %}
 {% set due_in_days=r.due_in_days %}
-<div class="table-responsive">
-  <table class="table table-bordered searchable">
+{% if export %}
+{% set coordinator = c.host_contact_email_address or n and n.nominator.full_name_with_email or _('N/A') %}
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{{ _('Report Summary') }} - {{ contract_number }}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+      }
+      th {
+        background-color: #f2f2f2;
+        text-align: left;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+      }
+      .text-danger {
+        color: #dc3545;
+      }
+      .text-warning {
+        color: #ffc107;
+      }
+    </style>
+  </head>
+</html>
+<body>
+{% endif %}
+<div
+  class="table-responsive"
+  {% if export %}
+    style="font-family: Arial, sans-serif; font-size: 11px;"
+  {% endif %}
+  >
+  <table
+    class="table table-bordered searchable"
+    {% if export %}
+      style="font-family: Arial, sans-serif; font-size: 11px;"
+    {% endif %}
+  >
     <tbody>
 
       {% if export %}
@@ -18,7 +66,7 @@
             {{ r.number }}
           </td>
         </tr>
-        {% if r.due_date %}
+        {% if r.due_date and not export %}
           <tr>
             <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
               {{ _('Due Date') }}:
@@ -28,13 +76,13 @@
             </td>
           </tr>
         {% endif %}
-        {% if r.submitted_at %}
+        {% if r.submitted_at or r.reported_at %}
           <tr>
             <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
               {{ _('Submitted Date') }}{% if export %}:{% endif %}
             </th>
             <td>
-              {{ r.submitted_at.date() }}:
+              {{ (r.reported_at or r.submitted_at).date() }}:
             </td>
           </tr>
         {% endif %}
@@ -49,6 +97,7 @@
         </tr>
       {% endif %}
 
+      {% if not export %}
       <tr>
         <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Contract PI') }}{% if export %}:{% endif %}
@@ -121,20 +170,24 @@
               {{ c.project_title or a.application_title or a.round.name }}
             </a>
           {% else %}
-            {{ c.project_title or a.application_title or a.round.name }}
+            <span style="font-family: Arial, sans-serif; font-size: 10px;">
+              {{ c.project_title or a.application_title or a.round.name }}
+            </span>
           {% endif %}
         </td>
       </tr>
+      {% endif %}
 
       <tr>
         <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Report Number, Type') }}{% if export %}:{% endif %}
+          {{ _('Report Period, Type') }}{% if export %}:{% endif %}
         </th>
         <td>
           <a href="{{ url('report', pk=r.pk) }}" target="_blank">#{{ r.period }}, {{ r.get_type_display() }}</a>
         </td>
       </tr>
 
+      {% if not export %}
       <tr>
         <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Report Due') }}{% if export %}:{% endif %}
@@ -209,9 +262,9 @@
           {% endif %}
         </td>
       </tr>
+      {% endif %}
 
       {% if export %}
-      {% endif %}
         <!-- Personnel -->
         {% set efforts = r.efforts %}
         {% if efforts.count() and user.is_superuser %}
@@ -671,8 +724,10 @@
           </table>
           </td></tr>
         {% endif %}
+      {% endif %}
 
     </tbody>
   </table>
 
 </div>
+{% if export %}</body></html>{% endif %}
