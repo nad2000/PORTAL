@@ -2248,6 +2248,7 @@ class Person(PersonMixin, Model):
                             (
                                 simple_history.models.HistoricalChanges,
                                 ProtectionPatternPerson,
+                                PersonProtectionPattern,
                             ),
                         )
                     )
@@ -14249,7 +14250,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         source=["assigned"],
         target="assessed",
         custom=dict(
-            verbose="Mark as 'assessed'", button_name=mark_safe("Mark As <b>Assessed</b>"), internal=False
+            verbose="Mark as 'assessed'",
+            button_name=mark_safe("Mark As <b>Assessed</b>"),
+            internal=False,
         ),
         permission=lambda instance, user: instance.assessor == user,
     )

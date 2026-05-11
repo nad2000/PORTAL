@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
-from simple_history.utils import bulk_update_with_history
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from common.admin import StaffViewPermsMixin
 from portal.models import (
@@ -236,7 +236,7 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
                 users = queryset.filter(~Q(id=target_id))
                 object_ids = [u.id for u in users]
                 profiles = Person.where(user_id__in=object_ids)
-                profile_ids = [p.id for p in profiles]
+                # profile_ids = [p.id for p in profiles]
 
                 # for u in list(queryset.filter(~Q(id=target_id))):
                 #     try:
@@ -300,6 +300,12 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
                                 if not issubclass(rel.related_model, HistoricalChanges)
                                 and rel.related_model is not User.staff_of_sites.through
                             )
+                            if model
+                            not in (
+                                ResearchOffice,
+                                EmailAddress,
+                                Person,
+                            )
                         ):
                             if hasattr(model, "history"):
                                 bulk_update_with_history(
@@ -310,9 +316,31 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
                                     manager=getattr(model, "all_objects", model._default_manager),
                                 )
                             else:
-                                getattr(model, "all_objects", model._default_manager).bulk_update(
-                                    objects, [field]
+                                try:
+                                    getattr(model, "all_objects", model._default_manager).bulk_update(
+                                        objects, [field]
+                                    )
+                                except Exception as ex:
+                                    capture_exception(ex)
+                                    errors.append(ex)
+
+                        for ea in EmailAddress.objects.filter(user__in=users):
+                            ea.user = target
+                            ea.primary = False
+                            ea.save()
+                        bulk_create_with_history(
+                            [
+                                ResearchOffice(user=target, org_id=org_id)
+                                for org_id in ResearchOffice.objects.filter(
+                                    ~Q(org__research_offices__user=target), user__in=users
                                 )
+                                .values_list("org_id", flat=True)
+                                .distinct()
+                            ],
+                            ResearchOffice,
+                            default_user=u,
+                            default_change_reason=f"Users {', '.join(str(r) for r in users)} merged into {target} by {u}",
+                        )
 
                         deleted.extend([f"{o}" for o in users])
                         for o in users:

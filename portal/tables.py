@@ -504,7 +504,6 @@ def report_contract_link(table, record, value):
 
 
 def report_export_link(table, record, value):
-    breakpoint()
     return record.export_url
 
 
