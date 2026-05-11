@@ -300,6 +300,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
     "django_tomselect.middleware.TomSelectMiddleware",
+    # "django.middleware.cache.FetchFromCacheMiddleware",
 ]
 
 # STATIC

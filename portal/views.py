@@ -113,6 +113,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, FormView, TemplateView
@@ -168,8 +169,8 @@ def __(s):
 
 def portal_context(request):
     view_name = (rm := request.resolver_match) and rm.view_name
+    site_id = request.site_id if hasattr(request, "site_id") else settings.SITE_ID
     request.site = site = get_current_site(request)
-    site_id = settings.SITE_ID
     domain = site.domain
     context = {
         "settings": settings,
@@ -184,7 +185,7 @@ def portal_context(request):
     if (u := request.user) and u.is_authenticated:
         filters = request.GET.get("application_filter", "")
         # cache_key = f"{u.username}:{site_id}:{filters}"
-        cache_key = f"{u.username}:{site_id}"
+        cache_key = f"{0 if u.is_admin else u.username}:{site_id}"
         cache_control = request.META.get("HTTP_CACHE_CONTROL")
         if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
             cached_context = cache.get(cache_key)
@@ -1117,7 +1118,7 @@ class SingleObjectMixin(ContextMixin):
         if self._obj:
             return self._obj
 
-        if (model := self.model):
+        if model := self.model:
             if queryset is None:
                 queryset = self.get_queryset()
         elif model_name := self.kwargs.get("model"):
@@ -1127,7 +1128,9 @@ class SingleObjectMixin(ContextMixin):
             except LookupError:
                 raise Http404("Model not found")
             else:
-                queryset = self.get_queryset(queryset=getattr(model, "all_objects", model.objects.all)())
+                queryset = self.get_queryset(
+                    queryset=getattr(model, "all_objects", model.objects.all)()
+                )
         else:
             raise Http404("Model not specified")
 
@@ -1505,7 +1508,7 @@ class ExportView(UserPassesTestMixin, DetailView):
         if hasattr(o, "documents"):
             return [a.pdf_file for a in o.documents.all() if getattr(a, "file", None)]
         if getattr(o, "file", None):
-            if name:=o._meta.get_field("file").verbose_name:
+            if name := o._meta.get_field("file").verbose_name:
                 return [(name, o.pdf_file)]
             return [o.pdf_file]
 
@@ -1636,7 +1639,9 @@ class ExportView(UserPassesTestMixin, DetailView):
                             )
                             dp.merge_page(reader.pages[0])
                             merger.add_page(dp)
-                        merger.add_outline_item("Appendix", summary_page_no, is_open=True, bold=True)
+                        merger.add_outline_item(
+                            "Appendix", summary_page_no, is_open=True, bold=True
+                        )
                     else:
                         merger.append(pdf_stream)
 
@@ -1764,7 +1769,9 @@ def survey_webhook(request):
 
 @login_required
 def object_counts(request):
-    cache_key = f"{request.user.username}:{settings.SITE_ID}"
+    u = request.user
+    site_id = request.site_id if hasattr(request, "site_id") else settings.SITE_ID
+    cache_key = f"{0 if u.is_admin else u.username}:{site_id}"
     cached_context = cache.get(cache_key, {})
     return JsonResponse(cached_context)
 
@@ -2127,6 +2134,8 @@ def import_doi(request):
     return render(request, "doi_import.html", locals())
 
 
+@cache_page(60 * 5)
+@vary_on_cookie
 @login_required
 @shoud_be_onboarded
 @csrf_protect
@@ -2940,7 +2949,9 @@ class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
             context["extra_buttons"] = [
                 {
                     "name": _("Export Assessment"),
-                    "url": reverse("assessment-export-fn", kwargs={"pk": a.pk, "filename": a.export_filename}),
+                    "url": reverse(
+                        "assessment-export-fn", kwargs={"pk": a.pk, "filename": a.export_filename}
+                    ),
                     "class": "btn btn-secondary",
                 },
             ]
