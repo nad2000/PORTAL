@@ -3596,11 +3596,21 @@ class SchemeAdmin(
     def get_form(self, request, obj=None, **kwargs):
         # Store the current object instance on the request
         form = super().get_form(request, obj, **kwargs)
-        form.base_fields["current_round"].queryset = (
-            models.Round.where(scheme=obj).order_by("-pk")[:5]
-            if obj
-            else models.Round.objects.none()
-        )
+        pk = request.resolver_match.kwargs.get("object_id")
+        qs = form.base_fields["current_round"].queryset
+        if not obj and pk:
+            try:
+                obj = self.model.objects.get(pk=pk)
+            except self.model.DoesNotExist:
+                pass
+
+        if obj:
+            # NB! Don't use LIMIT on the queryset dirsctly as it will break the pagination in the admin
+            qs = qs.filter(scheme=obj).order_by("-pk")
+            qs = qs.filter(pk__in=qs[:5].values_list("pk", flat=True)).order_by("-pk")
+        else:
+            qs = self.model.none()
+        form.base_fields["current_round"].queryset = qs
         return form
 
     # def formfield_for_foreignkey(self, db_field, request, **kwargs):
