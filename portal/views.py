@@ -5640,6 +5640,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         initial["round"] = self.round.pk
         round = self.round
         nomination = self.nomination
+
         if round.letter_of_support_required or round.member_letter_of_support_required:
             if (
                 has_required_documents := round.required_documents.count() > 0
@@ -5850,9 +5851,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     initial["members"] = latest_application.members
                 initial["presentation_url"] = latest_application.presentation_url
 
-        if ((o := self.object) and o.site_id == 2 and (not o.pk)) or (
-            not self.object and settings.SITE_ID == 2
-        ):
+        o = self.object
+        site_id = o and o.site_id or roud and round.site_id or self.request.site_id or settings.SITE_ID
+
+        if site_id == 2:
 
             if cv := models.CurriculumVitae.last_user_cv(
                 user=o and o.pi or user, cut_off_months=3
@@ -5875,8 +5877,16 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         os.path.basename(cv.file.name),
                     )
                 messages.warning(self.request, message)
-        elif o and o.site_id == 2 and o.cv:
+        elif o and o.cv:
             initial["cv_file"] = o.cv.file
+
+        if (
+            not self.is_update
+            and (cv := models.CurriculumVitae.last_user_cv(user))
+            and site_id in [1, 7]
+            and "cv_file" not in initial
+        ):
+            initial["cv_file"] = cv.file
 
         return initial
 
