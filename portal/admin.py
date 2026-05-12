@@ -2238,13 +2238,10 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(
-                f"""<a
+            links = ", ".join(f"""<a
             href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>"""
-                for c in contracts
-            )
+            {c.number}</a>""" for c in contracts)
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -4466,11 +4463,14 @@ class RoundAdmin(
         _requird_document_queryset = None
 
         def get_formset(self, request, obj=None, **kwargs):
-            self._parent_obj = obj or self.model.objects.get(
-                pk=request.resolver_match.kwargs.get("object_id")
-            )
-            self._requird_document_queryset = self._parent_obj.required_documents.order_by(
-                "ordering"
+            pk = request.resolver_match.kwargs.get("object_id")
+            if not obj and pk:
+                obj = self.model.objects.filter(pk=pk).first()
+            self._parent_obj = obj
+            self._requird_document_queryset = (
+                obj
+                and self._parent_obj.required_documents.order_by("ordering")
+                or self.model.objects.none()
             )
             return super().get_formset(request, obj, **kwargs)
 
