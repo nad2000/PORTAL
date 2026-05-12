@@ -1,1 +1,16 @@
 {% extends 'detail.html' %}
+{% load i18n tags django_bootstrap_breadcrumbs %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% breadcrumb "Reports" "report-list" %}
+  {% if object.pk %}
+    {% breadcrumb object "report-update" object.pk %}
+  {% else %}
+    {% breadcrumb "New Report" "report-create" %}
+  {% endif %}
+{% endblock %}
+
+{% block object_details_table %}
+  {% jinja 'partials/report_summary.html' %}
+{% endblock %}

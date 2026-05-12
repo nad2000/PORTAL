@@ -27,6 +27,8 @@
 
 {% block content %}
 
+  {% include 'snippets/referee_privacy_statement_modal.html' %}
+
   {% if start_applying %}
     <a class="btn btn-primary" href="{{ start_applying }}">
       {% if SITE_ID == 2 or SITE_ID == 4 or SITE_ID == 5 %}
@@ -43,12 +45,46 @@
       {{ block.super }}
     {% endblock %}
     {% crispy form %}
+{% comment %}
     {% block javascript %}
       {{ block.super }}
       {{ form.media.js }}
     {% endblock %}
+{% endcomment %}
   {% endif %}
 
   {{ block.super }}
 
 {% endblock %}
+
+{% comment %}
+{% endcomment %}
+{% block javascript %}
+  {{ block.super }}
+  {% if form %}
+    {{ block.super }}
+    {{ form.media.js }}
+  {% endif %}
+  <script>
+    $(document).ready(function(){
+      /*$('#button-id-submit_button').click(function() {
+        if (this.form.checkValidity()) $('#confirm-referee-submit').modal('show');
+      });*/
+      $('#submit-button').click(function(){
+        /* when the submit button in the modal is clicked, submit the form */
+        // var form = document.getElementById('entry-form');
+        var form = $("#id_action").closest("form")[0];
+        if (form.checkValidity()) {
+          form.action.value = "submit";
+          $("[name='action'],#id_action").val("submit");
+          // workaround to disable 'beforeunload' hadling:
+          $(window).off("beforeunload"); $("form[id]").data("changed", false);
+          $("form[id]").data("changed", false);
+          form.submit();
+        }
+        else form.reportValidity();
+      });
+    });
+  </script>
+{% endblock %}
+{# vim:set ft=htmldjango: #}

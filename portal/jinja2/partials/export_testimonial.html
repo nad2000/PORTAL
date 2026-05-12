@@ -1,0 +1,21 @@
+{% set ref=record.referee %}
+{% set a=ref.application %}
+{% if record.file and record.file != '' %}
+  <a
+    href="{{ url("testimonial-export", pk=record.pk) }}"
+    target="_blank"
+    class="btn btn-primary btn-sm"
+    data-toggle="tooltip"
+    title="{{_('Export referee report') if a.site_id == 5 else _('Export testimonial')}}"
+    > {{ _("Export") }}</a>
+{% elif ref.survey_completed_at %}
+  <a
+    href="{{ url("survey-response", referee_id=ref.pk) }}"
+    target="_blank"
+    class="btn btn-outline-primary btn-sm"
+    data-toggle="tooltip"
+    title="{{ _('Export survey resonse') }}"
+    > {{ _("Export") }}</a>
+{% else %}
+  &mdash;
+{% endif %}

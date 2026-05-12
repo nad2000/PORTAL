@@ -27,19 +27,29 @@
 <div class="row">
   <div class="col-12">
       <div class="buttonHolder mb-5 mt-3 float-right">
-      {#% include 'snippets/detail_buttons.html' %#}
+        {% if transitions %}
+          {% include 'snippets/detail_transition_buttons.html' %}
+        {% endif %}
+        {#% include 'snippets/detail_buttons.html' %#}
         <div class="tooltip-wrapper{% if not can_edit %} disabled{% endif %}"
              data-html="true"
              {% if not can_edit %}
                disabled
-               {% if not is_superuser and not is_staff and not is_ro %}
+               {% if object.state == "current" or object.state == "CUR" %}
+                 title="{% trans 'The current contract cannot be edited.' %}"
+               {% elif object.state == "archived" %}
+                 title="{% trans 'The archived contract cannot be edited.' %}"
+               {% elif not is_admin and not is_ro %}
                 title="{% trans 'Only R.O. can edit this contract.' %}"
                {% else %}
                   title="{% trans 'Contract was already released.' %}"
                 {% endif %}
+              {% elif object.state == "submitted" %}
+                 disabled
+                 title="{% trans 'Contract was already released.' %}"
               {% endif %}
          >
-         <a class="btn btn-primary{% if not can_edit %} disabled{% endif %}" href="{% url 'contract-update' object.pk %}">{% trans 'Edit' %}</a>
+         <a class="btn btn-primary{% if not can_edit or is_ro and object.state == "submitted" %} disabled{% endif %}" href="{% url 'contract-update' object.pk %}">{% trans 'Edit' %}</a>
         </div>
       <a class="btn btn-primary" href="{% url 'contract-export' object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
       <!-- a class="btn btn-danger" href="{% url 'change-request-create' object.pk %}" target="_blank">{% trans 'Request Changes' %}</a-->
@@ -62,48 +72,46 @@
 {% endblock buttons_bellow %}
 {% endblock buttons_above %}
 
+{% block object_details_table %}
+  <div class="table-responsive"> {% contract_summary %} </div>
+{% endblock %}
+
+{% with object.change_requests.all as crs %}
+  {% block object_details_extra_tabs %}
+    {% if tabbed_ui and can_edit and crs.exists %}
+      <li class="nav-item">
+        <a class="nav-link" href="#change_requests" data-toggle="tab">
+          {% if crs.count > 1 %}{% trans 'Change Requests' %}{% else %}{% trans 'Change Request' %}{% endif %}
+        </a>
+      </li>
+    {% endif %}
+  {% endblock %}
+  {% block object_details_extra_panes %}
+    {% if tabbed_ui and can_edit and crs.exists %}
+      <div id="change_requests" class="tab-pane">
+        <div class="table-responsive">
+          {% jinja 'partials/change_request_table.html' objects=crs  %}
+        </div>
+      </div>
+    {% endif %}
+  {% endblock object_details_extra_panes %}
+{% endwith %}
+
 {% block object_details %}
+{% with object.change_requests.all as crs %}
 
   <hr />
 
+  {{ block.super }}
+
   <div class="row">
     <div class="col-12">
-      {% with object.change_requests.all as crs %}
-      {% if can_edit and crs.exists %}
-        <ul class="nav nav-tabs">
-          <li class="nav-item"><a class="nav-link active" href="#contract" data-toggle="tab">{% trans 'Contract' %}</a></li>
-          <li class="nav-item"><a class="nav-link" href="#change_requests" data-toggle="tab">
-              {% if crs.count > 1 %}
-                {% trans 'Change Requests' %}
-              {% else %}
-                {% trans 'Change Request' %}
-              {% endif %}
-            </a></li>
-        </ul>
-
-        <div class="tab-content card-body">
-          <div id="contract" class="tab-pane active">
-            <div class="table-responsive"> {% contract_summary %} </div>
-          </div>
-          <div id="change_requests" class="tab-pane">
-            <div class="table-responsive">
-
-              {% jinja 'partials/change_request_table.html' objects=crs  %}
-
-            </div>
-          </div>
-        </div>
-
-      {% else %}
-        <div class="table-responsive"> {% contract_summary %} </div>
-      {% endif %}
-      {% endwith %}
     </div>
   </div>
 
   <!-- Placeholder for the modal -->
   {% if change_request_form %}
-  <div id="change-request-form-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+  <div id="change-request-form-modal" class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
     <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" >
       <form method="post" enctype="multipart/form-data" id="object_form" action="{% url 'change-request-create' pk=object.pk %}?contract={{ object.pk }}">
         {% csrf_token %}
@@ -130,6 +138,7 @@
   </div>
   {% endif %}
 
+{% endwith %}
 {% endblock %}
 
 {% if change_request_form %}

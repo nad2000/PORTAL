@@ -1,6 +1,6 @@
 {% extends 'detail.html' %}
-
-{% load i18n crispy_forms_tags tags django_bootstrap_breadcrumbs %}
+{% load i18n cache crispy_forms_tags tags django_bootstrap_breadcrumbs %}
+{#% cache 180 application object.pk user.pk %#}
 {% block sidebar %}{% include 'sidebar.html' with category="applications" %}{% endblock sidebar %}
 
 {% block breadcrumbs %}
@@ -21,21 +21,14 @@
 {% endblock %}
 {% endif %}
 
-{% block content %}
+{% block buttons_above %}
+{% block buttons_bellow %}
 
-{% if form %}{% crispy form %}{% endif %}
-
-
+<div class="row">
+  <div class="col-12">
 
 {% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
-
-{% block tags %}{{ block.super }}{% endblock %}
-
-<div class="table-responsive">
-  {% include 'snippets/application_detail_table.html' %}
-</div>
-
-<form method="post" id="id_action_form">
+<form method="post" class="action-form">
   {% csrf_token %}
   <input type="hidden" name="action" id="id_action">
   <div class="buttonHolder mb-5 mt-3 float-right">
@@ -47,16 +40,27 @@
        data-title="{% trans 'You can re-enter the current round with the application as a new application.' %}"
        >{% trans 'Re-enter' %}
     </a>
+      {% elif a.site_id == 2 and not can_update and a.state == "draft" and member %}
+        <a
+             type="button"
+             class="btn btn-primary"
+             href="{% url 'member-update' pk=member.pk %}"
+             data-toggle="tooltip"
+             title="{% trans 'You are listed as a contrigutor on this application. Click here to edit your contributor details and upload your CV if required.' %}"
+          >{% trans 'Edit' %}</a>
       {% else %}
       <div class="tooltip-wrapper{% if not can_update %} disabled{% endif %}"
-           {% if can_only_update_referees %}
-           data-title="{% trans 'You can only update the referee list' %}"
+           {% if update_tooltip %}
+           disabled
+           title="{{ update_tooltip }}"
+           {% elif can_only_update_referees and SITE_ID != 1 and SITE_ID != 7 %}
+           title="{% trans 'You can only update the referee list' %}"
            {% elif not is_owner %}
            disabled
-           data-title="{% trans 'Only the main applicant or a team member can edit the application' %}"
-           {% elif not can_update %}
+           title="{% trans 'Only the main applicant or a team member can edit the application' %}"
+           {% elif not can_update or SITE_ID != 1 and SITE_ID != 7 and a.state == "submitted" %}
            disabled
-           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
+           title="{% trans 'The application has been already submitted and cannot be modified' %}"
            {% comment %}
            {% elif not a.round.is_open %}
            disabled
@@ -64,43 +68,85 @@
               class="btn btn-primary{% if not is_owner or was_submitted or not a.round.is_open %} disabled{% endif %}"
            {% endcomment %}
            {% elif is_owner and not is_ro and a.state == "submitted" or is_owner and not is_ro and a.state == "in_review" %}
-           data-title="{% trans 'Modify the referee list' %}"
+           title="{% trans 'Modify the referee list' %}"
            {% elif not is_ro %}
-           data-title="{% trans 'Modify your application and continue application process' %}"
+           title="{% trans 'Modify your application and continue application process' %}"
            {% else %}
-           data-title="{% trans 'Modify the application and continue application process' %}"
+           title="{% trans 'Modify the application and continue application process' %}"
            {% endif %}
-           >
+          >
            <a href="{% url update_view_name pk=a.pk %}"
               class="btn btn-primary{% if not is_owner or not can_update %} disabled{% endif %}"
-              >{% if can_only_update_referees %}{% trans 'Update Referee List' %}{% else %}{% trans update_button_name %}{% endif %}
+              >{% if can_only_update_referees and SITE_ID != 1 and SITE_ID != 7 %}{% trans 'Update Referee List' %}{% else %}{% trans update_button_name %}{% endif %}
            </a>
       </div>
         {% endif %}
 
         {% if export_button_view_name %}
-        <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
-          {% if show_basic_details and not export_enabled %}
-          disabled
-          data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
-          {% else %}
-          data-title="{% trans 'Export the application into a consolidated PDF file' %}"
+          <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
+            {% if show_basic_details and not export_enabled %}
+            disabled
+            data-title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
+            {% else %}
+            data-title="{% trans 'Export the application into a consolidated PDF file' %}"
+            {% endif %}
+          >
+          <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{{ a.export_url }}{% if for_panellists %}?for_panellists={{ for_panellists }}{% endif %}" target="_blank">
+              {% trans 'Export' %}
+            </a>
+          </div>
+          {% if user.is_admin %}
+            <div class="tooltip-wrapper{% if show_basic_details and not export_enabled %} disabled{% endif %}"
+              {% if show_basic_details and not export_enabled %}
+              disabled
+              title="{% trans 'Only the applicants and the panellists that submitted a statement of conflict of interest can export the application' %}"
+              {% else %}
+              title="{% trans 'Export the application for the panellists into a consolidated PDF file' %}"
+              {% endif %}
+              data-toggle="toggle"
+            >
+            <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{{ a.export_url }}?for_panellists=1" target="_blank">
+                {% trans 'For Panellists' %}
+              </a>
+            </div>
           {% endif %}
-        >
-        <a class="btn btn-primary{% if show_basic_details and not export_enabled %} disabled{% endif %}" href="{% url export_button_view_name pk=a.pk %}{% if for_panellists %}?for_panellists={{ for_panellists }}{% endif %}" target="_blank">
-            {% trans 'Export' %}
-          </a>
-        </div>
         {% endif %}
-
         {% if testimonial or referee   %}
+          {% if testimonial %}<input type="hidden" name="testimonial_id" value="{{ testimonial.pk }}"> {% endif %}
+          {% if referee  %}<input type="hidden" name="referee_id" value="{{ referee.pk }}">{% endif %}
+        <div class="tooltip-wrapper{% if not can_decline %} disabled{% endif %}"
+             {% if not can_decline %}
+             disabled
+             title="{% trans 'The testimonial/referee report has been already submitted or declined' %}"
+             {% elif testimonial.state == "submitted" %}
+             disabled
+             title="{% trans 'The testimonial/referee report was already submitted and cannot be updated' %}"
+             {% else %}
+             title="{% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}{% trans 'Decline to provid a referee report' %}{% else %}{% trans 'Decline to provid a testimonial' %}{% endif %}"
+             {% endif %}
+             data-tooltip="tooltip"
+          >
+            <button type="button"
+              name="turn_down"
+              class="btn btn-outline-danger{% if not can_decline %} disabled{% endif %}"
+              data-toggle="modal"
+              data-action="turn_down"
+              data-target="#id_resolution_modal"
+              {% if not can_decline %}disabled{% endif %}
+            >
+              {% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}
+                {% trans 'I do not wish to provide a report' %}
+              {% else %}
+                {% trans 'I do not wish to provide a testimonial' %}
+              {% endif %}
+            </button>
+        </div>
 
-
-        {% if testimonial.referee.survey_token_id or referee.survey_token_id %}
+        {% if referee.survey_token_id or referee.survey_token_id or testimonial.referee.survey_token_id or testimonial.referee.survey_token_id %}
         <div class="tooltip-wrapper{% if testimonial.state == "submitted" or referee.survey_completed_at %} disabled{% endif %}"
              {% if referee.survey_completed_at %}
              disabled
-             data-title="{% trans 'The referee report has been already submitted' %}"
+             data-title="{% trans 'The referee report has been already submitted or declined' %}"
              {% elif testimonial.state == "submitted" %}
              disabled
              data-title="{% trans 'The testimonial was already submitted and cannot be updated' %}"
@@ -109,11 +155,14 @@
              {% endif %}
              >
              <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or referee.survey_completed_at or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
-                href="{% if referee and referee.survey_token_id %}{% url 'survey-referee' referee_id=testimonial.referee_id|default:referee.id %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
-               {% trans 'Complete' %}
-               <strong>{% trans 'Referee Report' %}</strong></a>
+                href="{% if referee %}{% url 'survey-referee' referee_id=referee.pk %}{% else %}{% url 'survey-referee' referee_id=testimonial.referee_id %}{% endif %}">
+               {% if SITE_ID == 5 %}
+                {% blocktrans %}Progress to <strong>Referee Report</strong>{% endblocktrans %}
+               {% else %}
+                {% trans 'Complete' %} <strong>{% trans 'Referee Report' %}</strong>
+               {% endif %}
+             </a>
         </div>
-
         {% else %}
 
         <div class="tooltip-wrapper{% if testimonial.state == "submitted" or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
@@ -132,12 +181,17 @@
              >
              <a class="btn btn-outline-primary{% if testimonial.state == "submitted" or reviewing_disabled or reviewing_closed %} disabled{% endif %}"
                 href="{% if testimonial %}{% url 'testimonial-update' pk=testimonial.pk %}{% else %}{% url 'application-review-create' application=referee.application_id %}{% endif %}">
-               {% if testimonial and testimonial.file %}
-               {% trans 'Update' %}
+               {% if SITE_ID == 5 %}
+                {% blocktrans %}Progress to <strong>Referee Report</strong>{% endblocktrans %}
                {% else %}
-               {% trans 'Submit' %}
-               {% endif %}
-               <strong>{% trans 'Testimonial' %}</strong></a>
+                {% if testimonial and testimonial.file %}
+                {% trans 'Update' %}
+                {% else %}
+                {% trans 'Submit' %}
+                {% endif %}
+                <strong>{% trans 'Testimonial' %}</strong>
+              {% endif %}
+            </a>
         </div>
 
         {% endif %}
@@ -274,7 +328,7 @@
                     {% endif %}>{% trans 'Approve' %}
                     </button -->
             </span>
-      {% elif user.is_staff %}
+      {% elif user.is_admin %}
         {% if a.state == "submitted" or a.state == "approved" %}
             {% include 'snippets/resolution_modal.html' with application=object round=object.round pi=object.pi org=object.org %}
             <!-- Accept: {{ a.state }}  -->
@@ -308,8 +362,72 @@
     {% endif %}
   </div>
 </form>
-
 {% endwith %}
+
+  </div>
+</div>
+
+{% endblock buttons_bellow %}
+{% endblock buttons_above %}
+
+{% block object_details_table %}
+
+{% if form %}
+  {% if cv_upload_required %}
+    <div class="jumbotron">
+    {% if SITE_ID == 2 %}
+      {% blocktrans %}
+        Curriculum Vitae are required from applicants to Fund,
+        with the exception of Falling Walls where the CV
+        can be obtained from the application shared by Falling Walls Lab Foundation Berlin:
+        If in doubt skip this step, and when required a CV will be requested.<br><br>
+        For NZ-based researchers, a current CV in the
+        <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+        All others, please provide a CV in whatever is your preferred format (maximum of 5 pages).
+      {% endblocktrans %}
+    {% else %}
+      {% blocktrans %}
+        For NZ-based researchers, a current CV in the
+        <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+      {% endblocktrans %}
+    {% endif %}
+    </div>
+  {% endif %}
+
+  {% if form.helper %}
+      {% if form.helper.form_tag %}
+        <form method="post" enctype="multipart/form-data" id="{{ form.helper.form_id|default:'object_form' }}">{% csrf_token %}
+          {% block modals %}{% endblock %}
+          {% block resolution %}
+            {% include 'snippets/resolution_modal.html' %}
+          {% endblock %}
+          {% crispy form form.helper %}
+        </form>
+      {% else %}
+        {% crispy form form.helper %}
+      {% endif %}
+  {% else %}
+    <form method="post" enctype="multipart/form-data" id="object_form">{% csrf_token %}
+      {#% crispy form %#}
+      {#{ form|crispy }#}
+      {% crispy form %}
+      {% if object.pk %}
+        <input class="btn btn-primary" type="submit" value="{% trans 'Update' %}">
+      {% else %}
+        <input class="btn btn-primary" type="submit" value="{% trans 'Create' %}">
+      {% endif %}
+      <a href="{{ view.get_success_url }}" class="btn btn-secondary">{% trans 'Cancel' %}</a>
+    </form>
+  {% endif %}
+
+{% endif %}
+
+{% with a=object u=request.user r=object.round application=object round=application.round pi=object.pi org=object.org %}
+<div class="table-responsive">
+  {% include 'snippets/application_detail_table.html' %}
+</div>
+{% endwith %}
+
 {% endblock %}
 
 {% block javascript %}
@@ -330,19 +448,22 @@
            $(this).find("textarea[name='resolution']").focus();
         }
       })
+    {% comment %}
       $('#id_resolution_modal,#id_agent_declaration_modal').on('shown.bs.modal', function (e) {
           $(this).find("textarea[name='resolution']").focus();
           // $("#id_resolution").focus();
       });
+    {% endcomment %}
       $("input[type='submit']").on("click", function(e) {
         e.preventDefault();
         e.stopPropagation();
         var el = e.target;
         let name =  el.dataset["action"]||$(this).attr("name");
         $("[name='action'],#id_action").val(name);
+        $('#id_commit_button').text(el.value||el.outerText||'Commit');
         {% if object.round.agent_declaration %}
         if (name == "approve") {
-           $('#id_agent_declaration_modal #id_commit_button').text(el.value||el.outerText||'Commit');
+           $('#id_agent_declaration_modal #id_agent_declaration_submit').text(el.value||el.outerText||'Commit');
            $('#id_agent_declaration_modal').modal({keyboard: true});
         } else $('#id_resolution_modal').modal({keyboard: true});
         {% else %}
@@ -358,17 +479,17 @@
         },
         buttonsStyling: false
       });
-      $("#id_action_form").submit(function(e) {
-        if (!$("#id_declaration_accepted_check").is(':checked')) {
+      $("#id_action_form,form.action-form").submit(function(e) {
+        if ($(this).find("input[name='action']").val() == "approve" && !$("#id_declaration_accepted_check").is(':checked')) {
           e.preventDefault();
-          swalWithBootstrapButtons.fire("{% trans 'Please accept the terms and conditions!' %}");
+          swalWithBootstrapButtons.fire("{% trans 'Please accept the <strong>Agent Declaration<strong>!' %}");
           return false;
         }
       });
-
       {% endif %}
     {% endif %}
   });
 </script>
 {% endblock javascript %}
+{#% endcache %#}
 {# vim:set ft=htmldjango: #}

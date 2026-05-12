@@ -25,12 +25,17 @@
     <!--[if lt IE 9]>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
+    {% if settings.SENTRY_DSN %}
     <script src="https://js.sentry-cdn.com/ca6ff8cc0e2248068d84643686a763d1.min.js" crossorigin="anonymous"></script>
-
+    <!-- script
+      src="https://browser.sentry-cdn.com/9.32.0/bundle.tracing.replay.feedback.min.js"
+      integrity="sha384-Ysq3iic+5Yn+pBlZKjcZ0ooGe9g6KnGvGAA6dEFo5tKnz5wUWG0tajuhyqxBqnmP"
+      crossorigin="anonymous"
+      ></script -->{% endif %}
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     {#% if domain == "international.royalsociety.org.nz" %#}
-    {% if SITE_ID == 2 or SITE_ID == 3 or SITE_ID == 4 or SITE_ID  == 5 %}
+    {% if SITE_ID == 2 or SITE_ID == 3 or SITE_ID == 4 or SITE_ID == 5 or SITE_ID == 0 %}
       <link rel="icon" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
       <link rel="SHORTCUT ICON" href="{% static 'images/stlp.royalsociety.org.nz/favicon.ico' %}">
 	<link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/stlp.royalsociety.org.nz/favicons/RS/logoBandTransparentSquareNoWriting__ScaleWidthWzMyXQ.png' %}">
@@ -73,7 +78,7 @@
       <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha512-mSYUmp1HYZDFaVKK//63EcZq4iFWFjxSL+Z3T/aCt4IO9Cejm03q3NKKYN6pFQzY0SBOr8h+eCIAZHPXcpZaNw==" crossorigin="anonymous" referrerpolicy="no-referrer" / -->
       <!-- link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css" -->
       {#% if domain == "international.royalsociety.org.nz" %#}
-      {% if SITE_ID == 5 %}
+      {% if SITE_ID == 5 or SITE_ID == 0 %}
         <link href="{% static 'css/tawhia.royalsociety.org.nz.css' %}" rel="stylesheet">
       {% elif SITE_ID == 4 %}
         <link href="{% static 'css/puanga.royalsociety.org.nz.css' %}" rel="stylesheet">
@@ -87,10 +92,15 @@
       {% endif %}
 
       <!-- Your stuff: Third-party CSS libraries go here -->
-      {% compress css %}
+      {#% compress css %#}
         {% block localcss %}
           <!-- This file stores project-specific CSS -->
           <style>
+.btn-tiny {
+  padding: .1rem .3rem; /* Adjust padding as needed */
+  font-size: .75rem;   /* Adjust font size as needed */
+  /* Add other styles like line-height or border-radius if necessary */
+}
 .select2-selection__arrow {display: none;}
 .select2-container { min-width: initial; }
 /* .select2-container .select2-selection--single, .select2-container--default .select2-selection--single .select2-selection__rendered {height: auto !important;} */
@@ -105,9 +115,25 @@ table.table .asteriskField,.popover-header {color: gray;}
 .popover {max-width: 400px;}
 .custom-file-label::after {content: "{% trans 'Browse' %}";}
 :root {--border-color: lightgray;}
-.htmx-indicator{opacity:0; transition: opacity 500ms ease-in;}
-.htmx-request .htmx-indicator{opacity:1;}
-.htmx-request.htmx-indicator{opacity:1;}
+
+/*
+.htmx-indicator {opacity:0; transition: opacity 500ms ease-in;}
+.htmx-request .htmx-indicator {opacity:1; display:inline;}
+.htmx-request.htmx-indicator {opacity:1; display:inline;}
+*/
+
+.htmx-indicator {
+      opacity: 0;
+      visibility: hidden;
+      display: none;
+}
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 200ms ease-in;
+    display: inline;
+}
+
 .spinner-indicator{
   display:none;
   z-index: 2;
@@ -128,9 +154,28 @@ table.table .asteriskField,.popover-header {color: gray;}
   display: flex;
   justify-content: center;
 }
+.note-editable {
+  font-family: "Arial", sans-serif;
+  font-size: 12px;
+}
+{% if SITE_ID == 0 %}
+  .jumbotron {
+    background-color: #f8f9fa;
+    border-radius: 0.3rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  #site-header {
+    position: relative;
+    min-height: 140px;
+    background-color: #000;
+    background-size: cover;
+    background-position: 50% 15%;
+    background-repeat: no-repeat;
+  }
+{% endif %}
 </style>
         {% endblock %}
-      {% endcompress %}
+      {#% endcompress %#}
     {% endblock %}
 
     {% block headerjs %}
@@ -138,7 +183,8 @@ table.table .asteriskField,.popover-header {color: gray;}
       <!-- Bootstrap JS and its dependencies-->
       <!-- script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script -->
       <!-- script src="https://code.jquery.com/jquery-3.5.1.min.js"></script -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+      <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script -->
+      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     {% endblock %}
 
   </head>
@@ -155,10 +201,12 @@ table.table .asteriskField,.popover-header {color: gray;}
       {% block header %}
         <div class="mb-0" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 30%);">
 
-          {% include 'header.html' %}
+          {% if not user.is_authenticated %}{% include 'header.html' %}{% endif %}
 
-          <nav class="navbar navbar-expand-md navbar-dark bg-primary">
-            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -169,7 +217,7 @@ table.table .asteriskField,.popover-header {color: gray;}
               alt="The Prime Minister's Science Prizes">
               </a -->
 
-              <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <div class="collapse navbar-collapse" id="navbar-content">
 
                 <ul class="navbar-nav mr-auto">
                   {% if user.is_authenticated %}
@@ -179,14 +227,21 @@ table.table .asteriskField,.popover-header {color: gray;}
                         <i class="fa fa-fw fa-home"></i> {% trans 'Home' %}<span class="sr-only">(current)</span>
                       </a>
                     </li>
-                    {% if is_ro %}
+
+                  <li class="nav-item d-block d-lg-none" id="application_nav_item">
+                    <a class="nav-link" href="{% url 'applications' %}">
+                      <i class="fa fa-fw fa-building"></i> {% trans 'Applications' %} <span class="badge badge-light">{{ application_count }}</span>
+                    </a>
+                  </li>
+
+                    {% if is_ro or is_admin %}
                       <li class="nav-item" id="contracts">
                         <a class="nav-link" href="{% url 'contract-list' %}">
                           <i class="fa fa-fw fa-file-contract"></i> {% trans 'Contracting' %}<!-- span class="sr-only">(current)</span -->
                         </a>
                       </li>
                       <li class="nav-item" id="variants">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="{% url 'change-request-list' %}">
                           <i class="fa fa-fw fa-clone"></i> {% trans 'Variations' %}<!-- span class="sr-only">(current)</span -->
                         </a>
                       </li>
@@ -222,33 +277,46 @@ table.table .asteriskField,.popover-header {color: gray;}
                         </a>
                       </li>
                     {% endif %}
-                    {% if user.is_superuser or user.is_site_staff %}
+                    {% if user.is_admin %}
                       <li class="nav-item" id="admin:index">
                         <a id="admin-link" class="nav-link" href="{% url 'admin:index' %}">
                           <i class="fas fa-radiation"></i> {% trans "Admin" %}</a>
                       </li>
                       {#% if user.is_superuser or user.is_site_staff %#}
-                        <li class="nav-item" id="explorer_index">
+                        <li class="nav-item d-none d-md-block" id="explorer_index">
                           <a id="admin-link" class="nav-link" href="{% url 'explorer_index' %}">
                             <i class="fas fa-database"></i> {% trans "DB Explorer" %}</a>
                         </li>
                       {#% endif %#}
                       {% if LIMESURVEY_ADMIN_URL %}
-                        <li class="nav-item" id="limesurvey-admin_id">
+                        <li class="nav-item d-none d-md-block" id="limesurvey-admin_id">
                           <a id="limesurvey-admin-link" class="nav-link" href="{{ LIMESURVEY_ADMIN_URL }}">
                             <img src="{% static 'images/limesurvey.png' %}" width="19" height="19" class="d-inline-block align-top" alt="LimeSurvey"> {% trans "LimeSurvey" %}
                           </a>
                         </li>
                       {% endif %}
-                      <li class="nav-item" id="invitation-create">
+                      <li class="nav-item d-none d-md-block" id="invitation-create">
                         {# URL provided by django-allauth/account/urls.py #}
                         <a class="nav-link" href="{% url 'invitation-create' %}">
                           <i class="fas fa-paper-plane"></i> {% trans "Invite to join" %}
                         </a>
                       </li>
+                      <li class="nav-item d-none d-md-block" id="tags">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a class="nav-link" href="{% url 'tags' %}">
+                          <i class="fas fa-tags"></i> {% trans "Tags" %}
+                        </a>
+                      </li>
+                      <li class="nav-item d-none d-md-block" id="stared">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a class="nav-link" href="{% url 'stared' %}">
+                          <i class="fas fa-star" aria-hidden="true"></i> {% trans "Favorites" %}
+                        </a>
+                      </li>
                     {% endif %}
                     {% endcache %}
                   {% endif %}
+
                 </ul>
 
                 <ul class="navbar-nav ml-auto">
@@ -262,6 +330,8 @@ table.table .asteriskField,.popover-header {color: gray;}
                          data-toggle="popover"
                          data-html="true"
                          data-placement="left"
+                         data-trigger="focus"
+                         tabindex="0"
                          title="{% trans 'User' %}"
                          data-content="<p id='gravatar-tooltip' class='mb-0'><b>{% trans 'Email' %}:&nbsp</b>{{ user.email }}<br/>
                                 <b>{% trans 'Name' %}:&nbsp</b>{{ user.name|default:'N/A' }}<br/>
@@ -290,14 +360,14 @@ table.table .asteriskField,.popover-header {color: gray;}
                       <div class="dropdown-menu dropdown-menu-right dropdown-info"
                            aria-labelledby="navbarDropdownMenuLinkProfile">
 
-                        {% if request.COOKIES.original_user_id %}
+                        {% if request.COOKIES.previous_user_id %}
                           <a class="dropdown-item"
                              href="{% url 'switch-back' %}"
                              id="switch-back"
                              data-toggle="tooltip"
                              title="{% trans 'Swich back to the previous account...' %}"
                           >
-                            <i class="fas fa-random"></i> {% trans "Switch Back" %}
+                            <i class="fas fa-random"></i> {% trans "Switch User" %}
                           </a>
                         {% endif %}
 
@@ -345,9 +415,14 @@ table.table .asteriskField,.popover-header {color: gray;}
 
                 </ul>
               </div>
+          </div>
           </nav>
 
         </div>
+
+      {% endblock header %}
+
+      <div class="container-fluid">
 
         {% block breadcrumbs %}
           {% breadcrumb_raw_safe '<i class="fa fa-fw fa-home"></i>' "/" %}
@@ -360,12 +435,9 @@ table.table .asteriskField,.popover-header {color: gray;}
           {% endif %}
         {% endblock %}
 
-      {% endblock header %}
-
-      <div class="container-fluid">
-
         {% if requery.user.needs_identity_verification %}
-          {% if domain == 'international.royalsociety.org.nz' %}
+          <div class="row"><div class="col-sm">
+          {% if SITE_ID == 2 %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               <span class="badge badge-info">{% trans 'New' %}</span>
               {% trans "This scheme requires a copy of the passport for the the lead applicant." %}
@@ -384,26 +456,52 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endif %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_invitations %}
+          <div class="row"><div class="col-sm">
           {% for oi in outstanding_invitations %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if oi.created_at >= three_days_ago %}
                 <span class="badge badge-primary">{% trans 'New' %}</span>
               {% endif %}
-              {% trans "You have an invitation that hasn't been acted on." %}
+              {% if oi.referee %}
+                {% blocktrans with a=oi.referee.application url=oi.referee.application.detail_url %}
+                You have an invitation to submit a referee report for application <a href="{{ url }}">{{ a }}</a>.
+                {% endblocktrans %}
+              {% elif oi.type == 'A' %}
+                {% if oi.round %}
+                  {% blocktrans with round=oi.round %}You have an invitation to submit an application for the round <b>{{ round }}</b> that hasn't been acted on.{% endblocktrans %}
+                {% else %}
+                  {% trans "You have an invitation to submit an application that hasn't been acted on." %}
+                {% endif %}
+              {% elif oi.type == 'T' %}
+                {% if oi.application %}
+                  {% blocktrans with application=oi.application %}You have an invitation to join the team of the application <b>{{ application }}</b> that hasn't been acted on.{% endblocktrans %}
+                {% else %}
+                  {% trans "You have an invitation to join an application team that hasn't been acted on." %}
+                {% endif %}
+              {% else %}
+                {% trans "You have an invitation that hasn't been acted on." %}
+              {% endif %}
               <a href="{% url 'onboard-with-token' token=oi.token %}" class="alert-link">
-                {% trans 'Please click here to review it' %}!
+                {% if oi.referee %}
+                  {% trans 'Please click here to review the application' %}!
+                {% else %}
+                  {% trans 'Please click here to review it' %}!
+                {% endif %}
               </a>
               <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_nominations and outstanding_nominations.count %}
+          <div class="row"><div class="col-sm">
           {% for n in outstanding_nominations %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if n.created_at >= three_days_ago %}
@@ -418,9 +516,11 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_identity_verifications  %}
+          <div class="row"><div class="col-sm">
           {% for oiv in outstanding_identity_verifications %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if oiv.created_at >= three_days_ago %}
@@ -433,9 +533,11 @@ table.table .asteriskField,.popover-header {color: gray;}
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_authorization_requests %}
+          <div class="row"><div class="col-sm">
           {% for o in outstanding_authorization_requests %}
             {% if o.application and o.application.id %}
               <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -454,9 +556,11 @@ You have a request to join a {{ site_name }} team that you still have to act on.
               </div>
             {% endif %}
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_testimonial_requests %}
+          <div class="row"><div class="col-sm">
           {% for o in outstanding_testimonial_requests %}
             {% if o.testimonial_id %}
               <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -471,7 +575,7 @@ You have a request to review a {{ site_name }} application to act on.
                         {% trans 'Please click here to complete the referee report' %}!
                       </a>
                     {% else %}
-                      <a href="{% url 'testimonial-detail' pk=o.testimonial_id %}" class="alert-link">
+                      <a href="{% url 'testimonial' pk=o.testimonial_id %}" class="alert-link">
                         {% trans 'Please click here to view the review request' %}!
                       </a>
                     {% endif %}
@@ -481,9 +585,11 @@ You have a request to review a {{ site_name }} application to act on.
               </div>
             {% endif %}
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if outstanding_review_requests %}
+          <div class="row"><div class="col-sm">
           {% for o in outstanding_review_requests %}
             {% if o.round_id %}
               <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -502,9 +608,11 @@ You have a request to review a {{ site_name }} application to act on.
               </div>
             {% endif %}
           {% endfor %}
+          </div></div>
         {% endif %}
 
         {% if user_verifications %}
+          <div class="row"><div class="col-sm">
           {% for u in user_verifications %}
             <div class="alert alert-info alert-dismissible fade show" role="alert">
               {% if u.last_login >= three_days_ago or u.date_joined >= three_days_ago %}
@@ -521,10 +629,14 @@ You have a request to review a {{ site_name }} application to act on.
               </button>
             </div>
           {% endfor %}
+          </div></div>
         {% endif %}
 
           <div class="row">
-            <div class="col-12" id="messages" hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
+            <div
+               class="col-sm"
+               id="messages"
+               hx-on::after-swap="setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 15000);">
               {% if messages %}
                 {% for message in messages %}
                   <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message|safe }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
@@ -534,7 +646,9 @@ You have a request to review a {{ site_name }} application to act on.
           </div>
 
         {% if form.errors %}
-          {% include "form_errors.html" %}
+          <div class="row"><div class="col-sm">
+            {% include "form_errors.html" %}
+          </div></div>
         {% endif %}
 
         {% comment %}
@@ -546,19 +660,23 @@ You have a request to review a {{ site_name }} application to act on.
         {% if inlines %}
           {% for formset in inlines %}
             {% if formset.errors %}
+              <div class="row"><div class="col-sm">
               {% include "formset_errors.html" %}
+              </div></div>
             {% endif %}
           {% endfor %}
         {% endif %}
 
         {% block page %}
           <div class="row">
-            {% if user.is_authenticated %}
-              <div class="col-md-3 d-none d-md-block" style="max-width: 18rem;">
+            {% if user.is_authenticated and sidebar != "off" %}
+              <!-- div class="col-md-3 d-none d-md-block" style="max-width: 18rem;" -->
+              <div class="col-sm-auto d-none d-lg-block" style="max-width: 18rem;">
                 {% block sidebar %}{% include 'sidebar.html' %}{% endblock sidebar %}
               </div>
             {% endif %}
-            <div class="col-md-9 mt-2 mb-3">
+            <!-- div class="col-md-{% if sidebar == "off" %}12{% else %}9{% endif %} mt-2 mb-3" -->
+            <div class="col-sm mt-2 mb-3">
               {% block content %}{% endblock content %}
             </div>
           </div>
@@ -571,6 +689,23 @@ You have a request to review a {{ site_name }} application to act on.
       {% block footer %}
         {% include 'footer.html' %}
       {% endblock footer %}
+
+      {% comment %}
+      {% if user.is_authenticated and user.is_admin %}
+        <!-- Position container: fixed at bottom right, padding for space -->
+        <div
+          class="position-fixed bottom-0 right-0 p-3"
+          style="z-index: 11; right: 0; bottom: 0;"
+          id="toast-container"
+          hx-ext="sse"
+          hx-swap="beforeend"
+          sse-connect="{% url 'crud-event-stream' %}"
+          sse-swap="crud"
+        >
+        </div>
+      {% endif %}
+      {% endcomment %}
+
 
       <!-- section class="">
         <footer class="footer">
@@ -641,8 +776,6 @@ You have a request to review a {{ site_name }} application to act on.
             {% block javascript %}
 
               <!-- Bootstrap JS and its dependencies-->
-              <!-- script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script -->
-      <!-- script src="https://code.jquery.com/jquery-3.5.1.min.js"></script -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
       <!-- script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script -->
@@ -651,15 +784,22 @@ You have a request to review a {{ site_name }} application to act on.
       <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js" integrity="sha512-LsnSViqQyaXpD4mBBdRYeP6sRwJiJveh2ZIbW41EBrNmKxgr/LFZIiWT6yr+nycvhvauz8c2nYMhrP80YhG7Cw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
       <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/js/bootstrap-datepicker.js"></script -->
       <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha512-T/tUfKSV1bihCnd+MxKD0Hm1uBBroVYBOYSk1knyvQ9VyZJpc/ALb4P0r6ubwVPSGB2GvjeoMAJJImBG12TiaQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script -->
-      <script src="https://unpkg.com/htmx.org@2.0.2"></script>
-      <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+      <!-- script src="https://unpkg.com/htmx.org@2.0.2"></script -->
+      <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V" crossorigin="anonymous"></script>
+      {% comment %}
+      {% if user.is_authenticated and user.is_admin %}
+      <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4" integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N" crossorigin="anonymous"></script>
+      {% endif %}
+      {% endcomment %}
+      <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
       <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
       <!-- Your stuff: Third-party javascript libraries go here -->
       <!-- place project specific Javascript in this file -->
-      {% compress js %}
+      {#% compress js %#}
         <!-- script src="{% static 'js/project.js' %}"></script -->
       <script>
+        // var tracking_disabled; // TODO: is it still working?
         const swalWithBootstrapButtons = Swal.mixin({
           customClass: {
             confirmButton: "btn btn-danger ml-1",
@@ -667,7 +807,7 @@ You have a request to review a {{ site_name }} application to act on.
           },
           buttonsStyling: false
         });
-        $(document).ready(function(){
+        $(document).ready(function() {
                   $.fn.datepicker.defaults.format = "yyyy-mm-dd";
                   $.fn.datepicker.defaults.autoclose = true;
 
@@ -684,6 +824,7 @@ You have a request to review a {{ site_name }} application to act on.
                   });
                   // $('[data-toggle="tooltip"]').tooltip();
                   $('[data-toggle="tooltip"],[data-tooltip="tooltip"]').tooltip({ boundary: 'window' });
+                  // $('.popover-dismiss').popover({ trigger: 'focus' });
                   $('[data-toggle="popover"][data-trigger!="manual"]').popover();
                   $('[data-toggle="popover"][data-trigger="manual"]').hover(function() {
                     $(this).popover('show');
@@ -691,6 +832,14 @@ You have a request to review a {{ site_name }} application to act on.
                       $(this).popover('hide');
                     });
                   });
+                  $('[data-toggle="popover"]').popover({trigger: 'focus'});
+                  if ($('[data-toggle="popover"]').length) {
+                    $(document).keyup(function (event) {
+                        if (event.which === 27) {
+                            $('[data-toggle="popover"]').popover('hide');
+                        }
+                    });
+                  }
                   $("#{{view_name}}{% if object_state %},#{{view_name}}-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% if model_name %},#{{model_name}}s-{% if object_state == 'new' %}draft{% else %}{{ object_state }}{% endif %}{% endif %}{% endif %},#{{view_name}}").addClass("active");
                   document.addEventListener("htmx:confirm", function(e) {
                     e.preventDefault()
@@ -710,8 +859,22 @@ You have a request to review a {{ site_name }} application to act on.
                       if(result.isConfirmed) e.detail.issueRequest(true) // use true to skip window.confirm
                     })
                   });
+                  {% comment %}
+                  {% if user.is_authenticated and user.is_admin %}
+                    document.addEventListener('htmx:afterSwap', (event) => {
+                      // if (event.detail.target.id === 'toast-container') {
+                      if (event.detail.elt.id === 'toast-container') {
+                        // const toast = event.detail.target.lastElementChild;
+                        const toast = event.detail.elt.lastElementChild;
+                        if (toast) {
+                          // bootstrap.Toast(toastElement).show();
+                          $(toast).toast('show');
+                        }
+                      }
+                    });
+                  {% endif %}
+                  {% endcomment %}
                   setTimeout(function() {$('#messages .alert').fadeOut('slow');}, 70000);
-                });
         {% if site_id == 2 and user.is_authenticated and not is_admin and not request.session.country and not user.person.address.country %}
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(location) {
@@ -720,48 +883,39 @@ You have a request to review a {{ site_name }} application to act on.
             });
           }
         {% endif %}
-      </script>
-<!-- script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics.js";
-  import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyB_8gnIoL0HZ82UZiKQREJ17RRRtkM0bX4",
-    authDomain: "pmspp-273112.firebaseapp.com",
-    projectId: "pmspp-273112",
-    storageBucket: "pmspp-273112.appspot.com",
-    messagingSenderId: "505794998992",
-    appId: "1:505794998992:web:54350149a523eef0c764d5",
-    measurementId: "G-FHVXYJD580"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const messaging = getMessaging(app);
-  // getToken(messaging, {vapidKey: "BIV_XppOX0z0yrf5bT06FCWNxeBNrwPm94KrNqMHfzPMLQiIlpj5C13Y3VEFeqAiSRBoqrleM4IJDxyi7meruwI"});
-  getToken(messaging, { vapidKey: 'BIV_XppOX0z0yrf5bT06FCWNxeBNrwPm94KrNqMHfzPMLQiIlpj5C13Y3VEFeqAiSRBoqrleM4IJDxyi7meruwI' }).then((currentToken) => {
-  if (currentToken) {
-    console.log('Token recieved. ', currentToken);
-    // Send the token to your server and update the UI if necessary
-    // ...
-  } else {
-    // Show permission request UI
-    console.log('No registration token available. Request permission to generate one.');
-    // ...
-  }
-}).catch((err) => {
-  console.log('An error occurred while retrieving token. ', err);
-  // ...
-});
-</script -->
-    {% endcompress %}
+      {% if settings.SENTRY_DSN %}
+        try {
+          // Sentry.setUser({ fullName: "{{ user.full_name }}", email: "{{ user.email }}"});
+          Sentry.init({
+          dsn: '{{ settings.SENTRY_DSN }}',
+          integrations: [
+              Sentry.feedbackIntegration({
+                colorScheme: "system",
+                {% if user.is_authenticated %}
+                useSentryUser: {name: "fullName", email: "email"}
+                {% endif %}
+              }),
+            ],
+          });
+        } catch (error) {
+          if (window.navigator.brave != undefined && window.navigator.brave.isBrave.name == "isBrave") {
+            const d = new Date();
+            d.setTime(d.getTime() + (5*60*1000)) // 5min;
+            document.cookie = "sentry_disabled=1; expires=" + d.toUTCString() + " ;path=/";
+          }
+        }
+      {% endif %}
+      $("form").on("submit", function() {
+        $(this).find("select[name*='org'] option[value]").each( function() {
+          if (this.value) {
+            console.log(`"${this.value}:${this.text}"`, this.form);
+            $(this.form).append(`<input name="selected_org_with_label" type="hidden" value="${this.value}:${this.text}">`);
+          }
+        });
+      });
+  });
+</script>
+    {#% endcompress %#}
     {% if request.GET.logout %}
       <script>$(document).ready(function() {$.ajax({url: '{{ settings.ORCID_BASE_URL }}' + 'userStatus.json?logUserOut=true', dataType: 'jsonp'});});</script>
     {% endif %}

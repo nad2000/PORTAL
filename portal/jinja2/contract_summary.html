@@ -1,14 +1,26 @@
 {% set c=contract %}
 {% set a=c.application %}
 {% set application_number=a and a.number or _("N/A") %}
+{% set u=request.user %}
+{% set is_admin=u.is_admin %}
+
+{% macro inline_member(member) -%}
+  {% if is_admin and not export %}
+    <a href="{{ url('admin:portal_contractmember_change', object_id=member.pk) }}" target="_blank">
+      {{ member.full_name_with_email or member }}
+    </a>
+    <a type="button" class="badge badge-primary" href="{{ url('admin:portal_contractmember_change', object_id=member.pk) }}" target="_blank"> {{ _('Edit') }}</a>
+  {% else %}
+    {{ member.full_name_with_email or member }}
+  {% endif %}
+{%- endmacro %}
+
 <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Application Number') }}
-        </th>
+        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">{{ _('Application Number') }}</th>
         <td>
           {% if a %}
             <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
@@ -18,40 +30,34 @@
         </td>
       </tr>
 
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Type') }}
-        </th>
-        <td>
-          TODO: Visit
-        </td>
-      </tr>
-
-      {% if c.source %}
-
+      {% if not export %}
         <tr>
           <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {% if c.is_variation %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }}{% endif %}
+            {{ _('Contract Number') }}
+          </th>
+          <td>
+            {{ c.number }} (&lt;<strong>{{ c.get_state_display()|upper }}</strong>&gt;)
+          </td>
+        </tr>
+      {% endif %}
+
+      {% if c.source %}
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {% if c.is_variation or c.source %}{{ _('Variation of') }}{% else %}{{ _('Transferred contract of') }} {% endif %}
           </th>
           <td>
             {% if export %}
               {{ c.source }}
             {% else %}
-              <a href="{{ c.source.get_absolute_url }}" target="_blank">{{ c.source }}</a>
+              <a href="{{ c.source.get_absolute_url() }}" target="_blank">{{ c.source }}</a> (&lt;<strong>{{ c.source.get_state_display()|upper }}</strong>&gt;)
+              {% if c.originated_by %}
+                {{ _('by the change request') }}
+                <a href="{{ c.originated_by.get_absolute_url() }}" target="_blank">{{ c.originated_by }}</a> (&lt;<strong>{{ c.originated_by.get_state_display()|upper }}</strong>&gt;)
+              {% endif %}
             {% endif %}
           </td>
         </tr>
-
-        {#% if export and c.change_requests.count() > 0 %}
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-              {{ _('Type') }}
-            </th>
-            <td>
-
-            </td>
-          </tr>
-        {% endif %#}
 
       {% endif %}
 
@@ -60,15 +66,15 @@
           {{ _('Organisation') }} / {{ _('Source') }}
         </th>
         <td>
-            {% if c.org %}
-                {% if request.user.is_superuser %}
-                  <a href="{{ url('admin:portal_organisation_change', object_id=c.org_id) }}" target="_blank">{{ c.org }}</a>
-                {% else %}
-                  {{ c.org }}
-                {% endif %}
+          {% if c.org %}
+            {% if u.is_admin %}
+              <a href="{{ url('admin:portal_organisation_change', object_id=c.org_id) }}" target="_blank">{{ c.org }}</a>
             {% else %}
-                {{ _('N/A') }}
+              {{ c.org }}
             {% endif %}
+          {% else %}
+            {{ _('N/A') }}
+          {% endif %}
         </td>
       </tr>
 
@@ -99,63 +105,109 @@
         </td>
       </tr>
 
+      {% if not export %}
+        {% if is_admin or is_ro %}
+          <tr>
+            <th scope="row" class="table-dark">
+              {% if a.is_team_application or c.site_id in [2, 4, 5] and c.members.all().count() > 1 or c.site_id != 5 and c.members.all().count() %}
+                {% if c.site_id in [2, 4, 5] %}
+                  {% if c.pi_member and c.pi_member.role %}{{ c.pi_member.role.name }}{% else %}{{ _('Principal Investigator (PI)') }}{% endif %}
+                {% else %}
+                  {{ _('Team Lead') }}
+                {% endif %}
+              {% else %}
+                {{ _('Applicant') }}
+            {% endif %}
+            </th>
+
+            <td colspan="3">
+              {% if c.pi_member %}
+                {% with m=c.pi_member %}
+                  {{ inline_member(m) }}
+                {% endwith %}
+              {% else %}
+                {{ c.pi.full_name_with_email }}{% if user.is_admin %} (username: {{ c.pi.username }}){% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
+
+        {% if c.members.all().count() > 1 %}
+          <tr>
+            <th class="table-dark" scope="row">{{ _('Personnel:') }}</th>
+            <td colspan="3">
+              {%if a.team_name %}{{ a.team_name or '' }}:{% endif %}
+              <ul>
+                {% for m in c.members.all() %}
+                  <li>{{ inline_member(m) }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
+        {% endif %}
+      {% endif %}
+
+
       {% if c.contact %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Contact') }}
-        </th>
-        <td>
-          {{ c.contact }}
-        </td>
-      </tr>
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Contact') }}
+          </th>
+          <td>
+            {{ c.contact }}
+          </td>
+        </tr>
       {% endif %}
 
       {% if c.contact_phone %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Contact Phone Number') }}
-        </th>
-        <td>
-          {{ c.contact_phone }}
-        </td>
-      </tr>
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Contact Phone Number') }}
+          </th>
+          <td>
+            {{ c.contact_phone }}
+          </td>
+        </tr>
       {% endif %}
 
       {% if c.host_contact_email %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Host Contact Email Address') }}
-        </th>
-        <td>
-          {{ c.host_contact_email }}
-        </td>
-      </tr>
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Host Contact Email Address') }}
+          </th>
+          <td>
+            {{ c.host_contact_email }}
+          </td>
+        </tr>
       {% endif %}
 
       {#% if (request.user.is_staff or request.user.is_superuser or request.user.is_site_staff) and c.org.research_offices.exists() %#}
-      {% if (is_staff or request.user.is_superuser) and c.org.research_offices.exists() %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Research Office') }}
-        </th>
-        <td>
-            {% for ro in c.org.research_offices.order_by("user__first_name") %}
-                {{ ro.user.full_name_with_email }}
+      {% if u.is_admin %}
+        {% set research_officers = c.research_officers %}
+        {% if research_officers %}
+          <tr>
+            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Research Office') }}
+            </th>
+            <td>
+              {% for ro in research_officers %}
+                {{ ro.full_name_with_email }}
                 {% if not loop.last %}, {% endif %}
-            {% endfor %}
-        </td>
-      </tr>
+              {% endfor %}
+            </td>
+          </tr>
+        {% endif %}
       {% endif %}
 
       {% if c.address %}
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Address') }}
-        </th>
-        <td>
-          {{ c.address|safe }}
-        </td>
-      </tr>
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Address') }}
+          </th>
+          <td>
+            {{ c.address|safe }}
+          </td>
+        </tr>
       {% endif %}
 
 
@@ -183,8 +235,8 @@
         </th>
         {% if not export %}<th scope="col">{{ _('Document') }}</th>{% endif %}
       </tr>
-
     </thead>
+
     <tbody>
       {% for rd in c.get_required_documents().all() %}
         {% for d in rd.documents.all() %}
@@ -204,10 +256,17 @@
             </td>
             {% if not export %}
               <td>
-                <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a>
-                {% if d.convert_file %}
-                  (<a href="{{ d.convert_file.url }}">{{ d.convert_file.name|basename }}</a>)
+                {% if d.file %}
+                  <a href="{{ d.file.url }}">{{ d.file.name|basename }}</a>
+                  {% if d.converted_file and d.converted_file.file %}
+                    (<a href="{{ d.converted_file.url }}">{{ d.converted_file.name|basename }}</a>)
+                  {% endif %}
+                  {% if d.page_count %}
+                  ({{ d.page_count }} {% if d.page_count > 1 %}{{ _('pages') }}{% else %}{{ _('page') }}{% endif %})
                 {% endif %}
+              {% else %}
+                {{ _('Not uploaded yet') }}
+              {% endif %}
               </td>
             {% endif %}
           </tr>
@@ -222,16 +281,16 @@
       {% endfor %}
       <!-- tr>
         <td>Aims</td><td>Approved</td><td>Approved</td>
-      </tr>
-      <tr>
+        </tr>
+        <tr>
         <td>Timeline</td><td>Approved</td><td>Approved</td>
-      </tr><tr>
+        </tr><tr>
         <td>Budget</td><td>Approved</td><td>To Review</td>
-      </tr><tr>
+        </tr><tr>
         <td>Declaration</td><td>Approved</td><td>Approved</td>
-      </tr><tr>
+        </tr><tr>
         <td>Compliance</td><td>Approved</td><td>Approved</td>
-      </tr -->
+        </tr -->
     </tbody>
   </table>
   <table class="table table-bordered searchable table-striped">
@@ -259,13 +318,13 @@
           {% if sec %}
             {% for e in schedule %}
               {% if loop.index0 %}<tr>{% endif %}
-              <td style="vertical-align: middle;">
-                {{ e and e.type and e.get_type_display() or _('N/A') }}
-              </td>
-              <td>
-                {{ e and e.due_date or _('N/A') }}
-              </td>
-              {% if loop.index0 %}</tr>{% endif %}
+                <td style="vertical-align: middle;">
+                  {{ e and e.type and e.get_type_display() or _('N/A') }}
+                </td>
+                <td>
+                  {{ e and e.due_date or _('N/A') }}
+                </td>
+                {% if loop.index0 %}</tr>{% endif %}
             {% endfor %}
           {% else %}
             <td>&nbsp;</td><td>&nbsp;</td>
@@ -275,7 +334,7 @@
       <tr>
         <td><strong>{{ _("Total") }}</strong>:</td>
         <td style="vertical-align: middle; text-align: right;">
-            ${{ '{:0,.2f}'.format(c.total_allocation) }}
+          ${{ '{:0,.2f}'.format(c.total_allocation) }}
         </td>
         <td>&nbsp;</td><td>&nbsp;</td>
       </tr>

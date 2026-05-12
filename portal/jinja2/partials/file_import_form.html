@@ -1,6 +1,6 @@
 {% if modal_dialog %}
   <form
-      hx-post="{{ request.path }}{% if model %}?model={{ model }}{% endif %}"
+    hx-post="{{ request.path }}{% if model %}?model={{ model }}{% endif %}"
     hx-target="{{ hx_target or '#messages' }}"
     hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'
     class="modal-content"
@@ -25,7 +25,7 @@
       {{ _('Cancel') }}
     </button>
     <button type="submit" class="btn btn-primary" hx-indicator="#button-spinner">{{ _('Import...') }}
-      <img  id="button-spinner" class="htmx-indicator" src="{{ static('/images/bars.svg') }}"/>
+      <img  id="button-spinner" class="htmx-indicator" src="{{ static('images/bars.svg') }}"/>
     </button>
   </div>
 </form>

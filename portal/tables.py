@@ -10,27 +10,67 @@ from dateutil.relativedelta import relativedelta
 from . import models
 
 
-class ReportedFundingTable(tables.Table):
+class Table(tables.Table):
+
+    @property
+    def model_name(self):
+        return self._meta.model and self._meta.model._meta.model_name
+
+    @property
+    def verbose_model_name(self):
+        return self._meta.model and self._meta.model._meta.verbose_name
+
+    class Meta:
+        attrs = {"class": "table table-striped table-bordered"}
+        # attrs = {"class": "table table-striped"}
+        template_name = "django_tables2/bootstrap4.html"
+
+
+class TableWithTotalCount(Table):
+
+    _total_count = None
+
+    def __init__(self, data, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
+        self._total_count = data.count() if hasattr(data, "count") else len(data) if data else 0
+
+
+class SafeTemplateColumn(tables.TemplateColumn):
+    def render(self, record, table, value, bound_column, **kwargs):
+        return mark_safe(super().render(record, table, value, bound_column, **kwargs))
+
+
+class TotalCountColumn(tables.Column):
+    def render_footer(self, bound_column, table, **kwargs):
+        return table._total_count if hasattr(table, "_total_count") else ""
+
+
+class ReportedFundingTable(Table):
     class Meta:
         model = models.ReportedFunding
-        template_name = "django_tables2/bootstrap4.html"
-        attrs = {"class": "table table-striped"}
         fields = ("title", "doi")
 
 
-class PublicationTable(tables.Table):
-    class Meta:
+class PublicationTable(Table):
+    title = tables.Column(linkify=("publication-update", {"pk": tables.A("pk")}))
+    reports = SafeTemplateColumn(
+        verbose_name=gettext_lazy("Report(s)"),
+        template_name="partials/publication_reports.html",
+        attrs={
+            "td": {
+                "class": "text-center",
+            },
+        },
+    )
+
+    class Meta(Table.Meta):
         model = models.Publication
-        template_name = "django_tables2/bootstrap4.html"
-        attrs = {"class": "table table-striped"}
         fields = ("title", "doi")
 
 
-class SubscriptionTable(tables.Table):
-    class Meta:
+class SubscriptionTable(Table):
+    class Meta(Table.Meta):
         model = models.Subscription
-        template_name = "django_tables2/bootstrap4.html"
-        attrs = {"class": "table table-striped"}
         fields = (
             "name",
             "email",
@@ -40,8 +80,16 @@ class SubscriptionTable(tables.Table):
 class StateColumn(tables.Column):
     attrs = {"td": {"class": "align-middle text-center"}}
 
-    def render(self, value, record):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        kwargs["empty_values"] = [None, ""]
+
+    def render(self, record, table, value, bound_column, **kwargs):
         state = getattr(record, "state", None) or value
+        name = (
+            table and table.verbose_model_name or record and record._meta.model._meta.verbose_name
+        )
+        name = gettext_lazy(name and name.lower() or "record")
         if not state:
             return mark_safe(
                 '<i class="far fa-question-circle text-dark text-center" aria-hidden="true"></i>'
@@ -53,82 +101,73 @@ class StateColumn(tables.Column):
                     title = _("Work in progress")
                 else:
                     css_classes = "far fa-plus-square text-success text-center"
-                    title = _(
-                        "The invitation has not been processed yet or it is in draft version"
-                    )
+                    title = _(f"The {name} has not been processed yet or it is in draft version")
             else:
                 if not isinstance(record, (models.Invitation)):
                     css_classes = "far fa-times-circle text-danger text-center"
-                    title = _("The %(verbose_name)s was just created") % {
-                        "verbose_name": _(record._meta.verbose_name)
-                    }
-                    # if isinstance(record, models.Testimonial):
-                    #     title = _("The testimonial was just created")
-                    # else:
-                    #     title = _("The application was just created")
                 else:
-                    title = _("The invitation was created")
                     css_classes = "far fa-plus-square text-success text-center"
+                title = _(f"The {name} was just created")
         elif state == "in_review":
             css_classes = "fas fa-question text-success text-center"
-            title = _(
-                "The application was submitted and sent out to the referees for the reviewing"
-            )
+            title = _(f"The {name} was submitted and sent out to the referees for the reviewing")
+        elif state == "withdrawn":
+            css_classes = "fa fa-ban text-warning text-center"
+            title = _(f"The {name} was withdrawn")
         elif state == "sent":
             css_classes = "far fa-envelope text-success text-center"
             title = _("The invitation was sent")
         elif state == "accepted":
             if isinstance(record, models.Application):
                 css_classes = "fas fa-star text-success text-center"
-                title = _("The application was accepted")
             elif isinstance(record, models.Invitation):
                 css_classes = "far fa-envelope-open text-success text-center"
-                title = _("The invitation was accepted")
             else:
                 css_classes = "fas fa-check-double text-success text-center"
-                title = _("The %s was accepted") % record._meta.verbose_name
+            title = _(f"The {name} was accepted")
         elif state == "testified":
             css_classes = "fa fa-check-circle text-success text-center"
-            title = _("The testimonial was submitted")
+            title = _(f"The {name} was submitted")
         elif state == "opted_out":
             css_classes = "fa fa-ban text-danger text-center"
-            title = _("The invitee has turned down the nomination")
+            title = _(f"The {name} has turned down the nomination")
         elif state == "bounced":
             css_classes = "fa fa-exclamation-triangle text-danger text-center"
-            title = _("The invitation failed or autoreplied. Please check the recipient")
+            title = _(f"The {name} failed or autoreplied. Please check the recipient")
         elif state == "submitted":
             css_classes = "fa fa-check text-success text-center"
-            if isinstance(record, models.Testimonial):
-                title = _("The testimonial was completed and submitted")
-            elif isinstance(record, models.Application):
-                title = _("The application was completed and submitted")
-            else:
-                title = _("The invitation was submitted")
+            title = _(f"The {name} was completed and submitted")
         elif state == "cancelled":
             css_classes = "fa fa-ban text-danger text-center"
-            title = _("The application was cancelled")
-        elif state == "declined":
+            title = _(f"The {name} was cancelled")
+        elif state == "declined" or state == "excluded":
             css_classes = "fa fa-ban text-danger text-center"
-            title = _("Cancelled")
+            title = _("Cancelled") if state == "declined" else _("Excluded")
         elif state == "approved":
             css_classes = "fa fa-thumbs-up text-success text-center"
-            title = _("The application was approved")
+            title = _(f"The {name} was approved")
         elif state == "funded":
             css_classes = "fa fa-heart text-success text-center"
-            title = _("The application was funded")
+            title = _(f"The {name} was funded")
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
-            title = _("The report was assessed")
+            title = _(f"The {name} was assessed")
         elif state == "assessed":
             css_classes = "fa fa-heart text-success text-center"
-            title = _("The report was assessed")
+            title = _(f"The {name} was assessed")
+        elif state == "assigned":
+            css_classes = "fas fa-plus text-success text-center"
+            if getattr(record, "assessor", False):
+                title = _(f"The {name} was assigned to {record.assessor.full_name_with_email}")
+            else:
+                title = _(f"The {name} was assigned")
         else:
             if isinstance(record, (models.Testimonial, models.Application)):
                 return mark_safe(
                     '<i class="fas fa-plus text-success text-center" aria-hidden="true"></i>'
                 )
             css_classes = "fas fa-plus text-success text-center"
-            title = _("The invitation was created")
+            title = _(f"The {name} was created")
 
         if state_changed_at := getattr(record, "state_changed_at", None):
             # title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
@@ -141,7 +180,7 @@ class StateColumn(tables.Column):
         )
 
 
-class NominationTable(tables.Table):
+class NominationTable(Table):
     round = tables.Column(
         linkify=lambda table, record: (
             record.get_absolute_url()
@@ -151,6 +190,7 @@ class NominationTable(tables.Table):
                 if record.user == table.request.user
                 or record.nominator == table.request.user
                 or record.email == table.request.user.email
+                or table.request.user.is_admin
                 else None
             )
         )
@@ -170,7 +210,7 @@ class NominationTable(tables.Table):
     # last_name = tables.Column(verbose_name=_("Nominee Last Name"))
     # email = tables.Column(verbose_name=_("Nominee Email Address"))
 
-    #def render_user(self, record, value):
+    # def render_user(self, record, value):
     #    if value:
     #        return value.full_name_with_email
     #    if value := record.full_name_with_email:
@@ -186,12 +226,16 @@ class NominationTable(tables.Table):
             return value.full_name_with_email
 
     def before_render(self, request):
-        if (u := request.user) and not u.is_superuser and not u.is_staff and not u.research_offices.exists():
+        if (
+            (u := request.user)
+            and not u.is_superuser
+            and not u.is_staff
+            and not u.research_offices.exists()
+        ):
             self.columns.hide("nominator")
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Nomination
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
@@ -205,11 +249,11 @@ class NominationTable(tables.Table):
         )
 
 
-class TestimonialTable(tables.Table):
+class TestimonialTable(Table):
     state = StateColumn(verbose_name=_("Submitted"))
     number = tables.Column(
         accessor="referee__application__number",
-        linkify=lambda record: reverse("testimonial-detail", kwargs=dict(pk=record.id)),
+        linkify=lambda record: reverse("testimonial", kwargs=dict(pk=record.id)),
     )
     application_title = tables.Column(accessor="referee__application__application_title")
     referee = tables.Column(
@@ -217,9 +261,8 @@ class TestimonialTable(tables.Table):
         order_by=("referee__first_name", "referee__last_name", "referee__email"),
     )
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Testimonial
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = ()
 
@@ -230,6 +273,7 @@ def application_link(table, record, value):
     #     return reverse("admin:portal_application_change", kwargs={"object_id": record.id})
     if (
         u.is_superuser
+        and record.state in ["draft", "new", "submitted"]
         or record.site_id not in [2, 4, 5]
         and not record.was_submitted
         and record.is_applicant(u)
@@ -267,30 +311,37 @@ class ContractColumn(tables.LinkColumn):
             return super().render(record, value)
 
 
-class SafeTemplateColumn(tables.TemplateColumn):
-    def render(self, record, table, value, bound_column, **kwargs):
-        return mark_safe(super().render(record, table, value, bound_column, **kwargs))
-
-
 def default_start_date(record=None):
     if (record and record.site_id or settings.SITE_ID) in [2, 5]:
         return timezone.now().date().replace(day=1, month=3)
     return timezone.now().date().replace(day=1) + relativedelta(months=1)
 
 
-class ApplicationTable(tables.Table):
+class ApplicationTable(TableWithTotalCount):
     # selection = tables.CheckBoxColumn(accessor="pk")
-    state = StateColumn(verbose_name=_("Submitted"))
-    number = tables.Column(linkify=application_link)
-    round = tables.Column(linkify=application_round_link)
-    email = tables.Column(
-        linkify=lambda table, record, value: (
-            reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
-            if (table.request.user.is_staff or table.request.user.is_superuser)
-            and record.submitted_by_id
-            else None
-        )
+    state = StateColumn(
+        verbose_name=_("Submitted"),
+        footer=_("Total:"),
     )
+    number = tables.Column(
+        linkify=application_link,
+        footer=lambda table: mark_safe(f"<b>{table._total_count}</b>"),
+        attrs={"tf": {"class": "text-right"}},
+    )
+    round = tables.Column(linkify=application_round_link, footer=None)
+    pi = tables.Column(
+        gettext_lazy("Application PI"),
+        tables.A("pi__full_name_with_email"),
+        order_by=("first_name", "last_name"),
+    )
+    # email = tables.Column(
+    #     linkify=lambda table, record, value: (
+    #         reverse("admin:users_user_change", kwargs={"object_id": record.submitted_by_id})
+    #         if (table.request.user.is_staff or table.request.user.is_superuser)
+    #         and record.submitted_by_id
+    #         else None
+    #     )
+    # )
     export = tables.LinkColumn(
         "application-export",
         args=[tables.A("pk")],
@@ -377,7 +428,7 @@ class ApplicationTable(tables.Table):
         #     self.columns.hide("selection")
         if state != "funded":
             self.columns.hide("current_contract")
-        if (u := request.user) and not u.is_superuser and not u.is_staff:
+        if (u := request.user) and not u.is_admin:
             self.columns.hide("export")
             self.columns.hide("admin")
             self.columns.hide("current_contract")
@@ -394,42 +445,42 @@ class ApplicationTable(tables.Table):
         if (
             record.state in ["draft", "new"]
             and (deadline_days := record.deadline_days)
-            and record.deadline_days < 6
+            and deadline_days < 6
         ):
             r = record.round
-            closes_at = timezone.localtime(r.closes_at)
+            closes_at = r.closes_at and (
+                timezone.localtime(r.closes_at) if timezone.is_aware(r.closes_at) else r.closes_at
+            )
             return format_html(
                 """<span
                     data-toggle="tooltip"
-                    title="%s"
+                    title="{}"
                 >
-                    <i class="fas fa-exclamation-circle %s"
-                    ></i> %s
-                </span>"""
+                    <i class="fas fa-exclamation-circle {}"
+                    ></i> {}
+                </span>""",
+                _("The round is closing in %s day(s) on %s by %s")
                 % (
-                    _("The round is closing in %s day(s) on %s by %s")
-                    % (
-                        deadline_days,
-                        formats.date_format(closes_at, "d-m-Y"),
-                        formats.date_format(closes_at, "P"),
-                    ),
-                    "text-danger" if record.deadline_days < 4 else "text-warning",
-                    value,
-                )
+                    deadline_days,
+                    formats.date_format(closes_at, "d-m-Y"),
+                    formats.date_format(closes_at, "P"),
+                ),
+                "text-danger" if record.deadline_days < 4 else "text-warning",
+                value,
             )
         return value
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Application
-        template_name = "django_tables2/bootstrap4-responsive.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
             "number",
             "round",
-            "email",
-            "first_name",
-            "last_name",
+            "pi",
+            # "email",
+            # "first_name",
+            # "last_name",
             "panel",
             "export",
             "admin",
@@ -452,7 +503,11 @@ def report_contract_link(table, record, value):
     return f'{reverse("contract-create")}?report_id={record.pk}'
 
 
-class ReportTable(tables.Table):
+def report_export_link(table, record, value):
+    return record.export_url
+
+
+class ReportTable(Table):
     state = StateColumn(verbose_name=_("Status"))
     # number = tables.Column(linkify=report_link)
     number = tables.LinkColumn(
@@ -468,10 +523,15 @@ class ReportTable(tables.Table):
         ),
         text=lambda record: record.contract.number,
     )
-    export = tables.LinkColumn(
-        "report-export",
-        args=[tables.A("pk")],
-        text=gettext_lazy("Export"),
+    export = tables.TemplateColumn(
+        verbose_name=gettext_lazy("Export"),
+        template_code="""{% load i18n %}<a
+            href="{{ record.export_url }}"
+            class="btn btn-primary btn-sm"
+            target="_blank"
+            data-toggle="tooltip"
+            title="{% trans 'Export the report into a consolidated PDF file' %}"
+        >{% trans 'Export' %}</a>""",
         orderable=False,
         attrs={
             "a": {
@@ -483,11 +543,45 @@ class ReportTable(tables.Table):
             "td": {"class": "text-center"},
         },
     )
+    # export_button = tables.Column(
+    #     verbose_name=gettext_lazy("Export"),
+    #     # accessor=tables.A("export_url"),
+    #     # linkify=lambda record: record.export_url,
+    #     empty_values=(),
+    #     # verbose_name=gettext_lazy("Export"),
+    #     # orderable=False,
+    #     # attrs={
+    #     #     "a": {
+    #     #         "class": "btn btn-primary btn-sm",
+    #     #         "target": "_blank",
+    #     #         "data-toggle": "tooltip",
+    #     #         "title": gettext_lazy("Export the report into a consolidated PDF file"),
+    #     #     },
+    #     #     "td": {"class": "text-center"},
+    #     # },
+    # )
+    # export = tables.LinkColumn(
+    #     lambda record: record.export_url or None,
+    #     # "report-export",
+    #     # args=[tables.A("pk")],
+    #     text=gettext_lazy("Export"),
+    #     orderable=False,
+    #     attrs={
+    #         "a": {
+    #             "class": "btn btn-primary btn-sm",
+    #             "target": "_blank",
+    #             "data-toggle": "tooltip",
+    #             "title": gettext_lazy("Export the report into a consolidated PDF file"),
+    #         },
+    #         "td": {"class": "text-center"},
+    #     },
+    # )
     pi = tables.Column(
         gettext_lazy("Contract PI"),
-        tables.A("pi__full_name_with_email"),
+        tables.A("pi__full_name"),
         order_by="contract__members__email",
     )
+    due_date = tables.Column(order_by="schedule_entry__due_date")
 
     # def before_render(self, request):
     #     if (u := request.user) and not u.is_superuser and not u.is_staff:
@@ -527,9 +621,25 @@ class ReportTable(tables.Table):
     #         )
     #     return value
 
-    class Meta:
+    def render_pi(sell, record, value, *args, **kwargs):
+        pi = record.pi
+        orcid = pi.get_orcid()
+        return mark_safe(f"""<span
+    data-toggle="popover"
+    data-html="true"
+    data-placement="left"
+    data-trigger="focus"
+    tabindex="0"
+    title="{gettext_lazy('Contract PI')}"
+    data-content="<b>{gettext_lazy('Email')}:&nbsp</b>{ pi.email }<br/>
+        <b>{gettext_lazy('Username')}:&nbsp</b>{ pi.username }
+        <br/><b>ORCID:&nbsp</b>{ orcid or 'N/A'}
+        </p>"
+    >{value}</span>
+    """)
+
+    class Meta(Table.Meta):
         model = models.Report
-        template_name = "django_tables2/bootstrap4-responsive.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "state",
@@ -539,6 +649,7 @@ class ReportTable(tables.Table):
             # "period",
             "type",
             "due_date",
+            "export",
         )
 
 
@@ -560,7 +671,7 @@ def round_link(record, table, *args, **kwargs):
     return url
 
 
-class RoundTable(tables.Table):
+class RoundTable(Table):
     title = tables.Column(linkify=round_link, verbose_name=_("Round"))
     scheme = tables.Column(verbose_name=_("Scheme"))
     opens_on = tables.Column(verbose_name=_("Opens On"))
@@ -574,9 +685,8 @@ class RoundTable(tables.Table):
         footer=lambda table: sum(row.evaluation_count for row in table.data),
     )
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Round
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "title",
@@ -587,14 +697,13 @@ class RoundTable(tables.Table):
         )
 
 
-class ScoreSheetTable(tables.Table):
+class ScoreSheetTable(Table):
     round = tables.Column(
         linkify=lambda record: reverse("score-sheet", kwargs=dict(round=record.round_id))
     )
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.ScoreSheet
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "round",
@@ -633,7 +742,7 @@ def application_review_link(table, record, value):
         return
 
 
-class RoundApplicationTable(tables.Table):
+class RoundApplicationTable(Table):
     number = tables.Column(linkify=application_review_link, verbose_name=_("Number"))
     first_name = tables.Column(verbose_name=_("First Name"))
     last_name = tables.Column(verbose_name=_("Last Name"))
@@ -654,28 +763,25 @@ class RoundApplicationTable(tables.Table):
 
         if not coi or coi.has_conflict is None:
             return format_html(
-                "<span data-toggle='tooltip' title='%s'>%s</span>"
-                % (_("Conflict of Interest statement to complete."), value)
+                "<span data-toggle='tooltip' title='{}'>{}</span>",
+                _("Conflict of Interest statement to complete."),
+                value,
             )
         if not coi.has_conflict:
             if record.evaluations.filter(state="submitted", panellist__user=user).exists():
                 return format_html(
-                    "<span data-toggle='tooltip' title='%s'>%s</span>"
-                    % (
-                        _("You have already submitted an evaluation of this application."),
-                        value,
-                    )
+                    "<span data-toggle='tooltip' title='{}'>{}</span>",
+                    _("You have already submitted an evaluation of this application."),
+                    value,
                 )
 
             return format_html(
-                "<span data-toggle='tooltip' title='%s'>%s</span>"
-                % (
-                    _(
-                        "You have submitted the statement of the conflict of interest. "
-                        "Please evaluate the application and submit scores."
-                    ),
-                    value,
-                )
+                "<span data-toggle='tooltip' title='{}'>{}</span>",
+                _(
+                    "You have submitted the statement of the conflict of interest. "
+                    "Please evaluate the application and submit scores."
+                ),
+                value,
             )
         # if coi.has_conflict:
         #     return format_html(
@@ -691,38 +797,33 @@ class RoundApplicationTable(tables.Table):
 
         if record.state != "submitted":
             return format_html(
-                "<span data-toggle='tooltip' title='%s'>%s</span>"
-                % (
-                    _("The application has not been submitted yet"),
-                    value,
-                )
+                "<span data-toggle='tooltip' title='{}'>{}</span>",
+                _("The application has not been submitted yet"),
+                value,
             )
         if (r := record.round) and (deadline_days := r.deadline_days) and deadline_days < 6:
             closes_at = timezone.localtime(r.closes_at)
             return format_html(
                 """<span
                     data-toggle="tooltip"
-                    title="%s"
+                    title="{}"
                 >
-                    <i class="fas fa-exclamation-circle %s"
-                    ></i> %s
-                </span>"""
-                % (
-                    _("The round is closing in %(days)s day(s) on %(date)s by %(time)s")
-                    % {
-                        "days": deadline_days,
-                        "date": formats.date_format(closes_at, "d-m-Y"),
-                        "time": formats.date_format(closes_at, "P"),
-                    },
-                    "text-danger" if deadline_days < 4 else "text-warning",
-                    value,
-                )
+                    <i class="fas fa-exclamation-circle {}"
+                    ></i> {}
+                </span>""",
+                _("The round is closing in %(days)s day(s) on %(date)s by %(time)s")
+                % {
+                    "days": deadline_days,
+                    "date": formats.date_format(closes_at, "d-m-Y"),
+                    "time": formats.date_format(closes_at, "P"),
+                },
+                "text-danger" if deadline_days < 4 else "text-warning",
+                value,
             )
         return value
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Application
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             "number",
@@ -733,7 +834,7 @@ class RoundApplicationTable(tables.Table):
         )
 
 
-class EvaluationTable(tables.Table):
+class EvaluationTable(Table):
     # round = tables.Column(verbose_name=_("Round"))
     total_score = tables.Column(
         verbose_name=_("Total Score"), attrs={"td": {"style": "text-align: right;"}}
@@ -747,9 +848,8 @@ class EvaluationTable(tables.Table):
     #     if value:
     #         return value.full_name_with_email
 
-    class Meta:
+    class Meta(Table.Meta):
         model = models.Evaluation
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = (
             # "round",
@@ -758,7 +858,7 @@ class EvaluationTable(tables.Table):
         )
 
 
-class RoundConflictOfInterestSatementTable(tables.Table):
+class RoundConflictOfInterestStatementTable(Table):
     number = tables.Column(linkify=lambda record: record.application.get_absolute_url())
     has_conflict = tables.Column()
     first_name = tables.Column()
@@ -777,12 +877,11 @@ class RoundConflictOfInterestSatementTable(tables.Table):
             return _("Yes")
         return _("No")
 
-    class Meta:
-        template_name = "django_tables2/bootstrap4.html"
+    class Meta(Table.Meta):
         attrs = {"class": "table table-striped table-bordered"}
 
 
-class RoundSummaryTable(tables.Table):
+class RoundSummaryTable(Table):
     number = tables.Column(linkify=lambda record: record.get_absolute_url())
     lead = tables.Column()
     state = tables.Column(verbose_name=_("State"))
@@ -815,7 +914,7 @@ class RoundSummaryTable(tables.Table):
         fields = ["number"]
 
 
-class InvitationTable(tables.Table):
+class InvitationTable(Table):
     url = tables.Column(linkify=lambda value: value)
     token = tables.Column(linkify=lambda value, record: record.url)
     # number = tables.Column(linkify=application_link)
@@ -831,7 +930,6 @@ class InvitationTable(tables.Table):
 
     class Meta:
         model = models.Invitation
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = [
             "token",
@@ -859,15 +957,14 @@ class InvitationTable(tables.Table):
         ]
 
 
-class SummaryReportTable(tables.Table):
-    class Meta:
+class SummaryReportTable(Table):
+    class Meta(Table.Meta):
         model = models.Application
-        template_name = "django_tables2/bootstrap4.html"
         attrs = {"class": "table table-striped table-bordered"}
         fields = ["number", "round", "submitted_by", "state"]
 
 
-class ContractTable(tables.Table):
+class ContractTable(Table):
     number = tables.Column(
         verbose_name=gettext_lazy("Contract"),
         linkify=lambda value, record: reverse(
@@ -886,22 +983,48 @@ class ContractTable(tables.Table):
     # contract_pi = tables.Column(linkify=application_link)
     pi = tables.Column(
         gettext_lazy("Contract PI"),
-        tables.A("pi__full_name_with_email"),
-        order_by="members__email",
+        tables.A("pi_member__full_name"),
+        order_by="members__user__name",
     )
     notes = StateColumn()
 
-    class Meta:
+    def render_pi(sell, record, value, *args, **kwargs):
+        pi = record.pi
+        orcid = pi.get_orcid()
+        return mark_safe(f"""<span
+    data-toggle="popover"
+    data-html="true"
+    data-placement="left"
+    data-trigger="focus"
+    tabindex="0"
+    title="{gettext_lazy('Contract PI')}"
+    data-content="<b>{gettext_lazy('Email')}:&nbsp</b>{ pi.email }<br/>
+        <b>{gettext_lazy('Username')}:&nbsp</b>{ pi.username }
+        <br/><b>ORCID:&nbsp</b>{ orcid or 'N/A'}
+        </p>"
+    >{value}</span>
+    """)
+
+    class Meta(Table.Meta):
         model = models.Contract
         fields = ("state", "number", "application", "pi", "notes")
 
 
-class ChangeRequestTable(tables.Table):
+class ChangeRequestTable(Table):
+
     state = StateColumn(gettext_lazy("Status"))
+    updated_at = tables.Column(
+        accessor="updated_at",
+        order_by="updated_at",
+        verbose_name=gettext_lazy("Change Date"),
+        linkify=lambda value, record: reverse("change-request", kwargs=dict(pk=record.pk)),
+        # attrs={"a": {"target": "_blank"}}
+    )
     number = tables.Column(
         # accessor="pk",
         # verbose_name=gettext_lazy("ID"),
         linkify=lambda value, record: reverse("change-request", kwargs=dict(pk=record.pk)),
+        # attrs={"a": {"target": "_blank"}}
         # order_by="pk",
     )
     contract = tables.Column(
@@ -911,6 +1034,7 @@ class ChangeRequestTable(tables.Table):
         linkify=lambda value, record: reverse(
             "contract-detail", kwargs=dict(number=record.contract.number)
         ),
+        # attrs={"a": {"target": "_blank"}},
         order_by="contract__number",
     )
     pi = tables.Column(
@@ -928,6 +1052,12 @@ class ChangeRequestTable(tables.Table):
         order_by="contract__project_title",
     )
 
+    def render_updated_at(self, record, value):
+        if value:
+            # return (value or record.state_changed_at).strftime("%Y-%m-d")
+            return value.strftime("%Y-%m-%d")
+        return _("N/A")
+
     def render_description(self, record, value):
         if not value:
             return "N/A"
@@ -935,7 +1065,7 @@ class ChangeRequestTable(tables.Table):
 
     class Meta:
         model = models.ChangeRequest
-        fields = ("state", "number", "contract", "pi")
+        fields = ("state", "updated_at", "number", "contract", "pi")
 
 
 # class ReportTable(tables.Table):

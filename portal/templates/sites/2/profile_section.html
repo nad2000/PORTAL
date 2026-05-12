@@ -28,16 +28,16 @@
       {% blocktrans %}
         Personal Identifiers that are yours in public systems, e.g. Scopus ID, ResearcherID, and Teacher Registration Number.
         Please DO NOT enter personal identifiers such as IRD Number, National Student Number or National Health Number.<br>
-        If you authenticate your ORCID iD, e.g., by clicking "Import from ORCiD", it will be shown here; however, you should 
+        If you authenticate your ORCID iD, e.g., by clicking "Import from ORCiD", it will be shown here; however, you should
         never have to type your ORCID iD into a system.
       {% endblocktrans %}
     {% elif view_name == "profile-cvs" %}
       {% blocktrans %}
-        Curriculum Vitae are required from applicants to Fund, with the exception of Falling Walls where the CV 
+        Curriculum Vitae are required from applicants to Fund, with the exception of Falling Walls where the CV
         can be obtained from the application shared by Falling Walls Lab Foundation Berlin:
         If in doubt skip this step, and when required a CV will be requested.<br><br>
         For NZ-based researchers, a current CV in the
-        <a href="https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc">NZ RST CV Template</a> is preferred.
+        <a href="{{ DEFAULT_CV_TEMPLATE_URL }}">NZ RST CV Template</a> is preferred.
         All others, please provide a CV in whatever is your preferred format.
       {% endblocktrans %}
     {% elif view_name == "profile-academic-records" %}

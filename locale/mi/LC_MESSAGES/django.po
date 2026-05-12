@@ -340,10 +340,8 @@ msgid "Curriculum Vitae"
 msgstr "Tātai Pūmanawa"
 
 #: portal/forms.py:634 portal/forms.py:721
-#, fuzzy
-#| msgid "You must add a budget spreadsheet before submitting the application"
 msgid "Need to attach a CV before submitting the application."
-msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
+msgstr "Me tāpiri i tō tāhuhu tangata i mua i te tuku i te tono."
 
 #: portal/forms.py:641 portal/models.py:2489 portal/models.py:8251
 #: portal/templates/snippets/application_detail_table.html:335
@@ -375,10 +373,8 @@ msgid "Research experience in years required"
 msgstr "E hiahiatia ana ngā tau e rangahau ana"
 
 #: portal/forms.py:705
-#, fuzzy
-#| msgid "You must add a budget spreadsheet before submitting the application"
 msgid "Need to attach a letter of support before submitting the application."
-msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
+msgstr "Me tāpiri reta tautoko i mua i te tuku i te tono."
 
 #: portal/forms.py:795
 msgid "Title of proposed research"
@@ -412,14 +408,8 @@ msgid "Letter of Support"
 msgstr ""
 
 #: portal/forms.py:936
-#, fuzzy
-#| msgid ""
-#| "You can download the nomination form template at <strong><a "
-#| "href=\"%s\">%s</a></strong>"
 msgid "You can download the CV form template(s) at "
-msgstr ""
-"Ka taea e koe te tikiake te tātauira puka tautapanga ki <strong><a "
-"href=\"%s\">%s</a></strong>"
+msgstr "Ka taea e koe te tikiake te tātauira puka tāhuhu tangata i"
 
 #: portal/forms.py:993 portal/templates/portal/application_form.html:210
 msgid "Team"
@@ -550,10 +540,8 @@ msgid ""
 msgstr ""
 
 #: portal/forms.py:1231
-#, fuzzy, python-format
-#| msgid "%s referees are required to support this application."
 msgid "At least %s referees are required to support this application."
-msgstr "E %s ngā kaitautoko e hiahiatia ana hei tautoko i tēnei tono."
+msgstr "Kia %s ngā kaitautoko, neke atu rānei, e hiahiatia ana hei tautoko i tēnei tono."
 
 #: portal/forms.py:1236
 #, python-format
@@ -674,16 +662,6 @@ msgid ""
 msgstr ""
 
 #: portal/forms.py:1363
-#, fuzzy
-#| msgid ""
-#| "As authorized lead applicant, I affirm that all information provided in "
-#| "this application is to the best of my knowledge true and correct. <br/"
-#| "><br/>I affirm that if successful, I (and where relevant, my team) will "
-#| "participate in publicity and that the content of this application can be "
-#| "used in promotion of the Prizes.<br/><br/>If the Prize comes with "
-#| "conditions on use, I affirm that any Prize money will be used in "
-#| "accordance with the Prize's guidelines, and in accord with any plan "
-#| "submitted as part of the Prize application"
 msgid ""
 "<p>As the authorized applicant I have read the eligibility criteria and "
 "other information in the Prize Guidelines and all the information provided "
@@ -694,10 +672,15 @@ msgid ""
 "Prize money will be used in accordance with the Prize’s guidelines, and in "
 "accord with any plan submitted as part of the Prize.</p>"
 msgstr ""
-"Hei kaiārahi kua whakamanahia, e whakaae ana au he pono, <br>he tika hoki "
-"ngā mōhiohio katoa ki taku mōhio, ā, e whakaū ana mēnā ka momoho, <br>ka "
-"whai wāhi ahau (me taku rōpū) ki ngā whakatairanga, <br>ā, ka taea ngā "
-"kōrero o tēnei tono te whakatairanga i ngā Paraihe."
+"<p>Hei kaitono whaimana kua pānuitia e au ngā paearu āheitanga me ētahi atu "
+"mōhiohio kei Ngā Aratohu Paraihe me ngā mōhiohio katoa kei tēnei tono, ā, "
+"e pono ana, e tika ana ki ahau.<p>E whakapūmau ana ahau ki te waimarie ahau, "
+"ka whakauru atu ahau (ina tika ana, tōku rōpū) ki ngā mahi whakatairanga ka "
+"mutu e whakaae ana ahau kia whakamahia ngā kōrero o tēnei tono hei whakatairanga "
+"i ngā Paraihe.</p><p>Mēnā he here kei te Paraihe mō te whakamahi, e whakapūmau ana "
+"ahau ka whakamahia ngā moni o te Paraihe e ai ki ngā aratohu o te Paraihe, "
+"i raro hoki i tētahi mahere i tukuna mō te Paraihe.</p>"
+
 
 #: portal/forms.py:1375 portal/models.py:6255
 msgid "Terms and Conditions"
@@ -721,14 +704,11 @@ msgid "Save the referee list and invited new ones if any new has been added"
 msgstr ""
 
 #: portal/forms.py:1418
-#, fuzzy
-#| msgid ""
-#| "You have to accept the Terms and Conditions before submitting the "
-#| "application"
 msgid ""
 "Your team leader must accept the Terms and Conditions before the submission "
 "can happen"
-msgstr "Me whakaae koe ki ngā Ture me ngā Here i mua i te tuku i te tono"
+msgstr ""
+"Me mātua whakaae tō kaiārahi ki Ngā Ture me ngā Here i mua i te tukutanga"
 
 #: portal/forms.py:1446 portal/forms.py:3349 portal/forms.py:3500
 #: portal/forms.py:3770 portal/forms.py:4118 portal/forms.py:5114
@@ -814,10 +794,8 @@ msgid "Next"
 msgstr "Ki muri"
 
 #: portal/forms.py:1519 portal/forms.py:2786 portal/forms.py:5035
-#, fuzzy
-#| msgid "Choose an organisation or create a new one ..."
 msgid "Choose a keyword or create a new one ..."
-msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
+msgstr "Kōwhiria he kupuhira, hangaia he mea hou rānei ..."
 
 #: portal/forms.py:1524 portal/forms.py:5205
 msgid "Choose an organisation or create a new one ..."
@@ -1079,10 +1057,8 @@ msgid "Save and continue"
 msgstr "Tiakina ka tukuna he tono hou"
 
 #: portal/forms.py:2664 portal/templates/fsm_admin/fsm_submit_line.html:16
-#, fuzzy
-#| msgid "Save and send new invitation(s)"
 msgid "Save and continue editing"
-msgstr "Tiakina ka tukuna he tono hou"
+msgstr "Tiaki ka whakatika haere tonu"
 
 #: portal/forms.py:2671 portal/forms.py:4935
 #, fuzzy
@@ -1126,10 +1102,8 @@ msgid "Email"
 msgstr "Īmēra"
 
 #: portal/forms.py:2886 portal/forms.py:2996
-#, fuzzy
-#| msgid "Nominator CV required"
 msgid "Email is required"
-msgstr "E hiahiatia ana  te Tātai Pūmanawa a te Kaitautapa"
+msgstr "Me whai īmēra"
 
 #: portal/forms.py:2915
 #, python-brace-format
@@ -1153,16 +1127,12 @@ msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
 
 #: portal/forms.py:3046 portal/forms.py:3047 portal/views.py:7524
 #: portal/views.py:7525
-#, fuzzy
-#| msgid "organisation identifier type"
 msgid "Choose a career stage ..."
-msgstr "momo tautohu whakahaere"
+msgstr "Kōwhiria he wāhanga aramahi ..."
 
 #: portal/forms.py:3049 portal/views.py:7527
-#, fuzzy
-#| msgid "research summary required"
 msgid "Career stage is required"
-msgstr "e hiahiatia ana he whakarāpopototanga rangahau"
+msgstr "Me whai wāhanga aramahi"
 
 #: portal/forms.py:3072
 msgid "Invalid identifier type. Please select a valid type."
@@ -1181,10 +1151,8 @@ msgid ""
 msgstr ""
 
 #: portal/forms.py:3149
-#, fuzzy
-#| msgid "Complete"
 msgid "Skip and Complete"
-msgstr "Whakaotia"
+msgstr "Waiho ka Whakaoti"
 
 #: portal/forms.py:3151
 msgid "Skip the rest of the profile sections and complete the profile now"
@@ -1207,10 +1175,8 @@ msgstr ""
 
 #: portal/forms.py:3271
 #: portal/templates/snippets/application_detail_table.html:355
-#, fuzzy
-#| msgid "Nominate to"
 msgid "Nominator"
-msgstr "Tautapatia ki"
+msgstr "Kaikōhari"
 
 #: portal/forms.py:3280
 msgid "The Research Office contact phone number"
@@ -1234,26 +1200,20 @@ msgstr ""
 "href=\"%s\">%s</a></strong>"
 
 #: portal/forms.py:3309
-#, fuzzy, python-format
-#| msgid ""
-#| "You can download the budget template at <strong><a href=\"%s\">%s</a></"
-#| "strong>"
 msgid ""
 "Please download the <strong><a href=\"%s\">%s</a></strong>, complete then "
 "upload below."
 msgstr ""
-"Ka taea e koe te tikiake te tātauira mahere pūtea ki <strong><a "
-"href=\"%s\">%s</a></strong>"
+"Me tikiake te <strong><a "
+"href=\"%s\">%s</a></strong>, me whakaoti ka tukuatu i raro"
 
 #: portal/forms.py:3338
 msgid "Nomination was already submitted"
 msgstr ""
 
 #: portal/forms.py:3341 portal/forms.py:3356
-#, fuzzy
-#| msgid "The invitation was accepted"
 msgid "Nomination was already accepted"
-msgstr "Kua whakaaetia te tono"
+msgstr "Kua whakaaetia kētia te kōharinga"
 
 #: portal/forms.py:3343
 msgid "Save draft nomination"
@@ -1264,10 +1224,8 @@ msgid "Re-submit"
 msgstr ""
 
 #: portal/forms.py:3358
-#, fuzzy
-#| msgid "Submitted and previous nominations"
 msgid "Submit or re-submit the nomination"
-msgstr "Ngā tautapanga i tukuna, o mua hoki"
+msgstr "Me tuku, me tuku anō rānei i te kōharinga"
 
 #: portal/forms.py:3381
 #, fuzzy
@@ -1276,10 +1234,8 @@ msgid "Nominator CV"
 msgstr "Tautapatia ki"
 
 #: portal/forms.py:3415
-#, fuzzy
-#| msgid "Choose an organisation or create a new one ..."
 msgid "Choose the organisation you can nominate a researcher for..."
-msgstr "Kōwhiria tētahi whakahaere, waihangatia tētahi mea hou rānei …"
+msgstr "Kōwhiria te whakahaere hei kōhari i tētahi kairangahau ..."
 
 #: portal/forms.py:3467
 msgid "Please upload your (referee) curriculum vitae"
@@ -1576,10 +1532,8 @@ msgstr "Tāurua te Wāhitau Īmēra"
 
 #: portal/jinja2/contract_summary.html:139 portal/templates/index.html:593
 #: portal/views.py:1280 portal/views.py:1293
-#, fuzzy
-#| msgid "Research Topic"
 msgid "Research Office"
-msgstr "Kaupapa Rangahau"
+msgstr "Tari Rangahau"
 
 #: portal/jinja2/contract_summary.html:167
 #, fuzzy
@@ -1612,10 +1566,8 @@ msgstr "Tūnga mahi"
 #: portal/jinja2/contract_summary.html:194 portal/models.py:1953
 #: portal/models.py:8947 portal/models.py:10530 portal/models.py:12031
 #: portal/templates/sidebar.html:88 portal/templates/sidebar.html:96
-#, fuzzy
-#| msgid "Approve"
 msgid "Approved"
-msgstr "Whakaae"
+msgstr "Kua whakaaetia"
 
 #: portal/jinja2/contract_summary.html:195 portal/models.py:8954
 #: portal/models.py:10535
@@ -1996,10 +1948,8 @@ msgstr "Kaweatu te PDF"
 #: portal/jinja2/round_required_documents.html:62 portal/models.py:5899
 #: portal/templates/portal/application_detail.html:115
 #: portal/templates/snippets/detail_buttons.html:29
-#, fuzzy
-#| msgid "Referee Template"
 msgid "Referee Report"
-msgstr "Tātauira Kaitautoko"
+msgstr "Pūrongo a te Kaitautoko"
 
 #: portal/models.py:178
 msgid "Prefer not to say"
@@ -2091,16 +2041,12 @@ msgstr "Kāore i te Mōhio"
 
 #: portal/models.py:539
 #: portal/templates/application-export-attachment-title-page.html:52
-#, fuzzy
-#| msgid "Name"
 msgid "File Name"
-msgstr "Ingoa"
+msgstr "Ingoa Kōnae"
 
 #: portal/models.py:540 portal/models.py:5991
-#, fuzzy
-#| msgid "Submitted"
 msgid "Submitted At"
-msgstr "Kua Tukuna"
+msgstr "I Tukuna i Te"
 
 #: portal/models.py:543
 msgid "Submitted By"
@@ -2513,10 +2459,8 @@ msgid "start year"
 msgstr "tau tīmata"
 
 #: portal/models.py:1860
-#, fuzzy
-#| msgid "Conferred On"
 msgid "conferred on"
-msgstr "I Whakawhiwhia i te"
+msgstr "i tohua i te"
 
 #: portal/models.py:1862
 msgid "discipline"
@@ -2649,15 +2593,11 @@ msgstr ""
 "te hōputu PDF, JPG, PNG rānei"
 
 #: portal/models.py:2144
-#, fuzzy
-#| msgid ""
-#| "Please upload a scanned copy of your passport or drivers license in PDF, "
-#| "JPG, or PNG format"
 msgid ""
 "Please upload a scanned copy of your passport in PDF, JPG, or PNG format"
 msgstr ""
-"Tēnā tukuatu tētahi tārua matawai o tō uruwhenua, raihana taraiwa rānei mā "
-"te hōputu PDF, JPG, PNG rānei"
+"Me tukuatu he kape i matawaia o tō uruwhenua ki te hōputu PDF, JPG, "
+"PNG rānei"
 
 #: portal/models.py:2153
 msgid "Keyword"
@@ -2747,10 +2687,8 @@ msgid "Applied"
 msgstr "Kua Whakamahia"
 
 #: portal/models.py:2277 portal/models.py:2632 portal/models.py:11184
-#, fuzzy
-#| msgid "Established Researcher"
 msgid "Applied research"
-msgstr "Kairangahau Pūmau"
+msgstr "Rangahau kua whakamahia"
 
 #: portal/models.py:2283 portal/models.py:2638 portal/models.py:11190
 #: portal/templates/snippets/application_detail_table.html:448
@@ -2905,11 +2843,10 @@ msgid "Research priorities"
 msgstr "Kaupapa Rangahau"
 
 #: portal/models.py:2825
-#, fuzzy
-#| msgid ""
-#| "You must upload a budget spreadsheet to complete your Prize application"
 msgid "You must upload a budget spreadsheet to complete your application"
-msgstr "Me tāpiri tētahi ripanga mahere pūtea i mua i te tuku mai i te tono"
+msgstr ""
+"Me mātua tukuatu i tētahi ripanga kaute o te mahere pūtea hei whakaoti "
+"i tō tono"
 
 #: portal/models.py:2832
 msgid ""
@@ -2986,10 +2923,8 @@ msgid "Testimonial Form Submitted By %s"
 msgstr "I tukuna te Puka Tautoko e %s"
 
 #: portal/models.py:3731
-#, fuzzy, python-format
-#| msgid "Testimonial Form Submitted By %s"
 msgid "Nomination Submitted By %s"
-msgstr "I tukuna te Puka Tautoko e %s"
+msgstr "I Tukuna te Kōharinga E %s"
 
 #: portal/models.py:3985
 msgid "A preliminary application cannot have a preliminary application."
@@ -3054,10 +2989,8 @@ msgid "Host support letter from your organisation"
 msgstr ""
 
 #: portal/models.py:4207 portal/models.py:4406
-#, fuzzy
-#| msgid "application"
 msgid "Missing application"
-msgstr "tono"
+msgstr "Tono kei te ngaro"
 
 #: portal/models.py:4304 portal/models.py:10814 portal/models.py:11463
 msgid "FTE"
@@ -3449,16 +3382,12 @@ msgid "Has Vision Mātauranga Theme Categories"
 msgstr ""
 
 #: portal/models.py:6295
-#, fuzzy
-#| msgid "Password"
 msgid "Has keywords"
-msgstr "Kupuhuna"
+msgstr "He whai kupuhira"
 
 #: portal/models.py:6295
-#, fuzzy
-#| msgid "Password"
 msgid "Has Keywords"
-msgstr "Kupuhuna"
+msgstr "He Whai Kupuhira"
 
 #: portal/models.py:6365
 msgid "Nomination Template"
@@ -3530,10 +3459,8 @@ msgid "Template"
 msgstr "Tātauira Mahere Pūtea"
 
 #: portal/models.py:7560
-#, fuzzy
-#| msgid "The panelist should comment their score"
 msgid "The panellist should comment on their score"
-msgstr "Me kōrero te kaiwhiriwhiri mō tana tatau"
+msgstr "Me tuku kōrero te mema whiriwhiri mō tana tatau"
 
 #: portal/models.py:7568
 msgid "criteria"
@@ -3550,14 +3477,10 @@ msgid "Total Score"
 msgstr "Tapeke"
 
 #: portal/models.py:7633
-#, fuzzy
-#| msgid ""
-#| "The application is not completed. Missing summary and/or uploaded "
-#| "application form"
 msgid "The review is not completed. Missing an overall comment."
 msgstr ""
-"Kāore i oti te tono. Kei te ngaro te whakarāpopototanga, te puka tonoi "
-"tukuatu hoki/rānei"
+"Kāore anō kia oti te arotake. Kei te ngaro tētahi kōrero whānui. "
+
 
 #: portal/models.py:7688
 #, python-format
@@ -3626,20 +3549,16 @@ msgid ""
 "User %(user)s submitted a photo identity for verification. Please review the "
 "ID here: %(url)s"
 msgstr ""
-"I tukuna e te kaiwhakamahi %(user)s tētahi whakaahua tuakiri mō te "
-"whakatūturutanga.Tēnā tirohia te tuakiri ki konei: %(url)s"
+"I tukuna e te kaiwhakamahi %(user)s he tuakiri whakaahua mō te whakatūturu. "
+"Arotakehia te ID i konei: %(url)s"
 
 #: portal/models.py:8299
-#, fuzzy, python-format
-#| msgid ""
-#| "User %(user)s submitted a photo identity for verification. Please review "
-#| "the ID here: %(url)s"
 msgid ""
 "<p>User <b>%(user)s</b> submitted a photo identity for verification. Please "
 "review the ID here: <a href='%(url)s'>%(url)s</a></p>"
 msgstr ""
-"I tukuna e te kaiwhakamahi %(user)s tētahi whakaahua tuakiri mō te "
-"whakatūturutanga.Tēnā tirohia te tuakiri ki konei: %(url)s"
+"<p>I tukuna e te kaiwhakamahi b>%(user)s</b> he tuakiri whakaahua mō te whakatūturu. "
+"Arotakehia te ID i konei: <a href='%(url)s'>%(url)s</a></p>"
 
 #: portal/models.py:8354
 #, python-format
@@ -4122,10 +4041,8 @@ msgid "value"
 msgstr "wāriu"
 
 #: portal/tables.py:53
-#, fuzzy
-#| msgid "working review"
 msgid "Work in progress"
-msgstr "arotakenga e mahi tonu ana"
+msgstr "E mahia ana"
 
 #: portal/tables.py:57
 msgid "The invitation has not been processed yet or it is in draft version"
@@ -4167,48 +4084,36 @@ msgid "The %s was accepted"
 msgstr "Kua whakaaetia te tono"
 
 #: portal/tables.py:92
-#, fuzzy
-#| msgid "The invitation was submitted"
 msgid "The testimonial was submitted"
-msgstr "Kua tukuna te tono"
+msgstr "I tukuna te taunakitanga"
 
 #: portal/tables.py:95
 msgid "The invitee has turned down the nomination"
 msgstr "Kua ākirihia te tautapanga e te kaiwhiwhi tono"
 
 #: portal/tables.py:98
-#, fuzzy
-#| msgid "The invitation failed. Please check the email address"
 msgid "The invitation failed or autoreplied. Please check the recipient"
-msgstr "I mūhore te tono. Tēnā tirohia te wāhitau īmēra"
+msgstr "I rahua te pōwhiri, i whakautua aunoatia rānei. Tirohia te kaiwhiwhi"
 
 #: portal/tables.py:102
-#, fuzzy
-#| msgid "The invitation was submitted"
 msgid "The testimonial was completed and submitted"
-msgstr "Kua tukuna te tono"
+msgstr "I tutuki, i tukuna hoki te taunakitanga"
 
 #: portal/tables.py:104
-#, fuzzy
-#| msgid "The application was submitted"
 msgid "The application was completed and submitted"
-msgstr "Kua tukuna te tono"
+msgstr "I tutuki, i tukuna hoki te tono"
 
 #: portal/tables.py:106
 msgid "The invitation was submitted"
 msgstr "Kua tukuna te tono"
 
 #: portal/tables.py:109
-#, fuzzy
-#| msgid "The invitation was accepted"
 msgid "The application was cancelled"
-msgstr "Kua whakaaetia te tono"
+msgstr "I whakakorehia te tono"
 
 #: portal/tables.py:115
-#, fuzzy
-#| msgid "The application period closed on"
 msgid "The application was approved"
-msgstr "I kati te wā tono i te"
+msgstr "I whakaaetia te tono"
 
 #: portal/tables.py:118
 #, fuzzy
@@ -4278,16 +4183,12 @@ msgid "Opens On"
 msgstr ""
 
 #: portal/tables.py:567
-#, fuzzy
-#| msgid "Close"
 msgid "Closes On"
-msgstr "Katia"
+msgstr "Kati Hei Te"
 
 #: portal/tables.py:569 portal/tables.py:642
-#, fuzzy
-#| msgid "Review"
 msgid "Review Count"
-msgstr "Tirotirohia"
+msgstr "Kaute Arotake"
 
 #: portal/tables.py:638
 msgid "First Name"
@@ -4298,35 +4199,25 @@ msgid "Last Name"
 msgstr "Ingoa Whānau"
 
 #: portal/tables.py:658
-#, fuzzy
-#| msgid "Conflict of Interests"
 msgid "Conflict of Interest statement to complete."
-msgstr "Ngā Raru Whaipānga"
+msgstr "Me whakaoti te tauākī Take Whai-Taharua."
 
 #: portal/tables.py:665
-#, fuzzy
-#| msgid "You have already submited one application in this round"
 msgid "You have already submitted an evaluation of this application."
-msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
+msgstr "Kua tukuna kētia e koe tētahi arotakenga o tēnei tono."
 
 #: portal/tables.py:674
-#, fuzzy
-#| msgid ""
-#| "Your can amend and resubmit the statements of the conflict of interest "
-#| "for the round \"%(round)s\""
 msgid ""
 "You have submitted the statement of the conflict of interest. Please "
 "evaluate the application and submit scores."
 msgstr ""
-"Ka taea e koe te whakatika me te tuku anō i ngā tauākī raru whiapānga mō te "
-"whiringa \"%(round)s\""
+"Kua tukuna atu e koe te tauākī mō te take whai-taharua. Me arotake te tono "
+"ka tuku i ngā tatau. "
 
 #: portal/tables.py:696 portal/templates/portal/application_detail.html:158
 #: portal/templates/portal/application_detail.html:190
-#, fuzzy
-#| msgid "The application was submitted"
 msgid "The application has not been submitted yet"
-msgstr "Kua tukuna te tono"
+msgstr "Kāore anō kia tukuna atu te tono"
 
 #: portal/tables.py:711
 #, python-format
@@ -4742,7 +4633,7 @@ msgstr "Kei te hiahia tonu koe ki te takiputa?"
 #: portal/templates/account/password_reset_from_key_done.html:10
 #: portal/templates/account/password_reset_from_key_done.html:17
 msgid "Change Password"
-msgstr "Hurihia te Kupuhuna"
+msgstr "Huria te Kupuhipa"
 
 #: portal/templates/account/password_reset.html:9
 #: portal/templates/account/password_reset.html:22
@@ -4794,7 +4685,7 @@ msgstr ""
 
 #: portal/templates/account/password_reset_from_key.html:26
 msgid "change password"
-msgstr "hurihia te kupuhuna"
+msgstr "huria te kupuhipa"
 
 #: portal/templates/account/password_reset_from_key.html:29
 #: portal/templates/account/password_reset_from_key_done.html:18
@@ -4869,22 +4760,16 @@ msgid "View site"
 msgstr ""
 
 #: portal/templates/admin/base_site.html:77
-#, fuzzy
-#| msgid "Nominations"
 msgid "Documentation"
-msgstr "Ngā Tautapanga"
+msgstr "Ngā Tuhinga"
 
 #: portal/templates/admin/base_site.html:81
-#, fuzzy
-#| msgid "change password"
 msgid "Change password"
-msgstr "hurihia te kupuhuna"
+msgstr "Huria te kupuhipa"
 
 #: portal/templates/admin/base_site.html:85
-#, fuzzy
-#| msgid "opted out"
 msgid "Log out"
-msgstr "kōwhiringa whakaputa"
+msgstr "Takiputa"
 
 #: portal/templates/admin/edit_inline/tabular.html:30
 msgid "Delete?"
@@ -4908,16 +4793,12 @@ msgid "Home"
 msgstr "Kāinga"
 
 #: portal/templates/base.html:185
-#, fuzzy
-#| msgid "Continue"
 msgid "Contracting"
-msgstr "Haere tonu"
+msgstr "Te tuku kirimana"
 
 #: portal/templates/base.html:190
-#, fuzzy
-#| msgid "Nominations"
 msgid "Variations"
-msgstr "Ngā Tautapanga"
+msgstr "Ngā Rerekētanga"
 
 #: portal/templates/base.html:200
 msgid "Contacts"
@@ -4948,10 +4829,8 @@ msgid "Invite to join"
 msgstr "Tonoa kia hono"
 
 #: portal/templates/base.html:265
-#, fuzzy
-#| msgid "Users"
 msgid "User"
-msgstr "Ngā Kaiwhakamahi"
+msgstr "Kaiwhakamahi"
 
 #: portal/templates/base.html:271 users/admin.py:77
 msgid "Permissions"
@@ -4982,16 +4861,12 @@ msgid "My Profile"
 msgstr "Taku Kāhua"
 
 #: portal/templates/base.html:371
-#, fuzzy
-#| msgid "This Prize requires photo identification for the the lead applicant."
 msgid "This scheme requires a copy of the passport for the the lead applicant."
-msgstr "Kāore anō tō tuakiri kia whakatūturutia"
+msgstr "Me whai tēnei kaupapa i tētahi kape o te uruwhenua mō te kaitono matua."
 
 #: portal/templates/base.html:372
-#, fuzzy
-#| msgid "Please upload a scan of your Driver's Licence or Passport"
 msgid "Please upload a scan of your Passport"
-msgstr "Tēnā tukuatu tētahi whakaahua tuakiri ki konei"
+msgstr "Me tukuatu tētahi matawai o tō Uruwhenua"
 
 #: portal/templates/base.html:380
 msgid "This Prize requires photo identification for the the lead applicant."
@@ -5021,36 +4896,35 @@ msgstr ""
 "tuakiri"
 
 #: portal/templates/base.html:445
-#, fuzzy, python-format
-#| msgid ""
-#| "You have a request to join a Prize team that you still have to act on."
 msgid ""
 "\n"
 "You have a request to join a %(site_name)s team that you still have to act "
 "on.\n"
-"                "
-msgstr "He tono whakamana māngai ā-rōpū tāu kāore anō kia whakaaetia."
+"                 "
+msgstr ""
+"\n"
+"He tono ki a koe kia hono ki tētahi rōpū %(site_name)s me whakatutuki e koe. "
+"\n"
+"                 "
 
 #: portal/templates/base.html:449
 msgid "Please click here to review the request"
 msgstr "Tēnā pāwhiria ki konei kia tirotirohia te tono"
 
 #: portal/templates/base.html:466
-#, fuzzy, python-format
-#| msgid "You have a request to review a Prize application to act on."
 msgid ""
 "\n"
 "You have a request to review a %(site_name)s application to act on.\n"
 "                "
 msgstr ""
-"He tono tāu kia tirotirohia, me te tautoko i tētahi tono kāore anō kia "
-"tirotirohia."
+"\n"
+"He tono ki a koe kia arotakehia tētahi tono %(site_name)s hei whakatutuki "
+"māu.\n  "
+
 
 #: portal/templates/base.html:471
-#, fuzzy
-#| msgid "Please click here to review the request"
 msgid "Please click here to complete the referee report"
-msgstr "Tēnā pāwhiria ki konei kia tirotirohia te tono"
+msgstr "Me pāwhiri i konei hei whakaoti i te pūrongo a te kaitautoko"
 
 #: portal/templates/base.html:475
 msgid "Please click here to view the review request"
@@ -5064,12 +4938,6 @@ msgstr ""
 "tirotirohia."
 
 #: portal/templates/base.html:495
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  Please click here to review and score the round "
-#| "\"%(round)s\".\n"
-#| "                "
 msgid ""
 "\n"
 "                    Please click here to review and score the round "
@@ -5077,25 +4945,16 @@ msgid ""
 "                  "
 msgstr ""
 "\n"
-"                  Tēna pāwhiria ki konei kia tirotirohia, kia tatauria hoki "
-"te whiringa \"%(round)s\".\n"
+"                  Me pāwhiri i konei hei arotake me te tuku tatau mō  "
+"te rauna \"%(round)s\".\n"
 "                "
 
 #: portal/templates/base.html:513
-#, fuzzy
-#| msgid "You have a request to review a Prize application to act on."
 msgid "You have a request to review new user account."
-msgstr ""
-"He tono tāu kia tirotirohia, me te tautoko i tētahi tono kāore anō kia "
-"tirotirohia."
+msgstr "He tono ki a koe kia arotakehia he pūkete kaiwhakamahi hōu. "
+
 
 #: portal/templates/base.html:515
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  Please click here to review and score the round "
-#| "\"%(round)s\".\n"
-#| "                "
 msgid ""
 "\n"
 "                  Please click here to review the user \"%(username)s\" "
@@ -5103,8 +4962,8 @@ msgid ""
 "                "
 msgstr ""
 "\n"
-"                  Tēna pāwhiria ki konei kia tirotirohia, kia tatauria hoki "
-"te whiringa \"%(round)s\".\n"
+"                  Me pāwhiri i konei hei arotake i te pūkete kaiwhakamahi: a "
+"\"%(username)s\".\n"
 "                "
 
 #: portal/templates/base.html:595 portal/templates/base.html:607
@@ -5160,10 +5019,8 @@ msgstr ""
 
 #: portal/templates/conflict_of_interest.html:42
 #: portal/templates/rounds.html:61
-#, fuzzy
-#| msgid "Conflict of Interests"
 msgid "Conflict of Interest Statements"
-msgstr "Ngā Raru Whaipānga"
+msgstr "Ngā Tauākī Take Whai-TaharuaTaupatupatu"
 
 #: portal/templates/conflict_of_interest.html:69
 msgid "Team Members"
@@ -5211,10 +5068,8 @@ msgstr ""
 #: portal/templates/portal/changerequest_form.html:24
 #: portal/templates/snippets/resolution_modal.html:35
 #: portal/templates/snippets/resolution_modal.html:64
-#, fuzzy
-#| msgid "Comment"
 msgid "Commit"
-msgstr "Tākupu"
+msgstr "Whakaū"
 
 #: portal/templates/done.html:23 portal/templates/wizard.html:23
 msgid "first step"
@@ -5236,16 +5091,12 @@ msgid "Show"
 msgstr "Whakaatuhia"
 
 #: portal/templates/evaluation.html:71
-#, fuzzy
-#| msgid "Score"
 msgid "Scores"
-msgstr "atau"
+msgstr "Ngā tatau"
 
 #: portal/templates/evaluation.html:77
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "The evaluation has been already submitted and cannot be modified."
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua tukuna kētia atu te arotakenga, ā, tē taea te whakarerekē."
 
 #: portal/templates/evaluation.html:93
 #: portal/templates/portal/evaluation_form.html:93
@@ -5364,30 +5215,22 @@ msgstr ""
 #: portal/templates/index.html:37 portal/templates/index.html:44
 #: portal/templates/research_office_index.html:37
 #: portal/templates/research_office_index.html:44
-#, fuzzy
-#| msgid "Show Scores"
 msgid "Show More"
-msgstr "Whakaatuhia ngā Tatau"
+msgstr "Whakaatu Kia Nui Ake"
 
 #: portal/templates/index.html:40 portal/templates/index.html:48
 #: portal/templates/research_office_index.html:40
 #: portal/templates/research_office_index.html:48
-#, fuzzy
-#| msgid "Show Scores"
 msgid "Show Less"
-msgstr "Whakaatuhia ngā Tatau"
+msgstr "Whakaatu Kia Iti Iho"
 
 #: portal/templates/index.html:120
-#, fuzzy
-#| msgid "Submitted and previous applications"
 msgid "Copy over the previous application"
-msgstr "Ngā tono i tukuna me ngā tono o mua"
+msgstr "Tāruatia anōtia te tono o mua"
 
 #: portal/templates/index.html:127
-#, fuzzy
-#| msgid "You have already submited one application in this round"
 msgid "You have an application in the previous round"
-msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
+msgstr "He tono tāu i te rauna o mua"
 
 #: portal/templates/index.html:131
 msgid ""
@@ -5402,10 +5245,8 @@ msgid ""
 msgstr ""
 
 #: portal/templates/index.html:146
-#, fuzzy
-#| msgid "Start a new application"
 msgid "Create a new application from scratch"
-msgstr "Tīmatahia tētahi tono hou"
+msgstr "Hangaia he tono hou mai i te tīmatanga"
 
 #: portal/templates/index.html:161 portal/views.py:3042 portal/views.py:3234
 msgid "Message"
@@ -5460,12 +5301,6 @@ msgid ""
 msgstr ""
 
 #: portal/templates/index.html:240
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Your portal access has not been authorised, please allow up to "
-#| "two working days for admin us to look into your request.\n"
-#| "        "
 msgid ""
 "\n"
 "      Your portal access has not been authorised, please allow up to two "
@@ -5473,8 +5308,8 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          Kāore anō kia whakaaetia tō kāhua, kei te tirotiro te "
-"Kaiwhakahaere i tō tono.\n"
+"          Kāore anō kia whakamanahia tō āhei atu ki te tomokanga, he rua "
+"rā mahi pea te wā e tirohia ai e mātou tō tono.\n"
 "        "
 
 #: portal/templates/index.html:248
@@ -5483,10 +5318,8 @@ msgid "Apply for The Prime Minister’s Science Prizes"
 msgstr "Tono mai mō ngā Paraihe Pūtaiao a te Pirimia"
 
 #: portal/templates/index.html:255
-#, fuzzy
-#| msgid "Proposal/Application"
 msgid "Previous Applications"
-msgstr "Tono"
+msgstr "Ngā Tono o Mua"
 
 #: portal/templates/index.html:286
 msgid "Application Drafts"
@@ -5602,10 +5435,8 @@ msgid "Modify your application and continue application process"
 msgstr "Whakarerekētia tō tono ka whai tonu i te tukanga tono"
 
 #: portal/templates/index.html:505
-#, fuzzy
-#| msgid "You are a panellist of this round and cannot apply for it"
 msgid "You are a research officer of this round and cannot apply for it"
-msgstr "He kaiwhiriwhiri koe mō tēnei whiringa, nō reira kāore e taea te tono"
+msgstr "He āpiha rangahau koe mō tēnei rauna, ā, kāore koe e āhei ki te tono"
 
 #: portal/templates/index.html:508
 msgid "You are a panellist of this round and cannot apply for it"
@@ -5628,16 +5459,12 @@ msgid "The application will be open on"
 msgstr "Ka tūwhera te tono a te"
 
 #: portal/templates/index.html:518
-#, fuzzy
-#| msgid "You have already submited one application in this round"
 msgid "You have already submitted one application in this round"
-msgstr "Kua tukuna kē koe i tētahi tono i tēnei whiringa"
+msgstr "Kua tuku tono kē koe i tēnei rauna"
 
 #: portal/templates/index.html:522
-#, fuzzy
-#| msgid "You need to be nominated in order to apply for the application"
 msgid "You need to be nominated in order to apply for this round"
-msgstr "Me tautapa tētahi i a koe kia āhei ai te tono mō te puka tono"
+msgstr "Me kōhari koe hei tono mō tēnei rauna"
 
 #: portal/templates/index.html:522 portal/templates/index.html:555
 msgid "Please contact your Research Office"
@@ -5654,10 +5481,8 @@ msgid "Start a new application"
 msgstr "Tīmatahia tētahi tono hou"
 
 #: portal/templates/index.html:527
-#, fuzzy
-#| msgid "You have been nominated for %s"
 msgid "You have been nominated for this round"
-msgstr "I tautapatia koe mō %s"
+msgstr "Kua kōharitia koe mō tēnei rauna"
 
 #: portal/templates/index.html:546 portal/templates/index.html:573
 msgid "Apply"
@@ -5755,13 +5580,6 @@ msgid ""
 msgstr ""
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:17
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Organisations that you have an affiliation with.\n"
-#| "          Note that the organsation where you are primarily employed, or "
-#| "study, will be published if you are awarded a prize.\n"
-#| "        "
 msgid ""
 "\n"
 "        Organisations that you have an affiliation with.\n"
@@ -5770,22 +5588,12 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          Ngā whakahaere e tūhono ai koe.\n"
-"          Kia mōhio mai ka whakaputaina te whakahaere e mahi ai, e ako ai "
-"koe rānei, mēnā ka whakawhiwhia koe ki tētahi paraihe.\n"
+"          Ngā whakahaere e whai pānga ana koe.\n"
+"          Ko te whakahaere tērā e mahi ai koe, e rangahau rānei. "
+"Ka whakaputaina tēnei mō ngā kaitono angitu.\n"
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:22
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Career stage is requested to be able to understand the "
-#| "proportion of researchers at different stages of their career.\n"
-#| "          The expectation is that this will assist in the development of "
-#| "funding mechanisms and support tools.\n"
-#| "          Only used at aggregated levels for statistical and reporting "
-#| "purposes.\n"
-#| "        "
 msgid ""
 "\n"
 "        NZRIS Career Stage is requested to be able to understand the "
@@ -5797,24 +5605,15 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          E tono ana mō te taumata umanga kia mārama ai ki te maha o ngā "
-"kairangahau kei taumata umanga kē.\n"
-"          Ko te kawatau ka āwhina tēnei i te whakawhanaketanga o ngā tukanga "
-"whai pūtea me ngā taputapu tautoko.\n"
-"          Ka whakamahia ki ngā taumata hiato anake mō ngā mahi tauanga, "
-"pūrongo hoki.\n"
+"          E tonoa ana te Wāhanga Aramahi o NZRIS kia mārama ai ki te"
+"ōwehenga o ngā kairangahau i ngā wāhanga rerekē o tōna ara mahi rerekē.\n"
+"          Ko te manako ka āwhina tēnei ki te hanga tikanga  "
+"tuku pūtea me ngā utauta tautoko.\n"
+"          Ka whakamahia anake i ngā taumata tōpū mō ngā kaupapa "
+"tatauranga me te tuku pūrongo.\n"
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:28
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Identifiers that are yours in public systems, e.g. "
-#| "authenticated ORCID iD, Scopus ID, ResearcherID, and Teacher Registration "
-#| "Number. \n"
-#| "          Please DO NOT enter personal identifiers such as IRD Number, "
-#| "National Student Number or National Health Number.\n"
-#| "        "
 msgid ""
 "\n"
 "        Personal Identifiers that are yours in public systems, e.g. Scopus "
@@ -5827,35 +5626,16 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          Ngā tautohunga mōu ki roto i ngā pūnaha rangahau tūmatanui, hei "
-"tauira, te ORCID iD i hāponotia, Tuakiri Scopus, Tuakiri Kairangahau hoki/"
-"rānei. \n"
-"          Tēnā KAUA e tāuru i ngā tautohunga whaiaro pērā i te Tau IRD, te "
-"Tau Ākonga ā-Motu, te Tau Hauora ā-Motu rānei.\n"
+"          Ko ō Pūtautuhi Whaiaro i roto i ngā pūnaha tūmatanui, hei tauira, "
+"Scopus ID, ID Kairangahau, me te Tau Rēhita Kaiako.\n"
+"          KAUA e tāuru pūtautuhi whaiaro pērā i te Tau IRD,  "
+"Tau Ākonga ā-Motu, Tau Hauora ā-Motu rānei.<br>\n"
+"          Mēnā ka whakatūturutia e koe tō iD ORCID, hei tauira, mā te  "
+"pāwhiri \"Kawemai i ORCiD\", ka whakaaturia ki konei; engari, kaua rawa koe "
+"e pato i tō ORCID iD ki tētahi pūnaha. "
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:35
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Curriculum Vitae are required from the following:\n"
-#| "            <ul>\n"
-#| "            <li>Team leaders and sole applicants with the exception of "
-#| "the Future Scientist Prize. \n"
-#| "              Applicants for the Future Scientist Prize DO NOT need to "
-#| "provide a CV.</li>\n"
-#| "            <li>Nominators for the Science Teacher Prize</li>\n"
-#| "            <li>Referees for all prizes with the exception of the Future "
-#| "Scientist and Science Teacher Prizes</li>\n"
-#| "            </ul>\n"
-#| "          If in doubt skip this step, and when required a CV will be "
-#| "requested.<br><br>\n"
-#| "          For NZ-based researchers, a current CV in the\n"
-#| "           <a href=\"https://www.royalsociety.org.nz/assets/documents/NZ-"
-#| "RST-CV-Template.doc\">NZ RST CV Template</a> is preferred. \n"
-#| "          All others, please provide a CV in whatever is your preferred "
-#| "format.\n"
-#| "        "
 msgid ""
 "\n"
 "        Curriculum Vitae are required from applicants to Fund, with the "
@@ -5872,8 +5652,20 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"Tēnā tukuatu tētahi tātai pūmanawa o nāianei. \n"
-"He pai ake te tātai pūmanawa e whai ana i te tātauira <a href=\"https://www."
+"        E hiahiatia ana he tāhuhu tangata mai i ngā kaitono ki te Tahua, "
+"hāunga a Falling Walls, ka taea te tiki te tāhuhu \n"
+"        tangata i te tono ka tuarihia e Falling Walls Lab Foundation "
+"Berlin:\n"
+"        Mēnā kei te māharahara me waiho tēnei wāhanga, ā, ina hiahiatia "
+"ana ka tonoa he tāhuhu tangata.<br><br>\n"
+"        Mō ngā kairangahau kei Aotearoa, he pai ake tētahi tāhuhu tangata "
+"onāianei i roto i te\n"
+"        <a href=\"https://www.royalsociety.org.nz/assets/documents/NZ-RST-CV-"
+"Template.doc\">NZ RST CV Template</a>.\n"
+"        Mō ētahi atu, me tuku mai he tāhuhu tangata ki te hōputu e hiahia "
+"ana koe.\n"
+"      "
+"<a href=\"https://www."
 "royalsociety.org.nz/assets/documents/NZ-RST-CV-Template.doc\">Tātauir</a> mō "
 "ngā paraihe e pā ana ki te rangahau.\n"
 "\n"
@@ -5912,12 +5704,6 @@ msgstr ""
 "        "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:49
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Prizes and/or medals are requested in order to enable analysis "
-#| "over time of the causes and effects of recognition.\n"
-#| "        "
 msgid ""
 "\n"
 "        NZRIS Prizes and/or medals are requested in order to enable analysis "
@@ -5925,24 +5711,10 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"Ka tonoa ngā paraihe, mētara hoki/rānei kia taea ai te tātari i roto i te wā "
-"i ngā pūtake me ngā pānga o te whakamana.        "
+"Ka tonoa ngā paraihe a NZRIS, ngā mētara hoki/rānei kia taea ai te tātari i roto "
+"i te wā i ngā pūtake me ngā pānga o te whakamana. "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:53
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "          Information on professional bodies, is useful for demonstating "
-#| "participation in the research community, \n"
-#| "          including membership in organisations responsible for "
-#| "accrediation, as well as providing space for recognising non-academic "
-#| "qualifications.<br/>\n"
-#| "          Example Memberships include: Members of the Royal Society Te "
-#| "Apārangi and New Zealand Association of Science Educators.<br/>\n"
-#| "          Example Qualifications include: Chartered Practicing Accountant "
-#| "(CPA) and Chartered Professional Engineer (CPEng), with the \n"
-#| "          Organisation being the body that granted the qualification. \n"
-#| "        "
 msgid ""
 "\n"
 "        NZRIS Information on professional bodies, is useful for "
@@ -5958,17 +5730,12 @@ msgid ""
 "      "
 msgstr ""
 "\n"
-"          He whai take ngā mōhiohio mō ngā rōpū ngaio hei whakaatu i te "
-"whakaurunga ki te hapori rangahau, \n"
-"          tae atu ki te mematanga ki ngā whakahaere e haepapa ana mō te "
-"whakamanatanga, me te rato wāhi mō te whakamihi i ngā tohu ehara i te tohu "
-"mātauranga.<br/>\n"
-"          Example Memberships include: Members of the Royal Society Te "
-"Apārangi and New Zealand Association of Science Educators.<br/>\n"
-"          Example Qualifications include: Chartered Practicing Accountant "
-"(CPA) and Chartered Professional Engineer (CPEng), with the \n"
-"          Organisation being the body that granted the qualification. \n"
-"        "
+"          Ko ngā mōhiohio a NZRIS mō ngā rōpū ngaio, he whaitake mō te  "
+"whakatauira i te whai wāhitanga ki te hapori rangahau, tae atu ki te noho hei mema i roto i ngā whakahaere mō "
+"te whakamanatanga, tae atu ki te tuku wāhi mō te whakamana i ngā tohu ehara i te kura wānanga. Ko ngā Mematanga tauira "
+"ko: Ngā Mema o te Apārangi me te New Zealand Association of Science Educators. Ko ngā Tohu tauira ko: Kaikaute Whaitohu "
+"Mahi (CPA) me te Kaipūkaha Ngaio Whaitohu (CPEng), ā, ko te Whakahaere ko te rōpū nā rātau i tuku te tohu. \n"
+"           "
 
 #: portal/templates/international.royalsociety.org.nz/profile_section.html:68
 #: portal/templates/profile_section.html:87
@@ -6080,10 +5847,8 @@ msgstr ""
 #: portal/templates/nomination_detail.html:25
 #: portal/templates/snippets/detail_buttons.html:7
 #: portal/templates/testimonial_detail.html:33 portal/views.py:9201
-#, fuzzy
-#| msgid "Start Prize Application"
 msgid "Start Application"
-msgstr "Me Tīmata ki te Tono"
+msgstr "Timataria te Tono"
 
 #: portal/templates/nomination_detail.html:27
 #: portal/templates/snippets/detail_buttons.html:9
@@ -6193,17 +5958,15 @@ msgstr ""
 #, fuzzy
 #| msgid "Yes, subscribe me"
 msgid "Yes, I'm sure"
-msgstr "Āe, ohaurutia ahau"
+msgstr "Āe, koinā"
 
 #: portal/templates/panellist.html:44
 msgid "No, take me back"
 msgstr ""
 
 #: portal/templates/panellist.html:51
-#, fuzzy
-#| msgid "The panelist should comment their score"
 msgid "The panellist of the round"
-msgstr "Me kōrero te kaiwhiriwhiri mō tana tatau"
+msgstr "Te mema whiriwhiri o te rauna"
 
 #: portal/templates/portal/allocations_table_inline_formset.html:7
 #, fuzzy
@@ -6267,17 +6030,13 @@ msgstr ""
 "i tuku e kaweatu te tono"
 
 #: portal/templates/portal/application_detail.html:104
-#, fuzzy
-#| msgid "Testimonial is already submitted."
 msgid "The referee report has been already submitted"
-msgstr "Kua tukuna kē te tuhinga tautoko"
+msgstr "Kua tukuna kētia te pūrongo kaitautoko"
 
 #: portal/templates/portal/application_detail.html:107
 #: portal/templates/portal/application_detail.html:123
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "The testimonial was already submitted and cannot be updated"
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua tukuna kētia atu te taunakitanga, ā, tē taea te whakatika"
 
 #: portal/templates/portal/application_detail.html:109
 msgid "Submit the referee report"
@@ -6285,10 +6044,8 @@ msgstr ""
 
 #: portal/templates/portal/application_detail.html:114
 #: portal/templates/snippets/detail_buttons.html:29
-#, fuzzy
-#| msgid "Complete"
 msgid "Complete"
-msgstr "Whakaotia"
+msgstr "Kua oti"
 
 #: portal/templates/portal/application_detail.html:126
 #: portal/templates/snippets/detail_buttons.html:75 portal/views.py:4114
@@ -6308,77 +6065,54 @@ msgid "The application reviewing has been closed."
 msgstr "Kua whakaaetia te tono"
 
 #: portal/templates/portal/application_detail.html:131
-#, fuzzy
-#| msgid "Save draft testimonial"
 msgid "Update and submit the testimonial"
-msgstr "Tiakina te tuhinga tautoko hukihuki"
+msgstr "Me whakatika ka tuku i te taunakitanga"
 
 #: portal/templates/portal/application_detail.html:141
 msgid "Testimonial"
 msgstr "Tuhinga Tautoko"
 
 #: portal/templates/portal/application_detail.html:152
-#, fuzzy
-#| msgid ""
-#| "Your can amend and resubmit the statements of the conflict of interest "
-#| "for the round \"%(round)s\""
 msgid "You have not submitted the statement of conflict of interest."
-msgstr ""
-"Ka taea e koe te whakatika me te tuku anō i ngā tauākī raru whiapānga mō te "
-"whiringa \"%(round)s\""
+msgstr "Kāore anō kia tukuna atu e koe te tauākī mō te take whai-taharua."
+
 
 #: portal/templates/portal/application_detail.html:155
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "The evaluation has been already submitted and cannot be updated"
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua tukuna kētia atu te arotakenga, ā, tē taea te whakatika"
 
 #: portal/templates/portal/application_detail.html:160
-#, fuzzy
-#| msgid "Modify your application and continue application process"
 msgid "Modify your evaluation of the application"
-msgstr "Whakarerekētia tō tono ka whai tonu i te tukanga tono"
+msgstr "Whakarerekēhia tō arotake i tēnei tono"
 
 #: portal/templates/portal/application_detail.html:181
-#, fuzzy
-#| msgid "team application"
 msgid "Evaluate Application"
-msgstr "tono"
+msgstr "Tono Arotake"
 
 #: portal/templates/portal/application_detail.html:187
-#, fuzzy
-#| msgid ""
-#| "Only the applicants and the panellists that submitted a statement of "
-#| "conflict of interest can export the application"
 msgid ""
 "The evaluation has been already submitted and the statement of the conflict "
 "of interest cannot be changed"
 msgstr ""
-"Mā ngā kaitono me ngā kaiwhiriwhiri anake nā rātou te tauākī raru whaipānga "
-"i tuku e kaweatu te tono"
+"Kua tukuna kētia te arotakenga, ā, tē taea te tauākī take whai-taharua te "
+"whakarerekē "
 
 #: portal/templates/portal/application_detail.html:192
-#, fuzzy
-#| msgid "Statement of Conflict of Interest"
 msgid "Submit the statement of the conflict of interest"
-msgstr "Tauākī Raru Whaipānga"
+msgstr "Tukuna atu te tauākī take whai-taharua"
 
 #: portal/templates/portal/application_detail.html:214
 #: portal/templates/portal/application_detail.html:232
 #: portal/templates/portal/application_detail.html:253
 #: portal/templates/portal/application_detail.html:287
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "Application had been already cancelled"
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua whakakorehia kētia te tono"
 
 #: portal/templates/portal/application_detail.html:215
 #: portal/templates/portal/application_detail.html:233
 #: portal/templates/portal/application_detail.html:254
-#, fuzzy
-#| msgid "The application has been already submitted and cannot be modified"
 msgid "Application had been already approved"
-msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
+msgstr "Kua whakaaetia kētia te tono"
 
 #: portal/templates/portal/application_detail.html:216
 #: portal/templates/portal/application_detail.html:234
@@ -6407,10 +6141,8 @@ msgstr "Kua tukuna kē te tono, kāore e taea te whakarerekē"
 #: portal/templates/portal/application_detail.html:219
 #: portal/templates/portal/application_detail.html:237
 #: portal/templates/portal/application_detail.html:258
-#, fuzzy
-#| msgid "The application was submitted"
 msgid "Application had not yet been submitted"
-msgstr "Kua tukuna te tono"
+msgstr "Kāore anō kia tukuna atu te tono"
 
 #: portal/templates/portal/application_detail.html:220
 #, fuzzy
@@ -6424,16 +6156,12 @@ msgid "Withdraw"
 msgstr ""
 
 #: portal/templates/portal/application_detail.html:247
-#, fuzzy
-#| msgid "Request resubmission"
 msgid "Request Resubmission"
-msgstr "Tonoa kia tuku anō"
+msgstr "Tono Kia Tukuna Atu Anō"
 
 #: portal/templates/portal/application_detail.html:259
-#, fuzzy
-#| msgid "team application"
 msgid "Approve the application"
-msgstr "tono"
+msgstr "Whakaaetia te tono"
 
 #: portal/templates/portal/application_detail.html:286
 #, fuzzy
@@ -6617,10 +6345,8 @@ msgid ""
 msgstr ""
 
 #: portal/templates/portal/evaluation_form.html:58
-#, fuzzy
-#| msgid "Application"
 msgid "Export Application"
-msgstr "Tono"
+msgstr "Kaweatu i te Tono"
 
 #: portal/templates/portal/evaluation_form.html:111
 msgid "Commenting is mandatory"
@@ -6668,10 +6394,8 @@ msgstr ""
 "        "
 
 #: portal/templates/profile.html:42
-#, fuzzy
-#| msgid "Middle name(s)"
 msgid "Middle names"
-msgstr "Ingoa waenga"
+msgstr "Ngā ingoa waenganui"
 
 #: portal/templates/profile.html:53 portal/templates/profile_detail.html:46
 msgid "Gender"
@@ -7023,22 +6747,6 @@ msgstr ""
 "        "
 
 #: portal/templates/profile_section.html:39
-#, fuzzy
-#| msgid ""
-#| "\n"
-#| "        Curriculum Vitae are required from the following:\n"
-#| "        <ul>\n"
-#| "          <li>Team leaders and sole applicants with the exception of the "
-#| "Future Scientist Prize.\n"
-#| "            Applicants for the Future Scientist Prize DO NOT need to "
-#| "provide a CV.</li>\n"
-#| "          <li>Nominators for the Science Teacher Prize</li>\n"
-#| "          <li>Referees for all prizes with the exception of the Future "
-#| "Scientist and Science Teacher Prizes</li>\n"
-#| "        </ul>\n"
-#| "        If in doubt skip this step, and when required a CV will be "
-#| "requested.<br><br>\n"
-#| "      "
 msgid ""
 "\n"
 "          Curriculum Vitae are required from the following:\n"
@@ -7056,17 +6764,7 @@ msgid ""
 "        "
 msgstr ""
 "\n"
-"       <p>E hiahiatia ana he Tāhuhu Tangata mai i ēnei e whai ake:</p>\n"
-"        <ul>\n"
-"          <li>Ngā kaiārahi rōpū me ngā kaitono takitahi, hāunga te Tohu "
-"Tohunga Pūtaiao Anamata. KĀORE E MATE ngā kaitono mō te Tohu Tohunga Pūtaiao "
-"Anamata ki te tuku tētahi tāhuhu tangata.</li>\n"
-"          <li>Ngā kaikōhari mō te Tohu Kaiako Pūtaiao.</li>\n"
-"          <li>Ngā kaitautoko mō ngā paraihe katoa, hāunga Ngā Tohu Tohunga "
-"Anamata me te Kaiako Pūtaiao.</li>\n"
-"        </ul>\n"
-"<p>Mēnā kei te māharahara waiho tēnei wāhanga, ā, ina hiahiatia ana ka tonoa "
-"he tāhuhu tangata.</p>\n"
+"      E hiahiatia ana he tāhuhu tangata mai i ēnei e whai ake: Ngā kaiārahi rōpū me ngā kaitono takitahi, hāunga te Tohu Tohunga Pūtaiao Anamata. KĀORE E MATE ngā kaitono mō te Tohu Tohunga Pūtaiao Anamata te tuku tētahi tāhuhu tangata. Ngā kaikōhari mō te Tohu Kaiako Pūtaiao, Ngā kaitautoko mō ngā paraihe katoa, hāunga Ngā Tohu Tohunga Anamata me te Kaiako Pūtaiao. Mēnā kei te māharahara me waiho tēnei wāhanga, ā, ina hiahiatia ana ka tonoa he tāhuhu tangata. \n"
 "        "
 
 #: portal/templates/profile_section.html:49
@@ -7242,10 +6940,8 @@ msgid ""
 msgstr ""
 
 #: portal/templates/research_office_index.html:140
-#, fuzzy
-#| msgid "Applications"
 msgid "View <b>Applications </b>"
-msgstr "Ngā Tono"
+msgstr "Tirohia Ngā Kaitono "
 
 #: portal/templates/research_office_index.html:160
 msgid "Contrancts and awards from your institution"
@@ -7285,17 +6981,13 @@ msgid ""
 msgstr ""
 
 #: portal/templates/research_office_index.html:200
-#, fuzzy
-#| msgid "Show <b>Details</b>"
 msgid "View <b>Reports </b>"
-msgstr "Whakaatuhia <b>Ngā Taipitopito Kōrero</b>"
+msgstr "Tirohia Ngā Pūrongo"
 
 #: portal/templates/research_office_index.html:206
 #: portal/templates/sidebar.html:250
-#, fuzzy
-#| msgid "Export"
 msgid "Reports"
-msgstr "Kaweatu"
+msgstr "Ngā Pūrongo"
 
 #: portal/templates/round_scores.html:122
 #: portal/templates/round_scores.html:185 portal/views.py:10649
@@ -7349,28 +7041,20 @@ msgid "Drafts"
 msgstr "Ngā Hukihuki"
 
 #: portal/templates/sidebar.html:34
-#, fuzzy
-#| msgid "Saved application drafts"
 msgid "No application drafts"
-msgstr "Ngā tono hukihuki e tiakina ana"
+msgstr "Kāore he hukihuki tono"
 
 #: portal/templates/sidebar.html:48
-#, fuzzy
-#| msgid "Submitted and previous applications"
 msgid "Submitted, approved, and withdrawn applications"
-msgstr "Ngā tono i tukuna me ngā tono o mua"
+msgstr "Ngā tono kua tukuna, kua whakaaetia, kua whakakorehia hoki"
 
 #: portal/templates/sidebar.html:48
-#, fuzzy
-#| msgid "Submit the application"
 msgid "Submitted applications"
-msgstr "Tukuna te puka tono"
+msgstr "Ngā tono kua tukuna atu"
 
 #: portal/templates/sidebar.html:56
-#, fuzzy
-#| msgid "Submit the application"
 msgid "No submitted applications"
-msgstr "Tukuna te puka tono"
+msgstr "Kāore he tono i tukuna atu"
 
 #: portal/templates/sidebar.html:70
 #, fuzzy
@@ -7385,16 +7069,12 @@ msgid "In Review"
 msgstr "Tirotirohia"
 
 #: portal/templates/sidebar.html:85
-#, fuzzy
-#| msgid "team application"
 msgid "Approved applications"
-msgstr "tono"
+msgstr "Ngā tono kua whakaaetia"
 
 #: portal/templates/sidebar.html:93
-#, fuzzy
-#| msgid "team application"
 msgid "No approved applications"
-msgstr "tono"
+msgstr "Kāore he tono kua whakaaetia"
 
 #: portal/templates/sidebar.html:109
 #, fuzzy
@@ -9295,20 +8975,17 @@ msgstr ""
 "{settings.EMAIL_SUBJECT_PREFIX} I hono mai tētahi Kaiwhakamahi Hou ki te "
 "tomokanga"
 
-#, fuzzy
-#~| msgid "First Name"
+msgid "and "
+msgstr "rāua "
+
 #~ msgid "Nominee First Name"
-#~ msgstr "Ingoa Tuatahi"
+#~ msgstr "Ingoa Tuatahi o te Tautapa"
 
-#, fuzzy
-#~| msgid "Last Name"
 #~ msgid "Nominee Last Name"
-#~ msgstr "Ingoa Whānau"
+#~ msgstr "Ingoa Whānau o te Tautapa"
 
-#, fuzzy
-#~| msgid "Enter Email Address"
 #~ msgid "Nominee Email Address"
-#~ msgstr "Tāurua te Wāhitau Īmēra"
+#~ msgstr "Wāhitau Īmēra o te Tautapa"
 
 #~ msgid "Māori"
 #~ msgstr "Reo Māori"
@@ -9316,10 +8993,8 @@ msgstr ""
 #~ msgid "Comma separated list of middle names"
 #~ msgstr "Rārangi ingoa waenga e whakawehea ana e ngā irapiko"
 
-#, fuzzy
-#~| msgid "The invitation was created"
 #~ msgid "The application was just created"
-#~ msgstr "I waihangatia te tono"
+#~ msgstr "Kātahi anō ka hangaia te tono"
 
 #, fuzzy
 #~| msgid "Please complete your profile."

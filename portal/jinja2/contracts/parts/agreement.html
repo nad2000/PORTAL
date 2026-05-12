@@ -13,7 +13,7 @@
       <td>&nbsp;</td>
       <td>
         <!-- p><b>{{ agency.name.upper() }}</b>, a body corporate constituted under the Royal Society of New Zealand Act 1997 at {{ c.agency_address }} (<b>{{ agency_short }}</b>)</p -->
-        <b>{{ agency.name.upper() }}</b>, a body corporate constituted under the Royal Society of New Zealand Act 1997 at {{ c.agency_address }} (<b>{{ agency_short }}</b>)
+        <b>{{ (agency.legal_name or agency.name).upper() }}</b>, a body corporate constituted under the Royal Society of New Zealand Act 1997 at {{ c.agency_address }} (<b>{{ agency_short }}</b>)
       </td>
     </tr>
     <tr style="height:2pt;"><td colspan="3"></td></tr>
@@ -37,7 +37,7 @@
   <!-- p class=BFTOC1><a name="_Toc153445303"></a><a name="_Toc157588003">Background</a></p -->
   <h1>Background</h1>
 
-  <ol type="A" style="width: 100%; font-size:10.0pt;">
+  <ol type="A" style="width: 100%; font-size:10.0pt; padding-left: 16px;">
     <!-- font-family: "Arial"; font-size:10.0pt; so-language: en-NZ; line-height: 120%; -->
 
     <li style="width: 100%;line-height:normal;">
@@ -128,7 +128,7 @@
 
     <tr>
       <td width=262 valign=top style='width:196.7pt;padding:0in 5.4pt 0in 5.4pt'>
-        <p> <b>SIGNED</b> for and on behalf of <b>{{ agency.name.upper() }}</b> by</p>
+        <p> <b>SIGNED</b> for and on behalf of <b>{{ (agency.legal_name or agency.name).upper() }}</b> by</p>
       </td>
       <td width=28 valign=top style='width:21.25pt;padding:0in 5.4pt 0in 5.4pt'>
         <p>)<br/>)<br/>)</p>

@@ -1,5 +1,10 @@
 import os
+import re
 from functools import cache
+import inspect
+from django.contrib.contenttypes.admin import GenericTabularInline
+from allauth.account.adapter import get_adapter
+from dateutil.relativedelta import relativedelta
 
 import dal
 import django
@@ -12,13 +17,14 @@ from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.admin import helpers
 from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Count
 from django.db.models.deletion import get_candidate_relations_to_delete
-from django.shortcuts import render, reverse
+from django.shortcuts import render, reverse, redirect
 from django.urls import NoReverseMatch
 from django.utils import timezone
 from django.utils.datastructures import OrderedSet
@@ -28,6 +34,8 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
+
+from easyaudit import admin as easyaudit_admin
 from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
 from import_export import fields
@@ -39,13 +47,15 @@ from import_export.admin import (
 from import_export.resources import ModelResource
 from import_export.widgets import ForeignKeyWidget
 from modeltranslation.admin import TranslationAdmin
+from rest_framework.authtoken.models import Token
 from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
-from easyaudit import admin as easyaudit_admin
 
 from . import filters, models
+from .forms import ModelSelect2NoPK
+from common.admin import StaffPermsMixin
 
 # from dalf.admin import DALFModelAdmin, DALFRelatedOnlyField, DALFRelatedFieldAjax
 # from autocompletefilter.admin import AutocompleteFilterMixin
@@ -64,28 +74,54 @@ djhacker.formfield(
     ),
 )
 
+
+class OrgChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return f" {obj.code}: {obj.name}"
+
+
 djhacker.formfield(
-    CRUDEvent.user,
+    models.Affiliation.org,
+    OrgChoiceField,
+    widget=autocomplete.ModelSelect2(url="org-autocomplete"),
+)
+
+
+# djhacker.formfield(
+#     CRUDEvent.user,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+# )
+
+djhacker.formfield(
+    Token.user,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
 )
 
 
-djhacker.formfield(
-    LoginEvent.user,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
-)
+# djhacker.formfield(
+#     LoginEvent.user,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+# )
 
 
-djhacker.formfield(
-    RequestEvent.user,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
-)
+# djhacker.formfield(
+#     RequestEvent.user,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+# )
 
 djhacker.formfield(
     models.Panellist.user,
+    forms.ModelChoiceField,
+    widget=autocomplete.ModelSelect2(url="user-autocomplete"),
+)
+
+djhacker.formfield(
+    SocialAccount.user,
     forms.ModelChoiceField,
     widget=autocomplete.ModelSelect2(url="user-autocomplete"),
 )
@@ -129,17 +165,17 @@ djhacker.formfield(
     ),
 )
 
-djhacker.formfield(
-    models.RoundDocumentTemplate.required_document,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(
-        url="required-document-autocomplete",
-        forward=[
-            dal.forward.Field("scheme", "scheme"),
-            dal.forward.Field("round", "round"),
-        ],
-    ),
-)
+# djhacker.formfield(
+#     models.RoundDocumentTemplate.required_document,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(
+#         url="required-document-autocomplete",
+#         forward=[
+#             dal.forward.Field("scheme", "scheme"),
+#             dal.forward.Field("round", "round"),
+#         ],
+#     ),
+# )
 
 djhacker.formfield(
     models.Report.schedule_entry,
@@ -148,23 +184,24 @@ djhacker.formfield(
         url="reporting-schedule-entry-autocomplete",
         forward=[
             dal.forward.Field("contract", "contract"),
+            dal.forward.Field("schedule_entry", "schedule_entry"),
             dal.forward.Const("1", "exclude_taken"),
         ],
     ),
 )
 
-djhacker.formfield(
-    models.RequiredContractDocument.application_required_document,
-    forms.ModelChoiceField,
-    widget=autocomplete.ModelSelect2(
-        url="required-document-autocomplete",
-        forward=[
-            dal.forward.Field("round", "round"),
-            # dal.forward.Field("contract", "contract"),
-            # dal.forward.Const("1", "exclude_taken"),
-        ],
-    ),
-)
+# djhacker.formfield(
+#     models.RequiredContractDocument.application_required_document,
+#     forms.ModelChoiceField,
+#     widget=autocomplete.ModelSelect2(
+#         url="required-document-autocomplete",
+#         forward=[
+#             dal.forward.Field("round", "round"),
+#             # dal.forward.Field("contract", "contract"),
+#             # dal.forward.Const("1", "exclude_taken"),
+#         ],
+#     ),
+# )
 
 djhacker.formfield(
     models.ChangeRequest.types,
@@ -198,6 +235,13 @@ djhacker.formfield(
         ],
     ),
 )
+
+
+# djhacker.formfield(
+#     models.Person.code,
+#     forms.ChoiceField,
+#     widget=ModelSelect2NoPK(url="person-code-autocomplete"),
+# )
 
 # categories=autocomplete.ModelSelect2Multiple(
 #     url="change-category-autocomplete",
@@ -316,11 +360,55 @@ class AutocompleteFilterMixin:
         return media
 
 
+class InlineNoteForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+        if self.request and not self.instance.pk:
+            self.fields["author"].initial = self.request.user
+
+    class Meta:
+        model = models.Note
+        fields = "__all__"
+
+
+class NoteInline(GenericTabularInline):
+    model = models.Note
+    form = InlineNoteForm
+    extra = 1
+    view_on_site = False
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "author",
+        # "date",
+    )
+    # fields = ("topic", "date", "content", "public", "author")
+    fields = ("content", "author")
+    can_delete = True
+    show_change_link = True
+
+
+admin.site.register(models.Note)
+
+
 class StateLogInline(StateLogInline):
     classes = ["collapse"]
 
 
+class UnaccentMixin:
+
+    def get_search_fields(self, request):
+        sf = super().get_search_fields(request)
+        if settings.ENV == "prod":
+            return ["_name" in f and f.replace("_name", "_name__unaccent") or f for f in sf]
+        return sf
+
+
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
+
+    autocomplete_fields = ["user"]
 
     list_filter = [
         "event_type",
@@ -433,7 +521,14 @@ admin.site.register(SocialToken, SocialTokenAdmin)
 
 
 class SocialAccountAdmin(SocialAccountAdmin):
+
+    search_fields = ["uid"]
+    raw_id_fields = ()
     date_hierarchy = "date_joined"
+
+    def get_search_fields(self, request):
+        search_fields = super().get_search_fields(request)
+        return search_fields + self.search_fields
 
 
 admin.site.unregister(SocialAccount)
@@ -454,9 +549,10 @@ class PdfFileAdminMixin:
                         format_html(
                             (
                                 "The attachment was converted into PDF file. "
-                                "Please review the converted file version <a href='%s'>%s</a>."
-                            )
-                            % (cf.file.url, os.path.basename(cf.file.name))
+                                "Please review the converted file version <a href='{}'>{}</a>."
+                            ),
+                            cf.file.url,
+                            os.path.basename(cf.file.name),
                         ),
                     )
 
@@ -471,37 +567,44 @@ class PdfFileAdminMixin:
                 raise
 
 
-class StaffPermsMixin:
-    def get_model_perms(self, request):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return {"add": True, "change": True, "delete": True, "view": True}
-        return super().get_model_perms(request)
-
-    def has_add_permission(self, request, *args):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_add_permission(request, *args)
-
-    def has_change_permission(self, request, obj=None):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_change_permission(request, obj)
-
-    def has_delete_permission(self, request, obj=None):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_delete_permission(request, obj)
-
-    def has_view_permission(self, request, obj=None):
-        if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
-            return True
-        return super().has_view_permission(request, obj)
-
-    def has_module_permission(self, request):
-        return request.user.is_active and (request.user.is_superuser or request.user.is_site_staff)
+# class StaffPermsMixin:
+#     def get_model_perms(self, request):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return {"add": True, "change": True, "delete": True, "view": True}
+#         return super().get_model_perms(request)
+#
+#     def has_add_permission(self, request, *args):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_add_permission(request, *args)
+#
+#     def has_change_permission(self, request, obj=None):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_change_permission(request, obj)
+#
+#     def has_delete_permission(self, request, obj=None):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_delete_permission(request, obj)
+#
+#     def has_view_permission(self, request, obj=None):
+#         if (u := request.user) and u.is_active and (u.is_superuser or u.is_staff):
+#             return True
+#         return super().has_view_permission(request, obj)
+#
+#     def has_module_permission(self, request):
+#         return request.user.is_active and (request.user.is_superuser or request.user.is_site_staff)
+#
 
 
 class HistoryAdmin(SimpleHistoryAdmin):
+
+    def view_on_site(self, obj):
+        try:
+            return obj.get_absolute_url()
+        except (AttributeError, NoReverseMatch):
+            return super().view_on_site(obj)
 
     def get_history_list_display(self, request):
         if hasattr(self.model, "state"):
@@ -519,6 +622,29 @@ class HistoryAdmin(SimpleHistoryAdmin):
                 )
             return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
         return ""
+
+
+class KeepSelectedMixin:
+
+    def response_action(self, request, queryset):
+        resp = super().response_action(request, queryset)
+        if helpers.ACTION_CHECKBOX_NAME in request.POST:
+            resp.set_cookie(
+                "selected_action",
+                ":".join(request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)),
+                max_age=60,
+            )
+        return resp
+
+
+# @admin.register(models.ReportingScheduleEntry)
+# class ReportingScheduleEntryAdmin(StaffPermsMixin, admin.ModelAdmin):
+#     view_on_site = False
+#     save_on_top = True
+#     list_display = ["contract", "type", "period"]
+#     list_filter = ["created_at", "updated_at"]
+#     search_fields = ["contract__number"]
+#     date_hierarchy = "created_at"
 
 
 @admin.register(models.Subscription)
@@ -561,6 +687,29 @@ class ContractDocumentAdmin(StaffPermsMixin, HistoryAdmin):
     # exclude = ["converted_file"]
     exclude = ["document_type"]
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        # if db_field.name == "document_type":
+        #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+        if db_field.name == "required_document":
+            if (m := re.search(r"contractdocument/(\d+)/change", request.path)) and (
+                document_id := m.group(1)
+            ):
+                kwargs["queryset"] = models.RequiredContractDocument.where(
+                    Q(documents__pk=document_id)
+                    | Q(round__applications__contracts__documents__pk=document_id)
+                ).distinct()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(models.Currency)
+class CurrencyAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = ["code", "currency", "numeric_code", "minor_unit"]
+    search_fields = ["code", "currency"]
+    date_hierarchy = "updated_at"
+    ordering = ["code", "currency"]
+
 
 @admin.register(models.Country)
 class CountryAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
@@ -577,15 +726,29 @@ class ReportingScheduleEntryAdmin(admin.ModelAdmin):
 
     search_fields = ["contract__number"]
 
-    def get_model_perms(self, request):
-        """
-        Return empty perms dict thus hiding the model from admin index.
-        """
-        return {}
+    # def get_model_perms(self, request):
+    #     """
+    #     Return empty perms dict thus hiding the model from admin index.
+    #     """
+    #     return {}
+
+    class ReportInline(admin.TabularInline):
+        model = models.Report
+        extra = 0
+        autocomplete_fields = ["contract"]
+        fields = ["number", "contract", "reported_at"]
+        readonly_fields = ["number", "reported_at", "contract"]
+
+        def view_on_site(self, obj):
+            return reverse("admin:portal_report_change", kwargs={"object_id": obj.pk})
+
+        # view_on_site = lambda self, obj:reverse("admin:portal_report_change", kwargs={"object_id": obj.pk})
 
     def get_search_results(self, request, queryset, search_term):
         r = super().get_search_results(request, queryset, search_term)
         return r
+
+    inlines = [ReportInline]
 
 
 @admin.register(models.Address)
@@ -963,6 +1126,14 @@ class ChangeTypeAdmin(ExportActionMixin, ImportExportModelAdmin):
 class ChangeCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
     save_on_top = True
     view_on_site = False
+    search_fields = ["description", "definition", "type__description", "type__definition"]
+    list_display = ["type__code", "code", "description"]
+    list_display_links = ["code", "description"]
+
+    class SubCategoryInline(admin.TabularInline):
+        model = models.ChangeCategory
+        extra = 0
+        view_on_site = False
 
     class ChangeCategoryResource(CodeResource):
         class Meta:
@@ -970,6 +1141,7 @@ class ChangeCategoryAdmin(ExportActionMixin, ImportExportModelAdmin):
 
     search_fields = ["description", "definition"]
     resource_classes = [ChangeCategoryResource]
+    inlines = [SubCategoryInline]
 
 
 @admin.register(models.ApplicationDecision)
@@ -1119,9 +1291,14 @@ class PanelAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.Mo
 
 
 @admin.register(models.Person)
-class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
+class PersonAdmin(StaffPermsMixin, HistoryAdmin):
     save_on_top = True
     autocomplete_fields = ["address", "user", "title"]
+
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (qq := q.strip()) and qq.isupper():
+            return ["^code"]
+        return super().get_search_fields(request)
 
     def get_search_results(self, request, queryset, search_term):
         queryset, may_have_duplicates = super().get_search_results(
@@ -1135,12 +1312,28 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
                 return queryset.distinct(), False
         return queryset, may_have_duplicates
 
-    class ProfileCareerStageInline(admin.StackedInline):
+    def save_formset(self, request, form, formset, change):
+        # Save the formset instances with commit=False
+        if formset.model != models.Note:
+            return super().save_formset(request, form, formset, change)
+
+        instances = formset.save(commit=False)
+        # Loop through each instance and set the user
+
+        for instance in instances:
+            if not instance.author:
+                instance.author = request.user  # Or 'created_by'
+            instance.save()
+
+        # Save any many-to-many relationships
+        formset.save_m2m()
+
+    class PersonCareerStageInline(admin.StackedInline):
         extra = 1
         model = models.PersonCareerStage
         view_on_site = False
 
-    class ProfilePersonIdentifierInline(admin.StackedInline):
+    class PersonPersonIdentifierInline(admin.StackedInline):
         extra = 1
         model = models.PersonPersonIdentifier
         view_on_site = False
@@ -1149,7 +1342,7 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
         extra = 1
         model = models.Affiliation
         view_on_site = False
-        autocomplete_fields = ["org"]
+        # autocomplete_fields = ["org"]
 
     class CurriculumVitaeInline(admin.StackedInline):
         extra = 1
@@ -1172,6 +1365,12 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
         def has_change_permission(self, request, obj=None):
             return False
 
+    class EmailInline(admin.TabularInline):
+        extra = 0
+        model = models.PersonEmail
+        view_on_site = False
+        classes = ["collapse"]
+
     filter_horizontal = ["ethnicities", "languages_spoken", "iwi_groups"]
     search_fields = [
         "user__username",
@@ -1179,6 +1378,9 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
         "user__email",
         "user__first_name",
         "user__last_name",
+        "first_name",
+        "last_name",
+        "email",
     ]
     list_display = ["username", "code", "user", "full_name_with_email", "created_at"]
     # list_display_links = ["username"]
@@ -1186,14 +1388,16 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
     autocomplete_fields = ["user", "title", "address"]
 
     def username(self, obj):
-        return obj.code or (obj.user and obj.user.username) or obj.full_name_with_email
+        return (obj.user and obj.user.username) or obj.code or obj.full_name_with_email
 
     inlines = [
-        ProfileCareerStageInline,
-        ProfilePersonIdentifierInline,
+        PersonCareerStageInline,
+        PersonPersonIdentifierInline,
         AffiliationInline,
         CurriculumVitaeInline,
         ProtectionPatternInline,
+        EmailInline,
+        NoteInline,
     ]
 
     # def get_queryset(self, request):
@@ -1202,6 +1406,62 @@ class ProfileAdmin(StaffPermsMixin, HistoryAdmin):
     #         .get_queryset(request)
     #         # .select_related("referee__application", "referee__application__round", "referee__user")
     #     )
+
+    @admin.action(description="Merge Persons/Profiles")
+    def merge(self, request, queryset):
+
+        if "do_action" in request.POST:
+            if target_id := (request.POST.get("target") or request.POST.get("chosen_object")):
+                if target_id.isdigit():
+                    target = self.model.objects.filter(id=target_id).first()
+                else:
+                    target = self.model.objects.filter(code=target_id).first()
+                if not target:
+                    messages.error(request, "Target person/profile not found.")
+                    return
+                keep = request.POST.get("keep") in ["on", "yes", "true", "1"]
+                target.merge(queryset=queryset, request=request, keep=keep, by=request.user)
+            return
+
+        # Get the code object from the frame and then the name
+        action_name = inspect.currentframe().f_code.co_name
+        action = self.get_action(action_name)
+        action_label = action and action[2] or action_name.replace("_", " ").capitalize()
+        return render(
+            request,
+            "action_select_item.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Choose target profile/person to merge the rest of the profiles/persons",
+                "item_label": "Target profile/person",
+                "objects": queryset,
+                "subtitle": None,
+                "object_name": str(self.opts.verbose_name),
+                "objects_name": str(self.opts.verbose_name_plural),
+                "object": None,
+                "deleted_objects": queryset,
+                "model_count": queryset.count(),
+                "action_name": action_name,
+                "action_label": action_label,
+                "first_item": queryset.filter(is_active=True, user__isnull=False)
+                .order_by("pk")
+                .first()
+                or queryset.filter(user__isnull=False).order_by("pk").first()
+                or queryset.filter(is_active=True).order_by("pk").first()
+                or queryset.order_by("pk").first(),
+                "opts": self.opts,
+                "keep": False,
+                "app_label": self.opts.app_label,
+                "preserved_filters": self.get_preserved_filters(request),
+                "is_popup": admin.options.IS_POPUP_VAR in request.POST
+                or admin.options.IS_POPUP_VAR in request.GET,
+                # "to_field": to_field,
+                # "perms_lacking": perms_needed,
+                # "protected": protected,
+            },
+        )
+
+    actions = ["merge"]
 
     def view_on_site(self, obj):
         return reverse("profile-instance", kwargs={"pk": obj.pk})
@@ -1293,6 +1553,51 @@ def refresh_page_counts(modeladmin, request, queryset):
     messages.success(request, f"{count} document page counts refreshed.")
 
 
+# @admin.action(description="Convert or reconvert files to PDF")
+# def convert_files(modeladmin, request, queryset):
+#     count = 0
+#         for obj in queryset:
+#     for obj in queryset:
+#         count += modeladmin.model.refresh_page_counts(queryset=obj.documents.all())
+#     messages.success(request, f"{count} document page counts refreshed.")
+
+
+@admin.action(description="Revert Object States")
+def revert_object_states(modeladmin, request, queryset):
+    count = 0
+    objects = []
+
+    content_type = models.ContentType.objects.get_for_model(modeladmin.model)
+
+    # StateLog.objects.for_(a).order_by("-id").first()
+    for obj in queryset:
+        state_log_entry = (
+            models.StateLog.objects.for_(obj)
+            .filter(~Q(source_state=obj.state))
+            .order_by("-id")
+            .first()
+        )
+        if state_log_entry:
+            obj._change_reason = (
+                f"State reverted form {obj.state} to {state_log_entry.source_state} by admin ({request.user}).",
+            )
+            obj.state = state_log_entry.source_state
+            obj.state_changed_at = state_log_entry.timestamp
+            obj.updated_at = timezone.now()
+            objects.append(obj)
+            count += 1
+    if objects:
+        # modeladmin.model.objects.bulk_update(objects)
+        bulk_update_with_history(
+            objects,
+            modeladmin.model,
+            ["state", "state_changed_at", "updated_at"],
+            default_user=request.user,
+            manager=modeladmin.model.objects,
+        )
+    messages.success(request, f"{count} object state(s) were reverted.")
+
+
 @admin.action(description="Archive Objects")
 def archive_objects(modeladmin, request, queryset):
     count = 0
@@ -1318,8 +1623,72 @@ def archive_objects(modeladmin, request, queryset):
     messages.success(request, f"{count} object(s) were archived.")
 
 
+@admin.register(models.Member)
+class MemberAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+    save_on_top = True
+    list_display = [
+        "email",
+        "full_name",
+        "role",
+        "application",
+        "state",
+        "has_authorized",
+        "changed_at",
+    ]
+    search_fields = [
+        "email",
+        "first_name",
+        "last_name",
+        "application__number",
+        "application__application_title",
+    ]
+    list_filter = ["application__round", "role", "created_at", "updated_at", "state"]
+    date_hierarchy = "created_at"
+    inlines = [StateLogInline]
+    readonly_fields = [
+        "application",
+        "state",
+        "state_changed_at",
+        "authorized_at",
+        "has_authorized",
+        "cv",
+    ]
+    autocomplete_fields = ["user", "application", "converted_file", "country", "org"]
+
+    def has_authorized(self, obj):
+        if obj.state == "authorized":
+            return True
+        elif obj.state == "opted_out":
+            return False
+
+    has_authorized.boolean = True
+
+    def changed_at(self, obj):
+        return obj.state_changed_at or obj.updated_at or obj.created_at
+
+    def view_on_site(self, obj):
+        return reverse("application", kwargs={"pk": obj.application_id})
+
+    class EffortInline(admin.TabularInline):
+        model = models.MemberEffort
+        extra = 0
+        view_on_site = False
+
+    def get_inlines(self, request, obj):
+        inlines = super().get_inlines(request, obj)
+        if (
+            obj
+            and obj.application
+            and obj.application.round.has_ftes
+            and self.EffortInline not in inlines
+        ):
+            inlines.append(self.EffortInline)
+        return inlines
+
+
 @admin.register(models.Application)
 class ApplicationAdmin(
+    UnaccentMixin,
     PdfFileAdminMixin,
     StaffPermsMixin,
     FSMTransitionMixin,
@@ -1370,6 +1739,8 @@ class ApplicationAdmin(
         "STATE",
         "main_applicant",
         "previous_numbers",
+        "agent_declaration_accepted_at",
+        "applicant_declaration_accepted_by",
     ]
     search_fields = [
         "number",
@@ -1414,16 +1785,16 @@ class ApplicationAdmin(
 
     complete.boolean = True
 
-    @admin.display(description="State", empty_value="N/A")
-    def STATE(self, obj):
-        if obj.state:
-            if obj.state_changed_at:
-                sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
-                return mark_safe(
-                    f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
-                )
-            return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
-        return ""
+    # @admin.display(description="State", empty_value="N/A")
+    # def STATE(self, obj):
+    #     if obj.state:
+    #         if obj.state_changed_at:
+    #             sca = obj.state_changed_at.strftime("%d-%m-%Y %H:%m")
+    #             return mark_safe(
+    #                 f"""<b title="State changed at {sca}">{obj.get_state_display().upper()}</b> ({sca})"""
+    #             )
+    #         return mark_safe(f"<b>{obj.get_state_display().upper()}</b>")
+    #     return ""
 
     @admin.display(description="Previous Numbers")
     def previous_numbers(self, obj, *args, **kwargs):
@@ -1440,11 +1811,15 @@ class ApplicationAdmin(
     is_active_round.boolean = True
 
     class MemberInline(StaffPermsMixin, admin.TabularInline):
+
         extra = 0
         model = models.Member
-        readonly_fields = ["state", "state_changed_at"]
+        readonly_fields = ["STATE", "state", "state_changed_at"]
         # readonly_fields = ["is_complete", "state", "state_changed_at"]
         autocomplete_fields = ["user"]
+        fields = ["STATE", "email", "first_name", "last_name", "role"]
+        show_change_link = True
+        view_on_site = False
 
         # fields = ["is_complete", "email", "first_name", "middle_names", "last_name", "role_description", "role",
         # "user", "state", "state_changed_at", "authorized_at"]
@@ -1453,14 +1828,15 @@ class ApplicationAdmin(
         #     if self.members.filter(Q(authorized_at__isnull=True) | Q(user__isnull=True)).exists():
         # is_complete.boolean = True
 
-        def view_on_site(self, obj):
-            return reverse("application", kwargs={"pk": obj.application_id})
+        # def view_on_site(self, obj):
+        #     return reverse("application", kwargs={"pk": obj.application_id})
 
     class RefereeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
+        # view_on_site = False
         model = models.Referee
         readonly_fields = [
-            "state",
+            "STATE",
             "state_changed_at",
             "has_testified",
             "testified_at",
@@ -1496,6 +1872,7 @@ class ApplicationAdmin(
 
         extra = 0
         view_on_site = False
+        show_change_link = True
         # classes = ["collapse"]
 
     class ForInline(admin.TabularInline):
@@ -1526,8 +1903,25 @@ class ApplicationAdmin(
         ForInline,
         SeoInline,
         KeywordInline,
+        NoteInline,
         StateLogInline,
     ]
+
+    def save_formset(self, request, form, formset, change):
+        # Save the formset instances with commit=False
+        if formset.model != models.Note:
+            return super().save_formset(request, form, formset, change)
+
+        instances = formset.save(commit=False)
+        # Loop through each instance and set the user
+
+        for instance in instances:
+            if not instance.author:
+                instance.author = request.user  # Or 'created_by'
+            instance.save()
+
+        # Save any many-to-many relationships
+        formset.save_m2m()
 
     @admin.display(description="Main Applicant")
     def main_applicant(self, obj):
@@ -1599,6 +1993,7 @@ class ApplicationAdmin(
                 "classes": ("collapse",),
                 "fields": [
                     "file",
+                    "cv",
                 ],
             },
         ),
@@ -1632,6 +2027,8 @@ class ApplicationAdmin(
 
     def get_fieldsets(self, request, obj):
         # fieldsets = super().get_fieldsets(request, obj).copy()
+        site_id = obj and obj.site_id or settings.SITE_ID
+        nomination = models.Nomination.where(application=obj).order_by("-pk").first()
         fieldsets = (
             (
                 None,
@@ -1647,10 +2044,18 @@ class ApplicationAdmin(
                             else "round"
                         ),
                         ("title", "first_name", "middle_names", "last_name", "position"),
-                        ("daytime_phone", "mobile_phone"),
+                        ("daytime_phone", "mobile_phone", "address"),
                         ("email", "main_applicant"),
                         "presentation_url",
-                        "is_tac_accepted",
+                        (
+                            (
+                                "is_tac_accepted",
+                                "agent_declaration_accepted_at",
+                                "applicant_declaration_accepted_by",
+                            )
+                            if obj.round.applicant_declaration
+                            else "is_tac_accepted"
+                        ),
                         ("tags", "priorities"),
                     ],
                 },
@@ -1668,7 +2073,7 @@ class ApplicationAdmin(
                 "Organisation",
                 {
                     "fields": [
-                        "org",
+                        ("org", "organisation") if nomination else "org",
                         "postal_address",
                         "city",
                         "postcode",
@@ -1679,9 +2084,18 @@ class ApplicationAdmin(
                 "Summary and Files",
                 {
                     "classes": ("collapse",),
-                    "fields": [
-                        "file",
-                    ],
+                    "fields": (
+                        [
+                            "file",
+                            "budget",
+                            "cv",
+                        ]
+                        if site_id in [1, 7]
+                        else [
+                            "file",
+                            "cv",
+                        ]
+                    ),
                 },
             ),
             (
@@ -1743,7 +2157,7 @@ class ApplicationAdmin(
             applications,
             models.Application,
             default_user=u,
-            fields=["state", "state_changed_at"],
+            fields=["state", "state_changed_at", "updated_at"],
             default_change_reason=f"Approved on behalf of R.O. by {u}",
         )
         messages.success(
@@ -1771,7 +2185,7 @@ class ApplicationAdmin(
                 applications,
                 models.Application,
                 default_user=u,
-                fields=["state", "state_changed_at"],
+                fields=["state", "state_changed_at", "updated_at"],
                 default_change_reason=resolution or f"Accepted by {u}",
             )
             messages.success(
@@ -1790,10 +2204,27 @@ class ApplicationAdmin(
 
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
-        invitation_count = models.invite_referees(
-            applications=queryset, by=request.user, after_round_closes=True
+        if request.site_id not in [2, 5] or "do_action" in request.POST:
+            invitation_count = models.invite_referees(
+                request=request,
+                applications=queryset,
+                by=request.user,
+                after_round_closes=("force" not in request.POST)
+                or (request.POST.get("force") != "1"),
+            )
+            messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
+            return
+
+        return render(
+            request,
+            "action_invite_referees.html",
+            {
+                "title": "Invite referees",
+                "objects": queryset,
+                "applications": queryset,
+                "action_label": self.get_action("invite_referees")[-1],
+            },
         )
-        messages.success(request, f"{invitation_count} referee invitation(s) dispatched.")
 
     @admin.action(description="Initialize a new contract/contracs")
     def initialize_contracts(self, request, queryset):
@@ -1838,6 +2269,7 @@ class ApplicationAdmin(
         "request_resubmission",
         "send_identity_verification_reminder",
         archive_objects,
+        revert_object_states,
     ]
 
     # def get_actions(self, request):
@@ -1847,6 +2279,8 @@ class ApplicationAdmin(
     #     return actions
 
     # def save_formset(self, request, form, formset, change):
+    #     if isinstance(formset.model, Note):
+    #         breakpoint()
     #     super().save_formset(request, form, formset, change)
 
     def save_related(self, request, form, formsets, change):
@@ -1970,9 +2404,42 @@ class ApplicationAdmin(
                 raise
 
 
-admin.site.register(models.Award)
+@admin.register(models.ApplicationDocument)
+class ApplicationDocumentAdmin(StaffPermsMixin, HistoryAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = [
+        "application__number",
+        "required_document",
+        "file",
+        # "state",
+        "created_at",
+        "updated_at",
+        "converted_file__created_at",
+        "converted_file_url",
+    ]
+    list_display_links = ["file", "application__number"]
+    list_filter = [
+        "created_at",
+        "updated_at",
+        # "state",
+        ("application", admin.RelatedOnlyFieldListFilter),
+        # ("required_document", admin.RelatedOnlyFieldListFilter),
+    ]
+    search_fields = ["file", "application__number"]
+    date_hierarchy = "created_at"
+    # autocomplete_fields = ["contract", "converted_file", "required_document"]
+    autocomplete_fields = ["application", "converted_file"]
+    # exclude = ["converted_file"]
+    exclude = ["document_type"]
+
+    @admin.display(empty_value="-")
+    def converted_file_url(self, obj):
+        if obj.converted_file and (f := obj.converted_file.file):
+            return mark_safe(f'<a href={f.url}">{f.name}</a>')
 
 
+@admin.register(models.Award)
 class AwardAdmin(admin.ModelAdmin):
     save_on_top = True
     view_on_site = False
@@ -1982,14 +2449,17 @@ class AwardAdmin(admin.ModelAdmin):
 class ConvertedFileAdmin(admin.ModelAdmin):
     save_on_top = True
     search_fields = [
-        "applicationdocument__application__number",
-        "application__application__number",
+        "applications__number",
+        "application_documents__application__number",
+        "members__application__number",
+        "nominations__application__number",
+        "testimonials__referee__application__number",
+        "contract_documents__contract__number",
+        "change_requests__number",
+        "change_requests__contract__number",
+        "change_requests__derivative__number",
+        "reports__contract__number",
         "file",
-    ]
-
-    search_fields = [
-        "applicationdocument__application__number",
-        "application__application__number",
     ]
 
     def file_size_kb(self, obj):
@@ -2005,11 +2475,11 @@ class ConvertedFileAdmin(admin.ModelAdmin):
     ]
 
     view_on_site = False
-    list_display = ["file", "file_size_kb"]
+    list_display = ["file", "page_count", "file_size_kb"]
 
 
 @admin.register(models.CurriculumVitae)
-class CurriculumVitaeAdmin(admin.ModelAdmin):
+class CurriculumVitaeAdmin(UnaccentMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["person", "owner", "title", "file"]
     autocomplete_fields = ["person", "owner"]
@@ -2020,6 +2490,9 @@ class CurriculumVitaeAdmin(admin.ModelAdmin):
         "owner__username",
         "owner__email",
         "file",
+        "title",
+        "applications__number",
+        "members__application__number",
     ]
     date_hierarchy = "created_at"
     view_on_site = False
@@ -2037,9 +2510,17 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 
 
 @admin.register(models.Referee)
-class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class RefereeAdmin(
+    KeepSelectedMixin, UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin
+):
 
     save_on_top = True
+    limesurvey_admin_url = (
+        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+    )
+
+    # def get_search_results(self, request, queryset, search_term):
+    #     return super().get_search_results(request, queryset, search_term)
 
     @admin.display(description="State", empty_value="N/A")
     def STATE(self, obj):
@@ -2049,6 +2530,15 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
                 f"""<b title="State changed at {sca}">{obj.get_state_display().upper()} </b> ({sca})"""
             )
 
+    @admin.display(description="survey participant", ordering="survey_token")
+    def participant_link(self, obj):
+        if (token_id := obj.survey_token_id) and (survey_id := obj.application.round.survey_id):
+            url = f"{self.limesurvey_admin_url}tokens/sa/edit/iSurveyId/{survey_id}/iTokenId/{token_id}"
+            return mark_safe(
+                f'<a href="{url}" target="_blank">{obj.survey_token or obj.email}</a>'
+            )
+        return "-"
+
     list_display = [
         "email",
         "has_testified",
@@ -2057,9 +2547,10 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         "state",
         "org",
         "testified_at",
-        "survey_completed_at",
+        # "survey_completed_at",
     ]
     search_fields = [
+        "survey_token",
         "first_name",
         "last_name",
         "email",
@@ -2090,15 +2581,26 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     ]
     inlines = [StateLogInline]
 
-    # def get_list_display(self, request):
-    #    list_display = super().get_list_display(request)
+    def get_list_display(self, request):
+        if request.site_id in [2, 5]:
+            return [
+                "email",
+                "has_testified",
+                "application_number",
+                "full_name",
+                "state",
+                "org",
+                "testified_at",
+                "participant_link",
+                "survey_completed_at",
+            ]
+        return super().get_list_display(request)
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .filter(application__round__scheme__current_round=F("application__round"))
-        )
+        qs = super().get_queryset(request)
+        if "q" not in request.GET:
+            return qs.filter(application__round__scheme__current_round=F("application__round"))
+        return qs
 
     @admin.display(description="application", ordering="application__number")
     def application_number(self, obj):
@@ -2171,44 +2673,70 @@ class RefereeAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
                 count += 1
         messages.success(request, f"Successfully sent invitation(-s) to {count} referee(-s)")
 
+    @admin.action(description="Invite members")
+    def invite_members(self, request, queryset, *args, **kwargs):
+        applications = models.Application.where(members__in=queryset)
+        for a in applications:
+            count = a.invite_team_members(request)
+            if count > 0:
+                messages.success(
+                    request,
+                    f"{count} invitation(s) to join the application ({a}) team have been sent.",
+                )
 
-@admin.register(models.Member)
-class MemberAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+    actions = ["invite_members"]
+
+
+@admin.register(models.ContractMember)
+class ContractMemberAdmin(UnaccentMixin, StaffPermsMixin, HistoryAdmin):
     save_on_top = True
-    list_display = ["email", "full_name", "application", "state", "has_authorized"]
+    list_display = [
+        "email",
+        "full_name",
+        "role",
+        "contract",
+        "updated_at",
+    ]
     search_fields = [
         "email",
         "first_name",
         "last_name",
+        "contract__number",
+        "contract__project_title",
         "application__number",
         "application__application_title",
     ]
-    list_filter = ["application__round", "created_at", "updated_at", "state"]
-    date_hierarchy = "created_at"
-    inlines = [StateLogInline]
-    readonly_fields = [
-        "application",
-        "state",
-        "state_changed_at",
-        "authorized_at",
-        "has_authorized",
+    list_filter = [
+        "role",
+        "created_at",
+        "updated_at",
+        ("contract__org", admin.RelatedOnlyFieldListFilter),
+        ("contract__application__round", admin.RelatedOnlyFieldListFilter),
     ]
-    autocomplete_fields = ["user", "application", "converted_file", "country", "org"]
+    date_hierarchy = "created_at"
+    # readonly_fields = ["contract", "address"]
+    readonly_fields = ["contract"]
+    autocomplete_fields = ["user", "contract", "address"]
 
-    def has_authorized(self, obj):
-        if obj.state == "authorized":
-            return True
-        elif obj.state == "opted_out":
-            return False
-
-    has_authorized.boolean = True
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if (site_id := request.site_id) != 0:
+            return qs.filter(contract__site_id=site_id)
+        return qs
 
     def view_on_site(self, obj):
-        return reverse("application", kwargs={"pk": obj.application_id})
+        return reverse("contract-detail", kwargs={"number": obj.contract.number})
+
+    class EffortInline(admin.TabularInline):
+        model = models.ContractMemberEffort
+        extra = 0
+        view_on_site = False
+
+    inlines = [EffortInline]
 
 
 @admin.register(models.Panellist)
-class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
+class PanellistAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["full_name_with_email", "round", "state"]
     search_fields = ["first_name", "last_name", "email"]
@@ -2233,7 +2761,7 @@ class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
             models.Invitation.where(~Q(state="accepted"), panellist__in=queryset, type="P")
         )
         for i in invitations:
-            i.send(request)
+            i.resend(request)
             i.save()
             recipients.append(i.panellist)
 
@@ -2260,7 +2788,7 @@ class PanellistAdmin(StaffPermsMixin, FSMTransitionMixin, admin.ModelAdmin):
 
 
 @admin.register(models.IdentityVerification)
-class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class IdentityVerificationAdmin(UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
     list_display = ["user", "is_accepted", "application"]
     search_fields = ["user__first_name", "user__last_name", "application__application_title"]
@@ -2286,7 +2814,7 @@ class IdentityVerificationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmi
 
 
 @admin.register(models.ConflictOfInterest)
-class ConflictOfInterestAdmin(StaffPermsMixin, admin.ModelAdmin):
+class ConflictOfInterestAdmin(UnaccentMixin, StaffPermsMixin, admin.ModelAdmin):
     save_on_top = True
     list_display = ["panellist", "application", "has_conflict"]
     readonly_fields = [
@@ -2329,6 +2857,13 @@ class MailLogAdmin(StaffPermsMixin, admin.ModelAdmin):
     list_filter = ["sent_at", "updated_at", "was_sent_successfully"]
     date_hierarchy = "sent_at"
 
+    class RecipientInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
+        model = models.Recipient
+        fields = ["type", "recipient"]
+
+    inlines = [RecipientInline]
+
     def html_message_content(self, obj):
         return mark_safe(obj.html_message or "-")
 
@@ -2350,7 +2885,7 @@ class ImpersonationAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.Nomination)
-class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
+class NominationAdmin(UnaccentMixin, PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
 
     def nominator_name(self, obj):
@@ -2365,7 +2900,13 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
     nominator_name.short_description = "nominator"
     nominator_name.admin_order_field = "nominator__first_name"
 
-    list_display = ["round", "nominee_name", "nominator_name", "application"]
+    list_display = [
+        "round",
+        "nominee_name",
+        "nominator_name",
+        "application_link",
+        "invitation_url",
+    ]
     date_hierarchy = "created_at"
     list_filter = [
         "created_at",
@@ -2391,14 +2932,29 @@ class NominationAdmin(PdfFileAdminMixin, FSMTransitionMixin, HistoryAdmin):
         "site",
     ]
     autocomplete_fields = ["application", "user", "round", "nominator", "cv", "org"]
-    actions = ["resend_invitations"]
+    actions = ["resend_invitations", archive_objects]
     inlines = [StateLogInline]
+
+    @admin.display(description="invitation")
+    def invitation_url(self, obj):
+        return (
+            ", ".join(
+                (i.url or reverse("onboard-with-token", kwargs={"token": i.token}))
+                for i in obj.invitations.all()
+            )
+            or ""
+        )
+
+    @admin.display(description="application")
+    def application_link(self, obj):
+        if a := obj.application:
+            return mark_safe(f'<a href="{a.admin_url}" target="_blank">{a.number}</a>')
 
     @admin.action(description="Resend the invitations")
     def resend_invitations(self, request, queryset):
         recipients = []
         for o in queryset.filter(state__in=["submitted", "bounced"]):
-            o.send_invitation(request)
+            o.send_invitation(request, resend=True)
             recipients.append(o)
 
         messages.success(
@@ -2451,9 +3007,9 @@ class OrganisationWOIdentifierResource(ModelResource):
 class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, HistoryAdmin):
     save_on_top = True
     view_on_site = False
-    list_display = ["code", "name"]
+    list_display = ["code", "name", "is_active", "created_at", "updated_at"]
     list_filter = ["created_at", "updated_at", "applications__round"]
-    search_fields = ["name", "code"]
+    search_fields = ["name__icontains", "code"]
     date_hierarchy = "created_at"
     resource_classes = [OrganisationResource, OrganisationWOIdentifierResource]
     autocomplete_fields = ["address", "signatory"]
@@ -2464,7 +3020,8 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             None,
             {
                 "fields": [
-                    ("code", "name", "is_active"),
+                    ("code", "name"),
+                    ("is_active", "is_verified", "is_approved_host"),
                     ("identifier_type", "identifier"),
                     ("legal_name", "alt_name"),
                 ],
@@ -2489,11 +3046,80 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                     "contact",
                     ("email", "contact_phone"),
                     "signatory",
-                    "ro_email",
+                    ("ro_email", "notify_ro_on_application_submission"),
+                    (
+                        "application_contact_email",
+                        "contract_contact_email",
+                        "reporting_contact_email",
+                    ),
                 ],
             },
         ),
     ]
+
+    def get_fields(self, request, obj):
+        fields = super().get_fields(request, obj)
+        if obj and obj.replaced_org:
+            return ["new_org_link", *fields]
+        return fields
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj=obj)
+        if obj and obj.replaced_org:
+            return [
+                (
+                    None,
+                    {
+                        "fields": [
+                            "new_org_link",
+                            ("code", "name", "is_active"),
+                            ("identifier_type", "identifier"),
+                            ("legal_name", "alt_name"),
+                        ],
+                    },
+                ),
+                *fieldsets[1:],
+            ]
+        return [
+            (
+                None,
+                {
+                    "fields": [
+                        ("code", "name", "is_active"),
+                        ("identifier_type", "identifier"),
+                        ("legal_name", "alt_name"),
+                    ],
+                },
+            ),
+            *fieldsets[1:],
+        ]
+
+    def get_object(self, request, object_id, from_field=None):
+        obj = super().get_object(request=request, object_id=object_id, from_field=from_field)
+        if obj and (org := obj.replaced_org):
+            url = reverse("admin:portal_organisation_change", kwargs={"object_id": org.pk})
+            self.message_user(
+                request=request,
+                message=mark_safe(
+                    f'Organisattion "{obj}" was replaced with:<br><a href="{url}" target="_blank">{org}</a>'
+                ),
+                level=messages.WARNING,
+                fail_silently=True,
+            )
+        return obj
+
+    def has_change_permission(self, request, obj=None):
+        return obj and not obj.replaced_org and super().has_change_permission(request, obj)
+
+    # def get_queryset(self, request):
+    #     qs = super().get_queryset(request)
+    #     return qs
+    @admin.display(description="New Organisation")
+    def new_org_link(self, obj):
+        if org := obj.replaced_org:
+            url = reverse("admin:portal_organisation_change", kwargs={"object_id": org.pk})
+            return mark_safe(f'<a style="color:red;"  href="{url}" target="_blank">{org}</a>')
+        return
 
     class ResearchOfficeInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
@@ -2515,13 +3141,20 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
 
     inlines = [ResearchOfficeInline, NameInline]
 
+    def get_search_fields(self, request):
+        if (q := request.GET.get("q")) and (qq := q.strip()) and qq.isupper():
+            return ["^code"]
+        return super().get_search_fields(request)
+
     @admin.action(description="Merge Organisations")
     def merge_orgs(self, request, queryset):
         if "do_action" in request.POST:
             u = request.user
             deleted = []
+            merged = []
             errors = []
             if target_id := request.POST.get("target"):
+                keep = request.POST.get("keep") != "0"
                 target = models.Organisation.get(target_id)
                 orgs = list(queryset.filter(~Q(id=target_id)))
                 org_ids = [o.id for o in orgs]
@@ -2529,21 +3162,28 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                 try:
                     with transaction.atomic():
 
-                        org_applications = list(
-                            models.Application.all_objects.filter(
-                                ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
-                                Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
-                            ).order_by("number")
-                        )
+                        qs = models.Application.all_objects.filter(
+                            ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
+                            Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
+                        ).order_by("number")
+                        if keep:
+                            qs.filter(round__scheme__current_round=F("round"))
 
-                        nominations = list(models.Nomination.all_objects.filter(org__in=orgs))
+                        org_applications = list(qs)
+
+                        qs = models.Nomination.all_objects.filter(org__in=orgs)
+                        if keep:
+                            qs.filter(round__scheme__current_round=F("round"))
+                        nominations = list(qs)
+
                         for n in nominations:
                             n._change_reason = f"Organisation {n.org} merged into {target} by {u}"
                             n.org = target
+
                         bulk_update_with_history(
                             nominations,
                             models.Nomination,
-                            ["org"],
+                            ["org", "updated_at"],
                             default_user=u,
                             manager=models.Nomination.all_objects,
                         )
@@ -2574,7 +3214,7 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                             bulk_update_with_history(
                                 org_applications,
                                 models.Application,
-                                ["org", "number"],
+                                ["org", "number", "updated_at"],
                                 default_user=u,
                                 manager=models.Application.all_objects,
                             )
@@ -2627,12 +3267,56 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                                 manager = getattr(model, "all_objects", model._default_manager)
                                 manager.bulk_update(objects, [field])
 
+                        target_updated = False
                         for o in orgs:
                             if not target.alternative_names.filter(name=o.name).exists():
                                 models.OrgName.create(org=target, name=o.name)
-                            o._change_reason = f"Organisation {o} merged into {target} by {u}"
-                            o.delete()
-                        deleted = [f"{o.code}: {o.name}" for o in orgs]
+                            for field in target._meta.fields:
+                                field_name = field.name
+                                if field_name in [
+                                    "id",
+                                    "code",
+                                    "name",
+                                    "created_at",
+                                    "updated_at",
+                                ]:
+                                    continue
+                                if (v := getattr(o, field_name)) and not getattr(
+                                    target, field_name
+                                ):
+                                    setattr(o, field_name, v)
+                                    target_updated = True
+
+                        if target_updated:
+                            target._change_reason = (
+                                "Organisation updated with non-conflicting information "
+                                f"from merged organisations by {u}"
+                            )
+                            target.save()
+                            messages.info(
+                                request,
+                                f"Organisation {target} updated with non-conflicting "
+                                "information from merged organisations. "
+                                "Please review the changes and save the organisation to update the record.",
+                            )
+
+                        if keep:
+                            for o in orgs:
+                                o.is_active = False
+                                o.replaced_org = target
+                                o._change_reason = f"Organisation {o} merged into {target} by {u}"
+                            bulk_update_with_history(
+                                orgs,
+                                self.model,
+                                ["replaced_org", "is_active", "updated_at"],
+                                default_user=u,
+                            )
+                            merged = [f"{o.code}: {o.name}" for o in orgs]
+                        else:
+                            for o in orgs:
+                                o._change_reason = f"Organisation {o} merged into {target} by {u}"
+                                o.delete()
+                            deleted = [f"{o.code}: {o.name}" for o in orgs]
                 except Exception as ex:
                     capture_exception(ex)
                     errors.append(ex)
@@ -2642,19 +3326,48 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                     request,
                     f'{len(deleted)} organisation(s) merged and deleted: {", ".join(deleted)}',
                 )
+            if merged:
+                messages.success(
+                    request,
+                    f'{len(merged)} organisation(s) merged and marked inactive: {", ".join(merged)}',
+                )
             if errors:
                 for e in errors:
                     messages.error(request, e)
 
             return
 
-        return render(
-            request,
-            "action_merge_orgs.html",
-            {
+        if target := queryset.filter(is_active=True).first():
+
+            context = {
+                **self.admin_site.each_context(request),
                 "title": "Choose target organisation",
+                "subtitle": None,
+                "object_name": str(self.opts.verbose_name),
+                "object": None,
+                "deleted_objects": queryset,
+                "model_count": queryset.count(),
+                # "perms_lacking": perms_needed,
+                # "protected": protected,
+                "opts": self.opts,
+                "app_label": self.opts.app_label,
+                "preserved_filters": self.get_preserved_filters(request),
+                "is_popup": admin.options.IS_POPUP_VAR in request.POST
+                or admin.options.IS_POPUP_VAR in request.GET,
+                # "to_field": to_field,
                 "objects": queryset,
-            },
+                "target": target,
+            }
+
+            return render(
+                request,
+                "action_merge_orgs.html",
+                context,
+            )
+        messages.error(
+            request,
+            "Please select at least one active organisation "
+            "to be used as the target to merge other selected organisations into.",
         )
 
 
@@ -2665,7 +3378,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
     def resend(self, request, queryset):
         recipients = []
         for o in queryset:
-            o.send(request)
+            o.resend(request)
             o.save()
             recipients.append(o)
 
@@ -2692,6 +3405,7 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
         "created_at",
         "sent_at",
         "updated_at",
+        # "invitation_url",
         "url",
     ]
     autocomplete_fields = [
@@ -2716,6 +3430,14 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
     readonly_fields = ["submitted_at", "accepted_at", "expired_at", "token", "url"]
     ordering = ["-id"]
     actions = ["resend"]
+
+    @admin.display(description="URL", ordering="URL")
+    def invitation_url(self, obj):
+        if obj.url:
+            return obj.url
+        if obj.token:
+            url = reverse("onboard-with-token", kwargs={"token": obj.token})
+            return f"https://{obj.site.domain}/{url}"
 
     class MailLogInline(StaffPermsMixin, admin.TabularInline):
         classes = ["collapse"]
@@ -2758,7 +3480,9 @@ class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, Hi
 
 
 @admin.register(models.Testimonial)
-class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class TestimonialAdmin(
+    UnaccentMixin, PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin
+):
     # summernote_fields = ["summary"]
 
     @admin.display(description="State", empty_value="N/A")
@@ -2842,7 +3566,7 @@ class TestimonialAdmin(PdfFileAdminMixin, StaffPermsMixin, FSMTransitionMixin, H
         if rounds.count() > 1:
             messages.info(request, f"In total synced {count} referee(s) and testimonial(s)")
 
-    actions = ["sync_referee_surveys"]
+    actions = ["sync_referee_surveys", archive_objects]
 
 
 class SchemeResource(ModelResource):
@@ -2867,20 +3591,57 @@ class SchemeAdmin(
     resource_classes = [SchemeResource]
     exclude = ["groups", "cv_required", "site"]
     actions = ["create_new_round"]
-    autocomplete_fields = ["fund", "current_round"]
+    autocomplete_fields = [
+        "fund",
+    ]
+    # autocomplete_fields = ["fund", "current_round"]
+
+    def get_form(self, request, obj=None, **kwargs):
+        # Store the current object instance on the request
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["current_round"].queryset = (
+            models.Round.where(scheme=obj).order_by("-pk")[:5]
+            if obj
+            else models.Round.objects.none()
+        )
+        return form
+
+    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    #     # if db_field.name == "document_type":
+    #     #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+    #     if db_field.name == "current_round":
+    #         if (m := re.search(r"contractdocument/(\d+)/change", request.path)) and (
+    #             document_id := m.group(1)
+    #         ):
+    #             kwargs["queryset"] = models.RequiredContractDocument.where(
+    #                 Q(documents__pk=document_id)
+    #                 | Q(round__applications__contracts__documents__pk=document_id)
+    #             ).distinct()
+    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
-        for s in queryset.filter():
-            r = models.Round(scheme=s)
-            r.init_from_last_round()
-            if not r.title:
-                r.title = s.title
-            if r.title == s.title and r.opens_on:
-                r.title = f"{r.title} {r.opens_on.year}"
-            r.save()
-            s.current_round = r
-            s.save(update_fields=["current_round"])
+        new_rounds = []
+        with transaction.atomic():
+            for r in models.Round.where(scheme__in=queryset, scheme__current__round_id=F("pk")):
+                nr = r.clone(copy=True)
+                r.scheme.current_round = nr
+                r.scheme.save(update_fields=["current_round"])
+                new_rounds.append(nr)
+        if new_rounds:
+            new_rounds = [f"{r}" for r in new_rounds]
+            messages.info(request, f"New round(s) created: {', '.join(new_rounds)}")
+
+        # for s in queryset.filter():
+        #     r = models.Round(scheme=s)
+        #     r.init_from_last_round()
+        #     if not r.title:
+        #         r.title = s.title
+        #     if r.title == s.title and r.opens_on:
+        #         r.title = f"{r.title} {r.opens_on.year}"
+        #     r.save()
+        #     s.current_round = r
+        #     s.save(update_fields=["current_round"])
 
     def view_on_site(self, obj):
         if obj.current_round_id:
@@ -2965,12 +3726,36 @@ class DocumentTypeAdmin(ImportExportMixin, StaffPermsMixin, TranslationAdmin):
     # date_hierarchy = "created_at"
 
 
+@admin.register(models.PublicationType)
+class PublicationTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, admin.ModelAdmin):
+    view_on_site = False
+    save_on_top = True
+    list_display = [
+        "code",
+        "code_2",
+        "description",
+        "ordering",
+    ]
+    list_display_links = ["code", "code_2"]
+    search_fields = ["code", "code_2", "description"]
+    ordering_field_hide_input = True
+    exclude = ["ordering"]
+    list_editable = ["ordering"]
+
+
 @admin.register(models.RoleType)
 class RoleTypeAdmin(ImportExportMixin, StaffPermsMixin, OrderableAdmin, TranslationAdmin):
     view_on_site = False
     save_on_top = True
-    list_display = ["name", "for_application", "for_contracting", "is_key_person", "ordering"]
-    list_display_links = ["name"]
+    list_display = [
+        "code",
+        "name",
+        "for_application",
+        "for_contracting",
+        "is_key_person",
+        "ordering",
+    ]
+    list_display_links = ["code", "name"]
     search_fields = ["name_en", "name_mi"]
     # list_editable = ["role", "name_en", "name_mi"]
     # date_hierarchy = "created_at"
@@ -3025,8 +3810,8 @@ class RequiredContractDocumentForm(forms.ModelForm):
 @admin.register(models.Round)
 class RoundAdmin(
     SummernoteModelAdminMixin,
-    ExportActionMixin,
-    ImportExportMixin,
+    # ExportActionMixin,
+    # ImportExportMixin,
     StaffPermsMixin,
     OrderableAdmin,
     TranslationAdmin,
@@ -3048,13 +3833,20 @@ class RoundAdmin(
         # "scheme",
         "opens_on",
         "closes_at",
+        "application_count",
         "contract_count",
+        "report_count",
         "is_active",
         "ordering",
     ]
     list_editable = ["ordering"]
     ordering_field_hide_input = True
-    list_filter = [IsActiveRoundListFilter, "opens_on", "closes_at"]
+    list_filter = [
+        IsActiveRoundListFilter,
+        "opens_on",
+        "closes_at",
+        ("scheme", admin.RelatedOnlyFieldListFilter),
+    ]
     date_hierarchy = "opens_on"
     exclude = [
         "site",
@@ -3065,18 +3857,37 @@ class RoundAdmin(
         "invite_referees",
         "sync_referee_surveys",
         "copy_round",
+        "copy_performance_indicators",
         "make_current",
+        "export_for_panellists",
     ]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.annotate(
+            # contract_count=Count("contracts", filter=Q(contracts__isnull=False)),
+            application_count=models.Count("applications", distinct=True),
+            contract_count=models.Count("applications__contracts", distinct=True),
+            report_count=models.Count(
+                "applications__contracts__reporting_schedule__report", distinct=True
+            ),
+        )
+        return qs
+
     def get_list_display(self, request):
-        ld = super().get_list_display(request)
+        ld = super().get_list_display(request)[:]
+        site_id = request.site_id or settings.SITE_ID
+        if site_id == 0:
+            ld.insert(ld.index("coloured_title"), "site")
+            del ld[ld.index("ordering")]
         if (
             "survey" not in ld
             and (qs := self.get_queryset(request))
             and qs.filter(Q(survey_id__isnull=False), ~Q(survey_id=0)).exists()
         ):
-            ld.insert(ld.index("contract_count"), "survey")
+            ld.insert(ld.index("application_count"), "survey")
             # del ld[ld.index("scheme")]
+
         return ld
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
@@ -3097,16 +3908,20 @@ class RoundAdmin(
 
     def get_exclude(self, request, obj=None):
         exclude = super().get_exclude(request, obj)
-        if (site_id := settings.SITE_ID) and site_id in [2, 4, 5]:
-            exclude = exclude and exclude.copy() or []
+        site_id = settings.SITE_ID
+        if site_id in [2, 4, 5]:
+            exclude = exclude and exclude[:] or []
             exclude.extend(
                 [
-                    "applicant_cv_required",
+                    # "applicant_cv_required",
                     # "direct_application_allowed",
                     "ethics_statement_required",
                     "letter_of_support_required",
                 ]
             )
+            if site_id != 2:
+                exclude.append("applicant_cv_required")
+
         return exclude
 
     def get_form(self, request, obj=None, change=False, **kwargs):
@@ -3174,11 +3989,14 @@ class RoundAdmin(
                                 "can_specify_panel",
                                 "direct_application_allowed",
                                 "ethics_statement_required",
+                                "has_ftes",
                                 "has_online_scoring",
                                 "has_referees",
                                 "has_title",
-                                # "is_partial_profile_allowed",
                                 "letter_of_support_required",
+                                "member_letter_of_support_required",
+                                "member_cv_required",
+                                "member_research_experience_in_years_required",
                                 "nomination_form_required",
                                 "nominator_cv_required",
                                 "notify_nominator",
@@ -3189,6 +4007,7 @@ class RoundAdmin(
                                 "research_summary_required",
                                 "team_can_apply",
                                 "testimonials_required",
+                                # "is_partial_profile_allowed",
                             ]
                             if f not in exclude
                         ],
@@ -3197,7 +4016,6 @@ class RoundAdmin(
                             "is_flexible_number_of_referees",
                             "required_submitted_testimonials",
                         ),
-                        "duration",
                     ]
                 },
             ),
@@ -3230,11 +4048,25 @@ class RoundAdmin(
                 {
                     "classes": ("collapse",),
                     "fields": [
+                        ("proposed_start_date_stats_on", "duration"),
                         "awarded_amount",
                         "contract_background",
                         "schedule2",
                         "appendix_a",
                         "appendix_b",
+                    ],
+                },
+            ),
+            (
+                "Reporting Options",
+                {
+                    "classes": ("collapse",),
+                    "fields": [
+                        (
+                            "final_report_deferral"
+                            if site_id in [2, 4, 5]
+                            else ("report_template", "final_report_deferral")
+                        ),
                     ],
                 },
             ),
@@ -3257,7 +4089,6 @@ class RoundAdmin(
                             "nomination_template",
                             "referee_template",
                             "budget_template",
-                            "report_template",
                         ]
                     },
                 )
@@ -3265,12 +4096,42 @@ class RoundAdmin(
         ]
         return fieldsets
 
+    @admin.action(description="Export for the panellists")
+    def export_for_panellists(self, request, queryset):
+        if queryset.count() > 1:
+            for r in queryset:
+                r.export(
+                    request=request,
+                    by=request.user,
+                    file_format="7z",
+                    sync=False,
+                    regenerate=False,
+                    for_panellists=True,
+                )
+            # messages.error(request, "Please select a single round entry.")
+            return
+
+        r = queryset.first()
+        url = reverse("round-application-export", kwargs={"pk": r.pk})
+        url = f"{url}?for_panellists=1&format=7z"
+        return redirect(url)
+
     @admin.action(description="Create new round")
     def create_new_round(self, request, queryset):
-        for r in queryset.filter():
-            nr = r.clone()
-            r.scheme.current_round = nr
-            r.scheme.save(update_fields=["current_round"])
+        # for r in queryset.filter():
+        #     nr = r.clone(copy=True)
+        #     r.scheme.current_round = nr
+        #     r.scheme.save(update_fields=["current_round"])
+        new_rounds = []
+        with transaction.atomic():
+            for r in queryset:
+                nr = r.clone(copy=True)
+                r.scheme.current_round = nr
+                r.scheme.save(update_fields=["current_round"])
+                new_rounds.append(nr)
+        if new_rounds:
+            new_rounds = [f"{r}" for r in new_rounds]
+            messages.info(request, f"New round(s) created: {', '.join(new_rounds)}")
 
     @admin.action(description="Sync with the LimeSurvey surveys")
     def sync_referee_surveys(self, request, queryset):
@@ -3285,11 +4146,28 @@ class RoundAdmin(
 
     @admin.action(description="Invite referees")
     def invite_referees(self, request, queryset):
-        invitation_count = models.invite_referees(
-            rounds=queryset, by=request.user, after_round_closes=True, request=request
-        )
-        messages.success(
-            request, f"{invitation_count} referee invitation(s) created and/or dispatched."
+        if request.site_id not in [2, 5] or "do_action" in request.POST:
+            invitation_count = models.invite_referees(
+                request=request,
+                by=request.user,
+                rounds=queryset,
+                after_round_closes=("force" not in request.POST)
+                or (request.POST.get("force") != "1"),
+            )
+            messages.success(
+                request, f"{invitation_count} referee invitation(s) created and/or dispatched."
+            )
+            return
+
+        return render(
+            request,
+            "action_invite_referees.html",
+            {
+                "title": "Invite referees",
+                "objects": queryset,
+                "action_label": self.get_action("invite_referees")[-1],
+                "rounds": queryset,
+            },
         )
 
     def get_actions(self, request):
@@ -3323,6 +4201,72 @@ class RoundAdmin(
             )
         else:
             messages.warning(request, "No round was updated...")
+
+    @admin.action(description='Copy performance indicators/flags form another "source" round')
+    def copy_performance_indicators(self, request, queryset):
+        if "do_action" in request.POST:
+            errors = []
+            count = 0
+            if selected_id := request.POST.get("chosen_object"):
+                selected_object = self.model.get(selected_id)
+
+                try:
+                    with transaction.atomic():
+
+                        field_names = ["name", "value_choices", "is_optional"]
+                        for r in queryset.filter(~Q(id=selected_id)):
+
+                            flags = [
+                                f
+                                for f in selected_object.performance_flags.all().values(
+                                    *field_names
+                                )
+                                if f not in r.performance_flags.all().values(*field_names)
+                            ]
+                            if len(flags):
+                                count += len(flags)
+                                flags = [models.PerformanceFlag(round=r, **f) for f in flags]
+                                for pf in flags:
+                                    pf._change_reason = (
+                                        "Performance flag copied from the round "
+                                        f"{selected_object} by {request.user}"
+                                    )
+                                selected_object.performance_flags.model.objects.bulk_create(flags)
+
+                except Exception as ex:
+                    capture_exception(ex)
+                    errors.append(ex)
+
+            if count > 1:
+                messages.success(
+                    request,
+                    f"{count} performance indicators/flags copied to the selected rounds",
+                )
+
+            if errors:
+                for e in errors:
+                    messages.error(request, e)
+
+            return
+
+        # Get the code object from the frame and then the name
+        return render(
+            request,
+            "action_select_item.html",
+            {
+                "title": "Choose source round to copy performance indicators/flags from",
+                "item_label": "Choose source round to copy performance indicators/flags from",
+                "objects": queryset,
+                "objects_with_labels": [
+                    (r, f"{r} ({r.flag_count})")
+                    for r in queryset.annotate(flag_count=models.Count("performance_flags"))
+                ],
+                "action_name": inspect.currentframe().f_code.co_name,
+                "first_item": queryset.filter(performance_flags__isnull=False).first()
+                or queryset.first(),
+                # "schemes": models.Scheme.objects.order_by("code", "title").all(),
+            },
+        )
 
     @admin.action(description="Copy and link to another scheme")
     def copy_round(self, request, queryset):
@@ -3375,9 +4319,29 @@ class RoundAdmin(
             },
         )
 
-    @cache
+    @admin.display(description=_("applications"), ordering="application_count")
+    def application_count(self, obj):
+        if obj.application_count:
+            return mark_safe(
+                f'<a href="{reverse("admin:portal_application_changelist")}'
+                f'?round__id__exact={obj.pk}" target="_blank">{obj.application_count or 0}</a>'
+            )
+
+    @admin.display(description=_("contracts"), ordering="contract_count")
     def contract_count(self, obj):
-        return models.Contract.where(application__round=obj).count() or 0
+        if obj.contract_count:
+            return mark_safe(
+                f'<a href="{reverse("admin:portal_contract_changelist")}'
+                f'?application__round__id__exact={obj.pk}" target="_blank">{obj.contract_count}</a>'
+            )
+
+    @admin.display(description=_("reports"), ordering="report_count")
+    def report_count(self, obj):
+        if obj.report_count:
+            return mark_safe(
+                f'<a href="{reverse("admin:portal_report_changelist")}'
+                f'?schedule_entry__contract__application__round__id__exact={obj.pk}" target="_blank">{obj.report_count or 0}</a>'
+            )
 
     @cache
     def is_active(self, obj):
@@ -3437,7 +4401,8 @@ class RoundAdmin(
     ):
         extra = 0
         model = models.RequiredDocument
-        autocomplete_fields = ["document_type"]
+        exclude = ["document_type"]
+        # autocomplete_fields = ["document_type"]
         view_on_site = False
         ordering_field_hide_input = True
 
@@ -3446,6 +4411,29 @@ class RoundAdmin(
         model = models.RoundDocumentTemplate
         # autocomplete_fields = ["document_type"]
         view_on_site = False
+        exclude = ["document_type", "role"]
+        _parent_obj = None
+        _requird_document_queryset = None
+
+        def get_formset(self, request, obj=None, **kwargs):
+            self._parent_obj = (
+                obj
+                or (pk := request.resolver_match.kwargs.get("object_id"))
+                and self.model.objects.get(pk)
+            )
+
+            if self._parent_obj:
+                self._requird_document_queryset = self._parent_obj.required_documents.order_by(
+                    "ordering"
+                )
+            else:
+                self._requird_document_queryset = self._parent_obj.required_documents.none()
+            return super().get_formset(request, obj, **kwargs)
+
+        def formfield_for_foreignkey(self, db_field, request, **kwargs):
+            if db_field.name == "required_document":
+                kwargs["queryset"] = self._requird_document_queryset
+            return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class PanellistInline(StaffPermsMixin, admin.TabularInline):
         extra = 0
@@ -3474,6 +4462,22 @@ class RoundAdmin(
         view_on_site = False
         ordering_field_hide_input = True
         classes = ["collapse"]
+        _parent_obj = None
+        _requird_document_queryset = None
+
+        def get_formset(self, request, obj=None, **kwargs):
+            self._parent_obj = obj or self.model.objects.get(
+                pk=request.resolver_match.kwargs.get("object_id")
+            )
+            self._requird_document_queryset = self._parent_obj.required_documents.order_by(
+                "ordering"
+            )
+            return super().get_formset(request, obj, **kwargs)
+
+        def formfield_for_foreignkey(self, db_field, request, **kwargs):
+            if db_field.name == "application_required_document":
+                kwargs["queryset"] = self._requird_document_queryset
+            return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     class RoundContractClauseInline(
         SummernoteModelAdminMixin, StaffPermsMixin, OrderableAdmin, admin.TabularInline
@@ -3492,6 +4496,12 @@ class RoundAdmin(
         ordering_field_hide_input = True
         classes = ["collapse"]
 
+    class ReportTemplateInline(StaffPermsMixin, OrderableAdmin, admin.TabularInline):
+        extra = 0
+        model = models.ReportTemplate
+        view_on_site = False
+        ordering_field_hide_input = True
+
     def get_inlines(self, request, obj):
         if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [2, 4, 5]:
             return [
@@ -3503,6 +4513,7 @@ class RoundAdmin(
                 self.RequiredContractDocumentInline,
                 self.RoundContractClauseInline,
                 self.PerformanceFlagInline,
+                self.ReportTemplateInline,
             ]
 
         return [
@@ -3513,16 +4524,120 @@ class RoundAdmin(
             self.RequiredContractDocumentInline,
             self.RoundContractClauseInline,
             self.PerformanceFlagInline,
+            self.ReportTemplateInline,
         ]
+
+
+class IsActiveRoundEvaluationListFilter(admin.SimpleListFilter):
+    title = "Is Active Round"
+
+    parameter_name = "is_active_round"
+
+    def get_facet_counts(self, pk_attname, filtered_qs):
+
+        return {
+            "ACTIVE__c": models.Count(
+                pk_attname,
+                filter=Q(application__round__scheme__current_round__id=F("application__round_id")),
+            ),
+            "PREVIOUS__c": models.Count(
+                pk_attname,
+                filter=~Q(
+                    application__round__scheme__current_round__id=F("application__round_id")
+                ),
+            ),
+            "All__c": models.Count(pk_attname),
+        }
+
+    def choices(self, changelist):
+
+        add_facets = changelist.add_facets
+        facet_counts = self.get_facet_queryset(changelist) if add_facets else None
+
+        yield {
+            "selected": self.value() == "ACTIVE" or self.value() is None,
+            "query_string": changelist.get_query_string(remove=[self.parameter_name]),
+            "display": f"ACTIVE ({facet_counts['ACTIVE__c']})" if add_facets else "ACTIVE",
+        }
+        for lookup, title in self.lookup_choices:
+            v = self.value()
+            c = facet_counts and facet_counts.get(f"{lookup}__c", 0)
+            yield {
+                "selected": v == str(lookup),
+                "query_string": changelist.get_query_string({self.parameter_name: lookup}),
+                "display": f"{title} ({c})" if add_facets else title,
+            }
+
+    def lookups(self, request, model_admin):
+        return (
+            ("PREVIOUS", _("Previous")),
+            ("All", _("All")),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "ACTIVE" or self.value() is None:
+            return queryset.filter(
+                application__round__scheme__current_round__id=F("application__round_id")
+            )
+        if self.value() == "PREVIOUS":
+            return queryset.filter(
+                ~Q(application__round__scheme__current_round__id=F("application__round_id"))
+            )
+        return queryset
 
 
 @admin.register(models.Evaluation)
 class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     save_on_top = True
 
-    class ScoreInline(admin.StackedInline):
+    list_filter = [
+        IsActiveRoundEvaluationListFilter,
+        ("application__round__scheme", admin.RelatedOnlyFieldListFilter),
+        "state",
+    ]
+    search_fields = [
+        "application__number",
+        "panellist__email",
+        "panellist__first_name",
+        "panellist__last_name",
+        "panellist__user__first_name",
+        "panellist__user__last_name",
+    ]
+
+    date_hierarchy = "updated_at"
+
+    list_display = (
+        "application__number",
+        "panellist",
+        "application_url",
+        "state",
+        "updated_at",
+    )
+    # list_display_links = ["appliation__number", "panellist", ]
+    autocomplete_fields = ["application"]
+
+    @admin.display(description="application", ordering="application__number")
+    def application_url(self, obj):
+        a = obj.application
+        return mark_safe(
+            '<a href="%s" target="_blank">%s</a>'
+            % (
+                reverse(
+                    "admin:portal_application_change",
+                    kwargs={"object_id": obj.application_id},
+                ),
+                f"{a.number}: {a.pi}",
+            )
+        )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(application__site_id=settings.SITE_ID)
+
+    class ScoreInline(StaffPermsMixin, admin.StackedInline):
         extra = 0
         model = models.Score
+        # view_on_site = False
 
         def view_on_site(self, obj):
             return reverse("scores-list", kwargs={"round": obj.criterion.round_id})
@@ -3530,17 +4645,34 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     inlines = [ScoreInline, StateLogInline]
 
 
+class ContractDocumentForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+        if self.request and (r := self.instance.round):
+
+            self.fields["author"].initial = self.request.user
+
+    class Meta:
+        model = models.ContractDocument
+        fields = "__all__"
+
+
 @admin.register(models.Contract)
-class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin):
+class ContractAdmin(
+    UnaccentMixin, StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMixin, HistoryAdmin
+):
     summernote_fields = (
         "abstract",
-        "notes",
+        # "notes",
     )
     save_on_top = True
     show_close_button = True
 
     list_display = (
         "number",
+        "application_link",
         # "category",
         "fund",
         "project_title",
@@ -3560,7 +4692,14 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
     #     "created_at",
     #     "updated_at",
     # ]
-    search_fields = ["number", "project_title"]
+    search_fields = [
+        "number",
+        "application__number",
+        "project_title",
+        "members__email",
+        "members__first_name",
+        "members__last_name",
+    ]
     autocomplete_fields = [
         # "principal",
         # "coordinator",
@@ -3574,6 +4713,7 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
         # "seo_keywords",
         "address",
         "org",
+        "priorities",
     ]
     fieldsets = [
         (
@@ -3584,7 +4724,7 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
                     ("number", "refcode", "year"),
                     "project_title",
                     # ("source", "source_code"),
-                    ("org", "application"),
+                    ("org", "application", "round_link"),
                     # ("proposal", "proposal_number"),
                     # ("principal", "principal_code"),
                     # ("coordinator", "coordinator_code"),
@@ -3634,7 +4774,7 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
                     # ("total_amount", "actual_amount", "currency"),
                     "url",
                     "abstract",
-                    "notes",
+                    # "notes",
                     # "mf_round_yr",
                     # "seo_list",
                     # "keyword_list",
@@ -3642,8 +4782,43 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
                 ],
             },
         ),
+        (
+            "Categories",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    ("keywords", "priorities"),
+                ],
+            },
+        ),
+        (
+            "Vision Mātauranga",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    # "is_vm_na",
+                    # "vm_rationale",
+                ],
+            },
+        ),
+        (
+            "Type of Activity",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "toa_applied",
+                    "toa_basic",
+                    "toa_strategic",
+                    "toa_experimental",
+                ],
+            },
+        ),
     ]
-    readonly_fields = ["ethics_statement_link"]
+    readonly_fields = ["ethics_statement_link", "round_link"]
 
     @admin.display(description="ethics statement")
     def ethics_statement_link(self, obj):
@@ -3652,6 +4827,26 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
                 es.file and f'<a href="{es.file.url}">{os.path.basename(es.file.name)}</a>' or "-"
             )
         return "-"
+
+    @admin.display(description="application", ordering="application__number")
+    def application_link(self, obj):
+        a = obj.application
+        return mark_safe(
+            a
+            and f"""<a href="{reverse('admin:portal_application_change', kwargs={"object_id": a.pk})}?_popup=1" target="_blank">
+            {a.number}
+            </a>"""
+            or "-"
+        )
+
+    @admin.display(description="round")
+    def round_link(self, obj):
+        return mark_safe(
+            '<a href="{}?_popup=1" target="_blank">{}</a>'.format(
+                reverse("admin:portal_round_change", args=(obj.application.round_id,)),
+                obj.application.round,
+            )
+        )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -3681,16 +4876,35 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
 
     class ContractDocumentInline(StaffPermsMixin, admin.TabularInline):
         model = models.ContractDocument
-        # exclude = ["contract_number"]
-        exclude = ["converted_file"]
+        # form = ContractDocumentForm
+        exclude = ["converted_file", "document_type"]
         extra = 0
         view_on_site = False
         classes = ["collapse"]
 
+        def formfield_for_foreignkey(self, db_field, request, **kwargs):
+            # if db_field.name == "document_type":
+            #     kwargs["queryset"] = models.Application.objects.filter(site_id=settings.SITE_ID)
+            if db_field.name == "required_document":
+                if (m := re.search(r"contract/(\d+)/change", request.path)) and (
+                    contract_id := m.group(1)
+                ):
+                    kwargs["queryset"] = models.RequiredContractDocument.where(
+                        Q(documents__contract_id=contract_id)
+                        | Q(round__applications__contracts=contract_id)
+                    ).distinct()
+            return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
     class ReportingScheduleEntryInline(StaffPermsMixin, admin.TabularInline):
         model = models.ReportingScheduleEntry
         extra = 0
-        view_on_site = False
+        # view_on_site = False
+
+        def view_on_site(self, obj):
+            return reverse(
+                "admin:portal_reportingscheduleentry_change", kwargs={"object_id": obj.pk}
+            )
+
         classes = ["collapse"]
 
     class ContractClauseInline(
@@ -3730,7 +4944,6 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
                 or "-"
             )
 
-    # class PanelAllocationInline(admin.StackedInline):
     # class PanelAllocationInline(admin.StackedInline):
     #     model = models.ContractPanelAllocation
     #     extra = 0
@@ -3782,12 +4995,36 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
         autocomplete_fields = ["code"]
         classes = ["collapse"]
 
-    class MemberInline(StaffPermsMixin, admin.TabularInline):
+    class SeoInline(StaffPermsMixin, admin.TabularInline):
+        model = models.ContractSeo
+        autocomplete_fields = ["code"]
         extra = 0
         view_on_site = False
+        classes = ["collapse"]
+
+    # class KeywordInline(StaffPermsMixin, admin.TabularInline):
+    #     model = models.ContractKeyword
+    #     autocomplete_fields = ["keyword"]
+    #     extra = 0
+    #     view_on_site = False
+    #     classes = ["collapse"]
+
+    class MemberInline(StaffPermsMixin, admin.TabularInline):
+        extra = 0
         model = models.ContractMember
-        # readonly_fields = ["state", "state_changed_at"]
         autocomplete_fields = ["user", "address"]
+        fields = ["view_on_site_link", "email", "first_name", "last_name", "role", "is_funded"]
+
+        readonly_fields = ("view_on_site_link",)
+
+        # view_on_site = False
+        def view_on_site_link(self, obj):
+            if obj.pk:
+                url = reverse("admin:portal_contractmember_change", kwargs={"object_id": obj.pk})
+                return format_html('<a href="{}?is_popup=1" target="_blank">Edit</a>', url)
+            return "-"
+
+        view_on_site_link.short_description = "Edit"
 
     inlines = [
         MemberInline,
@@ -3795,7 +5032,9 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
         ContractDocumentInline,
         ReportingScheduleEntryInline,
         AllocationInline,
+        SeoInline,
         ForInline,
+        # KeywordInline,
         # TeamInline,
         # AllocationInline,
         # ReportingInline,
@@ -3808,25 +5047,101 @@ class ContractAdmin(StaffPermsMixin, SummernoteModelAdminMixin, FSMTransitionMix
         StateLogInline,
     ]
 
+    @admin.action(description="Link Documents (copy missing documents from the application)")
+    def link_documents(self, request, queryset, *args, **kwargs):
+        missing_documents = (
+            models.ApplicationDocument.where(
+                application__contracts__in=queryset,
+                required_document__contract_required_documents__isnull=False,
+                required_document__contract_required_documents__documents__isnull=True,
+                application__contracts__isnull=False,
+            )
+            .annotate(
+                contract=F("application__contracts"),
+                contract_required_document=F("required_document__contract_required_documents"),
+            )
+            .order_by("contract")
+        )
+        documents = [
+            models.ContractDocument(
+                contract_id=d.contract,
+                page_count=d.page_count or d.update_page_count(),
+                document_type=d.document_type
+                or d.document_type
+                or d.required_document.document_type,
+                required_document_id=d.contract_required_document,
+                file=d.file,
+                converted_file=d.converted_file,
+                state="draft",
+            )
+            for d in missing_documents
+        ]
+        documents = bulk_create_with_history(
+            documents,
+            models.ContractDocument,
+            ignore_conflicts=True,
+            default_user=request.user,
+            default_change_reason=f"{request.user} re-linked/copied the missing contract documents from the contract applications",
+        )
+        contracts = set(d.contract for d in documents)
+
+        if not len(documents):
+            messages.warning(
+                request,
+                "No documents were linked; make sure the contract required documents are linked to the application required documents.",
+            )
+            return
+        messages.info(
+            request,
+            mark_safe(
+                f"{len(documents)} documents linked; updated contract(s): "
+                + ", ".join(f'<a href="{c.update_url}" target="_blank">{c}</a>' for c in contracts)
+            ),
+        )
+
     @admin.action(description="Start Reporting")
     def start_reporting(self, request, queryset, *args, **kwargs):
-        qs = queryset.model.reporting_schedule.field.model.objects.filter(
-            Q(due_date__lt=timezone.now()) | Q(date_first_remind__lt=timezone.now()),
-            report__isnull=True,
+        reports = list(
+            self.model.start_reporting(request=request, queryset=queryset, *args, **kwargs)
         )
-        for rse in qs:
-            r = rse.create_report()
-            url = reverse("report-update", kwargs={"pk": r.pk})
-            messages.info(
-                request,
-                mark_safe(
-                    f'New report initiated: <a href="{url}" target="_blank">{r.contract.number}:{r.period}</a>'
-                ),
-            )
-            break
-        pass
+        if not reports:
+            messages.warning(request, "No report was initiated.")
+            return
+        messages.info(
+            request,
+            mark_safe(
+                f"New report(s) initiated: "
+                + ", ".join(f'<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
+            ),
+        )
 
-    actions = [start_reporting, refresh_page_counts, archive_objects]
+    actions = [
+        start_reporting,
+        refresh_page_counts,
+        link_documents,
+        archive_objects,
+        revert_object_states,
+    ]
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
+            url="research-priority-autocomplete",
+            forward=[
+                dal.forward.Const(obj and obj.application.round_id, "round"),
+                dal.forward.Const("contract", "model"),
+            ],
+        )
+        form.base_fields["keywords"].widget = widget = (
+            autocomplete.ModelSelect2Multiple(  # autocomplete.TaggitSelect2(
+                url="keyword-autocomplete",
+                # forward=[
+                #     dal.forward.Const(obj and obj.application.round_id, "round"),
+                #     dal.forward.Const("contract", "model"),
+                # ],
+            )
+        )
+        return form
 
 
 @admin.register(models.Publication)
@@ -3868,9 +5183,28 @@ class PublicationAdmin(StaffPermsMixin, HistoryAdmin):
 
 
 @admin.register(models.Report)
-class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
+class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, HistoryAdmin):
     save_on_top = True
     show_close_button = True
+    date_hierarchy = "created_at"
+
+    actions = [archive_objects, revert_object_states, "assign_yourself"]
+
+    @admin.action(description="Assign yourself")
+    def assign_yourself(self, request, queryset, *args, **kwargs):
+        u = request.user
+        assigned_reports = list(queryset.filter(assessor__isnull=True, state="acknowledged"))
+        if assigned_reports:
+            for r in assigned_reports:
+                r.assign_assessor(request=request, by=u, assessor=u)
+            bulk_update_with_history(
+                assigned_reports,
+                self.model,
+                ["state", "state_changed_at", "updated_at", "assessor"],
+                default_user=u,
+                default_change_reason=f"User {u} assigned themselves...",
+                manager=self.model.objects,
+            )
 
     list_display = (
         # "number",
@@ -3879,23 +5213,31 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         "contract",
         "type",
         "period",
+        "reported_at",
         # "application",
         "state",
+        "assessor",
     )
 
     list_filter = [
         "state",
         "type",
-        ("contract__application__round", admin.RelatedOnlyFieldListFilter),
+        # "schedule_entry__contract__application__round",
+        ("schedule_entry__contract__application__round", admin.RelatedOnlyFieldListFilter),
     ]
     # list_filter = (
     #     ("state", admin.RelatedOnlyFieldListFilter),
     #     ("type", admin.RelatedOnlyFieldListFilter),
     # )
-    search_fields = ["number", "contract__project_title", "contract__number"]
+    search_fields = [
+        "contract__project_title",
+        "contract__number",
+        "contract__application__number",
+    ]
     autocomplete_fields = [
         "assessor",
         "contract",
+        "converted_file",
         # "schedule_entry",
         # "principal",
         # "coordinator",
@@ -3915,13 +5257,14 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
             {
                 "fields": [
                     (
-                        "state",
+                        "STATE",
                         # "type",
                         "contract",
                         # "period",
                         "schedule_entry",
                     ),
                     "assessor",
+                    ("file", "converted_file"),
                     # ("number", "refcode", "year"),
                     # "project_title",
                     # "host_contact_email",
@@ -3953,26 +5296,43 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         #         ],
         #     },
         # ),
-        # (
-        #     "Additional Information",
-        #     {
-        #         "classes": ("collapse",),
-        #         "fields": [
-        #             # "panel_code",
-        #             "panel",
-        #             # ("total_amount", "actual_amount", "currency"),
-        #             "url",
-        #             "abstract",
-        #             "notes",
-        #             # "mf_round_yr",
-        #             # "seo_list",
-        #             # "keyword_list",
-        #             # "seo_keyword_list",
-        #         ],
-        #     },
-        # ),
+        (
+            "Categories",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    ("keywords", "priorities"),
+                ],
+            },
+        ),
+        (
+            "Vision Mātauranga",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "vm_ecs",
+                    "vm_ens",
+                    "vm_hsw",
+                    "vm_ink",
+                    # "is_vm_na",
+                    # "vm_rationale",
+                ],
+            },
+        ),
+        (
+            "Type of Activity",
+            {
+                "classes": ("collapse",),
+                "fields": [
+                    "toa_applied",
+                    "toa_basic",
+                    "toa_strategic",
+                    "toa_experimental",
+                ],
+            },
+        ),
     ]
-    # readonly_fields = ["ethics_statement_link"]
+    readonly_fields = ["STATE", "contract"]
 
     # @admin.display(description="ethics statement")
     # def ethics_statement_link(self, obj):
@@ -4107,11 +5467,18 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
     #     view_on_site = False
     #     classes = ["collapse"]
 
-    class ForInline(admin.TabularInline):
+    class ForInline(StaffPermsMixin, admin.TabularInline):
         model = models.ReportFor
         extra = 0
         view_on_site = False
         autocomplete_fields = ["code"]
+        classes = ["collapse"]
+
+    class SeoInline(StaffPermsMixin, admin.TabularInline):
+        model = models.ReportSeo
+        autocomplete_fields = ["code"]
+        extra = 0
+        view_on_site = False
         classes = ["collapse"]
 
     inlines = [
@@ -4120,6 +5487,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
         # ReportingScheduleEntryInline,
         # AllocationInline,
         ForInline,
+        SeoInline,
         PublicationInline,
         ReportedEffortInline,
         ReportedFundingInline,
@@ -4141,6 +5509,29 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
             if not obj.period:
                 obj.period = obj.schedule_entry.period
         super().save_model(request, obj, form, change)
+
+        if schage and "contract" in form.changed_data:
+            if obj.schedule_entry and obj.schedule_entry.contract_id != obj.contract_id:
+                obj.schedule_entry = (
+                    obj.contact.reporting_schedule_entries.filter(type=obj.type, period=obj.period)
+                    .order_by("-pk")
+                    .first()
+                )
+                obj.save(update_fields=["schedule_entry"])
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj=obj, change=change, **kwargs)
+        form.base_fields["priorities"].widget = autocomplete.TaggitSelect2(
+            url="research-priority-autocomplete",
+            forward=[
+                dal.forward.Const(obj and obj.contract.application.round_id, "round"),
+                dal.forward.Const("report", "model"),
+            ],
+        )
+        form.base_fields["keywords"].widget = autocomplete.ModelSelect2Multiple(
+            url="keyword-autocomplete",
+        )
+        return form
 
 
 @admin.register(models.ChangeRequest)

@@ -1,4 +1,3 @@
-import private_storage.urls
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -17,6 +16,7 @@ def handle_pages(request, *args, url, **kwargs):
         response = flatpage(request, url=url)
     except Http404:
         return flatpage(request, url=f"{request.LANGUAGE_CODE or 'en'}/{url}")
+    # TODO: redirect to a page creation (for admins) if the page is absent...
     return response
 
 
@@ -26,6 +26,7 @@ urlpatterns = [
     # path("grappelli/", include("grappelli.urls")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
+    # path('chaining/', include('smart_selects.urls')),
     # User management
     path("users/", include("users.urls", namespace="users")),
     path("accounts/login/", view=LoginView.as_view(), name="account_login"),
@@ -35,7 +36,6 @@ urlpatterns = [
     path("", include("portal.urls")),
     path("summernote/", include("django_summernote.urls")),
     path("tinymce/", include("tinymce.urls")),
-    path("private-media/", include(private_storage.urls)),
     path("pages/<path:url>", handle_pages, name="flatpage"),
     path("pages/", TemplateView.as_view(template_name="flatpages/list.html"), name="page-list"),
     # re_path("^pages/(?P<url>!((en|mi)/).*)/", handle_pages),
@@ -49,7 +49,15 @@ urlpatterns += [
     path("auth-token/", obtain_auth_token),
     path("select2/", include("django_select2.urls")),
     path("explorer/", include("explorer.urls")),
+    # path('files/', include('filer.urls')),
 ]
+
+if getattr(settings, "PRIVATE_STORAGE_CLASS", None) != "common.models.ArchivalStorage":
+    import private_storage.urls  # avoid pylint warning
+
+    urlpatterns.append(
+        path("private-media/", include(private_storage.urls)),
+    )  # avoid pylint warning
 
 if settings.DEBUG:
     # This allows the error pages to be debugged during development, just visit
@@ -76,5 +84,10 @@ if settings.DEBUG:
         import debug_toolbar
 
         urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+
+    if "schema_viewer" in settings.INSTALLED_APPS:
+        urlpatterns += [
+            path('schema-viewer/', include('schema_viewer.urls')),
+        ]
 
 handler500 = "portal.views.handler500"

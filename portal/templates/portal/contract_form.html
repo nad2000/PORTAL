@@ -28,7 +28,8 @@
     <input type="hidden" name="doc_role" id="id_doc_role" value="">
     <input type="hidden" name="doc_type" id="id_doc_type" value="">
     <input type="hidden" name="doc_action" id="id_doc_action" value="">
-    <div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal">
+    <input type="hidden" name="action" id="id_action" value="">
+    <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_resolution_modal">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -54,10 +55,9 @@
       </div>
     </div>
     <!-- Placeholder for the modal -->
-    <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="form-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
       <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
     </div>
-
     {% if form.helper %}
       {% crispy form form.helper %}
     {% else %}
@@ -93,11 +93,15 @@
     var doc_role = null;
     var doc_type = null;
     var doc_action = null;
+    var action = null;
     var required_doc = null;
     {% if object and object.pk %}
       var duration = {% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %};
       var awarded_amount = {% if object.awarded_amount %}{{ object.awarded_amount }}{% else %}0{% endif %};
     {% endif %}
+    var sd = {% if object.start_date %}new Date('{{ object.start_date }}'){% else %}new Date(){% endif %};
+    // var ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
+    var ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(sd.getFullYear()+duration, sd.getMonth()+1, 0){% endif %};
     function toggleEthicsInputs(requires_approval) {
       $("#id_has_animal_use_0,#id_has_animal_use_1,#id_has_animal_use_2").prop("disabled", !requires_approval);
       $("#id_is_signatory_to_oa_0,#id_is_signatory_to_oa_1,#id_is_signatory_to_oa_2").prop("disabled", !requires_approval);
@@ -109,6 +113,7 @@
         $("#id_doc_role").val(doc_role);
         $("#id_doc_type").val(doc_type);
         $("#id_doc_action").val(doc_action || "approve");
+        if (action) $("#id_action").val(action);
         $(val).closest("form").submit();
         return true;
     };
@@ -123,6 +128,14 @@
         doc_action == "request_correction" ? "{% trans 'Request Correction' %}" : (
         doc_action == "awaiting_approval" ? "{% trans 'Request Approval' %}" : this.value||"{% trans 'Approve' %}")
       );
+      $('#id_resolution_modal').modal('show');
+      return false;
+    });
+    $('#button-id-approve_variant').on("click", function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      action = this.dataset["action"];
+      $("#id_confirm_action").text("{% trans 'Accept Changes' %}");
       $('#id_resolution_modal').modal('show');
       return false;
     });
@@ -187,26 +200,51 @@
           $("#id_allocations_total").text(awarded_amount);
         }
       );
+      $("#id_duration").change(function(e) {
+        if (this.value) {
+          duration = this.value;
+          start_date = new Date($("#id_start_date").val()||'{{ object.start_date }}');
+          /* 365.25*24*60*60*1000 = 31557600000.0 */
+          end_date = new Date(start_date.getTime() + duration*31557600000);
+          $("#id_end_date").val(end_date.toISOString().slice(0,10))
+          // TODO: adjust repoting schedule rows...
+        }
+      });
       $("#id_start_date").change(
         function(e) {
             let val = this.value;
+            duration = (+$("#id_duration").val()||{% if object.duration %}{{ object.duration }}{% else %}{{ object.application.round.duration }}{% endif %});
             if (val) {
               /* 365.25*24*60*60*1000 = 31557600000.0 */
               /* 24*60*60*1000 = 86400000 */
-              let sd = {% if object.start_date %}new Date('{{ object.start_date }}'){% else %}new Date(){% endif %};
-              let ed = {% if object.end_date %}new Date('{{ object.end_date }}'){% else %}new Date(Date.now() + duration*31557600000){% endif %};
               let start_date = new Date(val);
               let delta = start_date - sd ;
-              let end_date = new Date(ed.getTime() + delta);
+              let start_year = start_date.getFullYear();
+              let start_month = start_date.getMonth();
+              // let end_date = new Date(ed.getTime() + delta);
+              // let end_date = new Date(start_year + duration, start_month + 1, 0);
+              let end_date = new Date(Date.UTC(start_year + duration, start_month, 0));
               $("#id_end_date").val(end_date.toISOString().slice(0,10))
               {% if reporting_schedule %}
+
                   {% for f in reporting_schedule.forms %}
+                    <!-- PERIOD: {{ f.period.value }} -->
                     {% if f.due_date.value %}
                       let dd_{{ forloop.counter }}  = new Date("{{ f.due_date.value }}");
-                      let due_date_{{ forloop.counter }} = new Date(dd_{{ forloop.counter }}.getTime() + delta);
+                      let due_date_{{ forloop.counter }} =
+                        {% if f.period.value %}
+                          new Date(Date.UTC(start_year+{{ f.period.value }}, start_month{% if f.type.value == "F" %}+{{ round.final_report_deferral|default:"3" }}{% endif %}, 0))
+                        {% else %}
+                          new Date(dd_{{ forloop.counter }}.getTime() + delta)
+                        {% endif %};
                       $("#{{ f.due_date.auto_id }}").val(due_date_{{ forloop.counter }}.toISOString().slice(0,10));
+
+                      var reminder_date = new Date(Date.UTC(due_date_{{ forloop.counter }}.getFullYear(), due_date_{{ forloop.counter }}.getMonth(), 0));
+                      $("#{{ f.date_first_remind.auto_id }}").val(reminder_date.toISOString().slice(0,10));
+
                     {% endif %}
                   {% endfor %}
+
               {% endif %}
             }
         }

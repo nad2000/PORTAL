@@ -30,30 +30,40 @@
     </div>
   {% endif %}
 
-  {% if view_name == 'testimonial-detail' and object.referee.user == user %}
+  {% if view_name == 'testimonial' and object.referee.user == user and not application.round.survey_id %}
     {% if object.state == 'new' or object.state == 'draft' %}
+      {% if can_submit_testimonial %}
+        <button type="button"
+          name="turn_down"
+          class="btn btn-primary"
+          data-action="submit"
+          data-toggle="modal"
+          data-target="#confirm-referee-submit"
+          data-tooltip="tooltip"
+          title="{% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}{% trans 'Submit the referee report' %}{% else %}{% trans 'Submit the testimonial' %}{% endif %}"
+        >
+          {% trans 'Submit' %}
+        </button>
+      {% endif %}
       <button type="button"
         name="turn_down"
         class="btn btn-outline-danger"
         data-toggle="modal"
         data-action="turn_down"
         data-target="#id_resolution_modal"
+        data-tooltip="tooltip"
+        title="{% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}{% trans 'You do not wish to provide a referee report' %}{% else %}{% trans 'You do not wish to provide a testimonial' %}{% endif %}"
       >
-      {% trans 'I do not wish to provide a testimonial' %}
+      {% if SITE_ID == 5 or SITE_ID == 4 or SITE_ID == 2 %}
+        {% trans 'I do not wish to provide a report' %}
+      {% else %}
+        {% trans 'I do not wish to provide a testimonial' %}
+      {% endif %}
       </button>
     {% endif %}
   {% else %}
     {% if transitions %}
-      {% for t in transitions %}
-        <button id="id_{{ t.0 }}"
-                type="button"
-                class="btn btn-outline-primary"
-                name="{{ t.0 }}"
-                data-toggle="modal"
-                data-action="{{ t.0 }}"
-                data-target="#id_resolution_modal"
-                value="{{ t.1 }}"> {{ t.1 }}</button>
-      {% endfor %}
+      {% include 'snippets/detail_transition_buttons.html' %}
     {% endif %}
   {% endif %}
 
@@ -63,6 +73,9 @@
          {% if object.state == "submitted" and not is_ro %}
            disabled
            data-title="{% trans 'The entry has been already submitted and cannot be modified.' %}"
+         {% elif is_ro and not object.is_wip or ir_ro and object.state != "submitted" %}
+           disabled
+           title="{% blocktrans with object=object %}You cannot alter {{ object }} after it was approved.{% endblocktrans %}"
          {% elif object.state == "accepted" %}
            disabled
              {% if SITE_ID == 1 %}
@@ -77,8 +90,11 @@
            data-title="{% trans 'Update the entry and re-submit.' %}"
        {% endif %}{% endif %}
          >
-         <a class="btn btn-primary{% if not can_edit %}{% if object.state == "submitted" and not is_ro or object.state == "accepted" or reviewing_disabled %} disabled{% endif %}{% endif %}"
-            href="{% url update_view_name pk=object.pk %}">{% trans update_button_name %}</a>
+         <a class="btn btn-primary{% if not can_edit %}{% if object.state == "submitted" and not is_ro or not object.is_wip or reviewing_disabled %} disabled{% endif %}{% endif %}"
+            id="id_update_button"
+            href="{% url update_view_name pk=object.pk %}">
+            {% trans update_button_name %}
+         </a>
     </div>
   {% endif %}
 
@@ -101,8 +117,28 @@
     </div>
   {% endif %}
 
-  {% if export_button_view_name %}
-    <a class="btn btn-primary" href="{% url export_button_view_name pk=object.pk %}?format=pdf" target="_blank">{% trans 'Export' %}</a>
+  {% if export_button_view_name or export_url or object.export_url %}
+  <a
+    class="btn btn-primary"
+    {% if export_tooltip %}
+    data-toggle="tooltip"
+    title="{{ export_tooltip|safe }}"
+    data-html="true"{% endif %}
+    href="{% if export_url %}{{ export_url }}{% elif export_button_view_name %}{% url export_button_view_name pk=object.pk %}{% else %}{{ object.export_url }}{% endif %}?format=pdf"
+    target="_blank">{% trans 'Export' %}</a>
+  {% endif %}
+
+  {% if extra_buttons %}
+    {% for button in extra_buttons %}
+      <a
+        class="{% if button.class %}{{ button.class }}{% else %}btn btn-primary{% endif %}"
+        {% if button.tooltip %}
+        data-toggle="tooltip"
+        title="{{ button.tooltip|safe }}"
+        data-html="true"{% endif %}
+        href="{{ button.url }}"
+        target="_blank">{{ button.name }}</a>
+    {% endfor %}
   {% endif %}
 
   {% if user.is_site_staff or user.is_superuser %}

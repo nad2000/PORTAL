@@ -1,10 +1,9 @@
 import os
 from functools import partial
-from django.utils import timezone
 
 from crispy_forms.bootstrap import (
-    InlineField,
     InlineCheckboxes,
+    InlineField,
     InlineRadios,
     PrependedText,
     Tab,
@@ -26,18 +25,25 @@ from crispy_forms.layout import (
     LayoutObject,
     Row,
 )
-from dateutil.relativedelta import relativedelta
 from dal import autocomplete, forward
+from dateutil.relativedelta import relativedelta
 from django import forms
 from django.conf import settings
 
 # from crispy_forms.bootstrap import Modal
 from django.core.files.base import File
-from django.forms import FileField, IntegerField, HiddenInput, Widget, inlineformset_factory
+from django.forms import (
+    FileField,
+    HiddenInput,
+    IntegerField,
+    Widget,
+    inlineformset_factory,
+)
 from django.forms.models import BaseInlineFormSet, modelformset_factory
 from django.forms.widgets import NullBooleanSelect, NumberInput, Select, TextInput
 from django.shortcuts import reverse
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language
@@ -99,9 +105,13 @@ YearInput = partial(
 
 
 class InvitationStateInput(Widget):
-    # def __init__(self, attrs=None):
-    #     super().__init__(attrs)
-    #     pass
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        if instance := getattr(self, "instance", None):
+            context["instance"] = instance
+            context["pk"] = instance.pk
+        return context
 
     template_name = "invitation_state.html"
 
@@ -135,6 +145,8 @@ class ModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.site_id = kwargs.pop("site_id", 0) or int(settings.SITE_ID)
         super().__init__(*args, **kwargs)
+        if state_field := self.fields.get("state"):
+            state_field.widget.instance = self.instance
 
 
 class ReadOnlyFieldsMixin:
@@ -167,6 +179,21 @@ class FormWithCommentMixin:
     pass
 
 
+class ModelSelect2NoPK(autocomplete.ModelSelect2):
+    def filter_choices_to_render(self, selected_choices):
+        """Filter out un-selected choices if choices is a QuerySet."""
+        if isinstance(self.choices, list):
+            if selected_choices:
+                if not self.choices:
+                    self.choices = [(v, v) for v in selected_choices]
+                else:
+                    self.choices = [
+                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
+                    ]
+        else:
+            super().filter_choices_to_render(selected_choices)
+
+
 class CommentForm(FormWithCommentMixin, ModelForm):
 
     comment = forms.CharField(
@@ -190,10 +217,15 @@ class CommentForm(FormWithCommentMixin, ModelForm):
     def __init__(self, *args, **kwargs):
         instance = kwargs.pop("instance", None)
         super().__init__(*args, **kwargs)
+        has_contact_email = instance and hasattr(instance, "host_contact_email")
+        # if has_contact_email:
+        #     self.fields.insert(0, form.TextInput())
         helper = getattr(self, "helper", None) or FormHelper(self)
         # helper.include_media = False
         # helper.form_tag = False
+        model_name = instance and instance.model_name or "changerequest"
         helper.layout = Layout(
+            has_contact_email and Field("host_contact_email"),
             Field("comment"),
             Fieldset(
                 None,
@@ -214,7 +246,7 @@ class CommentForm(FormWithCommentMixin, ModelForm):
                         "import_email_file",
                         _("Import Email"),
                         hx_get=reverse("email-import", kwargs={"pk": instance and instance.pk})
-                        + "?_modal_dialog=1&model=changerequest",
+                        + f"?_modal_dialog=1&model={model_name}",
                         hx_target="#form-dialog",
                         hx_params="none",
                         data_toggle="tooltip",
@@ -226,6 +258,16 @@ class CommentForm(FormWithCommentMixin, ModelForm):
             ),
         )
         self.helper = helper
+
+    class Meta:
+        widgets = dict(
+            host_contact_email=ModelSelect2NoPK(
+                url="org-email-autocomplete",
+                attrs={
+                    "data-placeholder": _("Select an email addrss or create a new one ..."),
+                },
+            ),
+        )
 
 
 class FormWithStateFieldMixin:
@@ -241,7 +283,7 @@ class FormWithStateFieldMixin:
                 or instance.updated_at
             )
             attrs["invitation"] = invitation
-            state = invitation and invitation.state or instance.state
+            state = instance.state or invitation and invitation.state
             if (
                 state == "accepted"
                 and instance
@@ -282,6 +324,8 @@ class FTEMixin:
     def save(self, commit=True):
         super().save(commit=commit)
         m = self.instance
+        if not m.pk:
+            return
         Effort = m.efforts.model
         Effort.objects.bulk_create(
             [
@@ -308,7 +352,8 @@ class FTEMixin:
         ).delete()
 
 
-class TableInlineFormset(LayoutObject):
+# class TableInlineFormset(LayoutObject):
+class TableInlineFormset(Layout):
     template = "portal/table_inline_formset.html"
 
     def __init__(self, formset_name_in_context, template=None, *args, **kwargs):
@@ -318,7 +363,9 @@ class TableInlineFormset(LayoutObject):
         if template:
             self.template = template
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        # return self.get_rendered_fields(form, context, template_pack, **kwargs)
         formset = context[self.formset_name_in_context]
         return render_to_string(
             self.template,
@@ -326,7 +373,8 @@ class TableInlineFormset(LayoutObject):
         )
 
 
-class SubForm(LayoutObject):
+# class SubForm(LayoutObject):
+class SubForm(Layout):
     template = "portal/subform.html"
 
     def __init__(self, form_name_in_context, template=None, *args, **kwargs):
@@ -336,7 +384,9 @@ class SubForm(LayoutObject):
         if template:
             self.template = template
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        # return self.get_rendered_fields(form, context, template_pack, **kwargs)
         if form := context.get(self.form_name_in_context):
             return render_to_string(self.template, {"form": form})
         return ""
@@ -349,7 +399,9 @@ def make_help_text(document_type=None, templates=[], required_document=None):
         templates = [
             r.file
             for r in required_document.round.templates.filter(
-                document_type=required_document.document_type
+                Q(document_type=required_document.document_type)
+                if required_document.document_type
+                else Q(role=required_document.role)
             )
         ]
 
@@ -393,7 +445,8 @@ def make_help_text(document_type=None, templates=[], required_document=None):
 class DocumentInlineFormset(TableInlineFormset):
     template = "portal/document_formset.html"
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         formset = context[self.formset_name_in_context]
         round = context["round"]
         required_documents = context["required_documents"] or {
@@ -462,7 +515,8 @@ class InlineSubform(LayoutObject):
         if template:
             self.template = template
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    # def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         form = context[self.subform_name_in_context]
         return render_to_string(self.template, {"form": form})
 
@@ -608,6 +662,21 @@ def apnumber(value):
 class ApplicationForm(ModelForm):
 
     nomination = None
+    # duration_in_years = IntegerField(
+    #         required=False,
+    #         max_value=5,
+    #         choices=Choices(
+    #             (None, "N/A"),
+    #             *range(1, 5))
+    # duration_in_months = IntegerField(
+    #         required=False,
+    #         max_value=12,
+    #         choices=Choices(
+    #             (None, "N/A"),
+    #             *range(1, 12))
+    # duration_in_days = IntegerField(
+    #         required=False,
+    #         max_value=365)
 
     @property
     def round(self):
@@ -712,7 +781,7 @@ class ApplicationForm(ModelForm):
 
         if self.was_submitted and (round := self.round):
             if (
-                round.applicant_cv_required
+                round.is_applicant_cv_required
                 and round.curriculum_vitae_templates.count() > 0
                 and not (self.cleaned_data.get("cv_file") or self.instance.cv)
                 and self.site_id not in [2, 4, 5]
@@ -720,7 +789,6 @@ class ApplicationForm(ModelForm):
                 raise forms.ValidationError(
                     _("Need to attach a CV before submitting the application."),
                 )
-
         return self.cleaned_data.get("cv_file")
 
     def is_valid(self):
@@ -729,7 +797,7 @@ class ApplicationForm(ModelForm):
             return True
         return is_valid
 
-    def save(self, *args, **kwargs):
+    def save(self, commit=True):
 
         if self.instance and self.update_only_referees:
             return self.instance
@@ -762,7 +830,7 @@ class ApplicationForm(ModelForm):
             self.cleaned_data.get("cv_file") is False
             and self.instance
             and self.instance.round
-            and self.instance.round.applicant_cv_required
+            and self.instance.round.is_applicant_cv_required
             and self.instance.round.curriculum_vitae_templates.count() > 0
         ):
             self.instance.cv = None
@@ -775,10 +843,49 @@ class ApplicationForm(ModelForm):
             and (u := self.initial.get("user"))
         ):
             self.instance.applicant_declaration_accepted_by = u
-        return super().save(*args, **kwargs)
+
+        r = self.instance and self.instance.round or self.round
+        round_priorities = r.priorities.all().values_list("name", flat=True) if r else []
+        if round_priorities:
+            ingnored_priorities = [
+                p for p in self.cleaned_data.get("priorities", []) if p not in round_priorities
+            ]
+            if ingnored_priorities:
+                self.cleaned_data["priorities"] = [
+                    p for p in self.cleaned_data["priorities"][:] if p in round_priorities
+                ]
+
+        return super().save(commit=commit)
+        # # TODO: the save accross the all portal forms
+        # if self.errors:
+        #     raise ValueError(
+        #         "The %s could not be %s because the data didn't validate."
+        #         % (
+        #             self.instance._meta.object_name,
+        #             "created" if self.instance._state.adding else "changed",
+        #         )
+        #     )
+        # if commit:
+        #     # If committing, save the instance and the m2m data immediately.
+        #     self.instance.save(update_fields=self.changed_data)
+        #     # self.instance.save()
+        #     self._save_m2m()
+        # else:
+        #     # If not committing, add a method to the form to allow deferred
+        #     # saving of m2m data.
+        #     self.save_m2m = self._save_m2m
+        # return self.instance
+
+    # save.alters_data = True
 
     def __init__(self, *args, **kwargs):
-        nomination = kwargs.pop("nomination", None)
+        instance = kwargs.get("instance", None)
+        nomination = (
+            kwargs.pop("nomination", None)
+            or instance
+            and instance.pk
+            and models.Nomination.where(application=instance).order_by("-pk").first()
+        )
         self.update_only_referees = update_only_referees = kwargs.pop(
             "update_only_referees", False
         )
@@ -788,7 +895,7 @@ class ApplicationForm(ModelForm):
         if not nomination:
             nomination = initial.get("nomination")
         self.nomination = nomination
-        language = get_language()
+        language = get_language() or "en"
         site_id = self.site_id
 
         if site_id in [2, 4, 5]:
@@ -823,7 +930,11 @@ class ApplicationForm(ModelForm):
                 css_id="submitter",
             ),
             Row(
-                Column("org", css_class="col-9"),
+                (
+                    Column("organisation", css_class="col-9")
+                    if nomination and nomination.org
+                    else Column("org", css_class="col-9")
+                ),
                 Column("position", css_class="col-3"),
             ),
             "postal_address",
@@ -851,9 +962,11 @@ class ApplicationForm(ModelForm):
             fields.append(Field("is_tac_accepted", type="hidden"))
 
         if nomination and nomination.org:
-            self.fields["org"].disabled = True
-            self.fields["org"].widget.attrs["readonly"] = "true"
-            self.fields["org"].widget.attrs["disabled"] = "true"
+            self.fields.pop("org", None)
+        else:
+            self.fields.pop("organisation", None)
+        if instance and nomination and nomination.org:
+            instance.org = nomination.org
 
         round = (
             models.Round.get(self.initial["round"]) if "round" in self.initial else instance.round
@@ -874,6 +987,9 @@ class ApplicationForm(ModelForm):
             summary_fields.append(
                 Field("is_bilingual", data_toggle="toggle", template="portal/toggle.html")
             )
+        else:
+            self.fields.pop("is_bilingual", None)
+
         guidelines = round and round.get_guidelines()
         if round.has_title:
             summary_fields.extend(
@@ -882,21 +998,47 @@ class ApplicationForm(ModelForm):
                     Field(f"application_title_{'en' if language=='mi' else 'mi'}"),
                 ]
             )
+            self.fields.pop(f"application_title_{language}", None)
+        else:
+            self.fields.pop("application_title", None)
+            self.fields.pop("application_title_en", None)
+            self.fields.pop("application_title_mi", None)
 
         if site_id in [2, 5]:
-            summary_fields.append(
-                Row(
-                    Column("proposed_start_date", css_class="col-2"),
-                    Column(
-                        Field(
-                            "requested_amount",
-                            style="text-align: right; width: 70%;",
-                            max="9999999",
-                        ),
-                        css_class="d-flex justify-content-start gap-3",
+            cols = [Column("proposed_start_date", css_class="col-2")]
+            if site_id == 2:
+                # cols.append(Column("proposed_duration", css_class="col-2"))
+                cols.append(Column("duration_in_years", css_class="col-2"))
+                cols.append(Column("duration_in_months", css_class="col-2"))
+                cols.append(Column("duration_in_days", css_class="col-2"))
+            else:
+                # self.fields.pop("proposed_duration", None)
+                self.fields.pop("duration_in_days", None)
+                self.fields.pop("duration_in_months", None)
+                self.fields.pop("duration_in_years", None)
+            cols.append(
+                Column(
+                    Field(
+                        "requested_amount",
+                        style="text-align: right; width: 70%;",
+                        max="9999999",
                     ),
+                    css_class="d-flex justify-content-start gap-3",
                 )
             )
+            summary_fields.append(Row(*cols))
+            if not (start_date := round.proposed_start_date_stats_on):
+                if round.opens_on:
+                    start_date = round.opens_on.replace(day=1) + relativedelta(months=6)
+                else:
+                    start_date = timezone.now().date().replace(day=1) + relativedelta(months=6)
+
+            self.fields["proposed_start_date"].widget.attrs["data-date-start-date"] = (
+                start_date.strftime("%G-%m-%d")
+            )
+        else:
+            self.fields.pop("proposed_start_date", None)
+            self.fields.pop("requested_amount", None)
 
         if not has_required_documents:
             application_form_templates = (
@@ -930,9 +1072,14 @@ class ApplicationForm(ModelForm):
                 )
                 # self.fields["letter_of_support_file"].help_text = help_text
 
-            if round.applicant_cv_required and (
-                cv_templates := [r.file for r in round.curriculum_vitae_templates.all()]
-            ):
+        if (
+            round.is_applicant_cv_required
+            or round.member_cv_required
+            # and (not instance.pk or instance.is_pi(user))
+        ):
+
+            cv_templates = [r.file for r in round.curriculum_vitae_templates.all()]
+            if cv_templates:
                 help_text = _("You can download the CV form template(s) at ") + ", ".join(
                     '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
                     for t in cv_templates[:-1]
@@ -943,16 +1090,26 @@ class ApplicationForm(ModelForm):
                     cv_templates[-1].url,
                     os.path.basename(cv_templates[-1].name),
                 )
-
-                self.fields["cv_file"].help_text = help_text
-                summary_fields.append(
-                    Field(
-                        "cv_file",
-                        label=_("Curriculum Vitae"),
-                        data_toggle="tooltip",
-                        title=help_text,
+            else:
+                help_text = (
+                    lambda: _(
+                        """For NZ-based researchers, a current CV in the <a href="%s">NZ RST CV Template</a> is requested."""
                     )
+                    % round.default_cv_template_url
                 )
+
+            self.fields["cv_file"].help_text = help_text
+            self.fields["cv_file"].label = (
+                _("PI Curriculum Vitae") if site_id == 2 else _("Curriculum Vitae")
+            )
+            summary_fields.append(
+                Field(
+                    "cv_file",
+                    label=self.fields["cv_file"].label,
+                    # data_toggle="tooltip",
+                    # title=help_text,
+                )
+            )
 
         if round.research_summary_required:
             summary_fields.extend(
@@ -960,6 +1117,16 @@ class ApplicationForm(ModelForm):
                     Row(Field("summary"), Field(f"summary_{'en' if language=='mi' else 'mi'}")),
                 ]
             )
+            self.fields.pop(f"summary_{language}", None)
+            if round.site_id == 2:
+                self.fields["summary"].label = _("Summary (200 word maximum)")
+                self.fields["summary"].help_text = _(
+                    "Provide a summary of your proposed research (200 word maximum)."
+                )
+        else:
+            self.fields.pop("summary", None)
+            self.fields.pop("summary_en", None)
+            self.fields.pop("summary_mi", None)
         if round.scheme.presentation_required:
             # self.fields["presentation_url"].required = True
             self.fields["presentation_url"].widget.attrs.update(
@@ -981,6 +1148,10 @@ class ApplicationForm(ModelForm):
             )
 
         if has_required_documents:
+            if site_id == 2 and (not instance.pk or instance.is_pi(user)):
+                # PI CV
+                pass
+
             summary_fields.append(
                 Div(
                     DocumentInlineFormset("documents"),
@@ -998,7 +1169,10 @@ class ApplicationForm(ModelForm):
         # Category:
         if round.has_categories:
             category_fields = []
-            if round.research_experience_in_years_required and round.can_specify_panel:
+            if (
+                round.research_experience_in_years_required
+                or round.member_research_experience_in_years_required
+            ) and round.can_specify_panel:
                 self.fields["panel"].queryset = (
                     self.fields["panel"]
                     .queryset.filter(fund__site_id=site_id, state="active")
@@ -1010,16 +1184,23 @@ class ApplicationForm(ModelForm):
                         Column("panel"),
                     )
                 ]
-            elif round.research_experience_in_years_required:
+            elif (
+                round.research_experience_in_years_required
+                or round.member_research_experience_in_years_required
+            ):
                 category_fields = [Field("research_experience_in_years")]
+                self.fields.pop("panel", None)
             elif round.can_specify_panel:
                 category_fields = [Field("panel")]
+                self.fields.pop("research_experience_in_years", None)
 
             if round.has_toas:
                 category_fields.append(
                     Fieldset(
                         _("Type of Activities"),
-                        # Row('password1', 'password2'),
+                        # mark_safe(f"""{_("Type of Activities")}
+                        #           <i class="fas fa-question-circle"></i>
+                        # """),
                         Row(
                             Column("toa_basic", css_class="col-2"),
                             Column("toa_strategic", css_class="col-2"),
@@ -1059,13 +1240,13 @@ class ApplicationForm(ModelForm):
                 category_fields.append(
                     Fieldset(
                         _(" Vision Mātauranga Theme Categories"),
-                        # Row('password1', 'password2'),
                         Row(
                             Column("vm_ecs", css_class="col-3"),
                             Column("vm_ens", css_class="col-3"),
                             Column("vm_hsw", css_class="col-3"),
                             Column("vm_ink", css_class="col-3"),
-                            css_id="id_toas_row",
+                            css_class="exclude-help",
+                            css_id="id_vm_row",
                         ),
                         Div(
                             Row(Column("is_vm_na")),
@@ -1107,10 +1288,15 @@ class ApplicationForm(ModelForm):
                 )
                 self.fields["priorities"].widget = autocomplete.TaggitSelect2(
                     url="research-priority-autocomplete",
+                    attrs={"data-placeholder": _("Start typing to select research priorities...")},
                     forward=[
                         forward.Const(round.pk, "round"),
                         forward.Const("application", "model"),
                     ],
+                )
+                self.fields["priorities"].help_text = _(
+                    "Select research priorities that best align with your proposed research "
+                    "from the provided list of 'priorities'. You cannot add new priorities."
                 )
 
             tabs.append(
@@ -1141,7 +1327,15 @@ class ApplicationForm(ModelForm):
                 Tab(
                     _("Summary and Forms"),
                     HTML(
-                        '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
+                        (
+                            """<div class="alert alert-dark" role="alert"><p>%s</p>
+                            <p>%s</p>
+                            <p>The Summary serves as a public statement written for a
+                            non-scientific audience (200 word maximum).</p>
+                        </div>"""
+                            if round.research_summary_required
+                            else '<div class="alert alert-dark" role="alert"><p>%s</p><p>%s</p></div>'
+                        )
                         % (
                             _(
                                 "An application form must be uploaded to enable submission; "
@@ -1438,6 +1632,14 @@ class ApplicationForm(ModelForm):
         #     submit_button_kwargs.update(
         #         {"data_toggle": "modal", "data_target": "#id_applicant_declaration_modal"}
         #     )
+        if user.is_admin:
+            tabs.append(
+                Tab(
+                    _("Notes"),
+                    Div(TableInlineFormset("notes")),
+                    css_id="notes",
+                ),
+            )
 
         submit_button = Submit(
             "submit",
@@ -1452,6 +1654,13 @@ class ApplicationForm(ModelForm):
             ButtonHolder(
                 Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
                 Div(
+                    Submit(
+                        "save",
+                        _("Save and continue"),
+                        css_class="btn-secondary",
+                        data_toggle="tooltip",
+                        title=_("Save and continue editing"),
+                    ),
                     Submit(
                         "save_draft",
                         _("Save"),
@@ -1470,16 +1679,13 @@ class ApplicationForm(ModelForm):
                         ),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Cancel")
-                    ),
+                        </a>""" % _("Cancel")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -1487,6 +1693,11 @@ class ApplicationForm(ModelForm):
             ),
         )
         self.helper.include_media = False
+        if instance and instance.postal_address:
+            self.fields["postal_address"].widget.attrs["rows"] = max(
+                int(self.fields["postal_address"].widget.attrs.get("rows", 3)),
+                instance.postal_address.count("\n") + 1,
+            )
 
     class Meta:
         model = models.Application
@@ -1497,7 +1708,6 @@ class ApplicationForm(ModelForm):
             "fors",
             "letter_of_support",
             "number",
-            "organisation",
             "round",
             "seos",
             "site",
@@ -1510,6 +1720,7 @@ class ApplicationForm(ModelForm):
             "agent_declaration_accepted_at",
             "applicant_declaration_accepted_by",
             "tags",
+            "is_preliminary",
         ]
         widgets = dict(
             proposed_start_date=DateInput(end_date="+3y", start_date="+6m"),
@@ -1521,6 +1732,10 @@ class ApplicationForm(ModelForm):
             ),
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
+                attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
+            ),
+            organisation=ModelSelect2NoPK(
+                "org-name-autocomplete",
                 attrs={"data-placeholder": _("Choose an organisation or create a new one ...")},
             ),
             title=autocomplete.ModelSelect2(
@@ -1560,26 +1775,28 @@ class ApplicationForm(ModelForm):
             "priorities": "",
             "is_tac_accepted": _("I have read and accept the Terms and Conditions"),
         }
-        help_texts = {
-            "vm_ecs": None,
-            "vm_ens": None,
-            "vm_hsw": None,
-            "vm_ink": None,
-        }
 
 
 class ContractMemberForm(FTEMixin, ModelForm):
 
-    role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(for_application=True).order_by(
-            models.Coalesce("name", "code")
-        )
-    )
+    # role = forms.ModelChoiceField(
+    #     queryset=models.RoleType.where(for_contracting=True).order_by(
+    #         models.Coalesce("name", "code")
+    #     )
+    # )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        filters = Q(for_contracting=True)
+        if (instance := self.instance or kwargs.get("instance")) and instance.role:
+            filters.add(Q(pk=instance.role.pk), Q.OR)
+        self.fields["role"].queryset = self.fields["role"].queryset.filter(filters)
 
     class Meta:
         model = models.ContractMember
         exclude = ["address", "middle_names"]
         disabled = ["state"]
+        labels = {"state": mark_safe("&nbsp;")}
         widgets = dict(user=HiddenInput(), state=InvitationStateInput(attrs={"readonly": True}))
 
 
@@ -1602,21 +1819,6 @@ class AllocationForm(ModelForm):
         #     "purpose": forms.Textarea(attrs={"rows": 3}),
         #     "details": forms.Textarea(attrs={"rows": 3}),
         # }
-
-
-class ModelSelect2NoPK(autocomplete.ModelSelect2):
-    def filter_choices_to_render(self, selected_choices):
-        """Filter out un-selected choices if choices is a QuerySet."""
-        if isinstance(self.choices, list):
-            if selected_choices:
-                if not self.choices:
-                    self.choices = [(v, v) for v in selected_choices]
-                else:
-                    self.choices = [
-                        (v, v) for v in self.choices if [sc for sc in selected_choices if sc in v]
-                    ]
-        else:
-            super().filter_choices_to_render(selected_choices)
 
 
 class AddressForm(ModelForm):
@@ -1822,7 +2024,10 @@ class ContractForm(ModelForm):
             instance.requires_approval = True
         application = instance.application or initial.get("application")
         is_ro = (
-            application
+            instance
+            and instance.org
+            and instance.org.research_offices.filter(user=user).exists()
+            or application
             and application.org.research_offices.filter(user=user).exists()
             and not (user.is_superuser or user.is_site_staff)
         )
@@ -1874,30 +2079,52 @@ class ContractForm(ModelForm):
             and application.submitted_by == user
             or (instance.pk and instance.members.filter(user=user, role__code="PI").exists())
         )
-        submit_button = Submit(
-            "submit_contract",  # NB! Never call a button 'submit'!
-            _("Release"),
-            # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
-            data_toggle="tooltip",
-            title=(
-                _("Contract was already submitted")
-                if instance.state not in ["new", "draft"]
-                else (
-                    _("Only R.O. can submit the contract")
-                    if not (is_pi or is_ro)
+
+        if (
+            instance
+            and user.is_admin
+            and instance.is_variation
+            and instance.state in ["new", "draft", "draft", "released"]
+        ):
+            # Admins can approve the variation contracts:
+            submit_button = Button(
+                "approve_variant",  # NB! Never call a button 'submit'!
+                _("Accept Changes"),
+                # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+                data_tooltip="tooltip",
+                data_toggle="modal",
+                data_target="#id_resolution_modal",
+                data_action="approve_variant",
+                title=_(
+                    "Approve the contract variation and mark it 'current' (the original contract will be archived)"
+                ),
+                css_class="btn-outline-danger",
+            )
+        else:
+            submit_button = Submit(
+                "submit_contract",  # NB! Never call a button 'submit'!
+                _("Release"),
+                # disabled=not instance.is_tac_accepted,  # and instance.submitted_by != user,
+                data_toggle="tooltip",
+                title=(
+                    _("Contract was already submitted")
+                    if instance.state not in ["new", "draft"]
                     else (
-                        _(
-                            # "Not all the parts/appendices of the contract were approved and/or accepted"
-                            "Not all the parts/appendices of the contract were approved and/or released"
+                        _("Only R.O. can submit the contract")
+                        if not (is_pi or is_ro)
+                        else (
+                            _(
+                                # "Not all the parts/appendices of the contract were approved and/or accepted"
+                                "Not all the parts/appendices of the contract were approved and/or released"
+                            )
+                            if submission_disabled
+                            else _("Release the contract")
                         )
-                        if submission_disabled
-                        else _("Release the contract")
                     )
-                )
-            ),
-            css_class="btn-outline-primary",
-            disabled=submission_disabled or not (is_pi or is_ro),
-        )
+                ),
+                css_class="btn-outline-primary",
+                disabled=submission_disabled or not (is_pi or is_ro),
+            )
         # if is_pi or is_ro:
         #     pass
         # else:
@@ -1921,7 +2148,8 @@ class ContractForm(ModelForm):
             or is_ro
             or is_staff
             # enable 'Complience' tab if the settings were changed
-            or self.data and any(
+            or self.data
+            and any(
                 (f in self.changed_data)
                 for f in [
                     "requires_approval",
@@ -2005,7 +2233,7 @@ class ContractForm(ModelForm):
                         _(
                             "If your organisation does not have one, The Royal Society Te Apārangi child protection policy will "
                             "be appended to your contract. This document can be viewed at "
-                            """<a href="{% static 'Child-Protection-Policy.pdf' %}" target='_blank'>Child Protection Policy</a>"""
+                            """<a href="{% if config.CHILD_PROTECTION_POLICY_URL %}{{ config.CHILD_PROTECTION_POLICY_URL }}{% else %}{% static 'Child-Protection-Policy.pdf' %}{% endif %}" target='_blank'>Child Protection Policy</a>"""
                         ),
                     )
                 )
@@ -2109,11 +2337,9 @@ class ContractForm(ModelForm):
                     and self.instance.id
                     and not (user.is_superuser or user.is_site_staff)
                     else [
-                        HTML(
-                            """<div class="alert alert-dark" role="alert">
+                        HTML("""<div class="alert alert-dark" role="alert">
                         Enter the total funding allocation and/or duration and Save. The amount is not allocated over the years.
-                        </div>"""
-                        ),
+                        </div>"""),
                         Div(
                             Field("start_date"),
                             Field("end_date"),
@@ -2222,11 +2448,15 @@ class ContractForm(ModelForm):
             ),
             Tab(
                 _("Proposal"),
-                HTML('{% include "snippets/application_detail_table.html" with a=application %}'),
+                HTML(
+                    '{% include "snippets/application_detail_table.html" with a=application documents=application_documents %}'
+                ),
                 css_id="proposal",
             ),
             Tab(
                 _("Reporting"),
+                # Field("start_date"),
+                # Field("end_date"),
                 Fieldset(
                     _("Reporting Schedule"),
                     (
@@ -2247,15 +2477,13 @@ class ContractForm(ModelForm):
             ),
             Tab(
                 mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Finances")}'),
-                HTML(
-                    """{% load i18n %}<div class="alert alert-dark" role="alert">
+                HTML("""{% load i18n %}<div class="alert alert-dark" role="alert">
                     {% blocktrans %}
                     Funding has been allocated over the award period.
                     You can distribute it differently, but may not exceed
                     the total award. All amounts are exclusive of GST.
                     {% endblocktrans %}
-                    </div>"""
-                ),
+                    </div>"""),
                 Fieldset(
                     _("Budget Allocation"),
                     (
@@ -2274,8 +2502,7 @@ class ContractForm(ModelForm):
                     # Field("proposal_budget"),
                     Fieldset(
                         None,
-                        HTML(
-                            f"""<div class="input-group mb-2">
+                        HTML(f"""<div class="input-group mb-2">
                         <div class="input-group-prepend">
                             <span class="input-group-text">{_("Proposal Budget")}</span>
                         </div>
@@ -2286,8 +2513,7 @@ class ContractForm(ModelForm):
                             </a>
                             </span>
                         </div>
-                    </div>"""
-                        ),
+                    </div>"""),
                         # Submit(
                         #     "copy_proposal_budget",
                         #     _("Copy"),
@@ -2347,6 +2573,17 @@ class ContractForm(ModelForm):
                                     ),
                                     # data_document_role="AB",
                                     data_document_role="B",
+                                    disabled=not budget or budget.state in ["accepted"],
+                                    data_tooltip="tooltip",
+                                    title=(
+                                        _("The budget was alrady accepted")
+                                        if budget and budget.state in ["accepted"]
+                                        else (
+                                            _("Accept the budget")
+                                            if budget
+                                            else _("Upload and accept the budget")
+                                        )
+                                    ),
                                 ),
                                 css_class="float-right",
                             )
@@ -2402,7 +2639,7 @@ class ContractForm(ModelForm):
                     css_id="correspondence",
                 )
             )
-            if user.is_superuser or user.is_site_staff:
+            if user.is_admin:
                 self.fields["cover"].label = ""
                 self.fields["preamble"].label = ""
                 self.fields["schedule1"].label = ""
@@ -2603,8 +2840,7 @@ class ContractForm(ModelForm):
                                     css_class="btn-primary",
                                 ),
                                 (
-                                    HTML(
-                                        f"""
+                                    HTML(f"""
                             <a
                                 class="btn btn-primary"
                                 href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
@@ -2612,11 +2848,9 @@ class ContractForm(ModelForm):
                                 data-toggle="tooltip"
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the variation letter",
-                            > {_("Export Variation Letter")} </a>"""
-                                    )
+                            > {_("Export Variation Letter")} </a>""")
                                     if instance.is_variation
-                                    else HTML(
-                                        f"""
+                                    else HTML(f"""
                             <a
                                 class="btn btn-primary"
                                 href="{reverse("contract-export", kwargs={"pk": instance and instance.pk})}?format=pdf"
@@ -2624,8 +2858,7 @@ class ContractForm(ModelForm):
                                 data-toggle="tooltip"
                                 data-html="true"
                                 title="First <b>Save</b> and then export it to create an updated version of the contract document",
-                            > {_("Export Contract")} </a>"""
-                                    )
+                            > {_("Export Contract")} </a>""")
                                 ),
                                 # Submit(
                                 #     "export_contract",
@@ -2651,6 +2884,14 @@ class ContractForm(ModelForm):
                         css_id="parts",
                     ),
                 )
+        if user.is_admin:
+            tabs.append(
+                Tab(
+                    _("Notes"),
+                    Div(TableInlineFormset("notes")),
+                    css_id="notes",
+                ),
+            )
         self.helper.layout = Layout(
             TabHolder(*tabs),
             ButtonHolder(
@@ -2671,16 +2912,13 @@ class ContractForm(ModelForm):
                         title=_("Save draft contract"),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Close")
-                    ),
+                        </a>""" % _("Close")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -2776,6 +3014,7 @@ class ContractForm(ModelForm):
             "submitted_by",
             "state_changed_at",
             "is_variation",
+            "source",
         ]
         widgets = dict(
             start_date=DateInput(),
@@ -2820,8 +3059,38 @@ class ContractForm(ModelForm):
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
+    readonly_fields = ["state"]
+    role = forms.ModelChoiceField(
+        queryset=models.RoleType.where(
+            for_application=True,
+            # sites__site_id=settings.SITE_ID
+        ).order_by(models.Coalesce("name", "code")),
+        required=False,
+    )
+
+    cv_file = FileField(
+        required=False,
+        label=gettext_lazy("Curriculum Vitae"),
+        help_text=gettext_lazy("The most current CV"),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')"
+                % _("Need to attach a CV before submitting the application."),
+                "oninput": "this.setCustomValidity('')",
+            }
+        ),
+    )
+
+    def clean_role(self):
+        # Returns the original value from the instance, if form doesn't have the data
+        return self.cleaned_data.get("role") or self.instance.role
+
     def __init__(self, *args, **kwargs):
         # duration = kwargs.pop("duration", None)
+        is_fs = kwargs.get("prefix", False)
+
         super().__init__(*args, **kwargs)
         site_id = (
             self.instance
@@ -2830,19 +3099,105 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             and a.site_id
             or settings.SITE_ID
         )
-        if site_id == 2:
-            self.fields.pop("middle_names", None)
-        else:
-            self.fields.pop("org", None)
-            self.fields.pop("country", None)
 
-    readonly_fields = ["state"]
-    role = forms.ModelChoiceField(
-        queryset=models.RoleType.where(for_application=True).order_by(
-            models.Coalesce("name", "code")
-        ),
-        required=False,
-    )
+        if is_fs:
+            self.fields.pop("research_experience_in_years", None)
+            self.fields.pop("file", None)
+            self.fields.pop("cv_file", None)
+            self.fields.pop("title", None)
+            if site_id == 2:
+                self.fields.pop("middle_names", None)
+            else:
+                self.fields.pop("org", None)
+                self.fields.pop("country", None)
+        else:
+            if (
+                application := getattr(self.instance, "application", None)
+            ) and application.round.member_letter_of_support_required:
+                if site_id == 2:
+                    self.fields["file"].label = _("Organisation Support Letter")
+                    self.fields["file"].help_text = _("Support letter from your organisation")
+                self.fields["file"].required = True
+            else:
+                self.fields.pop("file", None)
+            self.helper = FormHelper(self)
+            self.helper.include_media = False
+            self.helper.form_group_wrapper_class = "row"
+            fields = [
+                (
+                    Row(
+                        Column("email", css_class="form-group col-11 mb-0"),
+                        Column("state", css_class="form-group col-1 mb-0"),
+                    )
+                    if "state" in self.fields
+                    else "email"
+                ),
+                Row(
+                    Column("title", css_class="form-group col-2 mb-0"),
+                    Column("first_name", css_class="form-group col-3 mb-0"),
+                    Column("middle_names", css_class="form-group col-4 mb-0"),
+                    Column("last_name", css_class="form-group col-3 mb-0"),
+                ),
+                Row(
+                    Column("country", css_class="form-group col-4 mb-0"),
+                    Column("org", css_class="form-group col-4 mb-0"),
+                    Column("role", css_class="form-group col-4 mb-0"),
+                ),
+            ]
+            if "file" in self.fields and "research_experience_in_years" in self.fields:
+                fields.append(
+                    Row(
+                        Column("file", css_class="form-group col-8 mb-0"),
+                        Column("research_experience_in_years", css_class="form-group col-4 mb-0"),
+                    )
+                )
+            elif "file" in self.fields:
+                fields.append("file")
+            elif "research_experience_in_years" in self.fields:
+                fields.append("research_experience_in_years")
+
+            self.fields["cv_file"].required = a.round.member_cv_required
+            self.fields["cv_file"].help_text = (
+                _(
+                    """For NZ-based researchers, a current CV in the <a href="%s">NZ RST CV Template</a> is requested."""
+                )
+                % a.round.default_cv_template_url
+            )
+            self.fields["cv_file"].widget.attrs["data-required"] = (
+                1 if a.round.member_cv_required else 0
+            )
+
+            self.helper.layout = Layout(*fields, "cv_file")
+            self.helper.add_input(Submit("save", _("Save"), css_class="btn-primary"))
+            self.helper.add_input(
+                Button(
+                    "cancel",
+                    _("Cancel"),
+                    css_class="btn-danger",
+                    onclick=f"window.location.href='{self.instance.application.detail_url}'",
+                )
+            )
+
+    def save(self, commit=True):
+        super().save(commit=False)
+        if (
+            "cv_file" in self.changed_data
+            or self.cleaned_data.get("cv_file")
+            and not self.instance.cv
+        ):
+            cv_file = self.cleaned_data["cv_file"]
+            cv, created = models.CurriculumVitae.get_or_create(
+                owner=self.instance.user,
+                person=self.instance.user.person,
+                title=_(f"For application {self.instance.application.number}"),
+                defaults={"file": cv_file},
+            )
+            if not created:
+                cv.file.save(cv_file.name, File(cv_file))
+            self.instance.cv = cv
+        if commit:
+            super().save(commit=True)
+        return self.instance
 
     def clean(self):
         cleaned_data = super().clean()
@@ -2851,6 +3206,15 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         else:
             application = cleaned_data.get("application")
         email = cleaned_data.get("email")
+
+        if (
+            not cleaned_data.get("country")
+            and (org := cleaned_data.get("org"))
+            and org.address
+            and org.address.country
+        ):
+            cleaned_data["country"] = org.address.country
+
         if not email:
             raise forms.ValidationError(_("Team member email address is mandatory"))
         if application and application.pk:
@@ -2869,17 +3233,21 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
         fields = [
             "state",
             "email",
+            "title",
             "first_name",
             "middle_names",
             "last_name",
             "role",
             "country",
             "org",
+            "research_experience_in_years",
+            "file",
         ]
         # fields = ["email", "first_name", "middle_names", "last_name", "role"]
         disabled = ["state"]
-        widgets = dict(
-            email=forms.EmailInput(
+        labels = {"state": mark_safe("&nbsp;")}
+        widgets = {
+            "email": forms.EmailInput(
                 attrs={
                     "placeholder": _("Email"),
                     "data-required": 1,
@@ -2887,11 +3255,35 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
                     "oninput": "this.setCustomValidity('')",
                 }
             ),
-            # has_authorized=NullBooleanSelect(attrs=dict(readonly=True)),
-            state=InvitationStateInput(attrs={"readonly": True}),
-            country=autocomplete.ModelSelect2("country-autocomplete"),
-            org=autocomplete.ModelSelect2("org-autocomplete"),
-        )
+            "state": InvitationStateInput(attrs={"readonly": True}),
+            "country": autocomplete.ModelSelect2(
+                "country-autocomplete",
+                attrs={"data-placeholder": _("Choose your country"), "data-required": 1},
+            ),
+            "org": autocomplete.ModelSelect2(
+                "org-autocomplete",
+                forward=["country"],
+                attrs={
+                    "data-placeholder": _("Choose an organisation ..."),
+                    "placeholder": _("Choose an organisation ..."),
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
+                    "oninput": "this.setCustomValidity('')",
+                },
+            ),
+            "file": forms.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                    "data-required": 1,
+                },
+            ),
+            "cv_file": forms.ClearableFileInput(
+                attrs={
+                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                    "data-required": 1,
+                },
+            ),
+        }
 
 
 class MemberFormSet(
@@ -2912,11 +3304,23 @@ class MemberFormSet(
         emails = [v.strip().lower() for v in emails if v and v.strip()]
         for i, v in enumerate(emails[:-1]):
             if v in emails[i + 1 :]:
-                raise forms.ValidationError(_("You have entered email address {v} twice."))
+                self.add_error(None, _("You have entered email address {v} twice."))
 
 
 class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     readonly_fields = ["state"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if settings.SITE_ID == 5:
+            self.fields["org"].widget.attrs.update(
+                {
+                    "data-required": 1,
+                    "oninvalid": "this.setCustomValidity('%s')"
+                    % _("Referee institution is required"),
+                    "oninput": "this.setCustomValidity('')",
+                }
+            )
 
     def save(self, commit=True):
         """Prevent 'state' getting overwritten"""
@@ -2939,22 +3343,28 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
                         i.revoke(description=i._change_reason)
                         i.referee = None
                         i.save()
+                    # self.instance = r.clone(state="new")
                     self.instance = models.Referee.create(
                         application=r.application,
                         email=r.email,
                         first_name=r.first_name,
                         middle_names=r.middle_names,
                         last_name=r.last_name,
+                        org=r.org,
                     )
                     r.delete()
                 else:
-                    self.instance.save(update_fields=["first_name", "middle_names", "last_name"])
+                    # self.instance.save(update_fields=["first_name", "middle_names", "last_name"])
+                    self.instance.save()
             else:
                 self.instance.save()
             self._save_m2m()
         else:
             self.save_m2m = self._save_m2m
         return self.instance
+
+    # def is_valid(self, *args, **kwargs):
+    #     return super().is_valid(*args, **kwargs)
 
     def full_clean(self):
         if (referee_id := self["id"].data) and not (self["email"].data or "").strip():
@@ -2987,7 +3397,8 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
     class Meta:
         model = models.Referee
-        fields = ["state", "email", "first_name", "middle_names", "last_name", "org"]
+        fields = ["state", "email", "first_name", "last_name", "org"]
+        labels = {"state": mark_safe("&nbsp;")}
         widgets = dict(
             email=forms.EmailInput(
                 attrs={
@@ -3002,7 +3413,9 @@ class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
             org=autocomplete.ModelSelect2(
                 "org-autocomplete",
                 # forward=["nominator"],
-                attrs={"data-placeholder": _("Choose the organisation of the referee...")},
+                attrs={
+                    "data-placeholder": _("Choose the organisation of the referee..."),
+                },
             ),
         )
 
@@ -3237,28 +3650,22 @@ class NominationForm(ModelForm):
             Row(
                 # Column("org", css_class="col-9"),
                 Column(
-                    (
-                        HTML(
-                            f"""
+                    (HTML(f"""
                 <div id="div_id_org" class="form-group">
                     <label for="id_org" data-toggle="tooltip" data-html="true" title="{_('Organisation of the nominee')}">
                         {_('Organisation of the nominee')}
                     </label>
                     <div class="">
-                        <input type="text" name="org" value="{ro_org}" class="textinput textInput form-control" id="id_org" readonly>
+                        <input type="hidden" name="org" value="{ro_org.pk}" id="id_org" readonly>
+                        <input type="text" name="org_name" value="{ro_org}" class="textinput textInput form-control" id="id_name_org" readonly>
                         <small id="hint_id_position" class="form-text text-muted">{ _('Organisation of the nominee') }</small>
                     </div>
-                </div>"""
-                        )
-                        if is_single_org_ro
-                        else "org"
-                    ),
+                </div>""") if is_single_org_ro else "org"),
                     css_class="col-9",
                 ),
                 Column("position", css_class="col-3"),
             ),
-            HTML(
-                """
+            HTML("""
             <div id="div_id_nominator" class="form-group">
             <label for="id_nominator" class=" requiredField">%s</label>
                 <div class="">
@@ -3267,9 +3674,7 @@ class NominationForm(ModelForm):
                         disabled="" class="input form-control">
                 </div>
             </div>
-            """
-                % _("Nominator")
-            ),
+            """ % _("Nominator")),
             Field(
                 "contact_phone",
                 pattern=r"\+?[0123456789 ]+",
@@ -3370,25 +3775,29 @@ class NominationForm(ModelForm):
             # self.fields["org"].disabled = True
             # self.fields["org"].widget.attrs["disabled"] = "true"
             # self.fields["org"].widget.attrs["readonly"] = "true"
-            del self.fields["org"]
+            self.fields.pop("org", None)
 
     def save(self, commit=True):
+        res = super().save(commit=False)
         if self.instance.round.nominator_cv_required:
             if "cv_file" in self.changed_data:
-                cv = models.CurriculumVitae(
+                cv_file = self.cleaned_data["cv_file"]
+                cv, created = models.CurriculumVitae.get_or_create(
                     owner=self.instance.nominator,
                     person=self.instance.nominator.person,
                     title=_("Nominator CV"),
+                    defaults={"file": cv_file},
                 )
-                cv_file = self.cleaned_data["cv_file"]
-                cv.file.save(cv_file.name, File(cv_file))
-                cv.save()
+                if not created:
+                    cv.file.save(cv_file.name, File(cv_file))
                 self.instance.cv = cv
 
             elif not self.instance.cv:
                 self.instance.cv = models.CurriculumVitae.last_user_cv(self.instance.nominator)
+        if commit:
+            self.instance.save()
 
-        return super().save(commit=commit)
+        return res
 
     class Meta:
         model = models.Nomination
@@ -3507,6 +3916,12 @@ class TestimonialForm(ModelForm):
                         if site_id in [2, 4, 5]
                         else _("I do not wish to provide a testimonial")
                     ),
+                    data_toggle="tooltip",
+                    title=(
+                        _("I do not wish to provide a referee report")
+                        if site_id in [2, 4, 5]
+                        else _("I do not wish to provide a testimonial")
+                    ),
                     css_class="btn-outline-danger",
                 ),
                 HTML(
@@ -3519,7 +3934,9 @@ class TestimonialForm(ModelForm):
 
     def save(self, commit=True):
 
-        if self.instance.round.referee_cv_required:
+        res = super().save(commit=False)
+        r = self.instance.round
+        if r.referee_cv_required:
             referee = (
                 self.initial
                 and self.initial.get("referee")
@@ -3534,19 +3951,22 @@ class TestimonialForm(ModelForm):
             )
 
             if "cv_file" in self.changed_data:
-                cv = models.CurriculumVitae(
+                cv_file = self.cleaned_data["cv_file"]
+                cv, created = models.CurriculumVitae.get_or_create(
                     owner=user,
                     person=user.person,
                     title=_("Referee CV"),
+                    defaults={"file": cv_file},
                 )
-                cv_file = self.cleaned_data["cv_file"]
-                cv.file.save(cv_file.name, File(cv_file))
-                cv.save()
+                if not created:
+                    cv.file.save(cv_file.name, File(cv_file))
                 self.instance.cv = cv
 
             elif not self.instance.cv:
                 self.instance.cv = models.CurriculumVitae.last_user_cv(user)
-        return super().save(commit=commit)
+        if commit:
+            self.instance.save()
+        return res
 
     def is_valid(self):
         if "turn_down" in self.data:
@@ -3612,17 +4032,14 @@ class IdentityVerificationForm(ModelForm):
                     _("Request resubmission"),
                     css_class="btn-outline-danger",
                 ),
-                HTML(
-                    """
+                HTML("""
                     <a href="{{ view.get_success_url }}"
                     type="button"
                     role="button"
                     class="btn btn-secondary"
                     id="cancel">
                         %s
-                    </a>"""
-                    % _("Cancel")
-                ),
+                    </a>""" % _("Cancel")),
                 css_class="mb-4 float-right",
             ),
             Field(
@@ -3644,11 +4061,11 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not (self.instance and self.instance.site_id or self.site_id) in (2, 4, 5):
-            self.fields.pop("panel")
-            self.fields.pop("role")
-            self.fields.pop("is_active")
-            self.fields.pop("elected_on")
-            self.fields.pop("expires_on")
+            self.fields.pop("panel", None)
+            self.fields.pop("role", None)
+            self.fields.pop("is_active", None)
+            self.fields.pop("elected_on", None)
+            self.fields.pop("expires_on", None)
 
     @property
     def deletion_confirmation_message(self):
@@ -3678,8 +4095,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
                     message += "".join(
                         f"""<li>Review: <a href='{reverse("admin:portal_evaluation_change",
                             kwargs={"object_id": e.pk})}' target="_blank">
-                            {str(e)}</a></li>"""
-                        for e in evaluations
+                            {str(e)}</a></li>""" for e in evaluations
                     )
                 message += "</ul>"
             message += "<ul>"
@@ -3819,10 +4235,8 @@ class ReadOnlyApplicationWidget(Widget):
 
 
 class ScoreForm(ModelForm):
-    value = forms.TypedChoiceField(choices=zip(range(1, 10), range(1, 10)))
 
     def __init__(self, *args, **kwargs):
-        self.value = forms.TypedChoiceField(choices=range(10))
         super().__init__(*args, **kwargs)
 
         self.helper = FormHelper(self)
@@ -3832,30 +4246,32 @@ class ScoreForm(ModelForm):
             Field("criterion"),
             Field("value"),
         ]
-        criterion = (
-            self.instance.criterion
-            if hasattr(self.instance, "criterion")
-            else self.initial.get("criterion")
+        c = (
+            (
+                self.instance.criterion
+                if self.instance and hasattr(self.instance, "criterion")
+                else self.initial.get("criterion")
+            )
+            or "initial" in kwargs
+            and kwargs["initial"].get("criterion")
         )
         self.fields["comment"].widget.attrs = {"rows": 3}
-        if criterion:
-            self.fields["comment"].required = criterion.comment
-            self.comment_required = criterion.comment
-            if criterion.comment:
+        if c:
+            self.fields["comment"].required = c.comment
+            self.comment_required = c.comment
+            if c.comment:
                 fields.append(Field("comment", required=True))
                 self.fields["comment"].widget.attrs["required"] = True
             else:
                 fields.append(Field("comment"))
-        self.fields["value"] = forms.TypedChoiceField(
-            choices=(
-                zip(
-                    range(criterion.min_score, criterion.max_score + 1),
-                    range(criterion.min_score, criterion.max_score + 1),
+            self.fields["value"] = forms.TypedChoiceField(
+                choices=(
+                    zip(
+                        range(c.min_score, c.max_score + 1),
+                        range(c.min_score, c.max_score + 1),
+                    )
                 )
-                if criterion
-                else zip(range(11), range(11))
             )
-        )
         self.helper.layout = Layout(*fields)
 
     class Meta:
@@ -3946,6 +4362,13 @@ class AssessedPerformanceForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["comment"].widget.attrs = {"rows": 3}
+
+        def flag_choice(parts):
+            if len(parts) > 1:
+                return (parts[1].strip(), parts[0].strip())
+            value = parts[0].strip()
+            return (value, value)
+
         if instance := kwargs.get("instance"):
             f = instance.flag
             self.fields["flag"].label = f.name
@@ -3953,7 +4376,7 @@ class AssessedPerformanceForm(ModelForm):
             self.fields["flag"].widget = forms.HiddenInput()
             if f.value_choices:
                 choices = [
-                    (e.strip() for e in r.strip().split(":"))
+                    flag_choice(r.strip().split(":"))
                     for r in f.value_choices.split(";")
                     if r.strip()
                 ]
@@ -4004,6 +4427,13 @@ class ReportedEffortForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if (i := self.instance) and i.role_id:
+            # c = i.report.contract
+            self.fields["role"].queryset = models.RoleType.where(
+                # Q(pk__in=c.members.values_list("role", flat=True))
+                Q(pk=i.role_id)
+                | Q(for_contracting=True)
+            ).order_by(models.Coalesce("name", "code"))
         self.helper = FormHelper(self)
 
     role = forms.ModelChoiceField(
@@ -4058,6 +4488,17 @@ class ReportForm(ModelForm):
         # label=gettext_lazy("Alert date"),
         label="",
     )
+    assessment_summary = forms.CharField(
+        label=_("Assessment"),
+        widget=SummernoteInplaceWidget(
+            attrs={
+                "data-required": 1,
+                "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
+                "oninput": "this.setCustomValidity('')",
+                "summernote": {"width": "100%", "height": "600px"},
+            }
+        ),
+    )
 
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
@@ -4078,6 +4519,7 @@ class ReportForm(ModelForm):
         super().__init__(*args, **kwargs)
         # language = get_language()
         instance = self.instance or instance
+        # assessment = instance and instance.current_assessment
         contract = instance.contract or initial.get("contract")
         application = contract.application or initial.get("application")
         round = application and application.round or initial.get("round")
@@ -4096,21 +4538,33 @@ class ReportForm(ModelForm):
         # )
 
         is_pi = instance and (
-            contract.submitted_by == user
-            or (contract.pk and contract.members.filter(user=user, role__code="PI").exists())
+            instance.is_pi(user)
+            or contract.submitted_by == user
+            # or (contract.pk and contract.members.filter(user=user, role__code="PI").exists())
             # or application.submitted_by == user
             # or (application.pk and application.members.filter(user=user, role__code="PI").exists())
         )
 
         is_assessor = instance and user and (instance.assessor == user)
         submission_disabled = not instance or not is_pi
-        is_ro = application and application.org.research_offices.filter(user=user).exists()
+        is_ro = instance.is_ro(
+            user
+        )  # application and application.org.research_offices.filter(user=user).exists()
         if is_assessor:
             submit_button = Submit(
                 "assess",
                 _("Assess"),
                 css_id="submit-id-submit",
                 css_class="btn-outline-primary",
+            )
+        elif is_ro and instance.state in ["submitted"]:
+            submit_button = Submit(
+                "approve",
+                _("Approve"),
+                css_id="submit-id-submit",
+                css_class="btn-outline-primary",
+                data_toggle="tooltip",
+                title=_("Approve the submitted report"),
             )
         else:
             submit_button = Submit(
@@ -4120,14 +4574,14 @@ class ReportForm(ModelForm):
                 data_toggle="tooltip",
                 css_id="submit-id-submit",
                 title=(
-                    _("Only PI or RO can submit the report")
+                    _("Only PI can submit the report")
                     if not is_pi
                     else (
                         _(
                             "Not all the parts/appendices of the contract were approved and/or accepted"
                         )
                         if submission_disabled
-                        else _("Submit the contract")
+                        else _("Submit the report")
                     )
                 ),
                 css_class="btn-outline-primary",
@@ -4298,7 +4752,20 @@ class ReportForm(ModelForm):
                 category_fields.append(
                     Fieldset(
                         _("Type of Activities"),
-                        # Row('password1', 'password2'),
+                        # mark_safe(f"""<span
+                        # data-toggle="tooltip"
+                        # data-html="true"
+                        # title="TODO: ..."
+                        # >{_("Type of Activities")}</span>
+                        # <i
+                        #     data-toggle="popover"
+                        #     data-trigger="focus"
+                        #     tabindex="0"
+                        #     data-html="true"
+                        #     title="{_("Type of Activities")}"
+                        #     data-content="{seo_info}"
+                        #     class="fas fa-sm fa-question-circle"></i>
+                        # """),
                         Row(
                             Column("toa_basic", css_class="col-2"),
                             Column("toa_strategic", css_class="col-2"),
@@ -4316,18 +4783,74 @@ class ReportForm(ModelForm):
                     ),
                 )
             if round.has_seos:
+                seo_info = """
+                The Australian and Aotearoa New Zealand Standard Research
+                Classification (ANZSRC) and <i>SEO</i> classification allow
+                Research and Development (R&D) activity in Australia and
+                Aotearoa New Zealand to be categorised according to the
+                intended purpose or outcome of the research rather than the
+                processes or techniques used in order to achieve this
+                objective. Please enter up to FIVE codes from the drop-down
+                field, using codes that are as specific as possible. For a list
+                of codes, please refer to the Socio-Economic Objectives
+                Calculator at:
+                <a
+                    href='https://royalsociety.org.nz/what-we-do/research-practice/socio-economic-objectives-calculator/'
+                    target='_blank'
+                >
+                    https://royalsociety.org.nz/what-we-do/research-practice/socio-economic-objectives-calculator/
+                </a>
+                """
                 category_fields.append(
                     Fieldset(
-                        _("Socio-Economic Objectives"),
+                        mark_safe(f"""<span
+                            data-toggle="tooltip"
+                            data-html="true"
+                            title="{seo_info}"
+                        >{_("Socio-Economic Objectives")}</span>
+                        <i
+                            data-toggle="popover"
+                            data-trigger="focus"
+                            tabindex="0"
+                            data-html="true"
+                            title="{_("Socio-Economic Objectives")}"
+                            data-content="{seo_info}"
+                            class="fas fa-sm fa-question-circle"></i>"""),
                         TableInlineFormset(
                             "seos", template="portal/category_table_inline_formset.html"
                         ),
                     )
                 )
             if round.has_fors:
+                for_info = f"""
+                    The FOR classification allows R&D activity to be
+                    categorised according to the field of research. In this
+                    respect, it is the methodology used in the R&D that is
+                    being considered. Please enter a minimum of THREE and up to
+                    FIVE codes from the list of research codes supplied in
+                    “Fields of Research Classification Codes” here. For a list
+                    of codes, please refer to the Field of Research Calculator
+                    at: <a
+                    href='https://royalsociety.org.nz/what-we-do/research-practice/field-of-research-calculator/'
+                    target='_blank'
+                    >https://royalsociety.org.nz/what-we-do/research-practice/field-of-research-calculator/</a>.
+                    Please use codes that are as specific as possible, i.e. 6
+                    digits. """
                 category_fields.append(
                     Fieldset(
-                        _("Fields of Research"),
+                        mark_safe(f"""<span
+                            data-toggle="tooltip"
+                            data-html="true"
+                            title="{for_info}"
+                        >{_("Fields of Research")}</span>
+                        <i
+                            data-toggle="popover"
+                            data-trigger="focus"
+                            tabindex="0"
+                            data-html="true"
+                            title="{_("Fields of Research")}"
+                            data-content="{for_info}"
+                            class="fas fa-sm fa-question-circle"></i>"""),
                         TableInlineFormset(
                             "fors", template="portal/category_table_inline_formset.html"
                         ),
@@ -4343,6 +4866,7 @@ class ReportForm(ModelForm):
                             Column("vm_ens", css_class="col-3"),
                             Column("vm_hsw", css_class="col-3"),
                             Column("vm_ink", css_class="col-3"),
+                            css_class="exclude-help",
                             css_id="id_toas_row",
                         ),
                         # Div(
@@ -4403,18 +4927,16 @@ class ReportForm(ModelForm):
             ),
             Tab(
                 mark_safe(f'<i class="fas fa-users"></i> {_("Personnel")}'),
-                HTML(
-                    """{% load tags %}
+                HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
-                    {{ _('Please retort all personnel who have participated in this project \
+                    {{ _('Please report all personnel who have participated in this project \
                             and who are not named in the contract. \
                             Please estimate both the amount of FTE, since the last report, \
                             that is supported by this contract as well as the total amount of FTE \
                             devoted to the project.') }}
                     </p>
-                </div>"""
-                ),
+                </div>"""),
                 TableInlineFormset("personnel"),
                 css_id="personnel",
             ),
@@ -4445,8 +4967,7 @@ class ReportForm(ModelForm):
                     mark_safe(
                         f'<i class="material-icons" style="vertical-align: middle; font-size: 0.99em;">work</i> {_("Activities")}'
                     ),
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any <strong>outcomes or activities</strong> that have arisen from \
@@ -4456,16 +4977,15 @@ class ReportForm(ModelForm):
                 </div>
                 <div id="activity-list">
                 {% jinja 'partials/reported_activity_list.html' %}
-                </div>"""
-                    ),
+                </div>"""),
                     Div(
                         Div(
                             ButtonHolder(
-                                Button(
-                                    "add_activity",
-                                    _("Add Activity"),
-                                    css_class="btn-primary btn-sm",
-                                ),
+                                # Button(
+                                #     "add_activity",
+                                #     _("Add Activity"),
+                                #     css_class="btn-primary btn-sm",
+                                # ),
                                 Button(
                                     "import_activities_from_orcid",
                                     _("Import from ORCID"),
@@ -4486,17 +5006,26 @@ class ReportForm(ModelForm):
                 ),
                 Tab(
                     mark_safe(f'<i class="fas fa-newspaper"></i> {_("Publication")}'),
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
-                    <p style="margin-bottom: 0px;">
-                    {{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }}
-                    </p>
+                <p dir="auto">Please report any publications that have arisen
+                from this project within the period. <strong>We highly
+                recommend import of publication records, rather than manual
+                entry.</strong>  NB: if linked, the contract PI is able to
+                import these from their ORCID profile record.</p>
+                <p dir="auto" style="margin-bottom: 0px;">
+                Once these final things are take care of, can you
+                push the changes and enable notifications for report reminders
+                to go out for production portals for Puanga and Tāwhia te Mana
+                as the first set of reports need to be invited at the end of
+                this month.</p>
+                    <!-- p style="margin-bottom: 0px;">
+                    {#{ _('Please report any publications that have arisen from this project within the period. NB: if linked, the contract PI is able to import these from their ORCID profile record.') }#}
+                    </p -->
                 </div>
                 <div id="publication-list">
                 {% jinja 'partials/report_publication_list.html' %}
-                </div>"""
-                    ),
+                </div>"""),
                     Div(
                         Div(
                             ButtonHolder(
@@ -4516,8 +5045,7 @@ class ReportForm(ModelForm):
                                 #     _("Import from ORCID"),
                                 #     css_class="btn-secondary btn-sm",
                                 # ),
-                                HTML(
-                                    f"""{{% load static %}}
+                                HTML(f"""{{% load static %}}
                                     <button
                                         class="btn btn-secondary btn-sm"
                                         id="button-id-publication_import_from_orcid"
@@ -4526,10 +5054,9 @@ class ReportForm(ModelForm):
                                         hx-target="#publication-list"
                                     >
                                     {_("Import from ORCID")}
-                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static 'images/bars.svg' %}}"/>
                                     </button>
-                                    """
-                                ),
+                                    """),
                                 Button(
                                     "nothing_to_add",
                                     _("Nothing to add"),
@@ -4545,8 +5072,7 @@ class ReportForm(ModelForm):
                 ),
                 Tab(
                     mark_safe(f'<i class="fas fa-dollar-sign"></i> {_("Funding")}'),
-                    HTML(
-                        """{% load tags %}
+                    HTML("""{% load tags %}
                 <div class="alert alert-dark" role="alert">
                     <p style="margin-bottom: 0px;">
                     {{ _('Please report any funding that have or your colleagues have applied for that is related to \
@@ -4557,13 +5083,11 @@ class ReportForm(ModelForm):
                 </div>
                 <div id="reported-funding-list">
                 {% jinja 'partials/report_funding_list.html' %}
-                </div>"""
-                    ),
+                </div>"""),
                     Div(
                         Div(
                             ButtonHolder(
-                                HTML(
-                                    f"""{{% load static %}}
+                                HTML(f"""{{% load static %}}
                                     <button
                                         class="btn btn-secondary btn-sm"
                                         id="button-id-funding_import_from_orcid"
@@ -4572,10 +5096,9 @@ class ReportForm(ModelForm):
                                         hx-target="#reported-funding-list"
                                     >
                                     {_("Import from ORCID")}
-                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static '/images/bars.svg' %}}"/>
+                                        <img  id="button-spinner" class="htmx-indicator" src="{{% static 'images/bars.svg' %}}"/>
                                     </button>
-                                    """
-                                ),
+                                    """),
                                 # Button(
                                 #     "funding_import_from_orcid",
                                 #     mark_safe(f"""{_("Import from ORCID")}
@@ -4604,8 +5127,7 @@ class ReportForm(ModelForm):
         )
         if is_assessor and instance.file != "":
             fields = [
-                HTML(
-                    """{% load tags %}
+                HTML("""{% load tags %}
                     <div class="table-responsive">
                     <table class="table table-bordered searchable">
                     <tbody>
@@ -4614,41 +5136,84 @@ class ReportForm(ModelForm):
                     Completed Report:
                     </th>
                     <td>
-                        <a href="{{ object.file.url }}" target="_blank">
-                        {{ object.file|basename }}
-                        </a>
+                            <a href="{{ object.file.url }}" target="_blank">{{ object.file|basename }}</a>
+                            {% if object.file|mightbe:'pdf' %} <i class="fas fa-file-pdf"></i>
+                            {% elif object.file|mightbe:'doc' or object.file|mightbe:'docx' %} <i class="fas fa-file-word"></i>{% endif %}
+                            {% if object.converted_file %} (<a href="{{ object.converted_file.url }}" target="_blank">{{ object.converted_file|basename }}</a>
+                            <i class="fas fa-file-pdf"></i>){% endif %}
                     </td>
                     </tr>
                     </tbody>
                     </table>
-                    </div>"""
-                ),
-                "assessment",
+                    </div>"""),
+                Field("assessment_summary"),
             ]
-            del self.fields["file"]
-            # self.fields["assessment"].required = True
+            self.fields.pop("file", None)
+            self.fields["assessment_summary"].required = True
+        elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessment):
+            fields = [
+                HTML("""{% load tags %}
+                    <div class="table-responsive">
+                    <table class="table table-bordered searchable">
+                    <tbody>
+                    <tr>
+                    <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                    Completed Report:
+                    </th>
+                    <td>
+                            <a href="{{ object.file.url }}" target="_blank">{{ object.file|basename }}</a>
+                            {% if object.file|mightbe:'pdf' %} <i class="fas fa-file-pdf"></i>
+                            {% elif object.file|mightbe:'doc' or object.file|mightbe:'docx' %} <i class="fas fa-file-word"></i>{% endif %}
+                            {% if object.converted_file %} (<a href="{{ object.converted_file.url }}" target="_blank">{{ object.converted_file|basename }}</a>
+                            <i class="fas fa-file-pdf"></i>){% endif %}
+                    </td>
+                    </tr>
+                        <tr>
+                            <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                            Assessment:
+                        </th>
+                        <td>
+                            {{ object.current_assessment.summary|default:'N/A'|safe }}
+                        </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                    </div>"""),
+            ]
+            self.fields.pop("file", None)
+            self.fields.pop("assessment_summary", None)
         else:
-            del self.fields["assessment"]
-            if round.nomination_template:
-                help_text = _(
-                    'You can download the research report template at <strong><a href="%s">%s</a></strong>'
-                ) % (round.report_template.url, os.path.basename(round.report_template.name))
+            self.fields.pop("assessment_summary", None)
+            templates = round.report_templates.filter(type=instance.type)
+
+            if templates.exists():
+                templates = [t.file for t in templates.order_by("ordering")]
+                template_urls = ", ".join(
+                    '<strong><a href="%s">%s</a></strong>' % (t.url, os.path.basename(t.name))
+                    for t in templates[:-1]
+                )
+                if len(templates) > 2:
+                    template_urls += ","
+                template_urls += (_(" or ") + '<strong><a href="%s">%s</a></strong>') % (
+                    templates[-1].url,
+                    os.path.basename(templates[-1].name),
+                )
+                help_text = (
+                    _("You can download the research report template(s) at ") + template_urls
+                )
+
                 fields = [
                     HTML(
                         '<div class="alert alert-dark" role="alert">%s</div>'
                         % (
                             _(
-                                "Please download the research report template at "
-                                '<strong><a href="%s">%s</a></strong>, '
-                                "complete then upload below."
+                                "Please download the research report template at %s, "
+                                "complete and then upload the compled report below."
                             )
-                            % (
-                                round.report_template.url,
-                                os.path.basename(round.report_template.name),
-                            )
+                            % template_urls
                         )
                     ),
-                    Field("file", label=help_text, help_text=help_text),
+                    Field("file", label=help_text, help_text=help_text, data_required=1),
                 ]
                 self.fields["file"].help_text = help_text
             else:
@@ -4656,14 +5221,17 @@ class ReportForm(ModelForm):
             self.fields["file"].widget.attrs[
                 "accept"
             ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+            self.fields["file"].widget.attrs["data-required"] = 1
 
-        tabs.append(
-            Tab(
-                mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
-                *fields,
-                css_id="report",
+        if not is_assessor:
+            tabs.append(
+                Tab(
+                    mark_safe(f'<i class="fas fa-flag"></i> {_("Report")}'),
+                    *fields,
+                    css_id="report",
+                )
             )
-        )
+
         if instance and instance.pk:
             if is_assessor:
                 self.fields["recipients"] = forms.MultipleChoiceField(
@@ -4693,7 +5261,7 @@ class ReportForm(ModelForm):
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-comments"></i> {_("Correspondence")}'),
-                    # Field("host_contact_email"),
+                    Field("host_contact_email"),
                     Field("comment"),
                     Fieldset(
                         None,
@@ -4778,6 +5346,39 @@ class ReportForm(ModelForm):
                 )
             )
         if is_assessor:
+            if instance.file != "":
+                fields = [
+                    HTML("""{% load tags %}
+                        <div class="table-responsive">
+                        <table class="table table-bordered searchable">
+                        <tbody>
+                        <tr>
+                        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                        Completed Report:
+                        </th>
+                        <td>
+                            <a href="{{ object.file.url }}" target="_blank">{{ object.file|basename }}</a>
+                            {% if object.file|mightbe:'pdf' %} <i class="fas fa-file-pdf"></i>
+                            {% elif object.file|mightbe:'doc' or object.file|mightbe:'docx' %} <i class="fas fa-file-word"></i>{% endif %}
+                            {% if object.converted_file %} (<a href="{{ object.converted_file.url }}" target="_blank">{{ object.converted_file|basename }}</a>
+                            <i class="fas fa-file-pdf"></i>){% endif %}
+                        </td>
+                        </tr>
+                        </tbody>
+                        </table>
+                        </div>"""),
+                    Field("assessment_summary"),
+                ]
+                self.fields.pop("file", None)
+                self.fields["assessment_summary"].required = True
+                tabs.append(
+                    Tab(
+                        mark_safe(f'<i class="fas fa-flag"></i> {_("Assessment")}'),
+                        *fields,
+                        css_id="assesssment",
+                    )
+                )
+
             tabs.append(
                 Tab(
                     mark_safe(f'<i class="fas fa-flag"></i> {_("Performance")}'),
@@ -4922,29 +5523,41 @@ class ReportForm(ModelForm):
         #             css_id="correspondence",
         #         )
         #     )
+        if user.is_admin:
+            tabs.append(
+                Tab(
+                    _("Notes"),
+                    Div(TableInlineFormset("notes")),
+                    css_id="notes",
+                ),
+            )
         self.helper.layout = Layout(
             TabHolder(*tabs),
             ButtonHolder(
                 Button("previous", "« " + _("Previous"), css_class="btn-outline-primary"),
                 Div(
                     Submit(
+                        "save",
+                        _("Save and continue"),
+                        css_class="btn-secondary",
+                        data_toggle="tooltip",
+                        title=_("Save and continue editing"),
+                    ),
+                    Submit(
                         "save_draft",
                         _("Save"),
                         css_class="btn-primary",
                         data_toggle="tooltip",
-                        title=_("Save draft contract"),
+                        title=_("Save draft report"),
                     ),
                     submit_button,
-                    HTML(
-                        """<a href="{{ view.get_success_url }}"
+                    HTML("""<a href="{{ view.get_success_url }}"
                         type="button"
                         role="button"
                         class="btn btn-secondary"
                         id="cancel">
                             %s
-                        </a>"""
-                        % _("Cancel")
-                    ),
+                        </a>""" % _("Cancel")),
                     Button("next", _("Next") + " »", css_class="btn-primary"),
                     css_class="float-right",
                 ),
@@ -4953,51 +5566,27 @@ class ReportForm(ModelForm):
         )
         self.helper.include_media = False
 
-    # def save(self, *args, **kwargs):
-    #     created = not self.instance.pk
-    #     res = super().save(*args, **kwargs)
-    #     r = self.instance.application.round
-    #     for fn, dr in self.part_fields:
-    #         if created or fn in self.changed_data:
-    #             file = self.cleaned_data.get(fn, None)
-    #             part = self.instance.documents.filter(document_type__role=dr).last()
-    #             if part:
-    #                 if not file:
-    #                     part.delete()
-    #                 else:
-    #                     part.file.save(
-    #                         name=file.name,
-    #                         content=file,
-    #                     )
-    #             elif file:
-    #                 required_document = r.required_contract_documents.filter(
-    #                     document_type__role=dr
-    #                 ).last()
-    #                 if not required_document:
-    #                     dt = models.DocumentType.where(role=dr).last()
-    #                     required_document = models.RequiredContractDocument.create(
-    #                         round=r, document_type=dt
-    #                     )
+    def save(self, *args, **kwargs):
+        i = self.instance
+        if i.pk and "file" in self.changed_data and (cf := i.converted_file):
+            i.converted_file = None
+            if cf.file.name:
+                cf.file.delete()
+            cf.delete()
 
-    #                 models.ContractDocument.create(
-    #                     contract=self.instance, required_document=required_document, file=file
-    #                 )
+        resp = super().save(*args, **kwargs)
+        if "assessment_summary" in self.changed_data:
+            summary = self.cleaned_data["assessment_summary"]
+            assessment, created = i.assessments.model.get_or_create(
+                report=i,
+                assessor=i.assessor,
+                defaults={"summary": summary},
+            )
+            if not created:
+                assessment.summary = summary
+                assessment.save()
 
-    #     if created or any(
-    #         (fn in self.changed_data)
-    #         for fn in ["not_applicable", "not_applicable_comment", "ethics_statement"]
-    #     ):
-    #         es_part = self.instance.documents.filter(document_type__role="E").last()
-    #         try:
-    #             es = self.instance.ethics_statement
-    #         except models.ContractEthicsStatement.DoesNotExist:
-    #             es = models.ContractEthicsStatement(contract=self.instance)
-    #         es.not_relevant = self.cleaned_data.get("not_applicable", False)
-    #         es.comment = self.cleaned_data.get("not_applicable_comment", None)
-    #         es.file = es_part and es_part.file
-    #         es.save()
-
-    #     return res
+        return resp
 
     class Meta:
         model = models.Report
@@ -5045,14 +5634,6 @@ class ReportForm(ModelForm):
             panel=autocomplete.ModelSelect2(url="panel-autocomplete"),
             abstract=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
             notes=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%"}}),
-            assessment=SummernoteInplaceWidget(
-                attrs={
-                    "data-required": 1,
-                    "oninvalid": "this.setCustomValidity('%s')" % _("Assessment is required"),
-                    "oninput": "this.setCustomValidity('')",
-                    "summernote": {"width": "100%", "height": "200px"},
-                }
-            ),
         )
 
 
@@ -5067,7 +5648,7 @@ class ChangeRequestForm(ModelForm):
         label="Request letter",
         widget=forms.ClearableFileInput(
             attrs={
-                "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex"
+                "accept": ".doc,.docx,.dot,.dotx,.docm,.dotm,.docb,.odt,.ott,.oth,.odm,.rtf,.tex,.pdf,.xls,.xlsx"
             }
         ),
     )
@@ -5086,11 +5667,10 @@ class ChangeRequestForm(ModelForm):
             instance and instance.pk and instance.contract or initial and initial.get("contract")
         )
         org = contract and contract.org
-        is_ro = org and org.research_offices.filter(user=user).exists()
+        is_ro = org.is_ro(user=user)
         if is_ro:
-            del self.fields["categories"]
-            del self.fields["subcategories"]
-            # del self.fields["tags"]
+            self.fields.pop("categories", None)
+            self.fields.pop("subcategories", None)
             self.fields.pop("tags", None)
         employments_url = reverse("profile-employments")
         educations_url = reverse("profile-educations")
@@ -5107,11 +5687,21 @@ class ChangeRequestForm(ModelForm):
         helper = FormHelper(self)
         helper.use_custom_control = True
         if not submission_disabled:
-            helper.add_input(Submit("save", _("Save Draft"), css_class="btn-secondary"))
+            helper.add_input(
+                Submit(
+                    "save",
+                    (
+                        _("Save Draft")
+                        if not instance or instance.state in ["new", "draft"]
+                        else _("Save")
+                    ),
+                    css_class="btn-secondary",
+                )
+            )
             helper.add_input(
                 Button(
                     "submit",
-                    _("Submit"),
+                    _("Resubmit") if instance.state == "submitted" else _("Submit"),
                     css_class="btn-primary",
                     data_toggle="modal",
                     data_target="#id_resolution_modal",
@@ -5120,32 +5710,46 @@ class ChangeRequestForm(ModelForm):
             )
         else:
             helper.add_input(Submit("save", _("Save"), css_class="btn-secondary"))
-            helper.add_input(
-                Button(
-                    "resubmit",
-                    _("Resubmit"),
-                    css_class="btn-outline-danger",
-                    data_tooltip="tooltip",
-                    title=_("Request resubmission of the change request"),
-                    data_toggle="modal",
-                    data_target="#id_resolution_modal",
-                    data_action="resubmit",
+            if not is_ro and instance.state in ["draft", "WIP"]:
+                helper.add_input(
+                    Button(
+                        "decline",
+                        _("Decline"),
+                        css_class="btn-outline-danger",
+                        data_tooltip="tooltip",
+                        title=_("Decline the change request"),
+                        data_toggle="modal",
+                        data_target="#id_resolution_modal",
+                        data_action="decline",
+                    )
                 )
-            )
-            helper.add_input(
-                Button(
-                    "approve",
-                    _("Approve"),
-                    css_class="btn-success",
-                    data_tooltip="tooltip",
-                    title=_(
-                        "Approve the change request and convert it to a new contract or a contract variation"
-                    ),
-                    data_toggle="modal",
-                    data_target="#id_resolution_modal",
-                    data_action="approve",
+            if not is_ro and instance.state in ["submitted"]:
+                helper.add_input(
+                    Button(
+                        "resubmit",
+                        _("Request resubmit"),
+                        css_class="btn-outline-danger",
+                        data_tooltip="tooltip",
+                        title=_("Request resubmission of the change request"),
+                        data_toggle="modal",
+                        data_target="#id_resolution_modal",
+                        data_action="resubmit",
+                    )
                 )
-            )
+                helper.add_input(
+                    Button(
+                        "approve",
+                        _("Approve"),
+                        css_class="btn-success",
+                        data_tooltip="tooltip",
+                        title=_(
+                            "Approve the change request and convert it to a new contract or a contract variation"
+                        ),
+                        data_toggle="modal",
+                        data_target="#id_resolution_modal",
+                        data_action="approve",
+                    )
+                )
         helper.add_input(
             Button(
                 "close",

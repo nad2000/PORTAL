@@ -30,7 +30,7 @@ body {
     <div style="margin-top:36%;border-color:grey;border-width:2px;border-style:solid;margin-left:10%;margin-right:5%;font-size:15px;padding:25px;border-radius:25px;">
 
       <table>
-        {% if title_page.TITLES %}
+        {% if title_page.TITLES and site_id != 2 %}
           <center>
             {% for value in title_page.TITLES %}
               <h{{ forloop.counter }}>
@@ -40,14 +40,14 @@ body {
           </center>
         {% elif title %}
           <center>
-            <h1>{{ title }}</h>
+            <h1>{{ title }}</h1>
           </center>
         {% endif %}
 
       {% for attribute, value in title_page.items %}
         {% if attribute != 'TITLES' %}
           <tr>
-            {% if attribute == 'file_name' %}
+            {% if attribute == 'file_name' or attribute.lower == "file name" %}
               <th>
                 {% trans 'File Name' %}
               </th>
@@ -56,7 +56,13 @@ body {
                   {{ value }}
                 </font></small>
               </td>
-            {% else %}
+            {% elif not attribute %}
+              <td>
+                <center>
+                  <h2>{{ value }}</h2>
+                </center>
+              </td>
+            {% elif user.is_superuser or site_id != 2 %}
               <th>
                 {{ attribute }}
               </th>

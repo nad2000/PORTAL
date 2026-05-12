@@ -1,27 +1,137 @@
-{% set r=report %}
+{% set r=report or object or o %}
 {% set c=r.contract %}
 {% set a=c.application %}
+{% set n=a.nomination %}
 {% set contract_number=c.number %}
 {% set application_number=a.number %}
 {% set due_in_days=r.due_in_days %}
-<div class="table-responsive">
-  <table class="table table-bordered searchable">
+{% if export %}
+{% set coordinator = c.host_contact_email_address or n and n.nominator.full_name_with_email or _('N/A') %}
+{% macro render_member_or_person(obj) %}
+  {% if obj.member %}
+    {{ obj.member.full_name }}{% if obj.member.role %} ({{ obj.member.role.name }}){% endif %}
+  {% elif obj.person %}
+    {{ obj.person }}
+  {% else %}
+      -
+    {% endif %}
+{% endmacro %}
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{{ _('Report Summary') }} - {{ r.number }} / {{ contract_number }}</title>
+    <style>
+      @page {
+        /* size: 21cm 3cm;*/
+        size: {{ width or 210 }}mm {{ height or 297 }}mm;
+        margin: 1cm 1cm 5mm 2cm;
+        font-family: Arial;
+        font-size: 10pt;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+      }
+      th {
+        background-color: #f2f2f2;
+        text-align: left;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+      }
+      .text-danger {
+        color: #dc3545;
+      }
+      .text-warning {
+        color: #ffc107;
+      }
+    </style>
+  </head>
+</html>
+<body>
+{% endif %}
+<div
+  class="table-responsive"
+  {% if export %}
+    style="font-family: Arial, sans-serif; font-size: 11px;"
+  {% endif %}
+  >
+  <table
+    class="table table-bordered searchable"
+    {% if export %}
+      style="font-family: Arial, sans-serif; font-size: 11px;"
+    {% endif %}
+  >
     <tbody>
 
+      {% if export %}
+        <tr>
+          <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Report Number') }}{% if export %}:{% endif %}
+          </th>
+          <td>
+            {{ r.number }}
+          </td>
+        </tr>
+        {% if r.due_date and not export %}
+          <tr>
+            <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Due Date') }}:
+            </th>
+            <td>
+              {{ r.due_date }}
+            </td>
+          </tr>
+        {% endif %}
+        {% if r.submitted_at or r.reported_at %}
+          <tr>
+            <th scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+              {{ _('Submitted Date') }}{% if export %}:{% endif %}
+            </th>
+            <td>
+              {{ (r.reported_at or r.submitted_at).date() }}:
+            </td>
+          </tr>
+        {% endif %}
+      {% else %}
+        <tr>
+          <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Contract') }}
+          </th>
+          <td>
+            <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
+          </td>
+        </tr>
+      {% endif %}
+
+      {% if not export %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Contract Investigator') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Contract PI') }}{% if export %}:{% endif %}
         </th>
         <td>
-          {{ c.ci }}
+          {% if export %}
+            {{ c.ci }}
+          {% else %}
+            {{ c.ci.full_name_with_email }} / {{ c.ci.username }}
+          {% endif %}
           <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
         </td>
       </tr>
 
       {% if c.pi and c.ci and c.pi != c.ci %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Principal Investigator') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Principal Investigator/Fellow') }}{% if export %}:{% endif %}
         </th>
         <td>
           {{ c.pi }}
@@ -30,105 +140,610 @@
       </tr>
       {% endif %}
 
-      {% if r.assessor %}
+      {% if r.assessor or request.user.is_admin  %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Assessor') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Assessor') }}{% if export %}:{% endif %}
         </th>
         <td>
-          {{ r.assessor  }}
+          {% if not r.assessor %}
+            <em>{{ _('Not assigned') }}</em>
+            {% if not export and r.state in ["approved", "submitted", "reported", "acknowledged", "assigned"] %}
+              <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary ms-2"
+                  hx-put="{{ request.path }}?action=assign-self"
+                  hx-swap="none">
+                {{ _('Assign yourself') }}
+              </button>
+            {% endif %}
+          {% else %}
+            {{ r.assessor.full_name_with_email }} /
+            {{ r.assessor.username  }}
+          {% endif %}
           <!-- a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a -->
         </td>
       </tr>
       {% endif %}
 
-      <tr>
+      <!-- tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Coordinator') }}
+          {{ _('Coordinator') }}{% if export %}:{% endif %}
         </th>
         <td>
-          TODO: is coordinator or the contract?
+          {{ coordinator or _('N/A') }}
+          {#{ c.host_contact_email_address or n and n.nominator.full_name_with_email or _('N/A') }#}
         </td>
-      </tr>
+      </tr -->
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Project Title') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Project Title') }}{% if export %}:{% endif %}
         </th>
         <td>
-          <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">
-            {{ c.project_title or a.application_title or a.round.name }}
-          </a>
+          {% if not export %}
+            <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">
+              {{ c.project_title or a.application_title or a.round.name }}
+            </a>
+          {% else %}
+            <span style="font-family: Arial, sans-serif; font-size: 10px;">
+              {{ c.project_title or a.application_title or a.round.name }}
+            </span>
+          {% endif %}
         </td>
       </tr>
+      {% endif %}
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Report Number, Type') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report Period, Type') }}{% if export %}:{% endif %}
         </th>
         <td>
           <a href="{{ url('report', pk=r.pk) }}" target="_blank">#{{ r.period }}, {{ r.get_type_display() }}</a>
         </td>
       </tr>
 
+      {% if not export %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Report Due') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report Due') }}{% if export %}:{% endif %}
         </th>
         <td>
-          {% if due_in_days < 1 %}
-            <strong>
-                <span class="text-danger"> {{ r.due_date }} ({% if due_in_days == 0 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
-            </strong>
-          {% elif due_in_days < 4 %}
-            <strong>
-            <span class="text-warning"> {{ r.due_date }} ({{ _('due in') }} {{ due_in_days }} {{ _('day(s)') }}) </span>
-            </strong>
+          {% if r.is_overdue and due_in_days < 4 %}
+            {% if due_in_days < 1 %}
+              <strong>
+                  <span class="text-danger"> {{ r.due_date }} ({% if due_in_days == 0 %}{{ _('today') }}{% else %}{{ -due_in_days }} {{ _('day(s) overdue') }}{% endif %}) </span>
+              </strong>
+            {% else %}
+              <strong>
+              <span class="text-warning"> {{ r.due_date }} ({{ _('due in') }} {{ due_in_days }} {{ _('day(s)') }}) </span>
+              </strong>
+            {% endif %}
           {% else %}
             {{ r.due_date }}
           {% endif %}
         </td>
       </tr>
 
+      {#
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Project URL') }}
         </th>
         <td>
           TODO: ???? (if relevant and known)
         </td>
       </tr>
+      #}
 
       {% if c.host_number %}
+        <tr>
+          <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+            {{ _('Organisation Contract ID') }}{% if export %}:{% endif %}
+          </th>
+          <td>
+            {{ c.host_number }}
+          </td>
+        </tr>
+      {% endif %}
+
+      {% if not export and r.file %}
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Organisation Contract ID') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Report') }}
         </th>
         <td>
-          {{ c.host_number }}
+          <a href="{{ r.file.url }}" target="_blank">{{ r.file.name|basename }}</a>
+          {% if not r.is_pdf_content %}
+            <span class="text-muted" id="id_converted_file_indicator">
+              {% with obj = r %}
+                {% include 'partials/converted_file.html' %}
+              {% endwith %}
+            </span>
+          {% endif %}
+
         </td>
       </tr>
       {% endif %}
 
       <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Application') }}
+        <th {% if not export %}class="table-dark"{% endif %} scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+          {{ _('Application') }}{% if export %}:{% endif %}
         </th>
         <td>
-          <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
+          {% if export %}
+            {{ application_number }}
+          {% else %}
+            <a href="{{ url('application-detail', number=application_number) }}" target="_blank">{{ application_number }}</a>
+          {% endif %}
         </td>
       </tr>
+      {% endif %}
 
-      <tr>
-        <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-          {{ _('Current Contract') }}
-        </th>
-        <td>
-          <a href="{{ url('contract-detail', number=contract_number) }}" target="_blank">{{ contract_number }}</a>
-        </td>
-      </tr>
+      {% if export %}
+        <!-- Personnel -->
+        {% set efforts = r.efforts %}
+        {% if efforts.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Personnel') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>FTE Funded</th>
+                <th>FTE Actual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in efforts.order_by("full_name") %}
+                <tr>
+                  <td>{{ e.full_name or e.person or e.member and e.member.member or '-' }}</td>
+                  <td>{{ e.role and e.role.name or '-' }}</td>
+                  <td>{{ e.fte or '-' }}</td>
+                  <td>{{ e.total_fte or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Keywords -->
+        {% set keywords = r.keywords %}
+        {% if keywords.count() and user.is_superuser %}
+          <tr>
+            <td colspan="4">
+            <h3 style="color: initial; text-align: left;">{{ _('Keywords') }}</h3>
+            {% for k in keywords.order_by("name") %}
+              {% if not loop.first %}, {% endif %}{{ k.name }}
+            {% endfor %}
+            </td>
+          </tr>
+        {% endif %}
+
+        <!-- Fields of Research -->
+        {% set report_fors = r.report_fors %}
+        {% if report_fors.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Fields of Research') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rf in report_fors.order_by("code_id") %}
+                <tr>
+                  <td>{{ rf.code.code or '-' }}</td>
+                  <td>{{ rf.code.description or '-' }}</td>
+                  <td>{{ rf.share or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Socio-Economic Objectives -->
+        {% set report_seos = r.report_seos %}
+        {% if report_seos.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Socio-Economic Objectives') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rs in report_seos.order_by("code_id") %}
+                <tr>
+                  <td>{{ rs.code.code or '-' }}</td>
+                  <td>{{ rs.code.description or '-' }}</td>
+                  <td>{{ rs.share or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        {% set publications = r.publications %}
+        {% if publications.count() and user.is_superuser %}
+          <tr>
+            <td colspan="4">
+              {% for pub_type, items in publications.order_by("type")|sorted_groupby("type") %}
+            {% set pt_code_2 = pub_type.code_2 if pub_type else '??' %}
+            <h3 style="color: initial; text-align: left;">
+              {{ _('Publications') }} - {{ (pub_type or _('Unknown'))|title }}
+            </h3>
+            <table stype="width: 100%;">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  {% if pt_code_2 in ['BC', 'BK'] %}
+                    <th>Chapter Title</th>
+                    <th colspan="2">Book Title</th>
+                  {% elif pt_code_2 in ['JO', 'PR', 'CP'] %}
+                    <th>Title</th>
+                  <th>{% if pt_code_2 == 'CP' %}Type{% else %}Article Type{% endif %}</th>
+                  {% else %}
+                    <th>Title</th>
+                    <th>Title #2</th>
+                  {% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for pub in items %}
+                  <tr>
+                    <td>{{ pub.status or '-' }}</td>
+                    <td{% if pt_code_2 in ['JO', 'CP'] %} colspan="2"{% endif %}>{{ pub.title }}</td>
+                    {% if pt_code_2 in ['BC', 'BK'] %}
+                      <td colspan="2">{{ pub.title2 }}</td>
+                    {% elif pt_code_2 == 'JO' %}
+                      <td>{{ '???' }}</td>
+                    {% endif %}
+                  </tr>
+                  {% if pt_code_2 in ['BC', 'BK'] %}
+                    <tr>
+                      <td></td>
+                      <td colspan="3">
+                        <strong>Publisher:</strong>
+                        {% if pub.publisher %}
+                          {{ pub.publisher }}
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>ID:</strong>  {% if pub.rsnz_ref %}0-{{ pub.rsnz_ref  }}{% else %} N/A {% endif %}
+                      </td>
+                      <td>
+                        <strong>Pages:</strong>
+                        {% if pub.page_ref %}
+                          {{ pub.page_ref }}
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if pub.year_ref %}
+                          <strong>Year:</strong> {{ pub.year_ref }}<br>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <strong>ISDN:</strong> {{ '???' }}
+                      </td>
+                    </tr>
+                  {% elif pt_code_2 == 'JO' %}
+                    <tr>
+                      <td></td>
+                      <td colspan="3"> <strong>Publisher:</strong> {{ pub.journal or '-' }} </td>
+                    </tr>
+                    <tr>
+                      <td> <strong>ID:</strong>  {% if pub.rsnz_ref %}0-{{ pub.rsnz_ref  }}{% else %} N/A {% endif %} </td>
+                      <td> <strong>Year:</strong> {{ pub.year_ref or '-' }}<br> </td>
+                      <td> <strong>Volume:</strong> {{ pub.volume or '-' }} </td>
+                      <td> <strong>Pages:</strong> {{ pub.page_ref or '-' }}</td>
+                    </tr>
+                  {% elif pt_code_2 == 'CP' %}
+                    <tr>
+                      <td> <strong>ID:</strong>  {% if pub.rsnz_ref %}0-{{ pub.rsnz_ref  }}{% endif %} </td>
+                      <!-- td></td -->
+                      <td colspan="3"> <strong>Conference:</strong> {{ pub.conference or '-' }} </td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td colspan="2"> <strong>Place:</strong> {{ pub.host or '-' }}{% if pub.location %}({{ pub.location }}){% endif %}</td>
+                      <td> <strong>Year:</strong> {{ pub.year_ref or '-' }}<br> </td>
+                    </tr>
+                  {% endif %}
+                  <tr>
+                    <td></td>
+                    <td colspan="3">
+                      <strong>Author(s):</strong> {{ pub.ordered_authors|join(", ") }}<br>
+                    </td>
+                  </tr>
+
+                {% endfor %}
+              </tbody>
+
+            </table>
+          {% endfor %}
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Publicity -->
+        {% set publicities = r.publicities %}
+        {% if publicities.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Publicity') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Organisation</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in publicities.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ p.type or '-' }}</td>
+                  <td>{{ p.organisation or '-' }}</td>
+                  <td>{{ p.description or '-' }}</td>
+                  <td>
+                    {% if p.start_date and p.end_date %}
+                      {{ p.start_date }} - {{ p.end_date }}
+                    {% elif p.start_date %}
+                      {{ p.start_date }}
+                    {% elif p.end_date %}
+                      {{ p.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Funding -->
+        {% set funding = r.funding %}
+        {% if funding.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Additional Funding') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Funding Type</th>
+                <th>Agency</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in funding.order_by("start_date", "end_date", "title") %}
+                <tr>
+                  <td>{{ f.title or f.description or '-' }}</td>
+                  <td>{{ f.get_type_display() or '-' }}</td>
+                  <td>{{ f.agency_name or f.agency or '-' }}</td>
+                  <td style="text-align: right;">
+                    {% if f.amount %}
+                      {{ f.amount }} {{ f.currency and f.currency.code or '' }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>{{ f.get_status_display() or '-' }}</td>
+                  <td>
+                    {% if f.start_date and f.end_date %}
+                      {{ f.start_date }} - {{ f.end_date }}
+                    {% elif f.start_date %}
+                      {{ f.start_date }}
+                    {% elif f.end_date %}
+                      {{ f.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Collaborations -->
+        {% set collaborations = r.collaborations %}
+        {% if collaborations.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Collaborations') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Collaborator</th>
+                <th>Organisation</th>
+                <th>Country</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in collaborations.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ c.full_name or '-' }}</td>
+                  <td>{{ c.organisation or '-' }}</td>
+                  <td>{{ c.country and c.country.name or '-' }}</td>
+                  <td>{{ c.description or '-' }}</td>
+                  <td>
+                    {% if c.start_date and c.end_date %}
+                      {{ c.start_date }} - {{ c.end_date }}
+                    {% elif c.start_date %}
+                      {{ c.start_date }}
+                    {% elif c.end_date %}
+                      {{ c.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Visits -->
+        {% set visits = r.visits %}
+        {% if visits.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Visits') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Host</th>
+                <th>Organisation</th>
+                <th>Country</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in visits.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ render_member_or_person(v) }}</td>
+                  <td>{{ v.full_name or '-' }}</td>
+                  <td>{{ v.organisation or '-' }}</td>
+                  <td>{{ v.country and v.country.name or '-' }}</td>
+                  <td>{{ v.description or '-' }}</td>
+                  <td>
+                    {% if v.start_date and v.end_date %}
+                      {{ v.start_date }} - {{ v.end_date }}
+                    {% elif v.start_date %}
+                      {{ v.start_date }}
+                    {% elif v.end_date %}
+                      {{ v.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Hosted Visits -->
+        {% set hosted_visits = r.hosted_visits %}
+        {% if hosted_visits.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Hosted Visits') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Visitor</th>
+                <th>Organisation</th>
+                <th>Country</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for hv in hosted_visits.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ hv.visitor or '-' }}</td>
+                  <td>{{ hv.organisation or '-' }}</td>
+                  <td>{{ hv.country and hv.country.name or '-' }}</td>
+                  <td>{{ hv.description or '-' }}</td>
+                  <td>
+                    {% if hv.start_date and hv.end_date %}
+                      {{ hv.start_date }} - {{ hv.end_date }}
+                    {% elif hv.start_date %}
+                      {{ hv.start_date }}
+                    {% elif hv.end_date %}
+                      {{ hv.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+
+        <!-- Reported Awards -->
+        {% set awards = r.awards %}
+        {% if awards.count() and user.is_superuser %}
+          <tr><td colspan="4">
+          <h3 style="color: initial; text-align: left;">
+            {{ _('Awards') }}
+          </h3>
+          <table stype="width: 100%;">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for aw in awards.order_by("start_date", "end_date") %}
+                <tr>
+                  <td>{{ render_member_or_person(aw) }}</td>
+                  <td>{{ aw.type or '-' }}</td>
+                  <td>{{ aw.description or '-' }}</td>
+                  <td>
+                    {% if aw.start_date and aw.end_date %}
+                      {{ aw.start_date }} - {{ aw.end_date }}
+                    {% elif aw.start_date %}
+                      {{ aw.start_date }}
+                    {% elif aw.end_date %}
+                      {{ aw.end_date }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </td></tr>
+        {% endif %}
+      {% endif %}
 
     </tbody>
   </table>
 
 </div>
+{% if export %}</body></html>{% endif %}

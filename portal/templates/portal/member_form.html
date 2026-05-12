@@ -1,0 +1,52 @@
+{% extends "form.html" %}
+{% load crispy_forms_tags static i18n django_bootstrap_breadcrumbs %}
+
+{% block head_title %}{{ object }}{% endblock %}
+{% block sidebar %}{% include 'sidebar.html' with category="applications" %}{% endblock sidebar %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% breadcrumb "Applications" "applications" %}
+  {% if object.application.state == "draft" or object.application.state == "new" %}
+    {% breadcrumb "Draft" "applications-draft" %}
+  {% elif object.application.state == "submitted" %}
+    {% breadcrumb "Submitted" "applications-submitted" %}
+  {% endif %}
+  {% if object.application %}
+    {% breadcrumb object.application "application" object.application.pk %}
+  {% endif %}
+  {% if object and object.pk %}
+    {% breadcrumb object "member-update" object.pk %}
+  {% elif round %}
+    {% breadcrumb round "applications-submitted" %}
+  {% endif %}
+{% endblock %}
+
+{% block content_header %}
+    {% if object.pk %}{{ object }}{% endif %}
+{% endblock %}
+
+{% block more_info %}
+  {% if object.application %}
+    <h2>
+      <a href="{{ object.application.detail_url }}">
+        {{ object.application }}
+      </a>
+    </h2>
+  {% endif %}
+{% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if not user.is_admin %}
+    <script>
+      $(document).ready(function() {
+        // $("#id_role option[value='PI']").prop('disabled', true);
+        $('#id_role option[value="PC"]').prop('disabled', true);
+      });
+    </script>
+  {% endif %}
+{% endblock %}
+{# vim:set ft=htmldjango: #}
+
+{# vim:set ft=htmldjango: #}

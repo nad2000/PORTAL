@@ -1,2 +1,12 @@
+PATH=/usr/local/bin:/usr/bin:/bin
+MAILDIR=$HOME/Mail      #you'd better make sure it exists
+# DEFAULT=$MAILDIR/mbox   #completely optional
+# LOGFILE=$MAILDIR/from   #recommended
+
+# :0c:
+# * ^To.*noreply
+# NOREPLY/
+# # noreply
+
 :0Wc:
 | source $HOME/venv311/bin/activate; env ENV=prod python prod/email_receiver.py

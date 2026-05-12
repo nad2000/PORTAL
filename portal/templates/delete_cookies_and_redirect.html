@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="{{ request.site.name }}">
+    <meta name="author" content="Royal Society Te Apārangi">
+    <meta name="rights" content="Royal Society Te Apārangi">
+  </head>
+  <body>
+    <script>
+      {% for name in cookies %}
+      document.cookie = '{{ name }}=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      {% endfor %}
+      window.location.href = "{{ url }}";
+    </script>
+  </body>
+</html>
+{# vim:set ft=htmldjango: #}

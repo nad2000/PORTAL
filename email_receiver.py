@@ -22,41 +22,47 @@ from django.shortcuts import reverse
 # from django.contrib.sites.models import Site
 from django.db.models import Value, F
 
-EMAIL_EX = r"([A-Za-z0-9]+[.-_+])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+EMAIL_EX = re.compile(r"([a-z0-9]+[.-_+])*[a-z0-9]+@[a-z0-9-.]+(\.[a-z]{2,})+", re.I | re.S)
 message_id = None
 
 
-if __name__ == "__main__":
-    env_name = os.getenv("ENV", "local")
-    try:
-        importlib.import_module(f"config.settings.{env_name}")
-    except ModuleNotFoundError:
-        parent_dir = os.path.basename(__file__)
-        env_name = parent_dir if parent_dir in ["local", "test", "dev"] else "prod"
-    current_path = Path(__file__).parent.resolve()
-    sys.path.append(str(current_path / "portal"))
+def extract_addresses(address):
+    if address:
+        address = address.strip().lower()
+        if "<" in address:
+            address = address.split("<")[1].strip()
+        match = EMAIL_EX.search(address)
+        if match:
+            address = match[0].lower()
+    return address
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"config.settings.{env_name}")
 
-    django.setup()
+def is_binary_file(filename, chunk_size=1024):
+    """
+    Heuristically checks if a file is binary by looking for null bytes.
+    """
+    with open(filename, "rb") as f:
+        chunk = f.read(chunk_size)
+        if b"\x00" in chunk:
+            return True
 
-    from portal import models
-    from portal.utils import send_mail
-    from django.conf import settings
+        if not chunk:  # Empty file
+            return False
 
-    # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
-    # msg = email.message_from_string(full_msg)
-    msg = email.message_from_file(open(sys.argv[1], "r") if len(sys.argv) > 1 else sys.stdin)
-    if len(sys.argv) > 2:
-        message_id = sys.argv[2]
+    return False
+
+
+def process_email(msg, message_id=None, site=None):
 
     to = msg["to"]
     subject = msg["subject"]
     sender = msg["from"]
+    thread_index = msg["thread-index"]
+    thread_topic = msg["thread-topic"]
     from_addresses = []
 
     if subject:
-        subject = str(make_header(decode_header(subject)))
+        subject = str(make_header(decode_header(subject))).strip()
 
     # Skip CCed emails:
     if (
@@ -78,12 +84,8 @@ if __name__ == "__main__":
         and auto_submitted.lower() == "auto-replied"
     )
 
-    if sender and (match := re.search(EMAIL_EX, sender)):
-        sender = match[0].lower()
-        from_addresses.append(sender)
-
-    if to and (recipient_match := re.search(EMAIL_EX, to)):
-        to = recipient_match[0].lower()
+    sender = extract_addresses(sender)
+    to = extract_addresses(to)
 
     body = msg["body"]
     if not msg.is_multipart():
@@ -104,9 +106,8 @@ if __name__ == "__main__":
         if has_delivery_status:
             for line in part.as_string().splitlines():
                 if line and re.search(r"(final-recipient|original-recipient)", line, re.I):
-                    match = re.search(EMAIL_EX, line, re.I)
-                    if match:
-                        final_recipient = match[0].lower()
+                    final_recipient = extract_addresses(line)
+                    if final_recipient:
                         from_addresses.append(final_recipient)
 
         if has_disposition_notification or (
@@ -118,9 +119,8 @@ if __name__ == "__main__":
                     body = p.get_payload(decode=True)
                 if message_id:
                     break
-            match = re.search(EMAIL_EX, part.as_string())
-            if match:
-                final_recipient = match[0].lower()
+            final_recipient = extract_addresses(part.as_string())
+            if final_recipient:
                 from_addresses.append(final_recipient)
 
         if not message_id:
@@ -219,25 +219,67 @@ if __name__ == "__main__":
         else:
             message_id = None
 
-    if to and message_id and (to.startswith("contracts") or to.startswith("comments") or to.startswith("change-requests")):
-        if to.startswith("change-requests"):
-            reply_to = models.ChangeRequestComment.where(token=message_id).order_by("-pk").first()
-        else:
-            reply_to = models.ContractComment.where(token=message_id).last()
-        if not reply_to:
-            pass
+    reply_to = None
+    token = models.get_unique_mail_token()
+    domain = to.split("@")[1].lower()
+    if not site:
+        site = (alias := Alias.objects.filter(domain__contains=domain).first()) and alias.site
+    by = models.User.where(
+        models.Q(email__istartswith=sender) | models.Q(emailaddress__email__istartswith=sender)
+    ).first()
+    if (
+        to
+        and (message_id or thread_index)
+        and (
+            to.startswith("contracts")
+            or to.startswith("comments")
+            or to.startswith("change-requests")
+        )
+    ):
+        contract = None
+        if message_id:
+            if to.startswith("change-requests"):
+                reply_to = (
+                    models.ChangeRequestComment.where(token=message_id).order_by("-pk").first()
+                )
+            else:
+                reply_to = models.ContractComment.where(token=message_id).last()
+            o = reply_to.object
 
-        o = reply_to.object
-        if contract := (
-                reply_to.object.contract if to.startswith("change-requests") else
-                models.Contract.all_objects.filter(comments__token=message_id).last() else models.ChangeRequest.where(token=message_id).first()):
+        elif to.startswith("contracts"):
+            contract = o = (
+                models.Contract.get_by_thread_index(thread_index=thread_index)
+                or models.Contract.all_objects.annotate(
+                    subject=Value(f"{subject} - {thread_topic}")
+                )
+                .filter(subject__icontains=F("number"))
+                .order_by("-id")
+                .first()
+            )
+        elif to.startswith("change-requests") or to.startswith("variations"):
+            o = models.ChangeRequest.get_by_thread_index(thread_index=thread_index)
+            contract = o.contract if o else None
+        elif to.startswith("comments"):
+            o = models.Model.get_by_thread_index(thread_index=thread_index)
+            contract = o.contract if o else None
 
-            if site := contract.site:
+        if not contract and (reply_to or message_id):
+            contract = (
+                reply_to and reply_to.object.contract
+                if to.startswith("change-requests")
+                else message_id
+                and (
+                    models.Contract.all_objects.filter(comments__token=message_id).last()
+                    or models.ChangeRequest.where(token=message_id).first()
+                )
+            )
+
+        if contract:
+            if not site:
+                site = contract.site
+            if site:
                 settings.SITE_ID = site.pk
 
-            by = models.User.where(
-                models.Q(email=sender) | models.Q(emailaddress__email=sender)
-            ).first()
             body = msg["body"]
             if not msg.is_multipart():
                 body = msg.get_payload(decode=True)
@@ -273,9 +315,20 @@ if __name__ == "__main__":
                     # attachment=attachments and attachments[0] or None,
                 )
 
-                attachments.append(
-                    File(io.BytesIO(msg.as_bytes()), name=f"{models.hash_int(comment.pk)}.eml")
-                )
+                try:
+                    attachments.append(
+                        File(
+                            io.BytesIO(msg.as_bytes()),
+                            name=f"{subject or models.hash_int(comment.pk)}.eml",
+                        )
+                    )
+                except UnicodeEncodeError:
+                    attachments.append(
+                        File(
+                            io.BytesIO(msg.as_string().encode()),
+                            name=f"{subject or models.hash_int(comment.pk)}.eml",
+                        )
+                    )
                 # for a in attachments[1:]:
                 for a in attachments:
                     ca = models.ContractCommentAttachment(comment=comment)
@@ -283,7 +336,7 @@ if __name__ == "__main__":
                     ca.save()
 
                 if by:
-                    domain = to.split("@")[1]
+                    a = contract.application
                     if (
                         contract.org.research_offices.filter(user=by).exists()
                         or a.submitted_by == by
@@ -293,7 +346,6 @@ if __name__ == "__main__":
                             u for u in models.User.where(is_superuser=True)
                         ]
                     else:
-                        a = contract.application
                         recipients = (
                             contract.host_contact_email
                             or [ro.user for ro in contract.org.research_offices.all()]
@@ -304,35 +356,81 @@ if __name__ == "__main__":
                                 )
                             ]
                         )
-                    respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
-                    html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{contract.number}">{contract}</data>'
-                    html_message += f":</p>{body}" if body else "."
-                    html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                    send_mail(
-                        from_email=to,
-                        subject=f"Comment posted by {by.full_name_with_email} to {contract}",
-                        html_message=html_message,
-                        cc=[by.full_email_address],
-                        attachments=attachments or None,
-                        recipients=recipients,
-                        thread_index=contract.thread_index,
-                        thread_topic=contract.thread_topic,
-                        token=token,
-                        site=site,
-                    )
+                elif reply_to and reply_to.submitted_by:
+                    recipients = [reply_to.submitted_by]
+                else:
+                    if (round := contract.application.round) and round.contact_email:
+                        recipients = [round.contact_email]
+                    elif (agency := contract.agency) and agency.contract_contact_email:
+                        recipients = [agency.contract_contact_email]
+                    else:
+                        recipients = contract.agency_recipients
+
+                respond_url = f"https://{domain}{reverse('contract-update', kwargs=dict(pk=contract.pk))}#correspondence"
+                html_message = f'<p>Comment posted by {by and by.full_name_with_email or sender} to <data value="{contract.number}">{contract}</data>'
+                html_message += f":</p>{body}" if body else "."
+                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+                send_mail(
+                    from_email=to,
+                    subject=f"Comment posted by {by and by.full_name_with_email or sender} to {contract}",
+                    html_message=html_message,
+                    cc=[by.full_email_address if by else sender],
+                    attachments=attachments or None,
+                    recipients=recipients,
+                    thread_index=contract.thread_index,
+                    thread_topic=contract.thread_topic,
+                    token=token,
+                    site=site,
+                )
+        else:
+            # Could not find contract
+            attachments = [
+                File(
+                    io.BytesIO(msg.as_bytes()),
+                    name=f"{subject or models.hash_int(comment.pk)}.eml",
+                )
+            ]
+            if site:
+                recipients = (
+                    ["tawhia@royalsociety.org.nz"]
+                    if site.pk == 5
+                    else [u for u in site.staff_users.all()]
+                    or [u for u in models.User.where(is_superuser=True)]
+                )
+            else:
+                recipients = [u for u in models.User.where(is_superuser=True)]
+            send_mail(
+                from_email=to,
+                subject=f"FW: {subject or 'No Subject'}",
+                html_message=(
+                    "<p>This is an automated message.</p>"
+                    "<p>Could not find contract for message sent by "
+                    f"{by and by.full_name_with_email or sender} to {to}.</p>"
+                ),
+                cc=[by.full_email_address if by else sender],
+                attachments=attachments,
+                recipients=recipients,
+                token=token,
+                site=site,
+                reply_to=by and by.full_email_address or sender,
+            )
 
     if (
         to
         and to.startswith("reports")
-        and message_id
-        and (reply_to := models.ReportComment.where(token=message_id).last())
+        and thread_index
+        or (message_id and (reply_to := models.ReportComment.where(token=message_id).last()))
     ):
-        report = reply_to.report
+        if reply_to:
+            report = reply_to.report
+        else:
+            report = o = models.Report.get_by_thread_index(thread_index=thread_index)
+
         if site := report.contract.site:
             settings.SITE_ID = site.pk
 
         by = models.User.where(
-            models.Q(email=sender) | models.Q(emailaddress__email=sender)
+            models.Q(email__istatswith=sender) | models.Q(emailaddress__email__istatswith=sender)
         ).first()
         body = msg["body"]
         if not msg.is_multipart():
@@ -369,11 +467,12 @@ if __name__ == "__main__":
                 reply_to=reply_to,
                 # attachment=attachments and attachments[0] or None,
             )
-            models.ReportCommentRecipient.create(
-                comment=comment,
-                user=reply_to.submitted_by,
-                email=reply_to.submitted_by.email,
-            )
+            if reply_to and reply_to.submitted_by:
+                models.ReportCommentRecipient.create(
+                    comment=comment,
+                    user=reply_to.submitted_by,
+                    email=reply_to.submitted_by.email,
+                )
             attachments.append(
                 File(io.BytesIO(msg.as_bytes()), name=f"{models.hash_int(comment.pk)}.eml")
             )
@@ -384,24 +483,117 @@ if __name__ == "__main__":
                 ca.attachment.save(content=a, name=a.name)
                 ca.save()
 
-            if by:
-                domain = to.split("@")[1]
+            domain = to.split("@")[1]
+            if reply_to and reply_to.submitted_by:
                 recipients = [reply_to.submitted_by]
-                respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=report.pk))}#correspondence"
-                html_message = f'<p>Comment posted by {by.full_name_with_email} to <data value="{report}">{report}</data>'
-                html_message += f":</p>{body}" if body else "."
-                html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
-                send_mail(
-                    from_email=to,
-                    subject=f"Comment posted by {by.full_name_with_email} to {report}",
-                    html_message=html_message,
-                    cc=[by.full_email_address],
-                    attachments=attachments or None,
-                    recipients=recipients,
-                    thread_index=report.thread_index,
-                    thread_topic=report.thread_topic,
-                    token=token,
-                    site=site,
-                )
+            else:
+                if (round := report.application.round) and round.contact_email:
+                    recipients = [round.contact_email]
+                elif (agency := report.contract.agency) and agency.reporting_contact_email:
+                    recipients = [agency.reporting_contact_email]
+                else:
+                    recipients = report.agency_recipients
+
+            respond_url = f"https://{domain}{reverse('report-update', kwargs=dict(pk=report.pk))}#correspondence"
+            html_message = f'<p>Comment posted by {by and by.full_name_with_email or sender} to <data value="{report}">{report}</data>'
+            html_message += f":</p>{body}" if body else "."
+            html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
+            send_mail(
+                from_email=to,
+                subject=f"Comment posted by {by and by.full_name_with_email or sender} to {report}",
+                html_message=html_message,
+                cc=[by.full_email_address if by else sender],
+                attachments=attachments or None,
+                recipients=recipients,
+                thread_index=report.thread_index,
+                thread_topic=report.thread_topic,
+                token=token,
+                site=site,
+            )
+
+
+if __name__ == "__main__":
+    env_name = os.getenv("ENV", "local")
+    try:
+        importlib.import_module(f"config.settings.{env_name}")
+    except ModuleNotFoundError:
+        parent_dir = os.path.basename(__file__)
+        env_name = parent_dir if parent_dir in ["local", "test", "dev"] else "prod"
+    current_path = Path(__file__).parent.resolve()
+    sys.path.append(str(current_path / "portal"))
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"config.settings.{env_name}")
+
+    django.setup()
+
+    from portal import models
+    from portal.utils import send_mail
+    from django.conf import settings
+    from multisite.models import Alias
+    from sentry_sdk import capture_exception
+
+    # full_msg = open(sys.argv[1], "rb").read() if len(sys.argv) > 1 else sys.stdin.read()
+    # msg = email.message_from_string(full_msg)
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        if os.path.isfile(filename):
+            root, ext = os.path.splitext(filename)
+            if ext.lower() == ".msg" and is_binary_file(filename):
+                from msg_parser import MsOxMessage
+                from msg_parser.email_builder import EmailFormatter
+                import tempfile
+
+                msg_obj = MsOxMessage(filename)
+                filename = os.path.join(tempfile.gettempdir(), f"{os.path.basename(root)}.eml")
+                msg_fmt = EmailFormatter(msg_obj)
+                with open(filename, "w") as f:
+                    f.write(msg_fmt.build_email())
+                msg = msg_fmt.message
+            else:
+                with open(filename, "r") as f:
+                    msg = email.message_from_file(f)
+        else:
+            message_id = filename
+            msg = email.message_from_file(sys.stdin)
+    else:
+        msg = email.message_from_file(sys.stdin)
+    if len(sys.argv) > 2 and not message_id:
+        message_id = sys.argv[2]
+
+    try:
+        process_email(msg, message_id=message_id)
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        subject = msg["subject"]
+        sender = msg["from"]
+        to = msg["to"]
+        body = msg["body"]
+        capture_exception(e)
+
+        if not msg.is_multipart():
+            body = msg.get_payload(decode=True)
+        if not body:
+            body = f"Error processing incoming email: {subject}"
+        send_mail(
+            site = (
+                (recipient := extract_addresses(to))
+                and (domain := recipient.split("@")[1].strip())
+                and (alias := Alias.objects.filter(domain__contains=domain).first())
+                and alias.site
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            subject=f"Error processing incoming email: {subject}",
+            html_message=(
+                f"<p>This is an automated message.</p>"
+                f"<p>Error details:</p><pre>{str(e)}</pre>"
+                f"<p>Sender: {sender}</p>"
+                f"<p>Recipient: {to}</p>"
+                f"<p>Subject: {subject}</p>"
+                f"<p>Body:</p><pre>{body}</pre>"
+            ),
+            recipients=[u for u in models.User.where(is_superuser=True)],
+        )
 
 # vim:set ft=python.django:

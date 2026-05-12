@@ -1,5 +1,6 @@
 import getpass
 from urllib.parse import urljoin
+import itertools
 
 import html2text
 from django.conf import settings
@@ -8,6 +9,8 @@ from django.core import mail
 from django.urls import reverse
 from django.db.models import query
 import mimetypes
+from multisite.models import Alias
+from sentry_sdk import capture_exception
 
 from .. import models
 
@@ -243,18 +246,39 @@ def send_mail(
     thread_index=None,
     site=None,
 ):
+    if site and isinstance(site, int):
+        site = Site.objects.get(pk=site)
     if not site:
         site = (invitation and invitation.site) or Site.objects.get_current()
-    if not request and from_email and "@" in from_email:
+
+    if request:
+        domain = request.get_host()
+    elif site:
+        domain = site.domain
+    elif from_email and "@" in from_email:
         domain = from_email.split("@")[1]
-    else:
-        domain = request and request.get_host() or site.domain
+
     # if ":" in domain:
     #     domain = domain.split(":")[0]
-    utf_domain = domain
     if domain and domain.startswith("xn--"):
         utf_domain = domain.encode().decode("idna")
+    else:
+        utf_domain = domain
     root = f"https://{domain}"
+
+    if domain:
+        if ":" in domain:
+            domain, port  = domain.split(":")
+        else:
+            port = None
+
+        if not site:
+            alias = Alias.objects.resolve(host=domain, port=port)
+            site = alias.site
+
+    if not recipients:
+        recipients = settings.ADMINS
+
     if recipients and isinstance(recipients, (list, tuple, query.QuerySet)):
         recipients = [
             (
@@ -272,7 +296,7 @@ def send_mail(
         recipients = [recipients.strip().lower()]
 
     if not from_email or "@" not in from_email:
-        if ":" in domain or "." not in domain:
+        if port or ":" in domain or "." not in domain:
             from_email = f"{site.name} <{from_email or 'noreply'}@{site.domain}>"
         else:
             from_email = f"{site.name} <{from_email or 'noreply'}@{domain}>"
@@ -310,7 +334,7 @@ def send_mail(
         url = request.build_absolute_uri(url)
     else:
         url = f"{urljoin(root, url)}"
-    if ":" in domain or "." not in domain:
+    if port or  ":" in domain or "." not in domain:
         headers = {
             "Message-ID": f"<{token}@{site.domain}>",
             "List-Unsubscribe": f"<{url}>",
@@ -328,6 +352,8 @@ def send_mail(
         }
 
     subject_prefix = f"[{site.name}]" if site else settings.EMAIL_SUBJECT_PREFIX
+    if subject and "\n" in subject:
+        subject = subject.replace("\n", " -- ")
     if not subject.startswith(subject_prefix):
         subject = f"{subject_prefix} {subject}"
     if not thread_topic:
@@ -363,28 +389,47 @@ def send_mail(
     if html_message:
         msg.attach_alternative(html_message, "text/html")
 
-    resp = msg.send()
+    try:
+        resp = msg.send()
+    except Exception as ex:
+        capture_exception(ex)
+        if not fail_silently:
+            raise ex
+        resp = ex
 
-    all_recipients = (
+    all_recipients = list(
         recipients.union(bcc or [])
         if isinstance(recipients, set)
         else ((recipients or []) + (bcc or []))
     )
-    for no, r in enumerate(all_recipients):
-        models.MailLog.create(
-            user=request.user if request and request.user.is_authenticated else None,
-            recipient=r,
-            sender=from_email,
-            subject=subject,
-            was_sent_successfully=resp,
-            token=f"{token}#{no}" if no else token,
-            invitation=invitation,
-            site=site,
-            thread_index=thread_index,
-            thread_topic=thread_topic,
-            message=message,
-            html_message=html_message,
-        )
+    ml = models.MailLog.create(
+        user=request.user if request and request.user.is_authenticated else None,
+        recipient=all_recipients[0],
+        sender=from_email,
+        subject=subject,
+        was_sent_successfully=resp,
+        token=token,
+        invitation=invitation,
+        site=site,
+        thread_index=thread_index,
+        thread_topic=thread_topic,
+        message=message,
+        html_message=html_message,
+    )
+    models.Recipient.bulk_create(
+        [
+            models.Recipient(
+                message=ml,
+                recipient=r,
+            )
+            for t, r in itertools.chain(
+                (("to", r) for r in (recipients or [])),
+                (("bcc", r) for r in (bcc or [])),
+                (("cc", r) for r in (cc or [])),
+            )
+        ]
+    )
+
     if not resp:
         if isinstance(resp, int):
             raise Exception(

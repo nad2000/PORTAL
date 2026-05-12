@@ -39,17 +39,17 @@
                 </tr>
                 {% endif %#}
 
-                {% for d in required_documents %}
+                {% for rd in required_documents %}
                 <tr>
                     <td>
-                        {{ d }}
+                        {{ rd }}
                     </td>
                     <td style="text-align: center;">
-                        {% if d.is_optional %}<i class="fa fa-check text-success text-center"></i>{% endif %}
+                        {% if rd.is_optional %}<i class="fa fa-check text-success text-center"></i>{% endif %}
                     </td>
                     <td>
                         <ul>
-                            {% for t in templates.get(d.document_type, []) %}
+                            {% for t in templates.get(rd, []) %}
                             <li><a href="{{ t.file.url }}" target="_blank">{{ t.file.path|basename }}</a></li>
                             {% endfor %}
                         </ul>
@@ -72,6 +72,21 @@
                         </ul>
                     </td>
                 </tr>
+                {% endif %}
+
+                {% if round.member_letter_of_support_required or round.member_cv_required %}
+                  <tr>
+                    <td colspan="3">
+                      {% if round.member_letter_of_support_required %}
+                          Please note that CVs and host support letters are required and uploaded by the Principal Investigator
+                          and all Team Members upon acceptance of the nomination/invitation. Only the support letter of the PI’s
+                          organisation is uploaded separately as part of the application documents.
+                      {% else %}
+                          Please note that CVs are required and uploaded by the Principal Investigator
+                          and all Team Members upon acceptance of the nomination/invitation.
+                      {% endif %}
+                    </td>
+                  </tr>
                 {% endif %}
 
             </tbody>

@@ -34,7 +34,15 @@
             <tbody>
               <tr>
                 <td><b> {% trans 'Name' %}: </b></td>
-                <td>{{ profile_user.full_name|default_if_none:"" }}</td>
+                <td>
+                  {% if request.user.is_admin and person %}
+                    <a href="{% url 'admin:portal_person_change' object_id=person.pk %}" target="_blank">
+                      {{ profile_user.full_name|default_if_none:"" }}
+                    </a>
+                  {% else %}
+                    {{ profile_user.full_name|default_if_none:"" }}
+                  {% endif %}
+                </td>
               </tr>
               {% if profile_user.email %}
                 <tr>
@@ -50,7 +58,13 @@
               </tr>
               <tr>
                 <td><b> {% trans 'Username' %}: </b></td>
-                <td>{{ profile_user.username|default_if_none:"" }}</td>
+                <td>
+                  {% if request.user.is_admin %}
+                    <a href="{% url 'admin:users_user_change' object_id=profile_user.pk %}" target="_blank">{{ profile_user.username|default_if_none:"" }}</a>
+                  {% else %}
+                    {{ profile_user.username|default_if_none:"" }}
+                  {% endif %}
+                </td>
               </tr>
             </tbody>
           </table>

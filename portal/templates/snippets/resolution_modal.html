@@ -1,6 +1,6 @@
 {% load i18n tags %}
 {% if r and r.agent_declaration or round and round.agent_declaration %}
-  <div class="modal fade" tabindex="-1" role="dialog" id="id_agent_declaration_modal">
+  <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_agent_declaration_modal">
     <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -32,14 +32,14 @@
 
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary" onclick='$(this).closest("form").submit();'>{% trans 'Commit' %}</button>
+          <button type="button" class="btn btn-primary" onclick='$(this).closest("form").submit();' id="id_agent_declaration_submit">{% trans 'Commit' %}</button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
         </div>
       </div>
     </div>
   </div>
 {% endif %}
-<div class="modal fade" tabindex="-1" role="dialog" id="id_resolution_modal" data-backdrop="static" data-keyboard="true">
+<div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_resolution_modal" data-backdrop="static" data-keyboard="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">

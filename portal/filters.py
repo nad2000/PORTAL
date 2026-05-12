@@ -116,6 +116,7 @@ class AutocompleteListFilter(RelatedFieldListFilter):
             "field_name": self.field.name,
         }
 
+
 class RelatedOnlyModelChoiceFilter(django_filters.ModelChoiceFilter):
     # ("round", admin.RelatedOnlyFieldListFilter),
     __queryset = None
@@ -178,6 +179,11 @@ def filter_all_rounds(request=None, *args, **kwargs):
 
 
 class FilterSet(django_filters.FilterSet):
+
+    def unaccent(self, **kwargs):
+        if settings.ENV == "prod":
+            return Q(**{k.replace("name", "name__unaccent"): v for (k, v) in kwargs.items()})
+        return Q(**kwargs)
 
     def __init__(self, data=None, queryset=None, *, request=None, prefix=None):
         super().__init__(data=data, queryset=queryset, request=request, prefix=prefix)
@@ -336,28 +342,38 @@ class ApplicationFilterSet(FilterSet):
     def set_filter(self, queryset, name, value):
         if value:
             value = value.strip()
-            return queryset.filter(
+            q = (
                 Q(application_title__icontains=value)
                 | Q(number__icontains=value)
-                | Q(first_name__icontains=value)
-                | Q(last_name__icontains=value)
+                | Q(contracts__number__icontains=value)
+                | self.unaccent(first_name__icontains=value)
+                | self.unaccent(last_name__icontains=value)
                 | Q(email__icontains=value)
-                | Q(submitted_by__first_name__icontains=value)
-                | Q(submitted_by__last_name__icontains=value)
+                | self.unaccent(submitted_by__first_name__icontains=value)
+                | self.unaccent(submitted_by__last_name__icontains=value)
                 | Q(submitted_by__email__icontains=value)
+                | self.unaccent(org__name__icontains=value)
                 | Q(
                     Exists(
                         models.Member.where(
-                            first_name__icontains=value, application=OuterRef("pk")
+                            self.unaccent(first_name__icontains=value),
+                            application=OuterRef("pk"),
                         )
                     )
                 )
                 | Q(
                     Exists(
-                        models.Member.where(last_name__icontains=value, application=OuterRef("pk"))
+                        models.Member.where(
+                            self.unaccent(last_name__icontains=value),
+                            application=OuterRef("pk"),
+                        )
                     )
                 )
-            ).distinct()
+                | Q(tags__name=value)
+            )
+            if self.request.user.is_admin:
+                q = q | Q(notes__content__icontains=value)
+            return queryset.filter(q).distinct()
         else:
             return queryset
 
@@ -434,18 +450,18 @@ class TestimonialFilterSet(FilterSet):
             value = value.strip()
             return queryset.filter(
                 Q(referee__application__application_title__icontains=value)
-                | Q(referee__first_name__icontains=value)
-                | Q(referee__last_name__icontains=value)
+                | self.unaccent(referee__first_name__icontains=value)
+                | self.unaccent(referee__last_name__icontains=value)
                 | Q(referee__email__icontains=value)
-                | Q(referee__user__first_name__icontains=value)
-                | Q(referee__user__last_name__icontains=value)
+                | self.unaccent(referee__user__first_name__icontains=value)
+                | self.unaccent(referee__user__last_name__icontains=value)
                 | Q(referee__user__email__icontains=value)
                 | Q(referee__application__number__icontains=value)
-                | Q(referee__application__first_name__icontains=value)
-                | Q(referee__application__last_name__icontains=value)
+                | self.unaccent(referee__application__first_name__icontains=value)
+                | self.unaccent(referee__application__last_name__icontains=value)
                 | Q(referee__application__email__icontains=value)
-                | Q(referee__application__submitted_by__first_name__icontains=value)
-                | Q(referee__application__submitted_by__last_name__icontains=value)
+                | self.unaccent(referee__application__submitted_by__first_name__icontains=value)
+                | self.unaccent(referee__application__submitted_by__last_name__icontains=value)
                 | Q(referee__application__submitted_by__email__icontains=value)
             ).distinct()
         else:
@@ -513,21 +529,21 @@ class NominationFilterSet(FilterSet):
             value = value.strip()
             return queryset.filter(
                 Q(application__application_title__icontains=value)
-                | Q(first_name__icontains=value)
-                | Q(last_name__icontains=value)
+                | self.unaccent(first_name__icontains=value)
+                | self.unaccent(last_name__icontains=value)
                 | Q(email__icontains=value)
-                | Q(nominator__first_name__icontains=value)
-                | Q(nominator__last_name__icontains=value)
+                | self.unaccent(nominator__first_name__icontains=value)
+                | self.unaccent(nominator__last_name__icontains=value)
                 | Q(nominator__email__icontains=value)
-                | Q(user__first_name__icontains=value)
-                | Q(user__last_name__icontains=value)
+                | self.unaccent(user__first_name__icontains=value)
+                | self.unaccent(user__last_name__icontains=value)
                 | Q(user__email__icontains=value)
                 | Q(application__number__icontains=value)
-                | Q(application__first_name__icontains=value)
-                | Q(application__last_name__icontains=value)
+                | self.unaccent(application__first_name__icontains=value)
+                | self.unaccent(application__last_name__icontains=value)
                 | Q(application__email__icontains=value)
-                | Q(application__submitted_by__first_name__icontains=value)
-                | Q(application__submitted_by__last_name__icontains=value)
+                | self.unaccent(application__submitted_by__first_name__icontains=value)
+                | self.unaccent(application__submitted_by__last_name__icontains=value)
                 | Q(application__submitted_by__email__icontains=value)
             ).distinct()
         else:
@@ -601,7 +617,7 @@ class ReportFilterSet(FilterSet):
     def set_filter(self, queryset, name, value):
         if value:
             value = value.strip()
-            return queryset.filter(
+            q = (
                 Q(contract__application__application_title__icontains=value)
                 | Q(contract__number__icontains=value)
                 | Q(contract__project_title__icontains=value)
@@ -617,7 +633,11 @@ class ReportFilterSet(FilterSet):
                 # | Q(contract__application__submitted_by__first_name__icontains=value)
                 # | Q(contract__application__submitted_by__last_name__icontains=value)
                 # | Q(contract__application__submitted_by__email__icontains=value)
-            ).distinct()
+                | Q(tags__name=value)
+            )
+            if self.request.user.is_admin:
+                q = q | Q(notes__content__icontains=value)
+            return queryset.filter(q).distinct()
         else:
             return queryset
 
@@ -656,21 +676,25 @@ class ContractFilterSet(FilterSet):
     def set_filter(self, queryset, name, value):
         if value:
             value = value.strip()
-            return queryset.filter(
+            q = (
                 Q(application__application_title__icontains=value)
                 | Q(number__icontains=value)
                 | Q(application__number__icontains=value)
                 | Q(project_title__icontains=value)
                 | Q(
                     Q(
-                        Q(members__last_name__icontains=value)
-                        | Q(members__first_name__icontains=value),
+                        self.unaccent(members__last_name__icontains=value)
+                        | self.unaccent(members__first_name__icontains=value),
                         members__role="PI",
                     )
-                    | Q(submitted_by__last_name__icontains=value)
-                    | Q(submitted_by__first_name__icontains=value)
+                    | self.unaccent(submitted_by__last_name__icontains=value)
+                    | self.unaccent(submitted_by__first_name__icontains=value)
                 )
-            ).distinct()
+                | Q(tags__name=value)
+            )
+            if self.request.user.is_admin:
+                q = q | Q(notes__content__icontains=value)
+            return queryset.filter(q).distinct()
         else:
             return queryset
 
@@ -720,12 +744,12 @@ class ChangeRequestFilterSet(FilterSet):
                 | Q(contract__project_title__icontains=value)
                 | Q(
                     Q(
-                        Q(contract__members__last_name__icontains=value)
-                        | Q(contract__members__first_name__icontains=value),
+                        self.unaccent(contract__members__last_name__icontains=value)
+                        | self.unaccent(contract__members__first_name__icontains=value),
                         contract__members__role="PI",
                     )
-                    | Q(contract__submitted_by__last_name__icontains=value)
-                    | Q(contract__submitted_by__first_name__icontains=value)
+                    | self.unaccent(contract__submitted_by__last_name__icontains=value)
+                    | self.unaccent(contract__submitted_by__first_name__icontains=value)
                 )
             ).distinct()
         else:

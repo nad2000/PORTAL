@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static i18n cache tags %}
+{% block javascript %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4" integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N" crossorigin="anonymous"></script>
+<script>
+$(document).ready(function() {
+  document.addEventListener('htmx:afterSwap', (event) => {
+    // if (event.detail.target.id === 'toast-container') {
+    if (event.detail.elt.id === 'toast-container') {
+      // const toast = event.detail.target.lastElementChild;
+      const toast = event.detail.elt.lastElementChild;
+      if (toast) {
+        // bootstrap.Toast(toastElement).show();
+        $(toast).toast('show');
+        /*
+        setTimeout(() => {
+          $(toast).toast('hide');
+          toast.remove();
+        }, 5000); // Remove the toast after 5 seconds
+        */
+      }
+    }
+  });
+});
+</script>
+{% endblock javascript %}
+
+{% block content %}
+  <div
+    id="toast-container"
+    hx-ext="sse"
+    hx-swap="beforeend"
+    sse-connect="{% url 'crud-event-stream' %}"
+    sse-swap="crud"
+  >
+  </div>
+{% endblock content %}

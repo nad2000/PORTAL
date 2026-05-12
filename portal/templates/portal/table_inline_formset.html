@@ -14,9 +14,26 @@
 
 {% if formset.prefix %}
 <script>
+  function {{ formset.prefix}}_hide_closest_formset_form_row(element, event) {
+    if (event.detail.successful) {
+        // $(element).closest("tr").remove();
+        // total_forms = $("input[name='{{ formset.prefix }}-TOTAL_FORMS']");
+        // initial_forms = $("input[name='{{ formset.prefix }}-INITIAL_FORMS']");
+        // if (total_forms.val()) total_forms.val(total_forms.val()-1);
+        // if (initial_forms.val()) initial_forms.val(initial_forms.val()-1);
+        var tr = $(element).closest("tr");
+        tr.find(" [name$='-DELETE']").val('on');
+        tr.hide();
+    }
+    return false;
+  }
   function {{ formset.prefix}}_delete_closest_formset_form_row(element, event) {
     if (event.detail.successful) {
-          $(element).closest("tr").remove();
+        $(element).closest("tr").remove();
+        total_forms = $("input[name='{{ formset.prefix }}-TOTAL_FORMS']");
+        // initial_forms = $("input[name='{{ formset.prefix }}-INITIAL_FORMS']");
+        if (total_forms.val()) total_forms.val(total_forms.val()-1);
+        // if (initial_forms.val()) initial_forms.val(initial_forms.val()-1);
     }
   }
 </script>
@@ -40,15 +57,15 @@
           {% for field in formset.forms.0 %}
             {% if not field.is_hidden %}
               <th {% if field.label %}for="{{ field.auto_id }}"{% endif %}
-                  class="col-form-label {% if field.label and field.field.required %}requiredField{% endif %}"
+                  class="col-form-label {% if field.label and field.field.required or field|is_data_required %}requiredField{% endif %}"
               >
                 {% if field.label and not field.is_hidden %}
                     {% if field.name != "DELETE" %}
-                      <span {% if field.help_text %}
+                      <span {% if field.help_text and formset.prefix != "notes" %}
                         data-toggle="tooltip"
                         title="{{ field.help_text }}"
                       {% endif %}>
-                        {{ field.label|safe }}{% if field.field.required and not field|is_checkbox %}<span class="asteriskField">*</span></span>
+                        {{ field.label|safe }}{% if field.field.required and not field|is_checkbox or field|is_data_required %}<span class="asteriskField">*</span></span>
                         {% endif %}
                     {% else %}
                       &nbsp;
@@ -92,13 +109,17 @@
             {% endcomment %}
             {% elif field.name == "DELETE" %}
               <td>
-                {% if form.id and form.id.value %}
+                {% if form.id and form.id.value and form.instance.pk %}
+                  <!-- {{ field }} -->
+                  <!-- {#% crispy_field field 'type' 'hidden' %#} -->
+                  <input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}">
                   <button
                     class="btn btn-danger"
+                    id="{{ field.auto_id }}"
                     hx-delete="{% url 'objects-delete' model=form.instance.model_name pk=form.instance.pk %}"
                     hx-params="none"
                     hx-target="#messages"
-                    hx-on:htmx:after-request="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}delete_closest_formset_form_row(this, event)"
+                    hx-on:htmx:after-request="{% if formset.prefix %}{{ formset.prefix}}_{% endif %}hide_closest_formset_form_row(this, event)"
                     hx-swap="beforeend scroll:bottom"
                     {% if form.confirm_deletion %}hx-confirm="{% if form.deletion_confirmation_message %}{{ form.deletion_confirmation_message }}{% else %}{% blocktrans with name=form.instance|verbose_name obj=form.instance %}Do you wish to delete {{ name }}: {{ obj }}?{% endblocktrans %}{% endif %}"{% endif %}
                     {% comment %}hx-on:htmx:afterSwap="console.log(this,event)" hx-target="#messages" hx-swap="beforeend" hx-trigger="console.log(this)"{% endcomment %}
@@ -107,8 +128,9 @@
                   </button>
                 {% else%}
                   <button
+                    id="{{ field.auto_id }}"
                     type="button"
-                    class="btn btn-success"
+                    class="btn btn-success add-or-remove-button"
                     onclick="formset_add_a_row(this, '{{ formset.prefix }}');"
                   >
                     <i class="fa fa-plus" style="width: 12px;"></i>

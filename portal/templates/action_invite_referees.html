@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+
+  <form action="" method="post">
+
+    {% csrf_token %}
+    <input type="hidden" name="action" value="invite_referees">
+    <input type="hidden" name="select_across" value="0">
+    <input type="hidden" name="index" value="0">
+    {% for o in objects %}
+      <input type="hidden" name="_selected_action" value="{{ o.id }}">
+    {% endfor %}
+
+    <input type="hidden" name="do_action" value="yes">
+
+    <ul class="messagelist">
+      <li class="warning">{% if applications %}
+        Do you wish to send invitation to all invited referees of the applications:
+        {% for o in objects %}
+          {{ o.number }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}?
+      {% else %}
+        Do you wish to send invitation to all invited referees of the rounds:
+        {% for o in objects %}
+          {{ o }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}?
+      {% endif %}
+      </li>
+    </ul>
+
+    <label for="id-resolution">Force:</label>
+    <div>
+      <input type="checkbox" class="default" name="force" value="1" checked>
+    </div>
+    <label for="id-resolution">Resolution:</label>
+    <textarea id="id-resolution" type="textarea" name="resolution"></textarea>
+    <div>
+      <input type="submit" class="default" style="float: none" value="Invite Referees">
+    </div>
+
+  </form>
+
+{% endblock content %}
+{# vim:set ft=htmldjango: #}

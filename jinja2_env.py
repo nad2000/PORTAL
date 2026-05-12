@@ -1,15 +1,17 @@
+import itertools
 from os.path import basename
 
-from django.conf import settings
 from crispy_forms.utils import render_crispy_form
+from django.conf import settings
 from django.contrib import messages
-from django.templatetags.static import static
 from django.db.models import Q
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import translation
-from jinja2 import Environment, pass_context, BaseLoader, TemplateNotFound, ChoiceLoader
-from dbtemplates.models import Template
+
+# from dbtemplates.models import Template
 from django.utils.safestring import mark_safe
+from jinja2 import BaseLoader, ChoiceLoader, Environment, TemplateNotFound, pass_context
 
 
 class DbLoader(BaseLoader):
@@ -17,7 +19,7 @@ class DbLoader(BaseLoader):
     def get_source(self, environment, template):
         # site = Site.objects.get_current()
         # site_id = site and site.pk
-        site_id = settings.SITE_ID.site_id  # if it uses 'django-multisite'
+        site_id = int(settings.SITE_ID)  # if it uses 'django-multisite'
         t = (
             Template.objects.filter(
                 Q(name__exact=template), Q(sites__pk=site_id) | Q(sites__isnull=True)
@@ -46,15 +48,26 @@ def summernote(note):
     return note and mark_safe(note.replace(settings.MEDIA_URL, f"file://{settings.MEDIA_ROOT}/"))
 
 
+def sorted_groupby(value, attribute):
+    """Group-by already sorted list by attribute."""
+    return itertools.groupby(value, lambda x: getattr(x, attribute))
+
+
 def environment(loader=None, **options):
     if loader:
-        options["loader"] = ChoiceLoader(
-            [
-                DbLoader(),
-                loader,
-            ]
-        )
-
+        options["loader"] = loader
+        # options["loader"] = ChoiceLoader(
+        #     [
+        #         DbLoader(),
+        #         loader,
+        #     ]
+        # )
+    options.update(
+        {
+            "line_statement_prefix": "#",
+            "line_comment_prefix": "##",  # Optional: adds line-based comments
+        }
+    )
     env = Environment(**options)
     env.globals.update(
         {
@@ -71,8 +84,9 @@ def environment(loader=None, **options):
             ),
         }
     )
+    env.filters["sorted_groupby"] = sorted_groupby
     env.filters["basename"] = basename
     env.filters["safe"] = mark_safe
     env.filters["summernote"] = summernote
-    env.install_gettext_translations(translation)
+    env.install_gettext_translations(translation, newstyle=True)
     return env

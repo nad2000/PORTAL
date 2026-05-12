@@ -1,22 +1,49 @@
 import os
+import re
 from itertools import groupby
 from operator import itemgetter
 from urllib.parse import parse_qs
 
+import jinja2
+
 # import jinja2
 from django import forms, template
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.manager import Manager
 from django.forms.widgets import NullBooleanSelect
 from django.template.loader import get_template
+from django.utils.functional import keep_lazy_text
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
+from django.utils.text import normalize_newlines
 from django.utils.translation import gettext as _
 from markupsafe import Markup
-import jinja2
 
 from .. import models as m
 
 register = template.Library()
+
+
+@register.filter(name="mightbe")
+def mightbe(value, arg):
+    return (
+        value
+        and (name := getattr(value, "name", None))
+        and name.lower().endswith(arg if "." in arg else f".{arg}")
+    )
+
+
+@register.filter(is_safe=True)
+def report_state(state):
+    return _(m.Report.STATES[state])
+
+
+@register.filter(is_safe=True)
+def is_favorited(user, obj=None):
+    return m.Favorite.objects.filter(
+        user=user, object_id=obj.pk, content_type=ContentType.objects.get_for_model(obj)
+    ).exists()
 
 
 @register.filter(is_safe=True)
@@ -149,18 +176,14 @@ def field_value(value, name, *args, **kwargs):
             method = getattr(value, f"get_{name}_display", None)
             dv = method and method()
             if state_changed_at := getattr(value, "state_changed_at", None):
-                return mark_safe(
-                    f"""<span data-toggle="tooltip"
+                return mark_safe(f"""<span data-toggle="tooltip"
                     title="{_('(the state was updated at %s)') % state_changed_at.strftime('%d-%m-%Y %H:%m')}
-                    ">&lt;<b>{dv or v.upper()}</b>&gt</span>"""
-                )
+                    ">&lt;<b>{dv or v.upper()}</b>&gt;</span>""")
             changed_at = value.updated_at or value.created_at
             if changed_at:
-                return mark_safe(
-                    f"""<span data-toggle="tooltip"
+                return mark_safe(f"""<span data-toggle="tooltip"
                     title="{_('(the record was updated at %s)') % changed_at.strftime('%d-%m-%Y %H:%m')}
-                    ">&lt;<b>{dv or v.upper()}</b>&gt</span>"""
-                )
+                    ">&lt;<b>{dv or v.upper()}</b>&gt;</span>""")
             return mark_safe(f"&lt;<b>{dv or v.upper()}</b>&gt;")
     if isinstance(v, bool):
         return _("yes") if v else _("no")
@@ -278,7 +301,11 @@ def person_with_email(value):
 
 @register.filter()
 def basename(value):
-    if value and isinstance(value, models.fields.files.FieldFile):
+    if hasattr(value, "file"):
+        value = value.file
+    if not value:
+        return _("N/A")
+    if isinstance(value, (models.fields.files.FieldFile, models.fields.files.File)):
         return os.path.basename(value.name)
     return os.path.basename(value) if value else ""
 
@@ -427,9 +454,37 @@ def document_action_button(
 
 
 @register.filter(is_safe=False)
+def filter_documents(documents, required_document):
+    return [d for d in documents if d.required_document == required_document]
+
+
+@register.filter(is_safe=False)
 def length_is(value, arg):
     """Return a boolean of whether the value's length is the argument."""
     try:
         return len(value) == int(arg)
     except (ValueError, TypeError):
         return ""
+
+
+@register.filter(is_safe=True)
+@keep_lazy_text
+def html_address(application, autoescape=False):
+    """Convert application postal address newlines into <br>s."""
+    value = (
+        application
+        and application.postal_address
+        and normalize_newlines(application.postal_address)
+        or ""
+    )
+    # parts = re.split("\n{2,}", str(value))
+    parts = re.split("\n", str(value))
+    if autoescape:
+        parts = [*map(escape, parts)]
+    if application.city and application.postcode:
+        parts.append(f"{application.city}, {application.postcode}")
+    elif application.city:
+        parts.append(application.city)
+    elif application.postcode:
+        parts.append(application.postcode)
+    return mark_safe("<br>\n".join(parts))

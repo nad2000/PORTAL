@@ -1,5 +1,10 @@
 <table class="table table-striped">
 {#% for p in report.publications.all() %#}
+{% if error_message %}
+  <tr>
+    <td colspan="2" class="table-danger">{{ error_message|safe }}</td>
+  </tr>
+{% endif %}
 {% for rp in report.publications.through.objects.filter(report=report) %}
   {% set p=rp.publication %}
   <tr>
@@ -22,7 +27,7 @@
         hx-target="#messages"
         hx-swap="beforeend scroll:bottom"
         hx-on:htmx:after-request="delete_closest_table_row(this, event)"
-        hx-confirm="{{ _('Do you wish to deleted the publication record "%s"?') % p.title }}"
+        hx-confirm="{% trans title=p.title %}Do you wish to deleted the publication record "{{ title }}"?{% endtrans %}"
       >
         <i class="fa fa-times" style="width: 12px;"></i>
       </button>

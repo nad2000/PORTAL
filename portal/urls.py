@@ -23,8 +23,18 @@ urlpatterns = [
         name="webmanifest",
     ),
     path("about", views.about, name="about"),
+    path("guidelines/", views.guideline_list, name="guideline-list"),
+    path("guidelines/<year>/", views.guideline_list, name="guideline-year-list"),
+    path("guidelines/<year>/<code>", views.guidelines, name="guidelines"),
+    path("guidelines/<year>/<code>/<role>", views.guidelines, name="role-guidelines"),
     path("logout", views.logout, name="logout"),
     path("status", views.status, name="status"),
+    path("bookmarked", views.favorites, name="bookmarked"),
+    path("bookmarks", views.favorites, name="bookmarks"),
+    path("stared", views.favorites, name="stared"),
+    path("favorites", views.favorites, name="favorites"),
+    path("tags", views.tags, name="tags"),
+    path("tags/<tag_name>", views.tags, name="tag"),
     path(
         "robots.txt",
         cache_page(None)(
@@ -36,14 +46,42 @@ urlpatterns = [
     path("subscriptions/", views.SubscriptionList.as_view(), name="subscriptions"),
     path("users/<int:pk>/profile", views.user_profile, name="user-profile"),
     path(
-        "objects/<path:model>/<int:pk>/~delete",
-        views.delete_object,
-        name="objects-delete",
+        "objects/",
+        include(
+            [
+                # path("", views.ObjectList.as_view(), name="objects"),
+                path(
+                    "<path:model>/<int:pk>/~delete",
+                    views.delete_object,
+                    name="objects-delete",
+                ),
+                path(
+                    "<path:model>/<int:pk>",
+                    views.delete_object,
+                    name="object",
+                ),
+                path(
+                    "<path:model>/<number>",
+                    views.DetailView.as_view(),
+                    name="object-detail",
+                ),
+            ]
+        ),
+        name="objects-root",
     ),
     path(
         "comments/<int:pk>/~email-import",
         views.EmailImportView.as_view(),
         name="email-import",
+    ),
+    path(
+        "doi/",
+        include(
+            [
+                path("~fetch", views.fetch_doi, name="doi-fetch"),
+                path("~import", views.import_doi, name="doi-import"),
+            ]
+        ),
     ),
     path(
         "applications/",
@@ -111,9 +149,19 @@ urlpatterns = [
                     name="application-export",
                 ),
                 path(
+                    "<int:pk>/~export/<filename>",
+                    views.ApplicationExportView.as_view(),
+                    name="application-export-fn",
+                ),
+                path(
                     "<number>/~export",
                     views.ApplicationExportView.as_view(),
                     name="application-export-with-slug",
+                ),
+                path(
+                    "<number>/~export/<filename>",
+                    views.ApplicationExportView.as_view(),
+                    name="application-export-with-slug-fn",
                 ),
                 path(
                     "<number>/exported-view",
@@ -121,6 +169,11 @@ urlpatterns = [
                     name="application-exported-view",
                 ),
                 path("<number>/summary", views.application_summary, name="application-summary"),
+                path(
+                    "members/<int:pk>/~update",
+                    views.MemberView.as_view(),
+                    name="member-update",
+                ),
             ]
         ),
     ),
@@ -182,9 +235,19 @@ urlpatterns = [
                                             name="change-request",
                                         ),
                                         path(
+                                            "<number>",
+                                            views.ChangeRequestDetail.as_view(),
+                                            name="change-request-detail",
+                                        ),
+                                        path(
                                             "<int:pk>/~update",
                                             views.ChangeRequestUpdateView.as_view(),
                                             name="change-request-update",
+                                        ),
+                                        path(
+                                            "<int:pk>/~export",
+                                            views.ChangeRequestExportView.as_view(),
+                                            name="change-request-export",
                                         ),
                                         path(
                                             "",
@@ -201,14 +264,34 @@ urlpatterns = [
         ),
     ),
     path(
+        "assessments/<int:pk>/~export",
+        views.AssessmentExportView.as_view(),
+        name="assessment-export",
+    ),
+    path(
+        "assessments/<int:pk>/~export/<filename>",
+        views.AssessmentExportView.as_view(),
+        name="assessment-export-fn",
+    ),
+    path(
         "reports/",
         include(
             [
                 path("~create", views.ReportCreate.as_view(), name="report-create"),
                 path("<int:pk>", views.ReportDetail.as_view(), name="report"),
-                # path("<number>", views.ReportDetail.as_view(), name="report-detail"),
+                path("<number>", views.ReportDetail.as_view(), name="report-detail"),
                 path("<int:pk>/~update", views.ReportUpdate.as_view(), name="report-update"),
+                path(
+                    "<int:pk>/assessment/~export",
+                    views.ReportAssessmentExportView.as_view(),
+                    name="report-assessment-export",
+                ),
                 path("<int:pk>/~export", views.ReportExportView.as_view(), name="report-export"),
+                path(
+                    "<int:pk>/~export/<filename>",
+                    views.ReportExportView.as_view(),
+                    name="report-export-fn",
+                ),
                 path(
                     "<int:pk>/~ris-import", views.ReportRisImportView.as_view(), name="ris-import"
                 ),
@@ -269,6 +352,23 @@ urlpatterns = [
                                 "<int:pk>/~update",
                                 views.ReportedVisitUpdateView.as_view(),
                                 name="reported-visit-update",
+                            ),
+                        ]
+                    ),
+                ),
+                path(
+                    "hosted-visits/",
+                    include(
+                        [
+                            # path(
+                            #     "~create",
+                            #     views.ReportedPublicityCreateView.as_view(),
+                            #     name="reported-publicity-create",
+                            # ),
+                            path(
+                                "<int:pk>/~update",
+                                views.ReportedHostedVisitUpdateView.as_view(),
+                                name="reported-hosted-visit-update",
                             ),
                         ]
                     ),
@@ -374,6 +474,7 @@ urlpatterns = [
             [
                 path("webhook/", views.survey_webhook, name="survey-webhook"),
                 path("complete/", views.complete_survey, name="survey-complete"),
+                path("<int:referee_id>/response", views.survey_response, name="survey-response"),
                 path("<int:survey_id>/<token>", views.do_survey, name="survey-do"),
                 path("<int:referee_id>", views.do_survey, name="survey-referee"),
             ]
@@ -492,11 +593,23 @@ urlpatterns = [
                     name="org-autocomplete",
                 ),
                 path(
+                    "org-name/",
+                    views.OrgNameAutocomplete.as_view(
+                        model=models.Organisation, create_field="name"
+                    ),
+                    name="org-name-autocomplete",
+                ),
+                path(
                     "org_email/",
                     views.OrgEmailAutocomplete.as_view(
                         model=models.EmailAddress, create_field="email"
                     ),
                     name="org-email-autocomplete",
+                ),
+                path(
+                    "person-code/",
+                    views.PersonCodeAutocomplete.as_view(model=models.Person, create_field="code"),
+                    name="person-code-autocomplete",
                 ),
                 # path(
                 #     "ro-org/",
@@ -559,7 +672,7 @@ urlpatterns = [
                 ),
                 path(
                     "city/",
-                    views.CityAutocomplete.as_view(model=models.Address),
+                    views.CityAutocomplete.as_view(model=models.Address, create_field="city"),
                     name="city-autocomplete",
                 ),
                 path(
@@ -597,7 +710,8 @@ urlpatterns = [
                 path(
                     "research-priority/",
                     views.ResearchPriorityAutocomplete.as_view(
-                        model=models.ResearchPriority, create_field="name"
+                        model=models.ResearchPriority
+                        # , create_field="name"
                     ),
                     name="research-priority-autocomplete",
                 ),
@@ -627,7 +741,7 @@ urlpatterns = [
                 path("coi", views.RoundConflictOfInterestFormSetView.as_view(), name="round-coi"),
                 path(
                     "coi/~list",
-                    views.RoundConflictOfInterstSatementList.as_view(),
+                    views.RoundConflictOfInterstStatementList.as_view(),
                     name="round-coi-list",
                 ),
                 path("scoresheet/~export", views.export_score_sheet, name="export-score-sheet"),
@@ -682,7 +796,8 @@ urlpatterns = [
                 path(
                     "<int:pk>/~update", views.TestimonialView.as_view(), name="testimonial-update"
                 ),
-                path("<int:pk>", views.TestimonialDetail.as_view(), name="testimonial-detail"),
+                # path("<int:pk>", views.TestimonialDetail.as_view(), name="testimonial-detail"),
+                path("<int:pk>", views.TestimonialDetail.as_view(), name="testimonial"),
                 path("draft", views.TestimonialList.as_view(), name="testimonials-draft"),
                 path("submitted", views.TestimonialList.as_view(), name="testimonials-submitted"),
                 path("", views.TestimonialList.as_view(), name="testimonials"),
@@ -752,6 +867,7 @@ urlpatterns = [
     ),
     # path("", views.subscribe, name="comingsoon"),
     path("root/", views.index, name="root"),
+    path("convert/", views.convert_file, name="convert-file"),
     path("subscribe/", views.subscribe, name="subscription"),
     path("confirm/<token>", views.confirm_subscription, name="subscription-confirmation"),
     path("unsubscribe/<token>", views.unsubscribe, name="unsubscribe"),
@@ -786,9 +902,9 @@ urlpatterns = [
     ),
     path("pyinfo/", views.pyinfo),
     path("pyinfo/<message>", views.pyinfo),
-    path("headers/<application_id>/<page_count>/<output_type>", views.headers),
-    path("headers/<application_id>/<page_count>", views.headers),
-    path("headers/<application_id>/", views.headers),
+    # path("headers/<application_id>/<page_count>/<output_type>", views.headers),
+    # path("headers/<application_id>/<page_count>", views.headers),
+    # path("headers/<application_id>/", views.headers),
     path("413/", views.handler413),
     path("favicon.ico", views.favicon),
     path("webhooks/survey/", views.survey_webhook),
@@ -801,16 +917,31 @@ urlpatterns = [
     path("impersonate/<username>", views.impersonate),
     path("switch-back", views.switch_back, name="switch-back"),
     # path('firebase-messaging-sw.js', views.FirebaseJS, name="show_firebase_js"),
+    # path("stream/time/", views.time_value_stream, name="time-stream"),
+    # path("time-stream", TemplateView.as_view(template_name="time_stream.html"), name="time-stream-page"),
+    path("stream/crud/", views.crud_event_stream, name="crud-event-stream"),
+    path(
+        "crud-events", TemplateView.as_view(template_name="crud_events.html"), name="crud-events"
+    ),
+    # path('async-example/', views.async_view_example, name='async_example'),
 ]
 
-if settings.DEBUG:
-    urlpatterns.extend(
-        [
-            path("demo/", views.demo),
-            path("demo/<int:pk>/", views.demo),
-            path("demo/~create", views.demo_create, name="demo-create"),
-        ]
-    )
+if getattr(settings, "PRIVATE_STORAGE_CLASS", None) == "common.models.ArchivalStorage":
+    urlpatterns.append(
+        re_path(
+            r"private-media/(?P<path>.*)$",
+            views.ArchivalPrivateStorageView.as_view(),
+            name="serve_private_file",
+        )
+    )  # avoid pylint warning
+# if settings.DEBUG:
+#     urlpatterns.extend(
+#         [
+#             path("demo/", views.demo),
+#             path("demo/<int:pk>/", views.demo),
+#             path("demo/~create", views.demo_create, name="demo-create"),
+#         ]
+#     )
 
 if settings.SENTRY_DSN:
     from django.contrib.auth.decorators import login_required

@@ -24,4 +24,5 @@ class GeneralSerializer(serializers.ModelSerializer):
         model = None
         fields = "__all__"
 
+
 # vim:set ft=python.django:

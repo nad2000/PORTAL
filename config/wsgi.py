@@ -16,7 +16,7 @@ framework.
 import os
 import sys
 from pathlib import Path
-
+import environ
 from django.core.wsgi import get_wsgi_application
 
 # This allows easy placement of apps within the interior
@@ -28,7 +28,9 @@ sys.path.append(str(app_path / "portal"))
 # mod_wsgi daemon mode with each site in its own daemon process, or use
 # os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.production"
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.prod")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
+env = environ.Env()
+ENV = env("ENV", default="local")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"config.settings.{ENV}")
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION

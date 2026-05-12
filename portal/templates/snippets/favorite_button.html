@@ -1,0 +1,10 @@
+<a hx-put="{% if content_type_id %}{% url 'toggle_favorite' content_type_id object_id %}{% else %}{{ request.path }}?toggle_favorite=1{% endif %}"
+        hx-target="#favorite-{{ object_id }}"
+        hx-swap="outerHTML"
+        class="{% if is_favorited %}favorited{% else %}not-favorited{% endif %}"
+>
+    <i class="fa fa-star" aria-hidden="true"></i>{% else %}<i class="far fa-star" aria-hidden="true"></i>{% endif %}
+    {% comment %}
+    {#% if is_favorited %} ★ Starred {% else %} ☆ Unstarred {% endif %#}
+    {% endcomment %}
+</a>

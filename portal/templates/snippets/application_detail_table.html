@@ -1,28 +1,31 @@
 {% load i18n crispy_forms_tags tags %}
-<table class="table table-bordered searchable">
-  <tbody>
+<table{% if for_pdf_export %} style="{% if a.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}"{% else %} class="table table-bordered searchable"{% endif %}>
+  <tbody{% if for_pdf_export %} style="{% if a.site_id == 4 %}width: 17cm;{% else %}width: 18cm;{% endif %}"{% endif %}>
 
     <tr>
-      <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">{% trans 'Application' %}</th>
-        <td {% if not a.panel %}colspan="3"{% endif %}>
-        {% if user.is_superuser and not export %}
+    <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 160px; max-width: 180px;"{% endif %}>{% trans 'Application' %}</th>
+    <td scope="row"{% if not a.panel %}colspan="3"{% endif %}>
+        {% if export or for_pdf_export %}
+            <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
+        {% elif user.is_admin and not export %}
           <a href="{% url 'admin:portal_application_change' object_id=a.id %}" target="_blank">
             <strong>{{ a.number }}</strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
           </a>
         {% else %}
           <strong><a href="{% url 'application-detail' number=a.number %}" target="_blank">{{ a.number }}</a></strong>{% if a.application_title %}: {{ a.application_title }}{% endif %}
         {% endif %}
-        {% if not show_basic_details and not for_panellists %}
-            &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
+        {% if not export and not for_pdf_export %}
+          {% if not show_basic_details and not for_panellists %}
+              &lt;<strong>{{ a.get_state_display|upper }}</strong>&gt;
+          {% endif %}
         {% endif %}
-      </td>
-      {% if a.panel %}
-        <th class="table-dark" scope="row">{% trans 'Panel' %}</th>
-        <td> {{ a.panel }} </td>
-      {% endif %}
+    </td>
+    {% if a.panel %}
+      <th scope="row" class="table-dark">{% trans 'Panel' %}</th>
+      <td> {{ a.panel }} </td>
+    {% endif %}
     </tr>
-
-      {% if a.preliminary %}
+    {% if a.preliminary %}
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {% trans 'Preliminary Application' %} / {% trans 'Expression of Interest' %}</th>
@@ -35,7 +38,6 @@
         </td>
       </tr>
     {% endif %}
-
 
     {% if a.presentation_url %}
       <tr>
@@ -72,63 +74,160 @@
     {% endif %}
 
     <tr>
-      <th class="table-dark" scope="row">{% trans 'Round' %}</th>
-      <td colspan="3">{{ a.round }}</td>
-    </tr>
-
-    <tr>
-      <th class="table-dark" scope="row">
-        {% if a.is_team_application or a.members.all.count %}
-          {% trans 'Team Lead' %}
+      <th scope="row" class="table-dark" >{% trans 'Round' %}</th>
+      <td colspan="3">
+        {% if user.is_admin and not export %}
+          <a href="{% url 'admin:portal_round_change' object_id=a.round_id %}" target="_blank"> {{ a.round }} </a>
         {% else %}
-          {% trans 'Applicant' %}
+          {{ a.round }}
         {% endif %}
-      </th>
-      <td colspan="3">{{ a|person_with_email }} (username: {{ a.submitted_by.username }})</td>
+      </td>
     </tr>
 
-    {% if a.is_team_application or a.members.all.count %}
 
+    {% if is_admin or member and member.state != "authorized" or not a.is_team_application or a.members.all.count <= 1 %}
       <tr>
-        <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
+        <th scope="row" class="table-dark">
+          {% if a.is_team_application or a.site_id == 5 and a.members.all.count > 1 or a.site_id != 5 and a.members.all.count %}
+            {% if a.site_id == 5 or a.site_id == 2 %}
+              {% if a.pi_member and a.pi_member.role %}{{ a.pi_member.role.name }}{% else %}{% trans 'Principal Investigator (PI)' %}{% endif %}
+            {% else %}
+              {% trans 'Team Lead' %}
+            {% endif %}
+          {% else %}
+            {% trans 'Applicant' %}
+          {% endif %}
+        </th>
         <td colspan="3">
-          {%if a.team_name %}{{ a.team_name|default:'' }}:{% endif %}
-          <ul>
-            {% for m in a.members.all %}
-              <li>
-                {% if user.is_staff or user.is_superuser %}
-                  <a href="{% url 'admin:portal_member_change' object_id=m.id %}" target="_blank"> {{ m | person_with_email }} </a>
+          {% if a.pi_member %}
+
+            {% with m=a.pi_member %}
+              {% partialdef member inline %}
+                {% if is_admin %}
+                  <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
+                  <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+                {% elif is_ro and not export and not for_pdf_export %}
+                  <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m | person_with_email }} </a>
                 {% else %}
                   {{ m | person_with_email }}
+                  {% if not export and not for_pdf_export and m.user == user and m.state == "authorized" %}
+                    <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+                  {% endif %}
                 {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
+              {% endpartialdef %}
+            {% endwith %}
+
+          {% else %}
+            {{ a.pi.full_name_with_email }}{% if user.is_admin %} (username: {{ a.pi.username }}){% endif %}
+          {% endif %}
         </td>
       </tr>
-
     {% endif %}
 
+    {% if a.members.all.count > 1 %}
+      {% if a.site_id == 2 %}
+
+        {% partialdef member-row %}
+          <tr style="border: 1px solid black;">
+            <td style="border: 1px solid black;">
+              {% if export or for_pdf_export %}
+                {{ m.full_name_with_title }}
+              {% elif is_admin %}
+                <a href="{% url 'admin:portal_member_change' object_id=m.pk %}" target="_blank"> {{ m.full_name_with_email }} </a>
+                <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+              {% elif is_ro and not export and not for_pdf_export %}
+                <a href="{% url 'member-update' pk=m.pk %}" target="_blank"> {{ m.full_name_with_email }} </a>
+              {% else %}
+                {{ m.full_name_with_email }}
+                {% if not export and not for_pdf_export and m.user == user and m.state == "authorized" %}
+                  <a type="button" class="badge badge-primary" href="{% url 'member-update' pk=m.pk %}" target="_blank">{% trans 'Edit' %}</a>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td style="border: 1px solid black;">{{ m.org|default:'-' }}</td>
+            <td style="border: 1px solid black;">{{ m.country.name|default:'-' }}</td>
+            <td style="border: 1px solid black;">{{ m.role.name|default:'-' }}</td>
+          </tr>
+        {% endpartialdef %}
+
+        <tr>
+          <th class="table-dark" colspan="4" >
+            {% trans 'Team' %}{%if a.team_name %}: {{ a.team_name|default:'' }}{% endif %}
+          </th>
+        </tr>
+        <tr>
+          <td colspan="4">
+            <table{% if export or for_pdf_export %} style="border-collapse: collapse; border: 1px solid black;"{% else %} class="table table-striped table-bordered"{% endif %}>
+              {% for m in a.ordered_members %}
+                {% partial member-row %}
+              {% endfor %}
+            </table>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <th class="table-dark" scope="row">{% trans 'Team:' %}</th>
+          <td colspan="3">
+            {%if a.team_name %}{{ a.team_name|default:'' }}:{% endif %}
+            <ul>
+              {% for m in a.members.all %}
+                <li>{% partial member %}</li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+      {% endif %}
+    {% endif %}
+
+    {% if a.org.name == a.organisation %}
     <tr>
-      <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">
-        {% if SITE_ID == 2 or SITE_ID == 5 %}
+      <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;"{% endif %}>
+        {% if SITE_ID == 2 or SITE_ID == 5 or SITE_ID == 4 %}
           {% trans 'Host Organisation' %}
         {% else %}
           {% trans 'Organisation' %}
         {% endif %}
       </th>
       <td>{% if a.org %}
-        {% if user.is_superuser and not export %}
+        {% if user.is_admin and not export %}
           <a href="{% url 'admin:portal_organisation_change' object_id=a.org.pk %}" target="_blank">
-          {{ a.org }}
+            {{ a.org }}
+          </a>
         {% else %}
           {{ a.org }}
         {% endif %}
-
-      {% else %}{{ a.organisation|default:'' }}{% endif %}</td>
-    <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Position' %}</th>
-    <td>{{ a.position|default:'' }}</td>
+        {% else %}{{ a.organisation|default:'' }}{% endif %}
+      </td>
+      <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;"{% endif %}>{% trans 'Position' %}</th>
+      <td>{{ a.position|default:'' }}</td>
     </tr>
+    {% else %}
+
+    <tr>
+      <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">
+        {% trans 'Contact Organisation' %}
+      </th>
+      <td> {{ a.organisation|default:'' }}</td>
+      <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;"{% endif %}>{% trans 'Position' %}</th>
+      <td>{{ a.position|default:'' }}</td>
+    </tr>
+
+    <tr>
+      <th scope="row"{% if not for_pdf_export %} class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;"{% endif %}>
+        {% trans 'Host Organisation' %}
+      </th>
+      <td colspan="3">{% if a.org %}
+        {% if user.is_admin and not export %}
+          <a href="{% url 'admin:portal_organisation_change' object_id=a.org.pk %}" target="_blank">
+            {{ a.org }}
+          </a>
+        {% else %}
+          {{ a.org }}
+        {% endif %}
+        {% else %}{{ a.organisation|default:'' }}{% endif %}
+      </td>
+    </tr>
+    {% endif %}
 
     {% if SITE_ID == 2 or SITE_ID == 5 %}
         <tr>
@@ -142,22 +241,32 @@
           </td>
         </tr>
 
-        {% if a.proposed_start_date or a.requested_amount %}
-          <tr>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">
-              {% trans 'Proposed start date' %}
-            </th>
-            <td>{% if a.proposed_start_date %}
-                {{ a.proposed_start_date }}
-              {% else %}
-                {% trans 'N/A' %}
-              {% endif %}
-            </td>
-            <th class="table-dark" scope="row" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Requested amount' %}</th>
-            <td>{% if a.requested_amount %}{{ a.requested_amount|floatformat:"-3g" }} NZD{% else %}{% trans 'N/A' %}{% endif %}</td>
-          </tr>
+        {% if not member or member.state == "authorized" %}
+          {% if a.proposed_start_date or a.requested_amount or a.proposed_duration %}
+            <tr>
+              <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">
+                {% trans 'Proposed start date' %}
+              </th>
+              <td>{% if a.proposed_start_date %}
+                  {{ a.proposed_start_date }}
+                {% else %}
+                  {% trans 'N/A' %}
+                {% endif %}
+              </td>
+              <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">{% trans 'Requested amount' %}</th>
+              <td>{% if a.requested_amount %}{{ a.requested_amount|floatformat:"-3g" }} NZD{% else %}{% trans 'N/A' %}{% endif %}</td>
+            </tr>
+          {% endif %}
+          {% if a.proposed_duration %}
+            <tr>
+              <th scope="row" class="table-dark" style="width: 21%; min-width: 120px; max-width: 180px;">
+                {% trans 'Proposed contract duration' %}
+              </th>
+              <td colspan="3">{{ a.proposed_duration }}</td>
+          {% endif %}
         {% endif %}
 
+      {% if round.research_experience_in_years_required %}
         <tr>
           <th class="table-dark" scope="row">{% trans 'Years of experience post PhD' %}</th>
           <td colspan="3">
@@ -173,81 +282,106 @@
             {% endif %}
           </td>
         </tr>
+      {% endif %}
 
-        {% if documents.CV or referee and referee.user != user %}
-          <tr>
-            <th class="table-dark" scope="row">{% trans 'Narrative CV' %}</th>
-            <td colspan="3">
-              {% if documents.CV %}
-                <a href="{{ documents.CV.url }}" target="_blank">{{ documents.CV.name|basename }}</a>
-              {% else %}
-                {% trans 'N/A' %}
-              {% endif %}
-            </td>
-          </tr>
-        {% endif %}
+      {% if SITE_ID != 2 or not member or member.state == "authorized" %}
+        {% if user.is_admin and attachments or referee and attachments or member and attachments %}
+            <tr>
+                <th colspan="4" class="table-dark" scope="row">{% trans 'Attached Documents' %}</th>
+            </tr>
+          {% for rd in required_documents %}
+            <tr>
+                <th class="table-secondary" scope="row"><span><span class="badge badge-secondary">{{ forloop.counter }}</span> {{ rd }}</span>{% if rd.is_optional %} (<i>{% trans 'optional' %}</i>){% endif %}</th>
+              <td colspan="3">
+                {% for d in attachments|filter_documents:rd %}
+                  {% if not forloop.first %}, {% endif %}<a href="{{ d.file.url }}" target="_blank">{{ d.file|basename }}</a>
+                  {% if d.converted_file %}
+                    (<a href="{{ d.converted_file.file.url }}" target="_blank">{{ d.converted_file.file|basename }}</a>)
+                  {% endif %}
+                  {% empty %}
+                  {% if rd.is_optional %}{% trans 'N/A' %}{% else %}<span style="color: text-danger">{% trans 'N/A' %}</span>{% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
 
-        {% if documents.HS or referee and referee.user != user %}
-          <tr>
-            <th class="table-dark" scope="row">{% trans 'Host Suitablity' %}</th>
-            <td colspan="3">
-              {% if documents.HS %}
-                <a href="{{ documents.HS.url }}" target="_blank">{{ documents.HS.name|basename }}</a>
-              {% else %}
-                {% trans 'N/A' %}
-              {% endif %}
-            </td>
-          </tr>
-        {% endif %}
+        {% else %}
 
-        {% if documents.B or referee and referee.user != user %}
-          <tr>
-            <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
-            <td colspan="3">
-              {% if documents.B %}
-                <a href="{{ documents.B.url }}" target="_blank">{{ documents.B.name|basename }}</a>
-              {% else %}
-                {% trans 'N/A' %}
-              {% endif %}
-            </td>
-          </tr>
-        {% endif %}
+          {% if documents.CV or referee and referee.user != user %}
+            <tr>
+              <th class="table-dark" scope="row">{% trans 'Narrative CV' %}</th>
+              <td colspan="3">
+                {% if documents.CV %}
+                  <a href="{{ documents.CV.url }}" target="_blank">{{ documents.CV.name|basename }}</a>
+                {% else %}
+                  {% trans 'N/A' %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
 
-        {% if documents.AF or documents.A or referee and referee.user != user %}
-          <tr>
-            <th class="table-dark" scope="row">{% trans 'Proposed research' %}</th>
-            <td colspan="3">
-              {% if documents.AF %}
-                <a href="{{ documents.AF.url }}" target="_blank">{{ documents.AF.name|basename }}</a>
-              {% elif documents.A %}
-                <a href="{{ documents.A.url }}" target="_blank">{{ documents.A.name|basename }}</a>
-              {% else %}
-                {% trans 'N/A' %}
-              {% endif %}
-            </td>
-          </tr>
+          {% if documents.HS or referee and referee.user != user %}
+            <tr>
+              <th class="table-dark" scope="row">{% trans 'Host Suitablity' %}</th>
+              <td colspan="3">
+                {% if documents.HS %}
+                  <a href="{{ documents.HS.url }}" target="_blank">{{ documents.HS.name|basename }}</a>
+                {% else %}
+                  {% trans 'N/A' %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
+
+          {% if documents.B or referee and referee.user != user %}
+            <tr>
+              <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
+              <td colspan="3">
+                {% if documents.B %}
+                  <a href="{{ documents.B.url }}" target="_blank">{{ documents.B.name|basename }}</a>
+                {% else %}
+                  {% trans 'N/A' %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
+
+          {% if documents.AF or documents.A or referee and referee.user != user %}
+            <tr>
+              <th class="table-dark" scope="row">{% trans 'Proposed research' %}</th>
+              <td colspan="3">
+                {% if documents.AF %}
+                  <a href="{{ documents.AF.url }}" target="_blank">{{ documents.AF.name|basename }}</a>
+                {% elif documents.A %}
+                  <a href="{{ documents.A.url }}" target="_blank">{{ documents.A.name|basename }}</a>
+                {% else %}
+                  {% trans 'N/A' %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
         {% endif %}
+      {% endif %}
 
     {% endif %}
 
     <tr>
       <th class="table-dark" scope="row">{% trans 'Postal Address' %}</th>
       <td colspan="3">
-        {{ a.postal_address }}{% if a.city %},<br/>{{a.city}}{% endif %}
-        {% if a.postcode %}, {{a.postcode}} {% endif %}
+        {{ a|html_address }}
       </td>
     </tr>
 
-    {% if a.daytime_phone_number or a.mobile_phone_number %}
+    {% if a.daytime_phone or a.mobile_phone %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Daytime Phone Number' %}</th>
-        <td>{{ a.daytime_phone_number }}</td>
+        <td>{{ a.daytime_phone|default:'-' }}</td>
         <th class="table-dark" scope="row">{% trans 'Mobile Phone Number' %}</th>
-        <td>{{ a.mobile_phone_number }}</td>
+        <td>{{ a.mobile_phone|default:'-' }}</td>
       </tr>
     {% endif %}
 
-    {% if not show_basic_details and not export %}
+    {% if not show_basic_details and not export or member %}
 
       {% if a.summary or a.summary_en or a.summary_mi %}
         {% if a.is_bilingual %}
@@ -276,10 +410,12 @@
 
         {% elif a.summary %}
           <tr>
-            <th class="table-dark" scope="row" colspan="4" style="padding-top: 6px;padding-bottom: 6px;">{% trans 'Summary' %}</th>
+            <th colspan="4" class="table-dark" scope="row" style="padding-top: 6px;padding-bottom: 6px;">{% trans 'Summary' %}</th>
           </tr>
           <tr>
-            <td colspan="4">{{ a.summary|safe }}</td>
+            <td colspan="4">
+            {% if for_pdf_export %}<div style="width: 17cm;">{{ a.summary|safe }}</div>{% else %}{{ a.summary|safe }}{% endif %}
+            </td>
           </tr>
         {% endif %}
 
@@ -326,11 +462,19 @@
             </td>
           </tr>
         {% endif %}
+        {% if a.budget %}
+          {% if u.is_admin or is_panellist %}
+            <tr>
+              <th class="table-dark" scope="row">{% trans 'Budget' %}</th>
+              <td colspan="3"><a href="{{ a.budget.url }}" target="_blank"> {{ a.budget.name|basename }} </a></td>
+            </tr>
+          {% endif %}
+        {% endif %}
       {% endif %}
 
     {% endif %}
 
-    {% if user.is_staff or user.is_superuser %}
+    {% if user.is_admin %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Photo Identity' %}</th>
         <td colspan="3">
@@ -360,22 +504,24 @@
     {% endif %}
     {#% if nominator or user.is_superuser or user.is_site_staff or a|can_edit:user %#}
 
-    {% if nominator or  a|can_edit:user %}
-	  {% with nomination=a.nomination %}
-		{% if nomination %}
-		  <tr>
-			<th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
-			<td colspan="3">
-			  <a href="{% url 'nomination-detail' pk=nomination.pk %}" target="_blank">
-				{{ nomination }}
-			  </a>
-			</td>
-		  </tr>
-		{% endif %}
-	  {% endwith %}
+    {% if not export and not for_pdf_export and a.site_id != 2 %}
+      {% if nominator or  a|can_edit:user %}
+        {% with nomination=a.nomination %}
+          {% if nomination %}
+            <tr>
+            <th class="table-dark" scope="row">{% trans 'Nomination' %}</th>
+            <td colspan="3">
+              <a href="{% url 'nomination-detail' pk=nomination.pk %}" target="_blank">
+                {{ nomination }}
+              </a>
+            </td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
     {% endif %}
 
-    {% if SITE_ID != 2 or SITE_ID != 5 or not is_ro or user.is_superuser %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
+    {% if SITE_ID != 2 or SITE_ID != 5 or not is_ro or user.is_admin %}{% if a.round.has_referees and a.referees.count and a|can_see_referees:u %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Referees' %}</th>
         <td colspan="3">
@@ -394,11 +540,26 @@
       </tr>
     {% endif %}{% endif %}
 
+    {% if a.priority_list %}
+      <tr>
+        <th class="table-dark" scope="row">
+          {% if a.priority_list|length > 1 %}
+            {% trans 'Research Priorities' %}
+          {% else %}
+            {% trans 'Research Priority' %}
+          {% endif %}
+        </th>
+        <td colspan="3">
+          {% for p in a.priority_list %}{% if not forloop.first %}, {% endif %}{{ p }}{% endfor %}
+        </td>
+      </tr>
+    {% endif %}
+
     {% if a.round.has_seos and a.application_seos.count > 0 %}
       <tr>
         <th class="table-dark" scope="row">{% trans 'Socio-Economic Objective(s)' %}</th>
         <td colspan="3">
-          <table class="table table-striped table-bordered">
+          <table{% if not for_pdf_export %} class="table table-striped table-bordered"{% endif %}>
             <tr>
               <th>Socio-Economic Objective</th>
               <th>Share</th>
@@ -497,5 +658,27 @@
       </tr>
     {% endif %}
 
+    {#% if (request.user.is_staff or request.user.is_superuser or request.user.is_site_staff) and c.org.research_offices.exists() %#}
+    {% if u.is_admin %}
+      {% if not for_pdf_export and not export %}
+        {% with research_officers=a.research_officers %}
+          {% if research_officers %}
+            <tr>
+              <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                {% trans 'Research Office' %}
+              </th>
+              <td colspan="3">
+                {% for ro in research_officers %}
+                  {{ ro.full_name_with_email }}
+                  {% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
+    {% endif %}
+
   </tbody>
 </table>
+{# vim:set ft=htmldjango: #}

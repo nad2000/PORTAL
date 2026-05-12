@@ -1,3 +1,5 @@
+import asyncio
+import csv
 import io
 import json
 import mimetypes
@@ -8,20 +10,24 @@ import traceback
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
-from urllib.parse import quote, urljoin
+from itertools import groupby
+from pathlib import Path
+from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 import django.utils.translation
 import django_tables2
 import jinja2
-import py7zr
+import requests
 import rispy
 import tablib
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialApp
+from asgiref.sync import sync_to_async
+from constance import config
 from crispy_forms import bootstrap, layout
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column, Field, Fieldset, Layout, Row
+from crispy_forms.layout import Column, Field, Layout, Row
 from dal import autocomplete, forward
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -35,11 +41,14 @@ from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
 )
+from django.contrib.contenttypes.forms import generic_inlineformset_factory
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.flatpages.models import FlatPage
-from django.contrib.flatpages.views import flatpage
+from django.contrib.flatpages.views import flatpage, render_flatpage
 from django.contrib.gis.geoip2 import GeoIP2
 from django.contrib.sites.models import Site
+from django.contrib.sites.shortcuts import get_current_site
+from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
@@ -52,6 +61,7 @@ from django.db.models import (
     F,
     FilteredRelation,
     Func,
+    Max,
     Min,
     OuterRef,
     Prefetch,
@@ -81,6 +91,8 @@ from django.forms import (
 )
 from django.forms import models as model_forms
 from django.forms import widgets
+
+# from file_resubmit.widgets import ResubmitFileWidget
 from django.http import (
     FileResponse,
     Http404,
@@ -91,6 +103,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.template.loader import get_template
+from django.urls import NoReverseMatch
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.decorators import method_decorator
@@ -99,6 +112,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, FormView, TemplateView
@@ -109,6 +124,7 @@ from django_select2 import forms as s2forms
 from django_summernote.widgets import SummernoteInplaceWidget
 from django_tables2 import SingleTableMixin, SingleTableView
 from django_tables2.export import ExportMixin
+from easyaudit.models import CRUDEvent
 from extra_views import (
     CreateWithInlinesView,
     InlineFormSetFactory,
@@ -116,7 +132,11 @@ from extra_views import (
     UpdateWithInlinesView,
 )
 from geopy.geocoders import Nominatim
-from private_storage.views import PrivateStorageDetailView
+from limesurveyrc2api.exceptions import LimeSurveyError
+from multisite.models import Alias
+from private_storage.views import PrivateStorageDetailView, PrivateStorageView
+
+# from private_storage.models import PrivateFile
 from pypdf import PdfMerger, PdfReader, PdfWriter
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import (
@@ -126,7 +146,10 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
+from taggit.models import TaggedItem
 from weasyprint import HTML
+
+from common.models import archive_storage
 
 from . import filters, forms, models, tables
 from .forms import Submit
@@ -142,6 +165,268 @@ from .utils.orcid import OrcidHelper
 def __(s):
     """Temporarily disable 'gettex'"""
     return s
+
+
+def portal_context(request):
+    view_name = (rm := request.resolver_match) and rm.view_name
+    site_id = request.site_id if hasattr(request, "site_id") else settings.SITE_ID
+    request.site = site = get_current_site(request)
+    domain = site.domain
+    context = {
+        "settings": settings,
+        "view_name": view_name,
+        "domain": domain,
+        "site_name": site.name,
+        "SITE_ID": site_id,
+        "disable_breadcrumbs": not view_name
+        or view_name in ["index", "home"],  # , "account_login", "account_signup"],
+    }
+
+    if (u := request.user) and u.is_authenticated:
+        filters = request.GET.get("application_filter", "")
+        # cache_key = f"{u.username}:{site_id}:{filters}"
+        cache_key = f"{0 if u.is_admin else u.username}:{site_id}"
+        cache_control = request.META.get("HTTP_CACHE_CONTROL")
+        if not (has_refreshed := (cache_control == "max-age=0" or cache_control == "no-cache")):
+            cached_context = cache.get(cache_key)
+        if has_refreshed or not cached_context or view_name == "start":
+            is_ro = u.research_offices.exists() and not (u.is_superuser or u.is_site_staff)
+            is_staff = u.is_staff or u.staff_of_sites.filter(id=site_id).exists()
+            score_sheet_count = models.ScoreSheet.user_score_sheet_count(u)
+            counts = {
+                s: c for s, c in models.Application.user_application_counts(u, request=request)
+            }
+            # application_draft_count = models.Application.user_application_count(
+            #     u, ["draft", "new"]
+            # )
+            application_draft_count = counts.get("draft", 0) + counts.get("new", 0)
+            # application_submitted_count = models.Application.user_application_count(
+            #     u,
+            #     ["submitted", "cancelled"]
+            #     if site_id == 4 and (is_staff or u.is_superuser)
+            #     else ["submitted", "approved", "cancelled"],
+            # )
+            application_submitted_count = counts.get("submitted", 0) + counts.get("canceled", 0)
+            application_in_review_count = counts.get("in_review", 0)
+            if (
+                site_id not in [2, 4, 5] or (not is_staff and not u.is_superuser)
+            ) and "approved" in counts:
+                application_submitted_count += counts["approved"]
+            application_accepted_count = counts.get("accepted", 0)
+            # application_accepted_count = models.Application.user_application_count(u, ["accepted"])
+            # application_funded_count = models.Application.user_application_count(u, ["funded"])
+            application_funded_count = counts.get("funded", 0)
+            # outstanding_testimonial_requests = list(models.Referee.outstanding_requests(u))
+            application_count = (
+                application_draft_count
+                + application_submitted_count
+                + application_accepted_count
+                + application_funded_count
+                + application_in_review_count
+            )
+            counts = {
+                s: c
+                for s, c in models.Nomination.user_nomination_counts(
+                    u, request=request, exclude_states=["bounced", "sent", "withdrawn"]
+                )
+            }
+            counts = {
+                "total": sum(counts.values()),
+                **{
+                    s: counts.get(s, 0)
+                    for (s, _) in models.Nomination.STATES
+                    if s not in ["bounced", "sent", "withdrawn"]
+                },
+            }
+            nomination_counts = counts
+            cached_context = {
+                "is_staff": is_staff,
+                "is_site_staff": is_staff,
+                "is_admin": is_staff or u.is_superuser,
+                "three_days_ago": timezone.now() - timedelta(days=3),
+                "application_draft_count": application_draft_count,
+                "application_submitted_count": application_submitted_count,
+                "application_accepted_count": application_accepted_count,
+                "application_funded_count": application_funded_count,
+                "nomination_counts": nomination_counts,
+                "nomination_count": nomination_counts.get("total", 0),
+                "nomination_draft_count": nomination_counts.get("new", 0)
+                + nomination_counts.get("draft", 0),
+                "nomination_submitted_count": nomination_counts.get("submitted", 0),
+                "nomination_accepted_count": nomination_counts.get("accepted", 0),
+                "testimonial_count": models.Testimonial.user_testimonial_count(u),
+                "testimonial_draft_count": models.Testimonial.user_testimonial_count(u, "draft"),
+                "testimonial_submitted_count": models.Testimonial.user_testimonial_count(
+                    u, "submitted"
+                ),
+                "review_count": models.Evaluation.user_evaluation_count(u) + score_sheet_count,
+                "review_draft_count": models.Evaluation.user_evaluation_count(u, "draft"),
+                "review_submitted_count": models.Evaluation.user_evaluation_count(u, "submitted"),
+                "score_sheet_count": score_sheet_count,
+                "is_ro": is_ro,
+            }
+            if site_id in [2, 5]:
+                cached_context["application_in_review_count"] = application_in_review_count
+            if site_id in [2, 4, 5] and (is_staff or u.is_superuser):
+                application_approved_count = models.Application.user_application_count(
+                    u, "approved", request=request
+                )
+                cached_context["application_approved_count"] = application_approved_count
+                application_count += application_approved_count
+            cached_context["application_count"] = application_count
+
+            # if u.is_superuser or is_staff:
+            #     cached_context["contract_count"] = models.Contract.objects.count()
+            # else:
+            #     cached_context["contract_count"] = models.Contract.where(Q(members__user=u) | Q(org__research_offices__user=u)).distinct().count()
+
+            counts = {s: c for s, c in models.Report.user_object_counts(u, request=request)}
+            # counts = {
+            #     "total": sum(counts.values()),
+            #     **{s: counts.get(s, 0) for (s, _) in models.Report.STATES},
+            # }
+            counts["total"] = sum(counts.values())
+            cached_context["report_counts"] = counts
+
+            counts = [
+                (s, c, models.Contract.STATES[s])
+                for s, c in models.Contract.user_object_counts(u, request=request)
+            ]
+            total = sum(i[1] for i in counts)
+            counts.append(("total", total, gettext_lazy("Total")))
+            cached_context["contract_counts"] = counts
+            cached_context["contract_count"] = total
+
+            if is_ro or u.is_superuser or is_staff:
+                counts = [
+                    (s, c, models.ChangeRequest.STATES[s])
+                    for s, c in models.ChangeRequest.user_object_counts(u, request=request)
+                ]
+                total = sum(i[1] for i in counts)
+                counts.append(("total", total, gettext_lazy("Total")))
+                cached_context["change_request_counts"] = counts
+                cached_context["change_request_count"] = total
+
+            # if outstanding_testimonial_requests:
+            #     cached_context["outstanding_testimonial_requests"] = outstanding_testimonial_requests
+            if not (u.is_superuser or is_staff):
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT
+                            EXISTS(SELECT 1 FROM referee WHERE user_id=%s) AS has_testimonials,
+                            EXISTS(SELECT 1 FROM panellist WHERE user_id=%s) AS has_reviews,
+                            EXISTS(SELECT 1 FROM nomination WHERE nominator_id=%s) AS has_nominations;
+                            """,
+                        [u.id, u.id, u.id],
+                    )
+                    row = cursor.fetchone()
+                cached_context["has_testimonials"] = row[0]
+                cached_context["has_reviews"] = row[1]
+                cached_context["has_nominations"] = row[2]
+            is_canonical = domain == request.get_host()
+            schema = "https" if request.is_secure() else "http"
+            port = request.get_port()
+            port = "" if port in [80, 433] else f":{port}"
+            if request.user.is_superuser:
+                cached_context["all_sites"] = [
+                    dict(
+                        site_id=a.site_id,
+                        domain=(
+                            a.site.domain.encode().decode("idna")
+                            if a.site.domain.startswith("xn--")
+                            else a.site.domain
+                        ),
+                        name=a.site.name,
+                        url=f"{schema}://{a.domain}{'' if ':' in a.domain else port}",
+                        is_current=a.site_id == site_id,
+                    )
+                    for a in Alias.objects.filter(
+                        (
+                            Q(is_canonical=True)
+                            if is_canonical
+                            else (~Q(is_canonical=True) | Q(is_canonical__isnull=True))
+                        ),
+                        Q(
+                            id__in=Subquery(
+                                Alias.objects.filter(
+                                    (
+                                        Q(is_canonical=True)
+                                        if is_canonical
+                                        else (~Q(is_canonical=True) | Q(is_canonical__isnull=True))
+                                    ),
+                                )
+                                .values("site_id")
+                                .annotate(max_id=Max("id"))
+                                .values("max_id")
+                            )
+                        ),
+                    )
+                ]
+                cached_context["filter_disabled"] = not (
+                    u.is_superuser
+                    or is_ro
+                    or u.is_site_staff
+                    or models.ConflictOfInterest.where(
+                        panellist__user=u,
+                        has_conflict=False,
+                        panellist__round__schema__current_round=F("panellist__round"),
+                    ).exists()
+                )
+                if site_id in [2, 4, 5] and (u.is_superuser or u.is_site_staff):
+                    cached_context["LIMESURVEY_ADMIN_URL"] = (
+                        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+                    )
+            cached_context["has_profile"] = models.Person.where(user=u).exists()
+            cache.set(cache_key, cached_context)
+        context.update(cached_context)
+    return context
+
+
+def natural_item_list(items):
+    if not items:
+        return _("N/A")
+    if not isinstance(items, (list, tuple)):
+        items = list(items)
+    count = len(items)
+    if not count:
+        return _("N/A")
+    if count == 1:
+        return items[0]
+    conjunction = gettext_lazy("and ")
+    if count == 2:
+        return f" {conjunction} ".join(items)
+    return f"{', '.join(items[:-1])}, {conjunction} {items[-1]}"
+
+
+def route_exists(url_name, *args, **kwargs):
+    try:
+        reverse(url_name, args=args, kwargs=kwargs)
+        return True
+    except NoReverseMatch:
+        return False
+
+
+def check_selected_orgs(request):
+    """Notify the user of updated org names."""
+    selected_orgs = request.POST.getlist("selected_org_with_label", [])
+    selected_orgs = filter(
+        lambda t: t[1] and t[0].isdigit() and t[1].strip(),
+        (v.split(":", 1) for v in selected_orgs),
+    )
+    if selected_orgs:
+        selected_orgs = dict((lambda k, v: (int(k), v))(*v) for v in selected_orgs)
+        qs = models.Organisation.where(
+            ~Q(name__in=selected_orgs.values()), pk__in=selected_orgs.keys()
+        )
+        for o in qs:
+            old_name, new_name = selected_orgs[o.pk], o.name
+            messages.warning(
+                request,
+                _(
+                    f"The selected institution name '{old_name}' was replaced and updated with the up-to-date name: '{new_name}'."
+                ),
+            )
 
 
 def reset_cache(request):
@@ -222,7 +507,94 @@ def about(request):
     return render(request, "pages/about.html", locals())
 
 
-@user_passes_test(lambda u: u.is_superuser or u.is_staff or u.is_site_staff)
+def check_url_exists(url):
+    try:
+        # Use HEAD to avoid downloading the body
+        response = requests.head(url, allow_redirects=True, timeout=3)
+        # 200-299 status codes indicate success
+        return response.status_code == 200
+    except requests.RequestException:
+        # Returns False if connection fails or times out
+        return False
+
+
+@cache_page(60)
+def guidelines(request, code, year, role=None):
+    if (
+        not year.isnumeric()
+        or int(year) < 2000
+        or int(year) > timezone.now().year + 1
+        or not models.Scheme.where(code=code).exists()
+    ):
+        messages.error(request, _("The requested guidelines are not available."))
+        return redirect("about")
+
+    lang = request.LANGUAGE_CODE
+    url = f"/guidelines/{year}/{code}"
+    site_id = request.site_id
+    if role:
+        if fp := (
+            FlatPage.objects.filter(url=f"/{lang or 'en'}{url}/{role}", sites=site_id).first()
+            or FlatPage.objects.filter(url=f"{url}/{role}", sites=site_id).first()
+        ):
+            return render_flatpage(request, fp)
+
+    r = models.Round.where(scheme__code=code, opens_on__year=year).first()
+    if r:
+        if role:
+            if role == "applicant":
+                url = r.get_applicant_guidelines()
+            elif role == "referee":
+                url = r.get_referee_guidelines()
+            elif role == "panellist":
+                url = r.get_panellist_guidelines()
+            if url and check_url_exists(url):
+                return redirect(url)
+
+    if fp := (
+        FlatPage.objects.filter(url=f"/{lang or 'en'}{url}", sites=site_id).first()
+        or FlatPage.objects.filter(url=f"{url}", sites=site_id).first()
+    ):
+        return render_flatpage(request, fp)
+
+    if r and (url := r.get_guidelines()):
+        if check_url_exists(url):
+            return redirect(url)
+
+    if u := request.user.is_authenticated and request.user or None:
+        message = (f"Guidelines requested by {u} are missing: {request.path} missing...",)
+    else:
+        message = f"Guidelines requested by anonymous user are missing: {request.path} missing..."
+    recipients = [u.email for u in User.where(is_active=True, staff_of_sites__id=site_id)] or [
+        u.email for u in User.where(is_superuser=True, is_active=True)
+    ]
+    models.async_task(
+        send_mail,
+        site=site_id,
+        subject=f"Guidelines request for {request.path} missing...",
+        message=message,
+        recipients=recipients,
+    )
+
+    messages.error(request, _("The requested guidelines are not available at the moment."))
+    return redirect("about")
+
+
+@user_passes_test(lambda u: u.is_authenticated and u.is_admin)
+def guideline_list(request, year=None):
+    if year:
+        rounds = models.Round.where(opens_on__year=year).order_by("scheme__code")
+    else:
+        rounds = models.Round.where(scheme__current_round=F("pk")).order_by(
+            "opens_on", "scheme__code"
+        )
+        guidelines = {
+            y: list(rounds) for (y, rounds) in groupby(rounds, lambda r: r.opens_on.year)
+        }
+    return render(request, "guideline_list.html", locals())
+
+
+@user_passes_test(lambda u: u.is_authenticated and u.is_admin)
 def pyinfo(request, message=None):
     """Show Python and runtime environment and settings or test exception handling."""
     if message:
@@ -236,6 +608,41 @@ def pyinfo(request, message=None):
     return render(request, "pyinfo.html", info)
 
 
+@user_passes_test(lambda u: u.is_admin)
+def tags(request, tag_name=None):
+    if tag_name:
+        tag = get_object_or_404(models.Tag, name__iexact=tag_name)
+        # tagged_items = TaggedItem.objects.filter(tag=tag_name)
+        tagged_items = tag.taggit_taggeditem_items.all()
+
+    # tags = TaggedItem.objects.annotate(name=F("tag__name")).values("name").annotate(count=Count("pk")).order_by("-count")
+    # tags = (
+    #     TaggedItem.objects.annotate(name=F("tag__name"), slug=F("tag__slug"))
+    #     .values("name", "slug")
+    #     .annotate(count=Count("pk"))
+    #     .order_by("name")
+    # )
+    tags = (
+        models.Tag.objects.values("name", "slug")
+        .annotate(count=Count("taggit_taggeditem_items"))
+        .order_by("name")
+    )
+    return render(request, "tags.html", locals())
+
+
+@login_required
+def favorites(request):
+    # tags = TaggedItem.objects.annotate(name=F("tag__name")).values("name").annotate(count=Count("pk")).order_by("-count")
+    # tags = (
+    #     TaggedItem.objects.annotate(name=F("tag__name"), slug=F("tag__slug"))
+    #     .values("name", "slug")
+    #     .annotate(count=Count("pk"))
+    #     .order_by("name")
+    # )
+    favorites = models.Favorite.objects.filter(user=request.user)
+    return render(request, "favorites.html", locals())
+
+
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def impersonate(request, username):
@@ -246,11 +653,17 @@ def impersonate(request, username):
     ):
         username = m[1]
     u = User.objects.filter(
-        Q(username__istartswith=username) | Q(email__istartswith=username)
+        Q(username__istartswith=username)
+        | Q(email__istartswith=username)
+        | Q(emailaddress__email__istartswith=username)
     ).first()
-    resp = redirect("start")
-    if request.user.pk != u.pk:
-        resp.set_cookie("original_user_id", request.user.pk, max_age=36000, secure=True)
+    resp = redirect(request.META.get("HTTP_REFERER") or "start")
+    if not u:
+        messages.warning(
+            request, _(f"A user matching the entered parameter '{username}' does not exist!")
+        )
+    elif request.user.pk != u.pk:
+        resp.set_cookie("previous_user_id", request.user.pk, max_age=36000, secure=True)
         log_rec = models.Impersonation.create(user=request.user, impersonated=u)
         login(request, u, backend="django.contrib.auth.backends.ModelBackend")
         messages.info(request, _(f"The 'impersonation' recoded at {log_rec.impersonated_at}."))
@@ -260,12 +673,21 @@ def impersonate(request, username):
 @login_required
 def switch_back(request):
     resp = redirect(request.META.get("HTTP_REFERER") or "start")
-    if pk := request.COOKIES.get("original_user_id"):
-        del request.COOKIES["original_user_id"]
-        resp.delete_cookie("original_user_id")
+    if pk := request.COOKIES.get("previous_user_id"):
         u = User.get(pk=pk)
         if request.user.pk != u.pk:
+            resp.set_cookie("previous_user_id", request.user.pk, max_age=36000, secure=True)
             login(request, u, backend="django.contrib.auth.backends.ModelBackend")
+            log_rec = models.Impersonation.create(user=request.user, impersonated=u)
+            messages.info(
+                request,
+                _(
+                    f"You switched back to {u}. The 'impersonation' recoded at {log_rec.impersonated_at}."
+                ),
+            )
+        else:
+            del request.COOKIES["previous_user_id"]
+            resp.delete_cookie("previous_user_id")
     return resp
 
 
@@ -280,6 +702,11 @@ def shoud_be_onboarded(function):
     @wraps(function)
     def wrap(request, *args, **kwargs):
         user = request.user
+        if not user.is_authenticated or user.is_anonymous:
+            return redirect(
+                reverse(settings.LOGIN_URL) + "?next=" + quote(request.get_full_path())
+            )
+
         person = Person.where(user=user).last()
         if not person or request.session.get("wizard") or ("wizard-views" in request.session):
             wizard_views = request.session.get("wizard-views")
@@ -334,6 +761,8 @@ def shoud_be_onboarded(function):
 @login_required
 def logout(request):
     account_logout = reverse("account_logout")
+    if "previous_user_id" in request.COOKIES:
+        del request.COOKIES["previous_user_id"]
 
     if request.user.has_rapidconnect_account:
         return_url = request.build_absolute_uri(account_logout)
@@ -347,9 +776,11 @@ def logout(request):
             resp = redirect(f"{settings.RAPIDCONNECT_LOGOUT}?return={return_url}")
         # Add delete session before rediction - force 'logout' - an ugly workaround:
         resp.delete_cookie("sessionid")
-        return resp
+    else:
+        resp = redirect(account_logout)
 
-    return redirect(account_logout)
+    resp.delete_cookie("previous_user_id")
+    return resp
 
 
 def should_be_approved(function):
@@ -373,6 +804,31 @@ def should_be_approved(function):
         return function(request, *args, **kwargs)
 
     return wrap
+
+
+class ArchivalPrivateStorageView(PrivateStorageView):
+    """A view to serve files from the archival storage."""
+
+    storage = archive_storage
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handle incoming GET requests
+        """
+        private_file = self.get_private_file()
+
+        if not self.can_access_file(private_file):
+            raise PermissionDenied(self.permission_denied_message)
+
+        storage = self.storage
+        if storage.exists_locally(private_file.relative_name):
+            return self.serve_file(private_file)
+
+        if storage.exists_in_archive(private_file.relative_name):
+            storage.retrieve_from_archive(private_file.relative_name)
+            return self.serve_file(private_file)
+
+        return self.serve_file_not_found(private_file)
 
 
 class AdminRequiredMixin(AccessMixin):
@@ -416,7 +872,15 @@ class StateInPathMixin:
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         if state := self.state:
-            if self.model is models.Contract:
+            if hasattr(self.model, "user_objects"):
+                return self.model.user_objects(
+                    user=self.request.user,
+                    state=state,
+                    round=self.request.GET.get("round"),
+                    request=self.request,
+                    queryset=queryset,
+                )
+            elif self.model is models.Contract:
                 if state == "draft":
                     queryset = queryset.filter(state__in=["draft", "new"])
                 else:
@@ -447,6 +911,8 @@ class StateInPathMixin:
                     queryset = queryset.filter(state__in=["draft", "new"])
                 elif state in ["accepted", "funded", "in_review"]:
                     queryset = queryset.filter(state=state)
+                elif state == "new":
+                    queryset = queryset.filter(state=state)
                 else:
                     # queryset = queryset.filter(state=state)
                     u = self.request.user
@@ -462,6 +928,121 @@ class StateInPathMixin:
                             state__in=["submitted", "approved", "cancelled"]
                         )
         return queryset
+
+
+class FavoriteMixin:
+
+    def put(self, request, *args, **kwargs):
+        obj = self.get_object()
+        content_type = ContentType.objects.get_for_model(self.model)
+        favorite, is_favorited = models.Favorite.objects.get_or_create(
+            user=request.user,
+            content_type=content_type,
+            object_id=obj.pk,
+        )
+        if not is_favorited:
+            favorite.delete()
+        object_id = obj.pk
+        with_class_name = request.GET.get("with_class_name", False)
+        # context = {
+        #     "is_favorited": is_favorited,
+        #     "object_id": obj.pk,
+        #     # "content_type_id": content_type_id,
+        #     # You might also want to pass the count of favorites
+        # }
+        # return render(request, "snippets/favorite_button.html", locals())
+        # return HttpResponse(
+        #     render_to_string("snippets/favorite_button.html", context, request=request)
+        # )
+
+        if request.GET.get("with_class_name", False):
+            return HttpResponse(f"""
+              <i id="favorite-status-{ obj.calss_name }-{ object_id }"
+              class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
+              </i>
+            """)
+        return HttpResponse(f"""
+          <i id="favorite-status-{ object_id }"
+          class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
+          </i>
+        """)
+
+
+class NotesMixin:
+
+    def get_notes_formset(self):
+
+        u = self.request.user
+        fsc = generic_inlineformset_factory(
+            models.Note,
+            fields=("content",),
+            extra=1,
+            can_order=False,
+            can_delete=True,
+            can_delete_extra=True,
+        )
+        if self.object and self.object.id:
+            fs = fsc(
+                self.request.POST or None,
+                instance=self.object,
+                queryset=models.Note.objects.filter(
+                    content_type=ContentType.objects.get_for_model(self.model),
+                    object_id=self.object.id,
+                ),
+                prefix="notes",
+            )
+            for f in fs.forms:
+                i = f.instance
+                content_field = f.fields["content"]
+                if f.instance and f.instance.pk:
+                    content_field.widget.attrs["rows"] = max(
+                        (i.content and f.instance.content.count("\n") + 1) or 3, 3
+                    )
+                    if i.author:
+                        if i.author != u:
+                            content_field.widget.attrs["readonly"] = True
+                        if i.created_at:
+                            content_field.help_text = _("Added on %s by %s") % (
+                                i.created_at.strftime("%Y-%m-%d %H:%M"),
+                                i.author,
+                            )
+                        else:
+                            content_field.help_text = _("Added by %s") % i.author
+                else:
+                    content_field.widget.attrs["rows"] = 3
+
+        else:
+            fs = fsc(
+                self.request.POST or None, queryset=models.Note.objects.none(), prefix="notes"
+            )
+        return fs
+        # class NoteInline(GenericTabularInline):
+
+    def get_context_data(self, **kwargs):
+        if not (context := getattr(self, "context", None)):
+            context = super().get_context_data(**kwargs)
+            self.context = context
+        u = self.request.user
+        if u.is_admin:
+            context["is_admin"] = True
+            context["notes"] = self.get_notes_formset()
+        return context
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        if not (context := getattr(self, "context", None)):
+            context = self.get_context_data()
+        u = self.request.user
+        if u.is_admin and (notes := context.get("notes")):
+            if not notes.instance or not notes.instance.pk:
+                notes.instance = a
+
+            for f in notes.forms:
+                if f.instance and not f.instance.pk and not f.instance.author:
+                    f.instance.author = u
+            if notes.is_valid():
+                notes.save()
+        return resp
 
 
 class AccountView(LoginRequiredMixin, TemplateView):
@@ -521,8 +1102,14 @@ class SingleObjectMixin(ContextMixin):
     slug_field = "number"
     slug_url_kwarg = "number"
     pk_url_kwarg = "pk"
+    model = None
 
     _obj = None
+
+    def get_object_filter(self, value):
+        if isinstance(value, int) or value.isnumeric():
+            return {"pk": int(value)}
+        return {self.get_slug_field(): value}
 
     def get_object(self, queryset=None):
         if not self.request.user.is_authenticated:
@@ -531,21 +1118,31 @@ class SingleObjectMixin(ContextMixin):
         if self._obj:
             return self._obj
 
-        if queryset is None:
-            queryset = self.get_queryset()
+        if model := self.model:
+            if queryset is None:
+                queryset = self.get_queryset()
+        elif model_name := self.kwargs.get("model"):
+            app_name = self.kwargs.get("app", "portal")
+            try:
+                model = apps.get_model(app_label=app_name, model_name=model_name)
+            except LookupError:
+                raise Http404("Model not found")
+            else:
+                queryset = self.get_queryset(
+                    queryset=getattr(model, "all_objects", model.objects.all)()
+                )
+        else:
+            raise Http404("Model not specified")
 
         obj_id = self.kwargs.get(self.pk_url_kwarg) or self.kwargs.get(self.slug_url_kwarg)
-        slug_field = self.get_slug_field()
         if obj_id is not None:
-            if isinstance(obj_id, int) or obj_id.isnumeric():
-                queryset = queryset.filter(pk=int(obj_id))
-            else:
-                queryset = queryset.filter(Q(**{slug_field: obj_id}))
+            queryset = queryset.filter(Q(**self.get_object_filter(obj_id)))
 
         try:
             # Get the single item from the filtered queryset
             obj = queryset.first()
-            if not obj:
+            if not obj and modal == models.Application:
+                slug_field = self.get_slug_field()
                 an = get_object_or_404(models.ApplicationNumber, **{slug_field: obj_id})
                 obj = an.application
         except queryset.model.DoesNotExist:
@@ -563,24 +1160,57 @@ class SingleObjectMixin(ContextMixin):
 
 
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
+
+    context_object_name = "object"
     template_name = "detail.html"
+    cache_timeout = int(getattr(settings, "CACHE_TIMEOUT", 60))
+
+    def get_cache_timeout(self):
+        return self.cache_timeout
+
+    @property
+    def key_prefix(self):
+        u = self.request.user
+        return f"{u.is_admin or u.pk}"
+
+    # TODO:  make more managable
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == "GET" and request.user.is_authenticated:
+            return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
+                super().dispatch
+            )(request, *args, **kwargs)
+        resp = super().dispatch(request, *args, **kwargs)
+        return resp
 
     def get_transitions(self):
         model_name = self.object._meta.model_name
 
         def button_name(transition):
-            if hasattr(transition, "custom") and "button_name" in transition.custom:
-                return transition.custom["button_name"]
+            if hasattr(transition, "custom") and (
+                name := transition.custom.get("button_name") or transition.custom.get("verbose")
+            ):
+                return mark_safe(name)
             else:
                 # Make the function name the button title, but prettier
                 return "{0} {1}".format(transition.name.replace("_", " "), model_name).title()
 
+        def button_tooltip(obj, transition):
+            if hasattr(transition, "custom") and (
+                name := transition.custom.get("verbose") or transition.custom.get("button_name")
+            ):
+                return mark_safe(f"{name} {obj}")
+            else:
+                # Make the function name the button title, but prettier
+                return mark_safe(
+                    "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
+                )
+
         if not getattr(self, "object", None):
             self.object = self.get_object()
         return [
-            (t.name, button_name(t))
+            (t.name, button_name(t), button_tooltip(self.object, t))
             for t in self.object.get_available_user_state_transitions(self.request.user)
-            if t.name not in ["save_draft"]
+            if t.name not in ["save_draft"] and t.custom.get("internal") is not True
         ]
 
     def tag_form(self, *args, **kwargs):
@@ -631,23 +1261,23 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         CommentForm = modelform_factory(
             self.model.comments.rel.model,
             form=forms.CommentForm,
-            fields=["comment", "attachment"],
+            fields=(
+                ["host_contact_email", "comment", "attachment"]
+                if hasattr(self.model, "host_contact_email")
+                else ["comment", "attachment"]
+            ),
             exclude=["report", "token", "contract", "change_request", "object"],
         )
         return CommentForm(
-            self.request.POST or None, self.request.FILES or None, instance=self.object
+            self.request.POST or None,
+            self.request.FILES or None,
+            instance=self.object,
+            prefix="comment",
+            initial={
+                "host_contact_email": getattr(self.object, "host_contact_email", None)
+                or getattr(self.object, "host_contact", "")
+            },
         )
-        # model,
-        # form=ModelForm,
-        # fields=None,
-        # exclude=None,
-        # formfield_callback=None,
-        # widgets=None,
-        # localized_fields=None,
-        # labels=None,
-        # help_texts=None,
-        # error_messages=None,
-        # field_classes=None,
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -662,17 +1292,18 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{model_name_slug}-export"
         u = self.request.user
-        if u.is_superuser or u.is_site_staff:
+        context["is_admin"] = u.is_admin
+        if u.is_admin:
             context["can_edit"] = True
-
-        # if hasattr(self.model, "tags"):
-        #     context["tag_form"] = self.tag_form()
+            if hasattr(self.model, "tags"):
+                context["tag_form"] = self.tag_form()
 
         if hasattr(self.model, "comments"):
             context["has_comments"] = True
             context["comments"] = self.object.comments.all()
             context["attachments"] = self.object.attached_files
             context["comment_form"] = self.get_comment_form()
+            context["tabbed_ui"] = True
 
         if hasattr(self.model, "state") and self.object.state != "archived":
             context["transitions"] = self.get_transitions()
@@ -691,9 +1322,12 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             body = body.strip()
 
         i = self.object
-        c = i.contract
+        if self.model is models.Contract:
+            c = i
+        elif self.model is models.Report or self.model is models.ChangeRequest:
+            c = i.contract
         u = request.user
-        is_ro = c.org.research_offices.filter(user=u).exists()
+        is_ro = u.is_ro
         recipients = i.host_recipients if is_ro else i.agency_recipients
 
         if body or attachment:
@@ -703,6 +1337,14 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                 attachment=attachment,
                 token=token,
             )
+            if (
+                "host_contact_email" in form.changed_data
+                and hasattr(i, "host_contact_email")
+                and (host_contact_email := form.cleaned_data.get("host_contact_email", None))
+                and i.host_contact_email != host_contact_email
+            ):
+                i.host_contact_email = host_contact_email
+                i.save()
 
             i.comments.add(
                 comment,
@@ -715,7 +1357,9 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             html_message += f'<hr/>To respond to this message, please, click here: <a href="{respond_url}">REPLY</a>'
             send_mail(
                 request=self.request,
-                from_email="variations",
+                from_email=(
+                    "variations" if self.model is models.ChangeRequest else f"{i.model_name}s"
+                ),
                 subject=f"Comment posted by {u.full_name_with_email} to {i}",
                 html_message=html_message,
                 cc=[u.full_email_address],
@@ -745,41 +1389,110 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             return redirect(request.path.split("#")[0] + "#correspondence")
 
     def post(self, request, *args, **kwargs):
-        if hasattr(self.model, "tags"):
+
+        if not getattr(self, "object", None):
             self.object = self.get_object()
+
+        if hasattr(self.model, "tags"):
             form = self.tag_form()
             if "save_tags" in form.data and form.is_valid():
                 form.save()
 
         if "post_comment" in request.POST and hasattr(self.model, "comments"):
-            self.object = self.get_object()
             return self.post_comment(request, *args, **kwargs)
 
-        action, description = request.POST.get("action"), request.POST.get("resolution")
+        return_url = request.POST.get("return_url")
+        old_state = state = getattr(self.object, "state", None)
+        action, description = request.POST.get("action"), request.POST.get("resolution", None)
+
         if action:
-            if not getattr(self, "object", None):
-                self.object = self.get_object()
             if method := getattr(self.object, action, None):
+                if not description and action == "withdraw":
+                    description = (
+                        f"{request.user} withdrew the {self.object.model_name} {self.object}."
+                    )
+                old_state = self.object.state
                 method(request=request, description=description, by=request.user)
-                self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
+                # self.object.save(update_fields=["state", "state_changed_at", "updated_at"])
                 state = self.object.state
-                messages.success(request, _(f"The change request was {state}."))
+                if state != old_state:
+                    self.object.save()
+                if self.model is models.Nomination and action == "withdraw":
+                    messages.info(request, _(f"The nomination {self.object} has been withdrawn."))
+                else:
+                    messages.success(
+                        request,
+                        _(f"The {self.object._meta.verbose_name} {self.object} was {state}."),
+                    )
+                if self.model is models.Nomination and (a := self.object.application) and a.is_wip:
+                    old_state = a.object.state
+                    a.cancel(
+                        request=request,
+                        by=request.user,
+                        description=description,
+                    )
+                    state = a.object.state
+                    if state != old_state:
+                        a.save()
+                    messages.info(request, _(f"The application {a} has been cancelled."))
+
             elif self.model is models.Testimonial and action == "turn_down":
                 t = self.object
-                t.referee.opt_out(user=self.request.user, request=self.request)
+                t.referee.opt_out(user=request.user, request=request)
                 t.referee.save()
-                reset_cache(self.request)
-                return redirect("testimonials")
+
+            if state != old_state:
+                reset_cache(request)
+
+            if return_url:
+                return redirect(return_url)
+
+            if state:
+                if state == "archived":
+                    route = f"{self.object.model_name}s-{old_state}"
+                else:
+                    if state == "new":
+                        state = "draft"
+                    route = f"{self.object.model_name}s-{state}"
+                if route_exists(route):
+                    return redirect(route)
+
+            route = f"{self.object.model_name}s"
+            if route_exists(route):
+                return redirect(route)
 
         return redirect(request.path)
 
 
+@method_decorator(shoud_be_onboarded, name="dispatch")
 class ExportView(UserPassesTestMixin, DetailView):
     model = None
+    cache_timeout = 0
     template = "pdf_export_template.html"
+    extra_context = {"export": True}
 
-    def get_metadata(self, pk):
-        return {"/Title": f"{self.model.get(pk)}"}
+    def test_func(self):
+        u = self.request.user
+        return (
+            u.is_admin
+            or (o := self.get_object_or_404())
+            and (
+                hasattr(o, "is_pi") and o.is_pi(user=u) or hasattr(o, "is_ro") and o.is_ro(user=u)
+            )
+        )
+
+    def get_metadata(self, pk=None):
+        if not getattr(self, "object", None):
+            self.object = self.get_object_or_404(pk)
+        o = self.object
+        return {
+            "/Title": f"{o}",
+            "/Author": f"{self.request.user}",
+            "/Number": getattr(o, "number", None) or f"{o.pk}",
+            "/URL": o.get_full_detail_url(request=self.request),
+            "/CreationDate": (o.created_at or timezone.now()).strftime("%Y%m%d%H%M%S"),
+            "/ModDate": (o.updated_at or timezone.now()).strftime("%Y%m%d%H%M%S"),
+        }
 
     def get_object_or_404(self, pk=None):
         if not pk:
@@ -790,35 +1503,170 @@ class ExportView(UserPassesTestMixin, DetailView):
         return [self.get_object_or_404(pk)]
 
     def get_attachments(self, pk):
-        return []
+        o = self.object
+        # return [o.pdf_file.path] if getattr(o, "file", None) else []
+        if hasattr(o, "documents"):
+            return [a.pdf_file for a in o.documents.all() if getattr(a, "file", None)]
+        if getattr(o, "file", None):
+            if name := o._meta.get_field("file").verbose_name:
+                return [(name, o.pdf_file)]
+            return [o.pdf_file]
 
-    def get_filename(self, pk):
-        return "export"
+    def get_filename(self, pk=None):
+        return getattr(self.object, "number", "export")
 
-    def get(self, request, pk):
+    def get(self, request, pk, filename=None):
+        o = self.object = self.get_object()
+        user = request.user
+        current_ts = timezone.now()
+        format = request.GET.get("format", "pdf").lower()
+        part = request.GET.get("part")
+        if not filename and (not format or format == "pdf"):
+            return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
-            template = get_template(self.template)
-            attachments = self.get_attachments(pk)
+            if format:
+                format = format.lower()
             # merger = PdfMerger()
             merger = PdfWriter()
-            merger.add_metadata(self.get_metadata(pk))
+            merger.add_metadata(self.get_metadata())
 
-            html = HTML(string=template.render({"objects": objects}))
-            pdf_object = html.write_pdf(presentational_hints=True)
-            # converting pdf bytes to stream which is required for pdf merger.
-            pdf_stream = io.BytesIO(pdf_object)
-            merger.append(pdf_stream)
-            for a in attachments:
-                if isinstance(a, (tuple, list)):
-                    merger.append(a[1], outline_item=a[0], import_outline=True)
+            if hasattr(o, "to_pdf"):
+                pdf_content = io.BytesIO()
+                merger = o.to_pdf(
+                    request=request,
+                    user=request.user,
+                )
+                merger.write(pdf_content)
+                # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
+            else:
+                template = get_template(self.template)
+                try:
+                    summary_template = get_template(
+                        getattr(self, "summary_template", None)
+                        or f"partials/{self.model._meta.verbose_name.replace(' ', '_').lower()}_summary.html"
+                    )
+                except:
+                    summary_template = None
+                try:
+                    cover_page_template = get_template(
+                        f"{self.model._meta.verbose_name_plural.replace(' ', '_').lower()}/cover_page.html"
+                    )
+                except:
+                    cover_page_template = None
+
+                attachments = self.get_attachments and self.get_attachments(pk)
+                # merger = PdfMerger()
+                merger = PdfWriter()
+                merger.add_metadata(self.get_metadata(pk))
+
+                site_id = getattr(self.object, "site_id", None) or settings.SITE_ID
+                site = Site.objects.filter(pk=site_id).first()
+                domain = site.domain
+                logo = logo_1 = logo_2 = None
+                if site_id == 2:
+                    if logo_path := finders.find(f"images/{domain}/alt_logo_small.png"):
+                        logo = f"file://{logo_path}"
+
+                elif site_id in [2, 4, 5]:
+                    if logo_path := finders.find("images/MBIE_logo.jpg"):
+                        logo_1 = f"file://{logo_path}"
+
+                    if logo_path := finders.find("images/RS_logo.png"):
+                        logo_2 = f"file://{logo_path}"
+
+                elif site_id == 7:
+                    if logo_path := finders.find("images/pmspace-logo_small.jpg"):
+                        logo = f"file://{logo_path}"
+
+                export = True
+
+                def append_attachments(merger, attachments):
+                    for a in attachments:
+                        if isinstance(a, (tuple, list)):
+                            merger.append(a[1], outline_item=a[0], import_outline=True)
+                        else:
+                            merger.append(a, import_outline=True)
+
+                if cover_page_template:
+                    cover_page_html = cover_page_template.render(locals())
+                    if format == "html" and (not part or part == "cover"):
+                        return HttpResponse(cover_page_html, content_type="text/html")
+                    html = HTML(string=cover_page_html)
+                    pdf_object = html.write_pdf(presentational_hints=True)
+                    pdf_stream = io.BytesIO(pdf_object)
+                    merger.append(pdf_stream)
+
+                if summary_template:
+
+                    summary_page_html = summary_template.render(locals())
+                    if format == "html" and part == "summary":
+                        return HttpResponse(summary_page_html, content_type="text/html")
+                    if attachments:
+                        append_attachments(merger, attachments)
+                    html = HTML(string=summary_page_html)
+                    pdf_object = html.write_pdf(presentational_hints=True)
+                    pdf_stream = io.BytesIO(pdf_object)
+                    if self.model is models.Report:
+                        summary = PdfReader(pdf_stream)
+                        template = get_template("reports/page.html")
+                        summary_page_no = merger.get_num_pages()
+                        for pn, dp in enumerate(summary.pages):
+                            box = dp.mediabox
+                            if box.height and box.width:
+                                width = int(round(box.width * 0.35277777777777775, 0))  # 2.54/72
+                                height = int(round(box.height * 0.35277777777777775, 0))  # 2.54/72
+                            else:  # A4 (portrait)
+                                width = 210
+                                height = 297
+                            page_no = pn + 1
+                            html = HTML(
+                                string=template.render(
+                                    {
+                                        # "page_count": page_count,
+                                        "page_no": page_no,
+                                        "report": o,
+                                        "object": o,
+                                        "contract": o.contract,
+                                        # "header": headers.get(page_no),
+                                        "width": width,
+                                        "height": height,
+                                    }
+                                )
+                            )
+                            reader = PdfReader(
+                                io.BytesIO(html.write_pdf(presentational_hints=True)), strict=False
+                            )
+                            dp.merge_page(reader.pages[0])
+                            merger.add_page(dp)
+                        merger.add_outline_item(
+                            "Appendix", summary_page_no, is_open=True, bold=True
+                        )
+                    else:
+                        merger.append(pdf_stream)
+
                 else:
-                    merger.append(a, import_outline=True)
-            pdf_content = io.BytesIO()
-            merger.write(pdf_content)
-            pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
-            pdf_response["Content-Disposition"] = f"inline; filename={self.get_filename(pk)}.pdf"
+                    html = HTML(string=template.render(locals()))
+                    pdf_object = html.write_pdf(presentational_hints=True)
+                    # converting pdf bytes to stream which is required for pdf merger.
+                    pdf_stream = io.BytesIO(pdf_object)
+                    merger.append(pdf_stream)
+                    if attachments:
+                        append_attachments(merger, attachments)
+
+                pdf_content = io.BytesIO()
+                merger.write(pdf_content)
+
+            pdf_content.seek(0)
+            pdf_response = FileResponse(pdf_content, content_type="application/pdf")
+            pdf_response["Content-Disposition"] = f'inline; filename="{self.get_filename()}.pdf"'
+            # NB! Need to disable caching to force usage of the name
+            pdf_response["Cache-Control"] = (
+                "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+            )
+            pdf_response["X-Content-Type-Options"] = "nosniff"
             return pdf_response
+
         except Exception as ex:
             capture_exception(ex)
             messages.warning(
@@ -921,7 +1769,9 @@ def survey_webhook(request):
 
 @login_required
 def object_counts(request):
-    cache_key = f"{request.user.username}:{settings.SITE_ID}"
+    u = request.user
+    site_id = request.site_id if hasattr(request, "site_id") else settings.SITE_ID
+    cache_key = f"{0 if u.is_admin else u.username}:{site_id}"
     cached_context = cache.get(cache_key, {})
     return JsonResponse(cached_context)
 
@@ -943,7 +1793,6 @@ def complete_survey(request):
     else:
         q = q.filter(Q(user=request.user) | Q(email__lower=request.user.email.lower()))
     for r in q:
-        token = request.GET.get("token")
         if not survey_id:
             survey_id = r.application.round.survey_id
         if r.survey_token_id and survey_id:
@@ -1068,17 +1917,16 @@ def round_detail(request, round):
 
 
 def round_required_documents(request, round):
-    from itertools import groupby
 
-    round = get_object_or_404(models.Round, id=round)
+    round = get_object_or_404(models.Round, pk=round)
     required_documents = round.required_documents.order_by("ordering")
     templates = {
         k: list(g)
         for k, g in groupby(
-            round.templates.all().order_by("document_type"), lambda r: r.document_type
+            round.templates.all().order_by("required_document__ordering", "required_document"),
+            lambda r: r.required_document,
         )
     }
-
     return render(request, "round_required_documents.html", locals())
 
 
@@ -1093,7 +1941,23 @@ def get_survey_api_url():
 
 
 def do_survey(request, survey_id=None, token=None, referee_id=None):
-    if not request.user.is_authenticated:
+    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k == "YII_CSRF_TOKEN"]
+    if lime_cookies:
+        # resp = HttpResponseRedirect(request.get_full_path())
+        resp = render(
+            request,
+            "delete_cookies_and_redirect.html",
+            {
+                "cookies": lime_cookies,
+                "url": request.get_full_path(),
+            },
+        )
+        host, *rest = request.get_host().split(":")
+        for k in lime_cookies:
+            resp.delete_cookie(k, path="/", domain=host)
+        # return resp
+    u = request.user
+    if not u.is_authenticated:
         i = None
         if token := request.GET.get("token"):
             if i := models.Invitation.where(token=token).first():
@@ -1123,11 +1987,10 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
         return redirect(reverse("check-profile") + f"?next={quote(request.get_full_path())}")
 
     reset_cache(request)
-    u = request.user
     if referee_id:
         if (
             r := models.Referee.objects.prefetch_related("application", "application__round")
-            .filter(id=referee_id)
+            .filter(pk=referee_id)
             .first()
         ):
             if not (
@@ -1154,11 +2017,36 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
 
     if not r.survey_completed_at:
         api = r.survey_api
-        if not r.survey_token_id:
-            r.add_to_survey(api)
-            r.save()
+        was_synced = False
+        for _attempt in range(2):  # 2 attempts
+            if was_synced:
+                break
+            if not r.survey_token_id:
+                r.add_to_survey(api)
+                r.save()
 
-        properties = api.token.get_participant_properties(survey_id, r.survey_token_id)
+            for arg_list in [
+                (r.survey_token_id,),
+                (None, {"token": r.survey_token}),
+                (None, {"email": r.email}),
+            ]:
+                try:
+                    properties = api.token.get_participant_properties(survey_id, *arg_list)
+                    if (
+                        properties.get("token") != r.survey_token
+                        or properties.get("tid") != r.survey_token_id
+                    ):
+                        r.survey_token = properties.get("token")
+                        r.survey_token_id = properties.get("tid")
+                        r.save(update_fields=["survey_token", "survey_token_id"])
+                    was_synced = True
+                    break
+                except LimeSurveyError:
+                    pass
+            else:
+                r.survey_token = None
+                r.survey_token_id = None
+
         if (completed_at := properties.get("completed")) and completed_at != "N":
             with transaction.atomic():
                 description = f"Referee report was completed at {completed_at}"
@@ -1175,15 +2063,79 @@ def do_survey(request, survey_id=None, token=None, referee_id=None):
                     r.save()
 
     if r.survey_completed_at:
+        if r.state != "submitted":
+            r.testify(
+                request=request,
+                by=u,
+                description=f"Synced date with LimeSurve; survey completed at {r.survey_completed_at}",
+            )
+            r.save()
+
         messages.warning(
             request,
-            _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>."),
+            _(f"The referee report has been already completed at <b>{r.survey_completed_at}</b>"),
         )
+        url = r.survey_url
+        if url:
+            messages.info(
+                request,
+                _(
+                    f'If you wish to update your response, click here <a href="{url}" class="btn btn-info btn-sm">Update Response</a>'
+                ),
+            )
+
+        t = models.Testimonial.where(referee=r).order_by("-pk").first()
+        if t:
+            return redirect("testimonial", pk=t.pk)
+        elif r.application_id:
+            return redirect("application", pk=r.application_id)
         return redirect(request.META.get("HTTP_REFERER", "index"))
 
-    return redirect(r.survey_url)
+    resp = HttpResponseRedirect(r.survey_url)
+    lime_cookies = [k for k in request.COOKIES if k.startswith("LS-") or k == "YII_CSRF_TOKEN"]
+    if lime_cookies:
+        host, *rest = request.get_host().split(":")
+        for k in lime_cookies:
+            resp.delete_cookie(k, path="/", domain=host)
+    return resp
 
 
+@login_required
+def fetch_doi(request):
+    doi = (request.GET.get("doi", "") or request.POST.get("doi", "")).strip()
+    if not (data := cache.get(f"doi:{doi}")):
+        # doi = "10.1038/nature12345"
+        # Crossref API endpoint
+        url = f"https://api.crossref.org/works/{doi}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            cache.set(f"doi:{doi}", data, timeout=60 * 15)  # Cache for 15 minutes
+
+    if data:
+        return render(request, "partials/doi.html", locals())
+    return HttpResponse(
+        f"""<p>DOI: {doi}</p><p>Error fetching data from Crossref API. Status code: {response.status_code}</p>""",
+        status=400,
+    )
+
+
+@login_required
+@csrf_protect
+def import_doi(request):
+    if request.method == "POST":
+        doi = request.POST.get("doi", "").strip()
+        if not (data := cache.get(f"doi:{doi}")):
+            url = f"https://api.crossref.org/works/{doi}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+
+    return render(request, "doi_import.html", locals())
+
+
+@cache_page(60 * 5)
+@vary_on_cookie
 @login_required
 @shoud_be_onboarded
 @csrf_protect
@@ -1195,7 +2147,8 @@ def index(request):
     if "error" in request.GET:
         raise Exception(request.GET["error"])
     user = request.user
-    is_ro = models.ResearchOffice.where(user=user).exists()
+    is_ro = user.is_ro
+    is_admin = user.is_admin
     if site_id in [2, 4, 5]:
         has_ro = (
             models.ResearchOffice.where(
@@ -1225,28 +2178,72 @@ def index(request):
             Q(user=user)
             | Q(email__lower=user.email.lower())
             | Q(email__lower__in=Subquery(user.emailaddress_set.values_list("email__lower"))),
-            state__in=["sent", "submitted"],
+            Q(
+                ~Q(invitations__state__in=["accepted", "expired", "revoked", "new", "draft"]),
+                Q(state__in=["sent", "submitted"]),
+            )
+            | Q(state__in=["sent", "accepted"], application__isnull=True),
             round__scheme__current_round=F("round"),
         )
-        if site_id not in [2, 4, 5, 7] or not (user.is_superuser or user.is_site_staff):
+        if is_ro or not is_admin:
+            if is_ro:
+                # reports to approve
+                reports = (
+                    models.Report.where(
+                        state="submitted",
+                        contract__org__research_offices__user=user,
+                        contract__state__in=["current", "CUR"],
+                    )
+                    .distinct()
+                    .order_by("state_changed_at")[:7]
+                )
+            else:
+                reports = (
+                    models.Report.where(
+                        Q(
+                            contract__members__user=user,
+                            contract__members__role_id__in=["PC", "PI"],
+                        )
+                        | Q(efforts__person__user=user, efforts__role_id__in=["PC", "PI"]),
+                        state__in=["new", "draft"],
+                        contract__state__in=["current", "CUR"],
+                    )
+                    .distinct()
+                    .order_by("state_changed_at")[:7]
+                )
+            if reports.count():
+                current_reports = reports
+
+        if site_id not in [2, 4, 5, 7] or not (user.is_admin):
+
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__scheme__current_round=F("round"),
                 # round__in=models.Scheme.objects.values("current_round"),
             )
-            if applications.count() < 7:
-                draft_applications = applications
+
+            if is_ro or applications.count() < 7:
+                if site_id in [2, 4, 5] or is_ro:
+                    draft_applications = applications.order_by(
+                        "round__ordering", "first_name", "last_name"
+                    )
+                else:
+                    draft_applications = applications.order_by("round__ordering", "number")
+
             applications = models.Application.user_applications(
-                user, ["submitted", "in_review", "accepted", "approved"]
+                user, ["submitted", "in_review", "accepted", "approved"], request=request
             ).filter(
                 ~Q(round__panellists__user=user),
                 round__in=models.Scheme.objects.values("current_round"),
             )
-            if applications.count() < 7:
-                current_applications = applications
-            reports = models.Report.user_objects(user=user, state=["new", "draft"])
-            if reports.count() < 7:
-                new_reports = reports
+            if is_ro or applications.count() < 7:
+                current_applications = applications.order_by("round__ordering", "number")
+
+            if site_id in [4, 5]:
+                reports = models.Report.user_objects(user=user, state=["new", "draft"])
+                if reports.count() < 7:
+                    new_reports = reports
+
         if user.is_staff or user.is_superuser or user.is_site_staff:
             outstanding_identity_verifications = models.IdentityVerification.where(
                 ~Q(file=""),
@@ -1261,6 +2258,35 @@ def index(request):
                 registered_on_id=site_id,
             ).order_by("-last_login")
         schemes = list(models.SchemeApplication.get_data(user))
+
+        if site_id == 2:
+            applications = {
+                round_id: list(user_applications)
+                for (round_id, user_applications) in groupby(
+                    models.Application.where(
+                        Q(submitted_by=user) | Q(members__user=user, members__role="PI"),
+                        round__in=[s.current_round_id for s in schemes],
+                    ).order_by("round_id", "number"),
+                    lambda a: a.round_id,
+                )
+            }
+            applications = {
+                a[0]: {
+                    "applications": a[1],
+                    "wip_count": sum(1 for o in a[1] if o.state in ["new", "draft"]),
+                    "count": len(a[1]),
+                }
+                for a in applications.items()
+            }
+            for s in schemes:
+                round_applications = applications.get(s.current_round_id, None)
+                if round_applications:
+                    s.applications = round_applications["applications"]
+                    s.wip_count = round_applications["wip_count"]
+                    s.application_count = round_applications["count"]
+                else:
+                    s.applications = None
+
         previous_applications = [
             dict(
                 id=pa.previous_application_id,
@@ -1334,7 +2360,24 @@ def index(request):
                         return JsonResponse({"message": message, "status": "info"}, status=200)
                     messages.info(request, message)
         if len(schemes) == 0:
-            return redirect("about")
+            if not (is_ro or is_admin):
+                messages.warning(
+                    request,
+                    _(
+                        "Currently we do not have any open rounds. Please check back later or contact us for more information."
+                    ),
+                )
+            context = portal_context(request)
+            if context.get("application_count", 0):
+                return redirect("applications")
+            elif context.get("report_count", 0):
+                return redirect("report-list")
+            elif context.get("contract_count", 0):
+                return redirect("contract-list")
+            elif context.get("nomination_count", 0):
+                return redirect("nominations")
+            if not (is_ro or is_admin):
+                return redirect("about")
     else:
         messages.info(
             request,
@@ -1480,6 +2523,10 @@ def check_profile(request, token=None):
                             next_url = reverse("application-update", kwargs={"pk": a.id})
                         else:
                             next_url = reverse("application", kwargs={"pk": a.id})
+                    elif n.pk:
+                        next_url = reverse(
+                            "nomination-application-create", kwargs={"nomination": n.pk}
+                        )
                     else:
                         next_url = reverse("application-create", kwargs={"round": n.round_id})
                 elif i.type == "T" and (m := i.member) and (a_id := m.application_id):
@@ -1487,7 +2534,7 @@ def check_profile(request, token=None):
                 elif i.type == "R" and (r := i.referee):
                     if (
                         testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
-                    ) and testimonial_submission_closes_at > timezone.now():
+                    ) and testimonial_submission_closes_at < timezone.now():
                         messages.error(
                             request,
                             mark_safe(
@@ -1499,28 +2546,64 @@ def check_profile(request, token=None):
                             ),
                         )
                         return redirect(next_url or "home")
+                    if (round := i.round or r.application.round) and not round.is_active:
+                        message = _("The invitation round is not active.")
+                        if (
+                            current_round := round.scheme.current_round
+                        ) and current_round != round:
+                            message = (
+                                f'{message} {_(f"The current round is <b>{current_round}</b>")}.'
+                            )
+                        url = None
+                        if (
+                            current_invitation := models.Invitation.where(
+                                ~Q(state__in=["revoked", "accepted"]),
+                                email__lower__in=u.emailaddress_set.values_list("email__lower"),
+                            )
+                            .order_by("-pk")
+                            .first()
+                        ):
+                            url = current_invitation.url or current_invitation.get_full_url(
+                                "onboard-with-token",
+                                request=request,
+                                token=current_invitation.token,
+                            )
+                            message = f"""{message} {_(f'The most current invitation sent to you is <a href="{url}">{url}</a>')}.
+                             {_('Please follow the invitation link')}."""
 
-                    if t := models.Testimonial.where(referee=r).last():
-                        next_url = reverse("testimonial-detail", kwargs={"pk": t.id})
+                        messages.warning(request, mark_safe(message))
+                        return redirect(url or "home")
+
+                    if not (r.survey_token_id or r.survey_token) and (
+                        t := models.Testimonial.where(referee=r).last()
+                    ):
+                        next_url = reverse("testimonial", kwargs={"pk": t.id})
                     elif a_id := r.application_id:
-                        messages.info(
-                            request,
-                            (
-                                _(
-                                    "Please review the application details and submit referee report."
-                                )
-                                if i.site_id in [2, 4, 5]
-                                else _(
-                                    "Please review the application details and submit testimonial."
-                                )
-                            ),
-                        )
+                        # messages.info(
+                        #     request,
+                        #     (
+                        #         _(
+                        #             "Please review the application details and submit referee report."
+                        #         )
+                        #         if i.site_id in [2, 4, 5]
+                        #         else _(
+                        #             "Please review the application details and submit testimonial."
+                        #         )
+                        #     ),
+                        # )
                         next_url = reverse("application", kwargs={"pk": a_id})
 
             elif i.state == "revoked":
+                next_url = None
                 messages.warning(
                     request,
                     _("The invitation has been revoked and is not any more valid."),
+                )
+            elif i.state == "expired" or not i.state:
+                next_url = None
+                messages.warning(
+                    request,
+                    _("The invitation expired and is not any more valid."),
                 )
 
         # if Person.where(user=request.user).exists() and request.user.person.is_completed:
@@ -1617,7 +2700,7 @@ class ProfileViewMixin:
                 # | Q(state__in=["draft", "submitted", "sent", "bounced"])
                 | Q(email=u.email) | Q(email__in=u.email_addresses),
             )
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         ):
             initial.update(
@@ -1652,6 +2735,7 @@ class ProfileViewMixin:
                     "postcode": a.postcode or "",
                     "country": a.country,
                 }
+                or self.get_initial()
                 or {"country": "NZ"},
             )
             kwargs["address_form"].helper.form_tag = False
@@ -1726,7 +2810,7 @@ def disable_profile_protection_patterns(request):
 def profile_protection_patterns(request):
     site_id = settings.SITE_ID
     if not (person := models.Person.where(user=request.user).last()):
-        url = reverse("prifile-create")
+        url = reverse("profile-create")
         if (next_url := request.GET.get("next")) and next_url.startswith("/"):
             url = f"{url}?next={next_url}"
         return redirect(url)
@@ -1779,6 +2863,7 @@ def profile_protection_patterns(request):
             contact_email = models.site_contact_email(site.id)
             if site_id == 1:
                 send_mail(
+                    request=request,
                     recipients=[request.user.full_email_address],
                     subject="Account Approval request submitted",
                     html_message=(
@@ -1808,18 +2893,69 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
     filterset_class = filters.ReportFilterSet
 
     def get_queryset(self, *args, **kwargs):
-        queryset = super().get_queryset(*args, **kwargs)
-        queryset = queryset.filter(
-            Q(contract__members__isnull=True) | Q(contract__members__role="PI")
-        )
-        return queryset
+        u = self.request.user
+        qs = super().get_queryset(*args, **kwargs)
+        qs = self.model.user_objects(user=u, queryset=qs, request=self.request)
+        return qs
 
 
-class ReportDetail(DetailView):
+class SelfAssignMixin:
+
+    def put(self, request, *args, **kwargs):
+        url = request.META.get("HTTP_REFERER", "") or request.path
+        if (action := request.GET.get("action")) == "assign-self":
+            obj = self.get_object()
+            u = request.user
+            if not u.is_admin:
+                messages.error(request, _("You have no permission to assign yourself the report."))
+            elif obj.assessor and obj.assessor != u:
+                messages.error(request, _("The report was already assigned to {obj.assessor}."))
+            elif obj.assessor and obj.assessor == u:
+                messages.error(request, _("You are already the assessor of this report."))
+            elif not obj.assessor:
+                obj.assign_assessor(by=u, assessor=u, request=request)
+                obj.save(update_fields=["assessor", "updated_at", "state", "state_changed_at"])
+                messages.success(
+                    request,
+                    _("You successfully assigned yourself as the assessor of this report."),
+                )
+            response = HttpResponse(status=200)
+            response["HX-Redirect"] = url
+            return response
+        else:
+            return super().put(request, *args, **kwargs)
+
+
+class ReportDetail(SelfAssignMixin, FavoriteMixin, DetailView):
     template_name = "portal/report_detail.html"
     model = models.Report
-    slug_field = "number"
-    slug_url_kwarg = "number"
+
+    def get_object_filter(self, value):
+        if isinstance(value, int) or value.isnumeric():
+            return {"pk": int(value)}
+        parts = value.split(":")
+        t, p, *n = parts[::-1]
+        n = ":".join(n[::-1])
+        return {"period": p, "type": t, "contract__number": n}
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        u = self.request.user
+        o = self.object
+        context["is_ro"] = o.is_ro(u)
+        context["can_edit"] = o.can_edit(u)
+        context["export_url"] = o.export_url
+        if a := o.current_assessment:
+            context["extra_buttons"] = [
+                {
+                    "name": _("Export Assessment"),
+                    "url": reverse(
+                        "assessment-export-fn", kwargs={"pk": a.pk, "filename": a.export_filename}
+                    ),
+                    "class": "btn btn-secondary",
+                },
+            ]
+        return context
 
     # def get(self, request, *args, **kwargs):
     #     return super().get(request, *args, **kwargs)
@@ -1875,6 +3011,28 @@ class AssessedPerformanceInline(InlineFormSetFactory):
 class ReportViewMixin:
 
     inlines = [PersonnelInline]
+    extra_context = {"category": "reports", "sidebar": "off"}
+
+    def put(self, request, *args, **kwargs):
+        if (action := request.GET.get("action")) == "assign-self":
+            obj = self.get_object()
+            u = request.user
+            if not u.is_admin:
+                messages.error(request, _("You have no permission to assign yourself the report."))
+            elif obj.assessor and obj.assessor != u:
+                messages.error(request, _("The report was already assigned to {obj.assessor}."))
+            elif obj.assessor and obj.assessor == u:
+                messages.error(request, _("You are already the assessor of this report."))
+            elif not obj.assessor:
+                obj.assign_assessor(by=u, assessor=u, request=request)
+                obj.save(update_fields=["assessor", "updated_at", "state", "state_changed_at"])
+                messages.success(
+                    request,
+                    _("You successfully assigned yourself as the assessor of this report."),
+                )
+            return self.get(request, *args, **kwargs)
+        else:
+            return super().put(request, *args, **kwargs)
 
     def get_inlines(self):
         inlines = super().get_inlines()
@@ -1886,8 +3044,8 @@ class ReportViewMixin:
     def is_assessor(self):
         return self.object and self.request.user == self.object.assessor
 
-    # def forms_valid(self, *args, **kwargs):
-    #     return super().forms_valid(*args, **kwargs)
+    # def form_valid(self, form):
+    #     return super().form_valid(*args, **kwargs)
 
     # def forms_invalid(self, *args, **kwargs):
     #     return super().forms_invalid(*args, **kwargs)
@@ -2179,7 +3337,13 @@ class ReportViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
-        duration = self.object and self.object.duration or a and a.round.duration or 3
+        duration = (
+            self.object
+            and self.object.duration
+            or a
+            and (a.proposed_duration or a.round.duration)
+            or 3
+        )
         if self.object and self.object.pk:
             extra = 1
             initial = []
@@ -2192,6 +3356,13 @@ class ReportViewMixin:
                     "description": "Principal Investigator",
                 },
             )
+            pc, _ = models.RoleType.objects.get_or_create(
+                code="PC",
+                defaults={
+                    "name": "Principal Investigator (Contact)",
+                    "description": "Principal Investigator (Contact)",
+                },
+            )
 
             initial = [
                 dict(
@@ -2199,7 +3370,7 @@ class ReportViewMixin:
                     first_name=a.first_name or a.submitted_by and a.submitted_by.first_name,
                     middle_names=a.middle_names,
                     last_name=a.last_name or a.submitted_by and a.submitted_by.last_name,
-                    role=pi.code,
+                    role=pc.code,
                     user=a.submitted_by,
                 ),
                 *[
@@ -2335,7 +3506,7 @@ class ReportViewMixin:
         u = self.request.user
         # context["current_date"] = timezone.localdate()
         context["current_date"] = timezone.now().date()
-        context["report"] = r = self.object
+        r = self.object
 
         # self.allocations = context["allocations"] = self.get_allocation_formset()
         # self.reporting_schedule = context["reporting_schedule"] = (
@@ -2345,14 +3516,21 @@ class ReportViewMixin:
         context["contract"] = c = r.contract
         context["application"] = a = c.application
         context["round"] = round = a.round
+        if c.host_contact_email:
+            context["coordinator"] = c.host_contact_email
+        elif nomination := models.Nomination.where(application=a).order_by("-pk").first():
+            context["nomination"] = nomination
+            context["coordinator"] = nomination.nominator.full_name_with_email
+
         context["is_pi"] = (a.submitted_by == u) or (
             self.object
             and self.object.pk
-            and self.object.contract.members.filter(role="PI").exists()
+            and self.object.is_pi(u)
+            # and self.object.contract.members.filter(role="PI").exists()
         )
-        if self.object and self.object.pk:
+        if r and r.pk:
             context["needs_attention"] = ["research", "finances"]
-            if not self.object.file or self.object.assessor == u:
+            if not r or r.assessor == u:
                 context["needs_attention"].append("report")
 
         if round.has_fors:
@@ -2364,33 +3542,33 @@ class ReportViewMixin:
             context["seos"] = fs
 
         # Effort:
-        fsc = forms.inlineformset_factory(
-            self.model,
-            models.ReportedEffort,
-            form=forms.ReportedEffortForm,
-            extra=1,
-            can_delete=True,
-            # exclude=["member_effort", "person", "state"],
-            labels={"full_name": _("Name"), "fte": _("FTE from contract")},
-            # help_texts={
-            #     "": _("Socio-Economic Objective"),
-            #     "share": _("Share in %"),
-            # },
-            # widgets={
-            #     "code": autocomplete.ModelSelect2(
-            #         "seo-autocomplete",
-            #         forward=("pk", "model_name",),
-            #         attrs={
-            #             "data-placeholder": _("Choose a ..."),
-            #             "placeholder": _("Choose a Socio-Economic Objective..."),
-            #             "data-required": 1,
-            #             "oninvalid": "this.setCustomValidity('%s')"
-            #             % _("Socio-Economic Objective is required"),
-            #             "oninput": "this.setCustomValidity('')",
-            #         },
-            #     ),
-            # },
-        )
+        # fsc = forms.inlineformset_factory(
+        #     self.model,
+        #     models.ReportedEffort,
+        #     form=forms.ReportedEffortForm,
+        #     extra=1,
+        #     can_delete=True,
+        #     # exclude=["member_effort", "person", "state"],
+        #     labels={"full_name": _("Name"), "fte": _("FTE from contract")},
+        #     # help_texts={
+        #     #     "": _("Socio-Economic Objective"),
+        #     #     "share": _("Share in %"),
+        #     # },
+        #     # widgets={
+        #     #     "code": autocomplete.ModelSelect2(
+        #     #         "seo-autocomplete",
+        #     #         forward=("pk", "model_name",),
+        #     #         attrs={
+        #     #             "data-placeholder": _("Choose a ..."),
+        #     #             "placeholder": _("Choose a Socio-Economic Objective..."),
+        #     #             "data-required": 1,
+        #     #             "oninvalid": "this.setCustomValidity('%s')"
+        #     #             % _("Socio-Economic Objective is required"),
+        #     #             "oninput": "this.setCustomValidity('')",
+        #     #         },
+        #     #     ),
+        #     # },
+        # )
         # initial_seos = (
         #     [
         #         dict(
@@ -2410,7 +3588,9 @@ class ReportViewMixin:
         # # fs.extra = len(initial_seos) or 1
         # fs.extra = 1
         # context["personnel"] = fs
-        context.update((fs.prefix, fs) for fs in kwargs.get("inlines", []))
+
+        inlines = kwargs.get("inlines", []) or context.get("inlines") or self.construct_inlines()
+        context.update((fs.prefix, fs) for fs in inlines)
 
         # self.documents = context["documents"] = self.get_document_formset()
         # context["required_documents"] = {
@@ -2425,10 +3605,21 @@ class ReportViewMixin:
         user = self.request.user
         if self.request.GET.get("action") == "publication_import_from_orcid":
             report = self.get_object()
+
             api = OrcidHelper(user)
             data, success = api.get_orcid_data(path="/works")
+            if not data:
+                return render(
+                    self.request,
+                    "partials/report_publication_list.html",
+                    {
+                        "report": report,
+                        "error_message": "Your ORCID profile doesn't any public publication/work records.",
+                    },
+                )
+
             put_codes = set()
-            for f in data.get("group"):
+            for f in data and data.get("group") or []:
                 for s in f["work-summary"]:
                     title = s["title"]["title"]["value"]
                     publication_date = FuzzyDate.create(s.get("publication-date")).start_date()
@@ -2452,7 +3643,7 @@ class ReportViewMixin:
                     external_ids = data.get("external-ids")
                     doi = None
                     if external_ids:
-                        for ei in external_ids.get("external-id"):
+                        for ei in external_ids.get("external-id", []):
                             if ei.get("external-id-type") == "doi":
                                 doi = ei.get("external-id-value")
                                 break
@@ -2514,12 +3705,13 @@ class ReportViewMixin:
             return render(
                 self.request, "partials/report_publication_list.html", {"report": report}
             )
+
         if self.request.GET.get("action") == "funding_import_from_orcid":
             report = self.get_object()
             api = OrcidHelper(user)
             data, success = api.get_orcid_fundings()
             put_codes = set()
-            for f in data.get("group"):
+            for f in data.get("group", []):
                 for s in f["funding-summary"]:
                     title = s["title"]["title"]["value"]
                     start_date = FuzzyDate.create(s.get("start-date")).start_date()
@@ -2568,6 +3760,7 @@ class ReportViewMixin:
                         )
                 else:
                     org = None
+                    org_name = None
 
                 organization_defined_type = data.get("organization-defined-type")
                 url = data.get("url")
@@ -2588,6 +3781,7 @@ class ReportViewMixin:
                         start_date=start_date,
                         end_date=end_date,
                         agency=org,
+                        agency_name=org_name,
                     ),
                 )
 
@@ -2653,9 +3847,16 @@ class ReportViewMixin:
                 if "submit_report" in form.data:
                     i.submit(request=self.request)
                     i.save()
-
-                if "assess" in form.data:
+                elif "assess" in form.data:
                     i.assess(request=self.request)
+                    i.save()
+                elif "approve" in form.data:
+                    description = (
+                        self.request.POST.get("description")
+                        or self.request.POST.get("resolution")
+                        or f"{u} approved report {i}"
+                    )
+                    i.approve(request=self.request, description=description)
                     i.save()
 
         except Exception as ex:
@@ -2807,8 +4008,8 @@ class ReportViewMixin:
             if body or attachment:
                 CommentForm = modelform_factory(models.ReportComment, exclude=["report", "token"])
                 comment_form = CommentForm(
-                    self.request.POST,
-                    self.request.FILES,
+                    self.request.POST or None,
+                    self.request.FILES or None,
                 )
                 comment = comment_form.save(commit=False)
                 comment.submitted_by = u
@@ -2907,10 +4108,12 @@ class ReportViewMixin:
                     token=comment.token,
                 )
                 return redirect(f"{self.request.path}#correspondence")
+        if "save" in self.request.POST:
+            return redirect(self.request.path)
         return resp
 
 
-class ReportCreate(ReportViewMixin, CreateWithInlinesView):
+class ReportCreate(NotesMixin, ReportViewMixin, CreateWithInlinesView):
     model = models.Report
     form_class = forms.ReportForm
 
@@ -2977,9 +4180,45 @@ class ReportCreate(ReportViewMixin, CreateWithInlinesView):
         return initial
 
 
-class ReportUpdate(LoginRequiredMixin, ReportViewMixin, UpdateWithInlinesView):
+class ReportUpdate(
+    LoginRequiredMixin,
+    NotesMixin,
+    SelfAssignMixin,
+    ReportViewMixin,
+    UserPassesTestMixin,
+    UpdateWithInlinesView,
+):
+
     model = models.Report
     form_class = forms.ReportForm
+    permission_denied_message = _("Only the round panellist and staff can export the application")
+
+    def get_permission_denied_message(self):
+        o = self.get_object()
+        return f"You have not permission to edit {o}"
+
+    def test_func(self):
+        u = self.request.user
+        return u.is_admin or (o := self.get_object()) and o.can_edit(u)
+
+    # def get_context_data(self, *args, **kwargs):
+    #     context = super().get_context_data(*args, **kwargs)
+    #     return context
+
+    def get_initial(self, *args, **kwargs):
+        initial = super().get_initial(*args, **kwargs)
+        o = self.get_object()
+        if (
+            o
+            and o.assessor
+            and (
+                a := o.assessments.annotate(is_assessor=Q(assessor=F("report__assessor")))
+                .order_by("-is_assessor", "-pk")
+                .first()
+            )
+        ):
+            initial["assessment_summary"] = a.summary
+        return initial
 
 
 class FileImportForm(Form):
@@ -3046,6 +4285,15 @@ class FileImportView(LoginRequiredMixin, FormView):
     label = gettext_lazy("Message")
     model = models.Report
 
+    def get_model(self):
+        if model_name := self.request.GET.get("model"):
+            if model_name in ["reportcomment", "report"]:
+                return models.Report
+            elif model_name in ["changerequest", "changerequestcomment"]:
+                return models.ChangeRequest
+            return models.Contract
+        return self.model
+
     def get_success_url(self):
         if o := self.object:
             return o.get_absolute_url()
@@ -3054,8 +4302,7 @@ class FileImportView(LoginRequiredMixin, FormView):
                 return reverse("report", kwargs=self.kwargs)
             elif model_name in ["changerequest", "changerequestcomment"]:
                 return reverse("change-request", kwargs=self.kwargs)
-            else:
-                return reverse("contract", kwargs=self.kwargs)
+            return reverse("contract", kwargs=self.kwargs)
         return reverse("report", kwargs=self.kwargs)
 
     def get_form_kwargs(self):
@@ -3075,15 +4322,7 @@ class FileImportView(LoginRequiredMixin, FormView):
 
     @property
     def object(self):
-        if model_name := self.request.GET.get("model"):
-            if model_name in ["reportcomment", "report"]:
-                model = models.Report
-            elif model_name in ["changerequest", "changerequestcomment"]:
-                model = models.ChangeRequest
-            else:
-                model = models.Contract
-        else:
-            model = self.model
+        model = self.get_model()
         if "pk" in self.kwargs:
             return get_object_or_404(model, pk=self.kwargs.get("pk"))
 
@@ -3251,7 +4490,7 @@ class EmailImportView(FileImportView):
         try:
             o.import_email(
                 file_field.file,
-                file_name,
+                filename=file_name,
                 request=self.request,
                 by=self.request.user,
                 reply_to=reply_to,
@@ -3279,49 +4518,34 @@ class EmailImportView(FileImportView):
 class ReportExportView(ExportView):
     """Report PDF export view"""
 
+    summary_template = "partials/report_summary.html"
     model = models.Report
-    # permission_denied_message = _("Only the round panellist and staff can export the application")
 
-    def test_func(self):
-        u = self.request.user
-        return (
-            u.is_superuser
-            or u.is_staff
-            or u.is_site_staff
-            or (c := self.get_object_or_404())
-            and (
-                c.members.filter(user=u, role="PI").exists()
-                or c.org.research_offices.filter(user=u).exists()
-            )
-        )
 
-    def get(self, request, pk):
-        obj = self.get_object_or_404(pk)
-        format = request.GET.get("format") or "html"
-        part = request.GET.get("part")
-        if not format or format in ["html", "htm"]:
-            return HttpResponse(
-                obj.get_document(request=self.request, format=format or "html", part=part),
-                content_type="text/html; charset=utf-8",
-            )
-        else:
-            fn = obj.get_document(request=self.request, format=format, part=part)
-            content_type, _ = mimetypes.guess_type(fn)
-            if settings.DEBUG:
-                resp = StreamingHttpResponse(
-                    FileWrapper(open(fn, "rb")), content_type=content_type
-                )
-            else:
-                # works with nginx:
-                resp = HttpResponse(content_type="application/force-download")
-                resp["X-Sendfile"] = fn
-                resp["X-Accel-Redirect"] = fn
-            resp["Content-Length"] = os.path.getsize(fn)
-            if part:
-                resp["Content-Disposition"] = f"attachment; filename={obj.number}_{part}.{format}"
-            else:
-                resp["Content-Disposition"] = f"attachment; filename={obj.number}.{format}"
-            return resp
+class ReportAssessmentExportView(ExportView):
+    """Assessment PDF export view"""
+
+    def get(self, request, pk, filename=None):
+        o = self.get_object()
+        if o.assessor and (a := o.assessments.filter(assessor=o.assessor).order_by("-pk").first()):
+            return redirect(reverse("assessment-export", kwargs=dict(pk=a.pk)))
+
+    model = models.Report
+
+
+class AssessmentExportView(ExportView):
+    """Assessment PDF export view"""
+
+    ## template = "assessment_pdf_export.html"
+    get_attachments = None
+    # summary_template = "partials/report_summary.html"
+    model = models.Assessment
+
+
+class ChangeRequestExportView(ExportView):
+    """ChangeRequest PDF export view"""
+
+    model = models.ChangeRequest
 
 
 class ProfileDetail(ProfileViewMixin, DetailView):
@@ -3371,6 +4595,7 @@ class ProfileUpdate(ProfileViewMixin, LoginRequiredMixin, UpdateView):
 
 
 class ProfileCreate(ProfileViewMixin, CreateView):
+
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -3428,9 +4653,9 @@ class ProfileCreate(ProfileViewMixin, CreateView):
             models.Nomination.where(
                 Q(user=self.request.user)
                 | Q(email__lower__in=u.emailaddress_set.values_list("email__lower")),
-                state__in=["submitted", "sent", "bounced"],
+                # state__in=["submitted", "sent", "bounced"],
             )
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         )
         if n:
@@ -3439,6 +4664,12 @@ class ProfileCreate(ProfileViewMixin, CreateView):
             initial["last_name"] = n.last_name or u.last_name
             initial["title"] = n.title or u.title
             initial["user"] = u
+            if n.org and n.org.address:
+                initial["country"] = n.org.address.country
+                initial["postcode"] = n.org.address.postcode
+                initial["city"] = n.org.address.city
+                initial["address"] = n.org.address.address
+
         return initial
 
 
@@ -3458,68 +4689,6 @@ class ProfileCreate(ProfileViewMixin, CreateView):
 #         email_message.attach_alternative(html_email, 'text/html')
 
 #     email_message.send()
-
-
-def invite_team_members(request, application):
-    """Send invitations to all team members to authorized_at the representative."""
-    # members that don't have invitations
-    count = 0
-    members = list(
-        models.Member.where(
-            ~Q(invitation__email__lower=Lower("email")) | Q(state="sent") | Q(state__isnull=True),
-            ~Q(state="authorized"),
-            authorized_at__isnull=False,
-            application=application,
-        )
-    )
-    for m in members:
-        get_or_create_team_member_invitation(m)
-
-    # send 'yet unsent' invitations:
-    invitations = list(
-        models.Invitation.where(application=application, type="T", sent_at__isnull=True)
-    )
-    for i in invitations:
-        i.send(request)
-        i.save()
-        count += 1
-    return count
-
-
-def get_or_create_team_member_invitation(member):
-    u = member.user or models.User.objects.filter(email=member.email).first()
-    if not u and (ea := EmailAddress.objects.filter(email=member.email).first()):
-        u = ea.user
-    first_name = member.first_name or u and u.first_name or ""
-    last_name = member.last_name or u and u.last_name or ""
-    middle_names = member.middle_names or u and u.middle_names or ""
-    site = (member.application and member.application.site) or Site.objects.get_current()
-
-    if hasattr(member, "invitation"):
-        i = member.invitation
-        if member.email != i.email:
-            i.email = member.email
-            i.first_name = first_name
-            i.middle_names = middle_names
-            i.last_name = last_name
-            i.sent_at = None
-            i.site = site
-            i.submit()
-            i.save()
-        return (i, False)
-    else:
-        return models.Invitation.get_or_create(
-            type=models.INVITATION_TYPES.T,
-            member=member,
-            email=member.email,
-            defaults=dict(
-                application=member.application,
-                first_name=first_name,
-                middle_names=middle_names,
-                last_name=last_name,
-                site=site,
-            ),
-        )
 
 
 def invite_panellist(request, round):
@@ -3564,12 +4733,24 @@ class InvitationCreate(CreateView):
             i.organisation = i.org.name
         if not i.inviter:
             i.inviter = u
+        if not i.site:
+            i.site = self.request.site
 
         form.save()
-        i.send(self.request, by=u)
-        i.save()
-
-        messages.success(self.request, _("An invitation was sent to ") + i.email)
+        if u.is_admin:
+            res = models.async_task(
+                i.send,
+                site_id=self.request.site_id,
+                by=u,
+            )
+            messages.success(
+                self.request,
+                f"An invitation was sent to {i.email} asynchronously (task id: {res})",
+            )
+        else:
+            i.send(self.request, by=u)
+            i.save()
+            messages.success(self.request, _("An invitation was sent to ") + i.email)
         return redirect(self.get_success_url())
 
     def get_form_class(self):
@@ -3619,82 +4800,90 @@ class AuthorizationFormMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_group_wrapper_class = "row"
-        self.helper.include_media = False
+        if not hasattr(self, "helper"):
+            self.helper = FormHelper(self)
+            self.helper.include_media = False
         # self.helper.label_class = "offset-md-1 col-md-1"
         # self.helper.field_class = "col-md-8"
+        if self.helper.inputs:
+            self.helper.inputs.pop()
+        if self.helper.inputs:
+            self.helper.inputs.pop()
+
         self.helper.add_input(Submit("submit", _("I agree to be part of this team")))
         self.helper.add_input(
             Submit("turn_down", _("I decline the invitation"), css_class="btn-outline-danger")
         )
-        # Submit("load_from_orcid", "Import from ORCiD", css_class="btn-orcid",)
 
 
 class AuthorizationForm(AuthorizationFormMixin, Form):
     pass
 
 
-class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
+# class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
+class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        instance = kwargs.get("instance", None) or self.instance
+        round = instance.application.round
+        if round.member_research_experience_in_years_required:
+            self.fields["research_experience_in_years"].required = True
+        else:
+            self.fields.pop("research_experience_in_years", None)
+
+        if round.member_letter_of_support_required:
+            self.fields["file"].required = True
+        else:
+            self.fields.pop("file", None)
+
         # self.fields["file"].required = True
         # self.fields["country"].required = True
-
-    cv = FileField(
-        required=False,
-        label=gettext_lazy("Curriculum Vitae"),
-        help_text=gettext_lazy("The most current CV"),
-        widget=widgets.ClearableFileInput(
-            attrs={
-                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
-                "data-required": 1,
-            },
-        ),
-    )
+        self.fields["role"].disabled = True
+        self.fields["role"].widget.attrs["readonly"] = "readonly"
 
     # def clean_is_accepted(self):
     #     """Allow only 'True'"""
     #     if not self.cleaned_data["is_accepted"]:
     #         raise forms.ValidationError("Please read and consent to the Privacy Policy")
     #     return True
-    class Meta:
-        model = models.Member
-        fields = ["cv", "file", "country", "org"]
-        widgets = {
-            "country": autocomplete.ModelSelect2(
-                "country-autocomplete",
-                # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
-                attrs={"data-required": 1},
-            ),
-            "org": autocomplete.ModelSelect2(
-                "org-autocomplete",
-                forward=["country"],
-                attrs={
-                    "data-placeholder": _("Choose an organisation ..."),
-                    "placeholder": _("Choose an organisation ..."),
-                    "data-required": 1,
-                    "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
-                    "oninput": "this.setCustomValidity('')",
-                },
-            ),
-            "file": widgets.ClearableFileInput(
-                attrs={
-                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
-                    "data-required": 1,
-                },
-            ),
-            "cv": widgets.ClearableFileInput(
-                attrs={
-                    "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
-                    "data-required": 1,
-                },
-            ),
-        }
+    class Meta(forms.MemberForm.Meta):
+        pass
+        # fields = ["cv_file", "file", "country", "org", "research_experience_in_years"]
+        # widgets = {
+        #     "country": autocomplete.ModelSelect2(
+        #         "country-autocomplete",
+        #         # attrs={"data-placeholder": _("Choose your title or create a new one ...")},
+        #         attrs={"data-required": 1},
+        #     ),
+        #     "org": autocomplete.ModelSelect2(
+        #         "org-autocomplete",
+        #         forward=["country"],
+        #         attrs={
+        #             "data-placeholder": _("Choose an organisation ..."),
+        #             "placeholder": _("Choose an organisation ..."),
+        #             "data-required": 1,
+        #             "oninvalid": "this.setCustomValidity('%s')" % _("Organisation is required"),
+        #             "oninput": "this.setCustomValidity('')",
+        #         },
+        #     ),
+        #     "file": widgets.ClearableFileInput(
+        #         attrs={
+        #             "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+        #             "data-required": 1,
+        #         },
+        #     ),
+        #     "cv_file": widgets.ClearableFileInput(
+        #         attrs={
+        #             "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb",
+        #             "data-required": 1,
+        #         },
+        #     ),
+        # }
 
 
-class ApplicationDetail(DetailView):
+class ApplicationDetail(FavoriteMixin, DetailView):
+
     model = Application
     template_name = "portal/application_detail.html"
 
@@ -3715,7 +4904,7 @@ class ApplicationDetail(DetailView):
         else:
             a = self.get_object()
             self.object = a
-        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
+        if u.is_authenticated and not u.is_admin:
             if not a.user_can_view(u):
                 messages.error(request, _("You do not have permissions to view this application."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
@@ -3749,6 +4938,10 @@ class ApplicationDetail(DetailView):
 
     # @method_decorator(condition(last_modified_func=last_modified))
     def get(self, request, *args, **kwargs):
+
+        # if request.site_id == 0:
+        #     obj = self.get_object()
+
         resp = super().get(request, *args, **kwargs)
 
         if (a := self.object) and (r := a.round) and r.survey_id:
@@ -3763,7 +4956,7 @@ class ApplicationDetail(DetailView):
                 .order_by("-id")
                 .first()
             )
-            if referee:
+            if referee and referee.state != "opted_out":
                 survey_url = reverse("survey-referee", kwargs={"referee_id": referee.id})
                 site = models.Site.objects.get_current()
                 messages.info(
@@ -3784,47 +4977,44 @@ class ApplicationDetail(DetailView):
         if "save_tags" in request.POST and hasattr(self.model, "tags"):
             return super().post(request, *args, **kwargs)
 
-        self.object = self.get_object()
+        a = self.object = self.get_object()
+        r = a.round
+        u = request.user
+        if (
+            (action := request.POST.get("action"))
+            and action == "turn_down"
+            and (
+                referee := (
+                    models.Referee.get(referee_id)
+                    if (referee_id := request.POST.get("referee_id"))
+                    else a.referees.filter(user=u).last()
+                )
+            )
+        ):
+            referee.opt_out(
+                request=request,
+                by=u,
+                description=request.POST.get("resolution", _("User opted out...")),
+            )
+            referee.save()
+            reset_cache(request)
+            return redirect("index")
+
         if member := self.get_member():
             if not member.user:
-                member.user = self.request.user
+                member.user = u
 
             if "submit" in request.POST:
-                if self.object.site_id == 2:
-                    form = self.get_member_form(instance=member)
-                    u = request.user
-                    if form.is_valid():
-                        if "cv" in form.changed_data and (cv_file := request.FILES.get("cv")):
-                            models.CurriculumVitae.create(
-                                file=cv_file,
-                                owner=u,
-                                person=u.person,
-                                title=_(f"For application {member.application.number}"),
-                            )
-                        form.save(commit=False)
-                        if (
-                            member.file == ""
-                            or not member.country
-                            or not member.org
-                            or not models.CurriculumVitae.where(owner=u).exists()
-                        ):
-                            messages.error(
-                                request,
-                                _(
-                                    "Please upload the host support letter and the current CV, and indicate the county of the origin."
-                                ),
-                            )
-                            if form.changed_data:
-                                member.save()
-                            return redirect(request.path)
+                form = self.get_member_form(instance=member)
+                if form.is_valid():
+                    member = form.save(commit=False)
+                    member.authorize(request)
+                    form.save(commit=True)
+                else:
+                    for e in form.errors:
+                        messages.error(request, e)
+                    return redirect(request.path)
 
-                    else:
-                        for e in form.errors:
-                            messages.error(request, e)
-                        return redirect(request.path)
-
-                member.authorize(request)
-                member.save()
                 messages.info(
                     self.request,
                     _("Thank you for accepting the invitation."),
@@ -3853,11 +5043,21 @@ class ApplicationDetail(DetailView):
                 )
             elif action == "approve":
                 a = self.object
-                a.approve(
-                    request,
-                    agent_declaration_accepted=request.POST.get("agent_declaration_accepted"),
-                )
-                a.save()
+                if (
+                    a.round.agent_declaration
+                    and (is_declaration_accepted := request.POST.get("agent_declaration_accepted"))
+                    and is_declaration_accepted not in ["on", "1", 1, True, "true"]
+                ):
+                    messages.error(
+                        self.request,
+                        _("You have to accept the <strong>Agent Declaration<strong>."),
+                    )
+                else:
+                    a.approve(
+                        request,
+                        agent_declaration_accepted=request.POST.get("agent_declaration_accepted"),
+                    )
+                    a.save()
 
                 if a.site_id in [2, 5]:
                     url = a.get_full_detail_url(request=request)
@@ -3918,7 +5118,7 @@ class ApplicationDetail(DetailView):
             p = u.person
             initial = initial or {}
             if cv := models.CurriculumVitae.last_user_cv(u):
-                initial["cv"] = cv.file
+                initial["cv_file"] = cv.file
             if (
                 not (instance and instance.country)
                 and "country" not in initial
@@ -3932,6 +5132,16 @@ class ApplicationDetail(DetailView):
                 .last()
             ):
                 initial["org"] = emp.org
+            if (
+                pm := models.Member.where(user=u, research_experience_in_years__isnull=False)
+                .order_by("-created_at")
+                .first()
+            ):
+                year = timezone.now().year
+                initial["research_experience_in_years"] = pm.research_experience_in_years + (
+                    year - pm.created_at.year
+                )
+
             return MemberAuthorizationForm(
                 self.request.POST or None,
                 self.request.FILES or None,
@@ -3946,9 +5156,32 @@ class ApplicationDetail(DetailView):
         a = context["application"] = self.object
         r = a.round
         site_id = a.site_id
-        if a and site_id in [2, 5]:
-            context["documents"] = a.user_documents_dict(self.request.user)
         u = self.request.user
+        member = a.members.filter(
+            Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email", flat=True))
+        ).first()
+        referee = a.referees.filter(
+            Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
+        ).last()
+        if a and site_id in [2, 5]:
+            if member:
+                context["member"] = member
+
+            if referee or u.is_admin or member:
+                # context["documents"] = list(
+                qs = a.documents.filter(~Q(file=""), file__isnull=False).order_by(
+                    "required_document__ordering"
+                )
+                if referee:
+                    qs = qs.filter(required_document__referees_can_access=True)
+                context["attachments"] = list(qs)
+                context["required_documents"] = (
+                    r.required_documents.filter(referees_can_access=True)
+                    if referee
+                    else r.required_documents.all()
+                ).order_by("ordering")
+            else:
+                context["documents"] = a.user_documents_dict(self.request.user)
         if n := models.Nomination.where(application=a).last():
             context["nomination"] = n
             context["nominator"] = n.nominator
@@ -3973,22 +5206,35 @@ class ApplicationDetail(DetailView):
                 )
 
             country = m.country_id or self.request.session.get("country")
-            initial = country and {"country": country}
+            initial = country and {"country": country} or {}
+            if cv := models.CurriculumVitae.last_user_cv(u, cut_off_months=a.site == 2 and 3):
+                initial["cv_file"] = cv.file
+            p = u and u.person
+            if not m.title:
+                initial["title"] = u.title or p.title
+            if not m.first_name:
+                initial["first_name"] = u.first_name or p and p.first_name
+            if not m.middle_names:
+                initial["middle_names"] = u.middle_names or p and p.middle_names
+            if not m.last_name:
+                initial["last_name"] = u.last_name or p and p.last_name
+
             context["form"] = self.get_member_form(instance=m, initial=initial)
+            context["cv_upload_required"] = True
         is_ro = site_id in [2, 4, 5] and (
             n
             and (n.nominator == u or n.org and n.org.where(research_offices__user=u).exists())
             or a.org.where(research_offices__user=u).exists()
         )
         is_owner = (
-            a.submitted_by == u or a.members.filter(user=u, state="authorized").exists() or is_ro
-        )
+            a.submitted_by == u or a.members.filter(user=u, state="authorized").exists()
+        ) or is_ro
         is_referee = (
             not is_ro
             and not is_owner
             and a.referees.filter(
                 Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
-            )
+            ).exists()
         )
 
         if site_id in [2, 5] and not is_ro and is_owner and a.state in ["in_review", "submitted"]:
@@ -4000,8 +5246,8 @@ class ApplicationDetail(DetailView):
             context["evaluation"] = models.Evaluation.where(panellist=p, application=a).last()
 
         context["is_owner"] = is_owner
-        can_only_update_referees = context["can_only_update_referees"] = not is_referee and (
-            a.can_only_update_referees(u)
+        can_only_update_referees = context["can_only_update_referees"] = (
+            not is_referee and site_id not in [1, 7] and (a.can_only_update_referees(u))
         )
 
         if (
@@ -4010,7 +5256,9 @@ class ApplicationDetail(DetailView):
             and (current_round := r.scheme.current_round)
             and current_round != r
             and current_round.is_open
-            and not Application.user_applications(user=u, round=current_round).exists()
+            and not Application.user_applications(
+                user=u, round=current_round, request=self.request
+            ).exists()
         ):
             context["can_reenter"] = True
             context["current_round"] = current_round
@@ -4018,7 +5266,7 @@ class ApplicationDetail(DetailView):
         if for_panellists := self.request.GET.get("for_panellists", False):
             context["for_panellists"] = for_panellists
 
-        if is_owner or is_ro or u.is_superuser or u.is_site_staff:
+        if is_owner or is_ro or u.is_admin:
             if site_id in [2, 5] and for_panellists:
                 referees = a.referees.order_by("testified_at")
                 if r.required_referees:
@@ -4034,29 +5282,34 @@ class ApplicationDetail(DetailView):
             "accepted",
             "funded",
         ]
-        context["can_update"] = (
-            can_only_update_referees
-            or (
-                site_id not in [2, 5]
-                and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+        if a.site_id == 2 and member and member.role_id not in ["PI", "PC"]:
+            context["can_update"] = False
+            context["update_tooltip"] = _(
+                "Only the Principal Investigator can update the application."
             )
-            or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
-            or (
-                site_id in [2, 5]
-                and is_owner
-                and a.state in ["new", "submitted", "draft", "in_review"]
+        else:
+            context["can_update"] = (
+                can_only_update_referees
+                or (
+                    site_id not in [2, 5]
+                    and a.state not in ["submitted", "approved", "cancelled", "accepted"]
+                )
+                or (site_id in [2, 5] and is_ro and a.state in ["submitted", "new", "draft"])
+                or (
+                    site_id in [2, 5]
+                    and is_owner
+                    and a.state in ["new", "submitted", "draft", "in_review"]
+                )
+                or u.is_admin
             )
-        )
 
         testimonial_submission_closes_at = r.testimonial_submission_closes_at
         if testimonial_submission_closes_at and testimonial_submission_closes_at < timezone.now():
             context["reviewing_closed"] = True
         if not is_owner:
             context["show_basic_details"] = not (
-                u.is_staff
-                or u.is_superuser
+                u.is_admin
                 or is_ro
-                or u.is_site_staff
                 or (site_id not in [2, 4, 5] and a.referees.filter(user=u).exists())
                 or r.panellists.filter(user=u).exists()
                 # or models.ConflictOfInterest.where(
@@ -4066,65 +5319,70 @@ class ApplicationDetail(DetailView):
                 # ).exists()
                 or a.org.where(research_offices__user=u).exists()
             )
-            if (
-                t := models.Testimonial.where(referee__user=u, referee__application=a)
-                .order_by("-id")
-                .first()
-            ):
-                if site_id in [2, 5]:
-                    context["export_enabled"] = True
-                context["testimonial"] = t
-                if t.state != "submitted":
-                    closes_at = r.closes_at
-                    if (
-                        testimonial_submission_closes_at
-                        and testimonial_submission_closes_at < timezone.now()
-                    ):
-                        messages.warning(
-                            self.request,
-                            mark_safe(
-                                _(
-                                    "The referee report submission was closed on "
-                                    f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
-                                    f"at <b>{testimonial_submission_closes_at.time()}</b>."
-                                )
-                            ),
-                        )
-                    elif site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()):
-                        messages.info(
-                            self.request,
-                            (
-                                _(
-                                    "Please review the application details and submit referee report."
-                                )
-                                if site_id in [2, 4, 5]
-                                else _(
-                                    "Please review the application details and submit testimonial."
-                                )
-                            ),
-                        )
-                    else:
-                        context["reviewing_disabled"] = True
-                        closes_at_date = closes_at and closes_at.date().isoformat()
-                        messages.warning(
-                            self.request,
-                            (
-                                _(
-                                    "The application reviewing will be open after the application "
-                                    f"submission is closed (on <b>{closes_at_date}</b>)."
-                                )
-                                if closes_at_date
-                                else _(
-                                    "The application reviewing will be open after the application submission is closed."
-                                )
-                            ),
-                        )
             if referee := a.referees.filter(
-                Q(user=u) | Q(email__lower__in=u.emailaddress_set.values_list("email__lower"))
+                Q(user=u)
+                | Q(
+                    email__lower__in=u.emailaddress_set.values_list("email__lower")
+                )  ## , ~Q(state="opted_out")
             ).last():
                 context["referee"] = referee
-
-        # context["tag_form"] = self.tag_form()
+                can_change_testimonial = referee.state not in ["opted_out", "testified"]
+                if site_id in [2, 5]:
+                    context["export_enabled"] = can_change_testimonial
+                context["can_decline"] = can_change_testimonial
+                if t := models.Testimonial.where(referee=referee).order_by("-pk").first():
+                    context["testimonial"] = t
+                    if t.state != "submitted":
+                        closes_at = r.closes_at
+                        if (
+                            testimonial_submission_closes_at
+                            and testimonial_submission_closes_at < timezone.now()
+                        ):
+                            messages.warning(
+                                self.request,
+                                mark_safe(
+                                    _(
+                                        "The referee report submission was closed on "
+                                        f"<b>{testimonial_submission_closes_at.date().isoformat()}</b> "
+                                        f"at <b>{testimonial_submission_closes_at.time()}</b>."
+                                    )
+                                ),
+                            )
+                        elif (
+                            site_id not in [2, 5]
+                            or (closes_at and closes_at <= timezone.now())
+                            or a.state == "in_review"
+                        ) and referee.state != "opted_out":
+                            messages.info(
+                                self.request,
+                                (
+                                    _(
+                                        "Please review the application details and submit referee report."
+                                    )
+                                    if site_id in [2, 4, 5]
+                                    else _(
+                                        "Please review the application details and submit testimonial."
+                                    )
+                                ),
+                            )
+                        else:
+                            context["reviewing_disabled"] = True
+                            if closes_at and closes_at < timezone.now():
+                                closes_at_date = closes_at and closes_at.date().isoformat()
+                                messages.warning(
+                                    self.request,
+                                    _(
+                                        "The application reviewing will be open after the application "
+                                        f"submission is closed (on <b>{closes_at_date}</b>)."
+                                    ),
+                                )
+                            elif a.state not in ["submitted", "in_review"]:
+                                messages.warning(
+                                    self.request,
+                                    _(
+                                        "The application reviewing will be open after the application submission is closed."
+                                    ),
+                                )
 
         return context
 
@@ -4190,14 +5448,12 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse(
-        """
+    return HttpResponse("""
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """
-    )
+    """)
 
 
-class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
+class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
     model = Application
     form_class = forms.ApplicationForm
 
@@ -4209,6 +5465,10 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 _("You can only modify the referee list."),
             )
         return response
+
+    @property
+    def is_update(self):
+        return not (self.object and self.object.pk)
 
     # def form_invalid(self, form):
     #     return super().form_invalid(form)
@@ -4239,19 +5499,19 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
             return pa
         if (r := self.round) and (
             pa := self.model.where(submitted_by=self.request.user, round__scheme=r.scheme)
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         ):
             return pa
         return (
             models.Application.all_objects.filter(submitted_by=self.request.user)
-            .order_by("-id")
+            .order_by("-pk")
             .first()
         )
 
     def dispatch(self, request, *args, **kwargs):
         u = request.user
-        if u.is_authenticated and not (u.is_staff or u.is_superuser or u.is_site_staff):
+        if u.is_authenticated and not u.is_admin:
             if (pk := self.kwargs.get("pk")) and (
                 a := get_object_or_404(models.Application, pk=pk)
             ):
@@ -4298,12 +5558,41 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         ),
                     )
                     return redirect("application-detail", number=a.number)
-                if not r.is_open and r.closes_at > (timezone.now() + timedelta(days=1)):
+                if (
+                    not r.is_open
+                    and r.closes_at < timezone.now()
+                    and not (
+                        a.site_id == 5
+                        and a.state == "in_review"
+                        and a.org
+                        and (a.pi == u or a.org.is_ro(u))
+                    )
+                ):
                     messages.error(
                         request,
                         _(
                             "The application period has closed. "
                             "You cannot longer modify this application."
+                        ),
+                    )
+                    return redirect("application-detail", number=a.number)
+                elif (
+                    not r.is_open
+                    and r.testimonial_submission_closes_at
+                    and r.testimonial_submission_closes_at < timezone.now()
+                ):
+                    messages.error(
+                        request,
+                        (
+                            _(
+                                "The referee report period has closed. "
+                                "You cannot longer modify this application."
+                            )
+                            if a.site_id == 5
+                            else _(
+                                "The application period has closed. "
+                                "You cannot longer modify this application."
+                            )
                         ),
                     )
                     return redirect("application-detail", number=a.number)
@@ -4347,26 +5636,45 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         initial["round"] = self.round.pk
         round = self.round
         nomination = self.nomination
+        if round.letter_of_support_required or round.member_letter_of_support_required:
+            if (
+                has_required_documents := round.required_documents.count() > 0
+            ) and not round.required_documents.filter(role="HS").exists():
+                round.required_documents.create(
+                    role="HS",
+                    format="T",
+                    title_en="Host Support Letter",
+                    title="Host Support Letter",
+                    is_optional=False,
+                    referees_can_access=False,
+                    panellists_can_access=True,
+                    exclude=False,
+                )
+
+            elif (
+                self.object
+                and self.object.letter_of_support
+                and self.object.letter_of_support.file
+            ):
+                initial["letter_of_support_file"] = self.object.letter_of_support.file
 
         if (
-            round.letter_of_support_required
-            and self.object
-            and self.object.letter_of_support
-            and self.object.letter_of_support.file
+            round.member_cv_required
+            and self.is_update
+            and (pi_member := (self.object and self.object.pi_member or None))
+            and (cv := (pi_member.cv or pi_member.cv and pi_member.cv.file))
         ):
-            initial["letter_of_support_file"] = self.object.letter_of_support.file
-
-        if (
-            round.applicant_cv_required
+            initial["cv_file"] = cv.file
+        elif (
+            round.is_applicant_cv_required
+            and self.is_update
             and round.curriculum_vitae_templates.count() > 0
-            and self.object
-            and self.object.id
             and self.object.cv
             and self.object.cv.file
         ):
             initial["cv_file"] = self.object.cv.file
 
-        if not (self.object and self.object.id):
+        if not (self.object and self.object.pk):
             initial["user"] = user
             initial["email"] = user.email
             initial["language"] = django.utils.translation.get_language()
@@ -4376,12 +5684,37 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 .first()
             )
             latest_application = self.latest_application
-            if address := user.person.address:
+            if address := user.person.address or latest_application and latest_application.address:
                 initial["address"] = address
+                city = address.city
+                if not city and address.address:
+                    qs = models.Address.objects.annotate(val=Value(address.address)).filter(
+                        city__isnull=False, val__icontains=models.F("city")
+                    )
+                    if address.country:
+                        qs = qs.filter(country=address.country)
+                    if city_rec := qs.latest("pk"):
+                        city = city_rec.city
+                postcode = address.postcode
+                if city and address.address and not postcode:
+                    qs = models.Address.objects.annotate(val=Value(address.address)).filter(
+                        city__iexact=city,
+                        postcode__isnull=False,
+                        val__icontains=models.F("postcode"),
+                    )
+                    if address.country:
+                        qs = qs.filter(country=address.country)
+                    if qs.count() > 0 and (city_rec := qs.latest("pk")):
+                        postcode = city_rec.postcode
+
                 initial["postal_address"] = address.address
-                initial["city"] = address.city
-                initial["postcode"] = address.postcode
-            if round.research_experience_in_years_required:
+                initial["city"] = city
+                if postcode:
+                    initial["postcode"] = postcode
+            if (
+                round.research_experience_in_years_required
+                or round.member_research_experience_in_years_required
+            ):
                 research_experience_in_years = (
                     latest_application
                     and latest_application.research_experience_in_years
@@ -4460,6 +5793,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 and latest_application.org
             ):
                 initial["org"] = org
+                initial["organisation"] = org.name
 
             if (
                 position := current_affiliation
@@ -4512,6 +5846,34 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     initial["members"] = latest_application.members
                 initial["presentation_url"] = latest_application.presentation_url
 
+        if ((o := self.object) and o.site_id == 2 and (not o.pk)) or (
+            not self.object and settings.SITE_ID == 2
+        ):
+
+            if cv := models.CurriculumVitae.last_user_cv(
+                user=o and o.pi or user, cut_off_months=3
+            ):
+                initial["cv_file"] = cv.file
+
+            if self.request.method == "GET" and (not o or o.pk and not o.cv):
+                message = _(
+                    "Please ensure that you have attached "
+                    "to the application the most recent C.V. "
+                    "(of the Principal Investigator)"
+                )
+
+                if cv:
+                    message = f"""{message}
+                    {_('''Make sure that the select C.V.
+                <a href="%s" target="_blank">%s</a>
+                from your profile is up-to-date.''')}""" % (
+                        cv.file.url,
+                        os.path.basename(cv.file.name),
+                    )
+                messages.warning(self.request, message)
+        elif o and o.site_id == 2 and o.cv:
+            initial["cv_file"] = o.cv.file
+
         return initial
 
     @property
@@ -4539,6 +5901,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         ):
             return n
 
+    # def form_invalid(self, form):
+    #     return super().form_invalid(form)
+
     def form_valid(self, form):
         instance = form.instance or self.object
         current_state = instance and instance.state
@@ -4556,6 +5921,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         site_id = self.request.site_id
         update_url = None
         update_only_referees = self.update_only_referees()
+        cv = None
+        letter_of_support = None
+        request = self.request
         try:
             with transaction.atomic():
                 # if instance and instance.state != "in_review":
@@ -4564,19 +5932,64 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                 if not instance.email:
                     instance.email = user.email
 
-                if round.letter_of_support_required and (
-                    letter_of_support_file := self.request.FILES.get("letter_of_support_file")
+                resp = super().form_valid(form)
+
+                if (
+                    round.letter_of_support_required
+                    and (letter_of_support_file := request.FILES.get("letter_of_support_file"))
+                    and (
+                        "letter_of_support_file" in form.changed_data
+                        or not instance.letter_of_support
+                    )
                 ):
                     letter_of_support = models.LetterOfSupport.create(file=letter_of_support_file)
                     instance.letter_of_support = letter_of_support
                     # if letter_of_support_file.name.endswith(".pdf")
 
-                if round.applicant_cv_required and (cv_file := self.request.FILES.get("cv_file")):
-                    cv = models.CurriculumVitae.create(
-                        file=cv_file, owner=user, person=user.person
+                # Handle CV
+                if (
+                    not update_only_referees
+                    and (round.is_applicant_cv_required or round.member_cv_required)
+                    and (cv_file := request.FILES.get("cv_file"))
+                    and (
+                        "cv_file" in form.changed_data
+                        or not instance
+                        or not instance.cv
+                        or (
+                            instance.is_team_application
+                            and (
+                                not instance.pk
+                                or instance.members.filter(
+                                    role=("PC" if site_id == 2 else "PI"), cv__isnull=True
+                                ).exists()
+                            )
+                        )
                     )
+                ):
+                    pi_member = instance.pi_member
+                    cv_user = pi_member.user if pi_member else request.user
+                    cv, created = models.CurriculumVitae.get_or_create(
+                        owner=cv_user,
+                        person=cv_user.person,
+                        title=_(f"For application {instance.number}"),
+                        defaults={"file": cv_file},
+                    )
+                    if not created and "cv_file" in form.changed_data:
+                        cv.file.save(cv_file.name, cv_file)
+                        cv.save()
                     instance.cv = cv
-                    # if letter_of_support_file.name.endswith(".pdf")
+
+                    if created or ("cv_file" in form.changed_data):
+                        if cv.file and cv.converted_file:
+                            cv.converted_file.delete()
+                            cv.converted_file = None
+                            if hasattr(cv, "page_count"):
+                                cv.page_count = None
+                        cv.update_converted_file(commit=True, request=request)
+
+                    if pi_member:
+                        pi_member.cv = cv
+                        pi_member.save()
 
                 if (
                     "file" in form.changed_data
@@ -4589,24 +6002,12 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     if hasattr(instance, "page_count"):
                         instance.page_count = None
 
-                if (
-                    "cv_file" in form.changed_data
-                    and instance.id
-                    and instance.cv
-                    and instance.cv.file
-                    and instance.cv.converted_file
-                ):
-                    instance.converted_file.delete()
-                    instance.converted_file = None
-                    if hasattr(instance, "page_count"):
-                        instance.page_count = None
-
-                resp = super().form_valid(form)
+                check_selected_orgs(self.request)
                 has_deleted = False
                 a = form.instance or self.object
                 # dispatch invitation to the referees or defer until the application round is closed
                 dispatch_invitations = site_id not in [2, 5] or (
-                    a.state in ["approved", "accepted", "in_review"]
+                    instance.state in ["approved", "accepted", "in_review"]
                     and round.closes_at
                     and round.closes_at <= timezone.now()
                 )
@@ -4620,23 +6021,35 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         # url = self.request.path_info.split("?")[0] + "#application"
                         url = self.continue_url("application")
                     if members.is_valid():
-                        members.instance = a
+                        # members.instance = a
                         members.save()
-                        count = invite_team_members(self.request, a)
+                        invitations = a.invite_team_members(self.request)
+                        count = invitations and len(invitations) or 0
+                        email_list = natural_item_list([i.email for i in invitations])
                         if count > 0:
                             messages.success(
                                 self.request,
-                                _("%d invitation(s) to join the team have been sent.") % count,
+                                _(
+                                    f"{count} invitation(s) to join the team have been sent: {email_list}."
+                                ),
                             )
                     else:
                         for f in members.forms:
                             if not f.is_valid():
                                 form.errors.update(f.errors)
                                 url = self.continue_url("application")
+                                form.add_error(
+                                    None,
+                                    _(
+                                        "Please correct the errors in member information: {f.errors}."
+                                    ),
+                                )
                                 raise ValidationError(_("Invalid member form"))
 
                     if has_deleted:
                         return redirect(f"{update_url or url}#applicant")
+
+                    # if letter_of_support_file.name.endswith(".pdf")
 
                 # if identity_verification_form := context.get("identity_verification"):
                 #     identity_verification_form.instance.application = a
@@ -4659,32 +6072,16 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                             ):
                                 f.instance.page_count = None
                                 try:
-                                    cf = f.instance.update_converted_file(commit=True)
-                                    if cf:
-                                        messages.success(
-                                            self.request,
-                                            _(
-                                                "The document file was converted into PDF file successfully. "
-                                                'Please review the converted version <a href="%s" target="_blank">%s</a>. '
-                                                "If it is not converted correctly, please save your document file "
-                                                "in PDF format and reupload it."
-                                            )
-                                            % (cf.file.url, os.path.basename(cf.file.name)),
-                                        )
-                                except Exception as ex:
-                                    capture_exception(ex)
-                                    messages.error(
-                                        self.request,
-                                        _(
-                                            "Failed to convert your application form into PDF. "
-                                            "Please save or convert your document into PDF format and to reupload it."
-                                        ),
+                                    cf = f.instance.update_converted_file(
+                                        commit=True, request=request
                                     )
+                                except:
                                     url = (
                                         f"{update_url}#documents"
                                         if update_url
                                         else self.continue_url("documents")
                                     )
+
                     else:
                         if update_url:
                             if documents.errors:
@@ -4700,6 +6097,84 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 form.errors.update(form_errors)
                         form.active_tab = "documents"
                         return self.form_invalid(form)
+
+                if a.is_team_application and not update_only_referees:
+
+                    if not letter_of_support and round.member_letter_of_support_required:
+                        letter_of_support = a.documents.filter(
+                            required_document__role="HS"
+                        ).first()
+                    pi, created = a.members.model.get_or_create(
+                        application=a,
+                        email=(
+                            user.email
+                            if not a.submitted_by or a.submitted_by == user
+                            else a.submitted_by.email
+                        ),
+                        defaults=dict(
+                            user=user,
+                            role_id="PC" if site_id == 2 else "PI",
+                            cv=cv,
+                            file=letter_of_support and letter_of_support.file,
+                            converted_file=letter_of_support and letter_of_support.converted_file,
+                            first_name=a.first_name or user.first_name or user.person.first_name,
+                            middle_names=a.middle_names
+                            or user.middle_names
+                            or user.person.middle_names,
+                            last_name=a.last_name or user.last_name or user.person.last_name,
+                            org=a.org,
+                            country_id=a.org.address
+                            and a.org.address.country_id
+                            or request.session.get("country"),
+                            state="authorized",
+                            research_experience_in_years=a.research_experience_in_years,
+                            authorized_at=a.updated_at,
+                            role_description="The submitter of the application",
+                        ),
+                    )
+
+                    if not created:
+
+                        updated = False
+
+                        if any(
+                            fn in form.changed_data
+                            for fn in [
+                                "first_name",
+                                "middle_names",
+                                "last_name",
+                                "org",
+                                "research_experience_in_years",
+                            ]
+                        ):
+
+                            pi.org = a.org or pi.org
+                            pi.country_id = (
+                                a.org.address
+                                and a.org.address.country_id
+                                or request.session.get("country")
+                                or pi.country_id
+                            )
+                            pi.first_name = a.first_name
+                            pi.last_name = a.last_name
+                            pi.middle_names = a.middle_names
+                            pi.research_experience_in_years = (
+                                a.research_experience_in_years or pi.research_experience_in_years
+                            )
+
+                            updated = True
+
+                        if cv and (not pi.cv or pi.cv.updated_at < cv.updated_at):
+                            pi.cv = cv
+                            updated = True
+
+                        if letter_of_support and pi.updated_at < letter_of_support.updated_at:
+                            pi.file = letter_of_support.file
+                            pi.converted_file = letter_of_support.converted_file
+                            updated = True
+
+                        if updated:
+                            pi.save()
 
                 try:
                     if not referees.instance or not referees.instance.pk:
@@ -4880,7 +6355,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
                 if not update_only_referees and "file" in form.changed_data and instance.file:
                     try:
-                        if cf := instance.update_converted_file():
+                        if cf := instance.update_converted_file(commit=True):
                             messages.success(
                                 self.request,
                                 _(
@@ -4914,8 +6389,8 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     != "application/pdf"
                 ):
                     try:
-                        if (
-                            letter_of_support_cf := instance.letter_of_support.update_converted_file()
+                        if letter_of_support_cf := instance.letter_of_support.update_converted_file(
+                            commit=True
                         ):
                             messages.success(
                                 self.request,
@@ -4983,14 +6458,21 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
                             next_url = (
                                 reverse("application-update", kwargs={"pk": a.id})
-                                if a and a.id
+                                if a and a.pk
                                 else self.request.get_full_path()
                             )
                             messages.error(
                                 self.request,
-                                _(
-                                    "To complete the application, you must provide a CV, please add a current CV "
-                                    "to your profile. Otherwise the Prize application cannot be considered."
+                                (
+                                    _(
+                                        "To complete the application, you must provide a CV, please add a current CV "
+                                        "to your profile. Otherwise the application cannot be considered."
+                                    )
+                                    if site_id == 2
+                                    else _(
+                                        "To complete the application, you must provide a CV, please add a current CV "
+                                        "to your profile. Otherwise the Prize application cannot be considered."
+                                    )
                                 ),
                             )
                             url = reverse("profile-cvs") + "?next=" + next_url
@@ -5220,7 +6702,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     if site_id == 2 and a.state in ["new", "draft", "tac_accepted"]:
 
                         is_valid = True
-                        if a.members.filter(~Q(role_id="PI"), country__isnull=True).exists():
+                        if a.members.filter(
+                            ~Q(role_id__in=["PI", "PC"]), country__isnull=True
+                        ).exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -5229,7 +6713,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 ),
                             )
                             is_valid = False
-                        if a.members.filter(~Q(role_id="PI"), org__isnull=True).exists():
+                        if a.members.filter(
+                            ~Q(role_id__in=["PI", "PC"]), org__isnull=True
+                        ).exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -5238,7 +6724,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                                 ),
                             )
                             is_valid = False
-                        if a.members.filter(~Q(role_id="PI"), file="").exists():
+                        if a.members.filter(~Q(role_id__in=["PI", "PC"]), file="").exists():
                             messages.error(
                                 self.request,
                                 _(
@@ -5262,6 +6748,16 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         and "submit" in self.request.POST
                         and a.state in ["new", "draft", "tac_accepted"]
                     ):
+                        if a.round.applicant_declaration and form.data.get(
+                            "applicant_declaration_accepted"
+                        ) not in ["on", 1, "true", "checked"]:
+                            messages.error(
+                                self.request,
+                                _("Please accept the <strong>Applicant Declaration</strong>"),
+                            )
+                            url = f'{reverse("application-update", kwargs={"pk": a.pk})}#tac'
+                            return redirect(url)
+
                         a.submit(request=self.request)
                         messages.info(
                             self.request,
@@ -5283,6 +6779,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                     self.request.method == "POST"
                     or "save_draft" in self.request.POST
                     or "send_invitations" in self.request.POST
+                    or "save" in self.request.POST  # save and continue
                 ):
                     if not current_state or current_state == "new":
                         a.save_draft(request=self.request)
@@ -5292,6 +6789,9 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
                         if not url:
                             url = self.continue_url("referees")
                         # return redirect(url)
+                    elif "save" in self.request.POST:
+                        url = a.update_url or self.request.path
+
                     elif not update_only_referees:
                         if (
                             site_id == 4
@@ -5359,6 +6859,7 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["sidebar"] = "off"
         update_only_referees = self.update_only_referees()
         context["update_only_referees"] = update_only_referees
         context["model_name"] = self.model._meta.model_name
@@ -5371,20 +6872,31 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         has_required_documents = round.required_documents.count() > 0
 
         if round.ethics_statement_required:
+            et_not_relevant = (
+                self.object
+                and self.object.ethics_statement
+                and self.object.ethics_statement.not_relevant
+            )
             EthicsStatementForm = model_forms.modelform_factory(
                 models.EthicsStatement,
                 exclude=["application"],
                 widgets={
                     "file": widgets.ClearableFileInput(
-                        attrs={
-                            "placeholder": _("Please upload a file ..."),
-                            "data-placeholder": _("Please upload a file ..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The file is required. Please upload a file ..."),
-                            "oninput": "this.setCustomValidity('')",
-                            "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
-                        }
+                        attrs=(
+                            {
+                                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                            }
+                            if et_not_relevant
+                            else {
+                                "placeholder": _("Please upload a file ..."),
+                                "data-placeholder": _("Please upload a file ..."),
+                                "data-required": 1,
+                                "oninvalid": "this.setCustomValidity('%s')"
+                                % _("The file is required. Please upload a file ..."),
+                                "oninput": "this.setCustomValidity('')",
+                                "accept": ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex",
+                            }
+                        )
                     )
                 },
             )
@@ -5553,59 +7065,10 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         context["referees"] = referee_form_set
 
         if has_required_documents:
-            initial_documents = [
-                dict(
-                    required_document=rd_id,
-                )
-                for rd_id, in (
-                    round.required_documents.values_list("id")
-                    .filter(~Q(id__in=self.object.documents.values("required_document_id")))
-                    .order_by("ordering")
-                    if (self.object and self.object.id)
-                    else round.required_documents.order_by("ordering").values_list("id")
-                )
-            ]
-            fsc = forms.inlineformset_factory(
-                self.model,
-                models.ApplicationDocument,
-                extra=len(initial_documents),
-                can_delete=False,
-                exclude=[
-                    "document_type",
-                    "converted_file",
-                ],
-                widgets={
-                    "required_document": HiddenInput(),
-                    "page_count": HiddenInput(),
-                    # "required_document": widgets.Select(attrs={"disabled": True}),
-                    # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
-                    "file": widgets.ClearableFileInput(
-                        attrs={
-                            "placeholder": _("Please upload a file ..."),
-                            "data-placeholder": _("Please upload a file ..."),
-                            "data-required": 1,
-                            "oninvalid": "this.setCustomValidity('%s')"
-                            % _("The file is required. Please upload a file ..."),
-                            "oninput": "this.setCustomValidity('')",
-                        }
-                    ),
-                },
-            )
-            if self.request.POST:
-                fs = fsc(
-                    not update_only_referees and self.request.POST or None,
-                    not update_only_referees and self.request.FILES or None,
-                    instance=self.object,
-                    # initial=initial_documents,
-                )
-            else:
-                fs = fsc(instance=self.object, initial=initial_documents)
-            if initial_documents:
-                fs.extra = len(initial_documents)
-            context["documents"] = fs
-            context["required_documents"] = {
+            self.required_documents = context["required_documents"] = {
                 rd.id: rd for rd in round.required_documents.order_by("ordering")
             }
+            context["documents"] = self.get_document_formset()
 
         if round.has_fors:
             fsc = forms.inlineformset_factory(
@@ -5739,10 +7202,122 @@ class ApplicationView(LoginRequiredMixin, SingleObjectMixin):
         if self.request.method == "GET" and initial:
             if self.request.site_id not in [2, 4, 5]:
                 initial["application_title"] = self.round.title
-            if "nomination" in self.kwargs and self.nomination and self.nomination.org:
-                initial["org"] = self.nomination.org.id
+            if "nomination" in self.kwargs and self.nomination and (no := self.nomination.org):
+                initial["org"] = no.pk
+                initial["organisation"] = no.name
 
         return kwargs
+
+    def get_document_formset(self, *args, **kwargs):
+        round = self.round
+        initial_documents = [
+            dict(required_document=rd_id)
+            for rd_id in (
+                round.required_documents.filter(
+                    ~Q(id__in=self.object.documents.values("required_document_id"))
+                ).order_by("ordering")
+                if (self.object and self.object.pk)
+                else round.required_documents.order_by("ordering")
+            ).values_list("id", flat=True)
+        ]
+        required_documents = {rd.id: rd for rd in round.required_documents.order_by("ordering")}
+
+        fsc = forms.inlineformset_factory(
+            self.model,
+            models.ApplicationDocument,
+            extra=len(initial_documents),
+            can_delete=False,
+            exclude=[
+                "document_type",
+                "converted_file",
+            ],
+            widgets={
+                "required_document": HiddenInput(),
+                "page_count": HiddenInput(),
+                # "required_document": widgets.Select(attrs={"disabled": True}),
+                # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
+                # "file": ResubmitFileWidget(
+                "file": widgets.ClearableFileInput(
+                    attrs={
+                        "placeholder": _("Please upload a file ..."),
+                        "data-placeholder": _("Please upload a file ..."),
+                        "data-required": 1,
+                        "oninvalid": "this.setCustomValidity('%s')"
+                        % _("The file is required. Please upload a file ..."),
+                        "oninput": "this.setCustomValidity('')",
+                        "can_delete": not self.object
+                        or self.object.is_wip
+                        or round.site_id in [2, 5]
+                        and self.object.state in ["new", "darft", "submitted"],
+                    }
+                ),
+            },
+        )
+        if self.request.method == "POST":
+            update_only_referees = self.update_only_referees()
+            fs = fsc(
+                not update_only_referees and self.request.POST or None,
+                not update_only_referees and self.request.FILES or None,
+                instance=self.object,
+                # initial=initial_documents,
+            )
+        else:
+            fs = fsc(instance=self.object, initial=initial_documents)
+        if initial_documents:
+            fs.extra = len(initial_documents)
+        help_texts = {
+            rd.pk: forms.make_help_text(required_document=rd) for rd in required_documents.values()
+        }
+        if self.request.method in ["POST", "GET"]:
+            return fs
+
+        for f in fs.forms:
+            rd_id = f.initial.get("required_document", 0)
+            if rd_id:
+                rd = required_documents.get(rd_id, None)
+                if not isinstance(rd_id, int):
+                    rd_id = rd_id.pk
+                f.fields["file"].help_text = help_texts.get(rd_id)
+                label = f"{rd}" if rd else _("Document")
+                state = f.instance and getattr(f.instance, "state", None)
+                if state:
+                    label += f' (<strong style="text-transform: uppercase;">{state}</strong>)'
+                f.form_label = f.fields["file"].label = label
+                if rd:
+                    if rd.is_optional:
+                        f.fields["file"].widget.attrs["data-required"] = 0
+                    dtf = rd.format or rd.document_type.format
+                    if dtf == "S":
+                        f.fields["file"].widget.attrs[
+                            "accept"
+                        ] = ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                    elif dtf == "I":
+                        f.fields["file"].widget.attrs["accept"] = ".pdf,.jpg,.png,.jpeg"
+                    else:
+                        f.fields["file"].widget.attrs[
+                            "accept"
+                        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+        # context.update(
+        #     {
+        #         "formset": formset,
+        #         "form_id": self.form_id,
+        #         "required_documents": required_documents,
+        #     },
+        # )
+        # return render_to_string(self.template, context)
+        return fs
+
+    def delete(self, request, *args, **kwargs):
+
+        a = self.object = self.get_object()
+        round = self.object.round
+        if pk := int(request.GET.get("delete_document_id")):
+            a.documents.filter(pk=pk).delete()
+
+        formset_tag = False
+        formset = self.get_document_formset()
+        required_documents = {rd.id: rd for rd in round.required_documents.order_by("ordering")}
+        return render(self.request, "portal/document_formset.html", locals())
 
 
 class ApplicationUpdate(ApplicationView, UpdateView):
@@ -5758,20 +7333,45 @@ class ApplicationCreate(ApplicationView, CreateView):
     # form_class = forms.ApplicationForm
 
     def get(self, request, *args, **kwargs):
+        u = request.user
         n = (
             models.Nomination.get(kwargs["nomination"])
             if "nomination" in kwargs
             else (
                 models.Nomination.where(
+                    (
+                        Q(round=kwargs["round"])
+                        if "round" in kwargs
+                        else Q(round__scheme__current_round=F("round"))
+                    ),
                     email__in=self.request.user.email_addresses,
-                    round__scheme__current_round=F("round"),
                 )
                 .order_by("-id")
                 .first()
             )
         )
-        r = models.Round.get(kwargs["round"]) if "round" in kwargs else (n and n.round)
-        u = request.user
+        if "round" in kwargs:
+            r = models.Round.get(kwargs["round"])
+            if n and n.round != r:
+                n = (
+                    models.Nomination.where(
+                        email__in=self.request.user.email_addresses,
+                        round=r,
+                    )
+                    .order_by("-id")
+                    .first()
+                )
+        else:
+            r = n and n.round
+        if not r:
+            messages.error(
+                self.request,
+                _("Failed to find any round you could apply for... Please contact adminstrator."),
+            )
+            return redirect("home")
+        if n and n.state == "withdrawn":
+            messages.error(request, _("The nominiation was withdrawn."))
+            return redirect(self.request.META.get("HTTP_REFERER", "home"))
         if r.panellists.all().filter(user=u).exists():
             messages.error(
                 self.request,
@@ -5780,7 +7380,7 @@ class ApplicationCreate(ApplicationView, CreateView):
             )
             return redirect("home")
 
-        a = models.Application.where(submitted_by=u, round=r).order_by("-id").first()
+        a = self.model.where(submitted_by=u, round=r).order_by("-id").first()
         if nomination_id := request.GET.get("nomination") or n and n.pk:
 
             if nom := models.Nomination.get(nomination_id):
@@ -5805,13 +7405,15 @@ class ApplicationCreate(ApplicationView, CreateView):
                         ),
                     )
                 if a and (nom == n) and not n.application:
-                    n.applicatio = a
-                    n.accept(
-                        by=u,
-                        description="Application in the round was already created; accepted by default",
-                    )
+                    n.application = a
+                    models.Nomination.where(application=a).update(application=None)
+                    if n.state != "accepted":
+                        n.accept(
+                            by=u,
+                            description="Application in the round was already created; accepted by default",
+                        )
                     n.save()
-        if a:
+        if a and r.site_id != 2:
             messages.warning(
                 self.request, _("You have already created an application. Please update it.")
             )
@@ -5857,7 +7459,11 @@ class ApplicationCreate(ApplicationView, CreateView):
                 )
             )
         )
-        if r and (a := models.Application.where(round=r, submitted_by=self.request.user).last()):
+        if (
+            r
+            and r.site_id != 2
+            and (a := self.model.where(round=r, submitted_by=self.request.user).last())
+        ):
             messages.error(
                 self.request,
                 _(
@@ -5883,8 +7489,12 @@ class ApplicationCreate(ApplicationView, CreateView):
                 if a and not a.number:
                     a.number = models.default_application_number(a, nomination=n)
 
+                if a and a.address_id and not models.Address.where(pk=a.address_id).exists():
+                    a.address = None
+                    form.cleaned_data.pop("address", None)
+
                 resp = super().form_valid(form)
-                a.save()
+                # a.save()
                 if n and not (n.application and n.user):
                     n.application = self.object
                     if n.state != "accepted":
@@ -6066,7 +7676,7 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
 
     def get_table_kwargs(self):
         u = self.request.user
-        if u.is_staff or u.is_site_staff:
+        if u.is_admin:
             return {
                 "extra_columns": [
                     (
@@ -6105,7 +7715,7 @@ class ContractList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Filte
         ).distinct()
 
 
-class ContractDetail(DetailView):
+class ContractDetail(FavoriteMixin, DetailView):
     template_name = "portal/contract_detail.html"
     model = models.Contract
     slug_field = "number"
@@ -6114,24 +7724,30 @@ class ContractDetail(DetailView):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         u = self.request.user
-        if (
-            u.is_superuser
-            or u.is_staff
-            or u.is_site_staff
-            or (
-                self.object
-                and (org := self.object.org or self.object.application.org)
-                and org.research_offices.filter(user=u).exists()
-            )
-        ):
-            context["can_edit"] = True
-            change_request_form = forms.ChangeRequestForm(
-                initial={"contract": self.object},
-            )
-            change_request_form.fields.pop("categories")
-            change_request_form.fields.pop("subcategories")
-            change_request_form.fields.pop("tags", None)
-            context["change_request_form"] = change_request_form
+        o = self.object
+        if u.is_admin or (o and (org := o.org or o.application.org) and org.is_ro(user=u)):
+            context["can_edit"] = u.is_admin or not o.is_current and o.state != "archived"
+            if (
+                o.is_current
+                and not o.change_requests.filter(
+                    state__in=["draft", "submitted", "acknowledged", "accepted"]
+                ).exists()
+            ):
+                change_request_form = forms.ChangeRequestForm(
+                    initial={"contract": o, "submitted_by": u},
+                )
+                change_request_form.fields.pop("categories")
+                change_request_form.fields.pop("subcategories")
+                change_request_form.fields.pop("tags", None)
+                context["change_request_form"] = change_request_form
+                if u.is_admin:
+                    context["is_admin"] = True
+        context["tabbed_ui"] = (
+            context.get("tabbed_ui", False)
+            or context.get("can_edit", False)
+            or o.change_requests.exists()
+            or o.reports.exists()
+        )
         return context
 
     def get_queryset(self):
@@ -6160,9 +7776,39 @@ class ContractDetail(DetailView):
         return qs
 
 
+def update_page_count(document_pk=None, contract_document_pk=None, site_id=None):
+    if site_id:
+        settings.SITE_ID.set(site_id)
+    if document_pk:
+        d = models.ApplicationDocument.get(document_pk)
+    else:
+        d = models.ContractDocument.get(contract_document_pk)
+    if d and d.file:
+        page_count = getattr(d, "page_count", None)
+        converted_file = getattr(d, "converted_file", None)
+        d.update_page_count()
+        if page_count != getattr(d, "page_count", None) or converted_file != getattr(
+            d, "converted_file", None
+        ):
+            d.save(update_fields=["page_count", "converted_file"])
+
+
 class ContractViewMixin:
 
-    extra_context = {"category": "contracts"}
+    extra_context = {"category": "contracts", "sidebar": "off", "config": config}
+
+    def get(self, request, *args, **kwargs):
+        u = request.user
+        if not (obj := getattr(self, "object", None)):
+            obj = self.get_object()
+            self.object = obj
+        if not (u.is_admin or self.is_ro):
+            messages.error(request, _("You have no permission to edit the contract."))
+            return redirect(obj.detail_url)
+        elif not u.is_admin and (obj.is_current or obj.state == "archived"):
+            messages.error(request, _("The current or arcived contracts cannot be edited."))
+            return redirect(obj.detail_url)
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         u = self.request.user
@@ -6284,6 +7930,7 @@ class ContractViewMixin:
 
     def get_personnel_formset(self, *args, **kwargs):
         a = self.application
+        site_id = a.site_id or settings.SITE_ID
         duration = self.object and self.object.duration or a and a.round.duration or 3
         if self.object and self.object.id:
             extra = 1
@@ -6291,10 +7938,18 @@ class ContractViewMixin:
         else:
             a = self.application
             pi, _ = models.RoleType.objects.get_or_create(
-                code="PI",
+                code="PC" if site_id == 2 else "PI",
                 defaults={
-                    "name": "Principal Investigator",
-                    "description": "Principal Investigator",
+                    "name": (
+                        "Principal Investigator (Contact)"
+                        if site_id == 2
+                        else "Principal Investigator"
+                    ),
+                    "description": (
+                        "Principal Investigator (Contact)"
+                        if site_id == 2
+                        else "Principal Investigator"
+                    ),
                 },
             )
 
@@ -6375,10 +8030,7 @@ class ContractViewMixin:
                 )
         elif self.request.method != "POST":
             initial = [
-                dict(
-                    required_document=rd[0],
-                    document_type=rd[1],
-                )
+                dict(required_document=rd[0], document_type=rd[1])
                 for rd in (
                     round.required_contract_documents.values_list("id", "document_type")
                     .filter(
@@ -6396,6 +8048,19 @@ class ContractViewMixin:
             application_document = fields.Field(widget=HiddenInput(), required=False)
 
             def save(self, commit=True):
+                # if "file" in self.changed_data:
+                #     cf = self.instance.converted_file
+                #     self.instance.converted_file = None
+                #     self.instance.page_count = None
+                #     if (
+                #         self.instance.pk
+                #         and cf
+                #         and cf.file
+                #         and cf.file.name
+                #         and Path(cf.file.path).is_file()
+                #     ):
+                #         cf.file.delete()
+
                 if (
                     self.cleaned_data.get("application_document")
                     and not self.cleaned_data.get("file")
@@ -6416,7 +8081,7 @@ class ContractViewMixin:
 
         class Meta:
             model = models.ContractDocument
-            exclude = ["converted_file"]
+            exclude = ["converted_file", "page_count"]
 
         fsc = forms.inlineformset_factory(
             self.model,
@@ -6426,12 +8091,13 @@ class ContractViewMixin:
             can_delete=False,
             exclude=[
                 "converted_file",
+                "page_count",
             ],
             widgets={
                 "application_document": HiddenInput(),
                 "required_document": HiddenInput(),
                 "state": HiddenInput(),
-                "page_count": HiddenInput(),
+                # "page_count": HiddenInput(),
                 "document_type": HiddenInput(),
                 # "required_document": widgets.Select(attrs={"disabled": True}),
                 # "page_count": widgets.TextInput(attrs={"readonly": True, "disabled": True}),
@@ -6512,7 +8178,7 @@ class ContractViewMixin:
         i = self.object
         u = self.request.user
 
-        if i.is_variation and u.is_admin and (cr := i.originated_by.last()):
+        if i.is_variation and u.is_admin and (cr := i.originated_by):
             form = model_forms.modelform_factory(
                 models.ChangeRequest,
                 fields=("reply",),
@@ -6545,12 +8211,16 @@ class ContractViewMixin:
         self.personnel = context["personnel"] = self.get_personnel_formset()
         a = self.application
         context["application"] = a
-        context["round"] = round = a.round
-        context["is_pi"] = (
-            self.object
-            and self.object.pk
-            and self.object.members.filter(role="PI", user=u).exists()
+        # context["nomination"] = models.Nomination.where(application=a).order_by("-pk").first()
+        # context["coordinator"] =
+
+        context["application_documents"] = list(
+            a.documents.filter(~Q(file=""), file__isnull=False).order_by(
+                "required_document__ordering"
+            )
         )
+        context["round"] = round = a.round
+        context["is_pi"] = self.object and self.object.pk and self.object.is_pi(u)
         if self.object and self.object.pk:
             c = self.object
             needs_attention = []
@@ -6572,7 +8242,7 @@ class ContractViewMixin:
         if "address_form" not in kwargs:
             context["address_form"] = self.get_address_form()
         context["state"] = self.object and self.object.state or "draft"
-        if i.is_variation and u.is_admin and i.originated_by.exists():
+        if i.is_variation and u.is_admin and i.originated_by:
             context["change_request_reply_form"] = self.get_change_request_reply_form()
 
         return context
@@ -6585,6 +8255,11 @@ class ContractViewMixin:
 
     def form_valid(self, form):
         i = form.instance
+        if "start_date" in form.changed_data and i.pk:
+            current_start_date = (
+                self.model.where(pk=i.pk).values_list("start_date", flat=True).first()
+            )
+
         site = i and i.site or self.request.site
         contract_state = i.state
         if i and i.pk:
@@ -6596,6 +8271,7 @@ class ContractViewMixin:
                     return redirect(self.request.META.get("HTTP_REFERER") + "#parts")
 
         a = self.application
+        r = a.round
         request = self.request
         u = request.user
         if not i.submitted_by:
@@ -6610,11 +8286,9 @@ class ContractViewMixin:
         if not i.fund:
             i.fund = models.Fund.last()
         try:
-            is_ro = org.research_offices.filter(user=u).exists() and not (
-                u.is_superuser or u.is_site_staff
-            )
+            is_ro = org.is_ro(user=u) and not (u.is_superuser or u.is_site_staff)
             with transaction.atomic():
-
+                action = self.request.POST.get("action", None)
                 address_form = self.get_address_form()
                 if address_form.changed_data or not self.object.address:
                     if address_form.data.get("address") and form.data.get("address").strip():
@@ -6629,6 +8303,11 @@ class ContractViewMixin:
                     i.submitted_by = u
                     # self.instance.state_changed_at = self.instance.submitted_at = timezone.now()
                     i.submit(request=self.request, user=u)
+                elif "approve_contract" in form.data or action in [
+                    "approve_contract",
+                    "approve_variant",
+                ]:
+                    i.approve(request=self.request, by=u)
                 resp = super().form_valid(form)
 
                 fs = self.get_allocation_formset()
@@ -6636,11 +8315,52 @@ class ContractViewMixin:
                 if fs.is_valid():
                     fs.save()
 
+                fs = self.get_reporting_schedule_formset()
                 if not is_ro:
-                    fs = self.get_reporting_schedule_formset()
                     fs.instance = self.object
                     if fs.is_valid():
                         fs.save()
+
+                # if "start_date" in form.changed_data and i.pk:
+                #     if current_start_date and i.start_date and i.start_date != current_start_date:
+                #         delta = relativedelta(i.start_date, current_start_date)
+                #         reporting_schedule_changed = False
+                #         reporting_schedule_changed
+                #         for rse in i.reporting_schedule.all().order_by("period", "due_date"):
+                #             if rse.due_date:
+                #                 due_date = (rse.due_date + delta).replace(day=1)
+                #             else:
+                #                 due_date = (
+                #                     i.start_date + relativedelta(years=rse.period)
+                #                 ).replace(day=1) + (
+                #                     relativedelta(days=-1, months=r.final_report_deferral or 3)
+                #                     if rse.period == i.duration and rse.type == "F"
+                #                     else relativedelta(days=-1)
+                #                 )
+                #             if rse.due_date != due_date:
+                #                 rse.due_date = due_date
+                #                 reporting_schedule_changed = True
+
+                #             if rse.date_first_remind:
+                #                 date_first_remind = (rse.date_first_remind + delta).replace(day=1)
+                #             else:
+                #                 date_first_remind = rse.due_date + relativedelta(months=-1)
+
+                #             if rse.date_first_remind != date_first_remind:
+                #                 rse.date_first_remind = date_first_remind
+                #                 reporting_schedule_changed = True
+
+                #             if reporting_schedule_changed:
+                #                 rse.save(update_fields=["due_date", "date_first_remind"])
+
+                #         if reporting_schedule_changed:
+                #             messages.info(
+                #                 self.request,
+                #                 _(
+                #                     "The reporting schedule have been updated according to the new contract start date. "
+                #                     "Please review the reporting schedule."
+                #                 ),
+                #             )
 
                 fs = self.get_personnel_formset()
                 fs.instance = self.object
@@ -6664,6 +8384,7 @@ class ContractViewMixin:
                                 f.instance.update_page_count(doc_file)
                                 # f.instance.sarve(update_fields=["page_count"])
                             else:
+                                f.instance.page_count = None
                                 cf = f.instance.update_converted_file()
                                 # f.instance.save(update_fields=["page_count", "converted_file"])
                                 if cf:
@@ -6689,9 +8410,15 @@ class ContractViewMixin:
                 ):
                     budget.save_draft(request=request, user=u)
                     budget.converted_file = None
+                    budget.page_count = None
                     budget.save(update_fields=["converted_file", "state", "updated_at"])
+                    models.async_task(
+                        update_page_count,
+                        contract_document_pk=budget.pk,
+                        site_id=self.request.site_id,
+                    )
 
-                if i.is_variation and u.is_admin and i.originated_by.exists():
+                if i.is_variation and u.is_admin and i.originated_by:
                     reply_form = self.get_change_request_reply_form()
                     if reply_form.changed_data and reply_form.is_valid():
                         reply_form.save()
@@ -6908,9 +8635,24 @@ class ContractViewMixin:
                 body = body.strip()
 
             if body or attachment:
-                comment = i.comments.model.create(
-                    contract=i, submitted_by=u, comment=body, attachment=attachment, token=token
-                )
+                with transaction.atomic():
+                    comment = i.comments.model.create(
+                        contract=i,
+                        submitted_by=u,
+                        comment=body,
+                        attachment=attachment,
+                        token=token,
+                    )
+                    comment.recipients.model.objects.bulk_create(
+                        [
+                            (
+                                comment.recipients.model(comment=comment, user=r, email=r.email)
+                                if isinstance(r, models.User)
+                                else comment.recipients.model(comment=comment, email=r)
+                            )
+                            for r in recipients
+                        ]
+                    )
 
                 respond_url = (
                     self.request.build_absolute_uri(
@@ -6934,16 +8676,6 @@ class ContractViewMixin:
                     token=token,
                 )
 
-                comment.recipients.model.objects.bulk_create(
-                    [
-                        (
-                            comment.recipients.model(comment=comment, user=r, email=r.email)
-                            if isinstance(r, models.User)
-                            else comment.recipients.model(comment=comment, email=r)
-                        )
-                        for r in recipients
-                    ]
-                )
                 return redirect(
                     reverse("contract-update", kwargs=dict(pk=self.object.pk)) + "#correspondence"
                 )
@@ -6951,7 +8683,7 @@ class ContractViewMixin:
         return resp
 
 
-class ContractCreate(ContractViewMixin, CreateView):
+class ContractCreate(NotesMixin, ContractViewMixin, CreateView):
 
     model = models.Contract
     form_class = forms.ContractForm
@@ -7019,14 +8751,14 @@ class ContractCreate(ContractViewMixin, CreateView):
         return initial
 
 
-class ContractUpdate(LoginRequiredMixin, ContractViewMixin, UpdateView):
+class ContractUpdate(LoginRequiredMixin, NotesMixin, ContractViewMixin, UpdateView):
 
     model = models.Contract
     form_class = forms.ContractForm
 
 
 class ApplicationList(
-    # LoginRequiredMixin, StateInPathMixin, ApplicationListMixin, SingleTableView,
+    # LoginRequiredMixin, StateInPathMixin, SingleTableView,
     LoginRequiredMixin,
     StateInPathMixin,
     SingleTableMixin,
@@ -7039,6 +8771,46 @@ class ApplicationList(
     filterset_class = filters.ApplicationFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
 
+    def get(self, request, *args, **kwargs):
+        if "outcome_file" in request.GET:
+
+            filterset_class = self.get_filterset_class()
+            filterset = self.get_filterset(filterset_class)
+
+            if not filterset.is_bound or filterset.is_valid() or not self.get_strict():
+                object_list = filterset.qs
+            else:
+                object_list = self.get_queryset()
+
+            response = HttpResponse(
+                content_type="text/csv",
+                headers={
+                    "Content-Disposition": 'attachment; filename="outcomes.csv"',
+                    "Cache-Control": "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+            writer = csv.writer(response)
+            writer.writerow(["NUMBER", "DECISION", "AMOUNT", "START", "END"])
+            # Simulate fetching and writing data in chunks
+            for a in object_list:
+                row_data = [
+                    a.number,
+                    "Y",
+                    (a.awarded_amount or a.requested_amount) or "",
+                    a.proposed_start_date and a.proposed_start_date.isoformat() or "",
+                    (
+                        (a.proposed_start_date + relativedelta(years=a.round.duration, days=-1))
+                        if a.proposed_start_date and a.round.duration
+                        else ""
+                    ),
+                ]
+                writer.writerow(row_data)
+
+            return response
+
+        return super().get(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         if {"duration", "awarded_amount", "application"}.issubset(request.POST):
             duration = int(request.POST["duration"])
@@ -7050,22 +8822,31 @@ class ApplicationList(
                 start_date = parse_date(start_date)
             if end_date:
                 end_date = parse_date(end_date)
-            contract = models.Contract.create_from_application(
-                application=application,
-                duration=duration,
-                awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            reset_cache(self.request)
-            url = reverse("contract-update", kwargs={"pk": contract.pk})
-            messages.info(request, f'Contract <a href="{url}">{contract.number}</a> was created.')
-            return redirect(url)
+            try:
+                contract = models.Contract.create_from_application(
+                    application=application,
+                    duration=duration,
+                    awarded_amount=Decimal(awarded_amount) if awarded_amount else None,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(request, getattr(ex, "message", str(ex)))
+                return redirect(request.path)
+            else:
+                reset_cache(self.request)
+                url = reverse("contract-update", kwargs={"pk": contract.pk})
+                messages.info(
+                    request, f'Contract <a href="{url}">{contract.number}</a> was created.'
+                )
+                return redirect(url)
 
         if "outcome_file" in request.FILES:
             file = request.FILES["outcome_file"]
+            content_type, _ = mimetypes.guess_type(file.name)
             outcomes = tablib.Dataset()
-            if file.content_type == "text/csv":
+            if file.content_type == "text/csv" or content_type == "text/csv":
                 first_line = file.readline().decode()
                 file.seek(0)
                 outcomes.load(
@@ -7092,9 +8873,13 @@ class ApplicationList(
                         a = Application.where(number=number).last()
                         if a:
                             if decision in ["Y", "1", "YES"]:
-                                awarded_amount = rest[0] if rest else None
-                                start_date = parse_date(rest[1]) if len(rest) > 1 else None
-                                end_date = parse_date(rest[2]) if len(rest) > 2 else None
+                                awarded_amount = Decimal(rest[0]) if rest and rest[0] else None
+                                start_date = (
+                                    parse_date(rest[1]) if len(rest) > 1 and rest[1] else None
+                                )
+                                end_date = (
+                                    parse_date(rest[2]) if len(rest) > 2 and rest[2] else None
+                                )
                                 if a.state != "funded":
                                     contracts.append(
                                         a.fund(
@@ -7170,6 +8955,7 @@ class ApplicationList(
             except Exception as ex:
                 capture_exception(ex)
                 messages.error(request, getattr(ex, "message", str(ex)))
+                return redirect(request.path)
 
         if funded_count:
             reset_cache(self.request)
@@ -7181,20 +8967,21 @@ class ApplicationList(
         u = self.request.user
         q = super().get_queryset(*args, **kwargs)
         q = models.Application.user_applications(
-            u, round=self.request.GET.get("round"), queryset=q
+            u, round=self.request.GET.get("round"), queryset=q, request=self.request
         )
         if u.is_staff or u.is_superuser or u.is_site_staff:
             return q.prefetch_related("contracts")
         return q
 
     def get_table_kwargs(self):
-        if not (self.request.user.is_superuser or self.request.user.is_site_staff):
+        if not self.request.user.is_admin:
             return {"exclude": ("contract",)}
         return super().get_table_kwargs()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # u = self.request.user
+        request = self.request
+        u = request.user
         # if not (
         #     u.is_staff
         #     or u.is_superuser
@@ -7229,6 +9016,14 @@ class ApplicationList(
             "cancelled",
         ]:
             context["state"] = state
+        if round_id := request.GET.get("round") or request.GET.get("round_filter"):
+            context["round"] = models.Round.get(round_id)
+
+        if state == "in_review" and u.is_admin:
+            params = self.request.GET.copy()
+            params["outcome_file"] = "selected"
+            url = f"{self.request.path}?{params.urlencode()}"
+            context["outcome_file_url"] = url
 
         return context
 
@@ -7316,12 +9111,12 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     exclude = ()
     section_views = [
         "profile-employments",
-        "profile-career-stages",
+        # "profile-career-stages",
         "profile-external-ids",
-        "profile-cvs",
-        "profile-academic-records",
-        "profile-recognitions",
-        "profile-professional-records",
+        # "profile-cvs",
+        # "profile-academic-records",
+        # "profile-recognitions",
+        # "profile-professional-records",
         # "profile-protection-patterns",
     ]
 
@@ -7427,6 +9222,9 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             next_step=next_step,
             wizard="wizard" in self.request.session,
         )
+        if "cv" in url_name:
+            context["config"] = config
+            context["DEFAULT_CV_TEMPLATE_URL"] = config.DEFAULT_CV_TEMPLATE_URL
         return context
 
     def get_success_url(self):
@@ -7443,6 +9241,9 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
 
     def turn_off_wizard(self):
         turn_off_wizard(self.request)
+
+    def formset_invalid(self, formset):
+        return super().formset_invalid(formset)
 
     def formset_valid(self, formset):
         request = self.request
@@ -7479,7 +9280,11 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                         (
                             o.number
                             if isinstance(o, models.Application)
-                            else o.referee.application.number
+                            else (
+                                o.application.number
+                                if isinstance(o, models.Member)
+                                else o.referee.application.number
+                            )
                         )
                         for o in ex.protected_objects
                     ),
@@ -7514,6 +9319,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 msg = _("You have not completed the recognition section.")
             messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
 
+        check_selected_orgs(request)
         return resp
 
 
@@ -7621,7 +9427,7 @@ class ProfilePersonIdentifierFormSetView(ProfileSectionFormSetView):
 class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
     model = models.Affiliation
     # formset_class = forms.modelformset_factory(models.Affiliation, exclude=(), can_delete=True,)
-    exclude = ["email"]
+    exclude = ["email", "role_title"]
 
     def get_factory_kwargs(self):
         kwargs = super().get_factory_kwargs()
@@ -7642,7 +9448,7 @@ class ProfileAffiliationsFormSetView(ProfileSectionFormSetView):
                     "role": TextInput(
                         attrs={"placeholder": _("student, postdoc, etc.")},
                     ),
-                    "type": HiddenInput(),
+                    # "type": HiddenInput(),
                     "person": HiddenInput(),
                     "qualification": HiddenInput(),
                     "start_date": forms.DateInput(),
@@ -7742,6 +9548,31 @@ class Unaccent(Func):
     function = "unaccent"
 
 
+class PersonCodeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        q = self.model.objects.all()
+        if self.q:
+            q = q.filter(code__istartswith=self.q)
+        return q.order_by("code")
+
+    def has_add_permission(self, request):
+        return True
+
+    def get_result_label(self, result):
+        if isinstance(result, models.Person):
+            return result.code
+        return result
+
+    def get_result_value(self, result):
+        if isinstance(result, models.Person):
+            return result.code
+        return result
+
+    def create_object(self, text):
+        return text
+
+
 class DocumentTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
@@ -7798,6 +9629,8 @@ class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
+    create_field = None
+
     def get_queryset(self):
         qs = self.model.objects.all()
 
@@ -7828,7 +9661,7 @@ class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
                 .order_by("name")
             )
 
-        if self.q:
+        if self.q and not round:
             qs = qs.filter(name__istartswith=self.q)
 
         return qs
@@ -7853,11 +9686,22 @@ class KeywordAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Don't forget to filter out results depending on the visitor !
         if not self.request.user.is_authenticated:
-            return models.Keyword.objects.none()
+            # return models.Keyword.objects.none()
+            return self.model.objects.none()
         if not self.q or not self.request.user.is_authenticated:
-            return models.Keyword.objects.all()
+            # return models.Keyword.objects.all()
+            return self.model.objects.all()
 
-        return models.Keyword.objects.all().filter(name__istartswith=self.q)
+        # return models.Keyword.objects.all().filter(name__istartswith=self.q)
+        return self.model.objects.all().filter(name__istartswith=self.q)
+
+    def create_object(self, text):
+        delimiter = "," if text.count(",") > text.count(";") else ";"
+        for t in [t.strip() for t in text.split(delimiter)][::-1]:
+            if t:
+                kw, _ = self.model.get_or_create(**{self.create_field: t})
+        if t and kw:
+            return kw
 
     def has_add_permission(self, request):
         # Authenticated users can add new records
@@ -7918,6 +9762,20 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
         return result
 
     def create_object(self, text):
+        if referer := self.request.META.get("HTTP_REFERER"):
+            if m := re.search(r"contracts/(\d+)/", referer):
+                if (
+                    contract := models.Contract.where(pk=m.group(1)).first()
+                ) and contract.host_contact_email != text:
+                    contract.host_contact_email = text
+                    contract.save(update_fields=["host_contact_email", "updated_at"])
+            elif m := re.search(r"contracts/([A-Za-z0-9:-]+)/", referer):
+                if (
+                    contract := models.Contract.where(number=m.group(1)).first()
+                ) and contract.host_contact_email != text:
+                    contract.host_contact_email = text
+                    contract.save(update_fields=["host_contact_email", "updated_at"])
+
         return text
 
     def get_queryset(self):
@@ -7962,7 +9820,7 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
         return text
 
     def get_queryset(self):
-        q = Address.objects.annotate(city_name=Trim("city")).values_list("city_name")
+        q = Address.objects.annotate(city_name=Trim("city")).values_list("city_name", flat=True)
         if country := self.forwarded.get("country", "").strip():
             q = q.filter(country=country)
         if self.q:
@@ -7971,6 +9829,33 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def create_object(self, text):
+        try:
+            if text and len(text) > 200:
+                text = f"{text[:197]}..."
+            o, _ = self.model.get_or_create(
+                defaults={"is_active": False}, **{self.create_field: text}
+            )
+        except ValidationError as e:
+            raise ValidationError(f"Creation failed: {e.message}")
+        except Exception as e:
+            # Handle general errors
+            raise ValidationError(f"An unexpected error occurred: {e}.")
+
+        # org_url = self.request.build_absolute_uri(
+        #     reverse("admin:portal_organisation_change", args=[o.pk])
+        # )
+        # models.async_task(
+        #     models.notify_site_staff_about_new_org,
+        #     # sync=True,
+        #     site_id=self.request.site_id,
+        #     org_id=o.pk,
+        #     by_id=self.request.user.pk,
+        #     org_url=org_url,
+        # )
+        return o
+
     def has_add_permission(self, request):
         # Authenticated users can add new records
         return not ("nominator" in self.forwarded and self.request.site_id in [2, 4, 5])
@@ -7978,6 +9863,8 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_result_label(self, result):
         if isinstance(result, models.Organisation):
+            if self.q and self.q.isupper():
+                return f"{result.code}: {result.name}"
             return result.name
         return result[1]
 
@@ -7988,6 +9875,45 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
         nominator = self.forwarded.get("nominator") if self.request.site_id in [2, 4, 5] else None
+        user = self.forwarded.get("user")
+        contract = self.forwarded.get("contract")
+        try:
+            if not user and contract:
+                if not isinstance(contract, models.Contract):
+                    contract = models.Contract.get(contract)
+                user = contract.pi
+        except:
+            pass
+        q = models.Organisation.search_query(
+            self.q, nominator=nominator, user=user, country=self.forwarded.get("country", None)
+        )
+        return q
+
+
+class OrgNameAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    def has_add_permission(self, request):
+        return True
+
+    def get_result_label(self, result):
+        if isinstance(result, models.Organisation):
+            return result.name
+        if isinstance(result, tuple):
+            return result[1]
+        return result
+
+    def get_result_value(self, result):
+        if isinstance(result, models.Organisation):
+            return result.name
+        if isinstance(result, tuple):
+            return result[1]
+        return result
+
+    def create_object(self, text):
+        return text
+
+    def get_queryset(self):
+        nominator = self.forwarded.get("nominator")
         user = self.forwarded.get("user")
         contract = self.forwarded.get("contract")
         try:
@@ -8155,6 +10081,17 @@ class ReportingScheduleEntryAutocomplete(LoginRequiredMixin, autocomplete.Select
         if contract := self.forwarded.get("contract"):
             # select only people affiliated with the org
             q = q.filter(contract=contract)
+        elif (
+            (referer := self.request.META.get("HTTP_REFERER"))
+            and (m := re.search(r"report/(\d+)/change", referer))
+            and (r := models.Report.where(pk=m.group(1)).first())
+            and r.contract
+        ):
+            q = q.filter(contract=r.contract)
+        elif (schedule_entry := self.forwarded.get("schedule_entry")) and (
+            se := models.ReportingScheduleEntry.where(pk=schedule_entry).first()
+        ):
+            q = q.filter(contract=se.contract)
         if "exclude_taken" in self.forwarded:
             q = q.filter(report__isnull=True)
         return q
@@ -8195,7 +10132,7 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
         q = super().get_queryset()
         if scheme := self.forwarded.get("scheme"):
             # select only people affiliated with the org
-            q = q.filter(round_scheme=scheme)
+            q = q.filter(round__scheme=scheme)
         if round := self.forwarded.get("round"):
             # select only people affiliated with the org
             return q.filter(round=round)
@@ -8207,8 +10144,16 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
 
 
 class ChangeTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
+    # search_fields = ["description", "definition"]
+    search_fields = ["description"]
+
     def has_add_permission(self, request):
         return False
+
+    # def get_queryset(self):
+    #     qs = super().get_queryset()
+    #     return qs
 
 
 class ChangeCategoryAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
@@ -8312,9 +10257,12 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            message_text = f"""{message_text}.<br/>
-                                    {_('''Now you can complete the submission of your referee report/testimonial.
-                                    <br/>Please click on the <strong>Submit</strong> button.''')}"""
+                            notes = _("""
+                                Now you can complete the submission of your referee report/testimonial.
+                                <br/>Please click on the <strong>Submit</strong> button.
+                            """)
+
+                            message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
 
                     return redirect(next_url)
@@ -8488,6 +10436,7 @@ class AdminstaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
     """Profile summary view"""
 
+    cache_timeout = 0
     model = models.User
     slug_field = "username"
     slug_url_kwarg = "username"
@@ -8510,7 +10459,7 @@ class ProfileSummaryView(AdminstaffRequiredMixin, DetailView):
             )
 
         # context["profile_user"] = user
-        context["person"] = person
+        context["person"] = context["profile"] = person
         context["image_url"] = user.image_url()
 
         if person:
@@ -8554,6 +10503,7 @@ def approve_user(request, user_id=None):
         u.save()
         url = request.build_absolute_uri(reverse("index"))
         send_mail(
+            request=request,
             recipients=[u.full_email_address],
             subject=f"Confirmation of {u.email} Signup",
             html_message="<p>You have been approved by schema administrators, "
@@ -8566,6 +10516,52 @@ def approve_user(request, user_id=None):
     return redirect("profile-summary", username=u.username)
 
 
+class MemberView(CreateUpdateView):
+
+    model = models.Member
+    form_class = forms.MemberForm
+    template_name = None
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        if not self.request.user.is_admin:
+            form.fields["role"].disabled = True
+            form.fields["role"].widget.attrs["readonly"] = "readonly"
+        return form
+
+    def get_initial(self, *args, **kwargs):
+        # if not is_fs and instance := kwargs.get("instance", None) and instance.user:
+        #     initial = kwargs.get("initial", {})
+        #     models.CurriculumVitae.last_user_cv(user=instance.user, cut_off_months=site)
+        initial = super().get_initial(*args, **kwargs)
+        if o := self.object:
+            u = o.user
+            p = u and u.person
+            if not (u and p):
+                return initial
+            if not o.title and u:
+                initial["title"] = u.person.title
+            if not o.first_name and u:
+                initial["first_name"] = u.first_name or p and p.first_name
+            if not o.middle_names and u:
+                initial["middle_names"] = u.middle_names or p and p.middle_names
+            if not o.last_name and u:
+                initial["last_name"] = u.last_name or p and p.last_name
+
+            site_id = self.request.site_id
+            cv = o.cv or models.CurriculumVitae.last_user_cv(
+                user=o.user, cut_off_months=site_id == 2 and 3
+            )
+            if cv:
+                if not o.cv:
+                    o.cv = cv
+                    # instance.save(model_fields=["cv"])
+                initial["cv_file"] = cv.file
+                if self.request.method == "GET":
+                    pass
+        return initial
+
+
 class NominationView(CreateUpdateView):
     model = models.Nomination
     form_class = forms.NominationForm
@@ -8575,21 +10571,36 @@ class NominationView(CreateUpdateView):
         self.user = u = self.request.user
         if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
             n = self.get_object()
-            if n and n.nominator and n.nominator != u:
+            if n:
+                if not (
+                    n.nominator
+                    and n.nominator == u
+                    or n.org
+                    and n.org.research_offices.filter(user=u).exists()
+                ):
+                    messages.error(
+                        request, _("You do not have permissions to access this nomination.")
+                    )
+                    return redirect(self.request.META.get("HTTP_REFERER", "index"))
+                if n.state == "accepted":
+                    contact_email = models.site_contact_email()
+                    messages.warning(
+                        request,
+                        _(
+                            "You cannot alter a nomination that has been submitted and accepted.  "
+                            f"If you feel a need to do this, please email {contact_email} "
+                            "with a reason and we may be able to enable."
+                        ),
+                    )
+            elif request.site_id == 5 and not (models.ResearchOffice.where(user=u).exists()):
                 messages.error(
-                    request, _("You do not have permissions to access this nomination.")
-                )
-                return redirect(self.request.META.get("HTTP_REFERER", "index"))
-            if n and n.state == "accepted":
-                contact_email = models.site_contact_email()
-                messages.warning(
                     request,
                     _(
-                        "You cannot alter a nomination that has been submitted and accepted.  "
-                        f"If you feel a need to do this, please email {contact_email} "
-                        "with a reason and we may be able to enable."
+                        "Only Research Office can nominate you for this round. Please contact your Research Office."
                     ),
                 )
+                return redirect("home")
+
         return super().dispatch(request, *args, **kwargs)
 
     @cached_property
@@ -8661,6 +10672,7 @@ class NominationView(CreateUpdateView):
                 n.org = n.get_nominator_orgs().last()
 
         resp = super().form_valid(form)
+        check_selected_orgs(self.request)
 
         if self.request.method == "POST":
             reset_cache(self.request)
@@ -8854,7 +10866,7 @@ class NominationView(CreateUpdateView):
         )
 
 
-class TestimonialView(CreateUpdateView):
+class TestimonialView(FavoriteMixin, CreateUpdateView):
     model = models.Testimonial
     form_class = forms.TestimonialForm
     template_name = "testimonial.html"
@@ -8875,7 +10887,7 @@ class TestimonialView(CreateUpdateView):
             if r:
                 if (
                     testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
-                ) and testimonial_submission_closes_at > timezone.now():
+                ) and testimonial_submission_closes_at < timezone.now():
                     messages.error(
                         request,
                         mark_safe(
@@ -8929,9 +10941,9 @@ class TestimonialView(CreateUpdateView):
         u = self.request.user
         reset_cache(self.request)
         site_id = self.request.site_id
-        a = t and t.application or self.application
+        a = t and t.referee_id and t.referee.application or self.application
 
-        if not t.id:
+        if not t.pk:
             q = models.Referee.where(Q(user=u) | Q(email__in=u.email_addresses))
             if a:
                 q = q.filter(application=a)
@@ -8949,6 +10961,9 @@ class TestimonialView(CreateUpdateView):
                 r.save(update_fields=["user"])
             t.referee = r
 
+        if "file" in form.changed_data and t.file and t.converted_file:
+            t.converted_file = None
+
         resp = super().form_valid(form)
 
         if r := t.referee:
@@ -8961,6 +10976,29 @@ class TestimonialView(CreateUpdateView):
                 )
 
         round = t.application.round
+        if "file" in form.changed_data and t.file and not t.file.name.lower().endswith(".pdf"):
+            try:
+                if t.file and (cf := t.update_converted_file()):
+                    t.save(update_fields=["converted_file"])
+                    messages.success(
+                        self.request,
+                        _(
+                            "Your referee report/testimonial was converted into PDF file. Please review "
+                            "the converted version <a href='%s'>%s</a>."
+                        )
+                        % (cf.file.url, os.path.basename(cf.file.name)),
+                    )
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(
+                    self.request,
+                    _(
+                        "Failed to convert your report/testimonial into PDF. "
+                        "Please save the file into PDF format and try to upload it again."
+                    ),
+                )
+                return redirect(self.request.get_full_path())
+
         if (
             self.request.method == "POST"
             and round.referee_cv_required
@@ -9134,7 +11172,7 @@ class TestimonialView(CreateUpdateView):
                 self.request,
                 _("Testimonial is already submitted."),
             )
-        return redirect("testimonial-detail", pk=t.id)
+        return redirect("testimonial", pk=t.id)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -9159,9 +11197,15 @@ class NominationList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, Fil
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        if self.request.user.research_offices.exists():
-            context["all_rounds"] = models.Round.where(scheme__current_round=F("pk"))
-            self.has_actions = True
+        if self.request.user.is_ro:
+            all_rounds = models.Round.where(
+                Q(opens_on__isnull=True) | Q(opens_on__lte=timezone.now()),
+                Q(closes_at__isnull=True) | Q(closes_at__gte=timezone.now()),
+                scheme__current_round=F("pk"),
+            )
+            if all_rounds.exists():
+                context["all_rounds"] = all_rounds
+                self.has_actions = True
         return context
 
     def get_queryset(self, *args, **kwargs):
@@ -9177,18 +11221,14 @@ class NominationDetail(DetailView):
     model = models.Nomination
     template_name = "nomination_detail.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
-            n = self.get_object()
-            if not (
-                n.nominator == u
-                or n.user == u
-                or u.emailaddress_set.filter(email=n.email).exists()
-            ):
-                messages.error(request, _("You do not have permissions to view this nomination."))
-                return redirect(self.request.META.get("HTTP_REFERER", "index"))
-        return super().dispatch(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        resp = super().post(request, *args, **kwargs)
+        if (
+            request.POST.get("action") in ["accept", "accept_nomination"]
+            and self.object.state == "accepted"
+        ):
+            return redirect("nomination-application-create", nomination=self.object.pk)
+        return resp
 
     @property
     def can_start_applying(self):
@@ -9199,6 +11239,21 @@ class NominationDetail(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+
+        u = self.request.user
+        if u.is_authenticated and not u.is_admin:
+            n = self.object
+            if not (
+                n.nominator == u
+                or n.user == u
+                or u.emailaddress_set.filter(email=n.email).exists()
+            ):
+                messages.error(request, _("You do not have permissions to view this nomination."))
+                return redirect(self.request.META.get("HTTP_REFERER", "nominations"))
+            if n.state == "withdrawn":
+                messages.error(request, _("The nominiation was withdrawn."))
+                return redirect(self.request.META.get("HTTP_REFERER", "nominations"))
+
         if self.can_start_applying:
             nominator = self.object.nominator
             button_label = (
@@ -9219,39 +11274,6 @@ class NominationDetail(DetailView):
                 ),
             )
         return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        action = request.POST.get("action")
-        return_url = request.POST.get("return_url")
-        if action == "withdraw":
-            n = self.object = self.get_object()
-            state = n.state
-            resolution = request.POST.get("resolution", f"{request.user} withdrew the nomination")
-            n.withdraw(
-                request=request,
-                by=request.user,
-                description=resolution,
-            )
-            n.save()
-            messages.info(request, f"The nomination {n} has been withdrawn.")
-            if (a := n.application) and a.is_wip:
-                a.cancel(
-                    request=request,
-                    by=request.user,
-                    description=resolution,
-                )
-                a.save()
-                messages.info(request, f"The application {a} has been cancelled.")
-
-            if return_url:
-                return redirect(return_url)
-            if not state or state in ["new", "draft"]:
-                return redirect("nominations-draft")
-            if state == "submitted":
-                return redirect("nominations-submitted")
-            if state == "accepted":
-                return redirect("nominations-accepted")
-        return redirect(return_url or "nominations")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -9291,6 +11313,9 @@ class TestimonialList(
     template_name = "testimonials.html"
     filterset_class = filters.TestimonialFilterSet
     paginator_class = django_tables2.paginators.LazyPaginator
+    limesurvey_admin_url = (
+        f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
+    )
 
     def get_queryset(self, *args, **kwargs):
         state = self.state
@@ -9298,19 +11323,61 @@ class TestimonialList(
             "referee__application__number"
         )
 
+    def get_table_kwargs(self):
+        kwargs = super().get_table_kwargs()
+        if self.request.user.is_admin:
+            # if "extra_columns" in kwargs:
+            return {
+                "extra_columns": [
+                    (
+                        _("Survey Token"),
+                        django_tables2.Column(
+                            _("Survey Token"),
+                            "referee__survey_token",
+                            linkify=lambda record: (
+                                f"{self.limesurvey_admin_url}tokens/sa/edit/iSurveyId/{survey_id}/iTokenId/{token_id}"
+                                if (ref := record.referee)
+                                and (token_id := ref.survey_token_id)
+                                and (survey_id := ref.application.round.survey_id)
+                                else None
+                            ),
+                        ),
+                    ),
+                    (
+                        _("Survey Completed"),
+                        django_tables2.Column(
+                            _("Survey Completed"), "referee__survey_completed_at"
+                        ),
+                    ),
+                    (
+                        _("Export"),
+                        tables.SafeTemplateColumn(
+                            verbose_name=gettext_lazy("Export"),
+                            template_name="partials/export_testimonial.html",
+                            attrs={
+                                "td": {
+                                    "class": "text-center",
+                                },
+                            },
+                        ),
+                    ),
+                ]
+            }
+        return kwargs
 
-class TestimonialDetail(DetailView):
+
+class TestimonialDetail(FavoriteMixin, DetailView):
     model = models.Testimonial
     template_name = "testimonial_detail.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         u = self.request.user
-        if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
+        if not u.is_admin:
             t = self.get_object()
             if t.referee.user != u:
                 messages.error(request, _("You do not have permissions to view this testimonial."))
                 return redirect(self.request.META.get("HTTP_REFERER", "index"))
-        return super().dispatch(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -9328,6 +11395,39 @@ class TestimonialDetail(DetailView):
             context["application"] = a
             if a.site_id in [2, 5]:
                 context["documents"] = a.documents_dict
+            if r.survey_id and referee.survey_token_id and referee.survey_completed_at:
+                context["export_url"] = reverse(
+                    "survey-response", kwargs={"referee_id": referee.pk}
+                )
+                context["export_tooltip"] = _(f"Export survey response")
+            elif not (t and t.file):  ## and not referee.survey_completed_at:
+                context["export_url"] = reverse("application-export", kwargs={"pk": a.pk})
+                context["export_tooltip"] = _(f"Export application {a}")
+            # elif (
+            #     r.survey_id
+            #     and referee.survey_token
+            #     and referee.survey_token_id
+            #     and (api := r.survey_api)
+            #     and (
+            #         survey_response_ids := api.query(
+            #             "get_response_ids",
+            #             params={
+            #                 "sSessionKey": api.session_key,
+            #                 "iSurveyID": r.survey_id,
+            #                 "sToken": referee.survey_token,
+            #             },
+            #         )
+            #     )
+            # ):
+            #     context["export_url"] = (
+            #         f"/limesurvey/responses/viewquexmlpdf?surveyId={r.survey_id}&id={max(survey_response_ids)}&browseLang="
+            #     )
+            #     context["export_tooltip"] = _(f"Export referee report/survey {t}")
+            elif t and t.file:
+                if a.site_id in [2, 5]:
+                    context["export_tooltip"] = _(f"Export referee report {t}")
+                else:
+                    context["export_tooltip"] = _(f"Export testimonial {t}")
 
         survey_url = (
             r and r.survey_id and reverse("survey-referee", kwargs={"referee_id": referee.id})
@@ -9371,6 +11471,9 @@ class TestimonialDetail(DetailView):
                 )
             else:
                 closes_at = r.closes_at
+                if t.file and (not r.referee_cv_required or t.cv):
+                    context["can_submit_testimonial"] = True
+
                 if (
                     testimonial_submission_closes_at
                     and testimonial_submission_closes_at < timezone.now()
@@ -9385,7 +11488,11 @@ class TestimonialDetail(DetailView):
                             )
                         ),
                     )
-                elif r.site_id not in [2, 5] or (closes_at and closes_at <= timezone.now()):
+                elif (
+                    r.site_id not in [2, 5]
+                    or (closes_at and closes_at <= timezone.now())
+                    or (a and a.state == "in_review")
+                ):
                     messages.info(
                         self.request,
                         (
@@ -9423,24 +11530,16 @@ class ApplicationExportView(ExportView):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
-        return (
-            u.is_staff
-            or u.is_superuser
-            or u.is_site_staff
-            or (
-                "pk" in self.kwargs
-                # and (a := get_object_or_404(models.Application, pk=self.kwargs["pk"]))
-                and (a := self.get_object())
-                and (
-                    a.submitted_by == u
-                    or a.members.all().filter(user=u).exists()
-                    or (
-                        self.request.site_id not in [4]
-                        and a.referees.all().filter(user=u).exists()
-                    )
-                    or a.round.panellists.all().filter(user=u).exists()
-                    or a.org.research_offices.filter(user=u).exists()
-                )
+        if not u.is_authenticated or u.is_anonymous:
+            return False
+        return u.is_admin or (
+            (a := self.get_object())
+            and (
+                a.submitted_by == u
+                or a.members.all().filter(user=u).exists()
+                or (self.request.site_id not in [4] and a.referees.all().filter(user=u).exists())
+                or a.round.panellists.all().filter(user=u).exists()
+                or a.org.research_offices.filter(user=u).exists()
             )
         )
 
@@ -9470,25 +11569,35 @@ class ApplicationExportView(ExportView):
         )
         for t in testimonials:
             if t.file:
-                attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.pdf_file))
+                attachments.append(t.pdf_file)
             if t.cv and t.cv.file:
-                attachments.append(settings.PRIVATE_STORAGE_ROOT + "/" + str(t.cv.pdf_file))
+                attachments.append(t.cv.pdf_file)
 
         return attachments
 
     def get_filename(self, pk):
         return self.model.get(id=pk).number
 
-    def get(self, request, pk=None, number=None):
+    def get(self, request, pk=None, number=None, filename=None, *args, **kwargs):
         # a = get_object_or_404(models.Application, pk=pk)
         a = self.get_object()
+        if not filename:
+            return redirect(a.export_url)
         pdf_content = io.BytesIO()
-        merger = a.to_pdf(request)
+        merger = a.to_pdf(
+            request=request,
+            user=request.user,
+            for_panellists=request.GET.get("for_panellists", False),
+        )
         merger.write(pdf_content)
         # pdf_response = HttpResponse(pdf_content.getvalue(), content_type="application/pdf")
         pdf_content.seek(0)
         pdf_response = FileResponse(pdf_content, content_type="application/pdf")
-        pdf_response["Content-Disposition"] = f"inline; filename={a.number}.pdf"
+        pdf_response["Cache-Control"] = (
+            "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+        )
+        pdf_response["Content-Disposition"] = f'inline; filename="{a.number}.pdf"'
+        pdf_response["X-Content-Type-Options"] = "nosniff"
         return pdf_response
 
 
@@ -9506,7 +11615,7 @@ class ContractExportView(ExportView):
             or u.is_site_staff
             or (c := self.get_object_or_404())
             and (
-                c.members.filter(user=u, role="PI").exists()
+                c.members.filter(user=u, role_id__in=["PI", "PC"]).exists()
                 or c.org.research_offices.filter(user=u).exists()
             )
         )
@@ -9548,9 +11657,11 @@ class ContractExportView(ExportView):
                 resp["Content-Length"] = os.path.getsize(output)
 
         if part:
-            resp["Content-Disposition"] = f"attachment; filename={c.number}_{part}.{format}"
+            resp["Content-Disposition"] = f'attachment; filename="{c.number}_{part}.{format}"'
         else:
-            resp["Content-Disposition"] = f"attachment; filename={c.number}.{format}"
+            resp["Content-Disposition"] = f'attachment; filename="{c.number}.{format}"'
+        resp["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+        resp["X-Content-Type-Options"] = "nosniff"
         return resp
 
 
@@ -9580,14 +11691,13 @@ class RoundExportView(ExportView):
 
     def get(self, request, pk):
         round = self.round
-        site_id = settings.SITE_ID
+        site_id = round and round.site_id or int(settings.SITE_ID)
+        sync = request.GET.get("sync", None)
         file_format = request.GET.get("format", "pdf")
         regenerate = request.GET.get("regenerate", False)
         regenerate = regenerate and regenerate != "0"
         u = request.user
-        for_panellists = request.GET.get("for_panellists", False) and (
-            u.is_superuser or u.is_site_staff
-        )
+        for_panellists = request.GET.get("for_panellists", False) and u.is_admin
 
         if for_panellists or round.panellists.filter(user=u).exists():
             prefix = "panellists"
@@ -9603,112 +11713,22 @@ class RoundExportView(ExportView):
         prefix = os.path.join(settings.PRIVATE_STORAGE_ROOT, prefix_url)
         if not os.path.exists(prefix):
             os.makedirs(prefix)
+
         output_filename = os.path.join(
             prefix, f"{round.scheme.code}-{round.opens_on.year}.{file_format}"
         )
 
-        # for a in self.round.applications.all().order_by("number"):
-        applications = (
-            self.round.applications.filter(state__in=["accepted", "in_review"])
-            if site_id in [2, 4, 5]
-            else self.round.applications.filter(state__in=["submitted", "approved"])
-        ).order_by("number")
-
-        for a in applications:
-            filename = os.path.join(prefix, f"{a.number}.pdf")
-            if not os.path.exists(filename) or regenerate or os.path.getsize(filename) < 100:
-                with open(filename, "wb") as output:
-                    a.to_pdf(
-                        request,
-                        skip_excluded=(site_id in [2, 4, 5]),
-                        for_panellists=for_panellists,
-                    ).write(output)
-
-            # response = FileResponse(output_filename, content_type="application/x-7z-compressed")
-            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-            # response.headers["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-
-        if file_format and file_format != "pdf":
-            if (
-                not os.path.exists(output_filename)
-                or regenerate
-                or os.path.getsize(output_filename) < 100
-            ):
-                with py7zr.SevenZipFile(output_filename, "w") as archive:
-                    for a in applications:
-                        filename = os.path.join(prefix, f"{a.number}.pdf")
-                        archive.write(filename, f"{a.number}.pdf")
-
-            content_type = "application/x-7z-compressed"
-            if settings.DEBUG or not hasattr(settings, "PRIVATE_STORAGE_INTERNAL_URL"):
-                response = StreamingHttpResponse(
-                    FileWrapper(open(output_filename, "rb")), content_type=content_type
-                )
-            else:
-                # works with nginx:
-                output_url = os.path.join(
-                    settings.PRIVATE_STORAGE_INTERNAL_URL,
-                    prefix_url,
-                    f"{round.scheme.code}-{round.opens_on.year}.{file_format}",
-                )
-                # response = HttpResponse(content_type="application/force-download")
-                response = HttpResponse(content_type=content_type)
-                response["X-Accel-Redirect"] = quote(output_url)
-                response["Content-Type"] = content_type
-                response["X-Sendfile"] = quote(output_url)
-            response["Content-Length"] = os.path.getsize(output_filename)
-            # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-            response["Content-Disposition"] = (
-                f"attachment; filename={round.scheme.code}-{round.opens_on.year}.{file_format}"
-            )
-            return response
-
-        if not os.path.exists(output_filename) or regenerate:
-            numbers = []
-            # merger = PdfMerger()
-            merger = PdfWriter()
-            merger.add_metadata({"/Title": f"{round.title or self.round.scheme.title}"})
-            merger.add_metadata({"/Subject": f"{round.title or self.round.scheme.title}"})
-
-            for a in applications:
-                numbers.append(a.number)
-                filename = os.path.join(prefix, f"{a.number}.pdf")
-                reader = PdfReader(filename, strict=False)
-                merger.append(
-                    reader,
-                    outline_item=(
-                        f"{a}"
-                        if a.site_id in [2, 4, 5]
-                        else f"{a.number}: {a.application_title or round.title}"
-                    ),
-                    import_outline=True,
-                )
-            merger.add_metadata({"/Keywords": ", ".join(numbers)})
-            merger.write(output_filename)
-
-        content_type = "application/pdf"
-        if True or settings.DEBUG:
-            response = StreamingHttpResponse(
-                FileWrapper(open(output_filename, "rb")), content_type=content_type
-            )
-        else:
-            # works with nginx:
-            response = HttpResponse(content_type="application/force-download")
-            response["X-Sendfile"] = output_filename
-            response["X-Accel-Redirect"] = output_filename
-        response["Content-Length"] = os.path.getsize(output_filename)
-        # response["Content-Disposition"] = f"attachment; filename={self.filename}.7z"
-        response["Content-Disposition"] = (
-            f"attachment; filename={round.scheme.code}-{round.opens_on.year}.pdf"
+        response, sync_output = round.export(
+            request=request,
+            by=u,
+            file_format=file_format,
+            sync=sync,
+            regenerate=regenerate,
+            for_panellists=for_panellists,
         )
-        return response
-
-        # except Exception as ex:
-        #     messages.warning(
-        #         self.request,
-        #         _(f"Error while converting to pdf. Please contact Administrator: {ex}"),
-        #     )
-        #     return redirect(self.request.META.get("HTTP_REFERER"))
+        if sync_output:
+            return response
+        return redirect(request.META.get("HTTP_REFERER") or "start")
 
 
 class NominationExportView(ExportView, NominationDetail):
@@ -9794,15 +11814,10 @@ class TestimonialExportView(ExportView, TestimonialDetail):
     def test_func(self):
         u = self.request.user
         # staff, superuser, or a panellist of the round
-        return (
-            u.is_staff
-            or u.is_superuser
-            or u.is_site_staff
-            or (
-                "pk" in self.kwargs
-                and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
-                and t.referee.user == u
-            )
+        return u.is_admin or (
+            "pk" in self.kwargs
+            and (t := get_object_or_404(models.Testimonial, pk=self.kwargs["pk"]))
+            and t.referee.user == u
         )
 
     def get_attachments(self, pk):
@@ -10059,9 +12074,7 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
     def get(self, request, *args, **kwargs):
         user = self.request.user
         if r := self.round:
-            if not (
-                user.is_staff or user.is_superuser or r.has_online_scoring or user.is_site_staff
-            ):
+            if not (r.has_online_scoring or user.is_admin):
                 if not r.panellists.filter(user=user).exists():
                     messages.error(self.request, _(f"You were not invited to this round ({r})"))
                     return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
@@ -10093,10 +12106,19 @@ class RoundApplicationList(LoginRequiredMixin, SingleTableView):
 
         user = self.request.user
         if not (user.is_staff or user.is_superuser or user.is_site_staff):
-            queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
-                coi=FilteredRelation(
+            # queryset = queryset.filter(round__panellists__user=user, state="submitted").annotate(
+            #     coi=FilteredRelation(
+            #         "conflict_of_interests",
+            #         condition=Q(conflict_of_interests__panellist__user=user),
+            #     )
+            # )
+            queryset = queryset.filter(
+                round__panellists__user=user, state="submitted"
+            ).prefetch_related(
+                Prefetch(
                     "conflict_of_interests",
-                    condition=Q(conflict_of_interests__panellist__user=user),
+                    queryset=models.ConflictOfInterest.where(panellist__user=user),
+                    to_attr="coi",
                 )
             )
         else:
@@ -10317,7 +12339,7 @@ class EvaluationMixin:
         data = super().get_context_data(**kwargs)
         if application := (
             models.Application.get(self.kwargs.get("application"))
-            if "application" in kwargs
+            if "application" in self.kwargs
             else self.object.application
         ):
             data["application"] = application
@@ -10383,7 +12405,7 @@ class CreateEvaluation(LoginRequiredMixin, EvaluationMixin, CreateWithInlinesVie
         return super().form_valid(form)
 
 
-class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesView):
+class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, FavoriteMixin, UpdateWithInlinesView):
     def dispatch(self, request, *args, **kwargs):
         u = self.request.user
         if u.is_authenticated and not (u.is_superuser or u.is_staff or u.is_site_staff):
@@ -10408,20 +12430,16 @@ class UpdateEvaluation(LoginRequiredMixin, EvaluationMixin, UpdateWithInlinesVie
         return resp
 
 
-class EvaluationDetail(DetailView):
+class EvaluationDetail(FavoriteMixin, DetailView):
     model = models.Evaluation
     template_name = "evaluation.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        if (
-            not (u := request.user)
-            and u.is_authenticated
-            and not (u.is_superuser or u.is_staff or u.is_site_staff)
-        ):
+    def get(self, request, *args, **kwargs):
+        if not (u := request.user) and not u.is_admin:
             if (e := self.get_object()) and e.panellist and e.panellist.user != u:
                 messages.error(request, _("You do not have permission to access this review."))
                 return self.handle_no_permission()
-        return super().dispatch(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, *args, **kwargs):
         u = self.request.user
@@ -10491,7 +12509,9 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
         return get_object_or_404(models.Round, pk=self.kwargs["round"])
 
     def get(self, *args, **kwargs):
-        if not self.panellist:
+
+        user = self.request.user
+        if not (self.panellist or user.is_admin):
             messages.error(self.request, _(f"You were not invited to this round ({self.round})"))
             return redirect(self.request.META.get("HTTP_REFERER") or reverse("start"))
         return super().get(*args, **kwargs)
@@ -10566,7 +12586,6 @@ class RoundConflictOfInterestFormSetView(LoginRequiredMixin, ModelFormSetView):
             return None
 
     def get_initial_queryset(self):
-        from django.db.models import Exists, OuterRef
 
         if (panellist := self.panellist) and self.request.method == "GET":
             return (
@@ -10691,14 +12710,18 @@ def export_score_sheet(request, round):
 
     filename = f'{r.scheme.code}-{request.person.code or request.user.username or "scoresheet"}.{file_type}'
     response = HttpResponse(book.export(file_type), content_type=content_type)
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.headers["Cache-Control"] = (
+        "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
-class RoundConflictOfInterstSatementList(LoginRequiredMixin, ExportMixin, SingleTableView):
+class RoundConflictOfInterstStatementList(LoginRequiredMixin, ExportMixin, SingleTableView):
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.ConflictOfInterest
-    table_class = tables.RoundConflictOfInterestSatementTable
+    table_class = tables.RoundConflictOfInterestStatementTable
     paginator_class = django_tables2.paginators.LazyPaginator
     template_name = "table.html"
 
@@ -10796,7 +12819,7 @@ def score_sheet(request, round):
 class RoundScoreList(AdminRequiredMixin, ExportMixin, SingleTableView):
     export_formats = ["xls", "xlsx", "csv", "json", "latex", "ods", "tsv", "yaml"]
     model = models.Application
-    # table_class = tables.RoundConflictOfInterestSatementTable
+    # table_class = tables.RoundConflictOfInterestStatementTable
     paginator_class = django_tables2.paginators.LazyPaginator
     # template_name = "rounds_conflict_of_interest.html"
     template_name = "table.html"
@@ -10931,7 +12954,9 @@ def round_scores_export(request, round):
 
     filename = str(round).replace(" ", "-").lower() + "-scores." + file_type
     response = HttpResponse(book.export(file_type), content_type=content_type)
-    response["Content-Disposition"] = f"attachment; filename={filename}"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -11059,9 +13084,15 @@ def application_exported_view(request, number, lang=None):
     # remote_addr = request.META.get("REMOTE_ADDR")
     # if not remote_addr.startswith("127.0.0."):
     #     return remote_addr
-    number = vignere.decode(number)
+    if not request.user.is_authenticated:
+        number = vignere.decode(number)
+
+    if number and number.isdecimal():
+        application = get_object_or_404(models.Application, pk=number)
+    else:
+        application = get_object_or_404(models.Application, number=number)
+
     for_panellists = request.GET.get("for_panellists", False)
-    application = get_object_or_404(models.Application, number=number)
     round = application.round
     site = Site.objects.get_current()
     domain = site.domain
@@ -11085,6 +13116,7 @@ def application_exported_view(request, number, lang=None):
 
     objects = application.get_testimonials()
 
+    for_pdf_export = True
     return render(request, "application-export.html", locals())
 
 
@@ -11170,7 +13202,9 @@ def headers(request, application_id, page_count=1, output_type="pdf"):
     html = HTML(string=template.render(locals()))
     pdf_object = html.write_pdf()
     response = HttpResponse(pdf_object, content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="{}.pdf"'.format("headers.pdf")
+    response["Content-Disposition"] = f'attachment; filename="headers.pdf"'
+    response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -11264,43 +13298,50 @@ class AffiliationForm(ModelForm):
         }
 
 
-class DemoForm(ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+# class DemoForm(ModelForm):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#     class Meta:
+#         model = models.Person
+#         fields = ["code", "first_name", "last_name"]
+#         # exclude = ["state"]
+#         # fields = ["email", "first_name", "middle_names", "last_name", "user", "role"]
+#         widgets = {
+#             "code": forms.TextInput(attrs={"class": "form-control"}),
+#             "first_name": forms.TextInput(attrs={"class": "form-control"}),
+#             "last_name": forms.TextInput(attrs={"class": "form-control"}),
+#         }
+#
+#     # class DemoForm(Form):
+#     # field1 = fields.CharField(max_length=100, required=True)
+#     # field2 = fields.CharField(max_length=50, required=True)
+#     # field3 = fields.CharField(max_length=50, required=True)
 
-    class Meta:
-        model = models.Person
-        fields = ["code", "first_name", "last_name"]
-        # exclude = ["state"]
-        # fields = ["email", "first_name", "middle_names", "last_name", "user", "role"]
-        widgets = {
-            "code": forms.TextInput(attrs={"class": "form-control"}),
-            "first_name": forms.TextInput(attrs={"class": "form-control"}),
-            "last_name": forms.TextInput(attrs={"class": "form-control"}),
-        }
 
-    # class DemoForm(Form):
-    # field1 = fields.CharField(max_length=100, required=True)
-    # field2 = fields.CharField(max_length=50, required=True)
-    # field3 = fields.CharField(max_length=50, required=True)
-
-
-@login_required
-def demo_create(request):
-    form = DemoForm()
-    if request.method == "POST":
-        pass
-
-    return render(request, "partials/form.html", locals())
+# @login_required
+# def demo_create(request):
+#     form = DemoForm()
+#     if request.method == "POST":
+#         pass
+#
+#     return render(request, "partials/form.html", locals())
 
 
 class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
+
     table_class = tables.PublicationTable
     model = models.Publication
     template_name = "table.html"
     extra_context = {"category": "reports"}
     template_name = "table.html"
     # filterset_class = filters.ReportFilterSet
+
+    def get_queryset(self, *args, **kwargs):
+        queryset = super().get_queryset(*args, **kwargs)
+        if report_id := (self.request.GET.get("report") or self.request.GET.get("report_id")):
+            queryset = queryset.filter(reports__id=report_id)
+        return queryset
 
 
 class PublicationViewMixin:
@@ -11321,8 +13362,42 @@ class PublicationViewMixin:
 
     @cached_property
     def report_id(self):
-        if report_id := (self.request.GET.get("report") or self.request.POST.get("report")):
+        if report_id := (
+            self.request.GET.get("report")
+            or self.request.POST.get("report")
+            or self.object.reports.order_by("-pk").values_list("pk", flat=True).first()
+        ):
             return int(report_id)
+
+    def ger_autor_formset(self):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            models.PublicationAuthor,
+            fields=["name", "type"],
+            extra=1,
+            can_delete=True,
+            # widgets={
+            #     "name": forms.TextInput(attrs={"class": "form-control"}),
+            #     "type": forms.NumberInput(attrs={"class": "form-control"}),
+            # },
+        )
+        fs = fsc(self.request.POST or None, instance=self.object, prefix="authors")
+        return fs
+
+    def ger_link_formset(self):
+        fsc = forms.inlineformset_factory(
+            self.model,
+            models.PublicationLink,
+            fields=["link", "type"],
+            extra=1,
+            can_delete=True,
+            # widgets={
+            #     "name": forms.TextInput(attrs={"class": "form-control"}),
+            #     "type": forms.NumberInput(attrs={"class": "form-control"}),
+            # },
+        )
+        fs = fsc(self.request.POST or None, instance=self.object, prefix="links")
+        return fs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -11330,6 +13405,8 @@ class PublicationViewMixin:
             context["modal_dialog"] = True
         if report_id := self.report_id:
             context["report"] = report_id
+        context["authors"] = self.ger_autor_formset()
+        context["links"] = self.ger_link_formset()
         return context
 
     def get_template_names(self):
@@ -11350,27 +13427,45 @@ class PublicationViewMixin:
         if self.request.GET.get("_modal_dialog"):
             form.helper.form_tag = False
         form.helper.layout = Layout(
-            "title",
-            "title2",
-            "doi",
-            Row(Column("rsnz_ref"), Column("type")),
-            Row(Column("status"), Column("status_date")),
-            "host",
-            "journal",
-            "publisher",
-            "editor",
-            "location",
-            "url",
-            "volume",
-            "year_ref",
-            "page_ref",
-            "host_ref",
-            Row(Column("citations"), Column("citations_date")),
-            "abstract",
-            "uid",
-            Row(Column("impact_factor"), Column("impact_year")),
-            "xcr",
-            "isi_loc",
+            bootstrap.TabHolder(
+                bootstrap.Tab(
+                    _("Details"),
+                    "title",
+                    "title2",
+                    "doi",
+                    Row(Column("rsnz_ref"), Column("type")),
+                    Row(Column("status"), Column("status_date")),
+                    "host",
+                    "journal",
+                    "publisher",
+                    "editor",
+                    "location",
+                    "url",
+                    "volume",
+                    "year_ref",
+                    "page_ref",
+                    "host_ref",
+                    Row(Column("citations"), Column("citations_date")),
+                    "abstract",
+                    "uid",
+                    Row(Column("impact_factor"), Column("impact_year")),
+                    "xcr",
+                    "isi_loc",
+                    css_id="id_detail_tab",
+                ),
+                bootstrap.Tab(
+                    _("Authors and links"),
+                    forms.Fieldset(
+                        _("Authors"),
+                        forms.TableInlineFormset("authors"),
+                    ),
+                    forms.Fieldset(
+                        _("Links"),
+                        forms.TableInlineFormset("links"),
+                    ),
+                    css_id="id_authors_and_links_tab",
+                ),
+            )
         )
         if not self.request.GET.get("_modal_dialog"):
             form.helper.layout.append(
@@ -11382,8 +13477,22 @@ class PublicationViewMixin:
             )
         return form
 
+    def get_success_url(self):
+        if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
+            return self.request.path + f"?_modal_dialog=1&report={self.report_id}"
+        if report_id := self.report_id:
+            return reverse("publication-list") + f"?report={report_id}"
+        return reverse("publication-update", kwargs={"pk": self.object.pk})
+
     def form_valid(self, form):
         resp = super().form_valid(form)
+        authors = self.ger_autor_formset()
+        if authors.is_valid():
+            # authors.instance = self.object
+            authors.save()
+        links = self.ger_link_formset()
+        if links.is_valid():
+            links.save()
         if (
             self.object.pk
             and (report_id := self.report_id)
@@ -11436,16 +13545,20 @@ class ReportedFundingViewMixin:
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
     widgets = {
+        "agency_name": forms.ModelSelect2NoPK(
+            "org-name-autocomplete",
+            attrs={"data-placeholder": _("Choose an agency or create a new one ...")},
+        ),
         # "agency": autocomplete.ModelSelect2("org-autocomplete"),
         # "agency": s2forms.ModelSelect2Widget(
         #     model=models.Organisation,
         #     search_fields=["name__icontains"],
         #     attrs={"class": "form-control custom-select", "with": "100%"}
         # ),
-        "agency": OrgWidget(
-            attrs={"class": "form-control custom-select", "with": "100%"},
-            model=models.Organisation,
-        ),
+        # "agency": OrgWidget(
+        #     attrs={"class": "form-control custom-select", "with": "100%"},
+        #     model=models.Organisation,
+        # ),
         "end_date": forms.DateInput(),
         "report": HiddenInput(),
         "start_date": forms.DateInput(),
@@ -11496,13 +13609,14 @@ class ReportedFundingViewMixin:
         if self.request.GET.get("_modal_dialog"):
             form.helper.form_tag = False
         form.helper.layout = Layout(
-            Row(Column("type"), Column("state")),
+            Row(Column("type"), Column("status")),
             "subtype",
             "title",
             "url",
             Row(Column("currency"), Column("amount"), Column("share")),
             Row(
-                Column("agency", css_class="col-8"),
+                Column("agency_name", css_class="col-8"),
+                # Column("agency", css_class="col-8"),
                 Column("start_date", css_class="col-2"),
                 Column("end_date", css_class="col-2"),
             ),
@@ -11519,6 +13633,18 @@ class ReportedFundingViewMixin:
         return form
 
     def form_valid(self, form):
+        if (
+            (i := form.instance)
+            and i.agency_name
+            and (
+                org := models.Organisation.where(
+                    Q(name=i.agency_name) | Q(legal_name=i.agency_name)
+                )
+                .order_by("-pk")
+                .last()
+            )
+        ):
+            i.org = org
         resp = super().form_valid(form)
         if self.request.GET.get("_modal_dialog") or self.request.POST.get("_modal_dialog"):
             report = self.report
@@ -11538,7 +13664,7 @@ class ReportedActivityViewMixin:
 
     # model = models.ReportedActivity
     fields = "__all__"
-    exclude = ["updated_at", "created_at"]
+    exclude = ["updated_at", "created_at", "agency"]
     widgets = {
         # "agency": autocomplete.ModelSelect2("org-autocomplete"),
         # "agency": s2forms.ModelSelect2Widget(
@@ -11614,7 +13740,7 @@ class ReportedActivityViewMixin:
 class ReportedAwardViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedAward
-    fields = ["member", "description", "report"]
+    fields = ["member", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -11623,6 +13749,8 @@ class ReportedAwardViewMixin(ReportedActivityViewMixin):
         form.fields["member"].required = True
         form.fields["description"].label = _("Award")
         form.fields["description"].required = True
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         # form.helper = FormHelper()
 
         # if self.request.GET.get("_modal_dialog"):
@@ -11652,7 +13780,7 @@ class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
 class ReportedPublicityViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedPublicity
-    fields = ["type", "description", "report"]
+    fields = ["type", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -11673,6 +13801,8 @@ class ReportedPublicityViewMixin(ReportedActivityViewMixin):
                 "Other",
             )
         )
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         return form
 
 
@@ -11687,13 +13817,14 @@ class ReportedPublicityCreateView(ReportedPublicityViewMixin, CreateView):
 class ReportedCollaborationViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedCollaboration
-    fields = ["full_name", "organisation", "country", "description", "report"]
+    fields = ["full_name", "organisation", "country", "description", "start_date", "report"]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
         form.fields["description"].label = _("Nature of Collaboration")
         form.fields["full_name"].label = _("Collaborator")
         form.fields["organisation"].label = _("Institution")
+        form.fields["start_date"].label = _("Date")
         return form
 
 
@@ -11708,7 +13839,15 @@ class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView
 class ReportedVisitViewMixin(ReportedActivityViewMixin):
 
     model = models.ReportedVisit
-    fields = ["member", "full_name", "organisation", "country", "description", "report"]
+    fields = [
+        "member",
+        "full_name",
+        "organisation",
+        "country",
+        "description",
+        "start_date",
+        "report",
+    ]
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class=form_class)
@@ -11720,6 +13859,8 @@ class ReportedVisitViewMixin(ReportedActivityViewMixin):
         form.fields["full_name"].label = _("Host")
         form.fields["organisation"].label = _("Institution")
         form.fields["organisation"].required = True
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
         return form
 
 
@@ -11731,12 +13872,38 @@ class ReportedVisitCreateView(ReportedVisitViewMixin, CreateView):
     pass
 
 
+class ReportedHostedVisitViewMixin(ReportedActivityViewMixin):
+
+    model = models.ReportedHostedVisit
+    fields = ["organisation", "country", "visitor", "description", "start_date", "report"]
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        form.fields["visitor"].label = _("Visitor")
+        form.fields["visitor"].required = True
+        form.fields["description"].label = _("Purpose")
+        form.fields["description"].required = True
+        form.fields["organisation"].label = _("External Institution")
+        form.fields["start_date"].label = _("Date")
+        form.fields["start_date"].required = False
+        return form
+
+
+class ReportedHostedVisitUpdateView(ReportedHostedVisitViewMixin, UpdateView):
+    pass
+
+
+class ReportedHostedVisitCreateView(ReportedHostedVisitViewMixin, CreateView):
+    pass
+
+
 class ReportedActivityView(View):
 
     award_view = staticmethod(ReportedAwardCreateView.as_view())
     publicity_view = staticmethod(ReportedPublicityCreateView.as_view())
     collaboration_view = staticmethod(ReportedCollaborationCreateView.as_view())
     visit_view = staticmethod(ReportedVisitCreateView.as_view())
+    hosted_visit_view = staticmethod(ReportedHostedVisitCreateView.as_view())
     # bar_view = staticmethod(BarView.as_view())
 
     def dispatch(self, request, *args, **kwargs):
@@ -11750,6 +13917,8 @@ class ReportedActivityView(View):
             return self.collaboration_view(request, *args, **kwargs)
         elif category == "V":
             return self.visit_view(request, *args, **kwargs)
+        elif category == "H":
+            return self.hosted_visit_view(request, *args, **kwargs)
         # else:
         #     return self.bar_view(request, *args, **kwargs)
         return super().dispatch(request, *args, **kwargs)
@@ -11807,113 +13976,131 @@ class ChangeRequestViewMixin:
         contract_pk = self.kwargs.get("pk")
         return get_object_or_404(models.Contract, pk=contract_pk)
 
+    # def post(self, request, *args, **kwargs):
+    #     return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
 
-        u = models.User.get(self.request.user.pk)
-        org = self.object and self.object.contract and self.object.contract.org
-        is_ro = (
-            org
-            and org.research_offices.filter(user=u).exists()
-            or not (u.is_site_staff or u.is_superuser)
-        )
+        u = self.request.user
+        request = self.request
+        contract = self.object and self.object.contract or self.contract
+        org = contract and contract.org
+        is_ro = org and org.is_ro(user=u) or not u.is_admin
 
         try:
             with transaction.atomic():
 
                 i = form.instance
+                if not i.contract_id:
+                    i.contract = contract
                 if i and not i.submitted_by and is_ro:
-                    form.instance.submitte_by = u
+                    i.submitte_by = u
                 resp = super().form_valid(form)
 
                 if action := form.data.get("action"):
                     action = action.lower()
                     if action == "submit":
-                        i.submit(user=u, request=self.request)
+                        if i.state == "submitted" and u.is_admin:
+                            i.request_resubmit(by=u, request=request)
+                        else:
+                            i.submit(user=u, by=u, request=request)
                     elif action == "approve":
-                        i.approve(user=u, request=self.request)
+                        i.approve(by=u, request=request)
                     elif action == "accept":
-                        i.accept(user=u, request=self.request)
+                        i.accept(by=u, request=request)
                     elif action == "reject":
-                        i.reject(user=u, request=self.request)
+                        i.reject(by=u, request=request)
                     elif action == "cancel":
-                        i.cancel(user=u, request=self.request)
-                    elif action in ["request_resubmission", "resubmit"]:
-                        i.save_draft(user=u, request=self.request)
+                        i.cancel(by=u, request=request)
+                    elif action in ["request_resubmit", "request_resubmission", "resubmit"]:
+                        i.request_resubmit(by=u, request=request)
                     i.save()
 
-                if action in [
-                    "accept",
-                    "approve",
-                    "cancel",
-                    "reject",
-                    "request_resubmission",
-                    "resubmit",
-                    "submit",
-                ]:
-                    if not org:
-                        org = i.contract.org
-                        is_ro = org.research_offices.filter(user=u).exists()
-                    if is_ro:
-                        fund = i.contract.fund
-                        recipients = (
-                            [fund.email]
-                            if fund and fund.email
-                            else i.contract.site.staff_users.all()
-                        )
-                    else:
-                        recipients = (
-                            [i.submitted_by]
-                            if i.submitted_by
-                            else [ro.user for ro in i.contract.org.research_offices.all()]
-                        )
-                    url = reverse("change-request-update", args=[i.pk])
-                    url = self.request.build_absolute_uri(url)
-                    contract_url = self.request.build_absolute_uri(
-                        reverse("contract", args=[i.contract.pk])
-                    )
-                    if action == "submit":
-                        subject = f"Change Request {i.number} submitted by {u}"
-                    elif action in ["request_resubmission", "resubmit", "reject", "cancel"]:
-                        subject = f"Change Request {i.number} required resubmission"
-                    elif action == "approved":
-                        subject = f"Change Request {i.number} approved by {u}"
-                    else:
-                        subject = f"Change Request {i.number} updated by {u}"
+                    #############################################
+                    # if action in [
+                    #     "accept",
+                    #     "approve",
+                    #     "cancel",
+                    #     "reject",
+                    #     "request_resubmission",
+                    #     "resubmit",
+                    #     "submit",
+                    # ]:
+                    #     if not org:
+                    #         org = i.contract.org
+                    #         is_ro = org.is_ro(user=u)
 
-                    if action == "submit":
-                        html_body = (
-                            "<p>Tēnā koe,</p>"
-                            f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
-                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
-                            "<p>Please review the change request.</p>"
-                        )
-                    else:
-                        html_body = (
-                            "<p>Tēnā koe,</p>"
-                            f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
-                            f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
-                            "<p>Please review the changes and update the request.</p>"
-                        )
+                    #     if is_ro:
+                    #         fund = i.contract.fund
+                    #         recipients = (
+                    #             [fund.email]
+                    #             if fund and fund.email
+                    #             else i.contract.site.staff_users.all()
+                    #         )
+                    #     else:
+                    #         recipients = (
+                    #             [i.submitted_by]
+                    #             if i.submitted_by
+                    #             else i.contract.application.ro_recipients
+                    #         )
+                    #     url = reverse("change-request-update", args=[i.pk])
+                    #     url = request.build_absolute_uri(url)
+                    #     contract_url = request.build_absolute_uri(
+                    #         reverse("contract", args=[i.contract.pk])
+                    #     )
+                    #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
+                    #         subject = f"Change Request {i.number} submitted by {u}"
+                    #     elif action in ["request_resubmission", "resubmit", "reject", "cancel"] or (
+                    #         i.state == "submitted" and u.is_admin
+                    #     ):
+                    #         subject = f"Change Request {i.number} required resubmission"
+                    #     elif action == "approved":
+                    #         subject = f"Change Request {i.number} approved by {u}"
+                    #     else:
+                    #         subject = f"Change Request {i.number} updated by {u}"
 
-                    send_mail(
-                        subject,
-                        html_message=html_body,
-                        recipients=recipients,
-                        fail_silently=False,
-                        from_email="contracts",
-                        request=self.request,
-                        reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
-                        thread_index=i.contract.thread_index,
-                        thread_topic=i.contract.thread_topic,
-                    )
+                    #     if action == "submit" and not (i.state == "submitted" and u.is_admin):
+                    #         html_body = (
+                    #             "<p>Tēnā koe,</p>"
+                    #             f'<p>{u} has submitted a change request <a href="{url}">{i.number}</a> '
+                    #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                    #             "<p>Please review the change request.</p>"
+                    #         )
+                    #     else:
+                    #         html_body = (
+                    #             "<p>Tēnā koe,</p>"
+                    #             f'<p>{u} has update the change request <a href="{url}">{i.number}</a> '
+                    #             f'of the contract <a href="{contract_url}">{i.contract}</a></p>'
+                    #             "<p>Please review the changes and update the request.</p>"
+                    #         )
 
-                    emails = [getattr(r, "email", r) or str(r) for r in recipients]
-                    messages.success(
-                        self.request,
-                        f"Notification of change request {i.number} sent to {', '.join(emails)}.",
-                    )
+                    #     send_mail(
+                    #         subject,
+                    #         html_message=html_body,
+                    #         recipients=recipients,
+                    #         cc=(
+                    #             i.contract.application.ro_recipients
+                    #             if not is_ro
+                    #             and i.submitte_by
+                    #             and i.contract.application.round.notify_ro_on_application_submission
+                    #             else None
+                    #         ),
+                    #         fail_silently=False,
+                    #         from_email="contracts",
+                    #         request=request,
+                    #         reply_to=u.email if u else settings.DEFAULT_FROM_EMAIL,
+                    #         thread_index=i.contract.thread_index,
+                    #         thread_topic=i.contract.thread_topic,
+                    #     )
 
-                    reset_cache(self.request)
+                    #     emails = [getattr(r, "email", r) or str(r) for r in recipients]
+                    #     messages.success(
+                    #         request,
+                    #         f"Notification of change request {i.number} sent to {', '.join(emails)}.",
+                    #     )
+                    #########
+
+                    reset_cache(request)
                     if action == "accept":
                         return redirect(reverse("contract-update", args=[i.derivative.pk]))
 
@@ -11929,6 +14116,7 @@ class ChangeRequestCreateView(ChangeRequestViewMixin, CreateView):
     def get_initial(self):
         initial = super().get_initial()
         initial["contract"] = self.contract
+        initial["submitted_by"] = self.request.user
         return initial
 
 
@@ -12034,64 +14222,194 @@ class ChangeRequestDetail(DetailView):
 
 
 @login_required
-def demo(request, pk=None):
-    # a = Application.get(1683)
-    a = Application.where(pk=pk).last() if pk else Application.last()
-    obj = models.Person.where(pk=pk).last() if pk else models.Person.last()
+def survey_response(request, referee_id):
+    r = get_object_or_404(models.Referee, pk=referee_id)
+    u = request.user
+    survey_id = r.survey_id
 
-    duration = 3
-    MemberFTEFormSet = forms.inlineformset_factory(
-        models.Application,
-        models.Member,
-        form=MemberFTEForm,
-        formset=forms.MandatoryApplicationFormInlineFormSet,
-        exclude=["state"],
-        edit_only=True,
-        can_delete_extra=False,
+    if not (u.is_admin or r.user != u):
+        messages.error(request, _("You have no permission to view this referee report"))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    if not r.survey_completed_at:
+        messages.error(request, _("The survey has not yet been completed..."))
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    exclude_confidential = request.GET.get("exclude_confidential", False)
+    exclude_scores = request.GET.get("exclude_scores", False)
+    output_format = request.GET.get("format", "html")
+    filename = f"{r}.{output_format}"
+    mime_type, _encoding = mimetypes.guess_type(filename)
+    output = r.get_response(
+        output_format=output_format,
+        exclude_confidential=exclude_confidential,
+        exclude_scores=exclude_scores,
     )
-    AffiliationFormSet = forms.inlineformset_factory(
-        models.Person,
-        models.Affiliation,
-        # form=MemberFTEForm,
-        # formset=forms.MandatoryApplicationFormInlineFormSet,
-        exclude=["put_code"],
-        edit_only=True,
-        can_delete_extra=False,
-    )
-    if request.method == "POST":
-        # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
-        # formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
-        formset = AffiliationFormSet(request.POST, instance=obj, prefix="demo")
-        form = DemoForm(data=request.POST or None, instance=obj)
+    if isinstance(output, dict) and (status := output.get("status")):
+        messages.error(request, status)
+        return redirect(request.META.get("HTTP_REFERER") or "start")
+    if not output_format or output_format in ["html", "htm"]:
+        return HttpResponse(output, content_type="text/html; charset=utf-8")
 
-        if formset.is_valid():
-            pass
+    output.seek(0)
+    response = FileResponse(output, content_type=mime_type)
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+# @api_view(["GET", "PUT", "POST"])
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
+# def handle_email(request):
+#     data = json.loads(request.body)
+#     # https://puanga.prodata.nz/limesurvey/printanswers/view?surveyid=655512
+#     # https://puanga.prodata.nz/limesurvey/statistics_user/655512?language=en
+#     # capture_message(f"incoming request form lime survey:\n{request.body}\n\n\n{data}")
+#     pass
+
+
+@login_required
+@require_http_methods(["PUT", "POST"])
+def convert_file(request):
+
+    pk = (
+        request.GET.get("id")
+        or request.POST.get("id")
+        or request.GET.get("pk")
+        or request.POST.get("pk")
+    )
+    obj_id = request.GET.get("obj_id") or request.POST.get("obj_id")
+    model_name = request.GET.get("model") or request.POST.get("model")
+    obj = (
+        model_name
+        and obj_id
+        and (m := apps.get_model("portal", model_name))
+        and getattr(m, "all_objects", m.objects).filter(pk=obj_id).first()
+    )
+    if pk and not obj and (cf := models.ConvertedFile.all_objects.filter(file_id=pk).first()):
+        cf.file.delete()
+        if not obj:
+            for model in apps.get_models():
+                if not hasattr(model, "converted_file"):
+                    continue
+                if (
+                    obj := getattr(model, "all_objects", model.objects)
+                    .filter(converted_file=pk)
+                    .first()
+                ):
+                    break
+
+    if obj:
+        try:
+            if (
+                obj.converted_file
+                and obj.converted_file.file
+                and Path(obj.converted_file.file.path).is_file()
+            ):
+                obj.converted_file.file.delete()
+            obj.converted_file = None
+            obj.update_converted_file(commit=True)
+        except Exception as ex:
+            return render(request, "partials/converted_file.html", {"obj": obj, "error": str(ex)})
+    return render(request, "partials/converted_file.html", {"obj": obj, "success": True})
+
+
+@login_required
+@require_http_methods(["PUT", "POST"])
+def toggle_favorite(request, content_type_id, object_id):
+    content_type = get_object_or_404(ContentType, id=content_type_id)
+    # Basic security check to prevent favoring unauthorized models
+    if content_type.model not in ["post", "product"]:
+        return HttpResponse("Invalid content type", status=400)
+
+    try:
+        obj = content_type.get_object_for_this_type(id=object_id)
+    except obj.DoesNotExist:
+        return HttpResponse("Object not found", status=404)
+
+    favorite, created = models.Favorite.objects.get_or_create(
+        user=request.user, content_type=content_type, object_id=object_id
+    )
+
+    if not created:
+        # If it already existed, unfavorite it
+        favorite.delete()
+        is_favorited = False
     else:
-        form = DemoForm(instance=obj)
-        # formset = MemberFTEFormSet(instance=a, prefix="demo")
-        formset = AffiliationFormSet(instance=obj, prefix="demo")
+        # If it was created, it is now favorited
+        is_favorited = True
 
-    form.helper = FormHelper()
-    form.helper.help_text_inline = True
-    form.helper.html5_required = True
-    form.helper.layout = Layout(
-        forms.Div(
-            forms.TableInlineFormset("formset"),
-            css_id="demo",
-        )
+    # Render a small template fragment to update the UI
+    context = {
+        "is_favorited": is_favorited,
+        "object_id": object_id,
+        "content_type_id": content_type_id,
+        # You might also want to pass the count of favorites
+    }
+    return HttpResponse(
+        render_to_string("partials/favorite_button.html", context, request=request)
     )
 
-    # formset.helper = FormHelper()
-    # formset.helper.help_text_inline = True
-    # formset.helper.html5_required = True
-    # formset.helper.layout = Layout(
-    #     forms.Div(
-    #         forms.TableInlineFormset("formset"),
-    #         css_id="demo",
-    #     )
-    # )
 
-    return render(request, "demo.html", locals())
+# @login_required
+# def demo(request, pk=None):
+#     # a = Application.get(1683)
+#     a = Application.where(pk=pk).last() if pk else Application.last()
+#     obj = models.Person.where(pk=pk).last() if pk else models.Person.last()
+#
+#     duration = 3
+#     MemberFTEFormSet = forms.inlineformset_factory(
+#         models.Application,
+#         models.Member,
+#         form=MemberFTEForm,
+#         formset=forms.MandatoryApplicationFormInlineFormSet,
+#         exclude=["state"],
+#         edit_only=True,
+#         can_delete_extra=False,
+#     )
+#     AffiliationFormSet = forms.inlineformset_factory(
+#         models.Person,
+#         models.Affiliation,
+#         # form=MemberFTEForm,
+#         # formset=forms.MandatoryApplicationFormInlineFormSet,
+#         exclude=["put_code"],
+#         edit_only=True,
+#         can_delete_extra=False,
+#     )
+#     if request.method == "POST":
+#         # form = DemoForm(number_of_fields=5, data=request.POST, prefix="demo")
+#         # formset = MemberFTEFormSet(request.POST, instance=a, prefix="demo")
+#         formset = AffiliationFormSet(request.POST, instance=obj, prefix="demo")
+#         form = DemoForm(data=request.POST or None, instance=obj)
+#
+#         if formset.is_valid():
+#             pass
+#     else:
+#         form = DemoForm(instance=obj)
+#         # formset = MemberFTEFormSet(instance=a, prefix="demo")
+#         formset = AffiliationFormSet(instance=obj, prefix="demo")
+#
+#     form.helper = FormHelper()
+#     form.helper.help_text_inline = True
+#     form.helper.html5_required = True
+#     form.helper.layout = Layout(
+#         forms.Div(
+#             forms.TableInlineFormset("formset"),
+#             css_id="demo",
+#         )
+#     )
+#
+#     # # formset.helper = FormHelper()
+#     # # formset.helper.help_text_inline = True
+#     # # formset.helper.html5_required = True
+#     # # formset.helper.layout = Layout(
+#     # #     forms.Div(
+#     # #         forms.TableInlineFormset("formset"),
+#     # #         css_id="demo",
+#     # #     )
+#     # # )
+#     #
+#     # return render(request, "demo.html", locals())
 
 
 # def accel(request):
@@ -12170,5 +14488,96 @@ def demo(request, pk=None):
 #         content_type="text/javascript",
 #     )
 
+
+@login_required
+async def crud_event_stream(request):
+
+    last_datetime = timezone.now() - timezone.timedelta(minutes=1)
+    last_id = (
+        await CRUDEvent.objects.all().order_by("-pk").values_list("pk", flat=True).afirst() or 0
+    )
+
+    async def event_stream():
+        nonlocal last_datetime
+        nonlocal last_id
+        e = None
+        # NB! must add '\n\n' at the end of each message
+        # NB! if message is multi-line, each line must start with 'data: '
+        while True:
+            events = CRUDEvent.objects.filter(pk__gt=last_id, event_type__in=[1, 2, 3]).order_by(
+                "pk"
+            )
+            # events = CRUDEvent.objects.filter(event_type__in=[1, 2, 3]).order_by("-pk")[:3]
+            async for e in events:
+                # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
+                if (
+                    e.event_type in [1, 2]
+                    and (ct := e.content_type)
+                    and (
+                        obj := await sync_to_async(e.content_type.get_object_for_this_type)(
+                            pk=e.object_id
+                        )
+                    )
+                ):
+                    try:
+                        url = getattr(obj, "detail_url", None) or reverse(
+                            f"admin:{ct.app_label}_{ct.model}_change", args=[obj.pk]
+                        )
+                    except:
+                        url = None
+                else:
+                    url = None
+                op = f"{ e.get_event_type_display().lower() }d"
+                message = "".join(f"data: {l}\n" for l in f"""
+    <div class="toast hide"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        data-delay="5000"
+        id="crud-event-{e.pk}"
+    >
+    <div class="toast-header">
+        <!-- img src="..." class="rounded mr-2" alt="..." -->
+        <strong class="mr-auto">{ ct.model_class()._meta.verbose_name } was { op }</strong>
+        <small class="text-muted">at {e.datetime.isoformat() }</small>
+        <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="toast-body">
+        { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
+    </div>
+    </div>
+    """.splitlines(keepends=False) if l.strip())
+                # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
+                yield f"id: {e.pk}\nevent: crud\n{message}\n"
+            if e and e.pk:
+                last_id = e.pk
+            await asyncio.sleep(5)
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+# def time_value_stream(request):
+#     def event_stream():
+#         # NB! must add '\n\n' at the end of each message
+#         # NB! if message is multi-line, each line must start with 'data: '
+#         yield f"id: {time.time()}\nevent: time\ndata: <li>{timezone.now().isoformat()}</li>\n\n"
+#         time.sleep(random.randint(1, 5))
+#         # asyncio.sleep(random.randint(1, 5))
+
+#     response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+#     response.headers["Cache-Control"] = "no-cache"
+#     return response
+
+
+# async def async_view_example(request):
+#     # Simulate an asynchronous I/O operation (e.g., an API call)
+#     # This does not block other requests while it 'sleeps'
+#     await asyncio.sleep(5)
+
+#     return JsonResponse({'message': 'Hello, async world!', 'delay': '2 seconds'})
 
 # vim:set ft=python.django:

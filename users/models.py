@@ -77,6 +77,9 @@ class User(HelperMixin, PersonMixin, AbstractUser):
         default=HelperMixin.get_current_site_id,
     )
 
+    def __str__(self):
+        return f"{super().__str__()} ({self.username})"
+
     def save(self, *args, **kwargs):
         if self.email:
             self.email = self.email.lower()
@@ -98,6 +101,11 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     def is_admin(self):
         """Test if the user is staff member or superuser"""
         return self.is_superuser or self.is_staff or self.is_site_staff
+
+    @cached_property
+    @admin.display(description=_("is R.O."), boolean=True)
+    def is_ro(self):
+        return self.research_offices.exists()
 
     @property
     def can_apply(self):

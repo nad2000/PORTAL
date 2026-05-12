@@ -220,10 +220,10 @@ def get_compression_info():  # noqa: D103
 def get_socket_info():  # noqa: D103
     socket_info = []
     socket_info.append(("Hostname", socket.gethostname()))
-    socket_info.append(
-        ("Hostname (fully qualified)", socket.gethostbyaddr(socket.gethostname())[0])
-    )
     try:
+        socket_info.append(
+            ("Hostname (fully qualified)", socket.gethostbyaddr(socket.gethostname())[0])
+        )
         socket_info.append(("IP Address", socket.gethostbyname(socket.gethostname())))
     except Exception:
         pass

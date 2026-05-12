@@ -8,20 +8,22 @@ from django.db import transaction
 from django.db.models import Q
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.shortcuts import render
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from sentry_sdk import capture_exception
 from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
-from simple_history.utils import bulk_update_with_history
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
+from common.admin import StaffViewPermsMixin
 from portal.models import (
+    Affiliation,
     CurriculumVitae,
     Person,
-    ResearchOffice,
     PersonProtectionPattern,
     ProtectionPatternPerson,
+    ResearchOffice,
 )
-
 
 from .forms import UserChangeForm, UserCreationForm
 
@@ -56,7 +58,7 @@ class IsStaff(SimpleListFilter):
 
 
 @admin.register(User)
-class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
+class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
     fieldsets = (
@@ -91,6 +93,15 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
+    add_fieldsets = (
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("username", "email", "password1", "password2"),
+            },
+        ),
+    )
     readonly_fields = ["is_site_staff"]
 
     list_display = [
@@ -124,11 +135,77 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
     )
     date_hierarchy = "date_joined"
 
+    def email_address_list(self, obj):
+        return ", ".join(
+            obj.emailaddress_set.order_by("-primary", "pk").values_list("email", flat=True)
+        )
+
+    email_address_list.description = "All user email address(-es)."
+
+    def affiliations(self, obj):
+        affiliations = Affiliation.where(person__user=obj).order_by("start_date", "pk")
+        if affiliations.count():
+            return mark_safe(f"""
+            <table>
+              <caption>Affiliation(s)</caption>
+                <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Organisation</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {" ".join((a.html_table_row for a in affiliations))}
+              </tbody>
+            </table>
+            """)
+        return "N/A"
+
+    affiliations.description = "User affiliation(s)."
+
     def is_site_staff(self, obj):
         return obj.is_site_staff
 
     is_site_staff.description = "Designates whether the user can log into this admin site."
     is_site_staff.boolean = True
+
+    def get_fieldsets(self, request, obj=None):
+        if (u := request.user) and not u.is_superuser and (u.is_staff or u.is_site_staff):
+            return (
+                (
+                    None,
+                    {
+                        "fields": (
+                            "title",
+                            "first_name",
+                            "middle_names",
+                            "last_name",
+                            "email_address_list",
+                            "affiliations",
+                        )
+                    },
+                ),
+                (
+                    _("Permissions"),
+                    {
+                        "fields": (
+                            "is_approved",
+                            "is_identity_verified",
+                            "is_active",
+                            "is_staff",
+                            "is_site_staff",
+                            "staff_of_sites",
+                            "is_superuser",
+                            "groups",
+                            "user_permissions",
+                        ),
+                    },
+                ),
+                (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+            )
+
+        return super().get_fieldsets(request, obj)
 
     class EmailAddressInline(admin.TabularInline):
         extra = 0
@@ -159,7 +236,7 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                 users = queryset.filter(~Q(id=target_id))
                 object_ids = [u.id for u in users]
                 profiles = Person.where(user_id__in=object_ids)
-                profile_ids = [p.id for p in profiles]
+                # profile_ids = [p.id for p in profiles]
 
                 # for u in list(queryset.filter(~Q(id=target_id))):
                 #     try:
@@ -190,131 +267,13 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                 #         errors.append(ex)
                 try:
                     with transaction.atomic():
-                        for u_id in object_ids:
-                            p = Person.where(user_id=u_id).first()
-                            if p:
-                                if profile:
-                                    for cv in CurriculumVitae.where(person=p):
-                                        cv.person = profile
-                                        cv._change_reason = (
-                                            f"User {p.user} merged into {target} by {u}"
-                                        )
-                                        cv.save()
-                                else:
-                                    for cv in CurriculumVitae.where(person=p):
-                                        cv.person = profile
-                                        cv._change_reason = (
-                                            f"User {p.user} merged into {target} by {u}"
-                                        )
-                                        cv.delete()
-
                         if profile:
-                            for model, field, objects in (
-                                (
-                                    model,
-                                    field,
-                                    [
-                                        setattr(
-                                            o,
-                                            "_change_reason",
-                                            f"User {getattr(o, field)} merged into {profile} by {u}",
-                                        )
-                                        or setattr(o, field, profile)
-                                        or o
-                                        for o in (
-                                            model.all_objects
-                                            if hasattr(model, "all_objects")
-                                            else model.objects
-                                        ).filter(**{f"{field}__in": profile_ids})
-                                    ],
-                                )
-                                for (model, field) in (
-                                    (rel.related_model, rel.remote_field.name)
-                                    for rel in get_candidate_relations_to_delete(Person._meta)
-                                    if not issubclass(
-                                        rel.related_model,
-                                        (
-                                            HistoricalChanges,
-                                            ProtectionPatternPerson,
-                                        ),
-                                    )
-                                )
-                            ):
-                                if hasattr(model, "history"):
-                                    bulk_update_with_history(
-                                        objects,
-                                        model,
-                                        [field],
-                                        default_user=u,
-                                        manager=getattr(
-                                            model, "all_objects", model._default_manager
-                                        ).filter(**{f"{field}__in": profile_ids}),
-                                    )
-                                else:
-                                    if model is PersonProtectionPattern:
-                                        objects = [
-                                            o
-                                            for o in objects
-                                            if not profile.person_protection_patterns.filter(
-                                                protection_pattern=o.protection_pattern
-                                            ).exists()
-                                        ]
-                                    elif model.__name__ == "Person_ethnicities":
-                                        objects = [
-                                            o
-                                            for o in objects
-                                            if not profile.ethnicities.filter(
-                                                code=o.ethnicity.code
-                                            ).exists()
-                                        ]
-                                    elif model.__name__ == "Person_languages_spoken":
-                                        objects = [
-                                            o
-                                            for o in objects
-                                            if not profile.languages_spoken.filter(
-                                                code=o.language.code
-                                            ).exists()
-                                        ]
-                                    elif model.__name__ == "Person_iwi_groups":
-                                        objects = [
-                                            o
-                                            for o in objects
-                                            if not profile.iwi_groups.filter(
-                                                code=o.iwigroup.code
-                                            ).exists()
-                                        ]
-                                    # elif model.__name__.startswith("Person_"):
-                                    #     breakpoint()
-                                    if objects:
-                                        getattr(
-                                            model, "all_objects", model._default_manager
-                                        ).bulk_update(objects, [field])
-                            else:
-                                for model, field in (
-                                    (rel.related_model, rel.remote_field.name)
-                                    for rel in get_candidate_relations_to_delete(Person._meta)
-                                    if not issubclass(
-                                        rel.related_model,
-                                        (HistoricalChanges, ProtectionPatternPerson),
-                                    )
-                                ):
-                                    to_delete = list(
-                                        (
-                                            model.all_objects
-                                            if hasattr(model, "all_objects")
-                                            else model.objects
-                                        ).filter(**{f"{field}__in": profile_ids})
-                                    )
-                                    for o in to_delete:
-                                        o._change_reason = (
-                                            f"User {o.person.user} merged into {target} by {u}"
-                                        )
-                                        o.delete()
-                                    deleted = [f"{o.person}" for o in to_delete]
-
-                        for o in Person.where(user_id__in=object_ids):
-                            o._change_reason = f"User {o} merged into {target} by {u}"
-                            o.delete()
+                            profile.merge(
+                                queryset=profiles,
+                                request=request,
+                                by=u,
+                                keep=False,
+                            )
 
                         for model, field, objects in (
                             (
@@ -341,6 +300,12 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                 if not issubclass(rel.related_model, HistoricalChanges)
                                 and rel.related_model is not User.staff_of_sites.through
                             )
+                            if model
+                            not in (
+                                ResearchOffice,
+                                EmailAddress,
+                                Person,
+                            )
                         ):
                             if hasattr(model, "history"):
                                 bulk_update_with_history(
@@ -351,14 +316,37 @@ class UserAdmin(auth_admin.UserAdmin, SimpleHistoryAdmin):
                                     manager=getattr(model, "all_objects", model._default_manager),
                                 )
                             else:
-                                getattr(model, "all_objects", model._default_manager).bulk_update(
-                                    objects, [field]
+                                try:
+                                    getattr(model, "all_objects", model._default_manager).bulk_update(
+                                        objects, [field]
+                                    )
+                                except Exception as ex:
+                                    capture_exception(ex)
+                                    errors.append(ex)
+
+                        for ea in EmailAddress.objects.filter(user__in=users):
+                            ea.user = target
+                            ea.primary = False
+                            ea.save()
+                        bulk_create_with_history(
+                            [
+                                ResearchOffice(user=target, org_id=org_id)
+                                for org_id in ResearchOffice.objects.filter(
+                                    ~Q(org__research_offices__user=target), user__in=users
                                 )
+                                .values_list("org_id", flat=True)
+                                .distinct()
+                            ],
+                            ResearchOffice,
+                            default_user=u,
+                            default_change_reason=f"Users {', '.join(str(r) for r in users)} merged into {target} by {u}",
+                        )
 
                         deleted.extend([f"{o}" for o in users])
                         for o in users:
                             o._change_reason = f"User {o} merged into {target} by {u}"
                             o.delete()
+
                 except Exception as ex:
                     capture_exception(ex)
                     errors.append(ex)

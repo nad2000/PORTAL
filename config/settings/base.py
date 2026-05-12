@@ -80,7 +80,7 @@ LANG_INFO.update(
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 #  SITE_ID = 1
-SITE_ID = SiteID(default=1)
+SITE_ID = SiteID(default=0)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.sites",
     "multisite",
+    # "file_resubmit",
     # "redirects",
     "django.contrib.redirects",
     "django.contrib.messages",
@@ -144,13 +145,13 @@ INSTALLED_APPS = [
     "django.contrib.flatpages",
     "reversion",
     "reversion_compare",
-    "dbtemplates",
+    ## "dbtemplates",
     # "django_mail_admin",
     "captcha",
     "simple_history",
     # "background_task",
     "crispy_forms",
-    # "crispy_bootstrap4",
+    "crispy_bootstrap4",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -164,9 +165,9 @@ INSTALLED_APPS = [
     "import_export",
     "django_select2",
     "private_storage",
+    "django_fsm",
     "django_fsm_log",
     "fsm_admin",
-    "django_fsm",
     "django_summernote",
     "tinymce",
     "django_filters",
@@ -179,7 +180,38 @@ INSTALLED_APPS = [
     "easyaudit",
     # "dalf",
     # "autocompletefilter",
+    "django_q",
+    "constance",
+    "django_tomselect",
 ]
+
+CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+# CONSTANCE_DATABASE_CACHE_BACKEND = "default"
+CONSTANCE_CONFIG = {
+    "DEFAULT_CV_TEMPLATE_URL": (
+        "https://www.royalsociety.org.nz/assets/NZ-RST-CV-Template.docx",
+        "NZ RST CV Template URL.",
+        str,
+    ),
+    "CHILD_PROTECTION_POLICY_URL": (
+        "https://www.royalsociety.org.nz/who-we-are/our-rules-and-codes/policy-on-child-protection/child-protection-policy",
+        "Child Protection Policy URL.",
+        str,
+    ),
+}
+
+Q_CLUSTER = {
+    "name": "DjangORM",
+    "retry": 120,  ## 60
+    "workers": 1,
+    "timeout": 90,
+    "bulk": 10,
+    "queue_limit": 500,
+    "sync": False if ENV == "prod" else DEBUG,
+    "orm": "default",
+}
+# TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
+TASKS = {"default": {"BACKEND": "portal.tasks.Q2Backend"}}
 
 # EXPLORER_CONNECTIONS = {"Default": "readonly"}
 # EXPLORER_DEFAULT_CONNECTION = "readonly"
@@ -190,7 +222,15 @@ EXPLORER_DATA_EXPORTERS = [
     ("excel", "explorer.exporters.ExcelExporter"),
     ("json", "explorer.exporters.JSONExporter"),
 ]
-# EXPLORER_CHARTS_ENABLED = True
+# EXPLORER_TRANSFORMS = [
+#     ('user', '<a href="/users/{0}/profile" target="_blank">{0}</a>')
+# ]
+# EXPLORER_PERMISSION_VIEW = lambda r: r.user.is_staff or r.user.is_site_staff
+# EXPLORER_PERMISSION_CHANGE = lambda r: r.user.is_staff or r.user.is_site_staff
+# EXPLORER_PERMISSION_CONNECTIONS = lambda r: r.user.is_staff or r.user.is_site_staff
+### EXPLORER_CHARTS_ENABLED = True
+EXPLORER_DB_CONNECTIONS_ENABLED = True
+EXPLORER_USER_UPLOADS_ENABLED = True
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------
@@ -259,8 +299,9 @@ MIDDLEWARE = [
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
+    "django_tomselect.middleware.TomSelectMiddleware",
+    # "django.middleware.cache.FetchFromCacheMiddleware",
 ]
-
 
 # STATIC
 # ------------------------------------------------------------------------------
@@ -286,6 +327,7 @@ MEDIA_URL = "/media/"
 # Protected storage:
 PRIVATE_STORAGE_ROOT = str(ROOT_DIR / "private-media")
 PRIVATE_STORAGE_AUTH_FUNCTION = "private_storage.permissions.allow_authenticated"
+# PRIVATE_STORAGE_CLASS = "common.models.ArchivalStorage"
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
@@ -305,11 +347,12 @@ TEMPLATES = [
                     # "django.template.loaders.cached.Loader",
                     "portal.template.Loader",
                     [
-                        "multisite.template.loaders.filesystem.Loader",
+                        # "multisite.template.loaders.filesystem.Loader",
+                        "portal.template.MultisiteLoader",
                         "apptemplates.Loader",
                         "django.template.loaders.app_directories.Loader",
                         "django.template.loaders.filesystem.Loader",
-                        "dbtemplates.loader.Loader",
+                        # "dbtemplates.loader.Loader",
                     ],
                 )
             ],
@@ -325,7 +368,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # "dynamic_breadcrumbs.context_processors.breadcrumbs",
                 # "django.template.context_processors.request",
-                "portal.context_processors.portal_context",
+                "django_tomselect.context_processors.tomselect",
+                "portal.views.portal_context",
             ],
             "debug": DEBUG,
         },
@@ -346,7 +390,7 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 # FORMS_URLFIELD_ASSUME_HTTPS = True
 
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
-# CRISPY_ALLOWED_TEMPLATE_PACKS = ["bootstrap4",]
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # FIXTURES
@@ -357,9 +401,10 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 # SECURITY
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
+SESSION_COOKIE_NAME = "portal_sessionid"
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
-CSRF_COOKIE_HTTPONLY = True
+### CSRF_COOKIE_HTTPONLY = True
 # CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
@@ -374,7 +419,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # workaround for https://github.com/shestera/django-multisite/issues/9
 # SILENCED_SYSTEM_CHECKS = ["sites.E101"]  # Check to ensure SITE_ID is an int - ours is an object
-SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101"]
+SILENCED_SYSTEM_CHECKS = ["security.W019", "sites.E101", "captcha.recaptcha_test_key_error"]
 
 # EMAIL
 # ------------------------------------------------------------------------------
@@ -410,16 +455,40 @@ LOGGING = {
     "formatters": {
         "verbose": {
             "format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"
-        }
+        },
+        "coloured": {
+            "()": "coloredlogs.ColoredFormatter",
+            "format": "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+        },
     },
     "handlers": {
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
-        }
+        },
+        "console_coloured": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "coloured",
+        },
     },
-    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
+        "django-q": {
+            # "handlers": ["console", 'q_file'],
+            "handlers": ["console_coloured"],
+            "level": "DEBUG",
+            "propagate": False,  # Important: Stop propagation to root
+        },
+        "qcluster": {
+            # "handlers": ["console", 'q_file'],
+            "handlers": ["console_coloured"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+    # "root": {"level": "INFO", "handlers": ["console"]},
+    # "root": {"level": "WARNING", "handlers": ["console"]},
 }
 
 
@@ -429,9 +498,12 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # ACCOUNT_AUTHENTICATION_METHOD = "username"
-ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+# ACCOUNT_AUTHENTICATION_METHOD = "username_email"  ## was replaced by ACCOUNT_LOGIN_METHODS in v2.0
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
+## ACCOUNT_EMAIL_REQUIRED = True
+## ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
@@ -458,6 +530,7 @@ REST_FRAMEWORK = {
 # ------------------------------------------------------------------------------
 
 ALLAUTH_SITES_ENABLED = True
+ALLAUTH_TRUSTED_PROXY_COUNT = 1  # Set to 1 or more depending on your setup
 # SOCIALACCOUNT_SITES_ENABLED = True
 SOCIALACCOUNT_STORE_TOKENS = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
@@ -492,6 +565,7 @@ SUMMERNOTE_CONFIG = {
     "summernote": {
         # "width": "100%",
         # "airMode": True,
+        "disable_attachment": False,
         "fontNames": ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Merriweather"],
         "fontName": "Arial",
         "fontSize": 10,
@@ -593,3 +667,4 @@ DBTEMPLATES_ADD_DEFAULT_SITE = True
 # DBTEMPLATES_AUTO_POPULATE_CONTENT = True
 DBTEMPLATES_USE_CODEMIRROR = True
 # DBTEMPLATES_USE_TINYMCE = True
+EXPLORER_S3_OBJECT_PARAMETERS = {}

@@ -13,6 +13,13 @@
   <!-- link href="{% static 'django_tables2/themes/paleblue/css/screen.css' %}" rel="stylesheet" -->
   <link href="{% static 'django_tables2/bootstrap.css' %}" rel="stylesheet">
   <style>
+  <!-- EXPERIMENT -->
+/* Necessary styling */
+#draggableBox {
+    /* Ensures it doesn't get messed up by draggable */
+    border: 1px solid #ccc;
+}
+  <!-- EXPERIMENT -->
 .table-container th.asc:after {
   /*content: '\0000a0\0025b2';
 float: right;*/
@@ -285,6 +292,13 @@ thead th.orderable.desc > a {
 
   {% if view.title %}
     <h1>{{ view.title }}</h1>
+  {% elif round %}
+    <h5 class="mb-3" style="padding: 0.75rem 1.25rem;{% if round.background and round.background != 'colour' or round.foreground %} {% if round.background and round.background != 'colour' %}background-color: {{ round.background }};{% endif %} color:{% if round.foreground %} {{ round.foreground }}{% else %} white;{% endif %}{% endif %}; border-radius: 0.25rem;">
+      {#% trans "The Prime Minister's" %#}
+      <b style="text-transform: uppercase;">
+        {{ round.title }}
+      </b>
+    </h5>
   {% endif %}
 
   {% block filters %}
@@ -306,6 +320,7 @@ thead th.orderable.desc > a {
             $(location).attr("href",
               $(location).attr("pathname") + "?show_only_conflicts=" + (this.checked ? '1':'0'));
             });
+
           });
       </script>
     {% endif %}
@@ -366,6 +381,9 @@ thead th.orderable.desc > a {
         {% if user.is_staff or user.is_superuser or user.is_site_staff %}
           {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
             <button type="button" class="btn btn-primary ml-2" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
+            {% if outcome_file_url %}
+              <a type="button" class="btn btn-outline-primary ml-1" data-toggle="tooltip" title="Generate an outcome file..." href="{{ outcome_file_url }}">New outcomes</a>
+            {% endif %}
           {% endif %}
         {% endif %}
 
@@ -377,16 +395,18 @@ thead th.orderable.desc > a {
     {#% if filter.form.round_filter or filter.form.year_filter or filter.form.fund_filter %#}
     {% if filter.filters %}
     <div class="row">
-      <div class="col-md-10">
+      <div class="col-10">
         {% render_table table %}
 
         {% if view_name == "applications-funded" or view_name == "applications-accepted" or SITE_ID == 2 and view_name == "applications-in_review" or SITE_ID == 5 and view_name == "applications-in_review" %}
           <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#outcome-form-modal">Load outcomes...</button>
+          {% if outcome_file_url %}
+            <a type="button" class="btn btn-outline-primary ml-1" data-toggle="tooltip" title="Generate an outcome file..." href="{{ outcome_file_url }}">New outcomes</a>
+          {% endif %}
         {% endif %}
 
       </div>
-      <div class="col-md-2">
-
+      <div class="col-2">
         <div class="card text-dark bg-light" style="max-width: 18rem;">
           <!-- form action="" method="GET" class="form form-inline mb-3" autocomplete="on" -->
           <div class="card-header" style="width: 100%;">{% trans 'Filters' %}</div>
@@ -468,14 +488,15 @@ thead th.orderable.desc > a {
         </div>
         {% endcomment %}
 
-      </div>
-    </div>
     {% else %}
-      {% render_table table %}
+      <div class="row"><div class="col-md">
+          {% render_table table %}
     {% endif %}
   {% else %}
+    <div class="row"><div class="col-md">
     {% render_table table %}
   {% endif %}
+  </div></div>
 
   {% if has_actions or view.export_formats or view.has_actions %}
       <div class="buttonHolder mb-5 mt-3 float-right" style="display: inline-flex;">
@@ -496,9 +517,31 @@ thead th.orderable.desc > a {
       </div>
   {% endif %}
 
+  {% comment %}
+
+  <!-- EXPERIMENT -->
+        <!-- Draggable, Collapsible Overlay Box -->
+<div id="draggableBox" class="card shadow-lg" style="position: fixed; top: 100px; left: 100px; width: 300px; z-index: 1000;">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center" style="cursor: move;">
+        <h6 class="mb-0">Overlay Panel</h6>
+        <!-- Minimization Button -->
+        <button class="btn btn-sm btn-light" type="button" data-toggle="collapse" data-target="#collapseBody" aria-expanded="true" aria-controls="collapseBody">
+            <i class="fa fa-minus"></i>
+        </button>
+    </div>
+    <div id="collapseBody" class="collapse show">
+        <div class="card-body">
+            This box can be dragged around, and its position will be saved!
+        </div>
+    </div>
+</div>
+  <!-- EXPERIMENT -->
+  {% endcomment %}
+
 {% endblock %}
 
 {% block javascript %}
+  <script src="https://code.jquery.com/ui/1.14.2/jquery-ui.js"></script>
   {{ block.super }}
 <script>
 {% if user.is_site_staff and filter or user.is_superuser and filter or is_ro and state == "submitted" or is_ro and filter %}
@@ -526,6 +569,30 @@ function rememberIfDetailsWasFolded(el) {
 };
 
   $(document).ready(function(){
+
+  <!-- EXPERIMENT -->
+
+    // 1. Initialize Draggable
+    $("#draggableBox").draggable({
+        handle: ".card-header",
+        stop: function(event, ui) {
+            // 2. Save Position on Stop
+            localStorage.setItem("boxTop", ui.position.top);
+            localStorage.setItem("boxLeft", ui.position.left);
+        }
+    });
+
+    // 3. Retain Location on Reload
+    var savedTop = localStorage.getItem("boxTop");
+    var savedLeft = localStorage.getItem("boxLeft");
+    if (savedTop && savedLeft) {
+        $("#draggableBox").css({
+            top: savedTop + "px",
+            left: savedLeft + "px"
+        });
+    }
+  <!-- EXPERIMENT -->
+
     $("details[data-filter-title]").each(function() {
       rememberIfDetailsWasFolded(this);
     });

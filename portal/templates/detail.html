@@ -25,8 +25,8 @@
   {% endif %}
 
   <!-- Placeholder for the modal -->
-  <div id="form-modal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
-    <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this" ></div>
+  <div id="form-modal" class="modal fade bd-example-modal-lg" data-keyboard="true" tabindex="-1" role="dialog" aria-hidden="true">
+    <div id="form-dialog" class="modal-dialog modal-lg" hx-target="this"></div>
   </div>
 
   <h1>
@@ -39,6 +39,22 @@
       {{ object|title }}
     {% endif %}
     {% endblock %}
+    {% if object.favorites %}
+      {% with is_favorited=user|is_favorited:object object_id=object.pk %}
+      {% comment %}
+      <span id="favorite-{{ object.pk }}">
+        {% include 'snippets/favorite_button.html' with object_id=object.pk is_favorited=user|is_favorited:object %}
+      </span>
+      {% endcomment %}
+        <a hx-put="{{ request.path }}?toggle_favorite=1"
+          hx-target="#favorite-status-{{ object_id }}"
+          hx-swap="outerHTML"
+          class="{% if is_favorited %}favorited{% else %}not-favorited{% endif %}"
+        >
+          <i id="favorite-status-{{ object_id }}" class="{% if is_favorited %}fa{% else %}far{% endif %} fa-star" aria-hidden="true"></i>
+        </a>
+      {% endwith %}
+    {% endif %}
   </h1>
 
   <div class="row">
@@ -54,22 +70,22 @@
   {% endblock buttons_above %}
 
   {% block tags %}
-  {% if tag_form %}
-  <div class="row">
-    <div class="col-12">
-    {% if tag_form.helper %}
-      {% crispy tag_form tag_form.helper %}
-    {% else %}
-      {{ tag_form|crispy }}
-    {% endif %}
+    {% if tag_form %}
+    <div class="row">
+      <div class="col-12">
+      {% if tag_form.helper %}
+        {% crispy tag_form tag_form.helper %}
+      {% else %}
+        {{ tag_form|crispy }}
+      {% endif %}
+      </div>
     </div>
-  </div>
-  {% endif %}
+    {% endif %}
   {% endblock %}
 
   {% block object_details %}
 
-      {% if has_comments %}
+      {% if tabbed_ui %}
         <ul class="nav nav-tabs">
           <li class="nav-item active">
             <a class="nav-link active" href="#details" data-target="#details" data-toggle="tab">{% trans 'Details' %}</a>
@@ -86,6 +102,7 @@
                 </a>
             </li>
           {% endif %}
+          {% block object_details_extra_tabs %}{% endblock object_details_extra_tabs %}
         </ul>
 
         <div class="tab-content card-body">
@@ -93,10 +110,10 @@
 
       {% endif %}
 
+  {% block object_details_table %}
   <div class="table-responsive">
   <table class="table table-bordered searchable">
     <tbody>
-
       {% for field in object|fields %}
         <!-- {{ field }} // {{ exclude }} -->
         {% if field.name != 'id' and exclude is None or field.name not in exclude and field.name != "tagged_items" %}
@@ -113,11 +130,15 @@
             <td>
               {% if not value and value != 0 %}
                 {% trans 'N/A' %}
-              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description" %}
+              {% elif field.name == "summary" or field.name == "abstract" or field.name == "notes" or field.name == "assessment" or field.name == "description"  or field.name == "reply" %}
                 {{ value|safe }}
               {% elif field|is_file_field %}
                 <a href="{{ object|field_file_url }}" target="_blank">{{ object|field_file_name|basename }}</a>
-              {% elif field.name == "converted_file"%}
+              {% elif field.name == "invitations" %}
+                {% for i in object.invitations.all %}
+                  {% if not forloop.first %}, {% endif %}{{ i }}{% if is_admin or is_ro %} ({% if i.url %}<a href="{{ i.url }}" target="_blank">{{ i.url }}</a>{% else %}<a href="{% url 'onboard-with-token' token=i.token %}" target="_blank">{% url 'onboard-with-token' token=i.token %}</a>{% endif %}){% endif %}
+                {% endfor %}
+              {% elif field.name == "converted_file" %}
                 <a href="{{ object.converted_file|field_file_url }}" target="_blank">
                   {{ object.converted_file|field_file_name|basename }}
                 </a>
@@ -169,47 +190,49 @@
     </tbody>
   </table>
   </div>
+  {% endblock %}
 
-
-  {% if has_comments %}
+  {% if tabbed_ui %}
 
     </div>
 
 	    <div id="correspondence" class="tab-pane">
-	      {% crispy comment_form comment_form.helper %}
-	      {% include 'snippets/comments.html' %}
+        {% crispy comment_form comment_form.helper %}
+        {% include 'snippets/comments.html' %}
 	    </div>
-
 
       {% if attachments %}
-	    <div id="attachments" class="tab-pane">
-<table class="table table-striped"
-    data-toggle="table"
-    data-search="true"
-    data-show-columns="true"
->
-  <thead>
-    <tr>
-      <th scope="col" data-field="creaded_at" data-sortable="true">{% trans 'Added At' %}</th>
-      <th scope="col" data-field="attachment" data-sortable="true">{% trans 'Attachment' %}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for a in attachments %}
-      <tr>
-        <th scope="row">
-          {{ a.0 }}
-        </th>
-        <td>
-          <a href="{{ a.1.url }}" target="_blank">{{ a.1.name|basename }}</a>
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-	    </div>
+        <div id="attachments" class="tab-pane">
+          <table class="table table-striped"
+              data-toggle="table"
+              data-search="true"
+              data-show-columns="true"
+          >
+            <thead>
+              <tr>
+                <th scope="col" data-field="creaded_at" data-sortable="true">{% trans 'Added At' %}</th>
+                <th scope="col" data-field="attachment" data-sortable="true">{% trans 'Attachment' %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in attachments %}
+                <tr>
+                  <th scope="row">
+                    {{ a.0 }}
+                  </th>
+                  <td>
+                    <a href="{{ a.1.url }}" target="_blank">{{ a.1.name|basename }}</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% endif %}
+
+      {% block object_details_extra_panes %}
+        <!-- Extra panes can be added by child templates -->
+      {% endblock %}
 
     </div>
 
@@ -225,42 +248,43 @@
   </h1>
 
   <div class="table-responsive">
-  <table class="table table-bordered searchable">
-    <tbody>
+    <table class="table table-bordered searchable">
+      <tbody>
 
-      {% for field in extra_object|fields %}
-        {% if exclude is None or field.name not in exclude %}
-          {% if field.name != 'id' and extra_object|field_value:field.name %}
-            {% if field.name != "summary_en" or extra_object.is_bilingual_summary %}{% if field.name != "summary_mi" or extra_object.is_bilingual_summary %}{% if field.name != "photo_identity" or request.user.is_staff or request.user.is_superuser %}
-              <tr>
-                <th  class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
-                  {{ field.verbose_name|title }}
-                </th>
-                <td>
-                  {% if extra_object|field_is_empty:field.name %}
-                    {% trans 'N/A' %}
-                  {% elif field.name == "summary" or field.name == "summary_en" or field.name == "summary_mi" %}
-                    {{ extra_object|field_value:field.name|safe }}
-                  {% elif field|is_file_field %}
-                      <a href="{{ extra_object|field_file_url }}" target="_blank">{{ extra_object|field_file_name|basename }}</a>
-                  {% elif field.name == "converted_file"%}
-                    <a href="{{ extra_object.converted_file|field_file_url }}" target="_blank">
-                      {{ extra_object.converted_file|field_file_name|basename }}
-                    </a>
-                  {% else %}
-                    {{ extra_object|field_value:field.name }}
-                  {% endif %}
-                </td>
-              </tr>
-            {% endif %}{% endif %}{% endif %}
+        {% for field in extra_object|fields %}
+          {% if exclude is None or field.name not in exclude %}
+            {% if field.name != 'id' and extra_object|field_value:field.name %}
+              {% if field.name != "summary_en" or extra_object.is_bilingual_summary %}{% if field.name != "summary_mi" or extra_object.is_bilingual_summary %}{% if field.name != "photo_identity" or is_adimin %}
+                <tr>
+                  <th  class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
+                    {{ field.verbose_name|title }}
+                  </th>
+                  <td>
+                    {% if extra_object|field_is_empty:field.name %}
+                      {% trans 'N/A' %}
+                    {% elif field.name == "summary" or field.name == "summary_en" or field.name == "summary_mi" %}
+                      {{ extra_object|field_value:field.name|safe }}
+                    {% elif field|is_file_field %}
+                        <a href="{{ extra_object|field_file_url }}" target="_blank">{{ extra_object|field_file_name|basename }}</a>
+                    {% elif field.name == "converted_file"%}
+                      <a href="{{ extra_object.converted_file|field_file_url }}" target="_blank">
+                        {{ extra_object.converted_file|field_file_name|basename }}
+                      </a>
+                    {% else %}
+                      {{ extra_object|field_value:field.name }}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}{% endif %}{% endif %}
+            {% endif %}
           {% endif %}
-        {% endif %}
-      {% endfor %}
+        {% endfor %}
 
-    </tbody>
-  </table>
+      </tbody>
+    </table>
   </div>
   {% endif %}
+
   {% endblock extra_object %}
 
   <hr />
@@ -315,12 +339,20 @@
           event.stopPropagation();
           var el = event.target;
           $("[name='action'],#id_action").val(el.dataset["action"]||el.name);
-          $('#id_commit_button').text(el.value||el.outerText||'{% trans "Commit" %}');
+          $('#id_commit_button').text(el.value||el.innerText||'{% trans "Commit" %}');
           $('#id_resolution_modal').modal('show');
           $('#id_resolution').trigger('focus');
           return false;
         });
-        $('#id_resolution_modal').on('shown.bs.modal', function () {
+        $('#id_resolution_modal,#id_agent_declaration_modal').on('shown.bs.modal', function (event) {
+          $(this).find("textarea[name='resolution']").focus();
+          var el = event.relatedTarget;
+          if (el) {
+            if (el.type == 'button') {
+              $('#id_commit_button').text(el.value||el.innerText||el.name||'{% trans "Commit" %}');
+            }
+            $("[name='action'],#id_action").val(el.dataset["action"]||el.name);
+          }
           $('#id_resolution').trigger('focus');
         });
       });

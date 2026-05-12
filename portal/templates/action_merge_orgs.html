@@ -1,11 +1,25 @@
 {% extends "admin/base_site.html" %}
+{#% extends "admin/delete_confirmation.html" %#}
 
 {% block content %}
+  <h1>Are you sure?</h1>
 
-  <form action="" method="post">
+    <p>Are you sure you want to merge the selected organisations?</p>
+    <p class="warning" style="background-color: var(--message-warning-bg);">
+    You can either deleted merged records or keep them and mark them 'inactive'.
+    The records that were entered erroneously can be deleted. If the organisations were
+    restructured or reorganised, keep them.
+    </p>
+    <p>If you choose to delete merged organisation records.
+    All organisation records except the <i>target</i>
+    organisation will be deleted.</p>
 
-    {% csrf_token %}
+<span class="delete-confirmation">
+  <form method="post">{% csrf_token %}
+    {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+    {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
     <input type="hidden" name="action" value="merge_orgs">
+    <input type="hidden" name="post" value="yes">
     <input type="hidden" name="select_across" value="0">
     <input type="hidden" name="index" value="0">
     {% for o in objects %}
@@ -14,17 +28,36 @@
 
     <input type="hidden" name="do_action" value="yes">
 
-    <label for="target">Organisation</label>
+    <label for="target">Target Organisation</label>
     <select id="target" name="target">
 
       {% for o in objects %}
-        <option value="{{ o.id }}"{% if forloop.first %} selected{% endif %}>{{ o.code }}: {{ o }}</option>
+        <option
+            value="{{ o.id }}"
+            {% if target and o == target or forloop.first and o.is_active %} selected{% endif %}
+            {% if not o.is_active %} disabled{% endif %}
+            {#% if not o.is_active %} disabled style="color: #999;"{% endif %#}
+        >
+        {{ o.code }}: {{ o }}{% if o.is_active %} (<b>ACTIVE</b>){% endif %}
+        </option>
       {% endfor %}
     </select>
+    <!-- fieldset>
+      <legend>Keep or delete the merged records:</legend -->
+
+      <input type="radio" name="keep" id="keep_records" value="1" checked title="Keep the merged records">
+      <label for="keep_records" title="Keep the merged records">Keep</label>
+
+      <input type="radio" name="keep" id="delete_records" value="0" title="Delete the merged inot the trarget records">
+      <label for="delete_records" title="Delete the merged inot the trarget records">Delete</label>
+
+    <!--/fieldset -->
 
     <div>
-      <input type="submit" class="default" style="float: none" value="Merge">
+      <input type="submit" value="Merge">
+      <a href="#" class="button cancel-link">No, take me back</a>
     </div>
 
   </form>
+</span>
 {% endblock %}
