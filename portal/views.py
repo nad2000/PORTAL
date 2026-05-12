@@ -11102,7 +11102,7 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
                         url = self.request.build_absolute_uri(
                             reverse("application-update", kwargs={"pk": a.id})
                         )
-                        recipients = [a.submitted_by, *a.members.all()]
+                        recipients = [a.submitted_by, *a.members.filter(~Q(user=a.submitted_by))]
                         params = {
                             "user_display": ", ".join(r.full_name for r in recipients),
                             "number": a.number,
