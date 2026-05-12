@@ -4610,6 +4610,10 @@ class ProfileCreate(ProfileViewMixin, CreateView):
         if not request.session.get("wizard"):
             if request.site_id in [1, 7] and not request.session.get("scheme"):
                 rounds = models.Round.where(scheme__current_round=F("pk")).order_by("ordering")
+                messages.info(
+                    self.request,
+                    _("Please, first, select the scheme round you want to apply for..."),
+                )
                 return render(request, "preselect_scheme.html", locals())
 
             if not (
@@ -9215,7 +9219,10 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             if view_idx < len(self.section_views):
                 next_step = self.section_views[view_idx - 1]
                 context["next_step"] = next_step
-            context["progress"] = ((view_idx + 1) * 100) / (len(self.section_views) + 1)
+            else:
+                context["next_step"] = "profile-protection-patterns"
+            context["progress"] = ((view_idx + 1) * 100) / (len(self.section_views) + 2)
+
         context["helper"] = forms.ProfileSectionFormSetHelper(
             person=person,
             previous_step=previous_step,
@@ -9235,6 +9242,14 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
             if "next" in self.request.POST and view_idx < len(self.section_views) - 1:
                 return reverse(self.section_views[view_idx + 1])
             if self.request.site_id in (1, 7):
+                if round_to_apply := self.request.session.pop("round", None):
+                    self.request.session.pop("scheme", None)
+                    self.request.session.modified = True
+                    if application := models.Application.where(
+                        round_id=round_to_apply, submitted_by=self.request.user
+                    ).first():
+                        return reverse("application-update", kwargs={"pk": application.pk})
+                    return reverse("application-create", kwargs={"round": int(round_to_apply)})
                 return reverse("start")
             return reverse("profile-protection-patterns")
         return super().get_success_url()
