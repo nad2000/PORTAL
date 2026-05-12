@@ -146,7 +146,8 @@
         target_id = e.detail.target.id;
         if (target_id == "activity-dialog") {
             $('#id_start_date,#id_end_date').datepicker({
-              format: "yyyy-mm-dd",
+              // format: "yyyy-mm-dd",
+              format: "dd/mm/yyyy",
               todayBtn: "linked",
               autoclose: true,
               todayHighlight: true
@@ -162,7 +163,8 @@
           // $('#id_agency').select2();
           // window.__dal__initialize($("#id_agency"));
           $('#id_start_date,#id_end_date').datepicker({
-            format: "yyyy-mm-dd",
+            // format: "yyyy-mm-dd",
+            format: "dd/mm/yyyy",
             todayBtn: "linked",
             autoclose: true,
             todayHighlight: true

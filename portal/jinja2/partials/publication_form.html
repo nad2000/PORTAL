@@ -39,14 +39,15 @@
     // $(".select2-selection__arrow").remove();
     // $('#id_agency').select2();
     $('#id_year_ref,#id_impact_year').datepicker({
-        format: "yyyy", 
-        startView: 2, 
-        // maxViewMode: 2, 
+        format: "yyyy",
+        startView: 2,
+        // maxViewMode: 2,
         clearBtn: true,
         autoclose: true
     });
     $('#id_status_date,#id_citations_date').datepicker({
-        format: "yyyy-mm-dd",
+        // format: "yyyy-mm-dd",
+        format: "dd/mm/yyyy",
         // startDate: '1960-01-01',
         // endDate: '2001-12-31',
         // startDate: $(this).data("min"),

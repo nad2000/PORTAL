@@ -592,7 +592,8 @@ ORCID_API_BASE = "https://pub.orcid.org/v3.0/"
 RAPIDCONNECT_LOGOUT = "https://rapidconnect.tuakiri.ac.nz/logout"
 
 # DATE_FORMAT = "Y-m-d"
-DATE_FORMAT = "d-m-Y"
+# DATE_FORMAT = "d-m-Y"
+DATE_FORMAT = "d/m/Y"
 TIME_FORMAT = "H:i"
 DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT}"
 SHORT_DATETIME_FORMAT = DATETIME_FORMAT
