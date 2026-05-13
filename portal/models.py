@@ -1,7 +1,6 @@
 import base64
 import email
 import hashlib
-import inspect
 import io
 import logging
 import math
@@ -41,6 +40,7 @@ from django.contrib.sites.models import Site
 from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.core.files.base import File
+from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import (
     FileExtensionValidator,
     MaxValueValidator,
@@ -664,7 +664,7 @@ class PdfFileMixin:
         """The content is PDF."""
         return self.is_pdf_content
 
-    def update_page_count(self, file=None, commit=True):
+    def update_page_count(self, file=None, commit=True, filename=None):
 
         if not file:
             if self.file:
@@ -673,7 +673,7 @@ class PdfFileMixin:
                 elif self.converted_file:
                     file = self.converted_file.file.path
                 else:
-                    cf = self.update_converted_file(commit=commit)
+                    cf = self.update_converted_file(commit=commit, filename=None)
                     file = self.converted_file.file.path
             else:
                 return
@@ -782,7 +782,7 @@ class PdfFileMixin:
             )
         return output_path
 
-    def update_converted_file(self, commit=False, file=None, request=None):
+    def update_converted_file(self, commit=False, file=None, request=None, filename=None):
         """If the attached file is not PDF convert and update the PDF version."""
 
         if not file:
@@ -791,11 +791,23 @@ class PdfFileMixin:
         has_archiving = (
             getattr(settings, "PRIVATE_STORAGE_CLASS", None) == "common.models.ArchivalStorage"
         )
-        if has_archiving and not Path(file.path).exists():
+        if not isinstance(file, UploadedFile) and has_archiving and not Path(file.path).exists():
             file.storage.retrieve_from_archive(file.name)
 
-        file_ext = Path(file.path).suffix
+        tmp_file = None
+        file_ext = Path(file.name).suffix
         file_ext = file_ext and file_ext.lower()
+
+        if isinstance(file, UploadedFile):
+            file.seek(0)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
+                for chunk in file.chunks():
+                    tmp_file.write(chunk)
+                tmp_file.flush()
+                file.seek(0)
+                file = tmp_file
+                file.seek(0)
+
         if not file or file_ext == ".pdf":
             if self.converted_file:
                 # NB! easy-audit doens't deal well with delete within transition:
@@ -825,8 +837,7 @@ class PdfFileMixin:
 
             with tempfile.TemporaryDirectory() as output_dir:
 
-                # output_dir = tempfile.gettempdir()
-                output_path = self.get_converted_to_pdf(file.path, output_dir=output_dir)
+                output_path = self.get_converted_to_pdf(getattr(file, "path", file.name), output_dir=output_dir)
                 output_filename = os.path.basename(output_path)
                 output_filename = os.path.join(
                     os.path.dirname(file.name), os.path.basename(output_path)
@@ -3337,7 +3348,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     @cached_property
     def priority_list(self):
         return self.priorities.order_by("name").values_list("name", flat=True)
-
 
     @cached_property
     def export_url(self):

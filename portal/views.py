@@ -1175,10 +1175,10 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
 
     # TODO:  make more managable
     def dispatch(self, request, *args, **kwargs):
-        if request.method == "GET" and request.user.is_authenticated:
-            return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
-                super().dispatch
-            )(request, *args, **kwargs)
+        # if request.method == "GET" and request.user.is_authenticated:
+        #     return cache_page(self.get_cache_timeout(), key_prefix=self.key_prefix)(
+        #         super().dispatch
+        #     )(request, *args, **kwargs)
         resp = super().dispatch(request, *args, **kwargs)
         return resp
 
@@ -1291,7 +1291,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         context["update_button_name"] = _("Edit")
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{model_name_slug}-export"
-        if (export_url := getattr(self.object, "export_url", None)):
+        if export_url := getattr(self.object, "export_url", None):
             context["export_url"] = export_url
         u = self.request.user
         context["is_admin"] = u.is_admin
@@ -4611,13 +4611,13 @@ class ProfileCreate(ProfileViewMixin, CreateView):
 
         # Start profile wizard:
         if not request.session.get("wizard"):
-            if request.site_id in [1, 7] and not request.session.get("scheme"):
-                rounds = models.Round.where(scheme__current_round=F("pk")).order_by("ordering")
-                messages.info(
-                    self.request,
-                    _("Please, first, select the scheme round you want to apply for..."),
-                )
-                return render(request, "preselect_scheme.html", locals())
+            # if request.site_id in [1, 7] and not request.session.get("scheme"):
+            #     rounds = models.Round.where(scheme__current_round=F("pk")).order_by("ordering")
+            #     messages.info(
+            #         self.request,
+            #         _("Please, first, select the scheme round you want to apply for..."),
+            #     )
+            #     return render(request, "preselect_scheme.html", locals())
 
             if not (
                 request.site_id in [1, 7]
@@ -10897,6 +10897,7 @@ class NominationView(CreateUpdateView):
 
 
 class TestimonialView(FavoriteMixin, CreateUpdateView):
+
     model = models.Testimonial
     form_class = forms.TestimonialForm
     template_name = "testimonial.html"
@@ -10972,6 +10973,9 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
         reset_cache(self.request)
         site_id = self.request.site_id
         a = t and t.referee_id and t.referee.application or self.application
+        round = a and a.round or t.application.round
+        next_url = None
+        has_issues = False
 
         if not t.pk:
             q = models.Referee.where(Q(user=u) | Q(email__in=u.email_addresses))
@@ -10994,6 +10998,99 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
         if "file" in form.changed_data and t.file and t.converted_file:
             t.converted_file = None
 
+        current_state = t.state if t.pk else None
+
+        if (
+            "file" in form.changed_data
+            and (file := form.cleaned_data.get("file"))
+            and not file.name.lower().endswith(".pdf")
+        ):
+            try:
+                t.file.save(file.name, File(file, name=file.name))
+                if cf := t.update_converted_file():
+                    messages.success(
+                        self.request,
+                        (
+                            _(
+                                "Your referee report form was converted into PDF file. "
+                                "Please review the converted referee report form version <a href='%s'>%s</a>."
+                            )
+                            if site_id in [2, 4, 5]
+                            else _(
+                                "Your testimonial form was converted into PDF file. "
+                                "Please review the converted testimonial form version <a href='%s'>%s</a>."
+                            )
+                        )
+                        % (cf.file.url, os.path.basename(cf.file.name)),
+                    )
+
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(
+                    self.request,
+                    _(
+                        "Failed to convert your report/testimonial into PDF. "
+                        "Please save the file into PDF format and try to upload it again."
+                    ),
+                )
+                has_issues = True
+
+        if "cv_file" in form.changed_data and (cv_file := form.cleaned_data.get("cv_file")):
+            try:
+                cv = (
+                    t.cv
+                    or models.CurriculumVitae.where(Q(owner=u) | Q(person__user=u))
+                    .order_by("-pk")
+                    .first()
+                )
+                if cv:
+                    cv.file.save(cv_file.name, File(cv_file, name=cv_file.name))
+                else:
+                    cv = models.CurriculumVitae.create(
+                        owner=u, person=u.person, file=File(cv_file)
+                    )
+
+                if cv and (cv_cf := cv.update_converted_file()):
+                    cv.save(update_fields=["converted_file"])
+                    messages.success(
+                        self.request,
+                        _(
+                            "Your CV was converted into PDF file. Please review "
+                            "the converted version <a href='%s'>%s</a>."
+                        )
+                        % (cv_cf.file.url, os.path.basename(cv_cf.file.name)),
+                    )
+                if not t.cv:
+                    t.cv = cv
+
+            except Exception as ex:
+                capture_exception(ex)
+                messages.error(
+                    self.request,
+                    _(
+                        "Failed to convert your CV into PDF. "
+                        "Please save your CV into PDF format and try to upload it again."
+                    ),
+                )
+                has_issues = True
+
+        if (
+            t.state != "submitted"
+            and ("submit" in self.request.POST or self.request.POST.get("action") == "submit")
+            and not has_issues
+            and (not round.referee_cv_required or t.cv)
+            and (not round.testimonials_required or t.file)
+        ):
+            t.submit(request=self.request)
+        elif "save_draft" in self.request.POST:
+            if t.state == "new" or not t.state:
+                t.state = "draft"
+            elif t.state != "draft":
+                t.save_draft(request=self.request)
+        elif "turn_down" in self.request.POST:
+            t.referee.opt_out(user=u, request=self.request)
+            t.referee.save()
+
         resp = super().form_valid(form)
 
         if r := t.referee:
@@ -11005,98 +11102,23 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
                     invitations, fields=["state", "state_changed_at", "accepted_at"]
                 )
 
-        round = t.application.round
-        if "file" in form.changed_data and t.file and not t.file.name.lower().endswith(".pdf"):
-            try:
-                if t.file and (cf := t.update_converted_file()):
-                    t.save(update_fields=["converted_file"])
-                    messages.success(
-                        self.request,
-                        _(
-                            "Your referee report/testimonial was converted into PDF file. Please review "
-                            "the converted version <a href='%s'>%s</a>."
-                        )
-                        % (cf.file.url, os.path.basename(cf.file.name)),
-                    )
-            except Exception as ex:
-                capture_exception(ex)
-                messages.error(
-                    self.request,
-                    _(
-                        "Failed to convert your report/testimonial into PDF. "
-                        "Please save the file into PDF format and try to upload it again."
-                    ),
-                )
-                return redirect(self.request.get_full_path())
-
-        if (
-            self.request.method == "POST"
-            and round.referee_cv_required
-            and "cv_file" in form.changed_data
-        ):
-            try:
-                if round.referee_cv_required and t.cv and (cv_cf := t.cv.update_converted_file()):
-                    t.cv.save(update_fields=["converted_file"])
-                    messages.success(
-                        self.request,
-                        _(
-                            "Your CV was converted into PDF file. Please review "
-                            "the converted version <a href='%s'>%s</a>."
-                        )
-                        % (cv_cf.file.url, os.path.basename(cv_cf.file.name)),
-                    )
-            except Exception as ex:
-                capture_exception(ex)
-                messages.error(
-                    self.request,
-                    _(
-                        "Failed to convert your CV into PDF. "
-                        "Please save your CV into PDF format and try to upload it again."
-                    ),
-                )
-                return redirect(self.request.get_full_path())
-
-        if t.state != "submitted":
-            if self.request.method == "POST" and "file" in form.changed_data and t.file:
-                try:
-                    if cf := t.update_converted_file():
-                        messages.success(
-                            self.request,
-                            (
-                                _(
-                                    "Your referee report form was converted into PDF file. "
-                                    "Please review the converted referee report form version <a href='%s'>%s</a>."
-                                )
-                                if site_id in [2, 4, 5]
-                                else _(
-                                    "Your testimonial form was converted into PDF file. "
-                                    "Please review the converted testimonial form version <a href='%s'>%s</a>."
-                                )
-                            )
-                            % (cf.file.url, os.path.basename(cf.file.name)),
-                        )
-
-                except Exception as ex:
-                    capture_exception(ex)
-                    messages.error(
-                        self.request,
-                        _(
-                            "Failed to convert your testimonial form into PDF. "
-                            "Please save your testimonial form into PDF format and try to upload it again."
-                        ),
-                    )
-                    return resp
+        if current_state != "submitted":
 
             if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
-                if self.application.round.referee_cv_required:
+                if self.application.round.referee_cv_required and not t.cv:
                     if (
                         cv := models.CurriculumVitae.where(owner=self.request.user)
                         .order_by("-id")
                         .first()
                     ):
                         t.cv = cv
+                        t.save()
                     else:
-                        next_url = self.request.get_full_path()
+                        next_url = (
+                            reverse("testimonial-update", args=[t.pk])
+                            if t.pk
+                            else self.request.get_full_path()
+                        )
                         messages.error(
                             self.request,
                             _(
@@ -11113,11 +11135,11 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
                     )
                     return resp
 
-                t.submit(request=self.request)
-                t.save()
+                # t.submit(request=self.request)
+                # t.save()
 
                 # All testimonials are completed:
-                if (
+                if not has_issues and (
                     (a := t.application)
                     and not models.Testimonial.where(
                         ~Q(state="submitted"), referee__application=a
@@ -11188,13 +11210,13 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
                         ),
                     )
 
-            elif "save_draft" in self.request.POST:
-                if t.state != "draft":
-                    t.save_draft(request=self.request)
-                    t.save()
+            # elif "save_draft" in self.request.POST:
+            #     if t.state != "draft":
+            #         t.save_draft(request=self.request)
+            #         t.save()
             elif "turn_down" in self.request.POST:
-                t.referee.opt_out(user=u, request=self.request)
-                t.referee.save()
+                # t.referee.opt_out(user=u, request=self.request)
+                # t.referee.save()
                 reset_cache(self.request)
                 return redirect("testimonials")
         else:
@@ -11202,6 +11224,14 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
                 self.request,
                 _("Testimonial is already submitted."),
             )
+
+        if has_issues:
+            return redirect(
+                reverse("testimonial-update", args=[t.pk])
+                if t.pk
+                else self.request.get_full_path()
+            )
+
         return redirect("testimonial", pk=t.id)
 
     def get_context_data(self, **kwargs):
@@ -11480,7 +11510,11 @@ class TestimonialDetail(FavoriteMixin, DetailView):
                 )
             )
             if t.state == "new":
-                context["update_view_name"] = f"{self.model.__name__.lower()}-create"
+                context["update_view_name"] = (
+                    f"{self.model.__name__.lower()}-update"
+                    if t and t.pk
+                    else f"{self.model.__name__.lower()}-create"
+                )
                 context["update_button_name"] = (
                     mark_safe(_("Add <strong>Referee Report</strong>"))
                     if t.site_id in [2, 4, 5]
@@ -11837,10 +11871,7 @@ class TestimonialExportView(ExportView, TestimonialDetail):
         metadata.update(
             {
                 "/Author": obj.referee.full_name_with_email,
-                "/Subject": (
-                    obj.application.application_title
-                    or obj.application.round.title
-                ),
+                "/Subject": (obj.application.application_title or obj.application.round.title),
                 "/Number": obj.application.number,
             }
         )
