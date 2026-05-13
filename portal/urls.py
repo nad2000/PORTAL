@@ -806,6 +806,11 @@ urlpatterns = [
                     views.TestimonialExportView.as_view(),
                     name="testimonial-export",
                 ),
+                path(
+                    "<int:pk>/~export/<filename>",
+                    views.TestimonialExportView.as_view(),
+                    name="testimonial-export-fn",
+                ),
             ]
         ),
     ),

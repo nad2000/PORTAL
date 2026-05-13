@@ -34,7 +34,7 @@
 
       <form method="post" enctype="multipart/form-data" id="application-form">
 
-        {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
+        {% if round and round.has_applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
           <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_applicant_declaration_modal">
             <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
               <div class="modal-content">
@@ -176,7 +176,7 @@
                           if (!has_invalid_fields) { e.preventDefault(); return false; }
                         };
                         // Applicant declaration:
-                        {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
+                        {% if round and round.has_applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
                           if (this.name == "submit" ) {
                             // e.preventDefault();
                             if (!has_invalid_fields) { e.preventDefault(); }
@@ -194,7 +194,7 @@
                         }
                         return true;
                       });
-                      {% if round and round.applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
+                      {% if round and round.has_applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
                       $("#id_applicant_declaration_submit").on("click", function (e) {
                         if (!$("#id_declaration_accepted_check").is(':checked')) {
                           e.preventDefault();

@@ -1291,6 +1291,8 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
         context["update_button_name"] = _("Edit")
         if self.model and self.model in (models.Application, models.Contract, models.Testimonial):
             context["export_button_view_name"] = f"{model_name_slug}-export"
+        if (export_url := getattr(self.object, "export_url", None)):
+            context["export_url"] = export_url
         u = self.request.user
         context["is_admin"] = u.is_admin
         if u.is_admin:
@@ -1522,11 +1524,12 @@ class ExportView(UserPassesTestMixin, DetailView):
         format = request.GET.get("format", "pdf").lower()
         part = request.GET.get("part")
         if not filename and (not format or format == "pdf"):
+            if hasattr(self, "get_filename") and callable(getattr(self, "get_filename")):
+                filename = self.get_filename()
+                return redirect(f"{request.path}/{filename}?format=pdf")
             return redirect(o.export_url)
         try:
             objects = self.get_objects(pk)
-            if format:
-                format = format.lower()
             # merger = PdfMerger()
             merger = PdfWriter()
             merger.add_metadata(self.get_metadata())
@@ -5852,7 +5855,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 initial["presentation_url"] = latest_application.presentation_url
 
         o = self.object
-        site_id = o and o.site_id or roud and round.site_id or self.request.site_id or settings.SITE_ID
+        site_id = (
+            o and o.site_id or roud and round.site_id or self.request.site_id or settings.SITE_ID
+        )
 
         if site_id == 2:
 
@@ -11466,6 +11471,14 @@ class TestimonialDetail(FavoriteMixin, DetailView):
             and not r.survey_id
             and not survey_url
         ):
+            context["can_edit"] = (
+                t.state != "submitted"
+                and referee.user == self.request.user
+                and not (
+                    testimonial_submission_closes_at
+                    and testimonial_submission_closes_at < timezone.now()
+                )
+            )
             if t.state == "new":
                 context["update_view_name"] = f"{self.model.__name__.lower()}-create"
                 context["update_button_name"] = (
@@ -11600,7 +11613,7 @@ class ApplicationExportView(ExportView):
 
         return attachments
 
-    def get_filename(self, pk):
+    def get_filename(self, pk=None, number=None):
         return self.model.get(id=pk).number
 
     def get(self, request, pk=None, number=None, filename=None, *args, **kwargs):
@@ -11761,8 +11774,9 @@ class NominationExportView(ExportView, NominationDetail):
 
     model = models.Nomination
 
-    def get_metadata(self, pk):
-        obj = self.model.get(pk)
+    def get_metadata(self, pk=None):
+
+        obj = getattr(self, "object") or self.get_object() or pk and self.model.get(pk)
         metadata = super().get_metadata(pk)
         metadata.update(
             {
@@ -11774,8 +11788,8 @@ class NominationExportView(ExportView, NominationDetail):
         )
         return metadata
 
-    def get_filename(self, pk):
-        obj = self.model.get(pk)
+    def get_filename(self, pk=None):
+        obj = getattr(self, "object") or self.get_object() or pk and self.model.get(pk)
         return f"{obj.round.code}-{obj.user and obj.user.full_name_with_email or obj.email}"
 
     def test_func(self):
@@ -11817,24 +11831,24 @@ class TestimonialExportView(ExportView, TestimonialDetail):
 
     model = models.Testimonial
 
-    def get_metadata(self, pk):
-        testimonial = self.model.get(pk)
+    def get_metadata(self, pk=None):
+        obj = getattr(self, "object") or self.get_object() or pk and self.model.get(pk)
         metadata = super().get_metadata(pk)
         metadata.update(
             {
-                "/Author": testimonial.referee.full_name_with_email,
+                "/Author": obj.referee.full_name_with_email,
                 "/Subject": (
-                    testimonial.application.application_title
-                    or testimonial.application.round.title
+                    obj.application.application_title
+                    or obj.application.round.title
                 ),
-                "/Number": testimonial.application.number,
+                "/Number": obj.application.number,
             }
         )
         return metadata
 
-    def get_filename(self, pk):
-        testimonial = self.model.get(pk)
-        return f"{testimonial.application.number}-{testimonial.referee.full_name_with_email}"
+    def get_filename(self, pk=None):
+        obj = getattr(self, "object") or self.get_object() or pk and self.model.get(pk)
+        return f"{obj.application.number}:T:{obj.referee.user.get_full_name()}"
 
     def test_func(self):
         u = self.request.user

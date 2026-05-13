@@ -3900,14 +3900,14 @@ class TestimonialForm(ModelForm):
                 Submit(
                     "save_draft",
                     _("Save"),
-                    css_class="btn-primary",
+                    css_class="btn-outline-primary",
                     data_toggle="tooltip",
                     title=_("Save draft testimonial"),
                 ),
                 Button(
                     "submit_button",
                     _("Submit"),
-                    css_class="btn-outline-primary",
+                    css_class="btn-primary",
                 ),
                 Submit(
                     "turn_down",

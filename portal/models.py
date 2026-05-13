@@ -3338,6 +3338,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
     def priority_list(self):
         return self.priorities.order_by("name").values_list("name", flat=True)
 
+
     @cached_property
     def export_url(self):
         return reverse(
@@ -7262,6 +7263,14 @@ class Testimonial(TestimonialMixin, PersonMixin, PdfFileMixin, Model):
             return tp
         return super().title_page()
 
+    @cached_property
+    def export_filename(self):
+        return (
+            f"{self.referee.full_name} - {self.referee.application.number}.pdf"
+            if self.referee
+            else f"{self.pk}.pdf"
+        )
+
     class Meta:
         db_table = "testimonial"
 
@@ -7817,6 +7826,10 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
         blank=True,
         help_text=_("Duly authorised agent (i.e. the research office) declaration."),
     )
+
+    @property
+    def has_applicant_declaration(self):
+        return bool(self.applicant_declaration) and len(self.applicant_declaration.strip()) > 10
 
     has_online_scoring = BooleanField(default=True)
     score_sheet_template = FileField(
