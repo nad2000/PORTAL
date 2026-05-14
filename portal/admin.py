@@ -4050,34 +4050,39 @@ class RoundAdmin(
                     ],
                 },
             ),
-            (
-                "Contract Options",
-                {
-                    "classes": ("collapse",),
-                    "fields": [
-                        ("proposed_start_date_stats_on", "duration"),
-                        "awarded_amount",
-                        "contract_background",
-                        "schedule2",
-                        "appendix_a",
-                        "appendix_b",
-                    ],
-                },
-            ),
-            (
-                "Reporting Options",
-                {
-                    "classes": ("collapse",),
-                    "fields": [
-                        (
-                            "final_report_deferral"
-                            if site_id in [2, 4, 5]
-                            else ("report_template", "final_report_deferral")
-                        ),
-                    ],
-                },
-            ),
-            (
+
+        ]
+        if site_id not in [1, 7]:
+            fieldsets.extend([(
+                    "Contract Options",
+                    {
+                        "classes": ("collapse",),
+                        "fields": [
+                            ("proposed_start_date_stats_on", "duration"),
+                            "awarded_amount",
+                            "contract_background",
+                            "schedule2",
+                            "appendix_a",
+                            "appendix_b",
+                        ],
+                    },
+                ),
+                (
+                    "Reporting Options",
+                    {
+                        "classes": ("collapse",),
+                        "fields": [
+                            (
+                                "final_report_deferral"
+                                if site_id in [2, 4, 5]
+                                else ("report_template", "final_report_deferral")
+                            ),
+                        ],
+                    },
+                ),]
+            )
+
+            fieldsets.extend([(
                 (
                     "Other Templates",
                     {
@@ -4099,8 +4104,7 @@ class RoundAdmin(
                         ]
                     },
                 )
-            ),
-        ]
+            ),])
         return fieldsets
 
     @admin.action(description="Export for the panellists")
@@ -4513,7 +4517,7 @@ class RoundAdmin(
         ordering_field_hide_input = True
 
     def get_inlines(self, request, obj):
-        if (site_id := obj and obj.site_id or settings.SITE_ID) and site_id in [2, 4, 5]:
+        if (site_id := obj and obj.site_id or request.site_id or settings.SITE_ID) in [2, 4, 5]:
             return [
                 self.RequiredDocumentInline,
                 self.TemplateInline,
@@ -4531,10 +4535,10 @@ class RoundAdmin(
             self.CurriculumVitaeTemplateInline,
             self.CriterionInline,
             self.PanellistInline,
-            self.RequiredContractDocumentInline,
-            self.RoundContractClauseInline,
-            self.PerformanceFlagInline,
-            self.ReportTemplateInline,
+            # self.RequiredContractDocumentInline,
+            # self.RoundContractClauseInline,
+            # self.PerformanceFlagInline,
+            # self.ReportTemplateInline,
         ]
 
 

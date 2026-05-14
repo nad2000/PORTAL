@@ -6767,7 +6767,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         and "submit" in self.request.POST
                         and a.state in ["new", "draft", "tac_accepted"]
                     ):
-                        if a.round.applicant_declaration and form.data.get(
+                        if a.round.has_applicant_declaration and form.data.get(
                             "applicant_declaration_accepted"
                         ) not in ["on", 1, "true", "checked"]:
                             messages.error(
