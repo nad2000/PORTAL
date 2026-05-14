@@ -264,7 +264,7 @@ def is_file_field(value):
 
 
 @register.filter()
-def person_name(value, with_email=False):
+def person_name(value, with_email=False, *args, **kwargs):
     if hasattr(value, "user"):
         u = value.user
     elif hasattr(value, "submitted_by"):
@@ -288,15 +288,16 @@ def person_name(value, with_email=False):
     if with_email:
         output = f"{output} ({u and u.email or value.email})"
 
-    if role := hasattr(value, "role") and value.role:
+    site_id = getattr(value, "site_id", None)
+    if site_id not in [1, 7] and (role := getattr(value, "role", None)):
         output = f"{output}, {role}"
 
     return output
 
 
 @register.filter()
-def person_with_email(value):
-    return person_name(value, with_email=True)
+def person_with_email(value, *args, **kwargs):
+    return person_name(value, with_email=True, *args, **kwargs)
 
 
 @register.filter()

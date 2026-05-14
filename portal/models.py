@@ -5181,6 +5181,14 @@ class Member(PersonMixin, MemberMixin, PdfFileMixin, Model):
         _("research experience in years "), null=True, blank=True
     )
 
+    @property
+    def site_id(self):
+        return self.application.site_id
+
+    @property
+    def site(self):
+        return self.application.site
+
     def natural_key(self):
         return (self.application.number, self.email)
 
@@ -5417,6 +5425,14 @@ class Referee(RefereeMixin, PersonMixin, Model):
     survey_token = CharField(max_length=100, null=True, blank=True, default=None, unique=True)
     survey_invitation_sent_at = DateTimeField(null=True, blank=True, default=None)
     survey_completed_at = DateTimeField(null=True, blank=True, default=None)
+
+    @property
+    def site_id(self):
+        return self.application.site_id
+
+    @property
+    def site(self):
+        return self.application.site
 
     def save(self, *args, **kwargs):
         if not self.org:
