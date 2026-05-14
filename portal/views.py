@@ -2137,8 +2137,8 @@ def import_doi(request):
     return render(request, "doi_import.html", locals())
 
 
-@cache_page(60 * 5)
-@vary_on_cookie
+# @cache_page(60 * 5)
+# @vary_on_cookie
 @login_required
 @shoud_be_onboarded
 @csrf_protect
@@ -6767,7 +6767,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         and "submit" in self.request.POST
                         and a.state in ["new", "draft", "tac_accepted"]
                     ):
-                        if a.round.had_applicant_declaration and form.data.get(
+                        if a.round.has_applicant_declaration and form.data.get(
                             "applicant_declaration_accepted"
                         ) not in ["on", 1, "true", "checked"]:
                             messages.error(

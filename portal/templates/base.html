@@ -173,6 +173,18 @@ table.table .asteriskField,.popover-header {color: gray;}
     background-repeat: no-repeat;
   }
 {% endif %}
+  .watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    opacity: 0.2; /* Adjust transparency (0 to 1) */
+    font-size: 100px;
+    color: var(--danger);
+    pointer-events: none; /* Allows users to click through to content */
+    z-index: 1000; /* Keeps it above other content */
+    user-select: none; /* Prevents text selection */
+  }
 </style>
         {% endblock %}
       {#% endcompress %#}
@@ -199,7 +211,7 @@ table.table .asteriskField,.popover-header {color: gray;}
         </div>
 
       {% block header %}
-        <div class="mb-0" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 30%);">
+      <div class="mb-0" style="box-shadow: 0px 0px 19px rgb(0 0 0 / 30%);{% if settings.TESTING %} border: 2px solid var(--danger);{% endif %}">
 
           {% if not user.is_authenticated %}{% include 'header.html' %}{% endif %}
 
@@ -923,6 +935,7 @@ You have a request to review a {{ site_name }} application to act on.
 
   {% endblock javascript %}
 {% endblock %}
+{% if settings.TESTING %}<div class="watermark">TESTING SITE!</div>{% endif %}
   </body>
 </html>
 {# vim:set ft=htmldjango: #}

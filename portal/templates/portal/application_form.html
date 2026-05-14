@@ -34,6 +34,7 @@
 
       <form method="post" enctype="multipart/form-data" id="application-form">
 
+
         {% if round and round.has_applicant_declaration %}{% if object.state == "draft" or object.state == "new" %}
           <div class="modal fade" data-keyboard="true" tabindex="-1" role="dialog" id="id_applicant_declaration_modal">
             <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
