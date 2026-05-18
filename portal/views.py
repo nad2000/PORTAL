@@ -10015,6 +10015,7 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
 
 
 class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+
     def has_add_permission(self, request):
         # return False
         return True
@@ -10519,7 +10520,11 @@ class PersonAddressView(CreateUpdateView):
         return super().get_object(queryset=queryset)
 
     def get_initial(self):
-        return {self.request.session.get("country", "NZ")}
+
+        return {
+            "city": a.city if (a := getattr(self, "object", Nonoe)) else "",
+            "country": self.request.session.get("country", "NZ"),
+        }
 
     def form_valid(self, form):
         # Link the parent object to the new instance before saving
