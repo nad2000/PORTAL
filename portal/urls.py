@@ -488,6 +488,11 @@ urlpatterns = [
                 # path("profiles/<int:pk>/~update", views.ProfileUpdate.as_view(), name="profile-update"),
                 path("~update", views.ProfileUpdate.as_view(), name="profile-update"),
                 path(
+                    "address/",
+                    views.PersonAddressView.as_view(),
+                    name="person-address",
+                ),
+                path(
                     "career-stages/",
                     views.ProfileCareerStageFormSetView.as_view(),
                     name="profile-career-stages",

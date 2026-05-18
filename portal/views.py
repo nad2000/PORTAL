@@ -4599,6 +4599,7 @@ class ProfileDetail(ProfileViewMixin, DetailView):
 
 
 class ProfileUpdate(ProfileViewMixin, LoginRequiredMixin, UpdateView):
+
     def get_object(self):
         return self.request.user.person
 
@@ -9131,6 +9132,182 @@ def turn_off_wizard(request):
     request.session.modified = True
 
 
+class ProfileSectionMixin:
+
+    template_name = "profile_section.html"
+    exclude = ()
+    section_views = [
+        "profile-employments",
+        # "profile-career-stages",
+        "profile-external-ids",
+        # "profile-cvs",
+        # "profile-academic-records",
+        # "profile-recognitions",
+        # "profile-professional-records",
+        # "profile-protection-patterns",
+    ]
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
+            if not request.session.get("wizard"):
+                request.session["wizard"] = True
+                if request.site_id in [1, 7]:
+                    section_views = self.section_views.copy()
+                    request.session["wizard-views"] = section_views
+                else:
+                    request.session["wizard-views"] = self.section_views.copy()
+                request.session.modified = True
+            return redirect("onboard")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_defaults(self):
+        """Default values for a form."""
+        return dict(person=self.request.user.person)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        person = self.request.user.person
+        context["person"] = person
+        previous_step = next_step = None
+        # if not profile.is_completed:
+        #     self.request.session["wizard"] = True
+        url_name = self.request.resolver_match.url_name
+        context["section_name"] = {
+            "profile-employments": _("Organisation Affiliations"),
+            "profile-professional-records": _("Professional Bodies"),
+            "profile-career-stages": _("Career Stages"),
+            "profile-external-ids": _("External IDs"),
+            "profile-cvs": _("Curriculum Vitae"),
+            "profile-academic-records": _("Academic Records"),
+            "profile-recognitions": _("Prizes and/or Medals"),
+        }.get(url_name)
+        if self.request.session.get("wizard") or self.request.site_id in (1, 7):
+            view_idx = self.section_views.index(url_name)
+            if view_idx > 0:
+                previous_step = self.section_views[view_idx - 1]
+                context["previous_step"] = previous_step
+            if view_idx < len(self.section_views):
+                next_step = self.section_views[view_idx - 1]
+                context["next_step"] = next_step
+            else:
+                context["next_step"] = "profile-protection-patterns"
+            context["progress"] = ((view_idx + 1) * 100) / (len(self.section_views) + 2)
+
+        context["helper"] = forms.ProfileSectionFormSetHelper(
+            person=person,
+            previous_step=previous_step,
+            next_step=next_step,
+            wizard="wizard" in self.request.session,
+        )
+        if "cv" in url_name:
+            context["config"] = config
+            context["DEFAULT_CV_TEMPLATE_URL"] = config.DEFAULT_CV_TEMPLATE_URL
+        return context
+
+    def get_success_url(self):
+        if self.request.session.get("wizard") or self.request.site_id in (1, 7):
+            view_idx = self.section_views.index(self.request.resolver_match.url_name)
+            if "previous" in self.request.POST:
+                return reverse(self.section_views[view_idx - 1])
+            if "next" in self.request.POST and view_idx < len(self.section_views) - 1:
+                return reverse(self.section_views[view_idx + 1])
+            if self.request.site_id in (1, 7):
+                if round_to_apply := self.request.session.pop("round", None):
+                    self.request.session.pop("scheme", None)
+                    self.request.session.modified = True
+                    if application := models.Application.where(
+                        round_id=round_to_apply, submitted_by=self.request.user
+                    ).first():
+                        return reverse("application-update", kwargs={"pk": application.pk})
+                    return reverse("application-create", kwargs={"round": int(round_to_apply)})
+                return reverse("start")
+            return reverse("profile-protection-patterns")
+        return super().get_success_url()
+
+    def turn_off_wizard(self):
+        turn_off_wizard(self.request)
+
+    def formset_invalid(self, formset):
+        return super().formset_invalid(formset)
+
+    def formset_valid(self, formset):
+        request = self.request
+        url_name = request.resolver_match.url_name
+        try:
+            resp = super().formset_valid(formset)
+            success_url = self.success_url
+            if "complete" in request.POST:
+                self.turn_off_wizard()
+                if not success_url:
+                    self.success_url = reverse("home")
+            elif request.session.get("wizard"):
+                if (wizard_views := request.session.get("wizard-views", None)) is None:
+                    wizard_views = request.session["wizard-views"] = (
+                        ProfileSectionFormSetView.section_views.copy()
+                    )
+                if url_name in wizard_views:
+                    del wizard_views[wizard_views.index(url_name)]
+                    if not wizard_views:
+                        self.turn_off_wizard()
+                    else:
+                        request.session["wizard-views"] = wizard_views
+                        request.session.modified = True
+        except ProtectedError as ex:
+            if url_name == "profile-cvs" and hasattr(formset, "deleted_objects"):
+                messages.error(
+                    request,
+                    _(
+                        "You cannot delete a CV that has been used as part of an application (%s). "
+                        "<br/>If you are trying to update your CV, you can replace the old with a new document. "
+                        "If you are trying to delete an old application, please let us know and we can do this for you."
+                    )
+                    % ", ".join(
+                        (
+                            o.number
+                            if isinstance(o, models.Application)
+                            else (
+                                o.application.number
+                                if isinstance(o, models.Member)
+                                else o.referee.application.number
+                            )
+                        )
+                        for o in ex.protected_objects
+                    ),
+                )
+                return redirect(request.path_info)
+
+        if getattr(formset, "deleted_objects", 0):
+            if len(formset.deleted_objects) == 1:
+                messages.info(
+                    request,
+                    _("Record deleted: %s") % formset.deleted_objects[0],
+                )
+            elif len(formset.deleted_objects) > 1:
+                messages.info(
+                    request,
+                    _("%d records deleted") % len(formset.deleted_objects),
+                )
+        elif wizard_views := request.session.get("wizard-views", []):
+            if "profile-employments" in wizard_views:
+                msg = _("You have not completed the affiliation section.")
+            elif "profile-professional-records" in wizard_views:
+                msg = _("You have not completed the professional body section.")
+            elif "profile-career-stages" in wizard_views:
+                msg = _("You have not completed the career stage section.")
+            elif "profile-external-ids" in wizard_views:
+                msg = _("You have not completed the external ID section.")
+            elif "profile-cvs" in wizard_views:
+                msg = _("You have not completed the CV section.")
+            elif "profile-academic-records" in wizard_views:
+                msg = _("You have not completed the academic record section.")
+            elif "profile-recognitions" in wizard_views:
+                msg = _("You have not completed the recognition section.")
+            messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
+
+        check_selected_orgs(request)
+        return resp
+
+
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     template_name = "profile_section.html"
     exclude = ()
@@ -10315,6 +10492,50 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                 return redirect(self.request.get_full_path())
 
         return resp
+
+
+class PersonAddressView(CreateUpdateView):
+
+    # extra_context = {"export": True}
+
+    slug_url_kwarg = "username"
+    slug_field = "person__user__username"
+    model = models.Address
+    form_class = forms.AddressForm
+    # fields = "__all__"
+
+    @property
+    def person(self):
+        user = (
+            models.User.objects.filter(username=self.kwargs["username"]).first()
+            if "username" in self.kwargs
+            else self.request.user
+        )
+        return user.person
+
+    def get_object(self, queryset=None):
+        if (p := self.person) and p.address:
+            return p.address
+        return super().get_object(queryset=queryset)
+
+    def get_initial(self):
+        return {self.request.session.get("country", "NZ")}
+
+    def form_valid(self, form):
+        # Link the parent object to the new instance before saving
+        if form.changed_data:
+            person = self.person
+            if form.data.get("address") and form.data.get("address").strip():
+                form.instance.pk = None
+                super().form_valid(form)
+                if person:
+                    person.address = self.object
+                    person.save(update_fields=["address"])
+
+        return super().form_valid(form)
+
+    # def get_success_url(self):
+    #     return reverse_lazy('profile_detail', kwargs={'pk': self.object.pk})
 
 
 class ProfileAcademicRecordFormSetView(ProfileSectionFormSetView):
