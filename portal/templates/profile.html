@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load static i18n django_bootstrap_breadcrumbs tags %}
+{% load static i18n django_bootstrap_breadcrumbs tags l10n %}
 
 {% block title %}{% if object %}{{ object }}{% else %}{{ profile }}{% endif %}{% if section_name %} - {{ section_name }}{% endif %}{% endblock %}
 {% block sidebar %}{% include 'sidebar.html' with category="profile" %}{% endblock sidebar %}
@@ -55,7 +55,8 @@
           </tr>
           <tr>
             <th>{% trans 'Date of Birth' %}</th>
-            <td>{{ object.date_of_birth|date:"Y-m-d"|default_if_none:"" }}</td>
+            <!-- td>{{ object.date_of_birth|date:"d/m/Y"|default_if_none:"" }}</td -->
+            <td>{{ object.date_of_birth|date|default_if_none:"" }}</td>
           </tr>
           <tr>
             <th>{% trans 'Ethnicity' %}</th>
@@ -158,7 +159,8 @@
         autoclose: true
       });
       el.find(".datepicker").datepicker({
-        format: "yyyy-mm-dd",
+        format: "dd/mm/yyyy",
+        // format: "yyyy-mm-dd",
         // startDate: '1960-01-01',
         // endDate: '2001-12-31',
         // startDate: $(this).data("min"),

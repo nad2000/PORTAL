@@ -53,10 +53,13 @@ DEBUG = env.bool("DJANGO_DEBUG", False)
 # TIME_ZONE = "UTC+12"
 TIME_ZONE = "Pacific/Auckland"
 # https://docs.djangoproject.com/en/dev/ref/settings/#language-code
+# LANGUAGE_CODE = "en-nz"
 LANGUAGE_CODE = "en"
+FORMAT_MODULE_PATH = ["portal.formats"]
 gettext = lambda s: s  # noqa: E731
 LANGUAGES = [
     ("en", gettext("English")),
+    # ("en-nz", gettext("English (NZ)")),
     ("mi", gettext("Maori")),
 ]
 MODELTRANSLATION_DEFAULT_LANGUAGE = "en"
@@ -83,8 +86,6 @@ LANG_INFO.update(
 SITE_ID = SiteID(default=0)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
-# https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = False
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 # USE_TZ = True
 USE_TZ = False

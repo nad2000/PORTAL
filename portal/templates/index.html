@@ -279,7 +279,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                >
                <strong>{{ a.number }}</strong>: {{ a.title }}
                {% if a.created_on %}
-               <span class="text-muted">({{ a.created_on|date:"d-m-Y" }})</span>
+               <span class="text-muted">({{ a.created_on|date }})</span>
                {% endif %}
             </a></li>
             {% endfor %}
@@ -359,7 +359,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
           data-toggle="tooltip"
         >
 
-        {{ r }} ({% if r.is_due_soon %}<strong class="text-{% if r.is_overdue %}danger{% else %}warning{% endif %}">{% endif %}{% trans 'due by' %} {{ r.due_date|date:"d-m-Y" }}{% if r.is_due_soon %}</strong>{% endif %})
+        {{ r }} ({% if r.is_due_soon %}<strong class="text-{% if r.is_overdue %}danger{% else %}warning{% endif %}">{% endif %}{% trans 'due by' %} {{ r.due_date|date }}{% if r.is_due_soon %}</strong>{% endif %})
         </a>
       </li>
     </ul>
@@ -409,7 +409,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                 {% trans 'Application period' %}:
               {% endif %}
               <strong
-              {% with is_open=round.is_open deadline_days=round.deadline_days deadline_hours=round.deadline_hours deadline_minutes=round.deadline_minutes closes_on=round.closes_at|date:"d-m-Y" closes_at=round.closes_at|time:"P" %}
+              {% with is_open=round.is_open deadline_days=round.deadline_days deadline_hours=round.deadline_hours deadline_minutes=round.deadline_minutes closes_on=round.closes_at|date closes_at=round.closes_at|time %}
                   {% if is_open and deadline_minutes < 4320  %}
                   class="badge-danger"
                   style="border-radius: 7px; padding: 4px 6px 4px 6px;"
@@ -429,9 +429,9 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   title="{% blocktrans with deadline_minutes=deadline_minutes closes_on=closes_on closes_at=closes_at %}The round is closing in {{ deadline_minutes }} minutes(s) on {{ closes_on }} at {{ closes_at }}{% endblocktrans %}"
                   {% endif %}
                   {% endif %}>
-                  {{ round.opens_on|date:"d-m-Y" }}
+                  {{ round.opens_on }}
                   {% if round.closes_at %}
-                  - {{ round.closes_at|date:"d-m-Y" }}
+                  - {{ round.closes_at|date }}
                   {% if round.closes_at.hour or round.closes_at.minute %}
                   {% blocktrans with round.closes_at|time:"P" as closes_at %}
                   at {{ closes_at }}
@@ -457,7 +457,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                   <div class="mr-1 tooltip-wrapper{% if not round.is_open and not is_admin %} disabled{% endif %}"
                    {% if not round.is_open and not is_admin %}
                    disabled
-                   {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on|date:'o-m-d'}}"{% endif %}
+                   {% if round.will_open %}data-title="{% trans 'The round will be open on' %} {{ round.opens_on }}"{% endif %}
                    {% else %}data-title="{% trans 'Required documents and templates' %}"
                    {% endif %}>
                       <button type="button" class="btn {% if is_admin %}btn-secondary{% else %}btn-outline-primary{% if not round.is_open and not is_admin %} disabled{% endif %}{% endif %}"
@@ -506,7 +506,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                           data-title="{% trans 'The application has been already submitted and cannot be modified' %}"
                           {% elif round.has_closed %}
                           disabled
-                          data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}. {% trans 'Applications can no longer be accepted for this round.' %}"
+                          data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date }}. {% trans 'Applications can no longer be accepted for this round.' %}"
                           {% else %}
                           data-title="{% trans 'Modify your application and continue application process' %}"
                           {% endif %}
@@ -529,7 +529,7 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                         disabled
                         data-title="{% trans 'The round of the scheme has been already closed. You cannot apply for this round.' %}"
                         {% if round.will_open %}
-                        data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                        data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date }}"
                         {% else %}
                         {% endif %}
                         {% elif has_submitted %}
@@ -575,9 +575,9 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                         {% elif is_panellist %}
                         data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
                         {% elif round.will_open %}
-                        data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                        data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date }}"
                         {% else %}
-                        data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
+                        data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date }}"
                         {% endif %}
                         {% else %}
                           {% if SITE_ID == 7 or SITE_ID == 1 %}
@@ -601,9 +601,9 @@ button:hover .previous-applications-button:hover, button:focus .previous-applica
                           {% elif is_panellist %}
                           data-title="{% trans 'You cannot apply or nominate for a round where you are a panellist' %}"
                           {% elif round.will_open %}
-                          data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date:'o-m-d'}}"
+                          data-title="{% trans 'The application will be open on' %} {{ round.opens_on|date }}"
                           {% else %}
-                          data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date:'o-m-d'}}"
+                          data-title="{% trans 'The application period closed on' %} {{ round.closes_at|date }}"
                           {% endif %}
                           {% else %}
                           data-title="{% trans 'Contact your Research Office and request a nomination' %}"
