@@ -417,7 +417,13 @@ def check_selected_orgs(request):
     if selected_orgs:
         selected_orgs = dict((lambda k, v: (int(k), v))(*v) for v in selected_orgs)
         qs = models.Organisation.where(
-            ~Q(name__in=selected_orgs.values()), pk__in=selected_orgs.keys()
+            ~Q(
+                name__in=[
+                    *selected_orgs.values(),
+                    *(v.split(":")[1].strip() for v in selected_orgs.values() if ":" in v),
+                ]
+            ),
+            pk__in=selected_orgs.keys(),
         )
         for o in qs:
             old_name, new_name = selected_orgs[o.pk], o.name
