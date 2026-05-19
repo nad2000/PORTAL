@@ -8188,16 +8188,22 @@ class ContractViewMixin:
     def get_address_form(self):
         contract = self.object
         application = self.application
-        applicant = application and application.submitted_by.person
+        applicant = (
+            application
+            and (pi := application.pi)
+            and (pi.person)
+            or application.submitted_by.person
+        )
+        nomination = application and application.nominations.order_by("-pk").first()
 
-        a = None
-        if contract and contract.address:
-            a = contract.address
-        if not (contract and contract.pk):
-            if not a and applicant:
-                a = applicant.address
-            if not a and application:
-                a = applicant.address
+        a = (
+            (contract and contract.address)
+            or (contract and contract.org and contract.org.address)
+            or (nomination and nomination.org and nomination.org.address)
+            or (application.org and application.org.address)
+            or (applicant and applicant.address)
+            or (application and application.address)
+        )
 
         return forms.AddressForm(
             data=self.request.POST or None,
@@ -8207,7 +8213,7 @@ class ContractViewMixin:
                 "address": a.address or "",
                 "city": a.city or "",
                 "postcode": a.postcode or "",
-                "country": a.country,
+                "country": a.country or "NZ",
             }
             or {"country": "NZ"},
         )
@@ -10554,12 +10560,13 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
             models.Application.where(
                 Q(daytime_phone__isnull=False) | Q(mobile_phone__isnull=False),
                 submitted_by=u,
-
             )
             .order_by("-pk")
             .first()
         )
-        phone_number = p and p.phone or a and (a.daytime_phone or a.mobile_phone) or org and org.contact_phone
+        phone_number = (
+            p and p.phone or a and (a.daytime_phone or a.mobile_phone) or org and org.contact_phone
+        )
         address = p and p.address or org and org.address or a and a.address
 
         if not (p and p.address) and address:
