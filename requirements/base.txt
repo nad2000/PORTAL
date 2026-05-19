@@ -30,6 +30,7 @@ django-reversion<6.0.0
 django-reversion-compare<1.0.0
 django-dbtemplates<5.0
 django-tinymce<5.0.0
+django-phonenumber-field[phonenumbers]
 
 django-background-tasks
 sentry-sdk>=0.14.3,<3.0.0

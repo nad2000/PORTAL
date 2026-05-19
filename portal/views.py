@@ -962,16 +962,20 @@ class FavoriteMixin:
         # )
 
         if request.GET.get("with_class_name", False):
-            return HttpResponse(f"""
+            return HttpResponse(
+                f"""
               <i id="favorite-status-{ obj.calss_name }-{ object_id }"
               class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
               </i>
-            """)
-        return HttpResponse(f"""
+            """
+            )
+        return HttpResponse(
+            f"""
           <i id="favorite-status-{ object_id }"
           class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
           </i>
-        """)
+        """
+        )
 
 
 class NotesMixin:
@@ -1065,8 +1069,7 @@ class AccountView(LoginRequiredMixin, TemplateView):
         return context
 
 
-@method_decorator(shoud_be_onboarded, name="dispatch")
-class CreateUpdateView(LoginRequiredMixin, UpdateView):
+class CreateUpdateMixin(LoginRequiredMixin):
     """A trick to make create and update view in a single view."""
 
     template_name = "form.html"
@@ -1101,6 +1104,13 @@ class CreateUpdateView(LoginRequiredMixin, UpdateView):
                 or self.request.META.get("HTTP_REFERER")
                 or reverse("start")
             )
+
+
+@method_decorator(shoud_be_onboarded, name="dispatch")
+class CreateUpdateView(CreateUpdateMixin, UpdateView):
+    """A trick to make create and update view in a single view."""
+
+    pass
 
 
 class SingleObjectMixin(ContextMixin):
@@ -5462,9 +5472,11 @@ def delete_referee(request, pk):
     </button></div>
     """
         )
-    return HttpResponse("""
+    return HttpResponse(
+        """
     <div class="alert alert-success">TODO:<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>
-    """)
+    """
+    )
 
 
 class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
@@ -9137,15 +9149,36 @@ class ProfileSectionMixin:
     template_name = "profile_section.html"
     exclude = ()
     section_views = [
-        "profile-employments",
+        "person-address",
+        # "profile-employments",
         # "profile-career-stages",
         "profile-external-ids",
         # "profile-cvs",
         # "profile-academic-records",
         # "profile-recognitions",
         # "profile-professional-records",
-        # "profile-protection-patterns",
+        "profile-protection-patterns",
     ]
+
+    @property
+    def url_name(self):
+        return self.request.resolver_match.url_name
+
+    @property
+    def view_idx(self):
+        return self.section_views.index(self.url_name)
+
+    @property
+    def previous_step(self):
+        if (view_idx := self.view_idx) > 0:
+            return self.section_views[view_idx - 1]
+
+    @property
+    def next_step(self):
+        if (view_idx := self.view_idx) < len(self.section_views):
+            return self.section_views[view_idx + 1]
+        else:
+            return "profile-protection-patterns"
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and not Person.where(user=self.request.user).exists():
@@ -9160,19 +9193,14 @@ class ProfileSectionMixin:
             return redirect("onboard")
         return super().dispatch(request, *args, **kwargs)
 
-    def get_defaults(self):
-        """Default values for a form."""
-        return dict(person=self.request.user.person)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        person = self.request.user.person
+        person = getattr(self, "person", None) or self.request.user.person
         context["person"] = person
-        previous_step = next_step = None
         # if not profile.is_completed:
         #     self.request.session["wizard"] = True
-        url_name = self.request.resolver_match.url_name
         context["section_name"] = {
+            "person-address": _("Contact Details"),
             "profile-employments": _("Organisation Affiliations"),
             "profile-professional-records": _("Professional Bodies"),
             "profile-career-stages": _("Career Stages"),
@@ -9180,37 +9208,26 @@ class ProfileSectionMixin:
             "profile-cvs": _("Curriculum Vitae"),
             "profile-academic-records": _("Academic Records"),
             "profile-recognitions": _("Prizes and/or Medals"),
-        }.get(url_name)
+        }.get(self.url_name)
         if self.request.session.get("wizard") or self.request.site_id in (1, 7):
-            view_idx = self.section_views.index(url_name)
-            if view_idx > 0:
-                previous_step = self.section_views[view_idx - 1]
+            view_idx = self.view_idx
+            if view_idx > 0 and (previous_step := self.previous_step):
                 context["previous_step"] = previous_step
-            if view_idx < len(self.section_views):
-                next_step = self.section_views[view_idx - 1]
+            if view_idx <= len(self.section_views) and (next_step := self.next_step):
                 context["next_step"] = next_step
-            else:
-                context["next_step"] = "profile-protection-patterns"
             context["progress"] = ((view_idx + 1) * 100) / (len(self.section_views) + 2)
 
-        context["helper"] = forms.ProfileSectionFormSetHelper(
-            person=person,
-            previous_step=previous_step,
-            next_step=next_step,
-            wizard="wizard" in self.request.session,
-        )
-        if "cv" in url_name:
-            context["config"] = config
-            context["DEFAULT_CV_TEMPLATE_URL"] = config.DEFAULT_CV_TEMPLATE_URL
         return context
 
     def get_success_url(self):
+
         if self.request.session.get("wizard") or self.request.site_id in (1, 7):
-            view_idx = self.section_views.index(self.request.resolver_match.url_name)
+            view_idx = self.view_idx
             if "previous" in self.request.POST:
-                return reverse(self.section_views[view_idx - 1])
+                return reverse(self.previous_step)
             if "next" in self.request.POST and view_idx < len(self.section_views) - 1:
-                return reverse(self.section_views[view_idx + 1])
+                return reverse(self.next_step)
+
             if self.request.site_id in (1, 7):
                 if round_to_apply := self.request.session.pop("round", None):
                     self.request.session.pop("scheme", None)
@@ -9222,24 +9239,24 @@ class ProfileSectionMixin:
                     return reverse("application-create", kwargs={"round": int(round_to_apply)})
                 return reverse("start")
             return reverse("profile-protection-patterns")
+
         return super().get_success_url()
 
     def turn_off_wizard(self):
         turn_off_wizard(self.request)
 
-    def formset_invalid(self, formset):
-        return super().formset_invalid(formset)
-
-    def formset_valid(self, formset):
+    def form_valid(self, form):
         request = self.request
         url_name = request.resolver_match.url_name
         try:
-            resp = super().formset_valid(formset)
+            resp = super().form_valid(form)
             success_url = self.success_url
+
             if "complete" in request.POST:
                 self.turn_off_wizard()
                 if not success_url:
                     self.success_url = reverse("home")
+
             elif request.session.get("wizard"):
                 if (wizard_views := request.session.get("wizard-views", None)) is None:
                     wizard_views = request.session["wizard-views"] = (
@@ -9252,74 +9269,26 @@ class ProfileSectionMixin:
                     else:
                         request.session["wizard-views"] = wizard_views
                         request.session.modified = True
-        except ProtectedError as ex:
-            if url_name == "profile-cvs" and hasattr(formset, "deleted_objects"):
-                messages.error(
-                    request,
-                    _(
-                        "You cannot delete a CV that has been used as part of an application (%s). "
-                        "<br/>If you are trying to update your CV, you can replace the old with a new document. "
-                        "If you are trying to delete an old application, please let us know and we can do this for you."
-                    )
-                    % ", ".join(
-                        (
-                            o.number
-                            if isinstance(o, models.Application)
-                            else (
-                                o.application.number
-                                if isinstance(o, models.Member)
-                                else o.referee.application.number
-                            )
-                        )
-                        for o in ex.protected_objects
-                    ),
-                )
-                return redirect(request.path_info)
-
-        if getattr(formset, "deleted_objects", 0):
-            if len(formset.deleted_objects) == 1:
-                messages.info(
-                    request,
-                    _("Record deleted: %s") % formset.deleted_objects[0],
-                )
-            elif len(formset.deleted_objects) > 1:
-                messages.info(
-                    request,
-                    _("%d records deleted") % len(formset.deleted_objects),
-                )
-        elif wizard_views := request.session.get("wizard-views", []):
-            if "profile-employments" in wizard_views:
-                msg = _("You have not completed the affiliation section.")
-            elif "profile-professional-records" in wizard_views:
-                msg = _("You have not completed the professional body section.")
-            elif "profile-career-stages" in wizard_views:
-                msg = _("You have not completed the career stage section.")
-            elif "profile-external-ids" in wizard_views:
-                msg = _("You have not completed the external ID section.")
-            elif "profile-cvs" in wizard_views:
-                msg = _("You have not completed the CV section.")
-            elif "profile-academic-records" in wizard_views:
-                msg = _("You have not completed the academic record section.")
-            elif "profile-recognitions" in wizard_views:
-                msg = _("You have not completed the recognition section.")
-            messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
-
-        check_selected_orgs(request)
-        return resp
+            return resp
+        except Exception as ex:
+            capture_exception(ex)
+            messages.error(request, getattr(ex, "message", str(ex)))
+        return super().form_invalid(form) if form.errors else redirect("profile")
 
 
 class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
     template_name = "profile_section.html"
     exclude = ()
     section_views = [
-        "profile-employments",
+        "person-address",
+        # "profile-employments",
         # "profile-career-stages",
         "profile-external-ids",
         # "profile-cvs",
         # "profile-academic-records",
         # "profile-recognitions",
         # "profile-professional-records",
-        # "profile-protection-patterns",
+        "profile-protection-patterns",
     ]
 
     def dispatch(self, request, *args, **kwargs):
@@ -9401,6 +9370,7 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
         #     self.request.session["wizard"] = True
         url_name = self.request.resolver_match.url_name
         context["section_name"] = {
+            "person-address": _("Contact Details"),
             "profile-employments": _("Organisation Affiliations"),
             "profile-professional-records": _("Professional Bodies"),
             "profile-career-stages": _("Career Stages"),
@@ -10471,10 +10441,12 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
                         )
 
                         if "testimonials" in next_url or "reviews" in next_url:
-                            notes = _("""
+                            notes = _(
+                                """
                                 Now you can complete the submission of your referee report/testimonial.
                                 <br/>Please click on the <strong>Submit</strong> button.
-                            """)
+                            """
+                            )
 
                             message_text = f"{message_text}.<br/>{notes}"
                         messages.info(self.request, message_text)
@@ -10495,23 +10467,75 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
         return resp
 
 
-class PersonAddressView(CreateUpdateView):
+class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
 
-    # extra_context = {"export": True}
-
+    extra_context = {"category": "profile"}
     slug_url_kwarg = "username"
     slug_field = "person__user__username"
     model = models.Address
-    form_class = forms.AddressForm
+    form_class = forms.ContactForm
     # fields = "__all__"
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class=form_class)
+        helper = form.helper
+        helper.form_action = self.request.path
+        helper.form_method = "post"
+        helper.form_id = "address-form"
+        helper.form_class = "address-form"
+        helper.form_tag = True
+        # helper.add_input(Submit("submit", _("Save"), css_class="btn-primary"))
+        previous_step = self.previous_step
+        next_step = self.next_step
+        wizard = "wizard" in self.request.session
+        if previous_step or next_step:
+            if previous_step:
+                previous_button = layout.Button(
+                    "previous", "« " + _("Previous"), css_class="btn-outline-primary"
+                )
+                previous_button.input_type = "submit"
+                helper.add_input(previous_button)
+            complete_button = layout.Button(
+                "complete",
+                _("Skip and Complete"),
+                data_toggle="tooltip",
+                title=_("Skip the rest of the profile sections and complete the profile now"),
+                css_class="btn-outline-secondary",
+            )
+            complete_button.input_type = "submit"
+            helper.add_input(complete_button)
+            # self.add_input(add_more_button)
+            if next_step:
+                next_button = layout.Button(
+                    "next", _("Next") + " »", css_class="btn-primary float-right"
+                )
+                next_button.input_type = "submit"
+                helper.add_input(next_button)
+            else:
+                helper.add_input(
+                    layout.Submit(
+                        "save",
+                        _("Finish and Save") if wizard else _("Save"),
+                        css_class="btn-primary float-right",
+                    )
+                )
+        else:
+            # self.add_input(add_more_button)
+            helper.add_input(layout.Submit("save", _("Save")))
+            helper.add_input(layout.Button("cancel", _("Cancel"), css_class="btn-danger"))
+        return form
+
     @property
-    def person(self):
-        user = (
+    def user(self):
+        return (
             models.User.objects.filter(username=self.kwargs["username"]).first()
             if "username" in self.kwargs
             else self.request.user
         )
+
+    @property
+    def person(self):
+        user = self.user
         return user.person
 
     def get_object(self, queryset=None):
@@ -10520,22 +10544,53 @@ class PersonAddressView(CreateUpdateView):
         return super().get_object(queryset=queryset)
 
     def get_initial(self):
+        initial = super().get_initial()
+        u = self.user
+        p = self.person
+        affiliation = p.affiliations.filter(end_date__isnull=True).order_by("-pk").first()
+        org = affiliation.org if affiliation else p.org
 
-        return {
-            "city": a.city if (a := getattr(self, "object", Nonoe)) else "",
-            "country": self.request.session.get("country", "NZ"),
-        }
+        a = (
+            models.Application.where(
+                Q(daytime_phone__isnull=False) | Q(mobile_phone__isnull=False),
+                submitted_by=u,
+            )
+            .order_by("-pk")
+            .first()
+        )
+        phone_number = p and p.phone or a and (a.daytime_phone or a.mobile_phone) or org and org.contact_phone
+
+        initial.update(
+            {
+                "city": a.city if (a := getattr(self, "object", None)) else "",
+                "country": a and a.country or self.request.session.get("country", "NZ"),
+            }
+        )
+
+        if org:
+            initial["org"] = org
+        if phone_number:
+            initial["phone_number"] = phone_number
+        return initial
 
     def form_valid(self, form):
         # Link the parent object to the new instance before saving
         if form.changed_data:
             person = self.person
-            if form.data.get("address") and form.data.get("address").strip():
+            if (
+                any(f in form.changed_data for f in ["address", "city", "country", "postcode"])
+                and form.data.get("address")
+                and form.data.get("address").strip()
+            ):
                 form.instance.pk = None
-                super().form_valid(form)
-                if person:
-                    person.address = self.object
-                    person.save(update_fields=["address"])
+            resp = super().form_valid(form)
+            person.address = form.instance
+            if "org" in form.changed_data and form.cleaned_data.get("org"):
+                person.org = form.cleaned_data["org"]
+            if "phone_number" in form.changed_data and form.cleaned_data.get("phone_number"):
+                person.phone = form.cleaned_data["phone_number"]
+            person.save()
+            return resp
 
         return super().form_valid(form)
 
@@ -14830,7 +14885,9 @@ async def crud_event_stream(request):
                 else:
                     url = None
                 op = f"{ e.get_event_type_display().lower() }d"
-                message = "".join(f"data: {l}\n" for l in f"""
+                message = "".join(
+                    f"data: {l}\n"
+                    for l in f"""
     <div class="toast hide"
         role="alert"
         aria-live="assertive"
@@ -14850,7 +14907,11 @@ async def crud_event_stream(request):
         { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
     </div>
     </div>
-    """.splitlines(keepends=False) if l.strip())
+    """.splitlines(
+                        keepends=False
+                    )
+                    if l.strip()
+                )
                 # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"
                 yield f"id: {e.pk}\nevent: crud\n{message}\n"
             if e and e.pk:

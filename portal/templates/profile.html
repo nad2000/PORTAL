@@ -32,6 +32,7 @@
   {% endif %}
 
   {% block section %}
+    {% include 'snippets/profile_section_topbar.html' %}
 
     {% with u=request.user %}
       <div class="table-responsive card mb-3">

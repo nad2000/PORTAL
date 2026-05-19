@@ -19,6 +19,7 @@ from itertools import chain, groupby, islice
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
+from phonenumber_field.modelfields import PhoneNumberField
 
 import pikepdf
 import py7zr
@@ -837,7 +838,9 @@ class PdfFileMixin:
 
             with tempfile.TemporaryDirectory() as output_dir:
 
-                output_path = self.get_converted_to_pdf(getattr(file, "path", file.name), output_dir=output_dir)
+                output_path = self.get_converted_to_pdf(
+                    getattr(file, "path", file.name), output_dir=output_dir
+                )
                 output_filename = os.path.basename(output_path)
                 output_filename = os.path.join(
                     os.path.dirname(file.name), os.path.basename(output_path)
@@ -2049,6 +2052,14 @@ class Person(PersonMixin, Model):
     )
     address = ForeignKey(Address, blank=True, null=True, on_delete=RESTRICT, related_name="people")
     addresses = ManyToManyField(Address, through=PersonAddress)
+    org = ForeignKey(
+        Organisation,
+        null=True,
+        blank=True,
+        on_delete=SET_NULL,
+        verbose_name=_("organisation"),
+        related_name="personnel",
+    )
     # source = models.ForeignKey(
     #     Source, on_delete=models.SET_NULL, blank=True, null=True, related_name="people"
     # )
@@ -2074,7 +2085,7 @@ class Person(PersonMixin, Model):
     # )
     # postcode = models.CharField(max_length=40, blank=True, null=True, editable=False)
 
-    # phone = models.CharField(max_length=20, blank=True, null=True, editable=False)
+    phone = PhoneNumberField(_("Phone Number"), blank=True, null=True)
     # fax = models.CharField(max_length=20, blank=True, null=True, editable=False)
     # phone_pvt = models.CharField(max_length=20, blank=True, null=True, editable=False)
     # work_phone = models.CharField(max_length=120, blank=True, null=True, editable=False)
@@ -2425,7 +2436,8 @@ class ProtectionPatternPerson(Model):
             LEFT JOIN person_protection_pattern AS ppp
                 ON ppp.protection_pattern_id=pp.code AND ppp.person_id=%s
             WHERE pp.code IN (5, 6, 7, 9)
-            ORDER BY description_""" + get_language(),
+            ORDER BY description_"""
+            + get_language(),
             [person.pk],
         )
 
@@ -7568,13 +7580,16 @@ def notify_site_staff_about_new_organisations():
         site = Site.objects.get(pk=site_id)
         g = list(g)
         if g:
-            org_list = "".join(f"""<li>
+            org_list = "".join(
+                f"""<li>
                 <a
                     href="https://{site.domain}{reverse("admin:portal_organisation_change", args=[o.pk])}"
                     target="_blank"
                 >{o}</a>
                 (created at {o.created_at.strftime('%Y-%m-%d %H:%M')},
-                by {o.history.filter(history_type="+").first().history_user})</li>""" for o in g)
+                by {o.history.filter(history_type="+").first().history_user})</li>"""
+                for o in g
+            )
         subject = f"New Organization(s) created"
         html_message = f"""<p>Kia ora!</p><p>A new organization(s) has been created in the last week:
         <ul>{org_list}</ul></p>

@@ -184,6 +184,7 @@ INSTALLED_APPS = [
     "django_q",
     "constance",
     "django_tomselect",
+    "phonenumber_field",
 ]
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"

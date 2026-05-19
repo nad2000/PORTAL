@@ -2,7 +2,7 @@
 {% load static i18n django_bootstrap_breadcrumbs crispy_forms_tags %}
 
 {% block css %}
-  {{ formset.media.css }}
+  {% if formset %}{{ formset.media.css }}{% elif form %}{{ form.media.css }}{% endif %}
   {{ block.super }}
 {% endblock %}
 
@@ -12,7 +12,9 @@
 {% endblock %}
 
 {% block section %}
-  <div class="jumbotron">
+  {% include 'snippets/profile_section_topbar.html' %}
+
+  {% if view_name != "person-address" %}<div class="jumbotron">{% endif %}
     {% if view_name == "profile-employments" %}
       {% blocktrans %}
         Organisations that you have an affiliation with.
@@ -77,8 +79,12 @@
         Organisation being the body that granted the qualification.
       {% endblocktrans %}
     {% endif %}
-  </div>
-  {% crispy formset helper %}
+  {% if view_name != "person-address" %}</div>{% endif %}
+  {% if formset %}{% crispy formset helper %}
+  {% elif form and helper %}{% crispy form helper %}
+  {% elif form and form.helper %}{% crispy form form.helper %}
+  {% elif form %}{{ form|crispy }}
+  {% endif %}
   {% if view_name == "profile-career-stages" %}
     <table role="table" class="table table-striped">
       <!-- table role="table" class="table table-striped table-bordered" -->
@@ -127,16 +133,19 @@
     /*   width: null // remove calculated with of the select2 span elements */
     /* }); */
     </script -->
-    <script>
-      $(document).ready(function() {
-        $("#submit-id-save").click(function() {
-          formset_set_inputs(prefix="form");
-          return true;
+    {% if formset %}
+      <script>
+        $(document).ready(function() {
+          $("#submit-id-save").click(function() {
+            formset_set_inputs(prefix="form");
+            return true;
+          });
+          $(".select2").width("100%");
+          $(".select2-selection__arrow").remove();
         });
-        $(".select2").width("100%");
-        $(".select2-selection__arrow").remove();
-      });
-    </script>
-    {{ formset.media.js }}
+      </script>
+      {{ formset.media.js }}
+    {% elif form %}{{ form.media.js }}
+    {% endif %}
     {{ block.super }}
   {% endblock %}

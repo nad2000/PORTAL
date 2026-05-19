@@ -3,7 +3,7 @@
 {% with u=request.user %}
 {% if u.is_approved %}
 
-  {% if application_count > 0 or u.is_superuser or is_staff or u.is_site_staff %}
+  {% if application_count > 0 or u.is_admin %}
   <div class="card mb-2">
     <div class="card-header{% if category == "applications" %} bg-primary{% endif %}">
       {% if application_count %}
@@ -532,13 +532,21 @@
       <ul class="nav nav-pills flex-column">
         <li class="nav-item">
           <a class="nav-link"
+             href="{% url 'person-address' %}"
+             id="person-address"
+             title="{% trans 'Contact Information' %}"
+             data-toggle="tooltip"
+             >{% trans 'Address' %}</a>
+        </li>
+        {% comment %}
+        <li class="nav-item">
+          <a class="nav-link"
              href="{% url 'profile-employments' %}"
              id="profile-employments"
              title="{% trans 'Organisation Affiliations' %}"
              data-toggle="tooltip"
              >{% trans 'Organisation Affiliations' %}</a>
         </li>
-        {% comment %}
         <li class="nav-item">
           <a class="nav-link" href="{% url 'profile-career-stages' %}" id="profile-career-stages">{% trans 'Career Stages' %}</a>
         </li>
