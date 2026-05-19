@@ -8194,7 +8194,7 @@ class ContractViewMixin:
             and (pi.person)
             or application.submitted_by.person
         )
-        nomination = application and application.nominations.order_by("-pk").first()
+        nomination = application and models.Nomination.where(application=application).order_by("-pk").first()
 
         a = (
             (contract and contract.address)
