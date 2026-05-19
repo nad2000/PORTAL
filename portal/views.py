@@ -10548,29 +10548,33 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
         u = self.user
         p = self.person
         affiliation = p.affiliations.filter(end_date__isnull=True).order_by("-pk").first()
-        org = affiliation.org if affiliation else p.org
+        org = p.org or affiliation and affiliation.org
 
         a = (
             models.Application.where(
                 Q(daytime_phone__isnull=False) | Q(mobile_phone__isnull=False),
                 submitted_by=u,
+
             )
             .order_by("-pk")
             .first()
         )
         phone_number = p and p.phone or a and (a.daytime_phone or a.mobile_phone) or org and org.contact_phone
+        address = p and p.address or org and org.address or a and a.address
 
-        initial.update(
-            {
-                "city": a.city if (a := getattr(self, "object", None)) else "",
-                "country": a and a.country or self.request.session.get("country", "NZ"),
-            }
-        )
+        if not (p and p.address) and address:
+            if address.city:
+                initial["city"] = address.city
+            if address.country:
+                initial["country"] = address.country
+            if address.postcode:
+                initial["postcode"] = address.postcode
 
-        if org:
+        if not (p and p.org) and org:
             initial["org"] = org
-        if phone_number:
+        if not (p and p.phone) and phone_number:
             initial["phone_number"] = phone_number
+
         return initial
 
     def form_valid(self, form):
