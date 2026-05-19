@@ -1,0 +1,8 @@
+{% load i18n %}
+  <div class="form-group d-block d-lg-none">
+    <a href="{% url 'profile-update' %}" class="btn btn{% if view_name != 'profile' and view_name != 'profile-update' %}-outline{% endif %}-primary" role="button">{% trans 'Update Profile' %}</a>
+    <a href="{% url 'person-address' %}" class="btn btn{% if view_name != 'person-address' %}-outline{% endif %}-primary" role="button">{% trans 'Address' %}</a>
+    <a href="{% url 'profile-external-ids' %}" class="btn btn{% if view_name != 'profile-external-ids' %}-outline{% endif %}-primary" role="button">{% trans 'External IDs' %}</a>
+    <a href="{% url 'profile-protection-patterns' %}" class="btn btn{% if view_name != 'profile-protection-patterns' %}-outline{% endif %}-primary" role="button">{% trans 'Protection Pattern' %}</a>
+  </div>
+
