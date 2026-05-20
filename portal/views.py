@@ -5882,7 +5882,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
         o = self.object
         site_id = (
-            o and o.site_id or roud and round.site_id or self.request.site_id or settings.SITE_ID
+            o and o.site_id or round and round.site_id or self.request.site_id or settings.SITE_ID
         )
 
         if site_id == 2:
