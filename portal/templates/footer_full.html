@@ -7,6 +7,7 @@
     {# {% include 'snippets/social_media.html' %} #}
 
     <!-- Section: Form -->
+    {% if SITE_ID != 1 and SITE_ID != 7 %}
     <section class="">
       <form action="{% url 'subscription' %}" method="POST" autocomplete="on">
         {% csrf_token %}
@@ -47,6 +48,7 @@
         <!--Grid row-->
       </form>
     </section>
+    {% endif %}
     <!-- Section: Form -->
 
     <!-- Section: Text -->
