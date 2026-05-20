@@ -6,7 +6,7 @@ DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT}"
 SHORT_DATETIME_FORMAT = DATETIME_FORMAT
 SHORT_DATE_FORMAT = DATE_FORMAT
 DATE_INPUT_FORMATS = [
-    "%j/%n/%Y",  # '1/25/2006'
+    "%d/%m/%Y",  # '1/25/2006'
     "%Y-%m-%d",  # '2006-10-25'
     "%m/%d/%y",  # '10/25/06'
     "%b %d %Y",  # 'Oct 25 2006'
@@ -20,7 +20,7 @@ DATE_INPUT_FORMATS = [
     "%m/%d/%Y",  # '10/25/2006'
 ]
 DATETIME_INPUT_FORMATS = [
-    "%j/%n/%Y %g:%i %A",  # '1/25/2006 5:30 PM'
+    "%d/%m/%Y %g:%i %A",  # '1/25/2006 5:30 PM'
     "%Y-%m-%d %H:%M:%S",  # '2006-10-25 14:30:59'
     "%Y-%m-%d %H:%M:%S.%f",  # '2006-10-25 14:30:59.000200'
     "%Y-%m-%d %H:%M",  # '2006-10-25 14:30'
