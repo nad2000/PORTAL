@@ -9502,6 +9502,9 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                     _("%d records deleted") % len(formset.deleted_objects),
                 )
         elif wizard_views := request.session.get("wizard-views", []):
+            msg = None
+            if "person-address" in wizard_views:
+                msg = _("You have not completed the contact information section.")
             if "profile-employments" in wizard_views:
                 msg = _("You have not completed the affiliation section.")
             elif "profile-professional-records" in wizard_views:
@@ -9516,7 +9519,9 @@ class ProfileSectionFormSetView(LoginRequiredMixin, ModelFormSetView):
                 msg = _("You have not completed the academic record section.")
             elif "profile-recognitions" in wizard_views:
                 msg = _("You have not completed the recognition section.")
-            messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
+
+            if msg:
+                messages.info(request, "%s %s" % (msg, _("Please complete or skip it.")))
 
         check_selected_orgs(request)
         return resp
