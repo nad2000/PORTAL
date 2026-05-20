@@ -10588,10 +10588,8 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
             if address.postcode:
                 initial["postcode"] = address.postcode
 
-        if not (p and p.org) and org:
-            initial["org"] = org
-        if not (p and p.phone) and phone_number:
-            initial["phone_number"] = phone_number
+        initial["org"] = org
+        initial["phone_number"] = phone_number
 
         return initial
 
