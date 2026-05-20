@@ -96,6 +96,10 @@
         {% block localcss %}
           <!-- This file stores project-specific CSS -->
           <style>
+#sidebar .card-body, #sidebar .list-group-item, #sidebar .nav-link {
+  padding-right: 0px;
+
+}
 .btn-tiny {
   padding: .1rem .3rem; /* Adjust padding as needed */
   font-size: .75rem;   /* Adjust font size as needed */
@@ -683,10 +687,14 @@ You have a request to review a {{ site_name }} application to act on.
         {% endif %}
 
         {% block page %}
-          <div class="row">
+          <div class="row flex-nowrap">
             {% if user.is_authenticated and sidebar != "off" %}
               <!-- div class="col-md-3 d-none d-md-block" style="max-width: 18rem;" -->
-              <div class="col-sm-auto d-none d-lg-block" style="max-width: 18rem;">
+              <div
+                id="sidebar"
+                class="col-sm-auto d-none d-lg-block"
+                style="max-width: 16rem; min-width: 12rem;"
+              >
                 {% block sidebar %}{% include 'sidebar.html' %}{% endblock sidebar %}
               </div>
             {% endif %}

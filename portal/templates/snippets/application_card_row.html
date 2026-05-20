@@ -1,22 +1,23 @@
 {% load i18n tags %}
 {% if not a.is_wip %}
+<span
+  class="list-group-item list-group-item-action">
   <a
-      class="list-group-item list-group-item-action"
       href="{% url 'application' pk=a.id %}"
       {% if SITE_ID == 4 and a.application_title %}title="{{ a.application_title }}"
       data-toggle="tooltip"{% endif %}>{{ a }}</a>
     {% if is_admin %}
-    <a
-        class="list-group-item list-group-item-action"
-        href="{% url 'application-export' pk=a.pk %}"
-        style="padding-top: 1px; padding-bottom: 0px;"
-        target="_blank"
-        class="btn btn-info float-right align-top"
-        data-toggle="tooltip"
-        title="{% trans 'Export the application into a consolidated PDF file' %}"
-        >{% trans 'Export' %}
+      <a
+          href="{% url 'application-export' pk=a.pk %}"
+          style="padding-top: 1px; padding-bottom: 0px;"
+          target="_blank"
+          class="btn btn-info float-right align-top"
+          data-toggle="tooltip"
+          title="{% trans 'Export the application into a consolidated PDF file' %}"
+          >{% trans 'Export' %}
     </a>
     {% endif %}
+    </span>
   {% elif a|can_edit:user %}
     <!-- li class="list-group-item" -->
     <a
