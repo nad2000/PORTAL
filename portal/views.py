@@ -5711,7 +5711,14 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 .first()
             )
             latest_application = self.latest_application
-            if address := user.person.address or latest_application and latest_application.address:
+            if (
+                address := user.person.address
+                or nomination
+                and nomination.org
+                and nomination.org.address
+                and latest_application
+                and latest_application.address
+            ):
                 initial["address"] = address
                 city = address.city
                 if not city and address.address:
@@ -8194,7 +8201,10 @@ class ContractViewMixin:
             and (pi.person)
             or application.submitted_by.person
         )
-        nomination = application and models.Nomination.where(application=application).order_by("-pk").first()
+        nomination = (
+            application
+            and models.Nomination.where(application=application).order_by("-pk").first()
+        )
 
         a = (
             (contract and contract.address)
@@ -10480,6 +10490,7 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
     slug_field = "person__user__username"
     model = models.Address
     form_class = forms.ContactForm
+    template_name = "profile_section.html"
     # fields = "__all__"
 
     def get_form(self, form_class=None):
