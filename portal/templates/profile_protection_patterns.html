@@ -26,7 +26,7 @@
     {% csrf_token %}
     <div class="checkbox">
       <input
-        type="checkbox" {% if not profile.has_protection_patterns %}checked{% endif %}
+        type="checkbox"{% if not person.has_protection_patterns %} checked{% endif %}
         data-toggle="toggle"
         name="no_protection_needed"
         id="no_protection_needed"
@@ -86,7 +86,7 @@
       <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
       <script>
         $(function() {
-          {% if not profile.has_protection_patterns %}$("#patterns input").prop('disabled', true);{% endif %}
+          {% if not person.has_protection_patterns %}$("#patterns input").prop('disabled', true);{% endif %}
           $('#no_protection_needed').change(function() {
             var is_disabled = ($(this).prop('checked'));
             $("#patterns input").prop('disabled', is_disabled);
