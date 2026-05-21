@@ -10105,7 +10105,7 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 affiliations__person__user=nominator, affiliations__end_date__isnull=True
             )
             .distinct()
-            .order_by("affiliations__start_date")
+            .order_by("affiliations__start_date") or nominator.person.org
         )
         if q.count():
             return q

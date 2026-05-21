@@ -10569,7 +10569,8 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
         u = self.user
         p = self.person
         affiliation = p.affiliations.filter(end_date__isnull=True).order_by("-pk").first()
-        org = p.org or affiliation and affiliation.org
+        n = None if (p and p.org) else models.Nomination.where(Q(user=u) | Q(email__in=u.emailaddress_set.values_list("email")), org__isnull=False).order_by("-pk").first()
+        org = p.org or n and n.org or affiliation and affiliation.org
 
         a = (
             models.Application.where(
