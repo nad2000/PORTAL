@@ -66,9 +66,9 @@
               </div>
             </td>
             <td>
-              <div class="input-group" style="max-width: 100px;">
+              <div class="input-group" style="max-width: 120px;">
                 <input type="text"
-                       value="{{ pp.expires_on|date:"Y-m-d"|default_if_none:"" }}"
+                       value="{{ pp.expires_on|date|default_if_none:"" }}"
                        name="expires_on" class="form-control datepicker dateinput form-control"
                 >
               </div>
