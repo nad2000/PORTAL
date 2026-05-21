@@ -13779,7 +13779,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         verbose_name=_("converted file"),
         related_name="reports",
     )
-    # assessment = TextField(blank=True, null=True)
+    assessment = TextField(blank=True, null=True)
 
     reported_at = MonitorField(
         monitor="state", when=["reported", "submitted"], null=True, default=None, blank=True

@@ -2852,7 +2852,7 @@ def profile_protection_patterns(request):
                     )
                     expires_on = expires_on_dates[idx]
                     if expires_on:
-                        ppp.expires_on = expires_on
+                        ppp.expires_on = parse_date(expires_on)
                         ppp.save()
 
                 else:
@@ -4230,13 +4230,12 @@ class ReportUpdate(
         if (
             o
             and o.assessor
-            and (
-                a := o.assessments.annotate(is_assessor=Q(assessor=F("report__assessor")))
-                .order_by("-is_assessor", "-pk")
-                .first()
-            )
         ):
-            initial["assessment_summary"] = a.summary
+            if a := o.assessments.annotate(is_assessor=Q(assessor=F("report__assessor"))).order_by("-is_assessor", "-pk").first():
+                initial["assessment_summary"] = a.summary
+            else:
+                initial["assessment_summary"] = o.assessment
+
         return initial
 
 

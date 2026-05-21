@@ -5655,9 +5655,13 @@ class ReportForm(ModelForm):
                 cf.file.delete()
             cf.delete()
 
-        resp = super().save(*args, **kwargs)
+        summary = None
         if "assessment_summary" in self.changed_data:
             summary = self.cleaned_data["assessment_summary"]
+            i.assessment = summary
+
+        resp = super().save(*args, **kwargs)
+        if "assessment_summary" in self.changed_data:
             assessment, created = i.assessments.model.get_or_create(
                 report=i,
                 assessor=i.assessor,
