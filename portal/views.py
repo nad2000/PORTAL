@@ -2847,12 +2847,14 @@ def profile_protection_patterns(request):
             expires_on_dates = rp.getlist("expires_on")
             for idx, ppc in enumerate(pp_codes):
                 if pp_flags[ppc]:
-                    ppp, _ = models.PersonProtectionPattern.objects.get_or_create(
-                        protection_pattern_id=ppc, person=person
-                    )
                     expires_on = expires_on_dates[idx]
                     if expires_on:
-                        ppp.expires_on = parse_date(expires_on)
+                        expires_on = parse_date(expires_on)
+                    ppp, created = models.PersonProtectionPattern.objects.get_or_create(
+                        protection_pattern_id=ppc, person=person,
+                        defaults={"expires_on": expires_on or None}
+                    )
+                    if not created and ppp.expires_on != expires_on:
                         ppp.save()
 
                 else:
