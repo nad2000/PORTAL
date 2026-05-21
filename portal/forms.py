@@ -3654,11 +3654,11 @@ class NominationForm(ModelForm):
                 org_id = initial["org"] = nominator_org.pk
             elif (
                 nominator_affiliation := models.Organisation.where(
-                    affiliations__person__user=nominator, affiliations__end_date__isnull=True
+                    Q(affiliations__person__user=nominator, affiliations__end_date__isnull=True)
                 )
                 .distinct()
                 .order_by("affiliations__start_date")
-                .last()
+                .last() or nominator.person.org
             ):
                 org_id = initial["org"] = nominator_affiliation.pk
         if not initial.get("org") and org_id:
@@ -5224,7 +5224,7 @@ class ReportForm(ModelForm):
             ]
             self.fields.pop("file", None)
             self.fields["assessment_summary"].required = True
-        elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessment):
+        elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessments.count() > 1):
             fields = [
                 HTML(
                     """{% load tags %}
