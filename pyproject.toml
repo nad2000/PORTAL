@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 99
-target-version = ['py37']
+target-version = ['py312']
 include = '\.pyi?$'
 exclude = '''
 
@@ -21,3 +21,9 @@ exclude = '''
                      # the root of the project
 )
 '''
+
+[tool.ruff]
+line-length = 99
+force-exclude = true
+extend-exclude = ["tests", "src/bad.py"]
+target-version = "py312"

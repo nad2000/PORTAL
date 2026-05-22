@@ -3,11 +3,12 @@ from django.http import HttpResponse
 from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
-from rest_framework.schemas import get_schema_view
+# from rest_framework.schemas import get_schema_view
 from taggit.models import Tag
 from django.shortcuts import redirect
 
-from . import apis, models, views
+# from . import apis, models, views
+from . import models, views
 
 # app_name = "portal"  ## in case if there is anohter app, add this prefix
 urlpatterns = [
@@ -891,25 +892,26 @@ urlpatterns = [
     #     views.SubscriptionDelete.as_view(),
     #     name="subscription-delete",
     # ),
-    # path("subscriptions", views.SubscriptionList.as_view(), name="subscription-list"),
-    path(
-        "api/",
-        include(
-            [
-                path(
-                    "schema",
-                    get_schema_view(
-                        title="Royal Society Te Apārangi Portals",
-                        description="API for all things …",
-                        version="1.0.0",
-                    ),
-                    name="openapi-schema",
-                ),
-                path("object-counts", views.object_counts),
-                path("", include(apis.router.urls)),
-            ]
-        ),
-    ),
+     path("subscriptions", views.SubscriptionList.as_view(), name="subscription-list"),
+    # path(
+    #     "api/",
+    #     include(
+    #         [
+    #             path(
+    #                 "schema",
+    #                 get_schema_view(
+    #                     title="Royal Society Te Apārangi Portals",
+    #                     description="API for all things …",
+    #                     version="1.0.0",
+    #                 ),
+    #                 name="openapi-schema",
+    #             ),
+    #             path("object-counts", views.object_counts),
+    #             path("ninja/", apis.ninja.urls, name="ninja-api"),
+    #             path("", include(apis.router.urls)),
+    #         ]
+    #     ),
+    # ),
     path("pyinfo/", views.pyinfo),
     path("pyinfo/<message>", views.pyinfo),
     # path("headers/<application_id>/<page_count>/<output_type>", views.headers),

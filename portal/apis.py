@@ -1,8 +1,14 @@
 from rest_framework import routers
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, UpdateModelMixin
 from rest_framework.viewsets import GenericViewSet
+# from ninja import NinjaAPI
+# from lazy_ninja.builder import DynamicAPI
 
 from . import models, serializers
+
+# ninja = NinjaAPI()
+# auto_api = DynamicAPI(ninja)
+# auto_api.init()
 
 # class GeneralViewSet(ModelViewSet):
 #     def get_queryset(self):
