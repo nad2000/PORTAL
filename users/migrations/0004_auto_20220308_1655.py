@@ -5,7 +5,6 @@ import common.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("sites", "0004_auto_20210331_1418"),
         ("users", "0003_user_staff_of_sites"),

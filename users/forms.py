@@ -40,7 +40,6 @@ class UserCreationForm(forms.UserCreationForm):
 
 
 class UserSignupForm(allauth_forms.SignupForm):
-
     initial = {
         "password1": "",
         "password2": "",
@@ -49,7 +48,7 @@ class UserSignupForm(allauth_forms.SignupForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not settings.DEBUG:
-            self.fields["captcha"] =  ReCaptchaField()
+            self.fields["captcha"] = ReCaptchaField()
 
     # class Meta(allauth_forms.SignupForm.Meta):
     class Meta:

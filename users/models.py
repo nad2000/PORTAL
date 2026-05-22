@@ -26,7 +26,6 @@ from common.models import HelperMixin, PersonMixin, Title
 
 
 class User(HelperMixin, PersonMixin, AbstractUser):
-
     username_validator = UnicodeUsernameValidator()
     username = CharField(
         _("username"),
@@ -209,7 +208,7 @@ class User(HelperMixin, PersonMixin, AbstractUser):
     def email_addresses(self):
         """All user email addresses"""
         # return [self.email, *(r[0] for r in self.emailaddress_set.values_list("email"))]
-        return [r for r, in self.emailaddress_set.values_list("email__lower")]
+        return [r for (r,) in self.emailaddress_set.values_list("email__lower")]
 
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""

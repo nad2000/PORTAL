@@ -317,9 +317,9 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
                                 )
                             else:
                                 try:
-                                    getattr(model, "all_objects", model._default_manager).bulk_update(
-                                        objects, [field]
-                                    )
+                                    getattr(
+                                        model, "all_objects", model._default_manager
+                                    ).bulk_update(objects, [field])
                                 except Exception as ex:
                                     capture_exception(ex)
                                     errors.append(ex)
@@ -354,7 +354,7 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
             if deleted:
                 messages.success(
                     request,
-                    f'{len(deleted)} user(s) merged and deleted: {", ".join(deleted)}',
+                    f"{len(deleted)} user(s) merged and deleted: {', '.join(deleted)}",
                 )
             if errors:
                 for e in errors:
