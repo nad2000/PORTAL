@@ -49,7 +49,7 @@ printing this email. The information contained in this email message is intended
 for the addressee and may be confidential. If you are not the intended recipient, please
  notify us immediately.</span></i></p>
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
-</tr></tbody></table></body></html>
+</tr></tbody></table>
 """
 
 # TODO:
@@ -87,7 +87,7 @@ printing this email. The information contained in this email message is intended
 for the addressee and may be confidential. If you are not the intended recipient, please
  notify us immediately.</span></i></p>
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
-</tr></tbody></table></body></html>
+</tr></tbody></table>
 """,
     "international.royalsociety.org.nz": """
 <br>To learn more about the Catalyst Fund administered by the Royal Society Te Apārangi
@@ -121,7 +121,7 @@ printing this email. The information contained in this email message is intended
 for the addressee and may be confidential. If you are not the intended recipient, please
  notify us immediately.</span></i></p>
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
-</tr></tbody></table></body></html>
+</tr></tbody></table>
 """,
     "puanga.royalsociety.org.nz": """
 <br>To learn more about %(site_name)s administered by the Royal Society Te Apārangi
@@ -169,7 +169,7 @@ printing this email. The information contained in this email message is intended
 for the addressee and may be confidential. If you are not the intended recipient, please
  notify us immediately.</span></i></p>
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
-</tr></tbody></table></body></html>
+</tr></tbody></table>
 """,
     "xn--twhia-fwa.royalsociety.org.nz": """
 <br>To learn more about %(site_name)s administered by the Royal Society Te Apārangi
@@ -217,7 +217,7 @@ printing this email. The information contained in this email message is intended
 for the addressee and may be confidential. If you are not the intended recipient, please
  notify us immediately.</span></i></p>
 </td><td width='25%%' valign='bottom' style='width:25.0%%;padding:0cm 5.4pt 0cm 5.4pt'></td>
-</tr></tbody></table></body></html>
+</tr></tbody></table>
 """,
 }
 
@@ -240,7 +240,8 @@ def send_mail(
     reply_to=None,
     invitation=None,
     token=None,
-    convert_to_html=False,
+    # convert_to_html=False,
+    convert_to_html=True,
     thread_topic=None,
     thread_index=None,
     site=None,
@@ -303,8 +304,30 @@ def send_mail(
     if not message and html_message:
         message = html2text.html2text(html_message)
     elif message and not html_message and convert_to_html:
-        html_message = message.replace("\n", "<br/>\n")
-        html_message = f"<html><body><pre>{html_message}</pre></body></html>"
+        html_message = "\n".joint(
+                f"<p>{line}</p>" if line.strip() else "<br/>"
+                for line in message.splitlines()
+            )
+        # html_message = f"<html><body><pre>{html_message}</pre></body></html>"
+
+    if message:
+        message = message.replace("\r\n", "\n").replace("\r", "\n")
+        message = f"""{message}
+
+***
+**🌱 Think Before You Print | Green Communicator**
+
+*Please consider the environment before printing this email. Let's keep it on the screen to preserve our natural resources.*
+
+By choosing to read this digitally, you help:
+* **Conserve forests:** Reduces raw paper demand and protects crucial biodiversity.
+* **Lower carbon emissions:** Decreases the energy used in paper manufacturing, toner production, and transportation.
+* **Minimize waste:** Prevents paper clutter and ensures our operational footprint stays as light as possible.
+
+*"Earth provides enough to satisfy every person's need, but not every person's waste."*
+
+Together, we can build a more sustainable, paperless future. Please consider filing this email digitally rather than printing.
+"""
 
     if html_message:
         if not html_footer:
@@ -322,7 +345,7 @@ def send_mail(
                     )
                 ),
             }
-        html_message = f"<html><body>{html_message}\n{html_footer}"
+        html_message = f"<html><body>{html_message}\n{html_footer}</body></html>"
 
     if not token:
         token = models.get_unique_mail_token()
