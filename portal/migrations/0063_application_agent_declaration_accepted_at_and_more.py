@@ -12,7 +12,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0062_contract_file_contract_is_vm_na_contract_schedule2_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -940,4 +939,3 @@ class Migration(migrations.Migration):
             ),
         ),
     ]
-

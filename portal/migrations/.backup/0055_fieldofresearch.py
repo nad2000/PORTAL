@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0054_auto_20200507_2209"),
     ]
@@ -24,7 +23,9 @@ class Migration(migrations.Migration):
                 ("two_digit_description", models.CharField(max_length=60)),
                 ("definition", models.CharField(blank=True, max_length=200, null=True)),
             ],
-            options={"db_table": "field_of_research",},
+            options={
+                "db_table": "field_of_research",
+            },
             bases=(common.models.HelperMixin, models.Model),
         ),
     ]

@@ -4,35 +4,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0069_auto_20200518_1428'),
+        ("portal", "0069_auto_20200518_1428"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='is_ethnicities_completed',
+            model_name="historicalprofile",
+            name="is_ethnicities_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='is_iwi_groups_completed',
+            model_name="historicalprofile",
+            name="is_iwi_groups_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='is_ethnicities_completed',
+            model_name="profile",
+            name="is_ethnicities_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='is_iwi_groups_completed',
+            model_name="profile",
+            name="is_iwi_groups_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='recognition',
-            name='amount',
+            model_name="recognition",
+            name="amount",
             field=models.DecimalField(blank=True, decimal_places=2, max_digits=9, null=True),
         ),
     ]

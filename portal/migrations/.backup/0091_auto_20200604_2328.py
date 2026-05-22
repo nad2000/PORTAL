@@ -6,42 +6,62 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0090_auto_20200603_0151'),
+        ("portal", "0090_auto_20200603_0151"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Qualification',
+            name="Qualification",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(blank=True, max_length=2, null=True)),
-                ('description', models.CharField(max_length=100)),
-                ('definition', models.TextField(blank=True, max_length=100, null=True)),
-                ('is_nzqf', models.BooleanField(default=True, verbose_name='the New Zealand Qualifications Framework Qualification level')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(blank=True, max_length=2, null=True)),
+                ("description", models.CharField(max_length=100)),
+                ("definition", models.TextField(blank=True, max_length=100, null=True)),
+                (
+                    "is_nzqf",
+                    models.BooleanField(
+                        default=True,
+                        verbose_name="the New Zealand Qualifications Framework Qualification level",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'qualification',
-                'ordering': ['definition'],
+                "db_table": "qualification",
+                "ordering": ["definition"],
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AlterField(
-            model_name='recognition',
-            name='amount',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=9, null=True, verbose_name='amount'),
+            model_name="recognition",
+            name="amount",
+            field=models.DecimalField(
+                blank=True, decimal_places=2, max_digits=9, null=True, verbose_name="amount"
+            ),
         ),
         migrations.AlterField(
-            model_name='recognition',
-            name='award',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Award', verbose_name='award'),
+            model_name="recognition",
+            name="award",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="portal.Award",
+                verbose_name="award",
+            ),
         ),
         migrations.AlterField(
-            model_name='recognition',
-            name='awarded_by',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Organisation', verbose_name='awarded by'),
+            model_name="recognition",
+            name="awarded_by",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="portal.Organisation",
+                verbose_name="awarded by",
+            ),
         ),
     ]

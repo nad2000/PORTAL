@@ -5,24 +5,35 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0042_orgidentifiertype'),
+        ("portal", "0042_orgidentifiertype"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='orgidentifiertype',
-            options={'ordering': ['code'], 'verbose_name': 'organisation identifier type'},
+            name="orgidentifiertype",
+            options={"ordering": ["code"], "verbose_name": "organisation identifier type"},
         ),
         migrations.AddField(
-            model_name='application',
-            name='org',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='portal.Organisation'),
+            model_name="application",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="portal.Organisation",
+            ),
         ),
         migrations.AddField(
-            model_name='historicalapplication',
-            name='org',
-            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Organisation'),
+            model_name="historicalapplication",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.Organisation",
+            ),
         ),
     ]

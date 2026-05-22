@@ -10,7 +10,6 @@ import portal.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0008_auto_20210603_1239"),
     ]

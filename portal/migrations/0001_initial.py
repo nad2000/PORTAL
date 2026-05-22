@@ -14,7 +14,6 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -469,33 +468,23 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "submitted_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"submitted"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"submitted"}),
                 ),
                 (
                     "sent_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"sent"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"sent"}),
                 ),
                 (
                     "accepted_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"accepted"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"accepted"}),
                 ),
                 (
                     "expired_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"expired"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"expired"}),
                 ),
                 (
                     "bounced_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"bounced"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"bounced"}),
                 ),
                 (
                     "application",
@@ -889,9 +878,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "testified_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"testified"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"testified"}),
                 ),
                 (
                     "application",
@@ -1610,9 +1597,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "authorized_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"authorized"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"authorized"}),
                 ),
                 (
                     "application",
@@ -1908,9 +1893,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "testified_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"testified"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"testified"}),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField()),
@@ -2489,9 +2472,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "authorized_at",
-                    model_utils.fields.MonitorField(
-                        monitor="status", when={"authorized"}
-                    ),
+                    model_utils.fields.MonitorField(monitor="status", when={"authorized"}),
                 ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField()),

@@ -122,7 +122,6 @@ class OrcidHelper:
             orcid_profile, user_has_linked_orcid = self.get_orcid_profile(url, access_token)
 
             if user_has_linked_orcid:
-
                 count = 0
                 for section in self.sections:
                     if section == "externalid":
@@ -192,9 +191,7 @@ class OrcidHelper:
     def create_and_save_academic_record(self, org, orcid_data):
         # Role-title is empty for ORCID vanilla record.
         qualification, _ = models.Qualification.objects.get_or_create(
-            description=(
-                orcid_data.get("role-title") if orcid_data.get("role-title") else "N/A"
-            )
+            description=(orcid_data.get("role-title") if orcid_data.get("role-title") else "N/A")
         )
         academic_obj, _ = models.AcademicRecord.get_or_create(
             put_code=orcid_data.get("put-code"), person=self.person, awarded_by=org

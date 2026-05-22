@@ -5,26 +5,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0039_auto_20200427_1131'),
+        ("portal", "0039_auto_20200427_1131"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='IwiGroup',
+            name="IwiGroup",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(max_length=4, primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=80)),
-                ('parent_code', models.CharField(max_length=2)),
-                ('parent_description', models.CharField(max_length=100)),
-                ('definition', models.TextField(max_length=200)),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(max_length=4, primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=80)),
+                ("parent_code", models.CharField(max_length=2)),
+                ("parent_description", models.CharField(max_length=100)),
+                ("definition", models.TextField(max_length=200)),
             ],
             options={
-                'db_table': 'iwi_group',
-                'ordering': ['code'],
+                "db_table": "iwi_group",
+                "ordering": ["code"],
             },
             bases=(common.models.HelperMixin, models.Model),
         ),

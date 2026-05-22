@@ -4,20 +4,53 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0008_subscription'),
+        ("portal", "0008_subscription"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicalprofile',
-            name='education_level',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(0, 'No qualification'), (1, 'Level 1 certificate'), (2, 'Level 2 certificate'), (3, 'Level 3 certificate'), (4, 'Level 4 certificate'), (5, 'Level 5 diploma'), (6, 'Level 6 diploma'), (7, "Bachelor's degree and level"), (8, 'Post-graduate and honours degrees'), (9, "Master's degree"), (10, 'Doctorate degree'), (100, 'Overseas secondary school qualification')], null=True),
+            model_name="historicalprofile",
+            name="education_level",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[
+                    (0, "No qualification"),
+                    (1, "Level 1 certificate"),
+                    (2, "Level 2 certificate"),
+                    (3, "Level 3 certificate"),
+                    (4, "Level 4 certificate"),
+                    (5, "Level 5 diploma"),
+                    (6, "Level 6 diploma"),
+                    (7, "Bachelor's degree and level"),
+                    (8, "Post-graduate and honours degrees"),
+                    (9, "Master's degree"),
+                    (10, "Doctorate degree"),
+                    (100, "Overseas secondary school qualification"),
+                ],
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='education_level',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(0, 'No qualification'), (1, 'Level 1 certificate'), (2, 'Level 2 certificate'), (3, 'Level 3 certificate'), (4, 'Level 4 certificate'), (5, 'Level 5 diploma'), (6, 'Level 6 diploma'), (7, "Bachelor's degree and level"), (8, 'Post-graduate and honours degrees'), (9, "Master's degree"), (10, 'Doctorate degree'), (100, 'Overseas secondary school qualification')], null=True),
+            model_name="profile",
+            name="education_level",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[
+                    (0, "No qualification"),
+                    (1, "Level 1 certificate"),
+                    (2, "Level 2 certificate"),
+                    (3, "Level 3 certificate"),
+                    (4, "Level 4 certificate"),
+                    (5, "Level 5 diploma"),
+                    (6, "Level 6 diploma"),
+                    (7, "Bachelor's degree and level"),
+                    (8, "Post-graduate and honours degrees"),
+                    (9, "Master's degree"),
+                    (10, "Doctorate degree"),
+                    (100, "Overseas secondary school qualification"),
+                ],
+                null=True,
+            ),
         ),
     ]

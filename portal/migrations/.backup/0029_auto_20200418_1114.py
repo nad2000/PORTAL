@@ -6,25 +6,29 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0028_auto_20200417_1239'),
+        ("portal", "0028_auto_20200417_1239"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicalprofile',
-            name='is_accepted',
-            field=models.BooleanField(default=False, verbose_name='Privace Policy Accepted'),
+            model_name="historicalprofile",
+            name="is_accepted",
+            field=models.BooleanField(default=False, verbose_name="Privace Policy Accepted"),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='is_accepted',
-            field=models.BooleanField(default=False, verbose_name='Privace Policy Accepted'),
+            model_name="profile",
+            name="is_accepted",
+            field=models.BooleanField(default=False, verbose_name="Privace Policy Accepted"),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='user',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='profiles', to=settings.AUTH_USER_MODEL),
+            model_name="profile",
+            name="user",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="profiles",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

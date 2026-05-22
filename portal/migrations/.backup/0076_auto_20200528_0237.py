@@ -4,24 +4,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('auth', '0011_update_proxy_permissions'),
-        ('portal', '0075_auto_20200528_0225'),
+        ("auth", "0011_update_proxy_permissions"),
+        ("portal", "0075_auto_20200528_0225"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='historicalscheme',
-            name='group',
+            model_name="historicalscheme",
+            name="group",
         ),
         migrations.RemoveField(
-            model_name='scheme',
-            name='group',
+            model_name="scheme",
+            name="group",
         ),
         migrations.AddField(
-            model_name='scheme',
-            name='groups',
-            field=models.ManyToManyField(blank=True, db_table='scheme_group', null=True, to='auth.Group', verbose_name='who starts'),
+            model_name="scheme",
+            name="groups",
+            field=models.ManyToManyField(
+                blank=True,
+                db_table="scheme_group",
+                null=True,
+                to="auth.Group",
+                verbose_name="who starts",
+            ),
         ),
     ]

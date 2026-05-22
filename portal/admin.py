@@ -76,7 +76,6 @@ djhacker.formfield(
 
 
 class OrgChoiceField(forms.ModelChoiceField):
-
     def label_from_instance(self, obj):
         return f" {obj.code}: {obj.name}"
 
@@ -361,7 +360,6 @@ class AutocompleteFilterMixin:
 
 
 class InlineNoteForm(forms.ModelForm):
-
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
@@ -398,7 +396,6 @@ class StateLogInline(StateLogInline):
 
 
 class UnaccentMixin:
-
     def get_search_fields(self, request):
         sf = super().get_search_fields(request)
         if settings.ENV == "prod":
@@ -407,7 +404,6 @@ class UnaccentMixin:
 
 
 class CRUDEventAdmin(AutocompleteFilterMixin, easyaudit_admin.CRUDEventAdmin):
-
     autocomplete_fields = ["user"]
 
     list_filter = [
@@ -425,7 +421,6 @@ admin.site.register(CRUDEvent, CRUDEventAdmin)
 
 
 class RequestEventAdmin(AutocompleteFilterMixin, easyaudit_admin.RequestEventAdmin):
-
     # list_filter = REQUEST_EVENT_LIST_FILTER
     list_filter = [
         "method",
@@ -440,7 +435,6 @@ admin.site.register(RequestEvent, RequestEventAdmin)
 
 
 class LoginEventAdmin(AutocompleteFilterMixin, easyaudit_admin.LoginEventAdmin):
-
     # list_filter = LOGIN_EVENT_LIST_FILTER
     list_filter = [
         "login_type",
@@ -521,7 +515,6 @@ admin.site.register(SocialToken, SocialTokenAdmin)
 
 
 class SocialAccountAdmin(SocialAccountAdmin):
-
     search_fields = ["uid"]
     raw_id_fields = ()
     date_hierarchy = "date_joined"
@@ -599,7 +592,6 @@ class PdfFileAdminMixin:
 
 
 class HistoryAdmin(SimpleHistoryAdmin):
-
     def view_on_site(self, obj):
         try:
             return obj.get_absolute_url()
@@ -625,7 +617,6 @@ class HistoryAdmin(SimpleHistoryAdmin):
 
 
 class KeepSelectedMixin:
-
     def response_action(self, request, queryset):
         resp = super().response_action(request, queryset)
         if helpers.ACTION_CHECKBOX_NAME in request.POST:
@@ -723,7 +714,6 @@ class CountryAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, admin.
 
 @admin.register(models.ReportingScheduleEntry)
 class ReportingScheduleEntryAdmin(admin.ModelAdmin):
-
     search_fields = ["contract__number"]
 
     # def get_model_perms(self, request):
@@ -794,7 +784,6 @@ class ResearchPriorityAdmin(ExportActionMixin, ImportExportModelAdmin):
 
 
 class PanelDecisionResource(ModelResource):
-
     number = fields.Field(attribute="number", column_name="Proposal")
     grade = fields.Field(attribute="grade", column_name="Grade%")
     decision = fields.Field(attribute="decision", column_name="Decision")
@@ -1228,7 +1217,6 @@ class FundAdmin(StaffPermsMixin, ExportActionMixin, ImportExportMixin, Translati
 
 
 class PanelResource(ModelResource):
-
     class Meta:
         model = models.Panel
         import_id_fields = ["code", "fund", "state"]
@@ -1695,7 +1683,6 @@ class ApplicationAdmin(
     TranslationAdmin,
     HistoryAdmin,
 ):
-
     history_list_display = ["changed_fields"]
 
     def changed_fields(self, obj):
@@ -1801,7 +1788,7 @@ class ApplicationAdmin(
         return mark_safe(
             ", ".join(
                 f'<b style="color:red;">{n}</b>'
-                for n, in obj.numbers.values_list("number").order_by("number")
+                for (n,) in obj.numbers.values_list("number").order_by("number")
             )
         )
 
@@ -1811,7 +1798,6 @@ class ApplicationAdmin(
     is_active_round.boolean = True
 
     class MemberInline(StaffPermsMixin, admin.TabularInline):
-
         extra = 0
         model = models.Member
         readonly_fields = ["STATE", "state", "state_changed_at"]
@@ -2238,10 +2224,13 @@ class ApplicationAdmin(
                 contracts.append(c)
             contract_count += 1
         if contracts:
-            links = ", ".join(f"""<a
-            href="{reverse('admin:portal_contract_change', kwargs={"object_id": c.pk})}"
+            links = ", ".join(
+                f"""<a
+            href="{reverse("admin:portal_contract_change", kwargs={"object_id": c.pk})}"
             target="_blank">
-            {c.number}</a>""" for c in contracts)
+            {c.number}</a>"""
+                for c in contracts
+            )
             messages.success(
                 request, mark_safe(f"{len(contracts)} contracts were created: {links}.")
             )
@@ -2510,7 +2499,6 @@ class ScoreSheetAdmin(StaffPermsMixin, admin.ModelAdmin):
 class RefereeAdmin(
     KeepSelectedMixin, UnaccentMixin, StaffPermsMixin, FSMTransitionMixin, HistoryAdmin
 ):
-
     save_on_top = True
     limesurvey_admin_url = (
         f"{settings.DEBUG and settings.LIMESURVEY_SERVER_URL or '/limesurvey/'}admin/"
@@ -3158,7 +3146,6 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
 
                 try:
                     with transaction.atomic():
-
                         qs = models.Application.all_objects.filter(
                             ~Q(number__iregex=f"^[A-Z0-9]+-{target.code}-[0-9]{{4}}-"),
                             Q(org_id__in=org_ids) | Q(nomination__org_id__in=org_ids),
@@ -3196,7 +3183,6 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
                                 )
                             new_numbers = []
                             for a in org_applications:
-
                                 if a.org in orgs:
                                     a.org = target
 
@@ -3321,12 +3307,12 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             if deleted:
                 messages.success(
                     request,
-                    f'{len(deleted)} organisation(s) merged and deleted: {", ".join(deleted)}',
+                    f"{len(deleted)} organisation(s) merged and deleted: {', '.join(deleted)}",
                 )
             if merged:
                 messages.success(
                     request,
-                    f'{len(merged)} organisation(s) merged and marked inactive: {", ".join(merged)}',
+                    f"{len(merged)} organisation(s) merged and marked inactive: {', '.join(merged)}",
                 )
             if errors:
                 for e in errors:
@@ -3335,7 +3321,6 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
             return
 
         if target := queryset.filter(is_active=True).first():
-
             context = {
                 **self.admin_site.each_context(request),
                 "title": "Choose target organisation",
@@ -3370,7 +3355,6 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
 
 @admin.register(models.Invitation)
 class InvitationAdmin(StaffPermsMixin, FSMTransitionMixin, ImportExportMixin, HistoryAdmin):
-
     @admin.action(description="Resend invitations")
     def resend(self, request, queryset):
         recipients = []
@@ -4050,61 +4034,67 @@ class RoundAdmin(
                     ],
                 },
             ),
-
         ]
         if site_id not in [1, 7]:
-            fieldsets.extend([(
-                    "Contract Options",
-                    {
-                        "classes": ("collapse",),
-                        "fields": [
-                            ("proposed_start_date_stats_on", "duration"),
-                            "awarded_amount",
-                            "contract_background",
-                            "schedule2",
-                            "appendix_a",
-                            "appendix_b",
-                        ],
-                    },
-                ),
-                (
-                    "Reporting Options",
-                    {
-                        "classes": ("collapse",),
-                        "fields": [
-                            (
-                                "final_report_deferral"
-                                if site_id in [2, 4, 5]
-                                else ("report_template", "final_report_deferral")
-                            ),
-                        ],
-                    },
-                ),]
+            fieldsets.extend(
+                [
+                    (
+                        "Contract Options",
+                        {
+                            "classes": ("collapse",),
+                            "fields": [
+                                ("proposed_start_date_stats_on", "duration"),
+                                "awarded_amount",
+                                "contract_background",
+                                "schedule2",
+                                "appendix_a",
+                                "appendix_b",
+                            ],
+                        },
+                    ),
+                    (
+                        "Reporting Options",
+                        {
+                            "classes": ("collapse",),
+                            "fields": [
+                                (
+                                    "final_report_deferral"
+                                    if site_id in [2, 4, 5]
+                                    else ("report_template", "final_report_deferral")
+                                ),
+                            ],
+                        },
+                    ),
+                ]
             )
 
-            fieldsets.extend([(
-                (
-                    "Other Templates",
-                    {
-                        "fields": [
-                            "referee_template",
-                        ]
-                    },
-                )
-                if site_id in [2, 4, 5]
-                else (
-                    "Templates",
-                    {
-                        "fields": [
-                            "application_template",
-                            "score_sheet_template",
-                            "nomination_template",
-                            "referee_template",
-                            "budget_template",
-                        ]
-                    },
-                )
-            ),])
+            fieldsets.extend(
+                [
+                    (
+                        (
+                            "Other Templates",
+                            {
+                                "fields": [
+                                    "referee_template",
+                                ]
+                            },
+                        )
+                        if site_id in [2, 4, 5]
+                        else (
+                            "Templates",
+                            {
+                                "fields": [
+                                    "application_template",
+                                    "score_sheet_template",
+                                    "nomination_template",
+                                    "referee_template",
+                                    "budget_template",
+                                ]
+                            },
+                        )
+                    ),
+                ]
+            )
         return fieldsets
 
     @admin.action(description="Export for the panellists")
@@ -4223,10 +4213,8 @@ class RoundAdmin(
 
                 try:
                     with transaction.atomic():
-
                         field_names = ["name", "value_choices", "is_optional"]
                         for r in queryset.filter(~Q(id=selected_id)):
-
                             flags = [
                                 f
                                 for f in selected_object.performance_flags.all().values(
@@ -4291,7 +4279,6 @@ class RoundAdmin(
 
                 try:
                     with transaction.atomic():
-
                         for r in rounds:
                             nr = r.clone(scheme=target, copy=True)
                             new_rounds.append(nr)
@@ -4310,7 +4297,7 @@ class RoundAdmin(
             else:
                 messages.success(
                     request,
-                    f'{len(new_rounds)} rounds copied and linked to the scheme {target}: {", ".join(new_rounds)}',
+                    f"{len(new_rounds)} rounds copied and linked to the scheme {target}: {', '.join(new_rounds)}",
                 )
 
             if errors:
@@ -4660,12 +4647,10 @@ class EvaluationAdmin(StaffPermsMixin, FSMTransitionMixin, HistoryAdmin):
 
 
 class ContractDocumentForm(forms.ModelForm):
-
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
         if self.request and (r := self.instance.round):
-
             self.fields["author"].initial = self.request.user
 
     class Meta:
@@ -4847,7 +4832,7 @@ class ContractAdmin(
         a = obj.application
         return mark_safe(
             a
-            and f"""<a href="{reverse('admin:portal_application_change', kwargs={"object_id": a.pk})}?_popup=1" target="_blank">
+            and f"""<a href="{reverse("admin:portal_application_change", kwargs={"object_id": a.pk})}?_popup=1" target="_blank">
             {a.number}
             </a>"""
             or "-"

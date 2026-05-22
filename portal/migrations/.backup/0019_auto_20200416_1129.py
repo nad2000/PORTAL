@@ -4,23 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0018_auto_20200416_1104'),
+        ("portal", "0018_auto_20200416_1104"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='historicalprofile',
-            name='ethnicity',
+            model_name="historicalprofile",
+            name="ethnicity",
         ),
         migrations.RemoveField(
-            model_name='profile',
-            name='ethnicity',
+            model_name="profile",
+            name="ethnicity",
         ),
         migrations.AddField(
-            model_name='profile',
-            name='ethnicity',
-            field=models.ManyToManyField(to='portal.Ethnicity'),
+            model_name="profile",
+            name="ethnicity",
+            field=models.ManyToManyField(to="portal.Ethnicity"),
         ),
     ]

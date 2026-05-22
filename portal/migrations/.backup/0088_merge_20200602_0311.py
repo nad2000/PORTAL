@@ -4,11 +4,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0086_delete_historicalsubscription'),
-        ('portal', '0087_auto_20200601_0233'),
+        ("portal", "0086_delete_historicalsubscription"),
+        ("portal", "0087_auto_20200601_0233"),
     ]
 
-    operations = [
-    ]
+    operations = []

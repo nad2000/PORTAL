@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0019_auto_20200416_1129'),
+        ("portal", "0019_auto_20200416_1129"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='profile',
-            name='ethnicity',
-            field=models.ManyToManyField(db_table='profile_ethnicity', to='portal.Ethnicity'),
+            model_name="profile",
+            name="ethnicity",
+            field=models.ManyToManyField(db_table="profile_ethnicity", to="portal.Ethnicity"),
         ),
     ]

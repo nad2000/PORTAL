@@ -11,7 +11,6 @@ from . import models
 
 
 class Table(tables.Table):
-
     @property
     def model_name(self):
         return self._meta.model and self._meta.model._meta.model_name
@@ -27,7 +26,6 @@ class Table(tables.Table):
 
 
 class TableWithTotalCount(Table):
-
     _total_count = None
 
     def __init__(self, data, *args, **kwargs):
@@ -173,7 +171,7 @@ class StateColumn(tables.Column):
             # title += f""" {_("(the state updated at <time datetime='%s'>%s</time>)") % (
             #     state_changed_at.isoformat(),
             #     state_changed_at.strftime('%d-%m-%Y %H:%m'))}"""
-            title += f""" {_("(the state updated at %s)") % state_changed_at.strftime('%d-%m-%Y %H:%m')}"""
+            title += f""" {_("(the state updated at %s)") % state_changed_at.strftime("%d-%m-%Y %H:%m")}"""
 
         return mark_safe(
             f'<i class="{css_classes}" aria-hidden="true" data-toggle="tooltip" data-html="true" title="{title}"></i>'
@@ -292,7 +290,7 @@ def application_round_link(table, record, value):
 def application_contract_link(table, record, value):
     if value:
         return reverse("contract-detail", kwargs={"number": value.number})
-    return f'{reverse("contract-create")}?application_id={record.pk}'
+    return f"{reverse('contract-create')}?application_id={record.pk}"
 
 
 class ContractColumn(tables.LinkColumn):
@@ -397,13 +395,15 @@ class ApplicationTable(TableWithTotalCount):
         text=lambda record: (
             gettext_lazy("Create")
             if record.state != "funded"
-            else gettext_lazy("Open") if record.contract else gettext_lazy("Create")
+            else gettext_lazy("Open")
+            if record.contract
+            else gettext_lazy("Create")
         ),
         linkify=lambda table, record, value: (
             reverse("application-contract", args=[record.pk])
             if record.contract
             else (
-                f'{reverse("contract-create")}?application_id={record.pk}'
+                f"{reverse('contract-create')}?application_id={record.pk}"
                 if record.state == "funded"
                 else None
             )
@@ -500,7 +500,7 @@ def report_link(table, record, value):
 def report_contract_link(table, record, value):
     if value:
         return reverse("contract-detail", kwargs={"number": value.number})
-    return f'{reverse("contract-create")}?report_id={record.pk}'
+    return f"{reverse('contract-create')}?report_id={record.pk}"
 
 
 def report_export_link(table, record, value):
@@ -630,10 +630,10 @@ class ReportTable(Table):
     data-placement="left"
     data-trigger="focus"
     tabindex="0"
-    title="{gettext_lazy('Contract PI')}"
-    data-content="<b>{gettext_lazy('Email')}:&nbsp</b>{ pi.email }<br/>
-        <b>{gettext_lazy('Username')}:&nbsp</b>{ pi.username }
-        <br/><b>ORCID:&nbsp</b>{ orcid or 'N/A'}
+    title="{gettext_lazy("Contract PI")}"
+    data-content="<b>{gettext_lazy("Email")}:&nbsp</b>{pi.email}<br/>
+        <b>{gettext_lazy("Username")}:&nbsp</b>{pi.username}
+        <br/><b>ORCID:&nbsp</b>{orcid or "N/A"}
         </p>"
     >{value}</span>
     """)
@@ -997,10 +997,10 @@ class ContractTable(Table):
     data-placement="left"
     data-trigger="focus"
     tabindex="0"
-    title="{gettext_lazy('Contract PI')}"
-    data-content="<b>{gettext_lazy('Email')}:&nbsp</b>{ pi.email }<br/>
-        <b>{gettext_lazy('Username')}:&nbsp</b>{ pi.username }
-        <br/><b>ORCID:&nbsp</b>{ orcid or 'N/A'}
+    title="{gettext_lazy("Contract PI")}"
+    data-content="<b>{gettext_lazy("Email")}:&nbsp</b>{pi.email}<br/>
+        <b>{gettext_lazy("Username")}:&nbsp</b>{pi.username}
+        <br/><b>ORCID:&nbsp</b>{orcid or "N/A"}
         </p>"
     >{value}</span>
     """)
@@ -1011,7 +1011,6 @@ class ContractTable(Table):
 
 
 class ChangeRequestTable(Table):
-
     state = StateColumn(gettext_lazy("Status"))
     updated_at = tables.Column(
         accessor="updated_at",

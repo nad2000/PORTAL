@@ -4,19 +4,18 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0020_auto_20200416_1138'),
+        ("portal", "0020_auto_20200416_1138"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='ethnicity',
-            options={'ordering': ['code']},
+            name="ethnicity",
+            options={"ordering": ["code"]},
         ),
         migrations.RenameField(
-            model_name='profile',
-            old_name='ethnicity',
-            new_name='ethnicities',
+            model_name="profile",
+            old_name="ethnicity",
+            new_name="ethnicities",
         ),
     ]

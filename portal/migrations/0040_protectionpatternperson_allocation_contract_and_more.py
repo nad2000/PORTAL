@@ -14,7 +14,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0039_maillog_html_message_maillog_message_and_more"),
         ("sites", "0004_auto_20210331_1418"),

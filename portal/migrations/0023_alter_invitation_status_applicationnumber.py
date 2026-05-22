@@ -6,7 +6,6 @@ import portal.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0022_historicalround_notify_nominator_and_more"),
     ]

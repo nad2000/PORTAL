@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0055_historicaltestimonial_state_changed_at_and_more"),
     ]

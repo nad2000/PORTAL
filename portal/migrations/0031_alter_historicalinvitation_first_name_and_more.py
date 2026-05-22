@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0030_alter_academicrecord_converted_on_alter_award_name"),
     ]

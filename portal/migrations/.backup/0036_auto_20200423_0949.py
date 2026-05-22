@@ -7,13 +7,15 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0035_auto_20200421_2057"),
     ]
 
     operations = [
-        migrations.RemoveField(model_name="invitation", name="name",),
+        migrations.RemoveField(
+            model_name="invitation",
+            name="name",
+        ),
         migrations.AddField(
             model_name="invitation",
             name="first_name",

@@ -9,100 +9,311 @@ import private_storage.storage.files
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0007_auto_20210528_1123'),
+        ("portal", "0007_auto_20210528_1123"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='application',
-            name='is_tac_accepted',
+            model_name="application",
+            name="is_tac_accepted",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='application',
-            name='tac_accepted_at',
-            field=model_utils.fields.MonitorField(monitor='state', when={'tac_accepted'}),
+            model_name="application",
+            name="tac_accepted_at",
+            field=model_utils.fields.MonitorField(monitor="state", when={"tac_accepted"}),
         ),
         migrations.AddField(
-            model_name='historicalapplication',
-            name='is_tac_accepted',
+            model_name="historicalapplication",
+            name="is_tac_accepted",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='historicalapplication',
-            name='tac_accepted_at',
-            field=model_utils.fields.MonitorField(monitor='state', when={'tac_accepted'}),
+            model_name="historicalapplication",
+            name="tac_accepted_at",
+            field=model_utils.fields.MonitorField(monitor="state", when={"tac_accepted"}),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='file',
-            field=private_storage.fields.PrivateFileField(blank=True, help_text='Please upload completed application form', null=True, storage=private_storage.storage.files.PrivateFileSystemStorage(), upload_to='', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'odt', 'ott', 'oth', 'odm', 'doc', 'docx', 'docm', 'docb'])], verbose_name='completed application form'),
+            model_name="application",
+            name="file",
+            field=private_storage.fields.PrivateFileField(
+                blank=True,
+                help_text="Please upload completed application form",
+                null=True,
+                storage=private_storage.storage.files.PrivateFileSystemStorage(),
+                upload_to="",
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "pdf",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                            "doc",
+                            "docx",
+                            "docm",
+                            "docb",
+                        ]
+                    )
+                ],
+                verbose_name="completed application form",
+            ),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='photo_identity',
-            field=private_storage.fields.PrivateFileField(blank=True, help_text='Please upload a scanned copy of your passport or drivers license in PDF, JPG, or PNG format', null=True, storage=private_storage.storage.files.PrivateFileSystemStorage(), upload_to='', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])], verbose_name='Photo Identity'),
+            model_name="application",
+            name="photo_identity",
+            field=private_storage.fields.PrivateFileField(
+                blank=True,
+                help_text="Please upload a scanned copy of your passport or drivers license in PDF, JPG, or PNG format",
+                null=True,
+                storage=private_storage.storage.files.PrivateFileSystemStorage(),
+                upload_to="",
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=["pdf", "jpg", "jpeg", "png"]
+                    )
+                ],
+                verbose_name="Photo Identity",
+            ),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='presentation_url',
-            field=models.URLField(blank=True, help_text='Please enter the URL where your presentation video can be viewed', null=True, verbose_name='Presentation URL'),
+            model_name="application",
+            name="presentation_url",
+            field=models.URLField(
+                blank=True,
+                help_text="Please enter the URL where your presentation video can be viewed",
+                null=True,
+                verbose_name="Presentation URL",
+            ),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='state',
-            field=portal.models.StatusField(choices=[(0, 'dummy')], default='new', max_length=100, no_check_for_status=True),
+            model_name="application",
+            name="state",
+            field=portal.models.StatusField(
+                choices=[(0, "dummy")], default="new", max_length=100, no_check_for_status=True
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='file',
-            field=models.TextField(blank=True, help_text='Please upload completed application form', max_length=100, null=True, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'odt', 'ott', 'oth', 'odm', 'doc', 'docx', 'docm', 'docb'])], verbose_name='completed application form'),
+            model_name="historicalapplication",
+            name="file",
+            field=models.TextField(
+                blank=True,
+                help_text="Please upload completed application form",
+                max_length=100,
+                null=True,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "pdf",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                            "doc",
+                            "docx",
+                            "docm",
+                            "docb",
+                        ]
+                    )
+                ],
+                verbose_name="completed application form",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='photo_identity',
-            field=models.TextField(blank=True, help_text='Please upload a scanned copy of your passport or drivers license in PDF, JPG, or PNG format', max_length=100, null=True, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])], verbose_name='Photo Identity'),
+            model_name="historicalapplication",
+            name="photo_identity",
+            field=models.TextField(
+                blank=True,
+                help_text="Please upload a scanned copy of your passport or drivers license in PDF, JPG, or PNG format",
+                max_length=100,
+                null=True,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=["pdf", "jpg", "jpeg", "png"]
+                    )
+                ],
+                verbose_name="Photo Identity",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='presentation_url',
-            field=models.URLField(blank=True, help_text='Please enter the URL where your presentation video can be viewed', null=True, verbose_name='Presentation URL'),
+            model_name="historicalapplication",
+            name="presentation_url",
+            field=models.URLField(
+                blank=True,
+                help_text="Please enter the URL where your presentation video can be viewed",
+                null=True,
+                verbose_name="Presentation URL",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='state',
-            field=portal.models.StatusField(choices=[(0, 'dummy')], default='new', max_length=100, no_check_for_status=True),
+            model_name="historicalapplication",
+            name="state",
+            field=portal.models.StatusField(
+                choices=[(0, "dummy")], default="new", max_length=100, no_check_for_status=True
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalround',
-            name='application_template',
-            field=models.TextField(blank=True, max_length=100, null=True, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm', 'docb', 'odt', 'ott', 'oth', 'odm'])], verbose_name='Application Template'),
+            model_name="historicalround",
+            name="application_template",
+            field=models.TextField(
+                blank=True,
+                max_length=100,
+                null=True,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "doc",
+                            "docx",
+                            "dot",
+                            "dotx",
+                            "docm",
+                            "dotm",
+                            "docb",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                        ]
+                    )
+                ],
+                verbose_name="Application Template",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalround',
-            name='nomination_template',
-            field=models.TextField(blank=True, max_length=100, null=True, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm', 'docb', 'odt', 'ott', 'oth', 'odm'])], verbose_name='Nomination Template'),
+            model_name="historicalround",
+            name="nomination_template",
+            field=models.TextField(
+                blank=True,
+                max_length=100,
+                null=True,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "doc",
+                            "docx",
+                            "dot",
+                            "dotx",
+                            "docm",
+                            "dotm",
+                            "docb",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                        ]
+                    )
+                ],
+                verbose_name="Nomination Template",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalround',
-            name='referee_template',
-            field=models.TextField(blank=True, max_length=100, null=True, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm', 'docb', 'odt', 'ott', 'oth', 'odm'])], verbose_name='Referee Template'),
+            model_name="historicalround",
+            name="referee_template",
+            field=models.TextField(
+                blank=True,
+                max_length=100,
+                null=True,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "doc",
+                            "docx",
+                            "dot",
+                            "dotx",
+                            "docm",
+                            "dotm",
+                            "docb",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                        ]
+                    )
+                ],
+                verbose_name="Referee Template",
+            ),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='application_template',
-            field=models.FileField(blank=True, null=True, upload_to=portal.models.round_template_path, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm', 'docb', 'odt', 'ott', 'oth', 'odm'])], verbose_name='Application Template'),
+            model_name="round",
+            name="application_template",
+            field=models.FileField(
+                blank=True,
+                null=True,
+                upload_to=portal.models.round_template_path,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "doc",
+                            "docx",
+                            "dot",
+                            "dotx",
+                            "docm",
+                            "dotm",
+                            "docb",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                        ]
+                    )
+                ],
+                verbose_name="Application Template",
+            ),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='nomination_template',
-            field=models.FileField(blank=True, null=True, upload_to=portal.models.round_template_path, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm', 'docb', 'odt', 'ott', 'oth', 'odm'])], verbose_name='Nomination Template'),
+            model_name="round",
+            name="nomination_template",
+            field=models.FileField(
+                blank=True,
+                null=True,
+                upload_to=portal.models.round_template_path,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "doc",
+                            "docx",
+                            "dot",
+                            "dotx",
+                            "docm",
+                            "dotm",
+                            "docb",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                        ]
+                    )
+                ],
+                verbose_name="Nomination Template",
+            ),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='referee_template',
-            field=models.FileField(blank=True, null=True, upload_to=portal.models.round_template_path, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['doc', 'docx', 'dot', 'dotx', 'docm', 'dotm', 'docb', 'odt', 'ott', 'oth', 'odm'])], verbose_name='Referee Template'),
+            model_name="round",
+            name="referee_template",
+            field=models.FileField(
+                blank=True,
+                null=True,
+                upload_to=portal.models.round_template_path,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=[
+                            "doc",
+                            "docx",
+                            "dot",
+                            "dotx",
+                            "docm",
+                            "dotm",
+                            "docb",
+                            "odt",
+                            "ott",
+                            "oth",
+                            "odm",
+                        ]
+                    )
+                ],
+                verbose_name="Referee Template",
+            ),
         ),
     ]

@@ -7,13 +7,11 @@ from django import VERSION as django_version
 
 
 class Loader(Loader):
-
     def cache_key(self, template_name, skip=None):
         return f"{settings.SITE_ID}-{super().cache_key(template_name, skip=skip)}"
 
 
 class MultisiteLoader(FilesystemLoader):
-
     def get_template_sources(self, template_name, *args, **kwargs):
         # domain = Site.objects.get_current().domain
         site_id = settings.SITE_ID

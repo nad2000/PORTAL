@@ -7,7 +7,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0055_fieldofresearch"),
     ]
@@ -84,7 +83,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"db_table": "academic_record",},
+            options={
+                "db_table": "academic_record",
+            },
             bases=(common.models.HelperMixin, models.Model),
         ),
     ]

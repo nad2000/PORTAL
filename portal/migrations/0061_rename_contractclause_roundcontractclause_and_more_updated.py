@@ -11,7 +11,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0060_publication_publicationstatus_publicationtype_and_more"),
     ]

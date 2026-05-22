@@ -5,7 +5,6 @@ import portal.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0023_alter_invitation_status_applicationnumber"),
     ]

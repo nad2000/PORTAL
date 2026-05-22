@@ -4,20 +4,19 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0077_auto_20200528_0307'),
+        ("portal", "0077_auto_20200528_0307"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='historicalround',
-            old_name='open_on',
-            new_name='opens_on',
+            model_name="historicalround",
+            old_name="open_on",
+            new_name="opens_on",
         ),
         migrations.RenameField(
-            model_name='round',
-            old_name='open_on',
-            new_name='opens_on',
+            model_name="round",
+            old_name="open_on",
+            new_name="opens_on",
         ),
     ]

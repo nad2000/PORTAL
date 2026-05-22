@@ -10,54 +10,123 @@ import private_storage.storage.files
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0015_auto_20220311_1519'),
+        ("portal", "0015_auto_20220311_1519"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicalround',
-            name='letter_of_support_required',
+            model_name="historicalround",
+            name="letter_of_support_required",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='round',
-            name='letter_of_support_required',
+            model_name="round",
+            name="letter_of_support_required",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='photo_identity',
-            field=private_storage.fields.PrivateFileField(blank=True, help_text=portal.models.photo_identity_help_text, null=True, storage=private_storage.storage.files.PrivateFileSystemStorage(), upload_to='', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])], verbose_name='Photo Identity'),
+            model_name="application",
+            name="photo_identity",
+            field=private_storage.fields.PrivateFileField(
+                blank=True,
+                help_text=portal.models.photo_identity_help_text,
+                null=True,
+                storage=private_storage.storage.files.PrivateFileSystemStorage(),
+                upload_to="",
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=["pdf", "jpg", "jpeg", "png"]
+                    )
+                ],
+                verbose_name="Photo Identity",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='photo_identity',
-            field=models.TextField(blank=True, help_text=portal.models.photo_identity_help_text, max_length=100, null=True, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])], verbose_name='Photo Identity'),
+            model_name="historicalapplication",
+            name="photo_identity",
+            field=models.TextField(
+                blank=True,
+                help_text=portal.models.photo_identity_help_text,
+                max_length=100,
+                null=True,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=["pdf", "jpg", "jpeg", "png"]
+                    )
+                ],
+                verbose_name="Photo Identity",
+            ),
         ),
         migrations.CreateModel(
-            name='LetterOfSupport',
+            name="LetterOfSupport",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('file', private_storage.fields.PrivateFileField(storage=private_storage.storage.files.PrivateFileSystemStorage(), upload_to='', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'odt', 'ott', 'oth', 'odm', 'doc', 'docx', 'docm', 'docb'])])),
-                ('converted_file', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='portal.convertedfile', verbose_name='converted file')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "file",
+                    private_storage.fields.PrivateFileField(
+                        storage=private_storage.storage.files.PrivateFileSystemStorage(),
+                        upload_to="",
+                        validators=[
+                            django.core.validators.FileExtensionValidator(
+                                allowed_extensions=[
+                                    "pdf",
+                                    "odt",
+                                    "ott",
+                                    "oth",
+                                    "odm",
+                                    "doc",
+                                    "docx",
+                                    "docm",
+                                    "docb",
+                                ]
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "converted_file",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="portal.convertedfile",
+                        verbose_name="converted file",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'letter_of_support',
+                "db_table": "letter_of_support",
             },
             bases=(portal.models.PdfFileMixin, common.models.HelperMixin, models.Model),
         ),
         migrations.AddField(
-            model_name='application',
-            name='letter_of_support',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='portal.letterofsupport'),
+            model_name="application",
+            name="letter_of_support",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="portal.letterofsupport",
+            ),
         ),
         migrations.AddField(
-            model_name='historicalapplication',
-            name='letter_of_support',
-            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.letterofsupport'),
+            model_name="historicalapplication",
+            name="letter_of_support",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.letterofsupport",
+            ),
         ),
     ]

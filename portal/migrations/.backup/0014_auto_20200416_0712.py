@@ -4,12 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0013_auto_20200415_1203"),
     ]
 
     operations = [
-        migrations.AlterModelTable(name="application", table="application",),
-        migrations.AlterModelTable(name="profile", table="profile",),
+        migrations.AlterModelTable(
+            name="application",
+            table="application",
+        ),
+        migrations.AlterModelTable(
+            name="profile",
+            table="profile",
+        ),
     ]

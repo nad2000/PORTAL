@@ -4,20 +4,19 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0084_delete_historicalscheme'),
+        ("portal", "0084_delete_historicalscheme"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='scheme',
-            old_name='description_en_nz',
-            new_name='description_en',
+            model_name="scheme",
+            old_name="description_en_nz",
+            new_name="description_en",
         ),
         migrations.RenameField(
-            model_name='scheme',
-            old_name='title_en_nz',
-            new_name='title_en',
+            model_name="scheme",
+            old_name="title_en_nz",
+            new_name="title_en",
         ),
     ]

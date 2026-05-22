@@ -4,66 +4,67 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('auth', '0011_update_proxy_permissions'),
-        ('portal', '0076_auto_20200528_0237'),
+        ("auth", "0011_update_proxy_permissions"),
+        ("portal", "0076_auto_20200528_0237"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalscheme',
-            name='animal_ethics_required',
+            model_name="historicalscheme",
+            name="animal_ethics_required",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='historicalscheme',
-            name='cv_required',
-            field=models.BooleanField(default=True, verbose_name='CVs required'),
+            model_name="historicalscheme",
+            name="cv_required",
+            field=models.BooleanField(default=True, verbose_name="CVs required"),
         ),
         migrations.AlterField(
-            model_name='historicalscheme',
-            name='pid_required',
-            field=models.BooleanField(default=True, verbose_name='photo ID required'),
+            model_name="historicalscheme",
+            name="pid_required",
+            field=models.BooleanField(default=True, verbose_name="photo ID required"),
         ),
         migrations.AlterField(
-            model_name='historicalscheme',
-            name='presentation_required',
+            model_name="historicalscheme",
+            name="presentation_required",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='historicalscheme',
-            name='team_can_apply',
-            field=models.BooleanField(default=False, verbose_name='can be submitted by a team'),
+            model_name="historicalscheme",
+            name="team_can_apply",
+            field=models.BooleanField(default=False, verbose_name="can be submitted by a team"),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='animal_ethics_required',
+            model_name="scheme",
+            name="animal_ethics_required",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='cv_required',
-            field=models.BooleanField(default=True, verbose_name='CVs required'),
+            model_name="scheme",
+            name="cv_required",
+            field=models.BooleanField(default=True, verbose_name="CVs required"),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='groups',
-            field=models.ManyToManyField(blank=True, db_table='scheme_group', to='auth.Group', verbose_name='who starts'),
+            model_name="scheme",
+            name="groups",
+            field=models.ManyToManyField(
+                blank=True, db_table="scheme_group", to="auth.Group", verbose_name="who starts"
+            ),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='pid_required',
-            field=models.BooleanField(default=True, verbose_name='photo ID required'),
+            model_name="scheme",
+            name="pid_required",
+            field=models.BooleanField(default=True, verbose_name="photo ID required"),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='presentation_required',
+            model_name="scheme",
+            name="presentation_required",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='team_can_apply',
-            field=models.BooleanField(default=False, verbose_name='can be submitted by a team'),
+            model_name="scheme",
+            name="team_can_apply",
+            field=models.BooleanField(default=False, verbose_name="can be submitted by a team"),
         ),
     ]

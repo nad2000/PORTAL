@@ -5,30 +5,41 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0072_auto_20200527_0205'),
+        ("portal", "0072_auto_20200527_0205"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicalprofile',
-            name='pattern',
-            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.ProtectionPattern'),
+            model_name="historicalprofile",
+            name="pattern",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.ProtectionPattern",
+            ),
         ),
         migrations.AddField(
-            model_name='historicalprofile',
-            name='pattern_expires_on',
+            model_name="historicalprofile",
+            name="pattern_expires_on",
             field=models.DateField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='pattern',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='portal.ProtectionPattern'),
+            model_name="profile",
+            name="pattern",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="portal.ProtectionPattern",
+            ),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='pattern_expires_on',
+            model_name="profile",
+            name="pattern_expires_on",
             field=models.DateField(blank=True, null=True),
         ),
     ]

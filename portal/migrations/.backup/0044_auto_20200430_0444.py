@@ -6,39 +6,53 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0043_auto_20200428_1038'),
+        ("portal", "0043_auto_20200428_1038"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FieldOfStudy',
+            name="FieldOfStudy",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.PositiveIntegerField(primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=100)),
-                ('four_digit_code', models.PositiveSmallIntegerField()),
-                ('four_digit_description', models.CharField(max_length=100)),
-                ('two_digit_code', models.PositiveSmallIntegerField()),
-                ('two_digit_description', models.CharField(max_length=60)),
-                ('definition', models.CharField(blank=True, max_length=200, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.PositiveIntegerField(primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=100)),
+                ("four_digit_code", models.PositiveSmallIntegerField()),
+                ("four_digit_description", models.CharField(max_length=100)),
+                ("two_digit_code", models.PositiveSmallIntegerField()),
+                ("two_digit_description", models.CharField(max_length=60)),
+                ("definition", models.CharField(blank=True, max_length=200, null=True)),
             ],
             options={
-                'db_table': 'field_of_study',
-                'ordering': ['description'],
+                "db_table": "field_of_study",
+                "ordering": ["description"],
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='org',
-            field=models.ForeignKey(help_text='Choose an existing organisation or create a new one', null=True, on_delete=django.db.models.deletion.SET_NULL, to='portal.Organisation', verbose_name='organisation'),
+            model_name="application",
+            name="org",
+            field=models.ForeignKey(
+                help_text="Choose an existing organisation or create a new one",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="portal.Organisation",
+                verbose_name="organisation",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='org',
-            field=models.ForeignKey(blank=True, db_constraint=False, help_text='Choose an existing organisation or create a new one', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Organisation', verbose_name='organisation'),
+            model_name="historicalapplication",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                help_text="Choose an existing organisation or create a new one",
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.Organisation",
+                verbose_name="organisation",
+            ),
         ),
     ]

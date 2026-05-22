@@ -7,56 +7,97 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('portal', '0066_historicalscheme_round_scheme'),
+        ("portal", "0066_historicalscheme_round_scheme"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='round',
-            name='open_at',
+            model_name="round",
+            name="open_at",
         ),
         migrations.RemoveField(
-            model_name='round',
-            name='status',
+            model_name="round",
+            name="status",
         ),
         migrations.AddField(
-            model_name='round',
-            name='open_on',
+            model_name="round",
+            name="open_on",
             field=models.DateField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='org',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='portal.Organisation', verbose_name='organisation'),
+            model_name="application",
+            name="org",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="portal.Organisation",
+                verbose_name="organisation",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='org',
-            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Organisation', verbose_name='organisation'),
+            model_name="historicalapplication",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.Organisation",
+                verbose_name="organisation",
+            ),
         ),
         migrations.CreateModel(
-            name='HistoricalRound',
+            name="HistoricalRound",
             fields=[
-                ('id', models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name='ID')),
-                ('created_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('updated_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('name', models.CharField(max_length=100)),
-                ('open_on', models.DateField(blank=True, null=True)),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('scheme', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Scheme')),
+                (
+                    "id",
+                    models.IntegerField(
+                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("updated_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("name", models.CharField(max_length=100)),
+                ("open_on", models.DateField(blank=True, null=True)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "scheme",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="portal.Scheme",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical round',
-                'db_table': 'round_history',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical round",
+                "db_table": "round_history",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),

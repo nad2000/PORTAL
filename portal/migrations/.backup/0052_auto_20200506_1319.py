@@ -5,25 +5,28 @@ import portal.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0051_auto_20200503_0326'),
+        ("portal", "0051_auto_20200503_0326"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='fieldofstudy',
-            name='code',
-            field=models.PositiveIntegerField(primary_key=True, serialize=False, verbose_name='code'),
+            model_name="fieldofstudy",
+            name="code",
+            field=models.PositiveIntegerField(
+                primary_key=True, serialize=False, verbose_name="code"
+            ),
         ),
         migrations.AlterField(
-            model_name='fieldofstudy',
-            name='description',
-            field=models.CharField(max_length=100, verbose_name='description'),
+            model_name="fieldofstudy",
+            name="description",
+            field=models.CharField(max_length=100, verbose_name="description"),
         ),
         migrations.AlterField(
-            model_name='invitation',
-            name='status',
-            field=portal.models.StateField(choices=[(0, 'dummy')], default='draft', max_length=100, no_check_for_status=True),
+            model_name="invitation",
+            name="status",
+            field=portal.models.StateField(
+                choices=[(0, "dummy")], default="draft", max_length=100, no_check_for_status=True
+            ),
         ),
     ]

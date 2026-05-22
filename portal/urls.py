@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
+
 # from rest_framework.schemas import get_schema_view
 from taggit.models import Tag
 from django.shortcuts import redirect
@@ -892,7 +893,7 @@ urlpatterns = [
     #     views.SubscriptionDelete.as_view(),
     #     name="subscription-delete",
     # ),
-     path("subscriptions", views.SubscriptionList.as_view(), name="subscription-list"),
+    path("subscriptions", views.SubscriptionList.as_view(), name="subscription-list"),
     # path(
     #     "api/",
     #     include(

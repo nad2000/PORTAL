@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0040_protectionpatternperson_allocation_contract_and_more"),
         ("users", "__first__"),

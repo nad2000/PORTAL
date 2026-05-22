@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0052_rename_vm_rationane_application_vm_rationale_and_more"),
     ]

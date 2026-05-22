@@ -10,60 +10,106 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('portal', '0065_auto_20200514_2258'),
+        ("portal", "0065_auto_20200514_2258"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Scheme',
+            name="Scheme",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('name', models.CharField(max_length=100)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("name", models.CharField(max_length=100)),
             ],
             options={
-                'db_table': 'scheme',
+                "db_table": "scheme",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='Round',
+            name="Round",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('name', models.CharField(max_length=100)),
-                ('status', portal.models.StateField(choices=[('draft', 'draft'), ('open', 'open'), ('finished', 'finished')], default='draft', max_length=100, no_check_for_status=True)),
-                ('open_at', model_utils.fields.MonitorField(blank=True, default=None, monitor='status', null=True, when={'open'})),
-                ('scheme', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Scheme')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "status",
+                    portal.models.StateField(
+                        choices=[("draft", "draft"), ("open", "open"), ("finished", "finished")],
+                        default="draft",
+                        max_length=100,
+                        no_check_for_status=True,
+                    ),
+                ),
+                (
+                    "open_at",
+                    model_utils.fields.MonitorField(
+                        blank=True, default=None, monitor="status", null=True, when={"open"}
+                    ),
+                ),
+                (
+                    "scheme",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Scheme"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'round',
+                "db_table": "round",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='HistoricalScheme',
+            name="HistoricalScheme",
             fields=[
-                ('id', models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name='ID')),
-                ('created_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('updated_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('name', models.CharField(max_length=100)),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.IntegerField(
+                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("updated_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("name", models.CharField(max_length=100)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical scheme',
-                'db_table': 'scheme_history',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical scheme",
+                "db_table": "scheme_history",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),

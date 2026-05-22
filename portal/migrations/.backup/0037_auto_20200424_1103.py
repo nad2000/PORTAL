@@ -8,49 +8,75 @@ import portal.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0036_auto_20200423_0949'),
+        ("portal", "0036_auto_20200423_0949"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CareerStage',
+            name="CareerStage",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(max_length=5, primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=40)),
-                ('definition', models.TextField(max_length=1000)),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(max_length=5, primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=40)),
+                ("definition", models.TextField(max_length=1000)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AlterField(
-            model_name='invitation',
-            name='token',
-            field=models.CharField(default=portal.models.get_unique_invitation_token, max_length=8, unique=True),
+            model_name="invitation",
+            name="token",
+            field=models.CharField(
+                default=portal.models.get_unique_invitation_token, max_length=8, unique=True
+            ),
         ),
         migrations.CreateModel(
-            name='ProfileCareerStage',
+            name="ProfileCareerStage",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('year_achieved', models.PositiveSmallIntegerField(validators=[django.core.validators.MinValueValidator(1900), django.core.validators.MaxValueValidator(2100)])),
-                ('career_stage', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.CareerStage')),
-                ('profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Profile')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "year_achieved",
+                    models.PositiveSmallIntegerField(
+                        validators=[
+                            django.core.validators.MinValueValidator(1900),
+                            django.core.validators.MaxValueValidator(2100),
+                        ]
+                    ),
+                ),
+                (
+                    "career_stage",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.CareerStage"
+                    ),
+                ),
+                (
+                    "profile",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Profile"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'profile_career_stage',
+                "db_table": "profile_career_stage",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='career_stages',
-            field=models.ManyToManyField(blank=True, through='portal.ProfileCareerStage', to='portal.CareerStage'),
+            model_name="profile",
+            name="career_stages",
+            field=models.ManyToManyField(
+                blank=True, through="portal.ProfileCareerStage", to="portal.CareerStage"
+            ),
         ),
     ]

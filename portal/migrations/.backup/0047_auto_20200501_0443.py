@@ -4,30 +4,29 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0046_auto_20200501_0400'),
+        ("portal", "0046_auto_20200501_0400"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='affiliation',
-            old_name='form_date',
-            new_name='end_date',
+            model_name="affiliation",
+            old_name="form_date",
+            new_name="end_date",
         ),
         migrations.RenameField(
-            model_name='affiliation',
-            old_name='to_date',
-            new_name='start_date',
+            model_name="affiliation",
+            old_name="to_date",
+            new_name="start_date",
         ),
         migrations.RenameField(
-            model_name='historicalaffiliation',
-            old_name='form_date',
-            new_name='end_date',
+            model_name="historicalaffiliation",
+            old_name="form_date",
+            new_name="end_date",
         ),
         migrations.RenameField(
-            model_name='historicalaffiliation',
-            old_name='to_date',
-            new_name='start_date',
+            model_name="historicalaffiliation",
+            old_name="to_date",
+            new_name="start_date",
         ),
     ]

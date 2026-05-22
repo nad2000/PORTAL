@@ -8,56 +8,77 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('portal', '0024_auto_20200417_1123'),
+        ("portal", "0024_auto_20200417_1123"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Language',
+            name="Language",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(max_length=3, primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=60)),
-                ('definition', models.CharField(blank=True, max_length=120, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(max_length=3, primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=60)),
+                ("definition", models.CharField(blank=True, max_length=120, null=True)),
             ],
             options={
-                'db_table': 'language',
-                'ordering': ['code'],
+                "db_table": "language",
+                "ordering": ["code"],
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='sex',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(0, 'Undisclosed'), (1, 'Male'), (2, 'Female'), (3, 'Gender diverse')], null=True),
+            model_name="historicalprofile",
+            name="sex",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[(0, "Undisclosed"), (1, "Male"), (2, "Female"), (3, "Gender diverse")],
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='sex',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(0, 'Undisclosed'), (1, 'Male'), (2, 'Female'), (3, 'Gender diverse')], null=True),
+            model_name="profile",
+            name="sex",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[(0, "Undisclosed"), (1, "Male"), (2, "Female"), (3, "Gender diverse")],
+                null=True,
+            ),
         ),
         migrations.CreateModel(
-            name='HistoricalLanguage',
+            name="HistoricalLanguage",
             fields=[
-                ('created_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('updated_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('code', models.CharField(db_index=True, max_length=3)),
-                ('description', models.CharField(max_length=60)),
-                ('definition', models.CharField(blank=True, max_length=120, null=True)),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
+                ("created_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("updated_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("code", models.CharField(db_index=True, max_length=3)),
+                ("description", models.CharField(max_length=60)),
+                ("definition", models.CharField(blank=True, max_length=120, null=True)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical language',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical language",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),

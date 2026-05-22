@@ -5,55 +5,64 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0081_auto_20200530_0245'),
+        ("portal", "0081_auto_20200530_0245"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='historicalround',
-            old_name='name',
-            new_name='title',
+            model_name="historicalround",
+            old_name="name",
+            new_name="title",
         ),
         migrations.RenameField(
-            model_name='historicalscheme',
-            old_name='name',
-            new_name='title',
+            model_name="historicalscheme",
+            old_name="name",
+            new_name="title",
         ),
         migrations.RenameField(
-            model_name='round',
-            old_name='name',
-            new_name='title',
+            model_name="round",
+            old_name="name",
+            new_name="title",
         ),
         migrations.RenameField(
-            model_name='scheme',
-            old_name='name',
-            new_name='title',
+            model_name="scheme",
+            old_name="name",
+            new_name="title",
         ),
         migrations.AddField(
-            model_name='scheme',
-            name='title_en_nz',
+            model_name="scheme",
+            name="title_en_nz",
             field=models.CharField(max_length=100, null=True),
         ),
         migrations.AddField(
-            model_name='scheme',
-            name='title_mi',
+            model_name="scheme",
+            name="title_mi",
             field=models.CharField(max_length=100, null=True),
         ),
         migrations.AlterField(
-            model_name='historicalscheme',
-            name='description',
-            field=models.TextField(blank=True, max_length=1000, null=True, verbose_name='short description'),
+            model_name="historicalscheme",
+            name="description",
+            field=models.TextField(
+                blank=True, max_length=1000, null=True, verbose_name="short description"
+            ),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='current_round',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='portal.Round'),
+            model_name="scheme",
+            name="current_round",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="+",
+                to="portal.Round",
+            ),
         ),
         migrations.AlterField(
-            model_name='scheme',
-            name='description',
-            field=models.TextField(blank=True, max_length=1000, null=True, verbose_name='short description'),
+            model_name="scheme",
+            name="description",
+            field=models.TextField(
+                blank=True, max_length=1000, null=True, verbose_name="short description"
+            ),
         ),
     ]

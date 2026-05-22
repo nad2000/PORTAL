@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0021_historicalround_tac_historicalround_tac_en_and_more"),
     ]

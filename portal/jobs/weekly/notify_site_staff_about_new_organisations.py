@@ -8,4 +8,3 @@ class Job(BaseJob):
 
     def execute(self):
         models.notify_site_staff_about_new_organisations()
-

@@ -7,60 +7,96 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0038_auto_20200424_1106'),
+        ("portal", "0038_auto_20200424_1106"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PersonIdentifierType',
+            name="PersonIdentifierType",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(max_length=2, primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=40)),
-                ('definition', models.TextField(max_length=200)),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(max_length=2, primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=40)),
+                ("definition", models.TextField(max_length=200)),
             ],
             options={
-                'db_table': 'person_identifier_type',
-                'ordering': ['code'],
+                "db_table": "person_identifier_type",
+                "ordering": ["code"],
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AlterField(
-            model_name='careerstage',
-            name='code',
+            model_name="careerstage",
+            name="code",
             field=models.CharField(max_length=2, primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='year_of_birth',
-            field=models.PositiveSmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1950), django.core.validators.MaxValueValidator(2100)], verbose_name='year of birth'),
+            model_name="historicalprofile",
+            name="year_of_birth",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1950),
+                    django.core.validators.MaxValueValidator(2100),
+                ],
+                verbose_name="year of birth",
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='year_of_birth',
-            field=models.PositiveSmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1950), django.core.validators.MaxValueValidator(2100)], verbose_name='year of birth'),
+            model_name="profile",
+            name="year_of_birth",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1950),
+                    django.core.validators.MaxValueValidator(2100),
+                ],
+                verbose_name="year of birth",
+            ),
         ),
         migrations.CreateModel(
-            name='ProfilePersonIdentifier',
+            name="ProfilePersonIdentifier",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('value', models.CharField(max_length=20)),
-                ('code', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.PersonIdentifierType', verbose_name='type')),
-                ('profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Profile')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("value", models.CharField(max_length=20)),
+                (
+                    "code",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="portal.PersonIdentifierType",
+                        verbose_name="type",
+                    ),
+                ),
+                (
+                    "profile",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Profile"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'profile_person_identifier',
+                "db_table": "profile_person_identifier",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='external_ids',
-            field=models.ManyToManyField(blank=True, through='portal.ProfilePersonIdentifier', to='portal.PersonIdentifierType'),
+            model_name="profile",
+            name="external_ids",
+            field=models.ManyToManyField(
+                blank=True,
+                through="portal.ProfilePersonIdentifier",
+                to="portal.PersonIdentifierType",
+            ),
         ),
     ]

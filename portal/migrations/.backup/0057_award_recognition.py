@@ -6,39 +6,67 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0056_academicrecord'),
+        ("portal", "0056_academicrecord"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Award',
+            name="Award",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('name', models.CharField(max_length=100, verbose_name='prestigious prize or medal')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "name",
+                    models.CharField(max_length=100, verbose_name="prestigious prize or medal"),
+                ),
             ],
             options={
-                'ordering': ['-id'],
-                'abstract': False,
+                "ordering": ["-id"],
+                "abstract": False,
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='Recognition',
+            name="Recognition",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('award', models.CharField(max_length=100, verbose_name='prestigious prize or medal')),
-                ('amount', models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True)),
-                ('recognized_in', models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='year of recognition')),
-                ('awarded_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Organisation')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "award",
+                    models.CharField(max_length=100, verbose_name="prestigious prize or medal"),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True),
+                ),
+                (
+                    "recognized_in",
+                    models.PositiveSmallIntegerField(
+                        blank=True, null=True, verbose_name="year of recognition"
+                    ),
+                ),
+                (
+                    "awarded_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Organisation"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'recognition',
+                "db_table": "recognition",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),

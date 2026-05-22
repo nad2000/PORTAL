@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0014_auto_20200416_0712'),
+        ("portal", "0014_auto_20200416_0712"),
     ]
 
     operations = [
         migrations.AlterModelTable(
-            name='subscription',
-            table='subscription',
+            name="subscription",
+            table="subscription",
         ),
     ]

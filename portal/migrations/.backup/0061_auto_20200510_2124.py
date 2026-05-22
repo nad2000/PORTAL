@@ -4,12 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0060_auto_20200509_1339"),
     ]
 
     operations = [
-        migrations.RemoveField(model_name="historicalprofile", name="year_of_birth",),
-        migrations.RemoveField(model_name="profile", name="year_of_birth",),
+        migrations.RemoveField(
+            model_name="historicalprofile",
+            name="year_of_birth",
+        ),
+        migrations.RemoveField(
+            model_name="profile",
+            name="year_of_birth",
+        ),
     ]

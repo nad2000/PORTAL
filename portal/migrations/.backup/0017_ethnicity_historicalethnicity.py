@@ -8,59 +8,82 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('portal', '0016_auto_20200416_0809'),
+        ("portal", "0016_auto_20200416_0809"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Ethnicity',
+            name="Ethnicity",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(max_length=5)),
-                ('description', models.CharField(max_length=24)),
-                ('level_three_code', models.CharField(max_length=3)),
-                ('level_three_description', models.CharField(max_length=24)),
-                ('level_two_code', models.CharField(max_length=2)),
-                ('level_two_description', models.CharField(max_length=24)),
-                ('level_one_code', models.CharField(max_length=20)),
-                ('level_one_description', models.CharField(max_length=24)),
-                ('definition', models.CharField(blank=True, max_length=120, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(max_length=5)),
+                ("description", models.CharField(max_length=24)),
+                ("level_three_code", models.CharField(max_length=3)),
+                ("level_three_description", models.CharField(max_length=24)),
+                ("level_two_code", models.CharField(max_length=2)),
+                ("level_two_description", models.CharField(max_length=24)),
+                ("level_one_code", models.CharField(max_length=20)),
+                ("level_one_description", models.CharField(max_length=24)),
+                ("definition", models.CharField(blank=True, max_length=120, null=True)),
             ],
             options={
-                'db_table': 'ethnicity',
+                "db_table": "ethnicity",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='HistoricalEthnicity',
+            name="HistoricalEthnicity",
             fields=[
-                ('id', models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name='ID')),
-                ('created_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('updated_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('code', models.CharField(max_length=5)),
-                ('description', models.CharField(max_length=24)),
-                ('level_three_code', models.CharField(max_length=3)),
-                ('level_three_description', models.CharField(max_length=24)),
-                ('level_two_code', models.CharField(max_length=2)),
-                ('level_two_description', models.CharField(max_length=24)),
-                ('level_one_code', models.CharField(max_length=20)),
-                ('level_one_description', models.CharField(max_length=24)),
-                ('definition', models.CharField(blank=True, max_length=120, null=True)),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.IntegerField(
+                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("updated_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("code", models.CharField(max_length=5)),
+                ("description", models.CharField(max_length=24)),
+                ("level_three_code", models.CharField(max_length=3)),
+                ("level_three_description", models.CharField(max_length=24)),
+                ("level_two_code", models.CharField(max_length=2)),
+                ("level_two_description", models.CharField(max_length=24)),
+                ("level_one_code", models.CharField(max_length=20)),
+                ("level_one_description", models.CharField(max_length=24)),
+                ("definition", models.CharField(blank=True, max_length=120, null=True)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical ethnicity',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical ethnicity",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),

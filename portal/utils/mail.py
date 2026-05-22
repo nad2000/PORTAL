@@ -268,7 +268,7 @@ def send_mail(
 
     if domain:
         if ":" in domain:
-            domain, port  = domain.split(":")
+            domain, port = domain.split(":")
         else:
             port = None
 
@@ -334,7 +334,7 @@ def send_mail(
         url = request.build_absolute_uri(url)
     else:
         url = f"{urljoin(root, url)}"
-    if port or  ":" in domain or "." not in domain:
+    if port or ":" in domain or "." not in domain:
         headers = {
             "Message-ID": f"<{token}@{site.domain}>",
             "List-Unsubscribe": f"<{url}>",

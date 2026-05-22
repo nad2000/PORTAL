@@ -5,15 +5,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0086_auto_20200601_0126'),
+        ("portal", "0086_auto_20200601_0126"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='academicrecord',
-            name='start_year',
-            field=models.PositiveIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1960), django.core.validators.MaxValueValidator(2099)]),
+            model_name="academicrecord",
+            name="start_year",
+            field=models.PositiveIntegerField(
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1960),
+                    django.core.validators.MaxValueValidator(2099),
+                ],
+            ),
         ),
     ]

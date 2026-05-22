@@ -31,7 +31,7 @@ table, th, td {
             print(
                 f"""<tr>
   <td>{escape(e.msgid)}</td>
-  <td>{e.msgstr and escape(e.msgstr) or '&nbsp;'}</td>
+  <td>{e.msgstr and escape(e.msgstr) or "&nbsp;"}</td>
 </tr>""",
                 file=of,
             )

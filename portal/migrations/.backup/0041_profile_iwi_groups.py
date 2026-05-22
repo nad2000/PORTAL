@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0040_iwigroup'),
+        ("portal", "0040_iwigroup"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='profile',
-            name='iwi_groups',
-            field=models.ManyToManyField(blank=True, db_table='profile_iwi_group', to='portal.IwiGroup'),
+            model_name="profile",
+            name="iwi_groups",
+            field=models.ManyToManyField(
+                blank=True, db_table="profile_iwi_group", to="portal.IwiGroup"
+            ),
         ),
     ]

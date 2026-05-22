@@ -10,36 +10,77 @@ import private_storage.storage.files
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('portal', '0048_auto_20200501_0908'),
+        ("portal", "0048_auto_20200501_0908"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='year_of_birth',
-            field=models.PositiveSmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1920), django.core.validators.MaxValueValidator(2030)], verbose_name='year of birth'),
+            model_name="historicalprofile",
+            name="year_of_birth",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1920),
+                    django.core.validators.MaxValueValidator(2030),
+                ],
+                verbose_name="year of birth",
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='year_of_birth',
-            field=models.PositiveSmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1920), django.core.validators.MaxValueValidator(2030)], verbose_name='year of birth'),
+            model_name="profile",
+            name="year_of_birth",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1920),
+                    django.core.validators.MaxValueValidator(2030),
+                ],
+                verbose_name="year of birth",
+            ),
         ),
         migrations.CreateModel(
-            name='CurriculumVitae',
+            name="CurriculumVitae",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('title', models.CharField(blank=None, default=None, max_length=200, verbose_name='title')),
-                ('file', private_storage.fields.PrivateFileField(storage=private_storage.storage.files.PrivateFileSystemStorage(), upload_to='')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Profile')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "title",
+                    models.CharField(
+                        blank=None, default=None, max_length=200, verbose_name="title"
+                    ),
+                ),
+                (
+                    "file",
+                    private_storage.fields.PrivateFileField(
+                        storage=private_storage.storage.files.PrivateFileSystemStorage(),
+                        upload_to="",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    ),
+                ),
+                (
+                    "profile",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Profile"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'curriculum_vitae',
+                "db_table": "curriculum_vitae",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),

@@ -8,7 +8,6 @@ import portal.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("sites", "0004_auto_20210331_1418"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

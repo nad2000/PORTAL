@@ -381,7 +381,6 @@ def get_request(*args, **kwargs):
 
 
 class CommentMixin:
-
     def import_email(
         self, file, filename=None, notify_author=True, request=None, by=None, reply_to=None
     ):
@@ -639,7 +638,7 @@ class PdfFileMixin:
         tp = {
             "TITLES": (
                 [
-                    f"{self.required_document}" f"{self.filename}",
+                    f"{self.required_document}{self.filename}",
                 ]
                 if hasattr(self, "required_document")
                 else [
@@ -835,9 +834,7 @@ class PdfFileMixin:
             return
 
         try:
-
             with tempfile.TemporaryDirectory() as output_dir:
-
                 output_path = self.get_converted_to_pdf(
                     getattr(file, "path", file.name), output_dir=output_dir
                 )
@@ -847,7 +844,6 @@ class PdfFileMixin:
                 )
 
                 with open(output_path, "rb") as of:
-
                     cf = ConvertedFile()
                     cf.file.save(output_filename, File(of, name=output_filename))
                     of.seek(0)
@@ -1054,7 +1050,6 @@ class Country(Model):
 
 
 class Address(Model):
-
     address = TextField(_("address"))
     postcode = CharField(_("postcode"), max_length=12, null=True, blank=True)
     region = CharField(
@@ -1865,7 +1860,7 @@ class Affiliation(Model):
             <tr>
               <td>{self.get_type_display()}</td>
               <td>{self.org}</td>
-              <td>{self.role or 'N/A'}</td>
+              <td>{self.role or "N/A"}</td>
             </tr>
         """
 
@@ -1887,7 +1882,6 @@ default_person_code = partial(
 
 
 class PersonAddress(Model):
-
     type = CharField(
         max_length=10,
         blank=True,
@@ -1902,7 +1896,6 @@ class PersonAddress(Model):
 
 
 class PersonEmail(Model):
-
     # type = CharField(
     #     max_length=10,
     #     blank=True,
@@ -2199,12 +2192,10 @@ class Person(PersonMixin, Model):
 
         try:
             with transaction.atomic():
-
                 if self.code and self.code.endswith("_"):
                     self.code = self.code[:-1]
 
                 for p in queryset.filter(~Q(pk=self.pk)):
-
                     for cv in p.cvs.all():
                         cv.person = self
                         if cv.owner and self.user:
@@ -2216,8 +2207,7 @@ class Person(PersonMixin, Model):
 
                     for f in [f.name for f in self._meta.fields]:
                         if (
-                            f
-                            in ["created_at", "updated_at", "id", "pk"]
+                            f in ["created_at", "updated_at", "id", "pk"]
                             # or getattr(self, f, None) is not None and f != "code"
                         ):
                             continue
@@ -2335,12 +2325,12 @@ class Person(PersonMixin, Model):
             if deleted:
                 messages.success(
                     request,
-                    f'{len(deleted)} profile(s) merged into {self} and deleted: {", ".join(deleted)}',
+                    f"{len(deleted)} profile(s) merged into {self} and deleted: {', '.join(deleted)}",
                 )
             if merged:
                 messages.success(
                     request,
-                    f'{len(deleted)} profile(s) merged into {self}: {", ".join(deleted)}',
+                    f"{len(deleted)} profile(s) merged into {self}: {', '.join(deleted)}",
                 )
             if errors:
                 for e in errors:
@@ -2381,7 +2371,6 @@ class Person(PersonMixin, Model):
 
 
 class PersonCode(Model):
-
     person = ForeignKey(Person, on_delete=CASCADE, related_name="previous_codes")
     code = CharField(max_length=8)
 
@@ -2773,7 +2762,6 @@ def photo_identity_help_text():
 
 
 class Keyword(HelperMixin, TagBase):
-
     def natural_key(self):
         return self.name
 
@@ -2784,7 +2772,6 @@ class Keyword(HelperMixin, TagBase):
 
 
 class ResearchPriority(HelperMixin, TagBase):
-
     def natural_key(self):
         return self.name
 
@@ -2795,7 +2782,6 @@ class ResearchPriority(HelperMixin, TagBase):
 
 
 class ResearchPriorityItem(GenericTaggedItemBase):
-
     tag = ForeignKey(
         ResearchPriority,
         on_delete=CASCADE,
@@ -2834,7 +2820,6 @@ class ApplicationKeyword(Model):
 
 
 class VMTOAModel(Model):
-
     vm_ecs = PositiveSmallIntegerField(
         "Indigenous Innovation",
         help_text=_(
@@ -2927,7 +2912,6 @@ def get_unique_invitation_token():
 
 
 class CommentModel(Model):
-
     @property
     def object_pk(self):
         return self.object_id
@@ -3650,7 +3634,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             )
 
         if round.required_submitted_testimonials:
-
             if not skip_testimonials:
                 if self.referees.filter(
                     Q(testified_at__isnull=True)
@@ -4089,11 +4072,10 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         if ResearchOffice.where(user=by, org=self.org).exists():
             if not resolution:
                 resolution = (
-                    "RSTA has requested reassessment and "
-                    f'resubmission of the application "{self}"'
+                    f'RSTA has requested reassessment and resubmission of the application "{self}"'
                 )
             subject = (
-                "RSTA has requested reassessment and " f'resubmission of the application "{self}"'
+                f'RSTA has requested reassessment and resubmission of the application "{self}"'
             )
         elif previous_state == "cancelled":
             if not resolution:
@@ -4617,7 +4599,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                         )
 
         if site_id not in [2, 4, 5] and not is_referee and not self.is_applicant(user):
-
             if (
                 user.is_admin
                 or self.is_applicant(user)
@@ -4799,7 +4780,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
                 summary_url = urljoin(f"https://{domain}", url)
             html = HTML(summary_url)
         else:
-
             template = get_template("application-export.html")
             context = {
                 "application": self,
@@ -4845,7 +4825,6 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
         # )
         current_chapter = None
         for title, a, *rest in attachments:
-
             # merger.append(PdfReader(a, strict=False), outline_item=title, import_outline=True)
             if self.site_id != 4 and rest and (title_page := rest[0]):
                 template = get_template("application-export-attachment-title-page.html")
@@ -5945,7 +5924,7 @@ and designate a new referee at your earliest convenience.
 """
             if ts := r.testimonial_submission_closes_at:
                 html_message = f"""{html_message}
-<p>Please note that the deadline for submitting referee reports is {ts.strftime('%B %d')}"""
+<p>Please note that the deadline for submitting referee reports is {ts.strftime("%B %d")}"""
                 if ts.hour != 0:
                     html_message = f"{html_message} at {ts.strftime('%I:%m %p')}"
                 html_message = f"{html_message}.</p>"
@@ -6049,7 +6028,6 @@ and designate a new referee at your earliest convenience.
         referee = self
 
         with connection.cursor() as cr:
-
             group_sql = (
                 "SELECT g.gid, gl.group_name, gl.description "
                 "FROM lime.groups AS g "
@@ -6111,7 +6089,7 @@ and designate a new referee at your earliest convenience.
             # ...
             response_sql = (
                 "SELECT id, token, "
-                f"""{', '.join(f'"{c}"' for c in columns)}"""
+                f"""{", ".join(f'"{c}"' for c in columns)}"""
                 f" FROM lime.survey_{survey_id} "
                 "WHERE token=%s"
             )
@@ -6857,7 +6835,7 @@ class Invitation(InvitationMixin, PersonMixin, Model):
             )
             if ts:
                 html_body = f"""{html_body}
-<p>Please note that the deadline for submitting referee reports is {ts.strftime('%B %d')}"""
+<p>Please note that the deadline for submitting referee reports is {ts.strftime("%B %d")}"""
                 if ts.hour != 0:
                     html_body = f"{html_body} at {ts.strftime('%I:%m %p')}"
                 html_body = f"{html_body}.</p>"
@@ -7586,7 +7564,7 @@ def notify_site_staff_about_new_organisations():
                     href="https://{site.domain}{reverse("admin:portal_organisation_change", args=[o.pk])}"
                     target="_blank"
                 >{o}</a>
-                (created at {o.created_at.strftime('%Y-%m-%d %H:%M')},
+                (created at {o.created_at.strftime("%Y-%m-%d %H:%M")},
                 by {o.history.filter(history_type="+").first().history_user})</li>"""
                 for o in g
             )
@@ -7733,8 +7711,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
     has_three_parties = BooleanField(_("has three party contracts"), default=False)
     is_partial_profile_allowed = BooleanField(
         help_text=_(
-            "Partial profile allowed, applicant is not required "
-            "to provide a complete user profile"
+            "Partial profile allowed, applicant is not required to provide a complete user profile"
         ),
         default=False,
     )
@@ -8268,7 +8245,6 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
         scheme = self.scheme or last_round.scheme
         if last_round:
-
             for f in [f.name for f in self._meta.fields]:
                 if (
                     f in ["title", "opens_on", "closes_at", "id", "title_en", "title_mi"]
@@ -8917,7 +8893,6 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
 
             if updated_referees:
                 with transaction.atomic():
-
                     if not self.testimonials_required:
                         testimonials = Testimonial.where(
                             ~Q(state="submitted"), referee__in=[r.pk for r in updated_referees]
@@ -9074,7 +9049,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
             )
 
         if (
-            sync in [False, 0, "0", "no" "false", "False", "NO", "FALSE"]
+            sync in [False, 0, "0", "nofalse", "False", "NO", "FALSE"]
             or sync is None
             and sum(need_to_regenerate(a) and 1 or 0 for a in applications) > 3
         ):
@@ -10105,7 +10080,8 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
                 affiliations__person__user=nominator, affiliations__end_date__isnull=True
             )
             .distinct()
-            .order_by("affiliations__start_date") or nominator.person.org
+            .order_by("affiliations__start_date")
+            or nominator.person.org
         )
         if q.count():
             return q
@@ -10128,11 +10104,13 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
         field=state,
         source=["*"],
         target="withdrawn",
-        permission=lambda instance, user: user.is_admin
-        or instance.nominator == user
-        or instance.site_id not in [4, 5]
-        or instance.org
-        and instance.org.is_ro(user),
+        permission=lambda instance, user: (
+            user.is_admin
+            or instance.nominator == user
+            or instance.site_id not in [4, 5]
+            or instance.org
+            and instance.org.is_ro(user)
+        ),
     )
     def withdraw(self, *args, **kwargs):
         pass
@@ -10169,11 +10147,13 @@ class Nomination(NominationMixin, PersonMixin, PdfFileMixin, Model):
             "bounced",
         ],
         target="submitted",
-        permission=lambda instance, user: user.is_admin
-        or instance.nominator == user
-        or instance.site_id not in [4, 5]
-        or instance.org
-        and instance.org.is_ro(user),
+        permission=lambda instance, user: (
+            user.is_admin
+            or instance.nominator == user
+            or instance.site_id not in [4, 5]
+            or instance.org
+            and instance.org.is_ro(user)
+        ),
     )
     def submit(self, *args, **kwargs):
         return self.send_invitation(*args, **kwargs)
@@ -10733,7 +10713,6 @@ def clean_private_fils(dry_run=False, clean_archived_object_private_files=False,
                 total += size
 
     if clean_archived_object_private_files and has_archiving and files_to_delete:
-
         for file_chunk in chunks(files_to_delete, chunk_size or 20):
             try:
                 async_task(
@@ -10777,7 +10756,6 @@ def clean_archived_object_private_files(dry_run=False):
 
     total = 0
     for model, file_fields in model_fields:
-
         if model not in [
             Application,
             ApplicationDocument,
@@ -10818,7 +10796,6 @@ def clean_archived_object_private_files(dry_run=False):
             continue
 
         for obj in archived_qs:
-
             for field in file_fields:
                 file = getattr(obj, field.name)
                 if not file:
@@ -11070,7 +11047,6 @@ class ContractSeo(Model):
 
 
 class ContractComment(CommentModel):
-
     @property
     def object(self):
         return self.contract
@@ -11117,7 +11093,6 @@ class ContractComment(CommentModel):
 
 
 class ContractCommentRecipient(Model):
-
     comment = ForeignKey(ContractComment, on_delete=CASCADE, related_name="recipients")
     user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
     email = EmailField(max_length=200)
@@ -12735,9 +12710,10 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             "FULL_NAME_WITH_TITLE": pi.full_name_with_title,
         }
         schedule_output_path = self.get_part_odt(request=request, part="schedule")
-        with open(Path.home() / "Documents" / "RDF contract template.odt", "rb") as infile, open(
-            Path.home() / "Documents" / "output.odt", "wb"
-        ) as outfile:
+        with (
+            open(Path.home() / "Documents" / "RDF contract template.odt", "rb") as infile,
+            open(Path.home() / "Documents" / "output.odt", "wb") as outfile,
+        ):
             o = OOoPy(infile=infile, outfile=outfile)
             t = Transformer(
                 o.mimetype,
@@ -12908,7 +12884,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             return c
 
         with transaction.atomic():
-
             if self.org == source.org:
                 reports = [relink(c) for c in source.reports.all()]
                 comments = [relink(c) for c in source.comments.all()]
@@ -12975,7 +12950,6 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
             number = self.__class__.new_number(self.application, org=change_request.new_host)
 
         with transaction.atomic():
-
             nc = super().clone(
                 exclude_related_models=[ContractComment, Contract, Report, ChangeRequest],
                 is_variation=is_variation,
@@ -13028,11 +13002,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         source=["draft", "submitted", "released"],
         target="archived",
         custom=dict(verbose="Decline the change request", button_name="Decline"),
-        permission=lambda instance, user: user.is_admin
-        and (
-            ChangeRequest.where(
-                derivative=instance, state__in=["acknowledged", "accepted"]
-            ).exists()
+        permission=lambda instance, user: (
+            user.is_admin
+            and (
+                ChangeRequest.where(
+                    derivative=instance, state__in=["acknowledged", "accepted"]
+                ).exists()
+            )
         ),
     )
     def decline(self, request=None, by=None, description=None, *args, **kwargs):
@@ -14198,7 +14174,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             thread_topic=self.thread_topic,
         )
         if request:
-            f"Report {self} Submitted",
+            (f"Report {self} Submitted",)
             messages.success(
                 request,
                 (
@@ -14218,9 +14194,9 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             verbose="Request the PI to resubmit the report",
             button_name=mark_safe("Request <b>Resubmission</b>"),
         ),
-        permission=lambda instance, user: user.is_admin
-        or instance.state in ["submitted", "reported"]
-        and instance.is_ro(user),
+        permission=lambda instance, user: (
+            user.is_admin or instance.state in ["submitted", "reported"] and instance.is_ro(user)
+        ),
     )
     def request_resubmission(self, request=None, by=None, description=None, *args, **kwargs):
         if not by and request:
@@ -14382,7 +14358,6 @@ simple_history.register(
 
 
 class Assessment(Model):
-
     report = ForeignKey(
         Report,
         on_delete=CASCADE,
@@ -14580,7 +14555,6 @@ class ReportedFundingMixin:
 
 
 class ReportedFunding(ReportedFundingMixin, Model):
-
     orcid = CharField(max_length=20, blank=True, null=True, editable=False)
     put_code = PositiveIntegerField(_("put-code"), null=True, blank=True, editable=False)
     report = ForeignKey(
@@ -14824,7 +14798,6 @@ REPORT_COMMENT_CATEGORIES = Choices(("R", _("Risk of variation")), ("O", _("Othe
 
 
 class ReportComment(CommentModel):
-
     @property
     def object(self):
         return self.report
@@ -14973,7 +14946,6 @@ class ReportedActivity(Model):
 
 
 class ReportedPublicity(ReportedActivity):
-
     report = ForeignKey(Report, on_delete=CASCADE, related_name="publicities")
 
     class Meta:
@@ -14981,7 +14953,6 @@ class ReportedPublicity(ReportedActivity):
 
 
 class ReportedCollaboration(ReportedActivity):
-
     report = ForeignKey(Report, on_delete=CASCADE, related_name="collaborations")
 
     full_name = CharField(_("collaborator"), max_length=400)
@@ -15008,7 +14979,6 @@ class ReportedCollaboration(ReportedActivity):
 
 
 class ReportedVisit(ReportedActivity):
-
     report = ForeignKey(Report, on_delete=CASCADE, related_name="visits")
 
     full_name = CharField(_("host"), max_length=400)
@@ -15035,7 +15005,6 @@ class ReportedVisit(ReportedActivity):
 
 
 class ReportedHostedVisit(ReportedActivity):
-
     report = ForeignKey(Report, on_delete=CASCADE, related_name="hosted_visits")
 
     org = ForeignKey(
@@ -15071,7 +15040,6 @@ class ReportedHostedVisit(ReportedActivity):
 
 
 class ReportedAward(ReportedActivity):
-
     report = ForeignKey(Report, on_delete=CASCADE, related_name="awards")
 
     class Meta:
@@ -15079,7 +15047,6 @@ class ReportedAward(ReportedActivity):
 
 
 class ChangeType(Model):
-
     code = FixedCharField(max_length=2, primary_key=True)
     description = CharField(max_length=100)
     definition = TextField(max_length=200, null=True, blank=True)
@@ -15093,7 +15060,6 @@ class ChangeType(Model):
 
 
 class ChangeCategory(Model):
-
     type = ForeignKey(ChangeType, on_delete=CASCADE, db_column="type")
     code = CharField(max_length=2, primary_key=True)
     description = CharField(max_length=100)
@@ -15133,7 +15099,6 @@ class ChangeRequestMixin:
 
 
 class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
-
     tags = TaggableManager(blank=True)
     number = CharField(
         _("number"), max_length=24, null=True, blank=True, unique=True, editable=False
@@ -15354,7 +15319,6 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
             "submit",
             "withdraw",
         ]:
-
             if is_ro:
                 fund = self.contract.fund
                 recipients = (
@@ -15649,7 +15613,6 @@ class ChangeRequest(PdfFileMixin, CommentMixin, ChangeRequestMixin, Model):
 
 
 class ChangeRequestComment(CommentModel):
-
     @property
     def object(self):
         return self.change_request
@@ -15693,7 +15656,6 @@ class ChangeRequestComment(CommentModel):
 
 
 class ChangeRequestCommentRecipient(Model):
-
     comment = ForeignKey(ChangeRequestComment, on_delete=CASCADE, related_name="recipients")
     user = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name="+")
     email = EmailField(max_length=200)

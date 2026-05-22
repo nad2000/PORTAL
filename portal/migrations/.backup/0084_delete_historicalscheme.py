@@ -4,13 +4,12 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0083_auto_20200530_0503'),
+        ("portal", "0083_auto_20200530_0503"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='HistoricalScheme',
+            name="HistoricalScheme",
         ),
     ]

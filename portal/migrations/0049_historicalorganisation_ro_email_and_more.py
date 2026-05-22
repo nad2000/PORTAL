@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0048_alter_title_name_alter_title_name_en_and_more"),
     ]

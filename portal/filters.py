@@ -179,7 +179,6 @@ def filter_all_rounds(request=None, *args, **kwargs):
 
 
 class FilterSet(django_filters.FilterSet):
-
     def unaccent(self, **kwargs):
         if settings.ENV == "prod":
             return Q(**{k.replace("name", "name__unaccent"): v for (k, v) in kwargs.items()})
@@ -647,7 +646,6 @@ class ReportFilterSet(FilterSet):
 
 
 class ContractFilterSet(FilterSet):
-
     contract_filter = django_filters.CharFilter(
         method="set_filter", label=gettext_lazy("Contract Filter")
     )
@@ -704,7 +702,6 @@ class ContractFilterSet(FilterSet):
 
 
 class ChangeRequestFilterSet(FilterSet):
-
     object_filter = django_filters.CharFilter(
         method="set_filter", label=gettext_lazy("Request Filter")
     )

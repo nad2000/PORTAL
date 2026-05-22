@@ -6,7 +6,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0095_auto_20200606_0055"),
     ]
@@ -30,14 +29,25 @@ class Migration(migrations.Migration):
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AlterModelOptions(
-            name="personidentifiertype", options={"ordering": ["description"]},
+            name="personidentifiertype",
+            options={"ordering": ["description"]},
         ),
-        migrations.RemoveField(model_name="historicalprofile", name="protection_pattern",),
         migrations.RemoveField(
-            model_name="historicalprofile", name="protection_pattern_expires_on",
+            model_name="historicalprofile",
+            name="protection_pattern",
         ),
-        migrations.RemoveField(model_name="profile", name="protection_pattern",),
-        migrations.RemoveField(model_name="profile", name="protection_pattern_expires_on",),
+        migrations.RemoveField(
+            model_name="historicalprofile",
+            name="protection_pattern_expires_on",
+        ),
+        migrations.RemoveField(
+            model_name="profile",
+            name="protection_pattern",
+        ),
+        migrations.RemoveField(
+            model_name="profile",
+            name="protection_pattern_expires_on",
+        ),
         migrations.AddField(
             model_name="historicalprofile",
             name="has_protection_patterns",
@@ -47,7 +57,10 @@ class Migration(migrations.Migration):
             model_name="personidentifiertype",
             name="id",
             field=models.AutoField(
-                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                auto_created=True,
+                primary_key=True,
+                serialize=False,
+                verbose_name="ID",
                 # auto_created=True, default=-1, primary_key=True, serialize=False, verbose_name="ID"
             ),
             preserve_default=False,

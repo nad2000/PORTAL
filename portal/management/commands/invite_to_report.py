@@ -4,6 +4,7 @@ from portal import models
 from django.conf import settings
 from loguru import logger
 
+
 class Command(BaseCommand):
     help = "Sent reporting reminders and initiate new reports"
 

@@ -3,7 +3,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0026_remove_historicalmember_has_authorized_and_more"),
     ]

@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0062_auto_20200511_1537'),
+        ("portal", "0062_auto_20200511_1537"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='invitation',
-            options={'permissions': (('can_invite', 'Can invite a user to join the portal or grant a role'),)},
+            name="invitation",
+            options={
+                "permissions": (
+                    ("can_invite", "Can invite a user to join the portal or grant a role"),
+                )
+            },
         ),
     ]

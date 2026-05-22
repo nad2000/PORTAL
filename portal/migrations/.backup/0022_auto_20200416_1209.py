@@ -4,14 +4,15 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0021_auto_20200416_1147"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="ethnicity", name="description", field=models.CharField(max_length=40),
+            model_name="ethnicity",
+            name="description",
+            field=models.CharField(max_length=40),
         ),
         migrations.AlterField(
             model_name="ethnicity",

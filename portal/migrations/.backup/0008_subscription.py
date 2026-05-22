@@ -5,23 +5,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0007_delete_subscription'),
+        ("portal", "0007_delete_subscription"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Subscription',
+            name="Subscription",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('email', models.EmailField(max_length=120)),
-                ('name', models.CharField(blank=True, max_length=120, null=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("email", models.EmailField(max_length=120)),
+                ("name", models.CharField(blank=True, max_length=120, null=True)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
             bases=(common.models.HelperMixin, models.Model),
         ),

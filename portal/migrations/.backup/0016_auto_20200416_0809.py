@@ -4,20 +4,71 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0015_auto_20200416_0724'),
+        ("portal", "0015_auto_20200416_0724"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='education_level',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(0, 'No Qualification'), (1, 'Level 1 Certificate'), (2, 'Level 2 Certificate'), (3, 'Level 3 Certificate'), (4, 'Level 4 Certificate'), (5, 'Level 5 Diploma/Certificate'), (6, 'Level 6 Graduate Certificate, Level 6 Diploma/Certificate'), (7, 'Bachelor Degree, Level 7 Graduate Diploma/Certificate, Level 7 Diploma/ Certificate'), (8, 'Postgraduate Diploma/Certificate, Bachelor Honours'), (9, 'Masters Degree'), (10, 'Doctorate Degree'), (23, 'Overseas Secondary School Qualification'), (94, "Don't Know"), (95, 'Refused to Answer'), (96, 'Repeated Value'), (97, 'Response Unidentifiable'), (98, 'Response Outside Scope'), (99, 'Not Stated')], null=True),
+            model_name="historicalprofile",
+            name="education_level",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[
+                    (0, "No Qualification"),
+                    (1, "Level 1 Certificate"),
+                    (2, "Level 2 Certificate"),
+                    (3, "Level 3 Certificate"),
+                    (4, "Level 4 Certificate"),
+                    (5, "Level 5 Diploma/Certificate"),
+                    (6, "Level 6 Graduate Certificate, Level 6 Diploma/Certificate"),
+                    (
+                        7,
+                        "Bachelor Degree, Level 7 Graduate Diploma/Certificate, Level 7 Diploma/ Certificate",
+                    ),
+                    (8, "Postgraduate Diploma/Certificate, Bachelor Honours"),
+                    (9, "Masters Degree"),
+                    (10, "Doctorate Degree"),
+                    (23, "Overseas Secondary School Qualification"),
+                    (94, "Don't Know"),
+                    (95, "Refused to Answer"),
+                    (96, "Repeated Value"),
+                    (97, "Response Unidentifiable"),
+                    (98, "Response Outside Scope"),
+                    (99, "Not Stated"),
+                ],
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='education_level',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(0, 'No Qualification'), (1, 'Level 1 Certificate'), (2, 'Level 2 Certificate'), (3, 'Level 3 Certificate'), (4, 'Level 4 Certificate'), (5, 'Level 5 Diploma/Certificate'), (6, 'Level 6 Graduate Certificate, Level 6 Diploma/Certificate'), (7, 'Bachelor Degree, Level 7 Graduate Diploma/Certificate, Level 7 Diploma/ Certificate'), (8, 'Postgraduate Diploma/Certificate, Bachelor Honours'), (9, 'Masters Degree'), (10, 'Doctorate Degree'), (23, 'Overseas Secondary School Qualification'), (94, "Don't Know"), (95, 'Refused to Answer'), (96, 'Repeated Value'), (97, 'Response Unidentifiable'), (98, 'Response Outside Scope'), (99, 'Not Stated')], null=True),
+            model_name="profile",
+            name="education_level",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[
+                    (0, "No Qualification"),
+                    (1, "Level 1 Certificate"),
+                    (2, "Level 2 Certificate"),
+                    (3, "Level 3 Certificate"),
+                    (4, "Level 4 Certificate"),
+                    (5, "Level 5 Diploma/Certificate"),
+                    (6, "Level 6 Graduate Certificate, Level 6 Diploma/Certificate"),
+                    (
+                        7,
+                        "Bachelor Degree, Level 7 Graduate Diploma/Certificate, Level 7 Diploma/ Certificate",
+                    ),
+                    (8, "Postgraduate Diploma/Certificate, Bachelor Honours"),
+                    (9, "Masters Degree"),
+                    (10, "Doctorate Degree"),
+                    (23, "Overseas Secondary School Qualification"),
+                    (94, "Don't Know"),
+                    (95, "Refused to Answer"),
+                    (96, "Repeated Value"),
+                    (97, "Response Unidentifiable"),
+                    (98, "Response Outside Scope"),
+                    (99, "Not Stated"),
+                ],
+                null=True,
+            ),
         ),
     ]

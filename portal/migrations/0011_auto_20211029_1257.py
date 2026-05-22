@@ -11,7 +11,6 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("portal", "0010_auto_20210716_2057"),

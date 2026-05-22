@@ -138,8 +138,7 @@ def has_tooltip(value):
 def can_edit(value, user):
     """User can edit the application."""
     return user.is_authenticated and (
-        value.submitted_by == user
-        or value.members.all().filter(user=user).exists()
+        value.submitted_by == user or value.members.all().filter(user=user).exists()
         # or (value.site_id == 4 and value.org.where(research_offices__user=user).exists())
     )
 
@@ -177,12 +176,12 @@ def field_value(value, name, *args, **kwargs):
             dv = method and method()
             if state_changed_at := getattr(value, "state_changed_at", None):
                 return mark_safe(f"""<span data-toggle="tooltip"
-                    title="{_('(the state was updated at %s)') % state_changed_at.strftime('%d-%m-%Y %H:%m')}
+                    title="{_("(the state was updated at %s)") % state_changed_at.strftime("%d-%m-%Y %H:%m")}
                     ">&lt;<b>{dv or v.upper()}</b>&gt;</span>""")
             changed_at = value.updated_at or value.created_at
             if changed_at:
                 return mark_safe(f"""<span data-toggle="tooltip"
-                    title="{_('(the record was updated at %s)') % changed_at.strftime('%d-%m-%Y %H:%m')}
+                    title="{_("(the record was updated at %s)") % changed_at.strftime("%d-%m-%Y %H:%m")}
                     ">&lt;<b>{dv or v.upper()}</b>&gt;</span>""")
             return mark_safe(f"&lt;<b>{dv or v.upper()}</b>&gt;")
     if isinstance(v, bool):
@@ -416,37 +415,37 @@ def document_action_button(
     )
     if not document_file:
         if action == "approve":
-            disabled_tooltip_text = _(f"Please upload { required_document } before approving it")
+            disabled_tooltip_text = _(f"Please upload {required_document} before approving it")
         elif action == "release":
-            disabled_tooltip_text = _(f"Please upload { required_document } before releasing it")
+            disabled_tooltip_text = _(f"Please upload {required_document} before releasing it")
         elif action == "accept":
-            disabled_tooltip_text = _(f"Please upload { required_document } before accepting it")
+            disabled_tooltip_text = _(f"Please upload {required_document} before accepting it")
         else:
             disabled_tooltip_text = _(
-                f"Please upload { required_document } before requesting corrections"
+                f"Please upload {required_document} before requesting corrections"
             )
     else:
         state = (document and document.state) or form.instance.state
         if not is_ro and state == "accepted":
-            disabled_tooltip_text = _(f"{ required_document } was already accepted")
+            disabled_tooltip_text = _(f"{required_document} was already accepted")
         elif is_ro:
             if state == "approved":
-                disabled_tooltip_text = _(f"{ required_document } was already approved")
+                disabled_tooltip_text = _(f"{required_document} was already approved")
             elif state == "accepted":
-                disabled_tooltip_text = _(f"{ required_document } was already accepted")
+                disabled_tooltip_text = _(f"{required_document} was already accepted")
             elif state == "released":
-                disabled_tooltip_text = _(f"{ required_document } was already released")
+                disabled_tooltip_text = _(f"{required_document} was already released")
     if action == "approve":
-        enabled_tooltip_text = _(f"Approve { required_document }")
+        enabled_tooltip_text = _(f"Approve {required_document}")
         button_label = _("Approve")
     elif action == "release":
-        enabled_tooltip_text = _(f"Release { required_document }")
+        enabled_tooltip_text = _(f"Release {required_document}")
         button_label = _("Release")
     elif action == "accept":
-        enabled_tooltip_text = _(f"Accept { required_document }")
+        enabled_tooltip_text = _(f"Accept {required_document}")
         button_label = _("Accept")
     else:
-        enabled_tooltip_text = _(f"Request correction of { required_document }")
+        enabled_tooltip_text = _(f"Request correction of {required_document}")
         button_label = _("Request Correction")
 
     # schedule_entries = {e.period: e for e in contract.reporting_schedule.all().order_by("period", "due_date")}

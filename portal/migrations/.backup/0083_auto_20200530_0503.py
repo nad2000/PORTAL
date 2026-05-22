@@ -4,20 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0082_auto_20200530_0454'),
+        ("portal", "0082_auto_20200530_0454"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='scheme',
-            name='description_en_nz',
-            field=models.TextField(blank=True, max_length=1000, null=True, verbose_name='short description'),
+            model_name="scheme",
+            name="description_en_nz",
+            field=models.TextField(
+                blank=True, max_length=1000, null=True, verbose_name="short description"
+            ),
         ),
         migrations.AddField(
-            model_name='scheme',
-            name='description_mi',
-            field=models.TextField(blank=True, max_length=1000, null=True, verbose_name='short description'),
+            model_name="scheme",
+            name="description_mi",
+            field=models.TextField(
+                blank=True, max_length=1000, null=True, verbose_name="short description"
+            ),
         ),
     ]

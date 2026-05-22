@@ -9,7 +9,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0044_historicalorganisation_contact_phone_and_more"),
         ("users", "__first__"),

@@ -4,14 +4,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0053_auto_20200506_1422"),
     ]
 
     operations = [
-        migrations.RenameField(model_name="historicalprofile", old_name="sex", new_name="gender",),
-        migrations.RenameField(model_name="profile", old_name="sex", new_name="gender",),
+        migrations.RenameField(
+            model_name="historicalprofile",
+            old_name="sex",
+            new_name="gender",
+        ),
+        migrations.RenameField(
+            model_name="profile",
+            old_name="sex",
+            new_name="gender",
+        ),
         migrations.AddField(
             model_name="historicalprofile",
             name="date_of_birth",

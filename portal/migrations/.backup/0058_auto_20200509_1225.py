@@ -4,18 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0057_award_recognition'),
+        ("portal", "0057_award_recognition"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='award',
+            name="award",
             options={},
         ),
         migrations.AlterModelTable(
-            name='award',
-            table='award',
+            name="award",
+            table="award",
         ),
     ]

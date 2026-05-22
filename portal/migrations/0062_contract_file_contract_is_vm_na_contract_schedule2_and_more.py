@@ -12,7 +12,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0061_rename_contractclause_roundcontractclause_and_more_updated"),
     ]
@@ -640,12 +639,19 @@ class Migration(migrations.Migration):
         #     code=portal.migration_utils.set_required_document_format_and_role,
         #     reverse_code=portal.migration_utils.dummy,
         # ),
-        migrations.RunSQL(";\n".join("""
+        migrations.RunSQL(
+            ";\n".join(
+                """
             UPDATE %s AS rd 
                 SET "role"=COALESCE(rd."role", dt."role"), 
                 format=COALESCE(rd.format, dt.format, '-'),
                 title=COALESCE(rd.title, dt.name)
             FROM document_type AS dt 
             WHERE dt.id=rd.document_type_id
-            """ % tn for tn in ["required_document", "required_contract_document"]), ''),
+            """
+                % tn
+                for tn in ["required_document", "required_contract_document"]
+            ),
+            "",
+        ),
     ]

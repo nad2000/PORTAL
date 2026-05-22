@@ -10,7 +10,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("portal", "0033_auto_20200421_0952"),
@@ -104,7 +103,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"db_table": "invitation",},
+            options={
+                "db_table": "invitation",
+            },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.CreateModel(
@@ -120,15 +121,33 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True, null=True)),
                 ("name", models.CharField(max_length=200)),
             ],
-            options={"db_table": "organisation",},
+            options={
+                "db_table": "organisation",
+            },
             bases=(common.models.HelperMixin, models.Model),
         ),
-        migrations.RemoveField(model_name="historicallanguage", name="history_user",),
-        migrations.AlterModelTable(name="historicalapplication", table="application_history",),
-        migrations.AlterModelTable(name="historicalprofile", table="profile_history",),
-        migrations.AlterModelTable(name="historicalsubscription", table="subscription_history",),
-        migrations.DeleteModel(name="HistoricalEthnicity",),
-        migrations.DeleteModel(name="HistoricalLanguage",),
+        migrations.RemoveField(
+            model_name="historicallanguage",
+            name="history_user",
+        ),
+        migrations.AlterModelTable(
+            name="historicalapplication",
+            table="application_history",
+        ),
+        migrations.AlterModelTable(
+            name="historicalprofile",
+            table="profile_history",
+        ),
+        migrations.AlterModelTable(
+            name="historicalsubscription",
+            table="subscription_history",
+        ),
+        migrations.DeleteModel(
+            name="HistoricalEthnicity",
+        ),
+        migrations.DeleteModel(
+            name="HistoricalLanguage",
+        ),
         migrations.AddField(
             model_name="invitation",
             name="org",

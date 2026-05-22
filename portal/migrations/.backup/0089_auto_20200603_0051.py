@@ -4,25 +4,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0088_merge_20200602_0311'),
+        ("portal", "0088_merge_20200602_0311"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='recognition',
-            name='put_code',
+            model_name="recognition",
+            name="put_code",
             field=models.PositiveIntegerField(blank=True, editable=False, null=True),
         ),
         migrations.AlterField(
-            model_name='affiliation',
-            name='type',
-            field=models.CharField(choices=[('EDU', 'Education'), ('EMP', 'Employment'), ('MEM', 'Membership'), ('SER', 'service')], max_length=10),
+            model_name="affiliation",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("EDU", "Education"),
+                    ("EMP", "Employment"),
+                    ("MEM", "Membership"),
+                    ("SER", "service"),
+                ],
+                max_length=10,
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalaffiliation',
-            name='type',
-            field=models.CharField(choices=[('EDU', 'Education'), ('EMP', 'Employment'), ('MEM', 'Membership'), ('SER', 'service')], max_length=10),
+            model_name="historicalaffiliation",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("EDU", "Education"),
+                    ("EMP", "Employment"),
+                    ("MEM", "Membership"),
+                    ("SER", "service"),
+                ],
+                max_length=10,
+            ),
         ),
     ]

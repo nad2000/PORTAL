@@ -5,15 +5,19 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0091_auto_20200604_2328'),
+        ("portal", "0091_auto_20200604_2328"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='academicrecord',
-            name='qualification',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='portal.Qualification'),
+            model_name="academicrecord",
+            name="qualification",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                to="portal.Qualification",
+            ),
         ),
     ]

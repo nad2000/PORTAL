@@ -5,24 +5,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0044_auto_20200430_0444'),
+        ("portal", "0044_auto_20200430_0444"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ApplicationDecision',
+            name="ApplicationDecision",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('code', models.CharField(max_length=2, primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=80)),
-                ('definition', models.TextField(max_length=200)),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                ("code", models.CharField(max_length=2, primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=80)),
+                ("definition", models.TextField(max_length=200)),
             ],
             options={
-                'db_table': 'application_decision',
-                'ordering': ['description'],
+                "db_table": "application_decision",
+                "ordering": ["description"],
             },
             bases=(common.models.HelperMixin, models.Model),
         ),

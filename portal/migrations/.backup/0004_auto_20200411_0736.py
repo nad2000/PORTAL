@@ -5,29 +5,58 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0003_profile_bod'),
+        ("portal", "0003_profile_bod"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='profile',
-            name='bod',
+            model_name="profile",
+            name="bod",
         ),
         migrations.AddField(
-            model_name='profile',
-            name='ethnicity',
-            field=models.CharField(blank=True, choices=[('European', 'European'), ('Maori', 'Maori'), ('Chinese', 'Chinese'), ('Indian', 'Indian'), ('Samoan', 'Samoan'), ('Tongan', 'Tongan'), ('Cook Islands Maori', 'Cook Islands Maori'), ('English', 'English'), ('Filipino', 'Filipino'), ('New Zealander', 'New Zealander'), ('Other', 'Other')], max_length=20, null=True),
+            model_name="profile",
+            name="ethnicity",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("European", "European"),
+                    ("Maori", "Maori"),
+                    ("Chinese", "Chinese"),
+                    ("Indian", "Indian"),
+                    ("Samoan", "Samoan"),
+                    ("Tongan", "Tongan"),
+                    ("Cook Islands Maori", "Cook Islands Maori"),
+                    ("English", "English"),
+                    ("Filipino", "Filipino"),
+                    ("New Zealander", "New Zealander"),
+                    ("Other", "Other"),
+                ],
+                max_length=20,
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='year_of_birth',
-            field=models.PositiveSmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1900), django.core.validators.MaxValueValidator(2100)], verbose_name='year of birth'),
+            model_name="profile",
+            name="year_of_birth",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1900),
+                    django.core.validators.MaxValueValidator(2100),
+                ],
+                verbose_name="year of birth",
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='sex',
-            field=models.CharField(blank=True, choices=[('female', 'female'), ('male', 'male'), ('other', 'other')], max_length=10, null=True),
+            model_name="profile",
+            name="sex",
+            field=models.CharField(
+                blank=True,
+                choices=[("female", "female"), ("male", "male"), ("other", "other")],
+                max_length=10,
+                null=True,
+            ),
         ),
     ]

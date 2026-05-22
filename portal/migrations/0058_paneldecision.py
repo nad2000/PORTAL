@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0057_historicalround_testimonial_submission_closes_at_and_more"),
         ("sites", "0004_auto_20210331_1418"),

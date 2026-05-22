@@ -4,40 +4,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0069_auto_20200518_1428'),
+        ("portal", "0069_auto_20200518_1428"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='affiliation',
-            name='put_code',
+            model_name="affiliation",
+            name="put_code",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='historicalaffiliation',
-            name='put_code',
+            model_name="historicalaffiliation",
+            name="put_code",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='is_ethnicities_completed',
+            model_name="historicalprofile",
+            name="is_ethnicities_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='is_iwi_groups_completed',
+            model_name="historicalprofile",
+            name="is_iwi_groups_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='is_ethnicities_completed',
+            model_name="profile",
+            name="is_ethnicities_completed",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='is_iwi_groups_completed',
+            model_name="profile",
+            name="is_iwi_groups_completed",
             field=models.BooleanField(default=True),
         ),
     ]

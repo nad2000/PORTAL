@@ -5,15 +5,16 @@ import partial_date.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0002_profile'),
+        ("portal", "0002_profile"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='profile',
-            name='bod',
-            field=partial_date.fields.PartialDateField(blank=True, null=True, verbose_name='date of birth'),
+            model_name="profile",
+            name="bod",
+            field=partial_date.fields.PartialDateField(
+                blank=True, null=True, verbose_name="date of birth"
+            ),
         ),
     ]

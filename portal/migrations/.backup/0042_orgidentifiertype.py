@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0041_profile_iwi_groups"),
     ]
@@ -20,7 +19,10 @@ class Migration(migrations.Migration):
                 ("description", models.CharField(max_length=20)),
                 ("definition", models.TextField(max_length=200)),
             ],
-            options={"db_table": "org_identifier_type", "ordering": ["code"],},
+            options={
+                "db_table": "org_identifier_type",
+                "ordering": ["code"],
+            },
             bases=(common.models.HelperMixin, models.Model),
         ),
     ]

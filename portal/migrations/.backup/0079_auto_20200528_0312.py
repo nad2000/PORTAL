@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0078_auto_20200528_0308'),
+        ("portal", "0078_auto_20200528_0308"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalround',
-            name='name',
+            model_name="historicalround",
+            name="name",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AlterField(
-            model_name='round',
-            name='name',
+            model_name="round",
+            name="name",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
     ]

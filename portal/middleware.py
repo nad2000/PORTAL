@@ -9,12 +9,10 @@ from django.core.cache import cache
 
 
 class PortalMiddleware(FlatpageFallbackMiddleware):
-
     def __call__(self, request):
         tz = (
             # request.session.get("django_timezone") or
-            request.COOKIES.get("djanogo_timezone")
-            or settings.TIME_ZONE
+            request.COOKIES.get("djanogo_timezone") or settings.TIME_ZONE
         )
         if tz:
             timezone.activate(zoneinfo.ZoneInfo(tz))

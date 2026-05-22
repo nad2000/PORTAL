@@ -6,7 +6,6 @@ import private_storage.storage.files
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0002_auto_20210421_1545"),
     ]

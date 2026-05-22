@@ -4,20 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0023_auto_20200417_1051'),
+        ("portal", "0023_auto_20200417_1051"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalprofile',
-            name='sex',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(None, 'Undisclosed'), (1, 'Male'), (2, 'Female'), (3, 'Gender diverse')], null=True),
+            model_name="historicalprofile",
+            name="sex",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[(None, "Undisclosed"), (1, "Male"), (2, "Female"), (3, "Gender diverse")],
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='sex',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(None, 'Undisclosed'), (1, 'Male'), (2, 'Female'), (3, 'Gender diverse')], null=True),
+            model_name="profile",
+            name="sex",
+            field=models.PositiveSmallIntegerField(
+                blank=True,
+                choices=[(None, "Undisclosed"), (1, "Male"), (2, "Female"), (3, "Gender diverse")],
+                null=True,
+            ),
         ),
     ]

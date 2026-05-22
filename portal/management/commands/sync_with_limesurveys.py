@@ -24,7 +24,9 @@ class Command(BaseCommand):
         count = 0
         for site_id in [2, 4, 5]:
             settings.SITE_ID = site_id
-            q = models.Round.where(survey_id__isnull=False, scheme__current_round__id=models.F("pk"))
+            q = models.Round.where(
+                survey_id__isnull=False, scheme__current_round__id=models.F("pk")
+            )
             for r in q:
                 try:
                     sync_count = r.sync_referee_surveys(by=by)

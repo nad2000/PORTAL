@@ -18,4 +18,3 @@ class Job(jobs.DailyJob):
             for r in models.Contract.start_reporting():
                 logger.info(f"Report: {r.number} generated")
                 # logger.info(f"Report(s) generated: {', '.join(r.number for r in reports)}")
-

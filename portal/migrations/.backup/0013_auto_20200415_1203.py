@@ -4,40 +4,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0012_application_historicalapplication'),
+        ("portal", "0012_application_historicalapplication"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='application',
-            name='first_name',
+            model_name="application",
+            name="first_name",
             field=models.CharField(max_length=30),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='is_team_application',
+            model_name="application",
+            name="is_team_application",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='application',
-            name='last_name',
+            model_name="application",
+            name="last_name",
             field=models.CharField(max_length=150),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='first_name',
+            model_name="historicalapplication",
+            name="first_name",
             field=models.CharField(max_length=30),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='is_team_application',
+            model_name="historicalapplication",
+            name="is_team_application",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='historicalapplication',
-            name='last_name',
+            model_name="historicalapplication",
+            name="last_name",
             field=models.CharField(max_length=150),
         ),
     ]

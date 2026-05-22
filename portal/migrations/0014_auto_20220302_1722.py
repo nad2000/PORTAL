@@ -6,7 +6,6 @@ import common.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("sites", "0004_auto_20210331_1418"),
         ("portal", "0013_auto_20220228_1641"),

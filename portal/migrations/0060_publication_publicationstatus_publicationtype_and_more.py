@@ -13,7 +13,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0059_historicalreferee_org_referee_org_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

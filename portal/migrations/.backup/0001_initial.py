@@ -7,7 +7,6 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -29,7 +28,9 @@ class Migration(migrations.Migration):
                 ("email", models.EmailField(max_length=120)),
                 ("name", models.CharField(blank=True, max_length=120, null=True)),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="HistoricalSubscription",

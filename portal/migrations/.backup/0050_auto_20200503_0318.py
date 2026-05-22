@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0049_auto_20200503_0313'),
+        ("portal", "0049_auto_20200503_0313"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='curriculumvitae',
-            name='title',
-            field=models.CharField(blank=True, default=True, max_length=200, verbose_name='title'),
+            model_name="curriculumvitae",
+            name="title",
+            field=models.CharField(blank=True, default=True, max_length=200, verbose_name="title"),
         ),
     ]

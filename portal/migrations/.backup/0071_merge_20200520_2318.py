@@ -4,11 +4,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0070_auto_20200520_0051'),
-        ('portal', '0070_auto_20200520_0109'),
+        ("portal", "0070_auto_20200520_0051"),
+        ("portal", "0070_auto_20200520_0109"),
     ]
 
-    operations = [
-    ]
+    operations = []

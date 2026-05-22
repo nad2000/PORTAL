@@ -8,60 +8,125 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('portal', '0045_applicationdecision'),
+        ("portal", "0045_applicationdecision"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='HistoricalAffiliation',
+            name="HistoricalAffiliation",
             fields=[
-                ('id', models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name='ID')),
-                ('created_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('updated_at', models.DateTimeField(blank=True, editable=False, null=True)),
-                ('type', models.CharField(choices=[('EDU', 'Education'), ('EMP', 'Employment')], max_length=10)),
-                ('form_date', models.DateField(blank=True, null=True)),
-                ('to_date', models.DateField(blank=True, null=True)),
-                ('role', models.CharField(blank=True, max_length=100, null=True)),
-                ('history_id', models.AutoField(primary_key=True, serialize=False)),
-                ('history_date', models.DateTimeField()),
-                ('history_change_reason', models.CharField(max_length=100, null=True)),
-                ('history_type', models.CharField(choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')], max_length=1)),
-                ('history_user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('org', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Organisation')),
-                ('profile', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Profile')),
+                (
+                    "id",
+                    models.IntegerField(
+                        auto_created=True, blank=True, db_index=True, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                ("updated_at", models.DateTimeField(blank=True, editable=False, null=True)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[("EDU", "Education"), ("EMP", "Employment")], max_length=10
+                    ),
+                ),
+                ("form_date", models.DateField(blank=True, null=True)),
+                ("to_date", models.DateField(blank=True, null=True)),
+                ("role", models.CharField(blank=True, max_length=100, null=True)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField()),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(
+                        choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "org",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="portal.Organisation",
+                    ),
+                ),
+                (
+                    "profile",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="portal.Profile",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'historical affiliation',
-                'db_table': 'affiliation_history',
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
+                "verbose_name": "historical affiliation",
+                "db_table": "affiliation_history",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": "history_date",
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
         ),
         migrations.CreateModel(
-            name='Affiliation',
+            name="Affiliation",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, null=True)),
-                ('updated_at', models.DateTimeField(auto_now=True, null=True)),
-                ('type', models.CharField(choices=[('EDU', 'Education'), ('EMP', 'Employment')], max_length=10)),
-                ('form_date', models.DateField(blank=True, null=True)),
-                ('to_date', models.DateField(blank=True, null=True)),
-                ('role', models.CharField(blank=True, max_length=100, null=True)),
-                ('org', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Organisation')),
-                ('profile', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Profile')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, null=True)),
+                ("updated_at", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[("EDU", "Education"), ("EMP", "Employment")], max_length=10
+                    ),
+                ),
+                ("form_date", models.DateField(blank=True, null=True)),
+                ("to_date", models.DateField(blank=True, null=True)),
+                ("role", models.CharField(blank=True, max_length=100, null=True)),
+                (
+                    "org",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Organisation"
+                    ),
+                ),
+                (
+                    "profile",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="portal.Profile"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'affiliation',
+                "db_table": "affiliation",
             },
             bases=(common.models.HelperMixin, models.Model),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='affiliations',
-            field=models.ManyToManyField(blank=True, through='portal.Affiliation', to='portal.Organisation'),
+            model_name="profile",
+            name="affiliations",
+            field=models.ManyToManyField(
+                blank=True, through="portal.Affiliation", to="portal.Organisation"
+            ),
         ),
     ]

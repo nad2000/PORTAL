@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0054_historicalround_contact_email_round_contact_email_and_more_updated"),
     ]

@@ -3,7 +3,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0020_historicalprofile_account_approval_message_sent_at_and_more"),
     ]

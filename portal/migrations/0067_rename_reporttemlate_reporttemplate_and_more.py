@@ -13,7 +13,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portal", "0066_note_remove_reportkeyword_keyword_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

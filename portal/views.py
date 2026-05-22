@@ -721,10 +721,7 @@ def shoud_be_onboarded(function):
                 view_name = wizard_views[0]
             messages.info(
                 request,
-                _(
-                    "Your profile is not completed yet. "
-                    "Please complete your profile or skip it."
-                ),
+                _("Your profile is not completed yet. Please complete your profile or skip it."),
             )
             return redirect(reverse(view_name) + "?next=" + quote(request.get_full_path()))
         else:
@@ -937,7 +934,6 @@ class StateInPathMixin:
 
 
 class FavoriteMixin:
-
     def put(self, request, *args, **kwargs):
         obj = self.get_object()
         content_type = ContentType.objects.get_for_model(self.model)
@@ -964,22 +960,21 @@ class FavoriteMixin:
         if request.GET.get("with_class_name", False):
             return HttpResponse(
                 f"""
-              <i id="favorite-status-{ obj.calss_name }-{ object_id }"
-              class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
+              <i id="favorite-status-{obj.calss_name}-{object_id}"
+              class="{"fa" if is_favorited else "far"} fa-star" aria-hidden="true">
               </i>
             """
             )
         return HttpResponse(
             f"""
-          <i id="favorite-status-{ object_id }"
-          class="{ 'fa' if is_favorited else 'far' } fa-star" aria-hidden="true">
+          <i id="favorite-status-{object_id}"
+          class="{"fa" if is_favorited else "far"} fa-star" aria-hidden="true">
           </i>
         """
         )
 
 
 class NotesMixin:
-
     def get_notes_formset(self):
 
         u = self.request.user
@@ -1114,7 +1109,6 @@ class CreateUpdateView(CreateUpdateMixin, UpdateView):
 
 
 class SingleObjectMixin(ContextMixin):
-
     slug_field = "number"
     slug_url_kwarg = "number"
     pk_url_kwarg = "pk"
@@ -1176,7 +1170,6 @@ class SingleObjectMixin(ContextMixin):
 
 
 class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
-
     context_object_name = "object"
     template_name = "detail.html"
     cache_timeout = int(getattr(settings, "CACHE_TIMEOUT", 60))
@@ -1617,7 +1610,6 @@ class ExportView(UserPassesTestMixin, DetailView):
                     merger.append(pdf_stream)
 
                 if summary_template:
-
                     summary_page_html = summary_template.render(locals())
                     if format == "html" and part == "summary":
                         return HttpResponse(summary_page_html, content_type="text/html")
@@ -2234,7 +2226,6 @@ def index(request):
                 current_reports = reports
 
         if site_id not in [2, 4, 5, 7] or not (user.is_admin):
-
             applications = models.Application.user_draft_applications(user).filter(
                 ~Q(round__panellists__user=user),
                 round__scheme__current_round=F("round"),
@@ -2339,7 +2330,7 @@ def index(request):
             ro_emails.extend(
                 [
                     (_("Research Office"), email)
-                    for email, in models.Organisation.where(
+                    for (email,) in models.Organisation.where(
                         ~Q(ro_email=""),
                         ro_email__isnull=False,
                         affiliations__person__user=user,
@@ -2552,7 +2543,8 @@ def check_profile(request, token=None):
                     next_url = reverse("application", kwargs={"pk": a_id})
                 elif i.type == "R" and (r := i.referee):
                     if (
-                        testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
+                        testimonial_submission_closes_at
+                        := r.application.round.testimonial_submission_closes_at
                     ) and testimonial_submission_closes_at < timezone.now():
                         messages.error(
                             request,
@@ -2571,7 +2563,7 @@ def check_profile(request, token=None):
                             current_round := round.scheme.current_round
                         ) and current_round != round:
                             message = (
-                                f'{message} {_(f"The current round is <b>{current_round}</b>")}.'
+                                f"{message} {_(f'The current round is <b>{current_round}</b>')}."
                             )
                         url = None
                         if (
@@ -2588,7 +2580,7 @@ def check_profile(request, token=None):
                                 token=current_invitation.token,
                             )
                             message = f"""{message} {_(f'The most current invitation sent to you is <a href="{url}">{url}</a>')}.
-                             {_('Please follow the invitation link')}."""
+                             {_("Please follow the invitation link")}."""
 
                         messages.warning(request, mark_safe(message))
                         return redirect(url or "home")
@@ -2638,7 +2630,7 @@ def check_profile(request, token=None):
         else:
             messages.info(
                 request,
-                _("Your profile is not completed yet. " "Please complete your profile."),
+                _("Your profile is not completed yet. Please complete your profile."),
             )
             if token and models.Invitation.where(token=token, type="T", site_id=2).exists():
                 messages.warning(
@@ -2687,7 +2679,6 @@ def is_profile_completed(request):
 
 
 class ProfileViewMixin:
-
     model = models.Person
     template_name = "profile_form.html"
     form_class = forms.ProfileForm
@@ -2717,7 +2708,8 @@ class ProfileViewMixin:
                 ),
                 Q(state__isnull=True)
                 # | Q(state__in=["draft", "submitted", "sent", "bounced"])
-                | Q(email=u.email) | Q(email__in=u.email_addresses),
+                | Q(email=u.email)
+                | Q(email__in=u.email_addresses),
             )
             .order_by("-pk")
             .first()
@@ -2851,8 +2843,9 @@ def profile_protection_patterns(request):
                     if expires_on:
                         expires_on = parse_date(expires_on)
                     ppp, created = models.PersonProtectionPattern.objects.get_or_create(
-                        protection_pattern_id=ppc, person=person,
-                        defaults={"expires_on": expires_on or None}
+                        protection_pattern_id=ppc,
+                        person=person,
+                        defaults={"expires_on": expires_on or None},
                     )
                     if not created and ppp.expires_on != expires_on:
                         ppp.save()
@@ -2921,7 +2914,6 @@ class ReportList(LoginRequiredMixin, StateInPathMixin, SingleTableMixin, FilterV
 
 
 class SelfAssignMixin:
-
     def put(self, request, *args, **kwargs):
         url = request.META.get("HTTP_REFERER", "") or request.path
         if (action := request.GET.get("action")) == "assign-self":
@@ -3030,7 +3022,6 @@ class AssessedPerformanceInline(InlineFormSetFactory):
 
 
 class ReportViewMixin:
-
     inlines = [PersonnelInline]
     extra_context = {"category": "reports", "sidebar": "off"}
 
@@ -3544,9 +3535,7 @@ class ReportViewMixin:
             context["coordinator"] = nomination.nominator.full_name_with_email
 
         context["is_pi"] = (a.submitted_by == u) or (
-            self.object
-            and self.object.pk
-            and self.object.is_pi(u)
+            self.object and self.object.pk and self.object.is_pi(u)
             # and self.object.contract.members.filter(role="PI").exists()
         )
         if r and r.pk:
@@ -4021,7 +4010,6 @@ class ReportViewMixin:
         #         return redirect("report-update", pk=i.pk)
 
         if "post_comment" in self.request.POST:
-
             attachment = form.cleaned_data.get("attachment", None)
             if body := form.cleaned_data.get("comment", None):
                 body = body.strip()
@@ -4209,7 +4197,6 @@ class ReportUpdate(
     UserPassesTestMixin,
     UpdateWithInlinesView,
 ):
-
     model = models.Report
     form_class = forms.ReportForm
     permission_denied_message = _("Only the round panellist and staff can export the application")
@@ -4229,11 +4216,12 @@ class ReportUpdate(
     def get_initial(self, *args, **kwargs):
         initial = super().get_initial(*args, **kwargs)
         o = self.get_object()
-        if (
-            o
-            and o.assessor
-        ):
-            if a := o.assessments.annotate(is_assessor=Q(assessor=F("report__assessor"))).order_by("-is_assessor", "-pk").first():
+        if o and o.assessor:
+            if (
+                a := o.assessments.annotate(is_assessor=Q(assessor=F("report__assessor")))
+                .order_by("-is_assessor", "-pk")
+                .first()
+            ):
                 initial["assessment_summary"] = a.summary
             else:
                 initial["assessment_summary"] = o.assessment
@@ -4242,7 +4230,6 @@ class ReportUpdate(
 
 
 class FileImportForm(Form):
-
     def __init__(self, label=None, allowed_extensions=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["file"] = FileField(
@@ -4492,7 +4479,6 @@ class ReportRisImportView(FileImportView):
 
 
 class EmailImportView(FileImportView):
-
     allowed_extensions = ["eml", "msg"]
     label = gettext_lazy("Message")
     model = models.Report
@@ -4610,13 +4596,11 @@ class ProfileDetail(ProfileViewMixin, DetailView):
 
 
 class ProfileUpdate(ProfileViewMixin, LoginRequiredMixin, UpdateView):
-
     def get_object(self):
         return self.request.user.person
 
 
 class ProfileCreate(ProfileViewMixin, CreateView):
-
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -4822,7 +4806,6 @@ class MemberInline(InlineFormSetFactory):
 
 
 class AuthorizationFormMixin:
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not hasattr(self, "helper"):
@@ -4847,7 +4830,6 @@ class AuthorizationForm(AuthorizationFormMixin, Form):
 
 # class MemberAuthorizationForm(AuthorizationFormMixin, ModelForm):
 class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         instance = kwargs.get("instance", None) or self.instance
@@ -4908,7 +4890,6 @@ class MemberAuthorizationForm(AuthorizationFormMixin, forms.MemberForm):
 
 
 class ApplicationDetail(FavoriteMixin, DetailView):
-
     model = Application
     template_name = "portal/application_detail.html"
 
@@ -4990,7 +4971,7 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                         f'<span class="badge badge-primary">{_("New")}</span> '
                         f"{_('You have a request to review a %s application to act on')}."
                         f"""<a href="{survey_url}" class="alert-link">
-                        {_('Please click here to complete the referee report')}!
+                        {_("Please click here to complete the referee report")}!
                     </a>"""
                     )
                     % site.name,
@@ -5101,7 +5082,6 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                         or a.referees.filter(state__in=["sent"]).count()
                     )
                     if count and request:
-
                         closes_at = a.round.closes_at
                         if a.site_id not in [2, 5] or closes_at and closes_at <= timezone.now():
                             messages.info(
@@ -5413,7 +5393,6 @@ class ApplicationDetail(FavoriteMixin, DetailView):
 
 
 class ItemFormSetView(ModelFormSetView):
-
     model = models.Referee
     # fields = ['name', 'sku', 'price']
     # template_name = 'item_formset.html'
@@ -5641,7 +5620,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 f'<span class="badge badge-primary">{_("New")}</span>'
                                 f"{_('You have a request to review a %s application to act on')}."
                                 f"""<a href="{survey_url}" class="alert-link">
-                                {_('Please click here to complete the referee report')}!
+                                {_("Please click here to complete the referee report")}!
                             </a>"""
                             )
                             % site.name,
@@ -5887,7 +5866,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
         )
 
         if site_id == 2:
-
             if cv := models.CurriculumVitae.last_user_cv(
                 user=o and o.pi or user, cut_off_months=3
             ):
@@ -5902,9 +5880,11 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
 
                 if cv:
                     message = f"""{message}
-                    {_('''Make sure that the select C.V.
+                    {
+                        _('''Make sure that the select C.V.
                 <a href="%s" target="_blank">%s</a>
-                from your profile is up-to-date.''')}""" % (
+                from your profile is up-to-date.''')
+                    }""" % (
                         cv.file.url,
                         os.path.basename(cv.file.name),
                     )
@@ -6145,7 +6125,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         return self.form_invalid(form)
 
                 if a.is_team_application and not update_only_referees:
-
                     if not letter_of_support and round.member_letter_of_support_required:
                         letter_of_support = a.documents.filter(
                             required_document__role="HS"
@@ -6180,7 +6159,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     )
 
                     if not created:
-
                         updated = False
 
                         if any(
@@ -6193,7 +6171,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 "research_experience_in_years",
                             ]
                         ):
-
                             pi.org = a.org or pi.org
                             pi.country_id = (
                                 a.org.address
@@ -6435,8 +6412,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     != "application/pdf"
                 ):
                     try:
-                        if letter_of_support_cf := instance.letter_of_support.update_converted_file(
-                            commit=True
+                        if (
+                            letter_of_support_cf
+                            := instance.letter_of_support.update_converted_file(commit=True)
                         ):
                             messages.success(
                                 self.request,
@@ -6746,7 +6724,6 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     #     #     form.active_tab = "categories"
 
                     if site_id == 2 and a.state in ["new", "draft", "tac_accepted"]:
-
                         is_valid = True
                         if a.members.filter(
                             ~Q(role_id__in=["PI", "PC"]), country__isnull=True
@@ -6801,7 +6778,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 self.request,
                                 _("Please accept the <strong>Applicant Declaration</strong>"),
                             )
-                            url = f'{reverse("application-update", kwargs={"pk": a.pk})}#tac'
+                            url = f"{reverse('application-update', kwargs={'pk': a.pk})}#tac"
                             return redirect(url)
 
                         a.submit(request=self.request)
@@ -6965,8 +6942,12 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 "not_relevant",
                 Field(
                     "comment",
-                    oninvalid=f"""this.setCustomValidity('{_("If not relevant, please comment. "
-                    "For example, the work in this application did not involve people or animals.")}')""",
+                    oninvalid=f"""this.setCustomValidity('{
+                        _(
+                            "If not relevant, please comment. "
+                            "For example, the work in this application did not involve people or animals."
+                        )
+                    }')""",
                     oninput="this.setCustomValidity('')",
                 ),
             )
@@ -7334,15 +7315,15 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         f.fields["file"].widget.attrs["data-required"] = 0
                     dtf = rd.format or rd.document_type.format
                     if dtf == "S":
-                        f.fields["file"].widget.attrs[
-                            "accept"
-                        ] = ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                        f.fields["file"].widget.attrs["accept"] = (
+                            ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                        )
                     elif dtf == "I":
                         f.fields["file"].widget.attrs["accept"] = ".pdf,.jpg,.png,.jpeg"
                     else:
-                        f.fields["file"].widget.attrs[
-                            "accept"
-                        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+                        f.fields["file"].widget.attrs["accept"] = (
+                            ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+                        )
         # context.update(
         #     {
         #         "formset": formset,
@@ -7428,7 +7409,6 @@ class ApplicationCreate(ApplicationView, CreateView):
 
         a = self.model.where(submitted_by=u, round=r).order_by("-id").first()
         if nomination_id := request.GET.get("nomination") or n and n.pk:
-
             if nom := models.Nomination.get(nomination_id):
                 if (
                     u.email != nom.email
@@ -7840,7 +7820,6 @@ def update_page_count(document_pk=None, contract_document_pk=None, site_id=None)
 
 
 class ContractViewMixin:
-
     extra_context = {"category": "contracts", "sidebar": "off", "config": config}
 
     def get(self, request, *args, **kwargs):
@@ -8090,7 +8069,6 @@ class ContractViewMixin:
             ]
 
         class ContractDocumentForm(ModelForm):
-
             application_document = fields.Field(widget=HiddenInput(), required=False)
 
             def save(self, commit=True):
@@ -8739,7 +8717,6 @@ class ContractViewMixin:
 
 
 class ContractCreate(NotesMixin, ContractViewMixin, CreateView):
-
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -8807,7 +8784,6 @@ class ContractCreate(NotesMixin, ContractViewMixin, CreateView):
 
 
 class ContractUpdate(LoginRequiredMixin, NotesMixin, ContractViewMixin, UpdateView):
-
     model = models.Contract
     form_class = forms.ContractForm
 
@@ -8828,7 +8804,6 @@ class ApplicationList(
 
     def get(self, request, *args, **kwargs):
         if "outcome_file" in request.GET:
-
             filterset_class = self.get_filterset_class()
             filterset = self.get_filterset(filterset_class)
 
@@ -9162,7 +9137,6 @@ def turn_off_wizard(request):
 
 
 class ProfileSectionMixin:
-
     template_name = "profile_section.html"
     exclude = ()
     section_views = [
@@ -9754,7 +9728,6 @@ class Unaccent(Func):
 
 
 class PersonCodeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def get_queryset(self):
         q = self.model.objects.all()
         if self.q:
@@ -9779,7 +9752,6 @@ class PersonCodeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetVie
 
 
 class DocumentTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def get_queryset(self):
         q = self.model.objects.all()
         if scheme := self.forwarded.get("scheme"):
@@ -9797,7 +9769,6 @@ class DocumentTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetV
 
 
 class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return models.Title.objects.none()
@@ -9816,7 +9787,6 @@ class TitleAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     # def get_queryset(self):
     #     qs = models.Tag.objects.all()
 
@@ -9833,7 +9803,6 @@ class TagAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     create_field = None
 
     def get_queryset(self):
@@ -9879,7 +9848,6 @@ class ResearchPriorityAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
 
 
 class UserAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     search_fields = ["^email", "^first_name", "^last_name"]
 
     def has_add_permission(self, request):
@@ -10007,7 +9975,6 @@ class OrgEmailAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView)
 
 
 class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def has_add_permission(self, request):
         # return False
         return True
@@ -10035,7 +10002,6 @@ class CityAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def create_object(self, text):
         try:
             if text and len(text) > 200:
@@ -10097,7 +10063,6 @@ class OrgAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
 
 
 class OrgNameAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     def has_add_permission(self, request):
         return True
 
@@ -10350,7 +10315,6 @@ class RequiredDocumentAutocomplete(LoginRequiredMixin, autocomplete.Select2Query
 
 
 class ChangeTypeAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
-
     # search_fields = ["description", "definition"]
     search_fields = ["description"]
 
@@ -10490,7 +10454,6 @@ class ProfileCurriculumVitaeFormSetView(ProfileSectionFormSetView):
 
 
 class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
-
     extra_context = {"category": "profile"}
     slug_url_kwarg = "username"
     slug_field = "person__user__username"
@@ -10571,7 +10534,15 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
         u = self.user
         p = self.person
         affiliation = p.affiliations.filter(end_date__isnull=True).order_by("-pk").first()
-        n = None if (p and p.org) else models.Nomination.where(Q(user=u) | Q(email__in=u.emailaddress_set.values_list("email")), org__isnull=False).order_by("-pk").first()
+        n = (
+            None
+            if (p and p.org)
+            else models.Nomination.where(
+                Q(user=u) | Q(email__in=u.emailaddress_set.values_list("email")), org__isnull=False
+            )
+            .order_by("-pk")
+            .first()
+        )
         org = p.org or n and n.org or affiliation and affiliation.org
 
         a = (
@@ -10861,7 +10832,6 @@ def approve_user(request, user_id=None):
 
 
 class MemberView(CreateUpdateView):
-
     model = models.Member
     form_class = forms.MemberForm
     template_name = None
@@ -11211,7 +11181,6 @@ class NominationView(CreateUpdateView):
 
 
 class TestimonialView(FavoriteMixin, CreateUpdateView):
-
     model = models.Testimonial
     form_class = forms.TestimonialForm
     template_name = "testimonial.html"
@@ -11231,7 +11200,8 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
             ).last()
             if r:
                 if (
-                    testimonial_submission_closes_at := r.application.round.testimonial_submission_closes_at
+                    testimonial_submission_closes_at
+                    := r.application.round.testimonial_submission_closes_at
                 ) and testimonial_submission_closes_at < timezone.now():
                     messages.error(
                         request,
@@ -11417,7 +11387,6 @@ class TestimonialView(FavoriteMixin, CreateUpdateView):
                 )
 
         if current_state != "submitted":
-
             if "submit" in self.request.POST or self.request.POST.get("action") == "submit":
                 if self.application.round.referee_cv_required and not t.cv:
                     if (
@@ -11850,7 +11819,7 @@ class TestimonialDetail(FavoriteMixin, DetailView):
                         f'<span class="badge badge-primary">{_("New")}</span> '
                         f"{_('You have a request to review a %s application to act on')}."
                         f"""<a href="{survey_url}" class="alert-link">
-                        {_('Please click here to complete the referee report')}!
+                        {_("Please click here to complete the referee report")}!
                       </a>"""
                     )
                     % site.name,
@@ -12739,7 +12708,7 @@ class EvaluationMixin:
 def application_contract(request, pk):
     if c := models.Contract.where(application_id=pk).last():
         return redirect("contract-detail", number=c.number)
-    return redirect(f'{reverse("contract-create")}?application_pk={pk}')
+    return redirect(f"{reverse('contract-create')}?application_pk={pk}")
 
 
 @login_required
@@ -13092,7 +13061,7 @@ def export_score_sheet(request, round):
     elif file_type == "ods":
         content_type = "application/vnd.oasis.opendocument.spreadsheet"
 
-    filename = f'{r.scheme.code}-{request.person.code or request.user.username or "scoresheet"}.{file_type}'
+    filename = f"{r.scheme.code}-{request.person.code or request.user.username or 'scoresheet'}.{file_type}"
     response = HttpResponse(book.export(file_type), content_type=content_type)
     response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
     response.headers["Cache-Control"] = (
@@ -13713,7 +13682,6 @@ class AffiliationForm(ModelForm):
 
 
 class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
-
     table_class = tables.PublicationTable
     model = models.Publication
     template_name = "table.html"
@@ -13729,7 +13697,6 @@ class PublicationList(LoginRequiredMixin, StateInPathMixin, SingleTableView):
 
 
 class PublicationViewMixin:
-
     model = models.Publication
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
@@ -13907,7 +13874,6 @@ class ReportedFundingList(LoginRequiredMixin, StateInPathMixin, SingleTableView)
 
 
 class OrgWidget(s2forms.ModelSelect2Widget):
-
     theme = "bootstrap4"
     model = models.Organisation
     search_fields = ["name__icontains"]
@@ -13924,7 +13890,6 @@ class OrgWidget(s2forms.ModelSelect2Widget):
 
 
 class ReportedFundingViewMixin:
-
     model = models.ReportedFunding
     fields = "__all__"
     exclude = ["updated_at", "created_at"]
@@ -14045,7 +14010,6 @@ class ReportedFundingCreateView(ReportedFundingViewMixin, CreateView):
 
 
 class ReportedActivityViewMixin:
-
     # model = models.ReportedActivity
     fields = "__all__"
     exclude = ["updated_at", "created_at", "agency"]
@@ -14122,7 +14086,6 @@ class ReportedActivityViewMixin:
 
 
 class ReportedAwardViewMixin(ReportedActivityViewMixin):
-
     model = models.ReportedAward
     fields = ["member", "description", "start_date", "report"]
 
@@ -14162,7 +14125,6 @@ class ReportedAwardCreateView(ReportedAwardViewMixin, CreateView):
 
 
 class ReportedPublicityViewMixin(ReportedActivityViewMixin):
-
     model = models.ReportedPublicity
     fields = ["type", "description", "start_date", "report"]
 
@@ -14199,7 +14161,6 @@ class ReportedPublicityCreateView(ReportedPublicityViewMixin, CreateView):
 
 
 class ReportedCollaborationViewMixin(ReportedActivityViewMixin):
-
     model = models.ReportedCollaboration
     fields = ["full_name", "organisation", "country", "description", "start_date", "report"]
 
@@ -14221,7 +14182,6 @@ class ReportedCollaborationCreateView(ReportedCollaborationViewMixin, CreateView
 
 
 class ReportedVisitViewMixin(ReportedActivityViewMixin):
-
     model = models.ReportedVisit
     fields = [
         "member",
@@ -14257,7 +14217,6 @@ class ReportedVisitCreateView(ReportedVisitViewMixin, CreateView):
 
 
 class ReportedHostedVisitViewMixin(ReportedActivityViewMixin):
-
     model = models.ReportedHostedVisit
     fields = ["organisation", "country", "visitor", "description", "start_date", "report"]
 
@@ -14282,7 +14241,6 @@ class ReportedHostedVisitCreateView(ReportedHostedVisitViewMixin, CreateView):
 
 
 class ReportedActivityView(View):
-
     award_view = staticmethod(ReportedAwardCreateView.as_view())
     publicity_view = staticmethod(ReportedPublicityCreateView.as_view())
     collaboration_view = staticmethod(ReportedCollaborationCreateView.as_view())
@@ -14309,7 +14267,6 @@ class ReportedActivityView(View):
 
 
 class ChangeRequestViewMixin:
-
     model = models.ChangeRequest
     # template_name = "profile_form.html"
     form_class = forms.ChangeRequestForm
@@ -14373,7 +14330,6 @@ class ChangeRequestViewMixin:
 
         try:
             with transaction.atomic():
-
                 i = form.instance
                 if not i.contract_id:
                     i.contract = contract
@@ -14496,7 +14452,6 @@ class ChangeRequestViewMixin:
 
 
 class ChangeRequestCreateView(ChangeRequestViewMixin, CreateView):
-
     def get_initial(self):
         initial = super().get_initial()
         initial["contract"] = self.contract
@@ -14911,7 +14866,7 @@ async def crud_event_stream(request):
                         url = None
                 else:
                     url = None
-                op = f"{ e.get_event_type_display().lower() }d"
+                op = f"{e.get_event_type_display().lower()}d"
                 message = "".join(
                     f"data: {l}\n"
                     for l in f"""
@@ -14924,19 +14879,17 @@ async def crud_event_stream(request):
     >
     <div class="toast-header">
         <!-- img src="..." class="rounded mr-2" alt="..." -->
-        <strong class="mr-auto">{ ct.model_class()._meta.verbose_name } was { op }</strong>
-        <small class="text-muted">at {e.datetime.isoformat() }</small>
+        <strong class="mr-auto">{ct.model_class()._meta.verbose_name} was {op}</strong>
+        <small class="text-muted">at {e.datetime.isoformat()}</small>
         <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
         <span aria-hidden="true">&times;</span>
         </button>
     </div>
     <div class="toast-body">
-        { f'<a href="{url}" traget="_blank">{obj}</a> was { op }' if url else  f'{obj} was { op }' }
+        {f'<a href="{url}" traget="_blank">{obj}</a> was {op}' if url else f"{obj} was {op}"}
     </div>
     </div>
-    """.splitlines(
-                        keepends=False
-                    )
+    """.splitlines(keepends=False)
                     if l.strip()
                 )
                 # yield f"id: {e.pk}\nevent: crud\ndata: <li>{e}</li>\n\n"

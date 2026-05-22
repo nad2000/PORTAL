@@ -5,20 +5,31 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0047_auto_20200501_0443'),
+        ("portal", "0047_auto_20200501_0443"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='affiliation',
-            name='org',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='portal.Organisation', verbose_name='organisation'),
+            model_name="affiliation",
+            name="org",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="portal.Organisation",
+                verbose_name="organisation",
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalaffiliation',
-            name='org',
-            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='portal.Organisation', verbose_name='organisation'),
+            model_name="historicalaffiliation",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="portal.Organisation",
+                verbose_name="organisation",
+            ),
         ),
     ]

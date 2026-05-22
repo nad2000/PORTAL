@@ -4,30 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('portal', '0027_auto_20200417_1221'),
+        ("portal", "0027_auto_20200417_1221"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicallanguage',
-            name='description',
+            model_name="historicallanguage",
+            name="description",
             field=models.CharField(max_length=100),
         ),
         migrations.AlterField(
-            model_name='language',
-            name='description',
+            model_name="language",
+            name="description",
             field=models.CharField(max_length=100),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='ethnicities',
-            field=models.ManyToManyField(blank=True, db_table='profile_ethnicity', to='portal.Ethnicity'),
+            model_name="profile",
+            name="ethnicities",
+            field=models.ManyToManyField(
+                blank=True, db_table="profile_ethnicity", to="portal.Ethnicity"
+            ),
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='languages_spoken',
-            field=models.ManyToManyField(blank=True, db_table='profile_language', to='portal.Language'),
+            model_name="profile",
+            name="languages_spoken",
+            field=models.ManyToManyField(
+                blank=True, db_table="profile_language", to="portal.Language"
+            ),
         ),
     ]

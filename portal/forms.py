@@ -107,7 +107,6 @@ YearInput = partial(
 
 
 class InvitationStateInput(Widget):
-
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
         if instance := getattr(self, "instance", None):
@@ -143,7 +142,6 @@ class TelInput(TextInput):
 
 
 class ModelForm(forms.ModelForm):
-
     def __init__(self, *args, **kwargs):
         self.site_id = kwargs.pop("site_id", 0) or int(settings.SITE_ID)
         super().__init__(*args, **kwargs)
@@ -197,7 +195,6 @@ class ModelSelect2NoPK(autocomplete.ModelSelect2):
 
 
 class CommentForm(FormWithCommentMixin, ModelForm):
-
     comment = forms.CharField(
         label="",
         required=False,
@@ -487,15 +484,15 @@ class DocumentInlineFormset(TableInlineFormset):
                         f.fields["file"].widget.attrs["data-required"] = 0
                     dtf = rd.format or rd.document_type.format
                     if dtf == "S":
-                        f.fields["file"].widget.attrs[
-                            "accept"
-                        ] = ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                        f.fields["file"].widget.attrs["accept"] = (
+                            ".xls,.xlw,.xlt,.xml,.xlsx,.xlsm,.xltx,.xltm,.xlsb,.csv,.ctv"
+                        )
                     elif dtf == "I":
                         f.fields["file"].widget.attrs["accept"] = ".pdf,.jpg,.png,.jpeg"
                     else:
-                        f.fields["file"].widget.attrs[
-                            "accept"
-                        ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+                        f.fields["file"].widget.attrs["accept"] = (
+                            ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+                        )
         context = context.flatten()
         context.update(
             {
@@ -663,7 +660,6 @@ def apnumber(value):
 
 
 class ApplicationForm(ModelForm):
-
     nomination = None
     # duration_in_years = IntegerField(
     #         required=False,
@@ -903,8 +899,8 @@ class ApplicationForm(ModelForm):
 
         if site_id in [2, 4, 5]:
             self.fields["application_title"].label = _("Title of proposed research")
-            self.fields["application_title_en"].label = f'{_("Title of proposed research")} [en]'
-            self.fields["application_title_mi"].label = f'{_("Title of proposed research")} [mi]'
+            self.fields["application_title_en"].label = f"{_('Title of proposed research')} [en]"
+            self.fields["application_title_mi"].label = f"{_('Title of proposed research')} [mi]"
 
         self.helper = FormHelper(self)
         instance = self.instance or kwargs.get("instance")
@@ -998,7 +994,7 @@ class ApplicationForm(ModelForm):
             summary_fields.extend(
                 [
                     Field("application_title"),
-                    Field(f"application_title_{'en' if language=='mi' else 'mi'}"),
+                    Field(f"application_title_{'en' if language == 'mi' else 'mi'}"),
                 ]
             )
             self.fields.pop(f"application_title_{language}", None)
@@ -1076,11 +1072,9 @@ class ApplicationForm(ModelForm):
                 # self.fields["letter_of_support_file"].help_text = help_text
 
         if (
-            round.is_applicant_cv_required
-            or round.member_cv_required
+            round.is_applicant_cv_required or round.member_cv_required
             # and (not instance.pk or instance.is_pi(user))
         ):
-
             cv_templates = [r.file for r in round.curriculum_vitae_templates.all()]
             if cv_templates:
                 help_text = _("You can download the CV form template(s) at ") + ", ".join(
@@ -1094,8 +1088,8 @@ class ApplicationForm(ModelForm):
                     os.path.basename(cv_templates[-1].name),
                 )
             else:
-                help_text = (
-                    lambda: _(
+                help_text = lambda: (
+                    _(
                         """For NZ-based researchers, a current CV in the <a href="%s">NZ RST CV Template</a> is requested."""
                     )
                     % round.default_cv_template_url
@@ -1117,7 +1111,7 @@ class ApplicationForm(ModelForm):
         if round.research_summary_required:
             summary_fields.extend(
                 [
-                    Row(Field("summary"), Field(f"summary_{'en' if language=='mi' else 'mi'}")),
+                    Row(Field("summary"), Field(f"summary_{'en' if language == 'mi' else 'mi'}")),
                 ]
             )
             self.fields.pop(f"summary_{language}", None)
@@ -1210,10 +1204,10 @@ class ApplicationForm(ModelForm):
                             Column("toa_applied", css_class="col-2"),
                             Column("toa_experimental", css_class="col-2"),
                             HTML(
-                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
+                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{_("Total")}</label><div>
                                  <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
                                  <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_toa_total_share"></span>
-                                 <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
+                                 <small class="form-text text-muted">{_("Total (must be 100%)")}</small>
                                  </div></div></div>"""
                             ),
                             css_id="id_toas_row",
@@ -1784,7 +1778,6 @@ class ApplicationForm(ModelForm):
 
 
 class ContractMemberForm(FTEMixin, ModelForm):
-
     # role = forms.ModelChoiceField(
     #     queryset=models.RoleType.where(for_contracting=True).order_by(
     #         models.Coalesce("name", "code")
@@ -1807,7 +1800,6 @@ class ContractMemberForm(FTEMixin, ModelForm):
 
 
 class AllocationForm(ModelForm):
-
     def __init__(self, *args, **kwargs):
         is_ro = kwargs.pop("is_ro", False)
         super().__init__(*args, **kwargs)
@@ -1828,7 +1820,6 @@ class AllocationForm(ModelForm):
 
 
 class AddressForm(ModelForm):
-
     address = forms.CharField(label=_("Address"), widget=forms.Textarea, required=False)
 
     def save(self, commit=True):
@@ -2682,9 +2673,9 @@ class ContractForm(ModelForm):
                 self.fields["schedule2"].label = ""
                 self.fields["file"].label = ""
                 if not instance.schedule2 and (default_schedule2 := instance.default_schedule2):
-                    self.fields["schedule2"].help_text = (
-                        f"Default: <a href='{ default_schedule2.url }'>{ os.path.basename(default_schedule2.name) }</a>"
-                    )
+                    self.fields[
+                        "schedule2"
+                    ].help_text = f"Default: <a href='{default_schedule2.url}'>{os.path.basename(default_schedule2.name)}</a>"
                 tabs.append(
                     Tab(
                         mark_safe(f'<i class="far fa-file"></i> {_("Parts")}'),
@@ -3101,7 +3092,6 @@ class ContractForm(ModelForm):
 
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
-
     readonly_fields = ["state"]
     role = forms.ModelChoiceField(
         queryset=models.RoleType.where(
@@ -3658,7 +3648,8 @@ class NominationForm(ModelForm):
                 )
                 .distinct()
                 .order_by("affiliations__start_date")
-                .last() or nominator.person.org
+                .last()
+                or nominator.person.org
             ):
                 org_id = initial["org"] = nominator_affiliation.pk
         if not initial.get("org") and org_id:
@@ -3697,13 +3688,13 @@ class NominationForm(ModelForm):
                         HTML(
                             f"""
                 <div id="div_id_org" class="form-group">
-                    <label for="id_org" data-toggle="tooltip" data-html="true" title="{_('Organisation of the nominee')}">
-                        {_('Organisation of the nominee')}
+                    <label for="id_org" data-toggle="tooltip" data-html="true" title="{_("Organisation of the nominee")}">
+                        {_("Organisation of the nominee")}
                     </label>
                     <div class="">
                         <input type="hidden" name="org" value="{ro_org.pk}" id="id_org" readonly>
                         <input type="text" name="org_name" value="{ro_org}" class="textinput textInput form-control" id="id_name_org" readonly>
-                        <small id="hint_id_position" class="form-text text-muted">{ _('Organisation of the nominee') }</small>
+                        <small id="hint_id_position" class="form-text text-muted">{_("Organisation of the nominee")}</small>
                     </div>
                 </div>"""
                         )
@@ -3739,7 +3730,6 @@ class NominationForm(ModelForm):
             self.fields["contact_phone"].help_text = _("Your (nominator) contact phone number")
 
         if r.nominator_cv_required:
-
             if nominator_cv := models.CurriculumVitae.last_user_cv(nominator):
                 initial["cv_file"] = nominator_cv.file
 
@@ -4141,15 +4131,20 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
                 message += "<ul>"
                 if cois:
                     message += "".join(
-                        f"""<li>Conflict of interest: <a href='{reverse("admin:portal_conflictofinterest_change",
-                            kwargs={"object_id": c.pk})}' target="_blank">
+                        f"""<li>Conflict of interest: <a href='{
+                            reverse(
+                                "admin:portal_conflictofinterest_change",
+                                kwargs={"object_id": c.pk},
+                            )
+                        }' target="_blank">
                             {str(c)}</a></li>"""
                         for c in cois
                     )
                 if evaluations:
                     message += "".join(
-                        f"""<li>Review: <a href='{reverse("admin:portal_evaluation_change",
-                            kwargs={"object_id": e.pk})}' target="_blank">
+                        f"""<li>Review: <a href='{
+                            reverse("admin:portal_evaluation_change", kwargs={"object_id": e.pk})
+                        }' target="_blank">
                             {str(e)}</a></li>"""
                         for e in evaluations
                     )
@@ -4291,7 +4286,6 @@ class ReadOnlyApplicationWidget(Widget):
 
 
 class ScoreForm(ModelForm):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -4414,7 +4408,6 @@ class ScoreSheetForm(ModelForm):
 
 
 class AssessedPerformanceForm(ModelForm):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["comment"].widget.attrs = {"rows": 3}
@@ -4480,15 +4473,13 @@ class AssessedPerformanceForm(ModelForm):
 
 
 class ReportedEffortForm(ModelForm):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if (i := self.instance) and i.role_id:
             # c = i.report.contract
             self.fields["role"].queryset = models.RoleType.where(
                 # Q(pk__in=c.members.values_list("role", flat=True))
-                Q(pk=i.role_id)
-                | Q(for_contracting=True)
+                Q(pk=i.role_id) | Q(for_contracting=True)
             ).order_by(models.Coalesce("name", "code"))
         self.helper = FormHelper(self)
 
@@ -4512,7 +4503,6 @@ class ReportedEffortForm(ModelForm):
 
 
 class ReportForm(ModelForm):
-
     comment = forms.CharField(
         label="",
         required=False,
@@ -4594,8 +4584,7 @@ class ReportForm(ModelForm):
         # )
 
         is_pi = instance and (
-            instance.is_pi(user)
-            or contract.submitted_by == user
+            instance.is_pi(user) or contract.submitted_by == user
             # or (contract.pk and contract.members.filter(user=user, role__code="PI").exists())
             # or application.submitted_by == user
             # or (application.pk and application.members.filter(user=user, role__code="PI").exists())
@@ -4828,10 +4817,10 @@ class ReportForm(ModelForm):
                             Column("toa_applied", css_class="col-2"),
                             Column("toa_experimental", css_class="col-2"),
                             HTML(
-                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{ _('Total') }</label><div>
+                                f"""<div class="col-2" style="text-align: right;"><div class="form-group"><label>{_("Total")}</label><div>
                                  <!-- input type="number" name="toa_experimental" value="0" min="0" class="numberinput form-control" id="id_toa_experimental" autocomplete="off" -->
                                  <span class="rcorners" style="text-align: right; color: gray; font-weight: normal;" id="id_toa_total_share"></span>
-                                 <small class="form-text text-muted">{ _('Total (must be 100%)') }</small>
+                                 <small class="form-text text-muted">{_("Total (must be 100%)")}</small>
                                  </div></div></div>"""
                             ),
                             css_id="id_toas_row",
@@ -5224,7 +5213,11 @@ class ReportForm(ModelForm):
             ]
             self.fields.pop("file", None)
             self.fields["assessment_summary"].required = True
-        elif not is_assessor and user.is_staff and (instance.file != "" or instance.assessments.count() > 1):
+        elif (
+            not is_assessor
+            and user.is_staff
+            and (instance.file != "" or instance.assessments.count() > 1)
+        ):
             fields = [
                 HTML(
                     """{% load tags %}
@@ -5294,9 +5287,9 @@ class ReportForm(ModelForm):
                 self.fields["file"].help_text = help_text
             else:
                 fields = ["file"]
-            self.fields["file"].widget.attrs[
-                "accept"
-            ] = ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+            self.fields["file"].widget.attrs["accept"] = (
+                ".pdf,.odt,.ott,.oth,.odm,.doc,.docx,.docm,.docb,.rtf,.tex"
+            )
             self.fields["file"].widget.attrs["data-required"] = 1
 
         if not is_assessor:
@@ -5723,7 +5716,6 @@ class ReportForm(ModelForm):
 
 
 class ChangeRequestForm(ModelForm):
-
     description = forms.CharField(
         required=False,
         widget=SummernoteInplaceWidget(attrs={"summernote": {"width": "100%", "height": "200px"}}),
