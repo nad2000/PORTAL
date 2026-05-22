@@ -21,8 +21,8 @@ DEFAULT_HTML_FOOTER = """
 <a href='https://www.pmscienceprizes.org.nz/'>click here</a>.<br>
 <br>Ngā mihi nui,</p><br>
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
-font-family:"Helvetica",sans-serif;color:black'><img border='0' width='298'
-height='96' style='width:3.1041in;height:1.0in' src='%(logo_url)s'
+font-family:"Helvetica",sans-serif;color:black'>
+<img border='0' src='%(logo_url)s'
 alt='PM’s Science Prizes Logo Alternative'></span><br>
 <br>
 Ngā Kaiwhakahaere o Te Puiaki Pūtaiao a Te Pirimia<br>
@@ -60,9 +60,9 @@ DEFAULT_SITE_HTML_FOOTER = {
 <a href='https://pmspaceprizes.org.nz/'>click here</a>.<br>
 <br>Ngā mihi nui,</p><br>
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
-font-family:"Helvetica",sans-serif;color:black'><img border='0' width='298'
-height='96' style='width:3.1041in;height:1.0in' src='%(logo_url)s'
-alt='PM’s Space Prizes Logo Alternative'></span><br>
+font-family:"Helvetica",sans-serif;color:black'><img border='0'
+    src='%(logo_url)s'
+    alt='PM’s Space Prizes Logo Alternative'></span><br>
 <br>
 Prime Minister’s Space Prize Secretariat</p>
 <table border='0' cellspacing='0' cellpadding='0' style=
@@ -95,8 +95,7 @@ for the addressee and may be confidential. If you are not the intended recipient
 <br>Ngā mihi nui,</p><br>
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'>
-<img border='0' src='%(logo_url)s'
-alt='Catalyst Fund Logo Alternative'></span><br>
+<img border='0' src='%(logo_url)s'alt='Catalyst Fund Logo Alternative'></span><br>
 <br>
 <br>
 International Applications</p>
@@ -133,14 +132,14 @@ font-family:"Helvetica",sans-serif;color:black'>
 <table border="0"><tr>
 <td style="text-align: left;">
 <img border='0'
-  style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
-  src="https://%(domain)s/static/images/MBIE_logo.jpg"
+  style="display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  src="https://%(domain)s/static/images/MBIE_logo.webp"
   alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right;">
 <img border='0'
-  style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
-  src="https://%(domain)s/static/images/RS_logo.png"
+  style="float: right; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
+  src="https://%(domain)s/static/images/RS_logo.webp"
   alt='Royal Society Te Apārangi'>
 </td>
 </tr></table>
@@ -181,14 +180,14 @@ font-family:"Helvetica",sans-serif;color:black'>
 <table border="0"><tr>
 <td style="text-align: left; width: 50%%;">
 <img border='0'
-  style="max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
-  src="https://%(domain)s/static/images/MBIE_logo.jpg"
+  style="display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
+  src="https://%(domain)s/static/images/MBIE_logo.webp"
   alt='Ministry of Business, Innovation & Employment Logo Alternative'>
 </td>
 <td style="text-align: right; width: 50%%;">
 <img border='0'
   style="float: right; max-height: 120px; display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
-  src="https://%(domain)s/static/images/RS_logo.png"
+  src="https://%(domain)s/static/images/RS_logo.webp"
   alt='Royal Society Te Apārangi'>
 </td>
 </tr></table>
@@ -314,12 +313,12 @@ def send_mail(
                 "utf_domain": utf_domain,
                 "site_name": site.name,
                 "logo_url": (
-                    f"{urljoin(root, 'static/images/alt_logo.jpg')}"
+                    f"{urljoin(root, 'static/images/alt_logo.webp')}"
                     if site.domain == "portal.pmscienceprizes.org.nz"
                     else (
-                        f"{urljoin(root, 'static/images/pmspace-logo.jpg')}"
+                        f"{urljoin(root, 'static/images/pmspace-logo.webp')}"
                         if site.pk == 7
-                        else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                        else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.webp')}"
                     )
                 ),
             }

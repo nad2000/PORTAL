@@ -183,7 +183,7 @@ INSTALLED_APPS = [
     # "autocompletefilter",
     "django_q",
     "constance",
-    "django_tomselect",
+    # "django_tomselect",
     "phonenumber_field",
 ]
 
@@ -301,7 +301,7 @@ MIDDLEWARE = [
     "portal.middleware.PortalMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "easyaudit.middleware.easyaudit.EasyAuditMiddleware",
-    "django_tomselect.middleware.TomSelectMiddleware",
+    # "django_tomselect.middleware.TomSelectMiddleware",
     # "django.middleware.cache.FetchFromCacheMiddleware",
 ]
 
@@ -370,7 +370,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # "dynamic_breadcrumbs.context_processors.breadcrumbs",
                 # "django.template.context_processors.request",
-                "django_tomselect.context_processors.tomselect",
+                # "django_tomselect.context_processors.tomselect",
                 "portal.views.portal_context",
             ],
             "debug": DEBUG,

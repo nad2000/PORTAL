@@ -123,9 +123,9 @@ class AccountAdapter(DefaultAccountAdapter):
                 "site_name": site.name,
                 "domain": site.domain,
                 "logo_url": (
-                    f"{urljoin(root, 'static/images/alt_logo.jpg')}"
+                    f"{urljoin(root, 'static/images/alt_logo.webp')}"
                     if site.domain == "portal.pmscienceprizes.org.nz"
-                    else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.png')}"
+                    else f"{urljoin(root, f'static/images/{site.domain}/alt_logo_small.webp')}"
                 ),
             }
             html_message = f"<html><body>{html_message}\n{html_footer}"

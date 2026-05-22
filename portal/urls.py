@@ -1,12 +1,11 @@
 from django.conf import settings
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
-
 # from rest_framework.schemas import get_schema_view
 from taggit.models import Tag
-from django.shortcuts import redirect
 
 # from . import apis, models, views
 from . import models, views
