@@ -23,7 +23,7 @@ DEFAULT_HTML_FOOTER = """
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'>
 <img border='0' src='%(logo_url)s'
-alt='PM’s Science Prizes Logo Alternative'></span><br>
+alt='PM’s Science Prizes Logo Alternative - Consider the environment before printing this email.'></span><br>
 <br>
 Ngā Kaiwhakahaere o Te Puiaki Pūtaiao a Te Pirimia<br>
 Prime Minister’s Science Prize Secretariat</p>
@@ -62,7 +62,7 @@ DEFAULT_SITE_HTML_FOOTER = {
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'><img border='0'
     src='%(logo_url)s'
-    alt='PM’s Space Prizes Logo Alternative'></span><br>
+    alt='PM’s Space Prizes Logo Alternative - Consider the environment before printing this email.'></span><br>
 <br>
 Prime Minister’s Space Prize Secretariat</p>
 <table border='0' cellspacing='0' cellpadding='0' style=
@@ -95,7 +95,7 @@ for the addressee and may be confidential. If you are not the intended recipient
 <br>Ngā mihi nui,</p><br>
 <p style='margin-bottom:12.0pt'><span style='font-size:12.0pt;
 font-family:"Helvetica",sans-serif;color:black'>
-<img border='0' src='%(logo_url)s'alt='Catalyst Fund Logo Alternative'></span><br>
+<img border='0' src='%(logo_url)s'alt='Catalyst Fund Logo Alternative - Consider the environment before printing this email.'></span><br>
 <br>
 <br>
 International Applications</p>
@@ -134,7 +134,7 @@ font-family:"Helvetica",sans-serif;color:black'>
 <img border='0'
   style="display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: auto"
   src="https://%(domain)s/static/images/MBIE_logo.webp"
-  alt='Ministry of Business, Innovation & Employment Logo Alternative'>
+  alt='Ministry of Business, Innovation & Employment Logo Alternative - Consider the environment before printing this email.'>
 </td>
 <td style="text-align: right;">
 <img border='0'
@@ -182,7 +182,7 @@ font-family:"Helvetica",sans-serif;color:black'>
 <img border='0'
   style="display: inline-block; margin-top: 5px; margin-bottom: 10px; vertical-align: top; width: 100%%;"
   src="https://%(domain)s/static/images/MBIE_logo.webp"
-  alt='Ministry of Business, Innovation & Employment Logo Alternative'>
+  alt='Ministry of Business, Innovation & Employment Logo Alternative - Consider the environment before printing this email.'>
 </td>
 <td style="text-align: right; width: 50%%;">
 <img border='0'
@@ -305,9 +305,8 @@ def send_mail(
         message = html2text.html2text(html_message)
     elif message and not html_message and convert_to_html:
         html_message = "\n".joint(
-                f"<p>{line}</p>" if line.strip() else "<br/>"
-                for line in message.splitlines()
-            )
+            f"<p>{line}</p>" if line.strip() else "<br/>" for line in message.splitlines()
+        )
         # html_message = f"<html><body><pre>{html_message}</pre></body></html>"
 
     if message:
@@ -345,7 +344,47 @@ Together, we can build a more sustainable, paperless future. Please consider fil
                     )
                 ),
             }
-        html_message = f"<html><body>{html_message}\n{html_footer}</body></html>"
+        html_message = f"""<html>
+  <body>
+    {html_message}
+    {html_footer}
+    <-- The above footer is designed to be visually appealing and informative, while also conveying the importance of environmental responsibility. It includes a clear call to action, benefits of reading digitally, and a relevant quote to inspire sustainable behavior. The styling is clean and professional, using colors and fonts that align with the organization's branding. -->
+    <div style="font-family: Arial, sans-serif; font-size: 13px; color: #2e3d30; line-height: 1.5; border-top: 1px solid #dcdcdc; padding-top: 12px; margin-top: 20px;">
+        <!-- Main Eco Heading -->
+        <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e5631;">
+            🌱 Think Before You Print | Green Communicator
+        </p>
+
+        <!-- Core Message -->
+        <p style="margin: 0 0 12px 0; font-style: italic;">
+            Please consider the environment before printing this email.
+            Let's keep it on the screen to preserve our natural resources.
+        </p>
+
+        <!-- Benefits List Header -->
+        <p style="margin: 0 0 6px 0; font-weight: bold; color: #4a5d4e;">
+            By choosing to read this digitally, you help:
+        </p>
+
+        <!-- Benefits Bullet Points -->
+        <ul style="margin: 0 0 12px 0; padding-left: 20px;">
+            <li style="margin-bottom: 4px;">
+                <strong>Conserve forests:</strong> Reduces raw paper demand
+                and protects crucial biodiversity.</li>
+            <li style="margin-bottom: 4px;"><strong>Lower carbon emissions:</strong> Decreases the energy used in paper manufacturing, toner production, and transportation.</li>
+            <li style="margin-bottom: 4px;"><strong>Minimize waste:</strong> Prevents paper clutter and ensures our operational footprint stays as light as possible.</li>
+        </ul>
+
+        <!-- Closing Quote & Call to Action -->
+        <p style="margin: 0; font-size: 12px; color: #556b2f; line-height: 1.4;">
+            <em>"Earth provides enough to satisfy every person's need, but not every person's waste."</em><br>
+            Together, we can build a more sustainable, paperless future. Please consider filing this email digitally rather than printing.
+        </p>
+    </div>
+
+  </body>
+</html>
+"""
 
     if not token:
         token = models.get_unique_mail_token()
@@ -372,6 +411,9 @@ Together, we can build a more sustainable, paperless future. Please consider fil
             "Return-Receipt-To": f"{getpass.getuser()}@{domain}",
             "Disposition-Notification-To": f"{getpass.getuser()}@{domain}",
         }
+    headers["Content-Type"] = "text/plain; markup=markdown"
+    # headers["MIME-Version"] = "1.0"
+    # headers["Auto-Submitted"] = "auto-generated"
 
     subject_prefix = f"[{site.name}]" if site else settings.EMAIL_SUBJECT_PREFIX
     if subject and "\n" in subject:
@@ -410,6 +452,9 @@ Together, we can build a more sustainable, paperless future. Please consider fil
 
     if html_message:
         msg.attach_alternative(html_message, "text/html")
+
+    if message:
+        msg.attach_alternative(message, "text/markdown")
 
     try:
         resp = msg.send()
