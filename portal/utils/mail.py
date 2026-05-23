@@ -304,7 +304,7 @@ def send_mail(
     if not message and html_message:
         message = html2text.html2text(html_message)
     elif message and not html_message and convert_to_html:
-        html_message = "\n".joint(
+        html_message = "\n".join(
             f"<p>{line}</p>" if line.strip() else "<br/>" for line in message.splitlines()
         )
         # html_message = f"<html><body><pre>{html_message}</pre></body></html>"
@@ -411,7 +411,7 @@ Together, we can build a more sustainable, paperless future. Please consider fil
             "Return-Receipt-To": f"{getpass.getuser()}@{domain}",
             "Disposition-Notification-To": f"{getpass.getuser()}@{domain}",
         }
-    headers["Content-Type"] = "text/plain; markup=markdown"
+    # headers["Content-Type"] = "text/plain; markup=markdown"
     # headers["MIME-Version"] = "1.0"
     # headers["Auto-Submitted"] = "auto-generated"
 
@@ -438,6 +438,7 @@ Together, we can build a more sustainable, paperless future. Please consider fil
         bcc=bcc or None,
         headers=headers,
     )
+    # msg.content_subtype = "markdown"
     if attachments:
         for a in attachments:
             msg.attach(
@@ -450,11 +451,14 @@ Together, we can build a more sustainable, paperless future. Please consider fil
     if reply_to:
         msg.reply_to = [reply_to]
 
-    if html_message:
-        msg.attach_alternative(html_message, "text/html")
+    if message:
+        msg.attach_alternative(message, 'text/plain; markup=markdown; charset="utf-8"')
 
     if message:
-        msg.attach_alternative(message, "text/markdown")
+        msg.attach_alternative(message, 'text/markdown; charset="utf-8"')
+
+    if html_message:
+        msg.attach_alternative(html_message, "text/html")
 
     try:
         resp = msg.send()

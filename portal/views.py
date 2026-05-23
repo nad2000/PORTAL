@@ -74,6 +74,7 @@ from django.db.models import (
 from django.db.models.deletion import RestrictedError
 from django.db.models.functions import Coalesce, Lower, Trim
 from django.forms import (
+    BooleanField,
     DateInput,
     FileField,
     Form,
@@ -1871,8 +1872,8 @@ def subscribe(request):
         # return_url = request.GET.get("next") or request.META.get("HTTP_REFERER")
         # url = f"{url}?next={return_url}"
         send_mail(
-            __("Please confirm subscription"),
-            __("Please confirm your subscription to our newsletter: %s") % url,
+            "Please confirm subscription",
+            "Kia ora,\nPlease confirm your subscription to our newsletter: %s" % url,
             recipients=[email],
             fail_silently=False,
             token=token,
@@ -4746,7 +4747,7 @@ class InvitationCreate(CreateView):
             i.site = self.request.site
 
         form.save()
-        if u.is_admin:
+        if u.is_admin and form.cleaned_data.get("send_async", False):
             res = models.async_task(
                 i.send,
                 site_id=self.request.site_id,
@@ -4764,7 +4765,26 @@ class InvitationCreate(CreateView):
 
     def get_form_class(self):
         """Return the form class to use in this view."""
-        return model_forms.modelform_factory(self.model, fields=self.fields, widgets=self.widgets)
+        class InvitationForm(forms.ModelForm):
+            send_async = BooleanField(
+                label=_("Async"),
+                required=False,
+                initial=False,
+            )
+
+            class Meta:
+                model = models.Invitation
+                fields = "__all__"
+
+        fields = self.fields[:]
+        if self.request.user.is_admin:
+            fields.append("send_async")
+
+        return model_forms.modelform_factory(
+            self.model,
+            form=InvitationForm,
+            fields=self.fields,
+            widgets=self.widgets)
 
 
 # @login_required
