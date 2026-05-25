@@ -2207,7 +2207,8 @@ class Person(PersonMixin, Model):
 
                     for f in [f.name for f in self._meta.fields]:
                         if (
-                            f in ["created_at", "updated_at", "id", "pk"]
+                            f
+                            in ["created_at", "updated_at", "id", "pk"]
                             # or getattr(self, f, None) is not None and f != "code"
                         ):
                             continue
@@ -14156,7 +14157,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
             request and (request.POST.get("description") or request.POST.get("resolution"))
         )
         url = self.get_full_detail_url(request=request)
-        link_name = domain_to_macrons(url)
+        # link_name = domain_to_macrons(url)
 
         send_mail(
             f"Report {self} Submitted",
@@ -14325,10 +14326,16 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
 
     @property
     def ro_recipients(self):
-        if self.host_contact_email:
-            return [self.host_contact_email]
+
+        # if self.host_contact_email:
+        #     return [self.host_contact_email]
         org = self.contract.org or self.contract.application.org
-        if ro_email := (org.reporting_contact_email or org.ro_email):
+        if ro_email := (
+            org.reporting_contact_email
+            or org.contract_contact_email
+            or org.application_contact_email
+            or org.ro_email
+        ):
             return [ro_email]
         return self.contract.research_officers
 
