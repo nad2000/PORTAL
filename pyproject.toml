@@ -27,3 +27,7 @@ line-length = 99
 force-exclude = true
 extend-exclude = ["tests", "src/bad.py"]
 target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"] # Enable Pyflakes, pycodestyle, and isort
+ignore = ["E501"]        # Ignore line-length violations

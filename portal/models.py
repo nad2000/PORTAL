@@ -2207,8 +2207,7 @@ class Person(PersonMixin, Model):
 
                     for f in [f.name for f in self._meta.fields]:
                         if (
-                            f
-                            in ["created_at", "updated_at", "id", "pk"]
+                            f in ["created_at", "updated_at", "id", "pk"]
                             # or getattr(self, f, None) is not None and f != "code"
                         ):
                             continue

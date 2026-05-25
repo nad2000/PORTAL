@@ -4765,6 +4765,7 @@ class InvitationCreate(CreateView):
 
     def get_form_class(self):
         """Return the form class to use in this view."""
+
         class InvitationForm(forms.ModelForm):
             send_async = BooleanField(
                 label=_("Async"),
@@ -4781,10 +4782,8 @@ class InvitationCreate(CreateView):
             fields.append("send_async")
 
         return model_forms.modelform_factory(
-            self.model,
-            form=InvitationForm,
-            fields=self.fields,
-            widgets=self.widgets)
+            self.model, form=InvitationForm, fields=self.fields, widgets=self.widgets
+        )
 
 
 # @login_required

@@ -4,6 +4,7 @@ from django.shortcuts import redirect
 from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
+
 # from rest_framework.schemas import get_schema_view
 from taggit.models import Tag
 
