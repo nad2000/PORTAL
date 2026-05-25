@@ -14291,7 +14291,7 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
         by = kwargs.get("by") or request and request.user
 
         url = self.get_full_detail_url(request=request)
-        link_name = domain_to_macrons(url)
+        # link_name = domain_to_macrons(url)
 
         send_mail(
             f"Report {self} Assessed",
@@ -14326,8 +14326,8 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @property
     def ro_recipients(self):
 
-        # if self.host_contact_email:
-        #     return [self.host_contact_email]
+        if self.host_contact_email:
+            return [self.host_contact_email]
         org = self.contract.org or self.contract.application.org
         if ro_email := (
             org.reporting_contact_email
