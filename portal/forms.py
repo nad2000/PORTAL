@@ -1783,6 +1783,7 @@ class ContractMemberForm(FTEMixin, ModelForm):
     #         models.Coalesce("name", "code")
     #     )
     # )
+    confirm_deletion = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -3093,6 +3094,8 @@ class ContractForm(ModelForm):
 
 class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
     readonly_fields = ["state"]
+    confirm_deletion = True
+
     role = forms.ModelChoiceField(
         queryset=models.RoleType.where(
             for_application=True,
