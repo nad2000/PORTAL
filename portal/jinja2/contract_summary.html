@@ -6,16 +6,17 @@
 
 {% macro inline_member(member) -%}
   {% if is_admin and not export %}
-    <a href="{{ url('admin:portal_contractmember_change', object_id=member.pk) }}" target="_blank">
+    <a href="{{ member.admin_url }}" target="_blank">
       {{ member.full_name_with_email or member }}
     </a>
-    <a type="button" class="badge badge-primary" href="{{ url('admin:portal_contractmember_change', object_id=member.pk) }}" target="_blank"> {{ _('Edit') }}</a>
+    <a type="button" class="badge badge-primary" href="{{ member.admin_url }}" target="_blank"> {{ _('Edit') }}</a>
   {% else %}
     {{ member.full_name_with_email or member }}
   {% endif %}
 {%- endmacro %}
 
 <div class="table-responsive">
+
   <table class="table table-bordered searchable">
     <tbody>
 
@@ -82,16 +83,16 @@
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Panel') }}
         </th>
-        <td>
+portals.royalsociety.org.nz        <td>
           {{ c.panel or _('N/A') }}
         </td>
-      </tr>
+portals.royalsociety.org.nz      </tr>
 
       <tr>
         <th class="table-dark" scope="row" style="width: 21%; min-width: 160px; max-width: 180px;">
           {{ _('Fund') }}
         </th>
-        <td>
+portals.royalsociety.org.nz        <td>
           {{ c.fund or _('N/A') }}
         </td>
       </tr>

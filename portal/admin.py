@@ -596,7 +596,10 @@ class HistoryAdmin(SimpleHistoryAdmin):
         try:
             return obj.get_absolute_url()
         except (AttributeError, NoReverseMatch):
-            return super().view_on_site(obj)
+            try:
+                return obj.admin_url
+            except:
+                return super().view_on_site(obj)
 
     def get_history_list_display(self, request):
         if hasattr(self.model, "state"):
@@ -2714,10 +2717,30 @@ class ContractMemberAdmin(UnaccentMixin, StaffPermsMixin, HistoryAdmin):
 
     class EffortInline(admin.TabularInline):
         model = models.ContractMemberEffort
+        fields = ["view_on_site_link", "period", "fte"]
         extra = 0
         view_on_site = False
 
+        # def view_on_site(self, obj):
+        #     return self.request.user.is_superuser and obj.admin_url
+
+        readonly_fields = ("view_on_site_link",)
+
+        def view_on_site_link(self, obj):
+            return obj.pk and format_html('<a href="{}?is_popup=1" target="_blank">Edit</a>', obj.admin_url) or "-"
+
+        view_on_site_link.short_description = "Edit"
+
     inlines = [EffortInline]
+
+
+@admin.register(models.ContractMemberEffort)
+class ContractMemberEffortAdmin(StaffPermsMixin, HistoryAdmin):
+    save_on_top = True
+    view_on_site = False
+
+    def has_module_permission(self, request):
+        return False
 
 
 @admin.register(models.Panellist)
@@ -5013,10 +5036,10 @@ class ContractAdmin(
         model = models.ContractMember
         autocomplete_fields = ["user", "address"]
         fields = ["view_on_site_link", "email", "first_name", "last_name", "role", "is_funded"]
+        view_on_site = False
 
         readonly_fields = ("view_on_site_link",)
 
-        # view_on_site = False
         def view_on_site_link(self, obj):
             if obj.pk:
                 url = reverse("admin:portal_contractmember_change", kwargs={"object_id": obj.pk})

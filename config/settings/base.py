@@ -382,7 +382,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "environment": "jinja2_env.environment",
-            "extensions": ["jinja2.ext.i18n"],
+            "extensions": ["jinja2.ext.i18n", "jinja2.ext.debug"] if DEBUG else ["jinja2.ext.i18n"],
         },
     },
 ]

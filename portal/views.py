@@ -7539,9 +7539,10 @@ class ApplicationCreate(ApplicationView, CreateView):
                     form.cleaned_data.pop("address", None)
 
                 resp = super().form_valid(form)
-                # a.save()
+                if not a.pk:
+                    a.save()
                 if n and not (n.application and n.user):
-                    n.application = self.object
+                    n.application = a
                     if n.state != "accepted":
                         n.accept()
                     if not n.user:
