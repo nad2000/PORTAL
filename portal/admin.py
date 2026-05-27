@@ -4091,33 +4091,34 @@ class RoundAdmin(
                 ]
             )
 
-            fieldsets.extend(
-                [
+        fieldsets.extend(
+            [
+                (
                     (
-                        (
-                            "Other Templates",
-                            {
-                                "fields": [
-                                    "referee_template",
-                                ]
-                            },
-                        )
-                        if site_id in [2, 4, 5]
-                        else (
-                            "Templates",
-                            {
-                                "fields": [
-                                    "application_template",
-                                    "score_sheet_template",
-                                    "nomination_template",
-                                    "referee_template",
-                                    "budget_template",
-                                ]
-                            },
-                        )
-                    ),
-                ]
-            )
+                        "Other Templates",
+                        {
+                            "fields": [
+                                "referee_template",
+                            ]
+                        },
+                    )
+                    if site_id in [2, 4, 5]
+                    else (
+                        "Templates",
+                        {
+                            "classes": ("collapse",),
+                            "fields": [
+                                "application_template",
+                                "score_sheet_template",
+                                "nomination_template",
+                                "referee_template",
+                                "budget_template",
+                            ]
+                        },
+                    )
+                ),
+            ]
+        )
         return fieldsets
 
     @admin.action(description="Export for the panellists")
