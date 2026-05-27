@@ -14,12 +14,11 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from functools import cache, cached_property, lru_cache, partial, wraps
+from functools import cache, cached_property, partial, wraps
 from itertools import chain, groupby, islice
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlparse
 from wsgiref.util import FileWrapper
-from phonenumber_field.modelfields import PhoneNumberField
 
 import pikepdf
 import py7zr
@@ -70,12 +69,10 @@ from django.db.models import (
     GeneratedField,
     Index,
     IntegerField,
-    JSONField,
     Manager,
     ManyToManyField,
     Min,
     OneToOneField,
-    OuterRef,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     Prefetch,
@@ -91,8 +88,8 @@ from django.db.models import (
     prefetch_related_objects,
 )
 from django.db.models.deletion import get_candidate_relations_to_delete
-from django.db.models.functions import Cast, Coalesce, Concat, ExtractYear, Lower
-from django.http import FileResponse, HttpRequest, HttpResponse, StreamingHttpResponse
+from django.db.models.functions import Cast, Coalesce, ExtractYear, Lower
+from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
@@ -100,7 +97,6 @@ from django.utils.crypto import get_random_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
-from django_extensions.db.models import TimeStampedModel
 from django_fsm import FSMField, FSMFieldMixin, transition
 from django_fsm_log.helpers import FSMLogDescriptor
 from django_fsm_log.models import StateLog
@@ -113,6 +109,7 @@ from model_utils.fields import MonitorField, StatusField
 from ooopy import Transforms
 from ooopy.OOoPy import OOoPy
 from ooopy.Transformer import Transformer
+from phonenumber_field.modelfields import PhoneNumberField
 from private_storage.fields import PrivateFileField
 
 # from pypdf import PdfMerger, PdfReader, PdfWriter
@@ -122,7 +119,7 @@ from sentry_sdk import capture_exception, capture_message
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
 from taggit.managers import TaggableManager
-from taggit.models import GenericTaggedItemBase, Tag, TagBase
+from taggit.models import GenericTaggedItemBase, TagBase
 from weasyprint import HTML
 
 from common.models import (
@@ -134,7 +131,6 @@ from common.models import (
     PersonMixin,
     TimeStampMixin,
     Title,
-    archive_storage,
     domain_to_macrons,
     save_to_archive,
 )
@@ -5774,7 +5770,7 @@ Please review your referee report and resubmit it again: {url}.
 
             if not self.survey_token:
                 self.survey_token = self.make_survey_token()
-                self._change_reason = f"Fixed and updated token"
+                self._change_reason = "Fixed and updated token"
                 self.save(update_fields=["survey_token"])
 
             if not self.survey_token_id and self.survey_token:
@@ -7568,7 +7564,7 @@ def notify_site_staff_about_new_organisations():
                 by {o.history.filter(history_type="+").first().history_user})</li>"""
                 for o in g
             )
-        subject = f"New Organization(s) created"
+        subject = "New Organization(s) created"
         html_message = f"""<p>Kia ora!</p><p>A new organization(s) has been created in the last week:
         <ul>{org_list}</ul></p>
         <p>Please review the records and
@@ -8863,7 +8859,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                 if p and not r.survey_token:
                     r.survey_token = token
                     r.survey_token_id = p.get("tid")
-                    r._change_reason = f"Updated token and token ID"
+                    r._change_reason = "Updated token and token ID"
                     r.save(update_fields=["survey_token", "survey_token_id"])
                 if not p or not p["completed_at"]:
                     continue
@@ -8899,7 +8895,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         )
                         if testimonials.count() > 0:
                             for t in testimonials:
-                                description = f"Synced with LimeSurvey"
+                                description = "Synced with LimeSurvey"
                                 t.submit(by=r.user, description=description, commit=False)
                                 t._change_reason = description
                                 updated_testimonials.append(t)
@@ -13427,6 +13423,8 @@ class Allocation(Model):
         decimal_places=2,
         help_text=_("Amount of funding (GST excl.)"),
     )
+    contract_yr = DateField(_("Contract Year"), null=True, blank=True)
+    financial_yr = DateField(_("Financial Year"), null=True, blank=True)
 
     history = HistoricalRecords(table_name="allocation_history")
 
