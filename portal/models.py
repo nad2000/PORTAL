@@ -11008,6 +11008,22 @@ def add_title_data(apps, schema_editor):
 #         db_table = "contract_keyword"
 
 
+class ContractRcc(Model):
+    contract = ForeignKey("Contract", on_delete=CASCADE, related_name="contract_rccs")
+    rcc = ForeignKey(Rcc, on_delete=CASCADE, verbose_name="RCC")
+    share = PositiveSmallIntegerField(null=True, blank=True, default=None)
+
+    def __str__(self):
+        return f"{self.rcc.code}"
+
+    class Meta:
+        # auto_created = True
+        db_table = "contract_rcc"
+        unique_together = (("contract", "rcc"),)
+        verbose_name = _("contract RCC")
+        verbose_name_plural = _("contract RCCs")
+
+
 class ContractFor(Model):
     contract = ForeignKey("Contract", on_delete=CASCADE, related_name="contract_fors")
     code = ForeignKey(FieldOfResearch, db_column="code", on_delete=CASCADE, verbose_name="FoR")
@@ -11284,7 +11300,13 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         help_text=_("If yes, does your institution have a child protection policy?"),
     )
 
-    rccs = ManyToManyField(Rcc, blank=True, db_table="contract_rcc", related_name="contracts")
+    rccs = ManyToManyField(
+        Rcc,
+        blank=True,
+        through=ContractRcc,
+        # db_table="contract_rcc",
+        related_name="contracts",
+    )
     fors = ManyToManyField(
         FieldOfResearch,
         blank=True,
@@ -13323,13 +13345,51 @@ class ContractMember(PersonMixin, Model):
     )
     # has_authorized = BooleanField(null=True, blank=True)
     user = ForeignKey(User, null=True, blank=True, on_delete=SET_NULL)
+    is_funded = BooleanField(default=True, verbose_name=_("funded"))
     address = ForeignKey(Address, null=True, blank=True, on_delete=PROTECT)
+    person = ForeignKey(
+        Person,
+        on_delete=SET_NULL,
+        editable=False,
+        blank=True,
+        null=True,
+        related_name="+",
+        db_comment="imported from stage.person",
+    )
+    name = CharField(
+        max_length=400,
+        null=True,
+        blank=True,
+        db_comment="imported from stage.contract_member.person_name",
+        editable=False,
+    )
+    is_postdoc = BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        db_comment="imported from stage.contract_member.is_postdoc",
+        editable=False,
+    )
+    org = ForeignKey(
+        Organisation, on_delete=SET_NULL, null=True, blank=True,
+        editable=False,
+        db_column="imported from stage.contract_member.institution",
+        related_name="+",
+    )
+    country = ForeignKey(
+        Country,
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        db_column="imported from stage.contract_member.country",
+        related_name="+",
+    )
     # state = StateField(null=True, blank=True, default="new")
     # state_changed_at = MonitorField(monitor="state", null=True, blank=True, default=None, blank=True)
     # authorized_at = MonitorField(
     #     monitor="state", when=["authorized"], null=True, default=None, blank=True
     # )
-    is_funded = BooleanField(default=True, verbose_name=_("funded"))
     history = HistoricalRecords(table_name="contract_member_history")
 
     def natural_key(self):
