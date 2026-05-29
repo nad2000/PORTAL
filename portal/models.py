@@ -13373,7 +13373,7 @@ class ContractMember(PersonMixin, Model):
     org = ForeignKey(
         Organisation, on_delete=SET_NULL, null=True, blank=True,
         editable=False,
-        db_column="imported from stage.contract_member.institution",
+        db_comment="imported from stage.contract_member.institution",
         related_name="+",
     )
     country = ForeignKey(
@@ -13382,7 +13382,7 @@ class ContractMember(PersonMixin, Model):
         null=True,
         blank=True,
         editable=False,
-        db_column="imported from stage.contract_member.country",
+        db_comment="imported from stage.contract_member.country",
         related_name="+",
     )
     # state = StateField(null=True, blank=True, default="new")
