@@ -5290,7 +5290,7 @@ class ReportAdmin(StaffPermsMixin, FSMTransitionMixin, PdfFileAdminMixin, Histor
                     ("file", "converted_file"),
                     # ("number", "refcode", "year"),
                     # "project_title",
-                    # "host_contact_email",
+                    "host_contact_email",
                     # ("source", "source_code"),
                     # ("org", "contract"),
                     # ("proposal", "proposal_number"),
