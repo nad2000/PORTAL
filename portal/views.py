@@ -7529,7 +7529,7 @@ class ApplicationCreate(ApplicationView, CreateView):
                 a.scheme = a.round.scheme
                 n = (
                     self.nomination
-                    or self.round.user_nominations(self.request.user).order_by("-id").first()
+                    or self.round.user_nominations(self.request.user).order_by("-pk").first()
                 )
                 if a and not a.number:
                     a.number = models.default_application_number(a, nomination=n)

@@ -3231,8 +3231,7 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             if not created:
                 cv.file.save(cv_file.name, File(cv_file))
             self.instance.cv = cv
-        if commit:
-            super().save(commit=True)
+        super().save(commit=commit)
         return self.instance
 
     def clean(self):
