@@ -14384,17 +14384,23 @@ class Report(ReportMixin, PdfFileMixin, CommentMixin, Model):
     @property
     def ro_recipients(self):
 
-        if self.host_contact_email:
-            return [self.host_contact_email]
+        recipients = []
         org = self.contract.org or self.contract.application.org
+
         if ro_email := (
             org.reporting_contact_email
             or org.contract_contact_email
             or org.application_contact_email
             or org.ro_email
         ):
-            return [ro_email]
-        return self.contract.research_officers
+            # return [ro_email]
+            recipients.append(ro_email)
+
+        if self.host_contact_email:
+            # return [self.host_contact_email]
+            recipients.append(self.host_contact_email)
+
+        return recipients or  self.contract.research_officers
 
     def host_contact(self):
         if self.host_contact_email:
