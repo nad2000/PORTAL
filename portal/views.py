@@ -59,10 +59,8 @@ from django.db.models import (
     Count,
     Exists,
     F,
-    FilteredRelation,
     Func,
     Max,
-    Min,
     OuterRef,
     Prefetch,
     ProtectedError,
@@ -89,9 +87,9 @@ from django.forms import (
     fields,
     modelform_factory,
     modelformset_factory,
+    widgets,
 )
 from django.forms import models as model_forms
-from django.forms import widgets
 
 # from file_resubmit.widgets import ResubmitFileWidget
 from django.http import (
@@ -103,7 +101,7 @@ from django.http import (
     StreamingHttpResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render, reverse
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from django.urls import NoReverseMatch
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -114,7 +112,6 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_cookie
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, FormView, TemplateView
@@ -147,7 +144,6 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated
 from sentry_sdk import capture_exception, capture_message, last_event_id
-from taggit.models import TaggedItem
 from weasyprint import HTML
 
 from common.models import archive_storage
@@ -1040,8 +1036,8 @@ class NotesMixin:
             context = self.get_context_data()
         u = self.request.user
         if u.is_admin and (notes := context.get("notes")):
-            if not notes.instance or not notes.instance.pk:
-                notes.instance = a
+            if not (notes.instance and notes.instance.pk) and self.object and self.object.pk:
+                notes.instance = form.instance.pk and form.instance or None
 
             for f in notes.forms:
                 if f.instance and not f.instance.pk and not f.instance.author:
@@ -1212,7 +1208,7 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
             else:
                 # Make the function name the button title, but prettier
                 return mark_safe(
-                    "{0} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
+                    "{0} {1} {2}".format(transition.name.replace("_", " "), model_name, obj).title()
                 )
 
         if not getattr(self, "object", None):
@@ -5829,10 +5825,10 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                 initial["organisation"] = org.name
 
             if (
-                position := current_affiliation
-                and current_affiliation.role
-                or nomination
+                position := nomination
                 and nomination.position
+                or current_affiliation
+                and current_affiliation.role
                 or latest_application
                 and latest_application.position
             ):
@@ -6066,7 +6062,8 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                         # url = self.request.path_info.split("?")[0] + "#application"
                         url = self.continue_url("application")
                     if members.is_valid():
-                        # members.instance = a
+                        if not members.instance.pk:
+                            members.instance = a
                         members.save()
                         invitations = a.invite_team_members(self.request)
                         count = invitations and len(invitations) or 0
@@ -11762,7 +11759,7 @@ class TestimonialDetail(FavoriteMixin, DetailView):
                 context["export_url"] = reverse(
                     "survey-response", kwargs={"referee_id": referee.pk}
                 )
-                context["export_tooltip"] = _(f"Export survey response")
+                context["export_tooltip"] = _("Export survey response")
             elif not (t and t.file):  ## and not referee.survey_completed_at:
                 context["export_url"] = reverse("application-export", kwargs={"pk": a.pk})
                 context["export_tooltip"] = _(f"Export application {a}")
@@ -13575,7 +13572,7 @@ def headers(request, application_id, page_count=1, output_type="pdf"):
     html = HTML(string=template.render(locals()))
     pdf_object = html.write_pdf()
     response = HttpResponse(pdf_object, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="headers.pdf"'
+    response["Content-Disposition"] = 'attachment; filename="headers.pdf"'
     response["Cache-Control"] = "no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
     response["X-Content-Type-Options"] = "nosniff"
     return response

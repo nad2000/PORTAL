@@ -90,6 +90,7 @@ from django.db.models import (
 from django.db.models.deletion import get_candidate_relations_to_delete
 from django.db.models.functions import Cast, Coalesce, ExtractYear, Lower
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+from django.shortcuts import redirect
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
@@ -4964,7 +4965,7 @@ class Application(ApplicationMixin, PersonMixin, PdfFileMixin, Model):
             lines = self.vm_rationale.split("\r\r")
         else:
             lines = self.vm_rationale.split("\n\n")
-        return "\r\r".join(f"<p>{l}</p>" for l in lines if l.strip())
+        return "\r\r".join(f"<p>{line}</p>" for line in lines if line.strip())
 
     @cached_property
     def documents_dict(self):
@@ -5621,9 +5622,9 @@ class Referee(RefereeMixin, PersonMixin, Model):
 
         if not (url := self.survey_url):
             if self.application.round.survey_id:
-                if self.survey_token and survey_token_id:
+                if self.survey_token and self.survey_token_id:
                     url = self.get_full_url(
-                        "survey-do", survey_id=self.survey_token_id, token=survey_token
+                        "survey-do", survey_id=self.survey_token_id, token=self.survey_token
                     )
                 else:
                     url = self.get_full_url("survey-referee", referee_id=self.pk)
@@ -5632,14 +5633,6 @@ class Referee(RefereeMixin, PersonMixin, Model):
                     url = self.get_full_url("testimonial-update", pk=t.pk)
                 else:
                     url = self.application.get_full_detail_url(request=request)
-        message = f"""Kia ora!
-
-You have requested to revise your referee report ({t or self.application}).
-Please review your referee report and resubmit it again: {url}.
-"""
-
-        # if resolugion:
-        #     pass
 
         send_mail(
             "Your referee report/testimonial requires reviewing",
@@ -9066,7 +9059,7 @@ class Round(TimeStampMixin, HelperMixin, OrderableModel):
                         url = reverse(
                             "admin:django_q_ormq_change", kwargs={"object_id": q_task.pk}
                         )
-                        task_name = q_task.task.get("name") or taks_id
+                        task_name = q_task.task.get("name") or task_id
                         messages.success(
                             request,
                             mark_safe(
@@ -12557,6 +12550,8 @@ class Contract(ContractMixin, PersonMixin, PdfFileMixin, CommentMixin, VMTOAMode
         output_dir = Path(tempfile.gettempdir())
 
         output_filename = output_dir / f"{self.number}.pdf"
+
+        merger = PdfWriter()
         merger.write(output_filename)
         return output_filename
 
@@ -13381,6 +13376,7 @@ class ContractMember(PersonMixin, Model):
         on_delete=SET_NULL,
         null=True,
         blank=True,
+        db_column="country",
         editable=False,
         db_comment="imported from stage.contract_member.country",
         related_name="+",
@@ -13662,16 +13658,16 @@ class ReportingScheduleEntry(ReportingScheduleEntryMixin, Model):
         ):
             r = rse.create_report()
 
-        send_mail(
-            __("A team member opted out of application"),
-            __("Your team member %s has opted out of application") % self,
-            recipients=[self.application.submitted_by.email],
-            fail_silently=False,
-            request=request,
-            reply_to=self.full_email_address,
-            thread_index=self.thread_index,
-            thread_topic=self.thread_topic,
-        )
+        # send_mail(
+        #     __("A team member opted out of application"),
+        #     __("Your team member %s has opted out of application") % self,
+        #     recipients=[self.application.submitted_by.email],
+        #     fail_silently=False,
+        #     request=request,
+        #     reply_to=self.full_email_address,
+        #     thread_index=self.thread_index,
+        #     thread_topic=self.thread_topic,
+        # )
 
         pass
 

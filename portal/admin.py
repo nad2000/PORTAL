@@ -1,10 +1,7 @@
+import inspect
 import os
 import re
 from functools import cache
-import inspect
-from django.contrib.contenttypes.admin import GenericTabularInline
-from allauth.account.adapter import get_adapter
-from dateutil.relativedelta import relativedelta
 
 import dal
 import django
@@ -19,12 +16,13 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin import helpers
 from django.contrib.admin.widgets import SELECT2_TRANSLATIONS
+from django.contrib.contenttypes.admin import GenericTabularInline
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
 from django.db import transaction
-from django.db.models import F, Q, Count
+from django.db.models import F, Q
 from django.db.models.deletion import get_candidate_relations_to_delete
-from django.shortcuts import render, reverse, redirect
+from django.shortcuts import redirect, render, reverse
 from django.urls import NoReverseMatch
 from django.utils import timezone
 from django.utils.datastructures import OrderedSet
@@ -34,7 +32,6 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from django_fsm_log.admin import StateLogInline
 from django_summernote.admin import SummernoteModelAdminMixin
-
 from easyaudit import admin as easyaudit_admin
 from easyaudit.models import CRUDEvent, LoginEvent, RequestEvent
 from fsm_admin.mixins import FSMTransitionMixin
@@ -53,9 +50,9 @@ from simple_history.admin import SimpleHistoryAdmin
 from simple_history.models import HistoricalChanges
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
-from . import filters, models
-from .forms import ModelSelect2NoPK
 from common.admin import StaffPermsMixin
+
+from . import filters, models
 
 # from dalf.admin import DALFModelAdmin, DALFRelatedOnlyField, DALFRelatedFieldAjax
 # from autocompletefilter.admin import AutocompleteFilterMixin
@@ -3074,33 +3071,37 @@ class OrganisationAdmin(StaffPermsMixin, ImportExportMixin, ExportActionMixin, H
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj=obj)
         if obj and obj.replaced_org:
-            return [
-                (
-                    None,
-                    {
-                        "fields": [
-                            "new_org_link",
-                            ("code", "name", "is_active"),
-                            ("identifier_type", "identifier"),
-                            ("legal_name", "alt_name"),
-                        ],
-                    },
-                ),
-                *fieldsets[1:],
-            ]
-        return [
-            (
-                None,
-                {
-                    "fields": [
-                        ("code", "name", "is_active"),
-                        ("identifier_type", "identifier"),
-                        ("legal_name", "alt_name"),
-                    ],
-                },
-            ),
-            *fieldsets[1:],
-        ]
+            fieldsets[0][1]["fields"].insert(0, "new_org_link")
+            # return [
+            #     (
+            #         None,
+            #         {
+            #             "fields": [
+            #                 "new_org_link",
+            #                 ("code", "name", "is_active", "is_verified", "is_approved_host"),
+            #                 # ("is_active", "is_verified", "is_approved_host"),
+            #                 ("identifier_type", "identifier"),
+            #                 ("legal_name", "alt_name"),
+            #             ],
+            #         },
+            #     ),
+            #     *fieldsets[1:],
+            # ]
+        # return [
+            # (
+            #     None,
+            #     {
+            #         "fields": [
+            #             # ("code", "name", "is_active"),
+            #             ("code", "name", "is_active", "is_verified", "is_approved_host"),
+            #             ("identifier_type", "identifier"),
+            #             ("legal_name", "alt_name"),
+            #         ],
+            #     },
+            # ),
+            # *fieldsets[1:],
+        # ]
+        return fieldsets
 
     def get_object(self, request, object_id, from_field=None):
         obj = super().get_object(request=request, object_id=object_id, from_field=from_field)
@@ -5133,7 +5134,7 @@ class ContractAdmin(
         messages.info(
             request,
             mark_safe(
-                f"New report(s) initiated: "
+                "New report(s) initiated: "
                 + ", ".join(f'<a href="{r.update_url}" target="_blank">{r}</a>' for r in reports)
             ),
         )
