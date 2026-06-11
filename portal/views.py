@@ -1433,13 +1433,13 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                         _(f"The {self.object._meta.verbose_name} {self.object} was {state}."),
                     )
                 if self.model is models.Nomination and (a := self.object.application) and a.is_wip:
-                    old_state = a.object.state
+                    old_state = a.state
                     a.cancel(
                         request=request,
                         by=request.user,
                         description=description,
                     )
-                    state = a.object.state
+                    state = a.state
                     if state != old_state:
                         a.save()
                     messages.info(request, _(f"The application {a} has been cancelled."))
