@@ -530,6 +530,11 @@ urlpatterns = [
                     name="profile-protection-patterns",
                 ),
                 path(
+                    "protection-patterns/",
+                    views.profile_protection_patterns,
+                    name="person-protection-pattern-list",
+                ),
+                path(
                     "disable-protection-patterns/",
                     views.disable_profile_protection_patterns,
                     name="disable-profile-protection-patterns",
