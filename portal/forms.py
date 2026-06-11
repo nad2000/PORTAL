@@ -1,13 +1,8 @@
 import os
 from functools import partial
-from phonenumber_field.formfields import PhoneNumberField
-
 
 from crispy_forms.bootstrap import (
-    InlineCheckboxes,
-    InlineField,
     InlineRadios,
-    PrependedText,
     Tab,
     TabHolder,
 )
@@ -22,7 +17,6 @@ from crispy_forms.layout import (
     Div,
     Field,
     Fieldset,
-    Hidden,
     Layout,
     LayoutObject,
     Row,
@@ -37,7 +31,6 @@ from django.core.files.base import File
 from django.forms import (
     FileField,
     HiddenInput,
-    IntegerField,
     Widget,
     inlineformset_factory,
 )
@@ -48,10 +41,10 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
-from django.utils.translation import get_language
+from django.utils.translation import get_language, gettext_lazy
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
 from django_summernote.widgets import SummernoteInplaceWidget
+from phonenumber_field.formfields import PhoneNumberField
 from sentry_sdk import capture_message
 
 from . import models
@@ -3338,8 +3331,9 @@ class MemberFormSet(
         emails = [f.cleaned_data.get("email") for f in self.forms]
         emails = [v.strip().lower() for v in emails if v and v.strip()]
         for i, v in enumerate(emails[:-1]):
-            if v in emails[i + 1 :]:
-                self.add_error(None, _("You have entered email address {v} twice."))
+            if v in emails[i + 1:]:
+                if frm_idx := emails[i + 1:].index(v):
+                    self.forms[frm_idx].add_error(None, _(f"You have entered email address {v} twice."))
 
 
 class RefereeForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
@@ -4107,7 +4101,7 @@ class PanellistForm(ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not (self.instance and self.instance.site_id or self.site_id) in (2, 4, 5):
+        if (self.instance and self.instance.site_id or self.site_id) not in (2, 4, 5):
             self.fields.pop("panel", None)
             self.fields.pop("role", None)
             self.fields.pop("is_active", None)
@@ -4871,7 +4865,7 @@ class ReportForm(ModelForm):
                     )
                 )
             if round.has_fors:
-                for_info = f"""
+                for_info = """
                     The FOR classification allows R&D activity to be
                     categorised according to the field of research. In this
                     respect, it is the methodology used in the R&D that is

@@ -6083,7 +6083,7 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                                 form.add_error(
                                     None,
                                     _(
-                                        "Please correct the errors in member information: {f.errors}."
+                                        f"Please correct the errors in member information: {f.errors}."
                                     ),
                                 )
                                 raise ValidationError(_("Invalid member form"))
