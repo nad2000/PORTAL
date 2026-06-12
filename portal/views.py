@@ -11126,6 +11126,11 @@ class NominationView(CreateUpdateView):
                     ),
                 )
                 n.save()
+                url = invitation.url
+                messages.success(
+                    self.request,
+                    _(f"The inviation link is: {url} (also sent to your nominee's email)."),
+                )
                 reset_cache(self.request)
                 if return_url := self.request.GET.get("return_url"):
                     return redirect(f"{return_url}?selected_round={self.round.pk}")
