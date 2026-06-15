@@ -3215,9 +3215,10 @@ class MemberForm(FTEMixin, ReadOnlyFieldsMixin, FormWithStateFieldMixin, ModelFo
             and not self.instance.cv
         ):
             cv_file = self.cleaned_data["cv_file"]
+            user = self.instance
             cv, created = models.CurriculumVitae.get_or_create(
-                owner=self.instance.user,
-                person=self.instance.user.person,
+                owner=user,
+                person=user and user.person,
                 title=_(f"For application {self.instance.application.number}"),
                 defaults={"file": cv_file},
             )
