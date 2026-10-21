@@ -1433,13 +1433,13 @@ class DetailView(LoginRequiredMixin, SingleObjectMixin, DetailView):
                         _(f"The {self.object._meta.verbose_name} {self.object} was {state}."),
                     )
                 if self.model is models.Nomination and (a := self.object.application) and a.is_wip:
-                    old_state = a.object.state
+                    old_state = a.state
                     a.cancel(
                         request=request,
                         by=request.user,
                         description=description,
                     )
-                    state = a.object.state
+                    state = a.state
                     if state != old_state:
                         a.save()
                     messages.info(request, _(f"The application {a} has been cancelled."))
@@ -5028,9 +5028,14 @@ class ApplicationDetail(FavoriteMixin, DetailView):
             if "submit" in request.POST:
                 form = self.get_member_form(instance=member)
                 if form.is_valid():
-                    member = form.save(commit=False)
+                    if self.object and self.object.site_id == 2:
+                        member = form.save(commit=False)
+                    old_state = member.state
                     member.authorize(request)
-                    form.save(commit=True)
+                    if self.object and self.object.site_id == 2:
+                        form.save(commit=True)
+                    elif old_state != member.state:
+                        member.save()
                 else:
                     for e in form.errors:
                         messages.error(request, e)
@@ -5168,7 +5173,12 @@ class ApplicationDetail(FavoriteMixin, DetailView):
                 instance=instance,
                 initial=initial,
             )
-        return AuthorizationForm()
+        return AuthorizationForm(
+            self.request.POST or None,
+            # self.request.FILES or None,
+            # instance=instance,
+            initial=initial,
+        )
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -10577,6 +10587,14 @@ class PersonAddressView(CreateUpdateMixin, ProfileSectionMixin, UpdateView):
             p and p.phone or a and (a.daytime_phone or a.mobile_phone) or org and org.contact_phone
         )
         address = p and p.address or org and org.address or a and a.address
+
+        if not address and not (p and p.address):
+            m = models.Member.where(
+                    Q(user=u)|Q(email__in=u.emailaddress_set.values("email")),
+                    Q(org__isnull=False)|Q(application__org__isnull=False)).order_by("-pk").first()
+            if not org:
+                org = m and (m.org or m.application.org)
+            address = org and org.address
 
         if not (p and p.address) and address:
             if address.city:

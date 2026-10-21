@@ -348,7 +348,7 @@ Together, we can build a more sustainable, paperless future. Please consider fil
   <body>
     {html_message}
     {html_footer}
-    <-- The above footer is designed to be visually appealing and informative, while also conveying the importance of environmental responsibility. It includes a clear call to action, benefits of reading digitally, and a relevant quote to inspire sustainable behavior. The styling is clean and professional, using colors and fonts that align with the organization's branding. -->
+    <!-- The above footer is designed to be visually appealing and informative, while also conveying the importance of environmental responsibility. It includes a clear call to action, benefits of reading digitally, and a relevant quote to inspire sustainable behavior. The styling is clean and professional, using colors and fonts that align with the organization's branding. -->
     <div style="font-family: Arial, sans-serif; font-size: 13px; color: #2e3d30; line-height: 1.5; border-top: 1px solid #dcdcdc; padding-top: 12px; margin-top: 20px;">
         <!-- Main Eco Heading -->
         <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e5631;">
