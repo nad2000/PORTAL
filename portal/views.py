@@ -6833,6 +6833,9 @@ class ApplicationView(LoginRequiredMixin, NotesMixin, SingleObjectMixin):
                     if not current_state or current_state == "new":
                         a.save_draft(request=self.request)
                         a.save()
+                    elif "save" in self.request.POST and "letter_of_support_file" in form.changed_data:
+                        a.save()
+
                     if "send_invitations" in self.request.POST:
                         # url = self.request.path_info.split("?")[0] + "#referees"
                         if not url:
