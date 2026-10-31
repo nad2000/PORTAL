@@ -110,6 +110,7 @@ class UserAdmin(StaffViewPermsMixin, auth_admin.UserAdmin, SimpleHistoryAdmin):
         "full_name",
         "is_superuser",
         "date_joined",
+        "last_login",
         "is_site_staff",
     ]
     search_fields = [
